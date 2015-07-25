@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0-*",
+  "frameworks": {
+    "net45": {
+      "wrappedProject": "../../WopiDiscovery/WopiDiscovery.csproj",
+      "bin": {
+        "assembly": "../../WopiDiscovery/obj/{configuration}/WopiDiscovery.dll",
+        "pdb": "../../WopiDiscovery/obj/{configuration}/WopiDiscovery.pdb"
+      }
+    }
+  }
+}

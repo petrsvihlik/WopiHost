@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0-*",
+  "frameworks": {
+    "net452": {
+      "wrappedProject": "../../WopiHost.Urls/WopiHost.Urls.csproj",
+      "bin": {
+        "assembly": "../../WopiHost.Urls/obj/{configuration}/WopiHost.Urls.dll",
+        "pdb": "../../WopiHost.Urls/obj/{configuration}/WopiHost.Urls.pdb"
+      }
+    },
+    "net45": {
+      "wrappedProject": "../../WopiHost.Urls/WopiHost.Urls.csproj",
+      "bin": {
+        "assembly": "../../WopiHost.Urls/obj/{configuration}/WopiHost.Urls.dll",
+        "pdb": "../../WopiHost.Urls/obj/{configuration}/WopiHost.Urls.pdb"
+      },
+      "dependencies": {
+        "WopiDiscovery": "1.0.0-*",
+        "WopiHost.Contracts": "1.0.0-*"
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+﻿@using SampleWeb.Models
+@{
+    ViewBag.Title = "File list";
+}
+
+<div class="row">
+    <div class="col-md-4">
+        <h2>@ViewBag.Title.</h2>
+        <h3>@ViewBag.Message</h3>
+        <ul>
+            @foreach (FileModel f in @Model)
+            {
+                <a href="@f.FileUrl">@f.FileName</a>
+                <br />
+            }
+        </ul>
+
+    </div>
+</div>
