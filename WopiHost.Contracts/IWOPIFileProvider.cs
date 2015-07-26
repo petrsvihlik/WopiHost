@@ -2,15 +2,22 @@
 
 namespace WopiHost.Contracts
 {
+	/// <summary>
+	/// Provides concrete instances of IWopiFiles.
+	/// </summary>
 	public interface IWopiFileProvider
 	{
-        /// <summary>
-        /// Returns a concrete instance of an implementation of the <see cref="IWopiFile"/>.
-        /// </summary>
-        /// <param name="identifier">Generic string identifier of a file (typically some kind of a path).</param>
-        /// <returns>Instance of a file.</returns>
+		/// <summary>
+		/// Returns a concrete instance of an implementation of the <see cref="IWopiFile"/>.
+		/// </summary>
+		/// <param name="identifier">Generic string identifier of a file (typically some kind of a path).</param>
+		/// <returns>Instance of a file.</returns>
 		IWopiFile GetWopiFile(string identifier);
 
-	    List<IWopiFile> GetWopiFiles();
+		/// <summary>
+		/// Returns all files from the given source.
+		/// This method is very likely to change in the future.
+		/// </summary>
+		List<IWopiFile> GetWopiFiles();
 	}
 }

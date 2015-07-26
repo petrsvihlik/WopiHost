@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Cobalt;
@@ -108,7 +109,7 @@ namespace WopiHost.Controllers
         public async Task<IActionResult> PutContents(string id, [FromQuery]string access_token)
         {
             var editSession = GetEditSession(id);
-            editSession.Save(await Context.Request.Body.ReadBytesAsync());
+            editSession.SetFileContent(await Context.Request.Body.ReadBytesAsync());
             return new HttpStatusCodeResult((int)HttpStatusCode.OK);
         }
 
@@ -142,12 +143,9 @@ namespace WopiHost.Controllers
                 requestBatch.DeserializeInputFromProtocol(atomRequest, out ctx, out protocolVersion);
                 cobaltSession.ExecuteRequestBatch(requestBatch);
 
-                foreach (Request request in requestBatch.Requests)
+                if (requestBatch.Requests.Any(request => request.GetType() == typeof(PutChangesRequest) && request.PartitionId == FilePartitionId.Content))
                 {
-                    if (request.GetType() == typeof(PutChangesRequest) && request.PartitionId == FilePartitionId.Content)
-                    {
-                        editSession.Save();
-                    }
+	                editSession.Save();
                 }
                 var response = requestBatch.SerializeOutputToProtocol(protocolVersion);
 

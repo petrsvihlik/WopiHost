@@ -20,7 +20,7 @@ namespace WopiHost
             MemoryStream ms = new MemoryStream();
             lock (File)
             {
-                using (var stream = File.ReadStream)
+                using (var stream = File.GetReadStream())
                 {
                     stream.CopyTo(ms);
                 }
@@ -28,11 +28,11 @@ namespace WopiHost
             return ms.ToArray();
         }
 
-        public override void Save(byte[] newContent)
+        public override void SetFileContent(byte[] newContent)
         {
             lock (File)
             {
-                using (var stream = File.WriteStream)
+                using (var stream = File.GetWriteStream())
                 {
                     stream.Write(newContent, 0, newContent.Length);
                 }

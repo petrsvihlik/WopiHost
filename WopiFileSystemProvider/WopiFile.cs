@@ -6,6 +6,8 @@ namespace WopiFileSystemProvider
 {
 	public class WopiFile : IWopiFile
 	{
+		public string Identifier { get; }
+
 		protected FileInfo fileInfo;
 		protected string FilePath { get; set; }
 
@@ -13,14 +15,6 @@ namespace WopiFileSystemProvider
 		{
 			get { return fileInfo ?? (fileInfo = new FileInfo(FilePath)); }
 		}
-
-		public WopiFile(string filePath, string fileIdentifier)
-		{
-			FilePath = filePath;
-			Identifier = fileIdentifier;
-		}
-
-		public string Identifier { get; private set; }
 		public bool Exists
 		{
 			get
@@ -41,16 +35,6 @@ namespace WopiFileSystemProvider
 				return ext;
 			}
 		}
-		
-		public Stream ReadStream
-		{
-			get { return FileInfo.OpenRead(); }
-		}
-
-		public Stream WriteStream
-		{
-			get { return FileInfo.Open(FileMode.Truncate); } 
-		}
 
 		public long Length
 		{
@@ -68,6 +52,22 @@ namespace WopiFileSystemProvider
 		public DateTime LastWriteTimeUtc
 		{
 			get { return FileInfo.LastWriteTimeUtc; }
+		}
+
+		public WopiFile(string filePath, string fileIdentifier)
+		{
+			FilePath = filePath;
+			Identifier = fileIdentifier;
+		}
+
+		public Stream GetReadStream()
+		{
+			return FileInfo.OpenRead();
+		}
+
+		public Stream GetWriteStream()
+		{
+			return FileInfo.Open(FileMode.Truncate);
 		}
 	}
 }
