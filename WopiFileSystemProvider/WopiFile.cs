@@ -17,31 +17,31 @@ namespace WopiFileSystemProvider
 		public WopiFile(string filePath, string fileIdentifier)
 		{
 			FilePath = filePath;
-		    Identifier = fileIdentifier;
+			Identifier = fileIdentifier;
 		}
 
-	    public string Identifier { get; private set; }
+		public string Identifier { get; private set; }
 		public bool Exists
 		{
-		    get
-		    {
-                return FileInfo.Exists;
-		    }
+			get
+			{
+				return FileInfo.Exists;
+			}
 		}
 
-	    public string Extension
-	    {
-	        get
-	        {
-	            var ext = FileInfo.Extension;
-	            if (ext.StartsWith("."))
-	            {
-	                ext = ext.Substring(1);
-	            }
-	            return ext;
-	        }
-	    }
-        
+		public string Extension
+		{
+			get
+			{
+				var ext = FileInfo.Extension;
+				if (ext.StartsWith("."))
+				{
+					ext = ext.Substring(1);
+				}
+				return ext;
+			}
+		}
+		
 		public Stream ReadStream
 		{
 			get { return FileInfo.OpenRead(); }

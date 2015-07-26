@@ -28,7 +28,7 @@ namespace WopiHost
             return ms.ToArray();
         }
 
-        override public void Save(byte[] newContent)
+        public override void Save(byte[] newContent)
         {
             lock (File)
             {

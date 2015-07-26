@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using Cobalt;
@@ -90,11 +91,7 @@ namespace WopiHost.Controllers
         public FileResult GetContents(string id, [FromQuery]string access_token)
         {
             var editSession = GetEditSession(id);
-            //using (var stream = editSession.File.ReadStream)
-            //{
-            //    return new FileResult(stream, "application/octet-stream");
-            //}
-            return new FileResult(editSession.File.ReadStream, "application/octet-stream");
+            return new FileResult(editSession.GetFileContent(), "application/octet-stream");
         }
 
         /// <summary>
@@ -111,10 +108,7 @@ namespace WopiHost.Controllers
         public async Task<IActionResult> PutContents(string id, [FromQuery]string access_token)
         {
             var editSession = GetEditSession(id);
-            using (var stream = editSession.File.WriteStream)
-            {
-                await Context.Request.Body.CopyToAsync(stream);
-            }
+            editSession.Save(await Context.Request.Body.ReadBytesAsync());
             return new HttpStatusCodeResult((int)HttpStatusCode.OK);
         }
 
@@ -159,11 +153,10 @@ namespace WopiHost.Controllers
 
                 Context.Response.Headers.Add("X-WOPI-CorellationID", new[] { Context.Request.Headers["X-WOPI-CorrelationID"] });
                 Context.Response.Headers.Add("request-id", new[] { Context.Request.Headers["X-WOPI-CorrelationID"] });
-
-                MemoryStream responseStream = new MemoryStream();
-                response.CopyTo(responseStream);
-
-                return new FileResult(responseStream, "application/octet-stream");
+                
+                Action<Stream> copyToAction = s => { response.CopyTo(s); };
+                
+                return new FileResult(copyToAction, "application/octet-stream");
             }
             else if (wopiOverrideHeader.Equals("LOCK") || wopiOverrideHeader.Equals("UNLOCK") || wopiOverrideHeader.Equals("REFRESH_LOCK"))
             {

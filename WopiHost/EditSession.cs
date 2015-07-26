@@ -12,7 +12,7 @@ namespace WopiHost
             get { return File.Identifier; }
         }
 
-        public IWopiFile File { get; }
+        protected IWopiFile File { get; }
 
         public virtual bool IsCobaltSession { get; }
 
