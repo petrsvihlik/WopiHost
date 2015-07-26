@@ -5,18 +5,22 @@ Basically, it allows developers to connect Office Web Apps to any thinkable sour
 
 Motivation
 -------------
-The intention was to try out the new technologies like ASP.NET5 and MVC6 in some useful way.
+The intention was to try out the new technologies like ASP.NET 5 and MVC 6 in some useful way.
 
-Features
-----------
+Features / improvements
+-----------------------
+ - clean WebAPI built with MVC 6, no references to System.Web
  - automatically discovers capabilities of a WOPI client and acts accordingly
  - can be hosted as a web app as well as a windows application
  - file manipulation is extracted to own layer of abstraction (there is no dependency on System.IO)
- - the same applies to generation/validation of access tokens
+   - example implementation included (provider for Windows file system)
+   - file identifiers can be anything (doesn't have to correspond with the file's name in the file system)
+ - generation/validation of access tokens is also extracted to its own layer
  - concrete implementations are loaded using Autofac
  - URL generator
- - Configuration done via Microsoft.Framework.ConfigurationModel 
-
+ - Configuration done via Microsoft.Framework.ConfigurationModel
+ - all references are NuGets
+ 
 Usage
 =====
 
@@ -24,18 +28,17 @@ Prerequisites
 -------------
 
 1. VS2015 + .NET 4.6
-
 2. Following NuGet sources:
-* api.nuget.org (https://api.nuget.org/v3/index.json)
- * default NuGet source
-* AspNetVNext (https://www.myget.org/F/aspnetvnext/api/v2)
- * contains the latest vNext libraries
-* Autofac (https://www.myget.org/F/autofac/)
- * latest Autofac version compatible with vNext
-* Local (e.g. C:\Users\username\Documents\NuGet)
- * this will contain your Microsoft.CobaltCore.15.0.0.0.nupkg
+  * api.nuget.org (https://api.nuget.org/v3/index.json)
+    * default NuGet source
+  * AspNetVNext (https://www.myget.org/F/aspnetvnext/api/v2)
+    * contains the latest vNext libraries
+  * Autofac (https://www.myget.org/F/autofac/)
+    * latatest Autofac version compatible with vNext
+  * Local (e.g. C:\Users\username\Documents\NuGet)
+    * this will contain your Microsoft.CobaltCore.15.0.0.0.nupkg
 3. Microsoft.CobaltCore.15.0.0.0.nupkg. One of the dependencies is Microsoft.CobaltCore.dll. This DLL is part of Office Web Apps 2013 and its license doesn't allow public distribution and therefore it's not part of this repository. Please make sure you have a valid license to OWA 2013 before you start using it.
- 1. Locate Microsoft.CobaltCore.dll (you can find it in the GAC of the OWA server): C:\Windows\Microsoft.NET\assembly\GAC_MSIL\Microsoft.CobaltCore\v4.0_15.0.0.0__71e9bce111e9429c
+ 1. Locate Microsoft.CobaltCore.dll (you can find it in the GAC of the OWA server): `C:\Windows\Microsoft.NET\assembly\GAC_MSIL\Microsoft.CobaltCore\v4.0_15.0.0.0__71e9bce111e9429c`
  2. Install [NuGet Package Explorer](https://npe.codeplex.com/)
  3. Create new package, drop the dll in it and add some metadata
  4. Put the .nupkg to your local NuGet feed
@@ -43,26 +46,25 @@ Prerequisites
 Configuration
 -----------
 SampleWeb\Properties\launchSettings.json
-- WopiHostUrl - used by URL generator
-- WopiClientUrl - used by discovery module and for URL generation
-- WopiFileProviderAssemblyName - name of assembly containing implementation of WopiHost.Contracts interfaces
-- WopiRootPath - provider-specific setting used by WopiFileSystemProvider (which is an implementation of IWopiFileProvider working with System.IO)
+- `WopiHostUrl` - used by URL generator
+- `WopiClientUrl` - used by discovery module and for URL generation
+- `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Contracts interfaces
+- `WopiRootPath` - provider-specific setting used by WopiFileSystemProvider (which is an implementation of IWopiFileProvider working with System.IO)
 
 
 WopiHost\Properties\launchSettings.json
-- WopiClientUrl - used by discovery module and for URL generation
-- WopiFileProviderAssemblyName - name of assembly containing implementation of WopiHost.Contracts interfaces
-- WopiRootPath - provider-specific setting used by WopiFileSystemProvider (which is an implementation of IWopiFileProvider working with System.IO)
+- `WopiClientUrl` - used by discovery module and for URL generation
+- `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Contracts interfaces
+- `WopiRootPath` - provider-specific setting used by WopiFileSystemProvider (which is an implementation of IWopiFileProvider working with System.IO)
 
 Running the application
 -----------------------
-Once you've built the app you can:
+Once you've successfully built the app you can:
 
-- run it directly from the Visual Studio
- - in IIS Express
- - selfhosted ("web" command)  
-- run it from the console
- - navigate to the WopiHost folder and run "dnx . web"
+- run it directly from the Visual Studio (in IIS Express or selfhosted `web` command)
+  - make sure you set both `WopiHost` and `SampleWeb` as startup projects
+- run it from the `cmd`
+  - navigate to the WopiHost folder and run `dnx . web`
 
 Testing
 -------
@@ -95,18 +97,18 @@ Contributing
 https://msdn.microsoft.com/en-us/library/ms229042(v=vs.110).aspx
 
 License
-======
-Check out the LICENSE.txt, ORIGINAL_WORK_LICENSE.txt and NOTICE.txt.
+=======
+ - [LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt) - License for my part of the project
+ - [ORIGINAL_WORK_LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/ORIGINAL_WORK_LICENSE.txt) - License for Marx Yu's part of the project
+ - [NOTICE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/NOTICE.txt) - additional notes to how the licenses are applied
 
 Useful resources
 =============
-
 Building WOPI Host
 -----------------------
 http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx
 http://blogs.msdn.com/b/scicoria/archive/2013/07/22/building-an-office-web-apps-owa-wopi-host.aspx
 https://code.msdn.microsoft.com/office/Building-an-Office-Web-f98650d6
-
 
 Other relevant resources
 -----------------------------
@@ -114,7 +116,6 @@ http://www.asp.net/web-api/overview/formats-and-model-binding/parameter-binding-
 https://weblog.west-wind.com/posts/2009/Feb/05/Html-and-Uri-String-Encoding-without-SystemWeb
 http://blogs.msdn.com/b/scicoria/archive/2013/06/24/office-web-apps-wopi-host-and-url-paths.aspx
 http://weblogs.asp.net/imranbaloch/k-kvm-kpm-klr-kre-in-asp-net-vnext
-
 
 Building WOPI Client
 -------------------------
