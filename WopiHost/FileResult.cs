@@ -17,10 +17,13 @@ namespace WopiHost
 
         public async override Task ExecuteResultAsync(ActionContext context)
         {
-            var response = context.HttpContext.Response;
-            response.ContentType = ContentType;
-            Stream.Seek(0, SeekOrigin.Begin);
-            await Stream.CopyToAsync(context.HttpContext.Response.Body);
+            using (Stream)
+            {
+                var response = context.HttpContext.Response;
+                response.ContentType = ContentType;
+                Stream.Seek(0, SeekOrigin.Begin);
+                await Stream.CopyToAsync(context.HttpContext.Response.Body);
+            }
         }
     }
 }

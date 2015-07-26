@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Net;
+using System.Threading.Tasks;
 using Cobalt;
 using Microsoft.AspNet.Mvc;
 using Microsoft.Framework.ConfigurationModel;
@@ -89,10 +90,11 @@ namespace WopiHost.Controllers
         public FileResult GetContents(string id, [FromQuery]string access_token)
         {
             var editSession = GetEditSession(id);
-            using (var stream = editSession.File.ReadStream)
-            {
-                return new FileResult(stream, "application/octet-stream");
-            }
+            //using (var stream = editSession.File.ReadStream)
+            //{
+            //    return new FileResult(stream, "application/octet-stream");
+            //}
+            return new FileResult(editSession.File.ReadStream, "application/octet-stream");
         }
 
         /// <summary>
@@ -106,12 +108,12 @@ namespace WopiHost.Controllers
         [HttpPut("{id}/contents")]
         [HttpPost("{id}/contents")]
         [Produces("application/octet-stream")]
-        public IActionResult PutContents(string id, [FromQuery]string access_token)
+        public async Task<IActionResult> PutContents(string id, [FromQuery]string access_token)
         {
             var editSession = GetEditSession(id);
             using (var stream = editSession.File.WriteStream)
             {
-                Context.Request.Body.CopyToAsync(stream);
+                await Context.Request.Body.CopyToAsync(stream);
             }
             return new HttpStatusCodeResult((int)HttpStatusCode.OK);
         }
@@ -130,8 +132,9 @@ namespace WopiHost.Controllers
         public IActionResult PerformAction(string id, [FromQuery]string access_token)
         {
             var editSession = GetEditSession(id);
+            string wopiOverrideHeader = Context.Request.Headers["X-WOPI-Override"];
 
-            if (Context.Request.Headers["X-WOPI-Override"].Equals("COBALT"))
+            if (wopiOverrideHeader.Equals("COBALT"))
             {
                 CobaltSession cobaltSession = ((CobaltSession)editSession); //TODO: refactoring needed
                 var ms = new MemoryStream();
@@ -162,9 +165,7 @@ namespace WopiHost.Controllers
 
                 return new FileResult(responseStream, "application/octet-stream");
             }
-            else if (Context.Request.Headers["X-WOPI-Override"].Equals("LOCK") ||
-                     Context.Request.Headers["X-WOPI-Override"].Equals("UNLOCK") ||
-                     Context.Request.Headers["X-WOPI-Override"].Equals("REFRESH_LOCK"))
+            else if (wopiOverrideHeader.Equals("LOCK") || wopiOverrideHeader.Equals("UNLOCK") || wopiOverrideHeader.Equals("REFRESH_LOCK"))
             {
                 //TODO: implement locking
                 // https://msdn.microsoft.com/en-us/library/hh623363(v=office.12).aspx
