@@ -1,14 +1,14 @@
-#init:
-#  - git config --global core.autocrlf true
+init:
+  - git config --global core.autocrlf true
   
 install:
-  cmd: nuget sources add -Name api.nuget.org -Source https://api.nuget.org/v3/index.json
-  cmd: nuget sources add -Name AspNetVNext -Source https://www.myget.org/F/aspnetvnext/api/v2
-  cmd: nuget sources add -Name Autofac -Source https://www.myget.org/F/autofac/
+   - cmd: nuget sources add -Name api.nuget.org -Source https://api.nuget.org/v3/index.json
+   - cmd: nuget sources add -Name AspNetVNext -Source https://www.myget.org/F/aspnetvnext/api/v2
+   - cmd: nuget sources add -Name Autofac -Source https://www.myget.org/F/autofac/
 
 before_build:
-  ps: Set-ExecutionPolicy Unrestricted
-  ps: &{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}
-  ps: dnvm upgrade
-  ps: nuget restore
-  cmd: set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
+ -  ps: Set-ExecutionPolicy Unrestricted
+ -  ps: &{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}
+ -  ps: dnvm upgrade
+ -  ps: nuget restore
+ -  cmd: set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
