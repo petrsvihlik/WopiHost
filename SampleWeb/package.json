@@ -1,0 +1,15 @@
+{
+	"name": "SampleWeb",
+	"description": "A simple website that provides links for editing files via a WOPI Client",
+	"homepage" : "https://github.com/petrsvihlik/WopiHost",
+	"version": "1.0.0",
+	"author" : "Petr Svihlik",
+	"devDependencies": {
+		"gulp": "3.8.11",
+		"rimraf": "2.2.8"
+	},
+	"license": "BSD-3-Clause",
+	"repository": { "url": "https://github.com/petrsvihlik/WopiHost.git" },
+	"main": "",
+	"dependencies": { }
+}
