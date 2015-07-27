@@ -1,19 +1,17 @@
 ﻿@using SampleWeb.Models
 @{
-    ViewBag.Title = "File list";
+	ViewBag.Title = "WOPI File list";
 }
 
 <div class="row">
-    <div class="col-md-4">
-        <h2>@ViewBag.Title.</h2>
-        <h3>@ViewBag.Message</h3>
-        <ul>
-            @foreach (FileModel f in @Model)
-            {
-                <a href="@f.FileUrl">@f.FileName</a>
-                <br />
-            }
-        </ul>
+	<br/>
+	<div class="col-md-4">
+		<ul>
+			@foreach (FileModel f in @Model)
+			{
+				<li><a href="@f.FileUrl">@f.FileName</a></li>
+			}
+		</ul>
 
-    </div>
+	</div>
 </div>

@@ -30,7 +30,6 @@ namespace SampleWeb.Controllers
 
         public ActionResult Index()
         {
-            ViewBag.Message = "List of files.";
             return View(GetFiles());
         }
 

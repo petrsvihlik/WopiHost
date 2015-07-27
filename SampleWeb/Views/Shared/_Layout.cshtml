@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>@ViewBag.Title - BLA</title>
+        <title>@ViewBag.Title</title>
 
         <environment names="Development">
             <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.css" />
@@ -29,7 +29,7 @@
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
                     </button>
-                    <a asp-controller="Home" asp-action="Index" class="navbar-brand">BLA</a>
+                    <a asp-controller="Home" asp-action="Index" class="navbar-brand">@ViewBag.Title</a>
                 </div>
             </div>
         </div>
@@ -37,7 +37,7 @@
             @RenderBody()
             <hr />
             <footer>
-                <p>&copy; 2015 - BLA</p>
+                <p>&copy; 2015 Petr Švihlík</p>
             </footer>
         </div>
 
