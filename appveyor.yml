@@ -1,0 +1,19 @@
+nuget:
+  account_feed: true
+  
+init:
+  - git config --global core.autocrlf true
+  
+install:
+ - cmd: nuget sources add -Name api.nuget.org -Source https://api.nuget.org/v3/index.json
+ - cmd: nuget sources add -Name AspNetVNext -Source https://www.myget.org/F/aspnetvnext/api/v2
+ - cmd: nuget sources add -Name Autofac -Source https://www.myget.org/F/autofac/
+
+before_build:
+ - cmd: powershell -NoProfile -ExecutionPolicy unrestricted -Command "&{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}"
+ - ps: dnvm upgrade
+ - ps: npm cache clean
+ - ps: npm install -g gulp bower
+ - ps: dnu restore
+ - ps: nuget restore
+ - cmd: set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
