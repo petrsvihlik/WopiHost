@@ -137,23 +137,6 @@
           "lib/dnx451/EntityFramework.Relational.Design.dll": {}
         }
       },
-      "EntityFramework.SqlServer/7.0.0-beta5": {
-        "dependencies": {
-          "EntityFramework.Relational": "7.0.0-beta5"
-        },
-        "frameworkAssemblies": [
-          "mscorlib",
-          "System",
-          "System.Core",
-          "Microsoft.CSharp"
-        ],
-        "compile": {
-          "lib/net45/EntityFramework.SqlServer.dll": {}
-        },
-        "runtime": {
-          "lib/net45/EntityFramework.SqlServer.dll": {}
-        }
-      },
       "Ix-Async/1.2.3": {
         "frameworkAssemblies": [
           "System",
@@ -186,116 +169,6 @@
         },
         "runtime": {
           "lib/dnx451/Microsoft.AspNet.Authentication.dll": {}
-        }
-      },
-      "Microsoft.AspNet.Authentication.Cookies/1.0.0-beta5": {
-        "dependencies": {
-          "Microsoft.AspNet.Authentication": "1.0.0-beta5",
-          "Microsoft.Framework.WebEncoders": "1.0.0-beta5",
-          "Newtonsoft.Json": "6.0.6"
-        },
-        "frameworkAssemblies": [
-          "mscorlib",
-          "System",
-          "System.Core",
-          "Microsoft.CSharp"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.AspNet.Authentication.Cookies.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.AspNet.Authentication.Cookies.dll": {}
-        }
-      },
-      "Microsoft.AspNet.Authentication.Facebook/1.0.0-beta5": {
-        "dependencies": {
-          "Microsoft.AspNet.Authentication.OAuth": "1.0.0-beta5",
-          "Newtonsoft.Json": "6.0.6"
-        },
-        "frameworkAssemblies": [
-          "mscorlib",
-          "System",
-          "System.Core",
-          "Microsoft.CSharp"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.AspNet.Authentication.Facebook.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.AspNet.Authentication.Facebook.dll": {}
-        }
-      },
-      "Microsoft.AspNet.Authentication.Google/1.0.0-beta5": {
-        "dependencies": {
-          "Microsoft.AspNet.Authentication.OAuth": "1.0.0-beta5"
-        },
-        "frameworkAssemblies": [
-          "mscorlib",
-          "System",
-          "System.Core",
-          "Microsoft.CSharp"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.AspNet.Authentication.Google.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.AspNet.Authentication.Google.dll": {}
-        }
-      },
-      "Microsoft.AspNet.Authentication.MicrosoftAccount/1.0.0-beta5": {
-        "dependencies": {
-          "Microsoft.AspNet.Authentication.OAuth": "1.0.0-beta5"
-        },
-        "frameworkAssemblies": [
-          "mscorlib",
-          "System",
-          "System.Core",
-          "Microsoft.CSharp"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.AspNet.Authentication.MicrosoftAccount.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.AspNet.Authentication.MicrosoftAccount.dll": {}
-        }
-      },
-      "Microsoft.AspNet.Authentication.OAuth/1.0.0-beta5": {
-        "dependencies": {
-          "Microsoft.AspNet.Authentication": "1.0.0-beta5",
-          "Newtonsoft.Json": "6.0.6"
-        },
-        "frameworkAssemblies": [
-          "System.Net.Http.WebRequest",
-          "System.Net.Http",
-          "mscorlib",
-          "System",
-          "System.Core",
-          "Microsoft.CSharp"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.AspNet.Authentication.OAuth.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.AspNet.Authentication.OAuth.dll": {}
-        }
-      },
-      "Microsoft.AspNet.Authentication.Twitter/1.0.0-beta5": {
-        "dependencies": {
-          "Microsoft.AspNet.Authentication": "1.0.0-beta5"
-        },
-        "frameworkAssemblies": [
-          "System.Net.Http.WebRequest",
-          "System.Net.Http",
-          "mscorlib",
-          "System",
-          "System.Core",
-          "Microsoft.CSharp"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.AspNet.Authentication.Twitter.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.AspNet.Authentication.Twitter.dll": {}
         }
       },
       "Microsoft.AspNet.Authorization/1.0.0-beta5": {
@@ -368,23 +241,6 @@
         },
         "runtime": {
           "lib/dnx451/Microsoft.AspNet.Cryptography.Internal.dll": {}
-        }
-      },
-      "Microsoft.AspNet.Cryptography.KeyDerivation/1.0.0-beta5": {
-        "dependencies": {
-          "Microsoft.AspNet.Cryptography.Internal": "1.0.0-beta5"
-        },
-        "frameworkAssemblies": [
-          "mscorlib",
-          "System",
-          "System.Core",
-          "Microsoft.CSharp"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.AspNet.Cryptography.KeyDerivation.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.AspNet.Cryptography.KeyDerivation.dll": {}
         }
       },
       "Microsoft.AspNet.DataProtection/1.0.0-beta5": {
@@ -670,45 +526,6 @@
         },
         "runtime": {
           "lib/dnx451/Microsoft.AspNet.Http.Features.dll": {}
-        }
-      },
-      "Microsoft.AspNet.Identity/3.0.0-beta5": {
-        "dependencies": {
-          "Microsoft.AspNet.Authentication.Cookies": "1.0.0-beta5",
-          "Microsoft.AspNet.Cryptography.KeyDerivation": "1.0.0-beta5",
-          "Microsoft.AspNet.DataProtection": "1.0.0-beta5",
-          "Microsoft.AspNet.Hosting.Abstractions": "1.0.0-beta5"
-        },
-        "frameworkAssemblies": [
-          "mscorlib",
-          "System",
-          "System.Core",
-          "Microsoft.CSharp"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.AspNet.Identity.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.AspNet.Identity.dll": {}
-        }
-      },
-      "Microsoft.AspNet.Identity.EntityFramework/3.0.0-beta5": {
-        "dependencies": {
-          "Microsoft.AspNet.Identity": "3.0.0-beta5",
-          "EntityFramework.SqlServer": "7.0.0-beta5"
-        },
-        "frameworkAssemblies": [
-          "System.Threading.Tasks",
-          "mscorlib",
-          "System",
-          "System.Core",
-          "Microsoft.CSharp"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.AspNet.Identity.EntityFramework.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.AspNet.Identity.EntityFramework.dll": {}
         }
       },
       "Microsoft.AspNet.JsonPatch/1.0.0-beta5": {
@@ -1379,23 +1196,6 @@
           "lib/dnx451/Microsoft.Framework.ConfigurationModel.Json.dll": {}
         }
       },
-      "Microsoft.Framework.ConfigurationModel.UserSecrets/1.0.0-beta5-10298": {
-        "dependencies": {
-          "Microsoft.Framework.ConfigurationModel.Json": "1.0.0-beta5-11337"
-        },
-        "frameworkAssemblies": [
-          "mscorlib",
-          "System",
-          "System.Core",
-          "Microsoft.CSharp"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.Framework.ConfigurationModel.UserSecrets.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.Framework.ConfigurationModel.UserSecrets.dll": {}
-        }
-      },
       "Microsoft.Framework.DependencyInjection/1.0.0-beta5": {
         "dependencies": {
           "Microsoft.Framework.DependencyInjection.Abstractions": "1.0.0-beta5"
@@ -1840,19 +1640,6 @@
         "lib/netcore50/_._"
       ]
     },
-    "EntityFramework.SqlServer/7.0.0-beta5": {
-      "serviceable": true,
-      "sha512": "7m+q6sbyL5l4Q+lpCnta5m82WSAVAry89r0WEuFfqSzxaTAiGZZ4ZSu5I8RkrF18JOF2dyqSVSQalZfPpE5koA==",
-      "files": [
-        "EntityFramework.SqlServer.7.0.0-beta5.nupkg",
-        "EntityFramework.SqlServer.7.0.0-beta5.nupkg.sha512",
-        "EntityFramework.SqlServer.nuspec",
-        "lib/dnxcore50/EntityFramework.SqlServer.dll",
-        "lib/dnxcore50/EntityFramework.SqlServer.xml",
-        "lib/net45/EntityFramework.SqlServer.dll",
-        "lib/net45/EntityFramework.SqlServer.xml"
-      ]
-    },
     "Ix-Async/1.2.3": {
       "sha512": "ytmPAD08eQL81pJRSjl13uN2cATHgOSGELx4uKnkFcI9fu9d+l2XlOdpXkqnJvFp/85svr65yatzDzNNIMD8Lg==",
       "files": [
@@ -1878,84 +1665,6 @@
         "lib/dnx451/Microsoft.AspNet.Authentication.xml",
         "lib/dnxcore50/Microsoft.AspNet.Authentication.dll",
         "lib/dnxcore50/Microsoft.AspNet.Authentication.xml"
-      ]
-    },
-    "Microsoft.AspNet.Authentication.Cookies/1.0.0-beta5": {
-      "serviceable": true,
-      "sha512": "slpGZOh7Gp8YFE9cdlzce67LFUAspBAp6WfjzhH270Ck/D8lzY83DiDLe2IQOhgH+MxlYi+r4bb7PvOhmoSM7g==",
-      "files": [
-        "Microsoft.AspNet.Authentication.Cookies.1.0.0-beta5.nupkg",
-        "Microsoft.AspNet.Authentication.Cookies.1.0.0-beta5.nupkg.sha512",
-        "Microsoft.AspNet.Authentication.Cookies.nuspec",
-        "lib/dnx451/Microsoft.AspNet.Authentication.Cookies.dll",
-        "lib/dnx451/Microsoft.AspNet.Authentication.Cookies.xml",
-        "lib/dnxcore50/Microsoft.AspNet.Authentication.Cookies.dll",
-        "lib/dnxcore50/Microsoft.AspNet.Authentication.Cookies.xml"
-      ]
-    },
-    "Microsoft.AspNet.Authentication.Facebook/1.0.0-beta5": {
-      "serviceable": true,
-      "sha512": "iBqWKsJPCS+ajVOrd4QQsuQ16Q6hNL5aCESEjyVlGLJXJbqMPkWraKxTWRJYNLm1PN8cKXkAhuB4v91hqne1Pg==",
-      "files": [
-        "Microsoft.AspNet.Authentication.Facebook.1.0.0-beta5.nupkg",
-        "Microsoft.AspNet.Authentication.Facebook.1.0.0-beta5.nupkg.sha512",
-        "Microsoft.AspNet.Authentication.Facebook.nuspec",
-        "lib/dnx451/Microsoft.AspNet.Authentication.Facebook.dll",
-        "lib/dnx451/Microsoft.AspNet.Authentication.Facebook.xml",
-        "lib/dnxcore50/Microsoft.AspNet.Authentication.Facebook.dll",
-        "lib/dnxcore50/Microsoft.AspNet.Authentication.Facebook.xml"
-      ]
-    },
-    "Microsoft.AspNet.Authentication.Google/1.0.0-beta5": {
-      "serviceable": true,
-      "sha512": "H0nhpZSn0U49CTURDESV9AB7t/WqssJiOOy4h61euZ+D0BvAsxzbm9fhvY3Nsm3LXesPeJy/y6SLtwh4g0u4mw==",
-      "files": [
-        "Microsoft.AspNet.Authentication.Google.1.0.0-beta5.nupkg",
-        "Microsoft.AspNet.Authentication.Google.1.0.0-beta5.nupkg.sha512",
-        "Microsoft.AspNet.Authentication.Google.nuspec",
-        "lib/dnx451/Microsoft.AspNet.Authentication.Google.dll",
-        "lib/dnx451/Microsoft.AspNet.Authentication.Google.xml",
-        "lib/dnxcore50/Microsoft.AspNet.Authentication.Google.dll",
-        "lib/dnxcore50/Microsoft.AspNet.Authentication.Google.xml"
-      ]
-    },
-    "Microsoft.AspNet.Authentication.MicrosoftAccount/1.0.0-beta5": {
-      "serviceable": true,
-      "sha512": "BobLYVa3LuUXJlTN0A5gwM5h/HVE/2kVtTS/JQJcLZwMwU9IcDQWlEoDx+9NBsNYa9Af9RAfimrC3fQdUUqaUA==",
-      "files": [
-        "Microsoft.AspNet.Authentication.MicrosoftAccount.1.0.0-beta5.nupkg",
-        "Microsoft.AspNet.Authentication.MicrosoftAccount.1.0.0-beta5.nupkg.sha512",
-        "Microsoft.AspNet.Authentication.MicrosoftAccount.nuspec",
-        "lib/dnx451/Microsoft.AspNet.Authentication.MicrosoftAccount.dll",
-        "lib/dnx451/Microsoft.AspNet.Authentication.MicrosoftAccount.xml",
-        "lib/dnxcore50/Microsoft.AspNet.Authentication.MicrosoftAccount.dll",
-        "lib/dnxcore50/Microsoft.AspNet.Authentication.MicrosoftAccount.xml"
-      ]
-    },
-    "Microsoft.AspNet.Authentication.OAuth/1.0.0-beta5": {
-      "serviceable": true,
-      "sha512": "BiqoBm029GJULff0YlvBv3A1aH7MdHhJaV6RkMKDxFtIN2r2KwK9eNsEKvpYgv7jwqbX/mhMzrcp5jKld3+Mlw==",
-      "files": [
-        "Microsoft.AspNet.Authentication.OAuth.1.0.0-beta5.nupkg",
-        "Microsoft.AspNet.Authentication.OAuth.1.0.0-beta5.nupkg.sha512",
-        "Microsoft.AspNet.Authentication.OAuth.nuspec",
-        "lib/dnx451/Microsoft.AspNet.Authentication.OAuth.dll",
-        "lib/dnx451/Microsoft.AspNet.Authentication.OAuth.xml",
-        "lib/dnxcore50/Microsoft.AspNet.Authentication.OAuth.dll",
-        "lib/dnxcore50/Microsoft.AspNet.Authentication.OAuth.xml"
-      ]
-    },
-    "Microsoft.AspNet.Authentication.Twitter/1.0.0-beta5": {
-      "serviceable": true,
-      "sha512": "kyXpMJ3kKloDCa5t9SHtM9bTuAwjF4UoNWtarfOVztyJdPOXEQue1XgbGrXgAnqSCsl2PQPELQDKWCuGX7GTUA==",
-      "files": [
-        "Microsoft.AspNet.Authentication.Twitter.1.0.0-beta5.nupkg",
-        "Microsoft.AspNet.Authentication.Twitter.1.0.0-beta5.nupkg.sha512",
-        "Microsoft.AspNet.Authentication.Twitter.nuspec",
-        "lib/dnx451/Microsoft.AspNet.Authentication.Twitter.dll",
-        "lib/dnx451/Microsoft.AspNet.Authentication.Twitter.xml",
-        "lib/dnxcore50/Microsoft.AspNet.Authentication.Twitter.dll",
-        "lib/dnxcore50/Microsoft.AspNet.Authentication.Twitter.xml"
       ]
     },
     "Microsoft.AspNet.Authorization/1.0.0-beta5": {
@@ -2010,21 +1719,6 @@
         "lib/dnxcore50/Microsoft.AspNet.Cryptography.Internal.xml",
         "lib/net451/Microsoft.AspNet.Cryptography.Internal.dll",
         "lib/net451/Microsoft.AspNet.Cryptography.Internal.xml"
-      ]
-    },
-    "Microsoft.AspNet.Cryptography.KeyDerivation/1.0.0-beta5": {
-      "serviceable": true,
-      "sha512": "+WNScZ3xDqJLOd/DCSt/mwrFbhBL3EsG2SVptZuGz0n6aeEgaV/I5WHZz75IvbEWQolc9m0I/GW8Nz6LXmEVsg==",
-      "files": [
-        "Microsoft.AspNet.Cryptography.KeyDerivation.1.0.0-beta5.nupkg",
-        "Microsoft.AspNet.Cryptography.KeyDerivation.1.0.0-beta5.nupkg.sha512",
-        "Microsoft.AspNet.Cryptography.KeyDerivation.nuspec",
-        "lib/dnx451/Microsoft.AspNet.Cryptography.KeyDerivation.dll",
-        "lib/dnx451/Microsoft.AspNet.Cryptography.KeyDerivation.xml",
-        "lib/dnxcore50/Microsoft.AspNet.Cryptography.KeyDerivation.dll",
-        "lib/dnxcore50/Microsoft.AspNet.Cryptography.KeyDerivation.xml",
-        "lib/net451/Microsoft.AspNet.Cryptography.KeyDerivation.dll",
-        "lib/net451/Microsoft.AspNet.Cryptography.KeyDerivation.xml"
       ]
     },
     "Microsoft.AspNet.DataProtection/1.0.0-beta5": {
@@ -2227,32 +1921,6 @@
         "lib/dnx451/Microsoft.AspNet.Http.Features.xml",
         "lib/dnxcore50/Microsoft.AspNet.Http.Features.dll",
         "lib/dnxcore50/Microsoft.AspNet.Http.Features.xml"
-      ]
-    },
-    "Microsoft.AspNet.Identity/3.0.0-beta5": {
-      "serviceable": true,
-      "sha512": "EPvARm3E3xsIlPGQbEdCLv9ZU3uWwa8JJJo+2xAWoLRu1V4mMwz8M8RZJHCiPzBrlgN4cv0ekKUllI67veXLVg==",
-      "files": [
-        "Microsoft.AspNet.Identity.3.0.0-beta5.nupkg",
-        "Microsoft.AspNet.Identity.3.0.0-beta5.nupkg.sha512",
-        "Microsoft.AspNet.Identity.nuspec",
-        "lib/dnx451/Microsoft.AspNet.Identity.dll",
-        "lib/dnx451/Microsoft.AspNet.Identity.xml",
-        "lib/dnxcore50/Microsoft.AspNet.Identity.dll",
-        "lib/dnxcore50/Microsoft.AspNet.Identity.xml"
-      ]
-    },
-    "Microsoft.AspNet.Identity.EntityFramework/3.0.0-beta5": {
-      "serviceable": true,
-      "sha512": "TbzzcLIVW2dwwbZ3uQg5cFOfE02pi7niYE3KLsv9Igghw+wEP3iRdh7pmgmucknCiNjY46WmJ7zIlV2ChdRL5A==",
-      "files": [
-        "Microsoft.AspNet.Identity.EntityFramework.3.0.0-beta5.nupkg",
-        "Microsoft.AspNet.Identity.EntityFramework.3.0.0-beta5.nupkg.sha512",
-        "Microsoft.AspNet.Identity.EntityFramework.nuspec",
-        "lib/dnx451/Microsoft.AspNet.Identity.EntityFramework.dll",
-        "lib/dnx451/Microsoft.AspNet.Identity.EntityFramework.xml",
-        "lib/dnxcore50/Microsoft.AspNet.Identity.EntityFramework.dll",
-        "lib/dnxcore50/Microsoft.AspNet.Identity.EntityFramework.xml"
       ]
     },
     "Microsoft.AspNet.JsonPatch/1.0.0-beta5": {
@@ -2824,19 +2492,6 @@
         "lib/net45/Microsoft.Framework.ConfigurationModel.Json.xml"
       ]
     },
-    "Microsoft.Framework.ConfigurationModel.UserSecrets/1.0.0-beta5-10298": {
-      "serviceable": true,
-      "sha512": "eCwFFv/UqQVVAxIjlFt35MjcbSCWtybPjN0oV3lTudXPFahIGfL7r2KunlKr1KHRm+wOadjzm3c9aF+UiXfelw==",
-      "files": [
-        "Microsoft.Framework.ConfigurationModel.UserSecrets.1.0.0-beta5-10298.nupkg",
-        "Microsoft.Framework.ConfigurationModel.UserSecrets.1.0.0-beta5-10298.nupkg.sha512",
-        "Microsoft.Framework.ConfigurationModel.UserSecrets.nuspec",
-        "lib/dnx451/Microsoft.Framework.ConfigurationModel.UserSecrets.dll",
-        "lib/dnx451/Microsoft.Framework.ConfigurationModel.UserSecrets.xml",
-        "lib/dnxcore50/Microsoft.Framework.ConfigurationModel.UserSecrets.dll",
-        "lib/dnxcore50/Microsoft.Framework.ConfigurationModel.UserSecrets.xml"
-      ]
-    },
     "Microsoft.Framework.DependencyInjection/1.0.0-beta5": {
       "serviceable": true,
       "sha512": "Jau27ULONglLGNu4FAwk7XjC3JXB4LsSWb8QsSlCotiJmOXHG7x+MEVz0nAgmFFkN2VGjFjK0Klnz0z9aDaBaw==",
@@ -3149,24 +2804,16 @@
   },
   "projectFileDependencyGroups": {
     "": [
-      "EntityFramework.SqlServer >= 7.0.0-beta5",
       "EntityFramework.Commands >= 7.0.0-beta5",
       "Microsoft.AspNet.Mvc >= 6.0.0-beta5",
       "Microsoft.AspNet.Mvc.TagHelpers >= 6.0.0-beta5",
-      "Microsoft.AspNet.Authentication.Cookies >= 1.0.0-beta5",
-      "Microsoft.AspNet.Authentication.Facebook >= 1.0.0-beta5",
-      "Microsoft.AspNet.Authentication.Google >= 1.0.0-beta5",
-      "Microsoft.AspNet.Authentication.MicrosoftAccount >= 1.0.0-beta5",
-      "Microsoft.AspNet.Authentication.Twitter >= 1.0.0-beta5",
       "Microsoft.AspNet.Diagnostics >= 1.0.0-beta5",
       "Microsoft.AspNet.Diagnostics.Entity >= 7.0.0-beta5",
-      "Microsoft.AspNet.Identity.EntityFramework >= 3.0.0-beta5",
       "Microsoft.AspNet.Server.IIS >= 1.0.0-beta5",
       "Microsoft.AspNet.Server.WebListener >= 1.0.0-beta5",
       "Microsoft.AspNet.StaticFiles >= 1.0.0-beta5",
       "Microsoft.AspNet.Tooling.Razor >= 1.0.0-beta5",
       "Microsoft.Framework.ConfigurationModel.Json >= 1.0.0-beta5-11337",
-      "Microsoft.Framework.ConfigurationModel.UserSecrets >= 1.0.0-beta5-10298",
       "Microsoft.Framework.CodeGenerators.Mvc >= 1.0.0-beta5",
       "Microsoft.Framework.Logging >= 1.0.0-beta5",
       "Microsoft.Framework.Logging.Console >= 1.0.0-beta5",
