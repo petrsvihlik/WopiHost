@@ -1,5 +1,7 @@
 Introduction
 ==========
+[![Build status](https://ci.appveyor.com/api/projects/status/l7jn00f4fxydpbed?svg=true)](https://ci.appveyor.com/project/petrsvihlik/wopihost)
+
 This project is an example implementation of a [WOPI host](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx). It's based on [Marx Yu's project](https://github.com/marx-yu/WopiHost). WOPI host allows Office Web Apps or any other WOPI client to consume documents.
 Basically, it allows developers to connect Office Web Apps to any thinkable source of data. (Requires implementation of a few interfaces.)
 
