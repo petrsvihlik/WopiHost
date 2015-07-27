@@ -1,5 +1,6 @@
 {
-  "name": "ASP.NET",
+	"name": "ASP.NET",
+	"description": "This is needed apparently :)",
   "version": "0.0.0",
   "devDependencies": {
     "gulp": "3.8.11",
