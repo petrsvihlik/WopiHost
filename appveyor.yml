@@ -11,6 +11,7 @@ install:
 
 before_build:
  - cmd: powershell -NoProfile -ExecutionPolicy unrestricted -Command "&{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}"
+ - ps: dnvm install 1.0.0-beta5
  - ps: dnvm upgrade
  - ps: npm cache clean
  - ps: npm install -g gulp bower
