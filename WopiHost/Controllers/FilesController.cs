@@ -113,7 +113,7 @@ namespace WopiHost.Controllers
             return new HttpStatusCodeResult((int)HttpStatusCode.OK);
         }
 
-
+		
         /// <summary>
         /// Changes the contents of the file in accordance with [MS-FSSHTTP] and performs other operations like locking.
         /// MS-FSSHTTP Specification: https://msdn.microsoft.com/en-us/library/dd943623.aspx
@@ -158,15 +158,19 @@ namespace WopiHost.Controllers
             }
             else if (wopiOverrideHeader.Equals("LOCK") || wopiOverrideHeader.Equals("UNLOCK") || wopiOverrideHeader.Equals("REFRESH_LOCK"))
             {
-                //TODO: implement locking
-                // https://msdn.microsoft.com/en-us/library/hh623363(v=office.12).aspx
+				//TODO: implement locking
+				// https://msdn.microsoft.com/en-us/library/hh623363(v=office.12).aspx
 
-                //TODO: Replace the else-if with separate methods (e.g. use actionselector?)
-                // https://artokai.wordpress.com/2013/10/04/asp-net-mvc-header-based-routing/
-                // https://artokai.wordpress.com/2013/10/
-                // http://stackoverflow.com/questions/12344522/how-to-append-a-prefix-to-action-name-according-to-a-particular-route
 
-                return new HttpStatusCodeResult((int)HttpStatusCode.OK);
+				//http://weblogs.asp.net/jongalloway//looking-at-asp-net-mvc-5-1-and-web-api-2-1-part-2-attribute-routing-with-custom-constraints
+				//http://blogs.msdn.com/b/webdev/archive/2013/10/17/attribute-routing-in-asp-net-mvc-5.aspx
+
+				//TODO: Replace the else-if with separate methods (e.g. use actionselector?)
+				// https://artokai.wordpress.com/2013/10/04/asp-net-mvc-header-based-routing/
+				// https://artokai.wordpress.com/2013/10/
+				// http://stackoverflow.com/questions/12344522/how-to-append-a-prefix-to-action-name-according-to-a-particular-route
+
+				return new HttpStatusCodeResult((int)HttpStatusCode.OK);
 
             }
             else
@@ -175,5 +179,6 @@ namespace WopiHost.Controllers
                 return new HttpStatusCodeResult((int)HttpStatusCode.NotImplemented);
             }
         }
-    }
+
+	}
 }
