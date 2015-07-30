@@ -29,7 +29,7 @@ Usage
 Prerequisites
 -------------
 
-1. VS2015 + .NET 4.6
+1. [Visual Studio 2015](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) + [ASP.NET 5 beta 6](http://blogs.msdn.com/b/webdev/archive/2015/07/27/announcing-availability-of-asp-net-5-beta-6.aspx)
 2. Following NuGet sources:
   * api.nuget.org (https://api.nuget.org/v3/index.json)
     * default NuGet source
