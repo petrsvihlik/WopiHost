@@ -64,7 +64,7 @@ Running the application
 Once you've successfully built the app you can:
 
 - run it directly from the Visual Studio (in IIS Express or selfhosted `web` command)
-  - make sure you set both `WopiHost` and `SampleWeb` as startup projects
+  - make sure you set both `WopiHost` and `SampleWeb` as [startup projects](/img/multiple_projects.png?raw=true)
 - run it from the `cmd`
   - navigate to the WopiHost folder and run `dnx . web`
 
