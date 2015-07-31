@@ -101,6 +101,7 @@ Useful resources
 =============
 Building WOPI Host
 -----------------------
+!!! NEW & SUPERCOOL: http://wopi.readthedocs.org/en/latest/intro.html
 http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx
 http://blogs.msdn.com/b/scicoria/archive/2013/07/22/building-an-office-web-apps-owa-wopi-host.aspx
 https://code.msdn.microsoft.com/office/Building-an-Office-Web-f98650d6
