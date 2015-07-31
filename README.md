@@ -83,16 +83,9 @@ TODO
 
 Known issues / TODOs
 ==================
-There is plenty of space for improvements in the overall architecture, implementation of the [MS-*] protocols or just finishing the TODOs in the code. Lot of refactoring still needs to be done and also to code style has to be unified. So please feel free to help me out with it :)
+There is plenty of space for improvements in the overall architecture, implementation of the [MS-*] protocols or just finishing the TODOs in the code. Lot of refactoring still needs to be done and also the code style has to be unified. So please feel free to help me out with it :)
 
-- logging is not implemented
- - https://github.com/NLog/NLog/wiki/Tutorial
- - http://blog.tonysneed.com/2011/10/09/using-nlog-with-dependency-injection/
- - http://nlog-project.org/2011/04/20/exception-logging-enhancements.html
- - Microsoft.AspNet.Diagnostics
-- doesn't support coauthoring
-- not all status codes are implemented https://msdn.microsoft.com/en-us/library/hh657364(v=office.12).aspx 
-- locking is not implemented
+ - Check out [open issues](https://github.com/petrsvihlik/WopiHost/issues?q=is%3Aopen)
 
 Contributing
 ==========
