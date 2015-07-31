@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Cobalt;
 using WopiHost.Contracts;
+using System.Linq;
 
 namespace WopiHost
 {
@@ -104,7 +105,7 @@ namespace WopiHost
 			return ms.ToArray();
 		}
 
-		public override void Save()
+		public void Save()
 		{
 			lock (File)
 			{
@@ -123,7 +124,31 @@ namespace WopiHost
 
 		public override void Dispose()
 		{
+			// Save the changes to the file
+			Save();
+
 			Disposal.Dispose();
+		}
+
+		public override Action<Stream> SetFileContent(byte[] newContent)
+		{
+			// Refactoring tip: there are more ways of initializing Atom
+			AtomFromByteArray atomRequest = new AtomFromByteArray(newContent);
+			RequestBatch requestBatch = new RequestBatch();
+
+			object ctx;
+			ProtocolVersion protocolVersion;
+
+			requestBatch.DeserializeInputFromProtocol(atomRequest, out ctx, out protocolVersion);
+			ExecuteRequestBatch(requestBatch);
+
+			if (requestBatch.Requests.Any(request => request.GetType() == typeof(PutChangesRequest) && request.PartitionId == FilePartitionId.Content))
+			{
+				Save();
+			}
+			var response = requestBatch.SerializeOutputToProtocol(protocolVersion);
+			Action<Stream> copyToAction = s => { response.CopyTo(s); };
+			return copyToAction;
 		}
 	}
 }

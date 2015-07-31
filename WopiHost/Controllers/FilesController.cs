@@ -1,9 +1,5 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Threading.Tasks;
-using Cobalt;
 using Microsoft.AspNet.Mvc;
 using Microsoft.Framework.ConfigurationModel;
 using WopiDiscovery;
@@ -123,37 +119,19 @@ namespace WopiHost.Controllers
 		/// <param name="access_token"></param>
 		[HttpPost("{id}")]
 		[Produces("application/octet-stream", "text/html")]
-		public IActionResult PerformAction(string id, [FromQuery]string access_token)
+		public async Task<IActionResult> PerformAction(string id, [FromQuery]string access_token)
 		{
 			var editSession = GetEditSession(id);
 			string wopiOverrideHeader = Context.Request.Headers["X-WOPI-Override"];
 
 			if (wopiOverrideHeader.Equals("COBALT"))
 			{
-				CobaltSession cobaltSession = ((CobaltSession)editSession); //TODO: refactoring needed
-				var ms = new MemoryStream();
-				Context.Request.Body.CopyTo(ms);
-				var atomRequest = new AtomFromStream(ms); //TODO: Take a look at other AtomFrom*** classes
-				RequestBatch requestBatch = new RequestBatch();
-
-				object ctx;
-				ProtocolVersion protocolVersion;
-
-				requestBatch.DeserializeInputFromProtocol(atomRequest, out ctx, out protocolVersion);
-				cobaltSession.ExecuteRequestBatch(requestBatch);
-
-				if (requestBatch.Requests.Any(request => request.GetType() == typeof(PutChangesRequest) && request.PartitionId == FilePartitionId.Content))
-				{
-					editSession.Save();
-				}
-				var response = requestBatch.SerializeOutputToProtocol(protocolVersion);
+				var responseAction = editSession.SetFileContent(await Context.Request.Body.ReadBytesAsync());
 
 				Context.Response.Headers.Add("X-WOPI-CorellationID", new[] { Context.Request.Headers["X-WOPI-CorrelationID"] });
 				Context.Response.Headers.Add("request-id", new[] { Context.Request.Headers["X-WOPI-CorrelationID"] });
 
-				Action<Stream> copyToAction = s => { response.CopyTo(s); };
-
-				return new FileResult(copyToAction, "application/octet-stream");
+				return new FileResult(responseAction, "application/octet-stream");
 			}
 			else if (wopiOverrideHeader.Equals("LOCK") || wopiOverrideHeader.Equals("UNLOCK") || wopiOverrideHeader.Equals("REFRESH_LOCK"))
 			{

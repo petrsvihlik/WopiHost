@@ -84,9 +84,6 @@ namespace WopiHost
                 {
                     if (session.LastUpdated.AddSeconds(m_closewait) < DateTime.Now)
                     {
-                        // Save the changes to the file
-                        session.Save();
-
                         // Clean up
                         session.Dispose();
                         _sessions.Remove(session.SessionId);

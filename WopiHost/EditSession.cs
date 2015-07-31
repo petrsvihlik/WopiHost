@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Security.Cryptography;
 using WopiHost.Contracts;
 using WopiHost.Models;
@@ -51,14 +52,29 @@ namespace WopiHost
 			Email = email;
 			IsAnonymous = isAnonymous;
 		}
+
+		/// <summary>
+		/// Returns content of a file.
+		/// </summary>
+		/// <returns></returns>
 		public abstract byte[] GetFileContent();
 
+		/// <summary>
+		/// Disposes of all allocated resources.
+		/// </summary>
 		public virtual void Dispose() { }
 
-		//TODO: consolidate the 2 saving methods
-		public virtual void SetFileContent(byte[] new_content) { }
-		public virtual void Save() { }
+		/// <summary>
+		/// Accepts new content of a file and replaces old content with it. 
+		/// </summary>
+		/// <param name="newContent">Content to set</param>
+		/// <returns>Gives an opportunity of returning a response to this action (returns null if not applicable)</returns>
+		public abstract Action<Stream> SetFileContent(byte[] newContent);
 
+		/// <summary>
+		/// Gets information about a file.
+		/// </summary>
+		/// <returns>Object with attributes according to the specification (https://msdn.microsoft.com/en-us/library/hh622920.aspx)</returns>
 		public virtual CheckFileInfo GetCheckFileInfo()
 		{
 			CheckFileInfo cfi = new CheckFileInfo();
