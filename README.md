@@ -53,7 +53,6 @@ SampleWeb\Properties\launchSettings.json
 - `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Contracts interfaces
 - `WopiRootPath` - provider-specific setting used by WopiFileSystemProvider (which is an implementation of IWopiFileProvider working with System.IO)
 
-
 WopiHost\Properties\launchSettings.json
 - `WopiClientUrl` - used by discovery module and for URL generation
 - `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Contracts interfaces
@@ -101,6 +100,7 @@ Useful resources
 =============
 Building WOPI Host
 -----------------------
+!!! NEW & SUPERCOOL Documentation: https://wopi.readthedocs.org/
 http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx
 http://blogs.msdn.com/b/scicoria/archive/2013/07/22/building-an-office-web-apps-owa-wopi-host.aspx
 https://code.msdn.microsoft.com/office/Building-an-Office-Web-f98650d6
