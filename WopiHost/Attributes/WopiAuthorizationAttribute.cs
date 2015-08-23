@@ -24,11 +24,11 @@ namespace WopiHost.Attributes
 
             string fileIdentifier = context.RouteData.Values[Constants.FILE_IDENTIFIER_PARAM].ToString();
             var accessToken = context.HttpContext.Request.Query[Constants.ACCESS_TOKEN_HTTP_PARAM] ?? context.HttpContext.Request.Headers[Constants.ACCESS_TOKEN_HTTP_PARAM];
-            if (!SecurityHandler.ValidateAccessToken(fileIdentifier, accessToken))
-            {
-                // If the token validation fails return 'unauthorized'
-                context.Result = new HttpStatusCodeResult((int)HttpStatusCode.Unauthorized);
-            }
+            //if (!SecurityHandler.ValidateAccessToken(fileIdentifier, accessToken))
+            //{
+            //    // If the token validation fails return 'unauthorized'
+            //    context.Result = new HttpStatusCodeResult((int)HttpStatusCode.Unauthorized);
+            //}
         }
     }
 }

@@ -7,6 +7,7 @@
 		"Microsoft.AspNet.Server.IIS": "1.0.0-beta6",
 		"Microsoft.AspNet.Hosting": "1.0.0-beta6",
 		"Microsoft.AspNet.Server.WebListener": "1.0.0-beta6",
+		"Microsoft.AspNet.Session": "1.0.0-beta6",
 		"Microsoft.AspNet.StaticFiles": "1.0.0-beta6",
 		"Microsoft.CobaltCore": "15.0.0",
 		"Microsoft.Framework.ConfigurationModel": "1.0.0-beta5-11337",

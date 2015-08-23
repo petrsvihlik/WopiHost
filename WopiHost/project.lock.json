@@ -749,6 +749,26 @@
           "lib/dnx451/Microsoft.AspNet.Server.WebListener.dll": {}
         }
       },
+      "Microsoft.AspNet.Session/1.0.0-beta6": {
+        "dependencies": {
+          "Microsoft.AspNet.Http.Abstractions": "1.0.0-beta6",
+          "Microsoft.Framework.Caching.Abstractions": "1.0.0-beta6",
+          "Microsoft.Framework.Logging.Abstractions": "1.0.0-beta6",
+          "Microsoft.Framework.OptionsModel": "1.0.0-beta6"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/dnx451/Microsoft.AspNet.Session.dll": {}
+        },
+        "runtime": {
+          "lib/dnx451/Microsoft.AspNet.Session.dll": {}
+        }
+      },
       "Microsoft.AspNet.StaticFiles/1.0.0-beta6": {
         "dependencies": {
           "Microsoft.AspNet.FileProviders.Abstractions": "1.0.0-beta6",
@@ -1872,6 +1892,20 @@
         "Microsoft.AspNet.Server.WebListener.nuspec"
       ]
     },
+    "Microsoft.AspNet.Session/1.0.0-beta6": {
+      "serviceable": true,
+      "sha512": "a0kiUgaINUHy1bzfdLIsgnyvX0TaJHrb6XpE3BovUKKQQHdzlVeQI8MWbTTbqNinoFkZ506Jat9UofLEdYfqDw==",
+      "files": [
+        "lib/dnx451/Microsoft.AspNet.Session.dll",
+        "lib/dnx451/Microsoft.AspNet.Session.xml",
+        "lib/dnxcore50/Microsoft.AspNet.Session.dll",
+        "lib/dnxcore50/Microsoft.AspNet.Session.xml",
+        "Microsoft.AspNet.Session.1.0.0-beta6.nupkg",
+        "Microsoft.AspNet.Session.1.0.0-beta6.nupkg.sha512",
+        "Microsoft.AspNet.Session.nuspec",
+        "repo.json"
+      ]
+    },
     "Microsoft.AspNet.StaticFiles/1.0.0-beta6": {
       "serviceable": true,
       "sha512": "ZAB7qYSZSOYIr6Y8VC2dCqcnJ1FRC/lJ98JtLg/rhqqg+EgR8CEFbPr9V6M7blNw29AfY/jy9AzOTbVWAy7lNg==",
@@ -2413,6 +2447,7 @@
       "Microsoft.AspNet.Server.IIS >= 1.0.0-beta6",
       "Microsoft.AspNet.Hosting >= 1.0.0-beta6",
       "Microsoft.AspNet.Server.WebListener >= 1.0.0-beta6",
+      "Microsoft.AspNet.Session >= 1.0.0-beta6",
       "Microsoft.AspNet.StaticFiles >= 1.0.0-beta6",
       "Microsoft.CobaltCore >= 15.0.0",
       "Microsoft.Framework.ConfigurationModel >= 1.0.0-beta5-11337",

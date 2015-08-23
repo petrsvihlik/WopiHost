@@ -1,5 +1,7 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Threading.Tasks;
+using Microsoft.AspNet.Http;
 using Microsoft.AspNet.Mvc;
 using Microsoft.Framework.ConfigurationModel;
 using WopiDiscovery;
@@ -36,9 +38,14 @@ namespace WopiHost.Controllers
 
 		private EditSession GetEditSession(string fileId)
 		{
-			//TODO: sessionid should be sessionid+fileid
-			string sessionId = fileId;
-			EditSession editSession = SessionManager.Current.GetSession(fileId);
+			var sessionId = /*Context.Session.GetString("SessionID");
+			if (string.IsNullOrEmpty(sessionId))
+			{
+				sessionId = Guid.NewGuid().ToString();
+				Context.Session.SetString("SessionID", sessionId);
+			}
+			sessionId += "|" +*/ fileId;
+            EditSession editSession = SessionManager.Current.GetSession(sessionId);
 
 			if (editSession == null)
 			{

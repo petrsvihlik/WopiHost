@@ -11,54 +11,66 @@ using WopiHost.Attributes;
 
 namespace WopiHost
 {
-    public class Startup
-    {
-        private readonly IAssemblyLoadContextAccessor _loadContextAccessor;
-        private readonly ILibraryManager _libraryManager;
-        private readonly IHostingEnvironment _env;
-        private readonly IAssemblyLoaderContainer _loaderContainer;
+	public class Startup
+	{
+		private readonly IAssemblyLoadContextAccessor _loadContextAccessor;
+		private readonly ILibraryManager _libraryManager;
+		private readonly IHostingEnvironment _env;
+		private readonly IAssemblyLoaderContainer _loaderContainer;
 
-        public Startup(IHostingEnvironment env, IAssemblyLoaderContainer container,
-                       IAssemblyLoadContextAccessor accessor, ILibraryManager libraryManager)
-        {
-            _env = env;
-            _loaderContainer = container;
-            _loadContextAccessor = accessor;
-            _libraryManager = libraryManager;
-        }
+		public Startup(IHostingEnvironment env, IAssemblyLoaderContainer container,
+					   IAssemblyLoadContextAccessor accessor, ILibraryManager libraryManager)
+		{
+			_env = env;
+			_loaderContainer = container;
+			_loadContextAccessor = accessor;
+			_libraryManager = libraryManager;
+		}
 
-        /// <summary>
-        /// Sets up the DI container. Loads types dynamically (http://docs.autofac.org/en/latest/register/scanning.html)
-        /// </summary>
-        public IServiceProvider ConfigureServices(IServiceCollection services)
-        {
-            services.AddMvc();
-            services.AddTransient<WopiAuthorizationAttribute>();
+		/// <summary>
+		/// Sets up the DI container. Loads types dynamically (http://docs.autofac.org/en/latest/register/scanning.html)
+		/// </summary>
+		public IServiceProvider ConfigureServices(IServiceCollection services)
+		{
+			services.AddMvc();
 
-            // Autofac resolution
-            var builder = new ContainerBuilder();
+			/* TODO: #10
+			services.AddCaching();
+			services.AddSession();
 
-            // Configuration
-            Configuration configuration = new Configuration();
-            configuration.AddEnvironmentVariables();
-            builder.RegisterInstance(configuration).As<IConfiguration>().SingleInstance();
+			services.ConfigureSession(o =>
+			{
+				o.IdleTimeout = TimeSpan.FromMinutes(5);
+			});*/
 
-            // File provider implementation
-            var providerAssembly = configuration.Get("WopiFileProviderAssemblyName");
-            var assembly = AppDomain.CurrentDomain.Load(new AssemblyName(providerAssembly));
-            builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
+			services.AddTransient<WopiAuthorizationAttribute>();
 
-            builder.Populate(services);
-            var container = builder.Build();
-            return container.Resolve<IServiceProvider>();
-        }
+			// Autofac resolution
+			var builder = new ContainerBuilder();
+
+			// Configuration
+			Configuration configuration = new Configuration();
+			configuration.AddEnvironmentVariables();
+			builder.RegisterInstance(configuration).As<IConfiguration>().SingleInstance();
+
+			// File provider implementation
+			var providerAssembly = configuration.Get("WopiFileProviderAssemblyName");
+			var assembly = AppDomain.CurrentDomain.Load(new AssemblyName(providerAssembly));
+			builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
+
+			builder.Populate(services);
+			var container = builder.Build();
+			return container.Resolve<IServiceProvider>();
+		}
 
 
-        // Configure is called after ConfigureServices is called.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
-        {
-            // Add MVC to the request pipeline.
-            app.UseMvc();
-        }
-    }
+		// Configure is called after ConfigureServices is called.
+		public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+		{
+			// Add MVC to the request pipeline.
+			//TODO:#10
+			//app.UseSession();
+			app.UseMvc();
+		}
+	}
 }
