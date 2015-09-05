@@ -6,36 +6,17 @@ init:
   
 install:
  - cmd: nuget sources add -Name api.nuget.org -Source https://api.nuget.org/v3/index.json
-# - cmd: nuget sources add -Name AspNetVNext -Source https://www.myget.org/F/aspnetvnext/api/v2
-# - cmd: nuget sources add -Name Autofac -Source https://www.myget.org/F/autofac/
 
 before_build:
- #- ps: Set-ExecutionPolicy Unrestricted
- - ps: >-
-    "&{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}"
-
-    Write-Host $env:DNX_HOME
-
-    Write-Host $env:DNX_USER_HOME
-
-    Write-Host $env:DNX_GLOBAL_HOME
-
-    dnvm install 1.0.0-beta7
-
-    dnvm upgrade
-
-    dnvm update-self
-
-    dnvm list
-
-    dnvm use 1.0.0-beta7
-
-    npm cache clean
-
-    npm install -g gulp bower
-
-    dnu restore
-
+ - ps: "&{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}"
+ - ps: dnvm install 1.0.0-beta7
+ - ps: dnvm upgrade
+ - ps: dnvm update-self
+ - ps: dnvm list
+ - ps: dnvm use 1.0.0-beta7
+ - ps: npm cache clean
+ - ps: npm install -g gulp bower
+ - ps: dnu restore
 # Use NuGet 2.*
  - ps: (New-Object Net.WebClient).DownloadFile('https://www.nuget.org/nuget.exe', 'C:\Tools\NuGet\NuGet.exe')
  - ps: nuget restore
