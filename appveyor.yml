@@ -11,8 +11,13 @@ install:
 
 before_build:
  - cmd: powershell -NoProfile -ExecutionPolicy unrestricted -Command "&{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}"
+ - ps: dnvm list
  - ps: dnvm install 1.0.0-beta7
- #- ps: dnvm upgrade
+ - ps: dnvm list
+ - ps: dnvm update-self
+ - ps: dnvm list
+ - ps: dnvm upgrade
+ - ps: dnvm list
  - ps: dnvm use 1.0.0-beta7
  - ps: dnvm list
  - ps: npm cache clean
