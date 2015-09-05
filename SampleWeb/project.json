@@ -3,22 +3,22 @@
 	"version": "1.0.0-*",
 
 	"dependencies": {
-		"Microsoft.AspNet.Mvc": "6.0.0-beta6",
-		"Microsoft.AspNet.Mvc.TagHelpers": "6.0.0-beta6",
-		"Microsoft.AspNet.Diagnostics": "1.0.0-beta6",
-		"Microsoft.AspNet.Diagnostics.Entity": "7.0.0-beta6",
-		"Microsoft.AspNet.Server.IIS": "1.0.0-beta6",
-		"Microsoft.AspNet.Server.WebListener": "1.0.0-beta6",
-		"Microsoft.AspNet.StaticFiles": "1.0.0-beta6",
-		"Microsoft.AspNet.Tooling.Razor": "1.0.0-beta6",
+		"Microsoft.AspNet.Mvc": "6.0.0-beta7",
+		"Microsoft.AspNet.Mvc.TagHelpers": "6.0.0-beta7",
+		"Microsoft.AspNet.Diagnostics": "1.0.0-beta7",
+		"Microsoft.AspNet.Diagnostics.Entity": "7.0.0-beta7",
+		"Microsoft.AspNet.Server.IIS": "1.0.0-beta7",
+		"Microsoft.AspNet.Server.WebListener": "1.0.0-beta7",
+		"Microsoft.AspNet.StaticFiles": "1.0.0-beta7",
+		"Microsoft.AspNet.Tooling.Razor": "1.0.0-beta7",
 		"Microsoft.Framework.ConfigurationModel.Json": "1.0.0-beta5-11337",
 		"Microsoft.Framework.CodeGenerators.Mvc": "1.0.0-beta5",
-		"Microsoft.Framework.Logging": "1.0.0-beta6",
-		"Microsoft.Framework.Logging.Console": "1.0.0-beta6",
-		"Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.0.0-beta6",
-		"Autofac": "4.0.0-beta6-97",
-		"Autofac.Framework.DependencyInjection": "4.0.0-beta6-97",
-		"Microsoft.Framework.DependencyInjection": "1.0.0-beta6"
+		"Microsoft.Framework.Logging": "1.0.0-beta7",
+		"Microsoft.Framework.Logging.Console": "1.0.0-beta7",
+		"Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.0.0-beta7",
+    "Autofac": "4.0.0-beta7-130",
+    "Autofac.Framework.DependencyInjection": "4.0.0-beta7-130",
+		"Microsoft.Framework.DependencyInjection": "1.0.0-beta7"
 	},
 
 	"commands": {

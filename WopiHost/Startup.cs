@@ -4,9 +4,9 @@ using Autofac;
 using Autofac.Framework.DependencyInjection;
 using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Hosting;
+using Microsoft.Dnx.Runtime;
 using Microsoft.Framework.ConfigurationModel;
 using Microsoft.Framework.DependencyInjection;
-using Microsoft.Framework.Runtime;
 using WopiHost.Attributes;
 
 namespace WopiHost

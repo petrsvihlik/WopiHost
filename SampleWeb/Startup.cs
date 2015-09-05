@@ -6,18 +6,14 @@ using Microsoft.AspNet.Hosting;
 using Microsoft.Framework.ConfigurationModel;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
-using Microsoft.Framework.Runtime;
 using Autofac.Framework.DependencyInjection;
 
 namespace SampleWeb
 {
     public class Startup
     {
-        private readonly ILibraryManager _libraryManager;
-
-        public Startup(IHostingEnvironment env, ILibraryManager libraryManager)
+        public Startup(IHostingEnvironment env)
         {
-            _libraryManager = libraryManager;
         }
 
         public IConfiguration Configuration { get; set; }
