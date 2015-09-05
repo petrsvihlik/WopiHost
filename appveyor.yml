@@ -36,5 +36,7 @@ before_build:
 
     dnu restore
 
+# Use NuGet 2.*
+ - ps: (New-Object Net.WebClient).DownloadFile('https://www.nuget.org/nuget.exe', 'C:\Tools\NuGet\NuGet.exe')
  - ps: nuget restore
  - cmd: set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
