@@ -12,16 +12,16 @@ install:
 before_build:
  #- ps: Set-ExecutionPolicy Unrestricted
  - ps: "&{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}"
- - ps: Write-Host $env:DNX_HOME
- - ps: Write-Host $env:DNX_USER_HOME
- - ps: Write-Host $env:DNX_GLOBAL_HOME
- - ps: dnvm install 1.0.0-beta7
- - ps: dnvm upgrade
- - ps: dnvm update-self
- - ps: dnvm list
- - ps: dnvm use 1.0.0-beta7
- - ps: npm cache clean
- - ps: npm install -g gulp bower
- - ps: dnu restore
+Write-Host $env:DNX_HOME
+Write-Host $env:DNX_USER_HOME
+Write-Host $env:DNX_GLOBAL_HOME
+dnvm install 1.0.0-beta7
+dnvm upgrade
+dnvm update-self
+dnvm list
+dnvm use 1.0.0-beta7
+npm cache clean
+npm install -g gulp bower
+dnu restore
  # - ps: nuget restore
  - cmd: set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
