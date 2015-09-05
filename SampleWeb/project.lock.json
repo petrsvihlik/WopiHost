@@ -1341,43 +1341,10 @@
           "lib/dnx451/Microsoft.Framework.Configuration.Ini.dll": {}
         }
       },
-      "Microsoft.Framework.ConfigurationModel/1.0.0-beta5-11337": {
+      "Microsoft.Framework.Configuration.Json/1.0.0-beta7": {
         "type": "package",
         "dependencies": {
-          "Microsoft.Framework.ConfigurationModel.Abstractions": "1.0.0-beta5-11337"
-        },
-        "frameworkAssemblies": [
-          "Microsoft.CSharp",
-          "mscorlib",
-          "System",
-          "System.Core"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.Framework.ConfigurationModel.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.Framework.ConfigurationModel.dll": {}
-        }
-      },
-      "Microsoft.Framework.ConfigurationModel.Abstractions/1.0.0-beta5-11337": {
-        "type": "package",
-        "frameworkAssemblies": [
-          "Microsoft.CSharp",
-          "mscorlib",
-          "System",
-          "System.Core"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.Framework.ConfigurationModel.Abstractions.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.Framework.ConfigurationModel.Abstractions.dll": {}
-        }
-      },
-      "Microsoft.Framework.ConfigurationModel.Json/1.0.0-beta5-11337": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.Framework.ConfigurationModel": "1.0.0-beta5-11337",
+          "Microsoft.Framework.Configuration": "1.0.0-beta7",
           "Newtonsoft.Json": "6.0.6"
         },
         "frameworkAssemblies": [
@@ -1387,10 +1354,10 @@
           "System.Core"
         ],
         "compile": {
-          "lib/dnx451/Microsoft.Framework.ConfigurationModel.Json.dll": {}
+          "lib/dnx451/Microsoft.Framework.Configuration.Json.dll": {}
         },
         "runtime": {
-          "lib/dnx451/Microsoft.Framework.ConfigurationModel.Json.dll": {}
+          "lib/dnx451/Microsoft.Framework.Configuration.Json.dll": {}
         }
       },
       "Microsoft.Framework.DependencyInjection/1.0.0-beta7": {
@@ -1810,16 +1777,16 @@
       "WopiFileSystemProvider/1.0.0": {
         "type": "project",
         "dependencies": {
-          "Microsoft.Framework.ConfigurationModel": "1.0.0-beta5-11337",
-          "Microsoft.Framework.ConfigurationModel.Abstractions": "1.0.0-beta5-11337",
+          "Microsoft.Framework.Configuration": "1.0.0-beta7",
+          "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta7",
           "WopiHost.Contracts": "1.0.0"
         }
       },
       "WopiHost.Contracts/1.0.0": {
         "type": "project",
         "dependencies": {
-          "Microsoft.Framework.ConfigurationModel": "1.0.0-beta5-11337",
-          "Microsoft.Framework.ConfigurationModel.Abstractions": "1.0.0-beta5-11337"
+          "Microsoft.Framework.Configuration": "1.0.0-beta7",
+          "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta7"
         }
       },
       "WopiHost.Urls/1.0.0": {
@@ -2951,56 +2918,21 @@
         "repo.json"
       ]
     },
-    "Microsoft.Framework.ConfigurationModel/1.0.0-beta5-11337": {
+    "Microsoft.Framework.Configuration.Json/1.0.0-beta7": {
       "type": "package",
       "serviceable": true,
-      "sha512": "LS8wT93WnNvo7fRIktikafw0DdZmdU59z+YiPwJUZwuGx2SFYgS43UKYrRS1hRQaqqPGy5sj/dedhLKWdlCkoA==",
+      "sha512": "ytBQBly0ISkMDfud7O7y5TZJN6swZjhqZZX2Oe4nbKiAc4J2ucPC2YmbBU/QYAG6lBo/V1hYuv6WO0RObfKDWg==",
       "files": [
-        "lib/dnx451/Microsoft.Framework.ConfigurationModel.dll",
-        "lib/dnx451/Microsoft.Framework.ConfigurationModel.xml",
-        "lib/dnxcore50/Microsoft.Framework.ConfigurationModel.dll",
-        "lib/dnxcore50/Microsoft.Framework.ConfigurationModel.xml",
-        "lib/net45/Microsoft.Framework.ConfigurationModel.dll",
-        "lib/net45/Microsoft.Framework.ConfigurationModel.xml",
-        "lib/portable-net45+win/Microsoft.Framework.ConfigurationModel.dll",
-        "lib/portable-net45+win/Microsoft.Framework.ConfigurationModel.xml",
-        "Microsoft.Framework.ConfigurationModel.1.0.0-beta5-11337.nupkg",
-        "Microsoft.Framework.ConfigurationModel.1.0.0-beta5-11337.nupkg.sha512",
-        "Microsoft.Framework.ConfigurationModel.nuspec"
-      ]
-    },
-    "Microsoft.Framework.ConfigurationModel.Abstractions/1.0.0-beta5-11337": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "G/S7PgRnK9Af2zACR7Prj1MIFISB65RptGl0+yyOHRYKWPP+gOMXJC9x0AeK5iK68yySBmWmsv5bOOc87uLIsQ==",
-      "files": [
-        "lib/dnx451/Microsoft.Framework.ConfigurationModel.Abstractions.dll",
-        "lib/dnx451/Microsoft.Framework.ConfigurationModel.Abstractions.xml",
-        "lib/dnxcore50/Microsoft.Framework.ConfigurationModel.Abstractions.dll",
-        "lib/dnxcore50/Microsoft.Framework.ConfigurationModel.Abstractions.xml",
-        "lib/net45/Microsoft.Framework.ConfigurationModel.Abstractions.dll",
-        "lib/net45/Microsoft.Framework.ConfigurationModel.Abstractions.xml",
-        "lib/portable-net45+win/Microsoft.Framework.ConfigurationModel.Abstractions.dll",
-        "lib/portable-net45+win/Microsoft.Framework.ConfigurationModel.Abstractions.xml",
-        "Microsoft.Framework.ConfigurationModel.Abstractions.1.0.0-beta5-11337.nupkg",
-        "Microsoft.Framework.ConfigurationModel.Abstractions.1.0.0-beta5-11337.nupkg.sha512",
-        "Microsoft.Framework.ConfigurationModel.Abstractions.nuspec"
-      ]
-    },
-    "Microsoft.Framework.ConfigurationModel.Json/1.0.0-beta5-11337": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "/zfktiAvMjdUn0nxkLb97iEXLhwzrKtxKztI9Mxkor7qMb/uMQ7iry0jC9tJKea6R8f+V97FROR43joiSVdFhw==",
-      "files": [
-        "lib/dnx451/Microsoft.Framework.ConfigurationModel.Json.dll",
-        "lib/dnx451/Microsoft.Framework.ConfigurationModel.Json.xml",
-        "lib/dnxcore50/Microsoft.Framework.ConfigurationModel.Json.dll",
-        "lib/dnxcore50/Microsoft.Framework.ConfigurationModel.Json.xml",
-        "lib/net45/Microsoft.Framework.ConfigurationModel.Json.dll",
-        "lib/net45/Microsoft.Framework.ConfigurationModel.Json.xml",
-        "Microsoft.Framework.ConfigurationModel.Json.1.0.0-beta5-11337.nupkg",
-        "Microsoft.Framework.ConfigurationModel.Json.1.0.0-beta5-11337.nupkg.sha512",
-        "Microsoft.Framework.ConfigurationModel.Json.nuspec"
+        "lib/dnx451/Microsoft.Framework.Configuration.Json.dll",
+        "lib/dnx451/Microsoft.Framework.Configuration.Json.xml",
+        "lib/dotnet/Microsoft.Framework.Configuration.Json.dll",
+        "lib/dotnet/Microsoft.Framework.Configuration.Json.xml",
+        "lib/net45/Microsoft.Framework.Configuration.Json.dll",
+        "lib/net45/Microsoft.Framework.Configuration.Json.xml",
+        "Microsoft.Framework.Configuration.Json.1.0.0-beta7.nupkg",
+        "Microsoft.Framework.Configuration.Json.1.0.0-beta7.nupkg.sha512",
+        "Microsoft.Framework.Configuration.Json.nuspec",
+        "repo.json"
       ]
     },
     "Microsoft.Framework.DependencyInjection/1.0.0-beta7": {
@@ -3408,7 +3340,8 @@
       "Microsoft.AspNet.Server.WebListener >= 1.0.0-beta7",
       "Microsoft.AspNet.StaticFiles >= 1.0.0-beta7",
       "Microsoft.AspNet.Tooling.Razor >= 1.0.0-beta7",
-      "Microsoft.Framework.ConfigurationModel.Json >= 1.0.0-beta5-11337",
+      "Microsoft.Framework.Configuration.Json >= 1.0.0-beta7",
+      "Microsoft.Framework.Configuration.Abstractions >= 1.0.0-beta7",
       "Microsoft.Framework.CodeGenerators.Mvc >= 1.0.0-beta5",
       "Microsoft.Framework.Logging >= 1.0.0-beta7",
       "Microsoft.Framework.Logging.Console >= 1.0.0-beta7",

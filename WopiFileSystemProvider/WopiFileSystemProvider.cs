@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using Microsoft.Framework.ConfigurationModel;
+using Microsoft.Framework.Configuration;
 using WopiHost.Contracts;
 
 namespace WopiFileSystemProvider
@@ -8,7 +8,7 @@ namespace WopiFileSystemProvider
     public class WopiFileSystemProvider : IWopiFileProvider
     {
         public IConfiguration Configuration { get; set; }
-        public string WopiRootPath => Configuration.Get("WopiRootPath");
+        public IConfigurationSection WopiRootPath => Configuration.GetSection("WopiRootPath");
 
         public WopiFileSystemProvider(IConfiguration configuration)
         {
@@ -17,13 +17,13 @@ namespace WopiFileSystemProvider
 
         public IWopiFile GetWopiFile(string identifier)
         {
-            return new WopiFile(WopiRootPath + Path.DirectorySeparatorChar + identifier, identifier);
+            return new WopiFile(WopiRootPath.Value + Path.DirectorySeparatorChar + identifier, identifier);
         }
 
         public List<IWopiFile> GetWopiFiles()
         {
             List<IWopiFile> files = new List<IWopiFile>();
-            foreach (string path in Directory.GetFiles(WopiRootPath))
+            foreach (string path in Directory.GetFiles(WopiRootPath.Value))
             {
                 files.Add(GetWopiFile(Path.GetFileName(path)));
             }

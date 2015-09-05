@@ -1,9 +1,7 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Threading.Tasks;
-using Microsoft.AspNet.Http;
 using Microsoft.AspNet.Mvc;
-using Microsoft.Framework.ConfigurationModel;
+using Microsoft.Framework.Configuration;
 using WopiDiscovery;
 using WopiDiscovery.Enumerations;
 using WopiHost.Attributes;
@@ -26,7 +24,7 @@ namespace WopiHost.Controllers
 
 		private WopiDiscoverer WopiDiscoverer
 		{
-			get { return _wopiDiscoverer ?? (_wopiDiscoverer = new WopiDiscoverer(Configuration.Get("WopiClientUrl"))); }
+			get { return _wopiDiscoverer ?? (_wopiDiscoverer = new WopiDiscoverer(Configuration.GetSection("WopiClientUrl").Value)); }
 		}
 
 

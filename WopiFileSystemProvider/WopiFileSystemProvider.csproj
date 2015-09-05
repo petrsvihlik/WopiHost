@@ -30,13 +30,14 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.Framework.ConfigurationModel, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Framework.ConfigurationModel.1.0.0-beta5-11337\lib\net45\Microsoft.Framework.ConfigurationModel.dll</HintPath>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Microsoft.Framework.Configuration, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Framework.Configuration.1.0.0-beta7\lib\net45\Microsoft.Framework.Configuration.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Microsoft.Framework.ConfigurationModel.Abstractions, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Microsoft.Framework.ConfigurationModel.Abstractions.1.0.0-beta5-11337\lib\net45\Microsoft.Framework.ConfigurationModel.Abstractions.dll</HintPath>
+    <Reference Include="Microsoft.Framework.Configuration.Abstractions, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Framework.Configuration.Abstractions.1.0.0-beta7\lib\net45\Microsoft.Framework.Configuration.Abstractions.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -53,15 +54,13 @@
     <Compile Include="WopiSecurityHandler.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\WopiHost.Contracts\WopiHost.Contracts.csproj">
       <Project>{73652a57-c467-447e-a996-cdba3eece9bb}</Project>
       <Name>WopiHost.Contracts</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

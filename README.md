@@ -20,7 +20,7 @@ Features / improvements
  - generation/validation of access tokens is also extracted to its own layer
  - concrete implementations are loaded using Autofac
  - URL generator
- - Configuration done via Microsoft.Framework.ConfigurationModel
+ - Configuration done via Microsoft.Framework.Configuration
  - all references are NuGets
  
 Usage

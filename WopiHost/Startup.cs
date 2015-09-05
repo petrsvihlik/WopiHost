@@ -5,7 +5,7 @@ using Autofac.Framework.DependencyInjection;
 using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Hosting;
 using Microsoft.Dnx.Runtime;
-using Microsoft.Framework.ConfigurationModel;
+using Microsoft.Framework.Configuration;
 using Microsoft.Framework.DependencyInjection;
 using WopiHost.Attributes;
 
@@ -15,16 +15,34 @@ namespace WopiHost
 	{
 		private readonly IAssemblyLoadContextAccessor _loadContextAccessor;
 		private readonly ILibraryManager _libraryManager;
+		private readonly IApplicationEnvironment _appEnv;
 		private readonly IHostingEnvironment _env;
 		private readonly IAssemblyLoaderContainer _loaderContainer;
+		public IConfigurationRoot Configuration { get; set; }
 
 		public Startup(IHostingEnvironment env, IAssemblyLoaderContainer container,
-					   IAssemblyLoadContextAccessor accessor, ILibraryManager libraryManager)
+					   IAssemblyLoadContextAccessor accessor, ILibraryManager libraryManager, IApplicationEnvironment appEnv)
 		{
 			_env = env;
 			_loaderContainer = container;
 			_loadContextAccessor = accessor;
 			_libraryManager = libraryManager;
+			_appEnv = appEnv;
+
+
+
+			var builder = new ConfigurationBuilder(appEnv.ApplicationBasePath)
+				/*.AddJsonFile("config.json")
+				.AddJsonFile($"config.{env.EnvironmentName}.json", optional: true)*/;
+
+			if (env.IsDevelopment())
+			{
+				// This reads the configuration keys from the secret store.
+				// For more details on using the user secret store see http://go.microsoft.com/fwlink/?LinkID=532709
+				//builder.AddUserSecrets();
+			}
+			builder.AddEnvironmentVariables();
+			Configuration = builder.Build();
 		}
 
 		/// <summary>
@@ -49,12 +67,10 @@ namespace WopiHost
 			var builder = new ContainerBuilder();
 
 			// Configuration
-			Configuration configuration = new Configuration();
-			configuration.AddEnvironmentVariables();
-			builder.RegisterInstance(configuration).As<IConfiguration>().SingleInstance();
+			builder.RegisterInstance(Configuration).As<IConfiguration>().SingleInstance();
 
 			// File provider implementation
-			var providerAssembly = configuration.Get("WopiFileProviderAssemblyName");
+			var providerAssembly = Configuration.GetSection("WopiFileProviderAssemblyName").Value;
 			var assembly = AppDomain.CurrentDomain.Load(new AssemblyName(providerAssembly));
 			builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
 

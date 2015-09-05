@@ -8,8 +8,8 @@
         "pdb": "../../WopiHost.Contracts/obj/{configuration}/WopiHost.Contracts.pdb"
       },
       "dependencies": {
-        "Microsoft.Framework.ConfigurationModel": "1.0.0-beta5-11337",
-        "Microsoft.Framework.ConfigurationModel.Abstractions": "1.0.0-beta5-11337"
+        "Microsoft.Framework.Configuration": "1.0.0-beta7",
+        "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta7"
       }
     }
   }

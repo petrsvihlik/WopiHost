@@ -8,9 +8,9 @@
         "pdb": "../../WopiFileSystemProvider/obj/{configuration}/WopiFileSystemProvider.pdb"
       },
       "dependencies": {
-        "Microsoft.Framework.ConfigurationModel": "1.0.0-beta5-11337",
-        "Microsoft.Framework.ConfigurationModel.Abstractions": "1.0.0-beta5-11337",
-        "WopiHost.Contracts": "1.0.0-*"
+        "WopiHost.Contracts": "1.0.0-*",
+        "Microsoft.Framework.Configuration": "1.0.0-beta7",
+        "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta7"
       }
     }
   }

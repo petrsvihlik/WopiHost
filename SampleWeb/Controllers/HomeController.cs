@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNet.Mvc;
-using Microsoft.Framework.ConfigurationModel;
+using Microsoft.Framework.Configuration;
 using SampleWeb.Models;
 using WopiDiscovery.Enumerations;
 using WopiHost.Contracts;
@@ -15,8 +15,8 @@ namespace SampleWeb.Controllers
         private IWopiFileProvider FileProvider { get; }
         private IConfiguration Configuration { get; }
 
-        public string WopiClientUrl => Configuration.Get("WopiClientUrl");
-        public string WopiHostUrl => Configuration.Get("WopiHostUrl");
+        public string WopiClientUrl => Configuration.GetSection("WopiClientUrl").Value;
+        public string WopiHostUrl => Configuration.GetSection("WopiHostUrl").Value;
 
 
         protected WopiUrlGenerator WopiUrlGenerator => new WopiUrlGenerator(WopiClientUrl, WopiHostUrl, SecurityHandler);
