@@ -11,7 +11,7 @@ install:
 
 before_build:
  - ps: Set-ExecutionPolicy Unrestricted
- - ps: &{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}
+ - ps: "&{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}"
  - ps: Write-Host $env:DNX_HOME
  - ps: Write-Host $env:DNX_USER_HOME
  - ps: Write-Host $env:DNX_GLOBAL_HOME
