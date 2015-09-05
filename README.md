@@ -29,7 +29,7 @@ Usage
 Prerequisites
 -------------
 
-1. [Visual Studio 2015](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) + [ASP.NET 5 beta 6](http://blogs.msdn.com/b/webdev/archive/2015/07/27/announcing-availability-of-asp-net-5-beta-6.aspx)
+1. [Visual Studio 2015](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) + [ASP.NET 5 beta 7](http://blogs.msdn.com/b/webdev/archive/2015/09/02/announcing-availability-of-asp-net-5-beta7.aspx)
 2. Following NuGet sources:
   * api.nuget.org (https://api.nuget.org/v3/index.json)
     * default NuGet source
@@ -65,7 +65,7 @@ Once you've successfully built the app you can:
 - run it directly from the Visual Studio (in IIS Express or selfhosted `web` command)
   - make sure you set both `WopiHost` and `SampleWeb` as [startup projects](/img/multiple_projects.png?raw=true)
 - run it from the `cmd`
-  - navigate to the WopiHost folder and run `dnx . web`
+  - navigate to the WopiHost folder and run `dnx web`
 
 Testing
 -------
