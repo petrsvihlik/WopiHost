@@ -18,5 +18,5 @@ before_build:
  - ps: npm cache clean
  - ps: npm install -g gulp bower
  - ps: dnu restore
- - ps: nuget restore
+ #- ps: nuget restore
  - cmd: set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
