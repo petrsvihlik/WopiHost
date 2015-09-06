@@ -13,7 +13,6 @@
 		"Microsoft.AspNet.Tooling.Razor": "1.0.0-beta7",
 		"Microsoft.Framework.Configuration.Json": "1.0.0-beta7",
 		"Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta7",
-		"Microsoft.Framework.CodeGenerators.Mvc": "1.0.0-beta5",
 		"Microsoft.Framework.Logging": "1.0.0-beta7",
 		"Microsoft.Framework.Logging.Console": "1.0.0-beta7",
 		"Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.0.0-beta7",
@@ -23,9 +22,7 @@
 	},
 
 	"commands": {
-		"web": "Microsoft.AspNet.Hosting --server Microsoft.AspNet.Server.WebListener --server.urls http://localhost:5000",
-		"gen": "Microsoft.Framework.CodeGeneration",
-		"ef": "EntityFramework.Commands"
+		"web": "Microsoft.AspNet.Hosting --server Microsoft.AspNet.Server.WebListener --server.urls http://localhost:5000"		
 	},
 
 	"frameworks": {
