@@ -115,6 +115,7 @@ https://code.msdn.microsoft.com/office/Building-an-Office-Web-f98650d6
 
 Other relevant resources
 -----------------------------
+ - [Content roadmap for Office Web Apps Server](https://technet.microsoft.com/en-us/library/dn135237.aspx)
 http://www.asp.net/web-api/overview/formats-and-model-binding/parameter-binding-in-aspnet-web-api
 https://weblog.west-wind.com/posts/2009/Feb/05/Html-and-Uri-String-Encoding-without-SystemWeb
 http://blogs.msdn.com/b/scicoria/archive/2013/06/24/office-web-apps-wopi-host-and-url-paths.aspx
