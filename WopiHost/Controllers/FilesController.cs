@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Microsoft.AspNet.Mvc;
 using Microsoft.Framework.Configuration;
+using Microsoft.Framework.Primitives;
 using WopiDiscovery;
 using WopiDiscovery.Enumerations;
 using WopiHost.Attributes;
@@ -43,7 +44,7 @@ namespace WopiHost.Controllers
 				Context.Session.SetString("SessionID", sessionId);
 			}
 			sessionId += "|" +*/ fileId;
-            EditSession editSession = SessionManager.Current.GetSession(sessionId);
+			EditSession editSession = SessionManager.Current.GetSession(sessionId);
 
 			if (editSession == null)
 			{
@@ -109,7 +110,7 @@ namespace WopiHost.Controllers
 		public async Task<IActionResult> PutContents(string id, [FromQuery]string access_token)
 		{
 			var editSession = GetEditSession(id);
-			editSession.SetFileContent(await Context.Request.Body.ReadBytesAsync());
+			editSession.SetFileContent(await HttpContext.Request.Body.ReadBytesAsync());
 			return new HttpStatusCodeResult((int)HttpStatusCode.OK);
 		}
 
@@ -127,14 +128,14 @@ namespace WopiHost.Controllers
 		public async Task<IActionResult> PerformAction(string id, [FromQuery]string access_token)
 		{
 			var editSession = GetEditSession(id);
-			string wopiOverrideHeader = Context.Request.Headers["X-WOPI-Override"];
+			string wopiOverrideHeader = HttpContext.Request.Headers["X-WOPI-Override"];
 
 			if (wopiOverrideHeader.Equals("COBALT"))
 			{
-				var responseAction = editSession.SetFileContent(await Context.Request.Body.ReadBytesAsync());
+				var responseAction = editSession.SetFileContent(await HttpContext.Request.Body.ReadBytesAsync());
 
-				Context.Response.Headers.Add("X-WOPI-CorellationID", new[] { Context.Request.Headers["X-WOPI-CorrelationID"] });
-				Context.Response.Headers.Add("request-id", new[] { Context.Request.Headers["X-WOPI-CorrelationID"] });
+				HttpContext.Response.Headers.Add("X-WOPI-CorellationID", HttpContext.Request.Headers["X-WOPI-CorrelationID"]);
+				HttpContext.Response.Headers.Add("request-id", HttpContext.Request.Headers["X-WOPI-CorrelationID"]);
 
 				return new FileResult(responseAction, "application/octet-stream");
 			}

@@ -17,7 +17,7 @@ namespace SampleWeb
 
 		public Startup(IHostingEnvironment env, IApplicationEnvironment appEnv)
 		{
-			var builder = new ConfigurationBuilder(appEnv.ApplicationBasePath)
+			var builder = new ConfigurationBuilder().SetBasePath(appEnv.ApplicationBasePath)
 				/*.AddJsonFile("config.json")
 				.AddJsonFile($"config.{env.EnvironmentName}.json", optional: true)*/;
 

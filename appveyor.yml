@@ -9,11 +9,11 @@ install:
 
 before_build:
  - ps: "&{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}"
- - ps: dnvm install 1.0.0-beta7
+ - ps: dnvm install 1.0.0-beta8
  - ps: dnvm upgrade
  - ps: dnvm update-self
  - ps: dnvm list
- - ps: dnvm use 1.0.0-beta7
+ - ps: dnvm use 1.0.0-beta8
  - ps: npm cache clean
  - ps: npm install -g gulp bower
  - ps: dnu restore
