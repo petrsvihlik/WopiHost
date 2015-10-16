@@ -2,22 +2,23 @@
 	"webroot": "wwwroot",
 	"version": "1.0.0-*",
 
-	"dependencies": {
-		"Microsoft.AspNet.Mvc": "6.0.0-beta8",
-		"Microsoft.AspNet.Hosting": "1.0.0-beta8",
-		"Microsoft.AspNet.Server.WebListener": "1.0.0-beta8",
-		"Microsoft.AspNet.Session": "1.0.0-beta8",
-		"Microsoft.AspNet.StaticFiles": "1.0.0-beta8",
-		"Microsoft.CobaltCore": "15.0.0",
-		"Microsoft.AspNet.Server.Kestrel": "1.0.0-beta8",
-		"Microsoft.Framework.Configuration": "1.0.0-beta8",
-		"Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8",
-		"Autofac": "4.0.0-beta7-130",
-		"Autofac.Framework.DependencyInjection": "4.0.0-beta7-130",
-		"Microsoft.Framework.DependencyInjection": "1.0.0-beta8",
-		"Microsoft.AspNet.Mvc.Core": "6.0.0-beta8",
-		"Microsoft.AspNet.Diagnostics.Entity": "7.0.0-beta8"
-	},
+  "dependencies": {
+    "Microsoft.AspNet.Mvc": "6.0.0-beta8",
+    "Microsoft.AspNet.Hosting": "1.0.0-beta8",
+    "Microsoft.AspNet.Server.WebListener": "1.0.0-beta8",
+    "Microsoft.AspNet.Session": "1.0.0-beta8",
+    "Microsoft.AspNet.StaticFiles": "1.0.0-beta8",
+    "Microsoft.CobaltCore": "15.0.0",
+    "Microsoft.AspNet.Server.Kestrel": "1.0.0-beta8",
+    "Microsoft.Framework.Configuration": "1.0.0-beta8",
+    "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8",
+    "Autofac": "4.0.0-beta7-130",
+    "Autofac.Framework.DependencyInjection": "4.0.0-beta7-130",
+    "Microsoft.Framework.DependencyInjection": "1.0.0-beta8",
+    "Microsoft.AspNet.Mvc.Core": "6.0.0-beta8",
+    "Microsoft.AspNet.Diagnostics.Entity": "7.0.0-beta8",
+    "Microsoft.Framework.Configuration.UserSecrets": "1.0.0-beta8"
+  },
 
 	"commands": {
 		"web": "Microsoft.AspNet.Hosting --server Microsoft.AspNet.Server.Kestrel --server.urls http://wopihost:5000"

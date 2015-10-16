@@ -21,13 +21,13 @@ namespace SampleWeb
 				/*.AddJsonFile("config.json")
 				.AddJsonFile($"config.{env.EnvironmentName}.json", optional: true)*/;
 
+			builder.AddEnvironmentVariables();
+
 			if (env.IsDevelopment())
 			{
-				// This reads the configuration keys from the secret store.
-				// For more details on using the user secret store see http://go.microsoft.com/fwlink/?LinkID=532709
-				//builder.AddUserSecrets();
+				// Override with user secrets (http://go.microsoft.com/fwlink/?LinkID=532709)
+				builder.AddUserSecrets();
 			}
-			builder.AddEnvironmentVariables();
 			Configuration = builder.Build();
 		}
 

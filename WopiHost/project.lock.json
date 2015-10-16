@@ -1248,6 +1248,24 @@
           "lib/dnx451/Microsoft.Framework.Configuration.Json.dll": {}
         }
       },
+      "Microsoft.Framework.Configuration.UserSecrets/1.0.0-beta8": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Framework.Configuration.Json": "1.0.0-beta8"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/dnx451/Microsoft.Framework.Configuration.UserSecrets.dll": {}
+        },
+        "runtime": {
+          "lib/dnx451/Microsoft.Framework.Configuration.UserSecrets.dll": {}
+        }
+      },
       "Microsoft.Framework.DependencyInjection/1.0.0-beta8": {
         "type": "package",
         "dependencies": {
@@ -2962,6 +2980,24 @@
         },
         "runtime": {
           "lib/dnx451/Microsoft.Framework.Configuration.Json.dll": {}
+        }
+      },
+      "Microsoft.Framework.Configuration.UserSecrets/1.0.0-beta8": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Framework.Configuration.Json": "1.0.0-beta8"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/dnx451/Microsoft.Framework.Configuration.UserSecrets.dll": {}
+        },
+        "runtime": {
+          "lib/dnx451/Microsoft.Framework.Configuration.UserSecrets.dll": {}
         }
       },
       "Microsoft.Framework.DependencyInjection/1.0.0-beta8": {
@@ -4680,6 +4716,24 @@
           "lib/dnx451/Microsoft.Framework.Configuration.Json.dll": {}
         }
       },
+      "Microsoft.Framework.Configuration.UserSecrets/1.0.0-beta8": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Framework.Configuration.Json": "1.0.0-beta8"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/dnx451/Microsoft.Framework.Configuration.UserSecrets.dll": {}
+        },
+        "runtime": {
+          "lib/dnx451/Microsoft.Framework.Configuration.UserSecrets.dll": {}
+        }
+      },
       "Microsoft.Framework.DependencyInjection/1.0.0-beta8": {
         "type": "package",
         "dependencies": {
@@ -6129,6 +6183,20 @@
         "Microsoft.Framework.Configuration.Json.nuspec"
       ]
     },
+    "Microsoft.Framework.Configuration.UserSecrets/1.0.0-beta8": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "P0ZPcnvy2t/3yYxd0eFbZdqGbwqNR2UBIoOLkFexr2XYpbPS8jXt/TQWVn+eA8ml5/L4B17G6davwZU25PYn1A==",
+      "files": [
+        "lib/dnx451/Microsoft.Framework.Configuration.UserSecrets.dll",
+        "lib/dnx451/Microsoft.Framework.Configuration.UserSecrets.xml",
+        "lib/dnxcore50/Microsoft.Framework.Configuration.UserSecrets.dll",
+        "lib/dnxcore50/Microsoft.Framework.Configuration.UserSecrets.xml",
+        "Microsoft.Framework.Configuration.UserSecrets.1.0.0-beta8.nupkg",
+        "Microsoft.Framework.Configuration.UserSecrets.1.0.0-beta8.nupkg.sha512",
+        "Microsoft.Framework.Configuration.UserSecrets.nuspec"
+      ]
+    },
     "Microsoft.Framework.DependencyInjection/1.0.0-beta8": {
       "type": "package",
       "serviceable": true,
@@ -7108,7 +7176,8 @@
       "Autofac.Framework.DependencyInjection >= 4.0.0-beta7-130",
       "Microsoft.Framework.DependencyInjection >= 1.0.0-beta8",
       "Microsoft.AspNet.Mvc.Core >= 6.0.0-beta8",
-      "Microsoft.AspNet.Diagnostics.Entity >= 7.0.0-beta8"
+      "Microsoft.AspNet.Diagnostics.Entity >= 7.0.0-beta8",
+      "Microsoft.Framework.Configuration.UserSecrets >= 1.0.0-beta8"
     ],
     "DNX,Version=v4.5.1": [
       "WopiDiscovery >= 1.0.0-*",
