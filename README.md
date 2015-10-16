@@ -29,7 +29,7 @@ Usage
 Prerequisites
 -------------
 
-1. [Visual Studio 2015](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) + [ASP.NET 5 beta 7](http://blogs.msdn.com/b/webdev/archive/2015/09/02/announcing-availability-of-asp-net-5-beta7.aspx)
+1. [Visual Studio 2015](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) + [ASP.NET 5 beta 8](http://blogs.msdn.com/b/webdev/archive/2015/10/15/announcing-availability-of-asp-net-5-beta8.aspx)
 2. Following NuGet sources:
   * api.nuget.org (https://api.nuget.org/v3/index.json)
     * default NuGet source
@@ -72,7 +72,7 @@ Once you've successfully built the app you can:
   - run the web.cmd file as administrator, wait for it to finish and close it (Ctrl+C and y)
   - create a new application in IIS and set the physical path to the wwwroot in the web application directory
   - make sure the site you're adding it to has a binding with port 5000
-  - go to the application settings and change the value of `dnx clr` to `clr` and the value of `dnx-version` to `1.0.0-beta7`
+  - go to the application settings and change the value of `dnx clr` to `clr` and the value of `dnx-version` to `1.0.0-beta8`
   - in the same window, add all the configuration settings
 
 Testing
