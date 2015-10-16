@@ -1085,39 +1085,6 @@
           "lib/dnx451/Microsoft.Dnx.Runtime.Abstractions.dll": {}
         }
       },
-      "Microsoft.Extensions.Configuration/1.0.0-rc1-15696": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-15696"
-        },
-        "frameworkAssemblies": [
-          "Microsoft.CSharp",
-          "mscorlib",
-          "System",
-          "System.Core"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.Extensions.Configuration.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.Extensions.Configuration.dll": {}
-        }
-      },
-      "Microsoft.Extensions.Configuration.Abstractions/1.0.0-rc1-15696": {
-        "type": "package",
-        "frameworkAssemblies": [
-          "Microsoft.CSharp",
-          "mscorlib",
-          "System",
-          "System.Core"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.Extensions.Configuration.Abstractions.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.Extensions.Configuration.Abstractions.dll": {}
-        }
-      },
       "Microsoft.Framework.Caching.Abstractions/1.0.0-beta8": {
         "type": "package",
         "dependencies": {
@@ -1734,8 +1701,8 @@
         "type": "project",
         "framework": ".NETFramework,Version=v4.5",
         "dependencies": {
-          "Microsoft.Framework.Configuration": "1.0.0-beta7",
-          "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta7",
+          "Microsoft.Framework.Configuration": "1.0.0-beta8",
+          "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8",
           "WopiHost.Contracts": "1.0.0"
         }
       },
@@ -2834,39 +2801,6 @@
           "lib/dnx451/Microsoft.Dnx.Runtime.Abstractions.dll": {}
         }
       },
-      "Microsoft.Extensions.Configuration/1.0.0-rc1-15696": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-15696"
-        },
-        "frameworkAssemblies": [
-          "Microsoft.CSharp",
-          "mscorlib",
-          "System",
-          "System.Core"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.Extensions.Configuration.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.Extensions.Configuration.dll": {}
-        }
-      },
-      "Microsoft.Extensions.Configuration.Abstractions/1.0.0-rc1-15696": {
-        "type": "package",
-        "frameworkAssemblies": [
-          "Microsoft.CSharp",
-          "mscorlib",
-          "System",
-          "System.Core"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.Extensions.Configuration.Abstractions.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.Extensions.Configuration.Abstractions.dll": {}
-        }
-      },
       "Microsoft.Framework.Caching.Abstractions/1.0.0-beta8": {
         "type": "package",
         "dependencies": {
@@ -3483,8 +3417,8 @@
         "type": "project",
         "framework": ".NETFramework,Version=v4.5",
         "dependencies": {
-          "Microsoft.Framework.Configuration": "1.0.0-beta7",
-          "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta7",
+          "Microsoft.Framework.Configuration": "1.0.0-beta8",
+          "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8",
           "WopiHost.Contracts": "1.0.0"
         }
       },
@@ -4583,39 +4517,6 @@
           "lib/dnx451/Microsoft.Dnx.Runtime.Abstractions.dll": {}
         }
       },
-      "Microsoft.Extensions.Configuration/1.0.0-rc1-15696": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-15696"
-        },
-        "frameworkAssemblies": [
-          "Microsoft.CSharp",
-          "mscorlib",
-          "System",
-          "System.Core"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.Extensions.Configuration.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.Extensions.Configuration.dll": {}
-        }
-      },
-      "Microsoft.Extensions.Configuration.Abstractions/1.0.0-rc1-15696": {
-        "type": "package",
-        "frameworkAssemblies": [
-          "Microsoft.CSharp",
-          "mscorlib",
-          "System",
-          "System.Core"
-        ],
-        "compile": {
-          "lib/dnx451/Microsoft.Extensions.Configuration.Abstractions.dll": {}
-        },
-        "runtime": {
-          "lib/dnx451/Microsoft.Extensions.Configuration.Abstractions.dll": {}
-        }
-      },
       "Microsoft.Framework.Caching.Abstractions/1.0.0-beta8": {
         "type": "package",
         "dependencies": {
@@ -5232,8 +5133,8 @@
         "type": "project",
         "framework": ".NETFramework,Version=v4.5",
         "dependencies": {
-          "Microsoft.Framework.Configuration": "1.0.0-beta7",
-          "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta7",
+          "Microsoft.Framework.Configuration": "1.0.0-beta8",
+          "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8",
           "WopiHost.Contracts": "1.0.0"
         }
       },
@@ -6068,42 +5969,6 @@
         "Microsoft.Dnx.Runtime.Abstractions.1.0.0-beta8.nupkg",
         "Microsoft.Dnx.Runtime.Abstractions.1.0.0-beta8.nupkg.sha512",
         "Microsoft.Dnx.Runtime.Abstractions.nuspec"
-      ]
-    },
-    "Microsoft.Extensions.Configuration/1.0.0-rc1-15696": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "YdP92EwctC3jbiXeM5OhwIvBMxI42319lO8+KAhfF1glA+8VDbqNJeCBbDrKQwyHdjov6Ze2NzKg0vrsiGPc2A==",
-      "files": [
-        "lib/dnx451/Microsoft.Extensions.Configuration.dll",
-        "lib/dnx451/Microsoft.Extensions.Configuration.xml",
-        "lib/dnxcore50/Microsoft.Extensions.Configuration.dll",
-        "lib/dnxcore50/Microsoft.Extensions.Configuration.xml",
-        "lib/dotnet/Microsoft.Extensions.Configuration.dll",
-        "lib/dotnet/Microsoft.Extensions.Configuration.xml",
-        "lib/net45/Microsoft.Extensions.Configuration.dll",
-        "lib/net45/Microsoft.Extensions.Configuration.xml",
-        "Microsoft.Extensions.Configuration.1.0.0-rc1-15696.nupkg",
-        "Microsoft.Extensions.Configuration.1.0.0-rc1-15696.nupkg.sha512",
-        "Microsoft.Extensions.Configuration.nuspec"
-      ]
-    },
-    "Microsoft.Extensions.Configuration.Abstractions/1.0.0-rc1-15696": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "Mk1nJti5d5I2elM4MUsCFsvsQAb76UXgr6kLi92h4MJmF197xDWOqBlKetV9Sz/cd4ZvrkkN+VShq0a53u6New==",
-      "files": [
-        "lib/dnx451/Microsoft.Extensions.Configuration.Abstractions.dll",
-        "lib/dnx451/Microsoft.Extensions.Configuration.Abstractions.xml",
-        "lib/dnxcore50/Microsoft.Extensions.Configuration.Abstractions.dll",
-        "lib/dnxcore50/Microsoft.Extensions.Configuration.Abstractions.xml",
-        "lib/dotnet/Microsoft.Extensions.Configuration.Abstractions.dll",
-        "lib/dotnet/Microsoft.Extensions.Configuration.Abstractions.xml",
-        "lib/net45/Microsoft.Extensions.Configuration.Abstractions.dll",
-        "lib/net45/Microsoft.Extensions.Configuration.Abstractions.xml",
-        "Microsoft.Extensions.Configuration.Abstractions.1.0.0-rc1-15696.nupkg",
-        "Microsoft.Extensions.Configuration.Abstractions.1.0.0-rc1-15696.nupkg.sha512",
-        "Microsoft.Extensions.Configuration.Abstractions.nuspec"
       ]
     },
     "Microsoft.Framework.Caching.Abstractions/1.0.0-beta8": {
@@ -7237,8 +7102,8 @@
       "Microsoft.AspNet.StaticFiles >= 1.0.0-beta8",
       "Microsoft.CobaltCore >= 15.0.0",
       "Microsoft.AspNet.Server.Kestrel >= 1.0.0-beta8",
-      "Microsoft.Extensions.Configuration >= 1.0.0-rc1-15696",
-      "Microsoft.Extensions.Configuration.Abstractions >= 1.0.0-rc1-15696",
+      "Microsoft.Framework.Configuration >= 1.0.0-beta8",
+      "Microsoft.Framework.Configuration.Abstractions >= 1.0.0-beta8",
       "Autofac >= 4.0.0-beta7-130",
       "Autofac.Framework.DependencyInjection >= 4.0.0-beta7-130",
       "Microsoft.Framework.DependencyInjection >= 1.0.0-beta8",

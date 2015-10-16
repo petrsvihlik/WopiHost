@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WopiFileSystemProvider.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WopiHost.Urls", "WopiHost.Urls\WopiHost.Urls.csproj", "{DC348752-6AAF-4995-8D33-5879B9CDEEF7}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LegacyProjects", "LegacyProjects", "{B12744F7-EB6B-400A-8B75-CE3B7AF7A480}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -92,5 +94,12 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DF61D791-227C-4FF1-A858-7AE4DDCF4B4A} = {B12744F7-EB6B-400A-8B75-CE3B7AF7A480}
+		{8BA3019B-76A8-4720-80D8-30F5692F684B} = {B12744F7-EB6B-400A-8B75-CE3B7AF7A480}
+		{73652A57-C467-447E-A996-CDBA3EECE9BB} = {B12744F7-EB6B-400A-8B75-CE3B7AF7A480}
+		{F032ED3B-D950-4DE9-B5CD-6DF8667E167D} = {B12744F7-EB6B-400A-8B75-CE3B7AF7A480}
+		{DC348752-6AAF-4995-8D33-5879B9CDEEF7} = {B12744F7-EB6B-400A-8B75-CE3B7AF7A480}
 	EndGlobalSection
 EndGlobal
