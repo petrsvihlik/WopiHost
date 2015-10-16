@@ -66,6 +66,14 @@ Once you've successfully built the app you can:
   - make sure you set both `WopiHost` and `SampleWeb` as [startup projects](/img/multiple_projects.png?raw=true)
 - run it from the `cmd`
   - navigate to the WopiHost folder and run `dnx web`
+- run it in IIS (tested in IIS 8.5)
+  - navigate to the WopiHost folder and run `dnu publish --runtime active`
+  - copy the files from WopiHost\bin\output to your desired web application directory
+  - run the web.cmd file as administrator, wait for it to finish and close it (Ctrl+C and y)
+  - create a new application in IIS and set the physical path to the wwwroot in the web application directory
+  - make sure the site you're adding it to has a binding with port 5000
+  - go to the application settings and change the value of `dnx clr` to `clr` and the value of `dnx-version` to `1.0.0-beta7`
+  - in the same window, add all the configuration settings
 
 Testing
 -------
@@ -107,10 +115,11 @@ https://code.msdn.microsoft.com/office/Building-an-Office-Web-f98650d6
 
 Other relevant resources
 -----------------------------
-http://www.asp.net/web-api/overview/formats-and-model-binding/parameter-binding-in-aspnet-web-api
-https://weblog.west-wind.com/posts/2009/Feb/05/Html-and-Uri-String-Encoding-without-SystemWeb
-http://blogs.msdn.com/b/scicoria/archive/2013/06/24/office-web-apps-wopi-host-and-url-paths.aspx
-http://weblogs.asp.net/imranbaloch/k-kvm-kpm-klr-kre-in-asp-net-vnext
+ - [Content roadmap for Office Web Apps Server](https://technet.microsoft.com/en-us/library/dn135237.aspx)
+ - http://www.asp.net/web-api/overview/formats-and-model-binding/parameter-binding-in-aspnet-web-api
+ - https://weblog.west-wind.com/posts/2009/Feb/05/Html-and-Uri-String-Encoding-without-SystemWeb
+ - http://blogs.msdn.com/b/scicoria/archive/2013/06/24/office-web-apps-wopi-host-and-url-paths.aspx
+ - http://weblogs.asp.net/imranbaloch/k-kvm-kpm-klr-kre-in-asp-net-vnext
 
 Building WOPI Client
 -------------------------
