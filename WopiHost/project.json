@@ -17,7 +17,10 @@
     "Microsoft.Framework.DependencyInjection": "1.0.0-beta8",
     "Microsoft.AspNet.Mvc.Core": "6.0.0-beta8",
     "Microsoft.AspNet.Diagnostics.Entity": "7.0.0-beta8",
-    "Microsoft.Framework.Configuration.UserSecrets": "1.0.0-beta8"
+    "Microsoft.Framework.Configuration.UserSecrets": "1.0.0-beta8",
+    "WopiHost.Discovery": "1.0.0-*",
+    "WopiHost.Abstractions": "1.0.0-*",
+    "WopiHost.FileSystemProvider": "1.0.0-*"
   },
 
 	"commands": {
@@ -27,9 +30,6 @@
 	"frameworks": {
 		"dnx451": {
 			"dependencies": {
-				"WopiDiscovery": "1.0.0-*",
-				"WopiHost.Contracts": "1.0.0-*",
-				"WopiFileSystemProvider": "1.0.0-*"
 			},
 			"frameworkAssemblies": {
 				"System.Security": "4.0.0.0"

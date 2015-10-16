@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using WopiHost.Contracts;
+using WopiHost.Abstractions;
 
 namespace WopiHost
 {

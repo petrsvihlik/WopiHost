@@ -1,0 +1,65 @@
+{
+  "locked": false,
+  "version": 2,
+  "targets": {
+    "DNX,Version=v4.5.1": {
+      "WopiHost.Abstractions/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1"
+      },
+      "WopiHost.Discovery/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
+        "frameworkAssemblies": [
+          "System.Xml",
+          "System.Xml.Linq"
+        ]
+      }
+    },
+    "DNX,Version=v4.5.1/win7-x86": {
+      "WopiHost.Abstractions/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1"
+      },
+      "WopiHost.Discovery/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
+        "frameworkAssemblies": [
+          "System.Xml",
+          "System.Xml.Linq"
+        ]
+      }
+    },
+    "DNX,Version=v4.5.1/win7-x64": {
+      "WopiHost.Abstractions/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1"
+      },
+      "WopiHost.Discovery/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
+        "frameworkAssemblies": [
+          "System.Xml",
+          "System.Xml.Linq"
+        ]
+      }
+    }
+  },
+  "libraries": {
+    "WopiHost.Abstractions/1.0.0": {
+      "type": "project",
+      "path": "../WopiHost.Abstractions/project.json"
+    },
+    "WopiHost.Discovery/1.0.0": {
+      "type": "project",
+      "path": "../WopiHost.Discovery/project.json"
+    }
+  },
+  "projectFileDependencyGroups": {
+    "": [
+      "WopiHost.Abstractions >= 1.0.0-*",
+      "WopiHost.Discovery >= 1.0.0-*"
+    ],
+    "DNX,Version=v4.5.1": []
+  }
+}

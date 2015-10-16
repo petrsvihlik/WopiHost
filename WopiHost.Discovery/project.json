@@ -1,0 +1,17 @@
+﻿{
+  "version": "1.0.0-*",
+  "description": "WopiHost.Discovery Class Library",
+  "authors": [ "petrs" ],
+  "tags": [ "" ],
+  "projectUrl": "",
+  "licenseUrl": "",
+
+  "frameworks": {
+		"dnx451": {
+			"frameworkAssemblies": {
+				"System.Xml.Linq": "4.0.0.0",
+				"System.Xml": "4.0.0.0"
+			}
+		}
+  }
+}

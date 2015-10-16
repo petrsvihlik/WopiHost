@@ -1,0 +1,12 @@
+﻿{
+  "version": "1.0.0-*",
+  "description": "WopiHost.Abstractions Class Library",
+  "authors": [ "petrs" ],
+  "tags": [ "" ],
+  "projectUrl": "",
+  "licenseUrl": "",
+
+  "frameworks": {
+    "dnx451": { }
+  }
+}

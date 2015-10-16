@@ -3,9 +3,9 @@ using System.Linq;
 using Microsoft.AspNet.Mvc;
 using Microsoft.Framework.Configuration;
 using SampleWeb.Models;
-using WopiDiscovery.Enumerations;
-using WopiHost.Contracts;
-using WopiHost.Urls;
+using WopiHost.Abstractions;
+using WopiHost.Discovery.Enumerations;
+using WopiHost.Url;
 
 namespace SampleWeb.Controllers
 {

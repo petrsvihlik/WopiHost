@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Security.Cryptography;
-using WopiHost.Contracts;
+using WopiHost.Abstractions;
 using WopiHost.Models;
 
 namespace WopiHost

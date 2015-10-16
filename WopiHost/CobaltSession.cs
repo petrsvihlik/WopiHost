@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using Cobalt;
-using WopiHost.Contracts;
 using System.Linq;
+using WopiHost.Abstractions;
 
 namespace WopiHost
 {

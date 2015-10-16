@@ -42,7 +42,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="WopiUrlGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\WopiDiscovery\WopiDiscovery.csproj">

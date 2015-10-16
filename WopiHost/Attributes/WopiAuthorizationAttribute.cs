@@ -1,7 +1,5 @@
-﻿using System.Net;
-using Microsoft.AspNet.Mvc;
-using Microsoft.AspNet.Mvc.Filters;
-using WopiHost.Contracts;
+﻿using Microsoft.AspNet.Mvc.Filters;
+using WopiHost.Abstractions;
 
 namespace WopiHost.Attributes
 {

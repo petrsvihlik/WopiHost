@@ -1756,33 +1756,32 @@
           "lib/net45/_._": {}
         }
       },
-      "WopiDiscovery/1.0.0": {
+      "WopiHost.Abstractions/1.0.0": {
         "type": "project",
-        "framework": ".NETFramework,Version=v4.5"
+        "framework": "DNX,Version=v4.5.1"
       },
-      "WopiFileSystemProvider/1.0.0": {
+      "WopiHost.Discovery/1.0.0": {
         "type": "project",
-        "framework": ".NETFramework,Version=v4.5",
+        "framework": "DNX,Version=v4.5.1",
+        "frameworkAssemblies": [
+          "System.Xml",
+          "System.Xml.Linq"
+        ]
+      },
+      "WopiHost.FileSystemProvider/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
         "dependencies": {
-          "Microsoft.Framework.Configuration": "1.0.0-beta8",
           "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8",
-          "WopiHost.Contracts": "1.0.0"
+          "WopiHost.Abstractions": "1.0.0"
         }
       },
-      "WopiHost.Contracts/1.0.0": {
+      "WopiHost.Url/1.0.0": {
         "type": "project",
-        "framework": ".NETFramework,Version=v4.5",
+        "framework": "DNX,Version=v4.5.1",
         "dependencies": {
-          "Microsoft.Framework.Configuration": "1.0.0-beta8",
-          "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8"
-        }
-      },
-      "WopiHost.Urls/1.0.0": {
-        "type": "project",
-        "framework": ".NETFramework,Version=v4.5",
-        "dependencies": {
-          "WopiDiscovery": "1.0.0",
-          "WopiHost.Contracts": "1.0.0"
+          "WopiHost.Abstractions": "1.0.0",
+          "WopiHost.Discovery": "1.0.0"
         }
       }
     },
@@ -3543,33 +3542,32 @@
           "lib/net45/_._": {}
         }
       },
-      "WopiDiscovery/1.0.0": {
+      "WopiHost.Abstractions/1.0.0": {
         "type": "project",
-        "framework": ".NETFramework,Version=v4.5"
+        "framework": "DNX,Version=v4.5.1"
       },
-      "WopiFileSystemProvider/1.0.0": {
+      "WopiHost.Discovery/1.0.0": {
         "type": "project",
-        "framework": ".NETFramework,Version=v4.5",
+        "framework": "DNX,Version=v4.5.1",
+        "frameworkAssemblies": [
+          "System.Xml",
+          "System.Xml.Linq"
+        ]
+      },
+      "WopiHost.FileSystemProvider/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
         "dependencies": {
-          "Microsoft.Framework.Configuration": "1.0.0-beta8",
           "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8",
-          "WopiHost.Contracts": "1.0.0"
+          "WopiHost.Abstractions": "1.0.0"
         }
       },
-      "WopiHost.Contracts/1.0.0": {
+      "WopiHost.Url/1.0.0": {
         "type": "project",
-        "framework": ".NETFramework,Version=v4.5",
+        "framework": "DNX,Version=v4.5.1",
         "dependencies": {
-          "Microsoft.Framework.Configuration": "1.0.0-beta8",
-          "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8"
-        }
-      },
-      "WopiHost.Urls/1.0.0": {
-        "type": "project",
-        "framework": ".NETFramework,Version=v4.5",
-        "dependencies": {
-          "WopiDiscovery": "1.0.0",
-          "WopiHost.Contracts": "1.0.0"
+          "WopiHost.Abstractions": "1.0.0",
+          "WopiHost.Discovery": "1.0.0"
         }
       }
     },
@@ -5330,53 +5328,52 @@
           "lib/net45/_._": {}
         }
       },
-      "WopiDiscovery/1.0.0": {
+      "WopiHost.Abstractions/1.0.0": {
         "type": "project",
-        "framework": ".NETFramework,Version=v4.5"
+        "framework": "DNX,Version=v4.5.1"
       },
-      "WopiFileSystemProvider/1.0.0": {
+      "WopiHost.Discovery/1.0.0": {
         "type": "project",
-        "framework": ".NETFramework,Version=v4.5",
+        "framework": "DNX,Version=v4.5.1",
+        "frameworkAssemblies": [
+          "System.Xml",
+          "System.Xml.Linq"
+        ]
+      },
+      "WopiHost.FileSystemProvider/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
         "dependencies": {
-          "Microsoft.Framework.Configuration": "1.0.0-beta8",
           "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8",
-          "WopiHost.Contracts": "1.0.0"
+          "WopiHost.Abstractions": "1.0.0"
         }
       },
-      "WopiHost.Contracts/1.0.0": {
+      "WopiHost.Url/1.0.0": {
         "type": "project",
-        "framework": ".NETFramework,Version=v4.5",
+        "framework": "DNX,Version=v4.5.1",
         "dependencies": {
-          "Microsoft.Framework.Configuration": "1.0.0-beta8",
-          "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8"
-        }
-      },
-      "WopiHost.Urls/1.0.0": {
-        "type": "project",
-        "framework": ".NETFramework,Version=v4.5",
-        "dependencies": {
-          "WopiDiscovery": "1.0.0",
-          "WopiHost.Contracts": "1.0.0"
+          "WopiHost.Abstractions": "1.0.0",
+          "WopiHost.Discovery": "1.0.0"
         }
       }
     }
   },
   "libraries": {
-    "WopiDiscovery/1.0.0": {
+    "WopiHost.Abstractions/1.0.0": {
       "type": "project",
-      "path": "../wrap/WopiDiscovery/project.json"
+      "path": "../WopiHost.Abstractions/project.json"
     },
-    "WopiFileSystemProvider/1.0.0": {
+    "WopiHost.Discovery/1.0.0": {
       "type": "project",
-      "path": "../wrap/WopiFileSystemProvider/project.json"
+      "path": "../WopiHost.Discovery/project.json"
     },
-    "WopiHost.Contracts/1.0.0": {
+    "WopiHost.FileSystemProvider/1.0.0": {
       "type": "project",
-      "path": "../wrap/WopiHost.Contracts/project.json"
+      "path": "../WopiHost.FileSystemProvider/project.json"
     },
-    "WopiHost.Urls/1.0.0": {
+    "WopiHost.Url/1.0.0": {
       "type": "project",
-      "path": "../wrap/WopiHost.Urls/project.json"
+      "path": "../WopiHost.Url/project.json"
     },
     "Autofac/4.0.0-beta7-130": {
       "type": "package",
@@ -7374,12 +7371,11 @@
       "Microsoft.VisualStudio.Web.BrowserLink.Loader >= 14.0.0-beta8",
       "Autofac >= 4.0.0-beta7-130",
       "Autofac.Framework.DependencyInjection >= 4.0.0-beta7-130",
-      "Microsoft.Framework.Configuration.UserSecrets >= 1.0.0-beta8"
+      "Microsoft.Framework.Configuration.UserSecrets >= 1.0.0-beta8",
+      "WopiHost.Url >= 1.0.0-*",
+      "WopiHost.Abstractions >= 1.0.0-*",
+      "WopiHost.FileSystemProvider >= 1.0.0-*"
     ],
-    "DNX,Version=v4.5.1": [
-      "WopiHost.Urls >= 1.0.0-*",
-      "WopiHost.Contracts >= 1.0.0-*",
-      "WopiFileSystemProvider >= 1.0.0-*"
-    ]
+    "DNX,Version=v4.5.1": []
   }
 }

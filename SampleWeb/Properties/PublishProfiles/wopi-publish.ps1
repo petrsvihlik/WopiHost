@@ -29,10 +29,10 @@ function Get-VisualStudio2015InstallPath{
 }
 
 $vsInstallPath = Get-VisualStudio2015InstallPath
-$publishModulePath = "{0}Extensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f $vsInstallPath,'1.0.1'
+$publishModulePath = "{0}Extensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f $vsInstallPath, $publishModuleVersion
 
 if(!(Test-Path $publishModulePath)){
-	$publishModulePath = "{0}VWDExpressExtensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f $vsInstallPath,'1.0.1'
+    $publishModulePath = "{0}VWDExpressExtensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f $vsInstallPath, $publishModuleVersion
 }
 
 $defaultPublishSettings = New-Object psobject -Property @{

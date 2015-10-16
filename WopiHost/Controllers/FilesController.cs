@@ -2,11 +2,10 @@
 using System.Threading.Tasks;
 using Microsoft.AspNet.Mvc;
 using Microsoft.Framework.Configuration;
-using Microsoft.Framework.Primitives;
-using WopiDiscovery;
-using WopiDiscovery.Enumerations;
+using WopiHost.Abstractions;
 using WopiHost.Attributes;
-using WopiHost.Contracts;
+using WopiHost.Discovery;
+using WopiHost.Discovery.Enumerations;
 using WopiHost.Models;
 
 namespace WopiHost.Controllers

@@ -9,8 +9,8 @@
       },
       "dependencies": {
         "WopiHost.Contracts": "1.0.0-*",
-        "Microsoft.Framework.Configuration": "1.0.0-beta8",
-        "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8"
+        "Microsoft.Framework.Configuration": "1.0.0-beta7",
+        "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta7"
       }
     }
   }

@@ -19,9 +19,6 @@
     <ProduceOutputsOnBuild>True</ProduceOutputsOnBuild>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\WopiDiscovery\WopiDiscovery.csproj" />
-    <ProjectReference Include="..\WopiFileSystemProvider\WopiFileSystemProvider.csproj" />
-    <ProjectReference Include="..\WopiHost.Contracts\WopiHost.Contracts.csproj" />
   </ItemGroup>
   <Import Project="$(VSToolsPath)\DNX\Microsoft.DNX.targets" Condition="'$(VSToolsPath)' != ''" />
 </Project>

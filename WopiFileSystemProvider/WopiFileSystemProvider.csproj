@@ -48,10 +48,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="WopiFile.cs" />
-    <Compile Include="WopiFileSystemContainerExtension.cs" />
-    <Compile Include="WopiFileSystemProvider.cs" />
-    <Compile Include="WopiSecurityHandler.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\WopiHost.Contracts\WopiHost.Contracts.csproj">

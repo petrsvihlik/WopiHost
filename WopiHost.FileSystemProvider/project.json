@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0-*",
+  "description": "WopiHost.FileSystemProvider Class Library",
+  "authors": [ "petrs" ],
+  "tags": [ "" ],
+  "projectUrl": "",
+  "licenseUrl": "",
+  "frameworks": {
+    "dnx451": { }
+  },
+  "dependencies": {
+		"WopiHost.Abstractions": "1.0.0-*",		
+    "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8"
+  }
+}
