@@ -7,7 +7,7 @@
         "WopiClientUrl": "http://owaserver",
         "ASPNET_ENV": "Development",
         "WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
-        "WopiRootPath": "C:\\Users\\username\\Documents\\Visual Studio 2015\\Projects\\wopi\\WopiHost\\wwwroot\\wopi-docs"
+        "WopiRootPath": ".\\wopi-docs"
       }
     },
     "web": {
@@ -16,7 +16,7 @@
         "WopiClientUrl": "http://owaserver",
         "ASPNET_ENV": "Development",
         "WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
-        "WopiRootPath": "C:\\Users\\username\\Documents\\Visual Studio 2015\\Projects\\wopi\\WopiHost\\wwwroot\\wopi-docs"
+        "WopiRootPath": ".\\wopi-docs"
       }
     }
   }

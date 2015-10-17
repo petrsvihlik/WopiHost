@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Autofac;
 using Microsoft.AspNet.Builder;
@@ -17,7 +18,11 @@ namespace SampleWeb
 
 		public Startup(IHostingEnvironment env, IApplicationEnvironment appEnv)
 		{
-			var builder = new ConfigurationBuilder().SetBasePath(appEnv.ApplicationBasePath)
+
+			var builder = new ConfigurationBuilder().SetBasePath(appEnv.ApplicationBasePath).
+				AddInMemoryCollection(new Dictionary<string, string>
+					{ { nameof(env.WebRootPath), env.WebRootPath },
+					{ nameof(appEnv.ApplicationBasePath), appEnv.ApplicationBasePath } })
 				/*.AddJsonFile("config.json")
 				.AddJsonFile($"config.{env.EnvironmentName}.json", optional: true)*/;
 
@@ -56,15 +61,28 @@ namespace SampleWeb
 		}
 
 		// Configure is called after ConfigureServices is called.
-		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerfactory)
+		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
 		{
+			loggerFactory.MinimumLevel = LogLevel.Information;
+			loggerFactory.AddConsole();
+			loggerFactory.AddDebug();
+
+			if (env.IsDevelopment())
+			{
+				//app.UseBrowserLink();
+				app.UseDeveloperExceptionPage();
+			}
+			
+			// Add the platform handler to the request pipeline.
+			app.UseIISPlatformHandler();
+
 			// Add static files to the request pipeline.
 			app.UseStaticFiles();
-			
+
 			// Add MVC to the request pipeline.
 			app.UseMvc(routes =>
 			{
-				
+
 				routes.MapRoute(
 					name: "default",
 					template: "{controller}/{action}/{id?}",

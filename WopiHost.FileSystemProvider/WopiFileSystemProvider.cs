@@ -5,29 +5,35 @@ using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider
 {
-    public class WopiFileSystemProvider : IWopiFileProvider
-    {
-        public IConfiguration Configuration { get; set; }
-        public IConfigurationSection WopiRootPath => Configuration.GetSection("WopiRootPath");
+	public class WopiFileSystemProvider : IWopiFileProvider
+	{
+		protected IConfiguration Configuration { get; set; }
+		protected IConfigurationSection WopiRootPath => Configuration.GetSection(nameof(WopiRootPath));
+		protected IConfigurationSection WebRootPath => Configuration.GetSection(nameof(WebRootPath));
 
-        public WopiFileSystemProvider(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
+		protected string WopiAbsolutePath
+		{
+			get { return Path.IsPathRooted(WopiRootPath.Value) ? WopiRootPath.Value : Path.Combine(WebRootPath.Value, WopiRootPath.Value); }
+		}
 
-        public IWopiFile GetWopiFile(string identifier)
-        {
-            return new WopiFile(WopiRootPath.Value + Path.DirectorySeparatorChar + identifier, identifier);
-        }
+		public WopiFileSystemProvider(IConfiguration configuration)
+		{
+			Configuration = configuration;
+		}
 
-        public List<IWopiFile> GetWopiFiles()
-        {
-            List<IWopiFile> files = new List<IWopiFile>();
-            foreach (string path in Directory.GetFiles(WopiRootPath.Value))
-            {
-                files.Add(GetWopiFile(Path.GetFileName(path)));
-            }
-            return files;
-        }
-    }
+		public IWopiFile GetWopiFile(string identifier)
+		{
+			return new WopiFile(Path.Combine(WopiAbsolutePath, identifier), identifier);
+		}
+
+		public List<IWopiFile> GetWopiFiles()
+		{
+			List<IWopiFile> files = new List<IWopiFile>();
+			foreach (string path in Directory.GetFiles(WopiAbsolutePath))
+			{
+				files.Add(GetWopiFile(Path.GetFileName(path)));
+			}
+			return files;
+		}
+	}
 }

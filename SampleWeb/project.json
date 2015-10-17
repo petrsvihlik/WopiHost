@@ -21,7 +21,10 @@
     "Microsoft.Framework.Configuration.UserSecrets": "1.0.0-beta8",
     "WopiHost.Url": "1.0.0-*",
     "WopiHost.Abstractions": "1.0.0-*",
-    "WopiHost.FileSystemProvider": "1.0.0-*"
+    "WopiHost.FileSystemProvider": "1.0.0-*",
+    "Microsoft.AspNet.IISPlatformHandler": "1.0.0-beta8",
+    "Microsoft.Framework.Logging.Debug": "1.0.0-beta8",
+    "Microsoft.Framework.Logging.Console": "1.0.0-beta8"
   },
 
 	"commands": {
