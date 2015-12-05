@@ -9,15 +9,11 @@ install:
 
 before_build:
  - ps: "&{$Branch='dev';iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.ps1'))}"
- - ps: dnvm install 1.0.0-beta8
- - ps: dnvm upgrade
  - ps: dnvm update-self
+ - ps: dnvm upgrade
+ - ps: dnvm install 1.0.0-rc1-final
  - ps: dnvm list
- - ps: dnvm use 1.0.0-beta8
+ - ps: dnvm use 1.0.0-rc1-final
  - ps: npm cache clean
  - ps: npm install -g gulp bower
  - ps: dnu restore
-# Use NuGet 2.*
- - ps: (New-Object Net.WebClient).DownloadFile('https://www.nuget.org/nuget.exe', 'C:\Tools\NuGet\NuGet.exe')
- - ps: nuget restore
- - cmd: set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
