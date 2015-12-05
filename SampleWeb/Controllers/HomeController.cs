@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNet.Mvc;
-using Microsoft.Framework.Configuration;
+using Microsoft.Extensions.Configuration;
 using SampleWeb.Models;
 using WopiHost.Abstractions;
 using WopiHost.Discovery.Enumerations;
@@ -36,10 +36,10 @@ namespace SampleWeb.Controllers
 
         private IEnumerable<FileModel> GetFiles()
         {
-            return FileProvider.GetWopiFiles().Select(file => new FileModel
+            return FileProvider.GetWopiItems().Select(file => new FileModel
             {
                 FileName = file.Name,
-                FileUrl = WopiUrlGenerator.GetUrl(file.Extension, file.Identifier, WopiActionEnum.Edit)
+                FileUrl = (file.WopiItemType == WopiItemType.File) ? WopiUrlGenerator.GetUrl(((IWopiFile)file).Extension, file.Identifier, WopiActionEnum.Edit) : null
             });
         }
     }

@@ -19,5 +19,17 @@ namespace WopiHost.Abstractions
 		/// This method is very likely to change in the future.
 		/// </summary>
 		List<IWopiFile> GetWopiFiles();
+
+		/// <summary>
+		/// Returns all folders from the given source.
+		/// This method is very likely to change in the future.
+		/// </summary>
+		List<IWopiItem> GetWopiFolders();
+
+		/// <summary>
+		/// Returns all entries from the given source.
+		/// This method is very likely to change in the future.
+		/// </summary>
+		List<IWopiItem> GetWopiItems();
 	}
 }

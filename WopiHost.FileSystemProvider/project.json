@@ -9,7 +9,7 @@
     "dnx451": { }
   },
   "dependencies": {
-		"WopiHost.Abstractions": "1.0.0-*",		
-    "Microsoft.Framework.Configuration.Abstractions": "1.0.0-beta8"
+    "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final",
+    "WopiHost.Abstractions": "1.0.0-*"
   }
 }

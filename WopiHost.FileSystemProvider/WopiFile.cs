@@ -7,6 +7,7 @@ namespace WopiHost.FileSystemProvider
 	public class WopiFile : IWopiFile
 	{
 		public string Identifier { get; }
+		public WopiItemType WopiItemType { get { return WopiItemType.File;} }
 
 		protected FileInfo fileInfo;
 		protected string FilePath { get; set; }

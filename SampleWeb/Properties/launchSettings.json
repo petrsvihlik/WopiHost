@@ -1,4 +1,12 @@
 {
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:50872/",
+      "sslPort": 0
+    }
+  },
   "profiles": {
     "IIS Express": {
       "commandName": "IISExpress",
@@ -16,8 +24,8 @@
       "environmentVariables": {
         "WopiHostUrl": "http://wopihost:5000",
         "WopiClientUrl": "http://owaserver",
-        "ASPNET_ENV": "Development",
         "WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
+        "Hosting:Environment": "Development",
         "WopiRootPath": ".\\wopi-docs"
       }
     }

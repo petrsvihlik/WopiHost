@@ -53,16 +53,6 @@
     <Compile Include="WopiSecurityHandlerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\WopiFileSystemProvider\WopiFileSystemProvider.csproj">
-      <Project>{df61d791-227c-4ff1-a858-7ae4ddcf4b4a}</Project>
-      <Name>WopiFileSystemProvider</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\WopiHost.Contracts\WopiHost.Contracts.csproj">
-      <Project>{73652a57-c467-447e-a996-cdba3eece9bb}</Project>
-      <Name>WopiHost.Contracts</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
       <ItemGroup>
