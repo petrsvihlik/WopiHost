@@ -14,7 +14,7 @@ install:
  - ps: dnvm use 1.0.0-rc1-final
  - ps: npm cache clean
  - ps: npm install -g npm
- - ps: cd .\SampleWeb
+ - ps: cd .\WopiHost.Web
  - ps: npm install --production
  #- ps: npm install -g bower
  #- ps: npm install -g gulp

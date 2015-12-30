@@ -4,8 +4,6 @@ VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost", "WopiHost\WopiHost.xproj", "{21B81530-CC57-46F1-9524-08F984187DE2}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "SampleWeb", "SampleWeb\SampleWeb.xproj", "{F21A959D-294D-44E6-B7B3-3B4C8C215FD9}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{785E1533-48CE-4B5E-8C59-D6F1FDA8C45C}"
 	ProjectSection(SolutionItems) = preProject
 		appveyor.yml = appveyor.yml
@@ -15,10 +13,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WopiFileSystemProvider.Tests", "WopiFileSystemProvider.Tests\WopiFileSystemProvider.Tests.csproj", "{F032ED3B-D950-4DE9-B5CD-6DF8667E167D}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LegacyProjects", "LegacyProjects", "{B12744F7-EB6B-400A-8B75-CE3B7AF7A480}"
-EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Discovery", "WopiHost.Discovery\WopiHost.Discovery.xproj", "{84B896D2-1A87-4671-B583-92A6AF3645F0}"
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Abstractions", "WopiHost.Abstractions\WopiHost.Abstractions.xproj", "{D3B3947E-94DD-4FCD-BDDC-4E579ACF9B5B}"
@@ -26,6 +20,10 @@ EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.FileSystemProvider", "WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.xproj", "{3B756B87-FEA9-4DF9-91F3-8D91373C27AA}"
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Url", "WopiHost.Url\WopiHost.Url.xproj", "{64A6F7C1-8864-4D1A-A039-0E59D06274E1}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.FileSystemProvider.Tests", "WopiHost.FileSystemProvider.Tests\WopiHost.FileSystemProvider.Tests.xproj", "{650A5A85-5956-491E-9312-5E25A27D1108}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Web", "WopiHost.Web\WopiHost.Web.xproj", "{5C301182-6FB2-40C5-97ED-58B07A910BFF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -43,22 +41,6 @@ Global
 		{21B81530-CC57-46F1-9524-08F984187DE2}.Release|Any CPU.Build.0 = Release|Any CPU
 		{21B81530-CC57-46F1-9524-08F984187DE2}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{21B81530-CC57-46F1-9524-08F984187DE2}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{F21A959D-294D-44E6-B7B3-3B4C8C215FD9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F21A959D-294D-44E6-B7B3-3B4C8C215FD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F21A959D-294D-44E6-B7B3-3B4C8C215FD9}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{F21A959D-294D-44E6-B7B3-3B4C8C215FD9}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{F21A959D-294D-44E6-B7B3-3B4C8C215FD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F21A959D-294D-44E6-B7B3-3B4C8C215FD9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F21A959D-294D-44E6-B7B3-3B4C8C215FD9}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{F21A959D-294D-44E6-B7B3-3B4C8C215FD9}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{F032ED3B-D950-4DE9-B5CD-6DF8667E167D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F032ED3B-D950-4DE9-B5CD-6DF8667E167D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F032ED3B-D950-4DE9-B5CD-6DF8667E167D}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{F032ED3B-D950-4DE9-B5CD-6DF8667E167D}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{F032ED3B-D950-4DE9-B5CD-6DF8667E167D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F032ED3B-D950-4DE9-B5CD-6DF8667E167D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F032ED3B-D950-4DE9-B5CD-6DF8667E167D}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{F032ED3B-D950-4DE9-B5CD-6DF8667E167D}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{84B896D2-1A87-4671-B583-92A6AF3645F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{84B896D2-1A87-4671-B583-92A6AF3645F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{84B896D2-1A87-4671-B583-92A6AF3645F0}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
@@ -91,11 +73,24 @@ Global
 		{64A6F7C1-8864-4D1A-A039-0E59D06274E1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{64A6F7C1-8864-4D1A-A039-0E59D06274E1}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{64A6F7C1-8864-4D1A-A039-0E59D06274E1}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{650A5A85-5956-491E-9312-5E25A27D1108}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{650A5A85-5956-491E-9312-5E25A27D1108}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{650A5A85-5956-491E-9312-5E25A27D1108}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{650A5A85-5956-491E-9312-5E25A27D1108}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{650A5A85-5956-491E-9312-5E25A27D1108}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{650A5A85-5956-491E-9312-5E25A27D1108}.Release|Any CPU.Build.0 = Release|Any CPU
+		{650A5A85-5956-491E-9312-5E25A27D1108}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{650A5A85-5956-491E-9312-5E25A27D1108}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{5C301182-6FB2-40C5-97ED-58B07A910BFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C301182-6FB2-40C5-97ED-58B07A910BFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C301182-6FB2-40C5-97ED-58B07A910BFF}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{5C301182-6FB2-40C5-97ED-58B07A910BFF}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{5C301182-6FB2-40C5-97ED-58B07A910BFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C301182-6FB2-40C5-97ED-58B07A910BFF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C301182-6FB2-40C5-97ED-58B07A910BFF}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{5C301182-6FB2-40C5-97ED-58B07A910BFF}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{F032ED3B-D950-4DE9-B5CD-6DF8667E167D} = {B12744F7-EB6B-400A-8B75-CE3B7AF7A480}
 	EndGlobalSection
 EndGlobal

@@ -3,24 +3,26 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://localhost:50868/",
+      "applicationUrl": "http://localhost:52783/",
       "sslPort": 0
     }
   },
   "profiles": {
     "IIS Express": {
       "commandName": "IISExpress",
-      "launchUrl": "api/values",
-      "environmentVariables": {
-        "WopiClientUrl": "http://owaserver",
-        "WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
-        "Hosting:Environment": "Development",
-        "WopiRootPath": ".\\wopi-docs"
-      }
+      "launchBrowser": true,
+			"environmentVariables": {
+				"WopiHostUrl": "http://wopihost:5000",
+				"WopiClientUrl": "http://owaserver",
+				"WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
+				"Hosting:Environment": "Development",
+				"WopiRootPath": ".\\wopi-docs"
+			}
     },
     "web": {
       "commandName": "web",
 			"environmentVariables": {
+				"WopiHostUrl": "http://wopihost:5000",
 				"WopiClientUrl": "http://owaserver",
 				"WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
 				"Hosting:Environment": "Development",

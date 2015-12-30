@@ -1,0 +1,16 @@
+﻿@using System.Threading.Tasks
+@using SampleWeb.Models
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="row">
+    <div class="col-md-3">
+		<ul>
+			@foreach (FileModel f in @Model)
+			{
+				<li><a href="@f.FileUrl">@f.FileName</a></li>
+			}
+		</ul>
+    </div>
+</div>
