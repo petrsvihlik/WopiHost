@@ -35,10 +35,6 @@ Prerequisites
     * default NuGet source
   * Local (e.g. C:\Users\username\Documents\NuGet)
     * this will contain your Microsoft.CobaltCore.15.0.0.0.nupkg
-  * ~~AspNetVNext (https://www.myget.org/F/aspnetvnext/api/v2)~~
-    * ~~contains the latest vNext libraries~~
-  * ~~Autofac (https://www.myget.org/F/autofac/)~~
-    * ~~latatest Autofac version compatible with vNext~~
 3. Microsoft.CobaltCore.15.0.0.0.nupkg. One of the dependencies is Microsoft.CobaltCore.dll. This DLL is part of Office Web Apps 2013 and its license doesn't allow public distribution and therefore it's not part of this repository. Please make sure you have a valid license to OWA 2013 before you start using it.
  1. Locate Microsoft.CobaltCore.dll (you can find it in the GAC of the OWA server): `C:\Windows\Microsoft.NET\assembly\GAC_MSIL\Microsoft.CobaltCore\v4.0_15.0.0.0__71e9bce111e9429c`
  2. Install [NuGet Package Explorer](https://npe.codeplex.com/)
