@@ -12,13 +12,13 @@ install:
  - ps: dnvm install 1.0.0-rc1-final
  - ps: dnvm list
  - ps: dnvm use 1.0.0-rc1-final
- - ps: npm cache clean
- - ps: npm install -g npm
- - ps: cd .\WopiHost.Web
- - ps: npm install --production
+ #- ps: npm cache clean
+ #- ps: npm install -g npm
+ #- ps: cd .\WopiHost.Web
+ #- ps: npm install --production
  #- ps: npm install -g bower
  #- ps: npm install -g gulp
- - ps: npm update -g
+ #- ps: npm update -g
 
 before_build:
  - ps: dnu restore
