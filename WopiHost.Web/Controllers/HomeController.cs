@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNet.Mvc;
 using Microsoft.Extensions.Configuration;
-using SampleWeb.Models;
 using WopiHost.Abstractions;
 using WopiHost.Discovery.Enumerations;
 using WopiHost.Url;
+using WopiHost.Web.Models;
 
 namespace WopiHost.Web.Controllers
 {

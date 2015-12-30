@@ -1,4 +1,4 @@
-﻿namespace SampleWeb.Models
+﻿namespace WopiHost.Web.Models
 {
 	public class FileModel
 	{
