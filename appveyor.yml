@@ -14,9 +14,10 @@ install:
  - ps: dnvm use 1.0.0-rc1-final
  - ps: npm cache clean
  - ps: npm install -g npm
- - ps: npm update -g
- - ps: npm install -g bower
- - ps: npm install -g gulp
+ - ps: cd %APPVEYOR_BUILD_FOLDER%\SampleWeb
+ - ps: npm install
+ #- ps: npm install -g bower
+ #- ps: npm install -g gulp
  - ps: npm update -g
 
 before_build:

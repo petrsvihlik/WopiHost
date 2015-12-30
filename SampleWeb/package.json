@@ -5,8 +5,9 @@
 	"version": "1.0.0",
 	"author" : "Petr Svihlik",
 	"devDependencies": {
-		"gulp": "3.9.0",
-		"rimraf": "2.4.4"
+		"bower": "~1.7.1",
+		"gulp": "~3.9.0",
+		"rimraf": "~2.5.0"
 	},
 	"license": "BSD-3-Clause",
 	"repository": { "url": "https://github.com/petrsvihlik/WopiHost.git" },
