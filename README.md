@@ -29,16 +29,12 @@ Usage
 Prerequisites
 -------------
 
-1. [Visual Studio 2015](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) + [ASP.NET 5 beta 8](http://blogs.msdn.com/b/webdev/archive/2015/10/15/announcing-availability-of-asp-net-5-beta8.aspx)
+1. [Visual Studio 2015](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) + [ASP.NET 5 RC1](http://blogs.msdn.com/b/webdev/archive/2015/11/18/announcing-asp-net-5-release-candidate-1.aspx)
 2. Following NuGet sources:
   * api.nuget.org (https://api.nuget.org/v3/index.json)
     * default NuGet source
   * Local (e.g. C:\Users\username\Documents\NuGet)
     * this will contain your Microsoft.CobaltCore.15.0.0.0.nupkg
-  * ~~AspNetVNext (https://www.myget.org/F/aspnetvnext/api/v2)~~
-    * ~~contains the latest vNext libraries~~
-  * ~~Autofac (https://www.myget.org/F/autofac/)~~
-    * ~~latatest Autofac version compatible with vNext~~
 3. Microsoft.CobaltCore.15.0.0.0.nupkg. One of the dependencies is Microsoft.CobaltCore.dll. This DLL is part of Office Web Apps 2013 and its license doesn't allow public distribution and therefore it's not part of this repository. Please make sure you have a valid license to OWA 2013 before you start using it.
  1. Locate Microsoft.CobaltCore.dll (you can find it in the GAC of the OWA server): `C:\Windows\Microsoft.NET\assembly\GAC_MSIL\Microsoft.CobaltCore\v4.0_15.0.0.0__71e9bce111e9429c`
  2. Install [NuGet Package Explorer](https://npe.codeplex.com/)
@@ -47,15 +43,15 @@ Prerequisites
  
 Configuration
 -----------
-SampleWeb\Properties\launchSettings.json
+WopiHost.Web\Properties\launchSettings.json
 - `WopiHostUrl` - used by URL generator
 - `WopiClientUrl` - used by discovery module and for URL generation
-- `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Contracts interfaces
+- `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Abstractions interfaces
 - `WopiRootPath` - provider-specific setting used by WopiFileSystemProvider (which is an implementation of IWopiFileProvider working with System.IO)
 
 WopiHost\Properties\launchSettings.json
 - `WopiClientUrl` - used by discovery module and for URL generation
-- `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Contracts interfaces
+- `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Abstractions interfaces
 - `WopiRootPath` - provider-specific setting used by WopiFileSystemProvider (which is an implementation of IWopiFileProvider working with System.IO)
 
 Running the application
@@ -63,7 +59,7 @@ Running the application
 Once you've successfully built the app you can:
 
 - run it directly from the Visual Studio (in IIS Express or selfhosted `web` command)
-  - make sure you set both `WopiHost` and `SampleWeb` as [startup projects](/img/multiple_projects.png?raw=true)
+  - make sure you set both `WopiHost` and `WopiHost.Web` as [startup projects](/img/multiple_projects.png?raw=true)
 - run it from the `cmd`
   - navigate to the WopiHost folder and run `dnx web`
 - run it in IIS (tested in IIS 8.5)
@@ -72,7 +68,7 @@ Once you've successfully built the app you can:
   - run the web.cmd file as administrator, wait for it to finish and close it (Ctrl+C and y)
   - create a new application in IIS and set the physical path to the wwwroot in the web application directory
   - make sure the site you're adding it to has a binding with port 5000
-  - go to the application settings and change the value of `dnx clr` to `clr` and the value of `dnx-version` to `1.0.0-beta8`
+  - go to the application settings and change the value of `dnx clr` to `clr` and the value of `dnx-version` to `1.0.0-rc1`
   - in the same window, add all the configuration settings
 
 Testing
