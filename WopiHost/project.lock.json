@@ -1811,11 +1811,11 @@
       },
       "WopiHost.Abstractions/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1"
+        "framework": ".NETFramework,Version=v4.5.1"
       },
       "WopiHost.Discovery/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1",
+        "framework": ".NETFramework,Version=v4.5.1",
         "frameworkAssemblies": [
           "System.Xml",
           "System.Xml.Linq"
@@ -1823,7 +1823,7 @@
       },
       "WopiHost.FileSystemProvider/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1",
+        "framework": ".NETFramework,Version=v4.5.1",
         "dependencies": {
           "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final",
           "WopiHost.Abstractions": "1.0.0"
@@ -3642,11 +3642,11 @@
       },
       "WopiHost.Abstractions/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1"
+        "framework": ".NETFramework,Version=v4.5.1"
       },
       "WopiHost.Discovery/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1",
+        "framework": ".NETFramework,Version=v4.5.1",
         "frameworkAssemblies": [
           "System.Xml",
           "System.Xml.Linq"
@@ -3654,7 +3654,7 @@
       },
       "WopiHost.FileSystemProvider/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1",
+        "framework": ".NETFramework,Version=v4.5.1",
         "dependencies": {
           "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final",
           "WopiHost.Abstractions": "1.0.0"
@@ -5473,11 +5473,11 @@
       },
       "WopiHost.Abstractions/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1"
+        "framework": ".NETFramework,Version=v4.5.1"
       },
       "WopiHost.Discovery/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1",
+        "framework": ".NETFramework,Version=v4.5.1",
         "frameworkAssemblies": [
           "System.Xml",
           "System.Xml.Linq"
@@ -5485,7 +5485,7 @@
       },
       "WopiHost.FileSystemProvider/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1",
+        "framework": ".NETFramework,Version=v4.5.1",
         "dependencies": {
           "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final",
           "WopiHost.Abstractions": "1.0.0"

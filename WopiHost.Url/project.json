@@ -6,7 +6,7 @@
   "projectUrl": "",
   "licenseUrl": "",
   "frameworks": {
-    "dnx451": { }
+    "net451": { }
   },
   "dependencies": {
     "WopiHost.Abstractions": "1.0.0-*",

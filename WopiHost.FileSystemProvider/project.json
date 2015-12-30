@@ -5,9 +5,9 @@
   "tags": [ "" ],
   "projectUrl": "",
   "licenseUrl": "",
-  "frameworks": {
-    "dnx451": { }
-  },
+	"frameworks": {
+		"net451": { }
+	},
   "dependencies": {
     "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final",
     "WopiHost.Abstractions": "1.0.0-*"

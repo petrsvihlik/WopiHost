@@ -168,11 +168,11 @@
       },
       "WopiHost.Abstractions/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1"
+        "framework": ".NETFramework,Version=v4.5.1"
       },
       "WopiHost.FileSystemProvider/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1",
+        "framework": ".NETFramework,Version=v4.5.1",
         "dependencies": {
           "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final",
           "WopiHost.Abstractions": "1.0.0"
@@ -454,11 +454,11 @@
       },
       "WopiHost.Abstractions/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1"
+        "framework": ".NETFramework,Version=v4.5.1"
       },
       "WopiHost.FileSystemProvider/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1",
+        "framework": ".NETFramework,Version=v4.5.1",
         "dependencies": {
           "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final",
           "WopiHost.Abstractions": "1.0.0"
@@ -740,11 +740,11 @@
       },
       "WopiHost.Abstractions/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1"
+        "framework": ".NETFramework,Version=v4.5.1"
       },
       "WopiHost.FileSystemProvider/1.0.0": {
         "type": "project",
-        "framework": "DNX,Version=v4.5.1",
+        "framework": ".NETFramework,Version=v4.5.1",
         "dependencies": {
           "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final",
           "WopiHost.Abstractions": "1.0.0"
