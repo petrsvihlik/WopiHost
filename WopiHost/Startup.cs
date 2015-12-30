@@ -15,24 +15,12 @@ namespace WopiHost
 {
 	public class Startup
 	{
-		private readonly IAssemblyLoadContextAccessor _loadContextAccessor;
-		private readonly ILibraryManager _libraryManager;
-		private readonly IApplicationEnvironment _appEnv;
-		private readonly IHostingEnvironment _env;
-		private readonly IAssemblyLoaderContainer _loaderContainer;
+		//TODO: investigate objects: IApplicationEnvironment, IRuntimeEnvironment, IAssemblyLoaderContainer, IAssemblyLoadContextAccessor, ILibraryManager, IHostingEnvironment
+		
 		public IConfigurationRoot Configuration { get; set; }
 
-		public Startup(IHostingEnvironment env, IAssemblyLoaderContainer container,
-					   IAssemblyLoadContextAccessor accessor, ILibraryManager libraryManager, IApplicationEnvironment appEnv)
+		public Startup(IHostingEnvironment env, IApplicationEnvironment appEnv)
 		{
-			_env = env;
-			_loaderContainer = container;
-			_loadContextAccessor = accessor;
-			_libraryManager = libraryManager;
-			_appEnv = appEnv;
-
-
-
 			var builder = new ConfigurationBuilder().SetBasePath(appEnv.ApplicationBasePath).
 				AddInMemoryCollection(new Dictionary<string, string>
 					{ { nameof(env.WebRootPath), env.WebRootPath },
