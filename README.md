@@ -104,10 +104,16 @@ Useful resources
 =============
 Building WOPI Host
 -----------------------
-!!! NEW & SUPERCOOL Documentation: https://wopi.readthedocs.org/
-http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx
-http://blogs.msdn.com/b/scicoria/archive/2013/07/22/building-an-office-web-apps-owa-wopi-host.aspx
-https://code.msdn.microsoft.com/office/Building-an-Office-Web-f98650d6
+ - !!! NEW & SUPERCOOL Documentation: https://wopi.readthedocs.org/
+ - http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx
+ - http://blogs.msdn.com/b/scicoria/archive/2013/07/22/building-an-office-web-apps-owa-wopi-host.aspx
+ - https://code.msdn.microsoft.com/office/Building-an-Office-Web-f98650d6
+
+FSSHTTP
+-------
+ - https://msdn.microsoft.com/en-us/library/dd956775(v=office.12).aspx
+ - https://channel9.msdn.com/Events/Open-Specifications-Plugfests/Redmond-Interoperability-Protocols-Plugfest-2015/FSSHTTP-File-Synchronization-over-HTTP
+
 
 Other relevant resources
 -----------------------------
@@ -119,5 +125,5 @@ Other relevant resources
 
 Building WOPI Client
 -------------------------
-http://www.sharepointcolumn.com/edition-1-wopi-client-in-sharepoint-2013/
-http://www.wictorwilen.se/sharepoint-2013-building-your-own-wopi-client-part-2
+ - http://www.sharepointcolumn.com/edition-1-wopi-client-in-sharepoint-2013/
+ - http://www.wictorwilen.se/sharepoint-2013-building-your-own-wopi-client-part-2
