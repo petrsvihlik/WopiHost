@@ -1,6 +1,6 @@
 skip_commits:
   files:
-  - *.md
+  - '*.md'
 
 nuget:
   account_feed: true
