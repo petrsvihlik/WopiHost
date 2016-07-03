@@ -7,11 +7,11 @@ Basically, it allows developers to connect Office Web Apps to any thinkable sour
 
 Motivation
 -------------
-The intention was to try out the new technologies like ASP.NET 5 and MVC 6 in some useful way.
+The intention was to try out the new technologies like ASP.NET Core MVC in some useful way.
 
 Features / improvements
 -----------------------
- - clean WebAPI built with MVC 6, no references to System.Web
+ - clean WebAPI built with ASP.NET Cpre MVC, no references to System.Web
  - automatically discovers capabilities of a WOPI client and acts accordingly
  - can be hosted as a web app as well as a windows application
  - file manipulation is extracted to own layer of abstraction (there is no dependency on System.IO)

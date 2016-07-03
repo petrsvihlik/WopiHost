@@ -1,3 +1,7 @@
+skip_commits:
+  files:
+  - *.md
+
 nuget:
   account_feed: true
   
@@ -7,8 +11,13 @@ init:
 install:
  - cmd: nuget sources add -Name api.nuget.org -Source https://api.nuget.org/v3/index.json
 
+build:
+  verbosity: normal
+
 before_build:
  - ps: dotnet restore
+
+test: off
 
 #test_script:
 # - ps: >-
