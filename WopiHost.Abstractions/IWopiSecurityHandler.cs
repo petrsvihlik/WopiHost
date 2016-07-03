@@ -6,7 +6,7 @@
 	public interface IWopiSecurityHandler
 	{
 		/// <summary>
-		/// Validates the given value against the authroization token.
+		/// Validates the given value against the authorization token.
 		/// </summary>
 		/// <param name="value">Value to validate</param>
 		/// <param name="token">Authorization token</param>

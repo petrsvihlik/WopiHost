@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.Loader;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
-using Microsoft.AspNet.Builder;
-using Microsoft.AspNet.Hosting;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.DotNet.ProjectModel.Loader;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -16,10 +18,11 @@ namespace WopiHost.Web
 	{
 		public IConfiguration Configuration { get; set; }
 
-		public Startup(IHostingEnvironment env, IApplicationEnvironment appEnv)
+		public Startup(IHostingEnvironment env)
 		{
-
-			var builder = new ConfigurationBuilder().SetBasePath(appEnv.ApplicationBasePath).
+			var appEnv = PlatformServices.Default.Application;
+			var builder = new ConfigurationBuilder().SetBasePath(appEnv.ApplicationBasePath)
+				.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).
 				AddInMemoryCollection(new Dictionary<string, string>
 					{ { nameof(env.WebRootPath), env.WebRootPath },
 					{ nameof(appEnv.ApplicationBasePath), appEnv.ApplicationBasePath } })
@@ -52,7 +55,7 @@ namespace WopiHost.Web
 
 			// File provider implementation
 			var providerAssembly = Configuration.GetSection("WopiFileProviderAssemblyName").Value;
-			var assembly = AppDomain.CurrentDomain.Load(new AssemblyName(providerAssembly));
+			var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(providerAssembly));
 			builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
 
 			builder.Populate(services);
@@ -63,14 +66,10 @@ namespace WopiHost.Web
 		// Configure is called after ConfigureServices is called.
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
 		{
-			loggerFactory.MinimumLevel = LogLevel.Information;
 			loggerFactory.AddConsole(Configuration.GetSection("Logging"));
 			loggerFactory.AddDebug();
 
 			app.UseDeveloperExceptionPage();
-
-			// Add the platform handler to the request pipeline.
-			app.UseIISPlatformHandler(options => options.AuthenticationDescriptions.Clear());
 
 			// Add static files to the request pipeline.
 			app.UseStaticFiles();
@@ -83,8 +82,5 @@ namespace WopiHost.Web
 					template: "{controller=Home}/{action=Index}/{id?}");
 			});
 		}
-
-		// Entry point for the application.
-		public static void Main(string[] args) => WebApplication.Run<Startup>(args);
 	}
 }

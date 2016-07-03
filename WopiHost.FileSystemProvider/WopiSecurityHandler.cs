@@ -14,7 +14,7 @@ namespace WopiHost.FileSystemProvider
 
 		private byte[] Key => Encoding.UTF8.GetBytes(KeyString);
 
-		private static readonly RNGCryptoServiceProvider cryptoServiceProvider = new RNGCryptoServiceProvider();
+		readonly HashAlgorithm hasher = SHA256.Create();
 
 		public WopiSecurityHandler(string key = null)
 		{
@@ -23,7 +23,7 @@ namespace WopiHost.FileSystemProvider
 
 		public bool ValidateAccessToken(string value, string token)
 		{
-			var correctedSaltLength = _saltLength + _base64Correction;
+			   var correctedSaltLength = _saltLength + _base64Correction;
 			if (token.Length >= correctedSaltLength)
 			{
 				var targetHash = GetHash(value, token.Substring(0, correctedSaltLength));
@@ -40,8 +40,8 @@ namespace WopiHost.FileSystemProvider
 		private string GetSalt()
 		{
 			byte[] salt = new byte[_saltLength];
-			cryptoServiceProvider.GetBytes(salt);
-			return Convert.ToBase64String(salt);
+			var saltHash = hasher.ComputeHash(salt);
+			return Convert.ToBase64String(saltHash);
 		}
 
 		private string GetHash(string value, string salt)

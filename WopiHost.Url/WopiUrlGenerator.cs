@@ -45,7 +45,7 @@ namespace WopiHost.Url
 			// TODO: Consider generating WOPISrc based on routes:
 			// WebAPI2:	https://msdn.microsoft.com/en-us/library/system.web.http.routing.urlhelper.link.aspx
 			// MVC:		https://msdn.microsoft.com/en-us/library/cc668201.aspx
-			////Microsoft.AspNet.Mvc.UrlHelper u = new Microsoft.AspNet.Mvc.UrlHelper();u.Link()
+			////Microsoft.AspNetCore.Mvc.UrlHelper u = new Microsoft.AspNetCore.Mvc.UrlHelper();u.Link()
 			
 
 			var template = WopiDiscoverer.GetUrlTemplate(extension, action);

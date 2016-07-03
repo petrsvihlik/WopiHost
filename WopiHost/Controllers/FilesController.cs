@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using System.Threading.Tasks;
-using Microsoft.AspNet.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using WopiHost.Abstractions;
 using WopiHost.Attributes;
@@ -110,7 +110,7 @@ namespace WopiHost.Controllers
 		{
 			var editSession = GetEditSession(id);
 			editSession.SetFileContent(await HttpContext.Request.Body.ReadBytesAsync());
-			return new HttpStatusCodeResult((int)HttpStatusCode.OK);
+			return new OkResult();
 		}
 
 
@@ -142,13 +142,13 @@ namespace WopiHost.Controllers
 			{
 				//TODO: implement locking (https://github.com/petrsvihlik/WopiHost/issues/4)
 				//TODO: Replace the else-ifs with separate methods (https://github.com/petrsvihlik/WopiHost/issues/7)
-				return new HttpStatusCodeResult((int)HttpStatusCode.OK);
 
+				return new OkResult();
 			}
 			else
 			{
 				// Unsupported action
-				return new HttpStatusCodeResult((int)HttpStatusCode.NotImplemented);
+				return new StatusCodeResult((int)HttpStatusCode.NotImplemented);
 			}
 		}
 

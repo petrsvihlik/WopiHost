@@ -1,12 +1,13 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost", "WopiHost\WopiHost.xproj", "{21B81530-CC57-46F1-9524-08F984187DE2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{785E1533-48CE-4B5E-8C59-D6F1FDA8C45C}"
 	ProjectSection(SolutionItems) = preProject
 		appveyor.yml = appveyor.yml
+		global.json = global.json
 		LICENSE.txt = LICENSE.txt
 		NOTICE.txt = NOTICE.txt
 		ORIGINAL_WORK_LICENSE.txt = ORIGINAL_WORK_LICENSE.txt

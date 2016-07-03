@@ -1,15 +1,22 @@
 {
-  "version": "1.0.0-*",
-  "description": "WopiHost.FileSystemProvider Class Library",
-  "authors": [ "petrs" ],
-  "tags": [ "" ],
-  "projectUrl": "",
-  "licenseUrl": "",
-	"frameworks": {
-		"net451": { }
+	"version": "1.0.0-*",
+	"description": "WopiHost.FileSystemProvider Class Library",
+	"authors": [ "Petr Svihlik" ],
+	"packOptions": {
+		"licenseUrl": "https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt",
+		"repository": {
+			"type": "git",
+			"url": "https://github.com/petrsvihlik/WopiHost.git"
+		}
 	},
-  "dependencies": {
-    "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final",
-    "WopiHost.Abstractions": "1.0.0-*"
-  }
+
+	"frameworks": {
+		"netstandard1.6": {
+		}
+	},
+	"dependencies": {
+		"Microsoft.Extensions.Configuration.Abstractions": "1.0.0",
+		"System.IO.FileSystem": "4.0.1",
+		"WopiHost.Abstractions": "1.0.0-*"
+	}
 }

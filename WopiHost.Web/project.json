@@ -1,53 +1,62 @@
-﻿{
-	"userSecretsId": "aspnet5-SampleWeb-20150906061332",
-	"version": "1.0.0-*",
-	"compilationOptions": {
-		"emitEntryPoint": true
+{
+	"buildOptions": {
+			"emitEntryPoint": true,
+			"copyToOutput": {"includeFiles": ["project.json"]}
 	},
-
+	"commands": {
+		"web": "Microsoft.AspNetCore.Server.Kestrel --server.urls http://localhost:5000"
+	},
 	"dependencies": {
-		"Microsoft.Extensions.Logging": "1.0.0-rc1-final",
-		"Microsoft.Extensions.DependencyInjection": "1.0.0-rc1-final",
-		"Microsoft.Extensions.Configuration.UserSecrets": "1.0.0-rc1-final",
+		"Microsoft.NETCore.App": {
+			"version": "1.0.0",
+			"type": "platform"
+		},
+		"Microsoft.Extensions.Logging": "1.0.0",
+		"Microsoft.Extensions.DependencyInjection": "1.0.0",
+		"Microsoft.Extensions.Configuration.UserSecrets": "1.0.0",
 		"WopiHost.Url": "1.0.0-*",
 		"WopiHost.Abstractions": "1.0.0-*",
 		"WopiHost.FileSystemProvider": "1.0.0-*",
-		"Microsoft.Extensions.Logging.Debug": "1.0.0-rc1-final",
-		"Microsoft.Extensions.Logging.Console": "1.0.0-rc1-final",
-		"Autofac": "4.0.0-rc1-177",
-		"Autofac.Extensions.DependencyInjection": "4.0.0-rc1-177",
-		"Microsoft.AspNet.Diagnostics": "1.0.0-rc1-final",
-		"Microsoft.AspNet.Diagnostics.Entity": "7.0.0-rc1-final",
-		"Microsoft.AspNet.IISPlatformHandler": "1.0.0-rc1-final",
-		"Microsoft.AspNet.Mvc": "6.0.0-rc1-final",
-		"Microsoft.AspNet.Mvc.TagHelpers": "6.0.0-rc1-final",
-		"Microsoft.AspNet.Server.Kestrel": "1.0.0-rc1-final",
-		"Microsoft.AspNet.Server.WebListener": "1.0.0-rc1-final",
-		"Microsoft.AspNet.StaticFiles": "1.0.0-rc1-final",
-		"Microsoft.AspNet.Tooling.Razor": "1.0.0-rc1-final",
-		"Microsoft.Extensions.Configuration": "1.0.0-rc1-final",
-		"Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final",
-		"Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.0.0-rc1-final"
+		"Microsoft.Extensions.Logging.Debug": "1.0.0",
+		"Microsoft.Extensions.Logging.Console": "1.0.0",
+		"Autofac": "4.0.0-rc3-286",
+		"Autofac.Extensions.DependencyInjection": "4.0.0-rc3-280",
+		"Microsoft.AspNetCore.Diagnostics": "1.0.0",
+		"Microsoft.AspNetCore.Server.IISIntegration": "1.0.0",
+		"Microsoft.AspNetCore.Mvc": "1.0.0",
+		"Microsoft.AspNetCore.Razor.Tools": {
+			"version": "1.0.0-preview2-final",
+			"type": "build"
+		},
+		"Microsoft.AspNetCore.Server.Kestrel": "1.0.0",
+		"Microsoft.AspNetCore.Server.WebListener": "0.1.0",
+		"Microsoft.AspNetCore.StaticFiles": "1.0.0",
+		"Microsoft.Extensions.Configuration": "1.0.0",
+		"Microsoft.Extensions.Configuration.Abstractions": "1.0.0",
+		"Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.0.0",
+		"BundlerMinifier.Core": "2.1.258"
 	},
-
-	"commands": { 
-		"web": "Microsoft.AspNet.Server.Kestrel --server.urls http://localhost:5000",
-		"ef": "EntityFramework.Commands"
-	},
-
 	"frameworks": {
-		"dnx451": { }
+		"netcoreapp1.0": {
+		}
 	},
-
-	"exclude": [
-		"wwwroot",
-		"node_modules"
-	],
-	"publishExclude": [
-		"**.user",
-		"**.vspscc"
-	],
+	"publishOptions": {
+		"include": [
+			"wwwroot",
+			"Views",
+			"Areas/**/Views",
+			"appsettings.json",
+			"web.config",
+			"project.json"
+		]
+	},
 	"scripts": {
 		"prepublish": [ "npm install", "bower install", "gulp clean", "gulp min" ]
-	}
+	},
+	"tools": {
+		"Microsoft.AspNetCore.Razor.Tools": "1.0.0-preview2-final",
+		"Microsoft.AspNetCore.Server.IISIntegration.Tools": "1.0.0-preview2-final"
+	},
+	"userSecretsId": "aspnet5-SampleWeb-20150906061332",
+	"version": "1.0.0-*"
 }

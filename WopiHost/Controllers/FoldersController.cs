@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNet.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using WopiHost.Attributes;
 
 namespace WopiHost.Controllers

@@ -1,12 +1,19 @@
-﻿{
-  "version": "1.0.0-*",
-  "description": "WopiHost.Abstractions Class Library",
-  "authors": [ "petrs" ],
-  "tags": [ "" ],
-  "projectUrl": "",
-  "licenseUrl": "",
-
+{
+	"version": "1.0.0-*",
+	"description": "WopiHost.Abstractions Class Library",
+	"authors": [ "Petr Svihlik" ],
+	"packOptions": {
+		"licenseUrl": "https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt",
+		"repository": {
+			"type": "git",
+			"url": "https://github.com/petrsvihlik/WopiHost.git"
+		}
+	},
 	"frameworks": {
-		"net451": { }
+			"netstandard1.6": {
+			}
+	},
+	"dependencies": {
+		"NETStandard.Library": "1.6.0"
 	}
 }

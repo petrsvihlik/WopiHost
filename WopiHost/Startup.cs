@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Reflection;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
-using Microsoft.AspNet.Builder;
-using Microsoft.AspNet.Hosting;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -16,12 +16,14 @@ namespace WopiHost
 	public class Startup
 	{
 		//TODO: investigate objects: IApplicationEnvironment, IRuntimeEnvironment, IAssemblyLoaderContainer, IAssemblyLoadContextAccessor, ILibraryManager, IHostingEnvironment
-		
+
 		public IConfigurationRoot Configuration { get; set; }
 
-		public Startup(IHostingEnvironment env, IApplicationEnvironment appEnv)
+		public Startup(IHostingEnvironment env)
 		{
-			var builder = new ConfigurationBuilder().SetBasePath(appEnv.ApplicationBasePath).
+			var appEnv = PlatformServices.Default.Application;
+			var builder = new ConfigurationBuilder().SetBasePath(appEnv.ApplicationBasePath)
+				.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).
 				AddInMemoryCollection(new Dictionary<string, string>
 					{ { nameof(env.WebRootPath), env.WebRootPath },
 					{ nameof(appEnv.ApplicationBasePath), appEnv.ApplicationBasePath } })
@@ -44,7 +46,7 @@ namespace WopiHost
 		public IServiceProvider ConfigureServices(IServiceCollection services)
 		{
 			services.AddMvc();
-
+			
 			/* TODO: #10
 			services.AddCaching();
 			services.AddSession();
@@ -64,6 +66,7 @@ namespace WopiHost
 
 			// File provider implementation
 			var providerAssembly = Configuration.GetSection("WopiFileProviderAssemblyName").Value;
+
 			var assembly = AppDomain.CurrentDomain.Load(new AssemblyName(providerAssembly));
 			builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
 
@@ -76,18 +79,14 @@ namespace WopiHost
 		// Configure is called after ConfigureServices is called.
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
 		{
-			loggerFactory.MinimumLevel = LogLevel.Information;
-			loggerFactory.AddConsole();
+			loggerFactory.AddConsole(Configuration.GetSection("Logging"));
 			loggerFactory.AddDebug();
 
 			if (env.IsDevelopment())
 			{
 				app.UseDeveloperExceptionPage();
 			}
-
-			// Add the platform handler to the request pipeline.
-			app.UseIISPlatformHandler();
-
+			
 			// Add MVC to the request pipeline.
 			//TODO:#10
 			//app.UseSession();
