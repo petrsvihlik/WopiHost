@@ -11,7 +11,7 @@ The intention was to try out the new technologies like ASP.NET Core MVC in some 
 
 Features / improvements
 -----------------------
- - clean WebAPI built with ASP.NET Cpre MVC, no references to System.Web
+ - clean WebAPI built with ASP.NET Core MVC, no references to System.Web
  - automatically discovers capabilities of a WOPI client and acts accordingly
  - can be hosted as a web app as well as a windows application
  - file manipulation is extracted to own layer of abstraction (there is no dependency on System.IO)
