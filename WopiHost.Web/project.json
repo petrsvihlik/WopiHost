@@ -1,40 +1,41 @@
 {
 	"buildOptions": {
-			"emitEntryPoint": true,
-			"copyToOutput": {"includeFiles": ["project.json"]}
+		"copyToOutput": { "includeFiles": [ "project.json" ] },
+		"emitEntryPoint": true,
+		"preserveCompilationContext": true
 	},
 	"commands": {
 		"web": "Microsoft.AspNetCore.Server.Kestrel --server.urls http://localhost:5000"
 	},
 	"dependencies": {
-		"Microsoft.NETCore.App": {
-			"version": "1.0.0",
-			"type": "platform"
-		},
-		"Microsoft.Extensions.Logging": "1.0.0",
-		"Microsoft.Extensions.DependencyInjection": "1.0.0",
-		"Microsoft.Extensions.Configuration.UserSecrets": "1.0.0",
-		"WopiHost.Url": "1.0.0-*",
-		"WopiHost.Abstractions": "1.0.0-*",
-		"WopiHost.FileSystemProvider": "1.0.0-*",
-		"Microsoft.Extensions.Logging.Debug": "1.0.0",
-		"Microsoft.Extensions.Logging.Console": "1.0.0",
 		"Autofac": "4.0.0-rc3-286",
 		"Autofac.Extensions.DependencyInjection": "4.0.0-rc3-280",
+		"BundlerMinifier.Core": "2.1.258",
 		"Microsoft.AspNetCore.Diagnostics": "1.0.0",
-		"Microsoft.AspNetCore.Server.IISIntegration": "1.0.0",
 		"Microsoft.AspNetCore.Mvc": "1.0.0",
 		"Microsoft.AspNetCore.Razor.Tools": {
 			"version": "1.0.0-preview2-final",
 			"type": "build"
 		},
+		"Microsoft.AspNetCore.Server.IISIntegration": "1.0.0",
 		"Microsoft.AspNetCore.Server.Kestrel": "1.0.0",
 		"Microsoft.AspNetCore.Server.WebListener": "0.1.0",
 		"Microsoft.AspNetCore.StaticFiles": "1.0.0",
 		"Microsoft.Extensions.Configuration": "1.0.0",
 		"Microsoft.Extensions.Configuration.Abstractions": "1.0.0",
+		"Microsoft.Extensions.Configuration.UserSecrets": "1.0.0",
+		"Microsoft.Extensions.DependencyInjection": "1.0.0",
+		"Microsoft.Extensions.Logging": "1.0.0",
+		"Microsoft.Extensions.Logging.Console": "1.0.0",
+		"Microsoft.Extensions.Logging.Debug": "1.0.0",
+		"Microsoft.NETCore.App": {
+			"version": "1.0.0",
+			"type": "platform"
+		},
 		"Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.0.0",
-		"BundlerMinifier.Core": "2.1.258"
+		"WopiHost.Abstractions": "1.0.0-*",
+		"WopiHost.FileSystemProvider": "1.0.0-*",
+		"WopiHost.Url": "1.0.0-*"
 	},
 	"frameworks": {
 		"netcoreapp1.0": {
@@ -49,6 +50,11 @@
 			"web.config",
 			"project.json"
 		]
+	},
+	"runtimeOptions": {
+		"configProperties": {
+			"System.GC.Server": true
+		}
 	},
 	"scripts": {
 		"prepublish": [ "npm install", "bower install", "gulp clean", "gulp min" ]

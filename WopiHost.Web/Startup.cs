@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.Loader;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.DotNet.ProjectModel.Loader;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -45,7 +43,7 @@ namespace WopiHost.Web
 		/// </summary>
 		public IServiceProvider ConfigureServices(IServiceCollection services)
 		{
-			services.AddMvc();
+			services.AddMvc();			
 
 			// Autofac resolution
 			var builder = new ContainerBuilder();
@@ -53,9 +51,15 @@ namespace WopiHost.Web
 			// Configuration
 			builder.RegisterInstance(Configuration).As<IConfiguration>().SingleInstance();
 
+			
+			
+
 			// File provider implementation
 			var providerAssembly = Configuration.GetSection("WopiFileProviderAssemblyName").Value;
-			var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(providerAssembly));
+			var assemblyName = new AssemblyName(providerAssembly);
+
+			var assembly = Assembly.Load(assemblyName);
+			//var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyName(assemblyName);
 			builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
 
 			builder.Populate(services);

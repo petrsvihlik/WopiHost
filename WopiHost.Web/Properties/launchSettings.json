@@ -11,23 +11,23 @@
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
-			"environmentVariables": {
-				"WopiHostUrl": "http://wopihost:5000",
-				"WopiClientUrl": "http://owaserver",
-				"WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
-				"Hosting:Environment": "Development",
-				"WopiRootPath": ".\\wopi-docs"
-			}
+      "environmentVariables": {
+        "WopiHostUrl": "http://wopihost:5000",
+        "WopiClientUrl": "http://owaserver",
+        "WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
+        "WopiRootPath": ".\\wopi-docs",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
     },
     "web": {
       "commandName": "web",
-			"environmentVariables": {
-				"WopiHostUrl": "http://wopihost:5000",
-				"WopiClientUrl": "http://owaserver",
-				"WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
-				"Hosting:Environment": "Development",
-				"WopiRootPath": ".\\wopi-docs"
-			}
+      "environmentVariables": {
+        "WopiHostUrl": "http://wopihost:5000",
+        "WopiClientUrl": "http://owaserver",
+        "WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
+        "Hosting:Environment": "Development",
+        "WopiRootPath": ".\\wopi-docs"
+      }
     }
   }
 }

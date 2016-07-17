@@ -15,7 +15,8 @@
 		"Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore": "1.0.0",
 		"Microsoft.AspNetCore.Hosting": "1.0.0",
 		"Microsoft.AspNetCore.Mvc": "1.0.0",
-		"Microsoft.AspNetCore.Mvc.Core": "1.0.0",
+		
+		/*"Microsoft.AspNetCore.Mvc.ViewFeatures": "1.0.0",*/
 		"Microsoft.AspNetCore.Server.IISIntegration": "1.0.0",
 		"Microsoft.AspNetCore.Server.Kestrel": "1.0.0",
 		"Microsoft.AspNetCore.Server.WebListener": "0.1.0",
@@ -30,8 +31,8 @@
 		"Microsoft.Extensions.Logging.Debug": "1.0.0",
 		"Microsoft.Extensions.PlatformAbstractions": "1.0.0",
 		"Microsoft.NETCore.Portable.Compatibility": "1.0.0",
-		"System.Runtime": "4.1.0",
-		"System.Threading.Timer": "4.0.1",
+		"System.Runtime": "4.0.20",
+		"System.Threading.Timer": "4.0.0",
 		"WopiHost.Abstractions": "1.0.0-*",
 		"WopiHost.Discovery": "1.0.0-*",
 		"WopiHost.FileSystemProvider": "1.0.0-*"
@@ -41,7 +42,6 @@
 	"frameworks": {
 		"net46": {
 			"imports": [
-				"netstandard1.6"
 			]
 		}
 	},

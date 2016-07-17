@@ -20,12 +20,15 @@
     },
     "web": {
       "commandName": "web",
-			"environmentVariables": {
-				"WopiClientUrl": "http://owaserver",
-				"WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
-				"Hosting:Environment": "Development",
-				"WopiRootPath": ".\\wopi-docs"
-			}
+      "environmentVariables": {
+        "WopiClientUrl": "http://owaserver",
+        "WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
+        "WopiRootPath": ".\\wopi-docs",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "WopiHost": {
+      "commandName": "Project"
     }
   }
 }

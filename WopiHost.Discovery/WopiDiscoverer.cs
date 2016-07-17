@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Xml.Linq;
 using WopiHost.Discovery.Enumerations;
 
@@ -16,15 +18,25 @@ namespace WopiHost.Discovery
 		private const string ATTR_ACTION_REQUIRES = "requires";
 		private const string ATTR_APP_NAME = "name";
 		private const string ATTR_APP_FAVICON = "favIconUrl";
-	    private const string ATTR_VAL_COBALT = "cobalt";
+		private const string ATTR_VAL_COBALT = "cobalt";
 
 
-        private XElement _discoveryXml;
+		private XElement _discoveryXml;
 		public string WopiClientUrl { get; }
 
 		public XElement DiscoveryXml
 		{
-			get { return _discoveryXml ?? (_discoveryXml = XElement.Load(WopiClientUrl + "/hosting/discovery")); }
+			get
+			{
+				if (_discoveryXml == null)
+				{
+					HttpClient client = new HttpClient();
+					//TODO: temporary fix, asnychronize the whole code
+					Stream stream = client.GetStreamAsync(WopiClientUrl + "/hosting/discovery").GetAwaiter().GetResult();
+					_discoveryXml = XElement.Load(stream);
+				}
+				return _discoveryXml;
+			}
 		}
 
 
@@ -55,10 +67,10 @@ namespace WopiHost.Discovery
 			return query.SingleOrDefault();
 		}
 
-	    public bool RequiresCobalt(string extension, WopiActionEnum action)
-	    {
-	        return GetActionRequirements(extension, action).Contains(ATTR_VAL_COBALT);
-	    }
+		public bool RequiresCobalt(string extension, WopiActionEnum action)
+		{
+			return GetActionRequirements(extension, action).Contains(ATTR_VAL_COBALT);
+		}
 
 		public string GetUrlTemplate(string extension, WopiActionEnum action)
 		{
