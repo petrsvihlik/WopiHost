@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
@@ -40,7 +41,7 @@ namespace WopiHost.Url
 			OptionalParameters.Add("ui", "en-US"); //TODO: test value
 		}
 
-		public string GetUrl(string extension, string fileIdentifier, WopiActionEnum action)
+		public async Task<string> GetUrlAsync(string extension, string fileIdentifier, WopiActionEnum action)
 		{
 			// TODO: Consider generating WOPISrc based on routes:
 			// WebAPI2:	https://msdn.microsoft.com/en-us/library/system.web.http.routing.urlhelper.link.aspx
@@ -48,7 +49,7 @@ namespace WopiHost.Url
 			////Microsoft.AspNetCore.Mvc.UrlHelper u = new Microsoft.AspNetCore.Mvc.UrlHelper();u.Link()
 			
 
-			var template = WopiDiscoverer.GetUrlTemplate(extension, action);
+			var template = await WopiDiscoverer.GetUrlTemplateAsync(extension, action);
 			if (template != null)
 			{
 				int i = 0;

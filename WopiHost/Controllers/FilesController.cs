@@ -34,7 +34,7 @@ namespace WopiHost.Controllers
 			Configuration = configuration;
 		}
 
-		private EditSession GetEditSession(string fileId)
+		private async Task<EditSession> GetEditSessionAsync(string fileId)
 		{
 			var sessionId = /*Context.Session.GetString("SessionID");
 			if (string.IsNullOrEmpty(sessionId))
@@ -50,7 +50,7 @@ namespace WopiHost.Controllers
 				IWopiFile file = FileProvider.GetWopiFile(fileId);
 
 				//TODO: remove hardcoded action 'Edit'
-				if (WopiDiscoverer.RequiresCobalt(file.Extension, WopiActionEnum.Edit))
+				if (await WopiDiscoverer.RequiresCobaltAsync(file.Extension, WopiActionEnum.Edit))
 				{
 					editSession = new CobaltSession(file, sessionId);
 				}
@@ -74,9 +74,9 @@ namespace WopiHost.Controllers
 		/// <returns></returns>
 		[HttpGet(Constants.EntryRoute)]
 		[Produces("application/json")]
-		public CheckFileInfo GetCheckFileInfo(string id, [FromQuery]string access_token)
+		public async Task<CheckFileInfo> GetCheckFileInfo(string id, [FromQuery]string access_token)
 		{
-			return GetEditSession(id)?.GetCheckFileInfo();
+			return (await GetEditSessionAsync(id))?.GetCheckFileInfo();
 		}
 
 		/// <summary>
@@ -89,9 +89,9 @@ namespace WopiHost.Controllers
 		/// <returns></returns>
 		[HttpGet("{id}/contents")]
 		[Produces("application/octet-stream")]
-		public FileResult GetContents(string id, [FromQuery]string access_token)
+		public async Task<FileResult> GetContents(string id, [FromQuery]string access_token)
 		{
-			var editSession = GetEditSession(id);
+			var editSession = await GetEditSessionAsync(id);
 			return new FileResult(editSession.GetFileContent(), "application/octet-stream");
 		}
 
@@ -108,7 +108,7 @@ namespace WopiHost.Controllers
 		[Produces("application/octet-stream")]
 		public async Task<IActionResult> PutContents(string id, [FromQuery]string access_token)
 		{
-			var editSession = GetEditSession(id);
+			var editSession = await GetEditSessionAsync(id);
 			editSession.SetFileContent(await HttpContext.Request.Body.ReadBytesAsync());
 			return new OkResult();
 		}
@@ -126,7 +126,7 @@ namespace WopiHost.Controllers
 		[Produces("application/octet-stream", "text/html")]
 		public async Task<IActionResult> PerformAction(string id, [FromQuery]string access_token)
 		{
-			var editSession = GetEditSession(id);
+			var editSession = await GetEditSessionAsync(id);
 			string wopiOverrideHeader = HttpContext.Request.Headers["X-WOPI-Override"];
 
 			if (wopiOverrideHeader.Equals("COBALT"))

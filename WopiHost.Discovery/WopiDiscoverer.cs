@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using WopiHost.Discovery.Enumerations;
 
@@ -24,19 +25,15 @@ namespace WopiHost.Discovery
 		private XElement _discoveryXml;
 		public string WopiClientUrl { get; }
 
-		public XElement DiscoveryXml
+		public async Task<XElement> GetDiscoveryXmlAsync()
 		{
-			get
+			if (_discoveryXml == null)
 			{
-				if (_discoveryXml == null)
-				{
-					HttpClient client = new HttpClient();
-					//TODO: temporary fix, asnychronize the whole code
-					Stream stream = client.GetStreamAsync(WopiClientUrl + "/hosting/discovery").GetAwaiter().GetResult();
-					_discoveryXml = XElement.Load(stream);
-				}
-				return _discoveryXml;
+				HttpClient client = new HttpClient();
+				Stream stream = await client.GetStreamAsync(WopiClientUrl + "/hosting/discovery");
+				_discoveryXml = XElement.Load(stream);
 			}
+			return _discoveryXml;
 		}
 
 
@@ -45,56 +42,56 @@ namespace WopiHost.Discovery
 			WopiClientUrl = wopiClientUrl;
 		}
 
-		public bool SupportsAction(string extension, WopiActionEnum action)
+		public async Task<bool> SupportsActionAsync(string extension, WopiActionEnum action)
 		{
 			string actionString = action.ToString().ToLower();
 
-			var query = from e in DiscoveryXml.Elements(ELEMENT_NET_ZONE).Elements(ELEMENT_APP).Elements()
+			var query = from e in (await GetDiscoveryXmlAsync()).Elements(ELEMENT_NET_ZONE).Elements(ELEMENT_APP).Elements()
 						where (string)e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string)e.Attribute(ATTR_ACTION_NAME) == actionString
 						select e;
 
 			return query.Any();
 		}
 
-		public IEnumerable<string> GetActionRequirements(string extension, WopiActionEnum action)
+		public async Task<IEnumerable<string>> GetActionRequirementsAsync(string extension, WopiActionEnum action)
 		{
 			string actionString = action.ToString().ToLower();
 
-			var query = from e in DiscoveryXml.Elements(ELEMENT_NET_ZONE).Elements(ELEMENT_APP).Elements()
+			var query = from e in (await GetDiscoveryXmlAsync()).Elements(ELEMENT_NET_ZONE).Elements(ELEMENT_APP).Elements()
 						where (string)e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string)e.Attribute(ATTR_ACTION_NAME) == actionString
 						select e.Attribute(ATTR_ACTION_REQUIRES).Value.Split(',');
 
 			return query.SingleOrDefault();
 		}
 
-		public bool RequiresCobalt(string extension, WopiActionEnum action)
+		public async Task<bool> RequiresCobaltAsync(string extension, WopiActionEnum action)
 		{
-			return GetActionRequirements(extension, action).Contains(ATTR_VAL_COBALT);
+			return (await GetActionRequirementsAsync(extension, action)).Contains(ATTR_VAL_COBALT);
 		}
 
-		public string GetUrlTemplate(string extension, WopiActionEnum action)
+		public async Task<string> GetUrlTemplateAsync(string extension, WopiActionEnum action)
 		{
 			string actionString = action.ToString().ToLower();
 
-			var query = from e in DiscoveryXml.Elements(ELEMENT_NET_ZONE).Elements(ELEMENT_APP).Elements()
+			var query = from e in (await GetDiscoveryXmlAsync()).Elements(ELEMENT_NET_ZONE).Elements(ELEMENT_APP).Elements()
 						where (string)e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string)e.Attribute(ATTR_ACTION_NAME) == actionString
 						select e.Attribute(ATTR_ACTION_URL).Value;
 
 			return query.SingleOrDefault();
 		}
 
-		public string GetApplicationName(string extension)
+		public async Task<string> GetApplicationNameAsync(string extension)
 		{
-			var query = from e in DiscoveryXml.Elements(ELEMENT_NET_ZONE).Elements(ELEMENT_APP)
+			var query = from e in (await GetDiscoveryXmlAsync()).Elements(ELEMENT_NET_ZONE).Elements(ELEMENT_APP)
 						where e.Descendants(ELEMENT_ACTION).Any(d => (string)d.Attribute(ATTR_ACTION_EXTENSION) == extension)
 						select e.Attribute(ATTR_APP_NAME).Value;
 
 			return query.SingleOrDefault();
 		}
 
-		public string GetApplicationFavIcon(string extension)
+		public async Task<string> GetApplicationFavIconAsync(string extension)
 		{
-			var query = from e in DiscoveryXml.Elements(ELEMENT_NET_ZONE).Elements(ELEMENT_APP)
+			var query = from e in (await GetDiscoveryXmlAsync()).Elements(ELEMENT_NET_ZONE).Elements(ELEMENT_APP)
 						where e.Descendants(ELEMENT_ACTION).Any(d => (string)d.Attribute(ATTR_ACTION_EXTENSION) == extension)
 						select e.Attribute(ATTR_APP_FAVICON).Value;
 
