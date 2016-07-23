@@ -1,16 +1,19 @@
 {
 	"authors": [ "Petr Svihlik" ],
-	"commands": {
-		"test": "xunit.runner.dnx"
-	},
 	"dependencies": {
 		"xunit": "2.2.0-beta2-build3300",
-		"xunit.runner.visualstudio": "2.2.0-beta2-build1149",
+		"dotnet-test-xunit": "2.2.0-preview2-build1029",
 		"WopiHost.FileSystemProvider": "1.0.0-*"
 	},
 	"description": "",
 	"frameworks": {
-		"netstandard1.6": {
+		"netcoreapp1.0": {
+			"dependencies": {
+				"Microsoft.NETCore.App": {
+					"type": "platform",
+					"version": "1.0.0"
+				}
+			}
 		}
 	},
 	"packOptions": {
@@ -20,5 +23,6 @@
 			"url": "https://github.com/petrsvihlik/WopiHost.git"
 		}
 	},
+	"testRunner": "xunit",
 	"version": "1.0.0-*"
 }
