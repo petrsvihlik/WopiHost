@@ -9,7 +9,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.PlatformAbstractions;
-using WopiHost.Attributes;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
+using WopiHost.Authorization;
 
 namespace WopiHost
 {
@@ -45,8 +47,18 @@ namespace WopiHost
 		/// </summary>
 		public IServiceProvider ConfigureServices(IServiceCollection services)
 		{
+			services.AddAuthorization(options =>
+			{
+				options.AddPolicy(PolicyNames.HasValidAccessToken, policy => {
+					policy.Requirements.Add(new AccessTokenRequirement());
+				});
+			});
+
+			services.AddTransient<IAuthorizationHandler, WopiAuthorizationHandler>();
+
 			services.AddMvc();
-			
+
+
 			/* TODO: #10
 			services.AddCaching();
 			services.AddSession();
@@ -56,7 +68,6 @@ namespace WopiHost
 				o.IdleTimeout = TimeSpan.FromMinutes(5);
 			});*/
 
-			services.AddTransient<WopiAuthorizationAttribute>();
 
 			// Autofac resolution
 			var builder = new ContainerBuilder();

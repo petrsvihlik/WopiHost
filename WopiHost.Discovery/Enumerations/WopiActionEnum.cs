@@ -20,5 +20,5 @@
 		FormSubmit,
 		FormEdit,
 		Rest
-    }
+	}
 }

@@ -1,22 +1,26 @@
 ﻿using System.Net;
 using System.Threading.Tasks;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+
 using WopiHost.Abstractions;
-using WopiHost.Attributes;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 using WopiHost.Models;
+using Microsoft.AspNetCore.Authorization;
+using WopiHost.Authorization;
 
 namespace WopiHost.Controllers
 {
 	/// <summary>
 	/// Implementation of WOPI server protocol https://msdn.microsoft.com/en-us/library/hh659001.aspx
 	/// </summary>
-	[Route("wopi/[controller]")]
-	//[ServiceFilter(typeof(WopiAuthorizationAttribute))]
+	[Route("wopi/[controller]")]	
 	public class FilesController : Controller
 	{
+		private IAuthorizationService _authorizationService;
+
 		private WopiDiscoverer _wopiDiscoverer;
 
 		public IWopiFileProvider FileProvider { get; set; }
@@ -28,10 +32,11 @@ namespace WopiHost.Controllers
 		}
 
 
-		public FilesController(IWopiFileProvider fileProvider, IConfiguration configuration)
+		public FilesController(IWopiFileProvider fileProvider, IConfiguration configuration, IAuthorizationService authorizationService)
 		{
 			FileProvider = fileProvider;
 			Configuration = configuration;
+			_authorizationService = authorizationService;
 		}
 
 		private async Task<EditSession> GetEditSessionAsync(string fileId)
@@ -89,8 +94,12 @@ namespace WopiHost.Controllers
 		/// <returns></returns>
 		[HttpGet("{id}/contents")]
 		[Produces("application/octet-stream")]
-		public async Task<FileResult> GetContents(string id, [FromQuery]string access_token)
+		public async Task<ActionResult> GetContents(string id, [FromQuery]string access_token)
 		{
+			if (!await _authorizationService.AuthorizeAsync(User, new TokenContainer { FileId = id, Token = access_token }, PolicyNames.HasValidAccessToken))
+			{
+				return Challenge();
+			}
 			var editSession = await GetEditSessionAsync(id);
 			return new FileResult(editSession.GetFileContent(), "application/octet-stream");
 		}
