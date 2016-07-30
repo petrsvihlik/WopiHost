@@ -2,7 +2,11 @@
 {
 	public class FileModel
 	{
-		public string FileName { get; set; }
-		public string FileUrl { get; set; }
+		//TODO: considering abstracting to wopi.abstractions along with FolderChild
+		public string Name { get; set; }
+
+		public string Url { get; set; }
+
+		public string Version { get; set; }
 	}
 }

@@ -23,8 +23,9 @@ namespace WopiHost.Url
 		public Dictionary<string, string> OptionalParameters
 		{
 			get { return _optionalParameters; }
-		}
+		} 
 
+		//TODO: url generator should not know about security handler...unnecessary coupling
 		public IWopiSecurityHandler SecurityHandler { get; }
 
 		/// <summary>
@@ -43,12 +44,6 @@ namespace WopiHost.Url
 
 		public async Task<string> GetUrlAsync(string extension, string fileIdentifier, WopiActionEnum action)
 		{
-			// TODO: Consider generating WOPISrc based on routes:
-			// WebAPI2:	https://msdn.microsoft.com/en-us/library/system.web.http.routing.urlhelper.link.aspx
-			// MVC:		https://msdn.microsoft.com/en-us/library/cc668201.aspx
-			////Microsoft.AspNetCore.Mvc.UrlHelper u = new Microsoft.AspNetCore.Mvc.UrlHelper();u.Link()
-			
-
 			var template = await WopiDiscoverer.GetUrlTemplateAsync(extension, action);
 			if (template != null)
 			{

@@ -12,12 +12,13 @@ using Microsoft.Extensions.PlatformAbstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using WopiHost.Authorization;
+using Newtonsoft.Json.Serialization;
 
 namespace WopiHost
 {
 	public class Startup
 	{
-		//TODO: investigate objects: IApplicationEnvironment, IRuntimeEnvironment, IAssemblyLoaderContainer, IAssemblyLoadContextAccessor, ILibraryManager, IHostingEnvironment
+		//TODO: investigate objects: IApplicationEnvironment, IRuntimeEnvironment, IAssemblyLoaderContainer, IAssemblyLoadContextAccessor, ILibraryManager, IHostingEnvironment (Microsoft.Extensions.PlatformAbstractions.PlatformServices.Default)
 
 		public IConfigurationRoot Configuration { get; set; }
 
@@ -56,7 +57,8 @@ namespace WopiHost
 
 			services.AddTransient<IAuthorizationHandler, WopiAuthorizationHandler>();
 
-			services.AddMvc();
+			//TODO: check whether OWA is case sensitive, optionally remove the contract resolver
+			services.AddMvc().AddJsonOptions(options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());
 
 
 			/* TODO: #10

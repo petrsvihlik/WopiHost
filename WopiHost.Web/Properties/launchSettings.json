@@ -14,8 +14,6 @@
       "environmentVariables": {
         "WopiHostUrl": "http://wopihost:5000",
         "WopiClientUrl": "http://owaserver",
-        "WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
-        "WopiRootPath": ".\\wopi-docs",
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },

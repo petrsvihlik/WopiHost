@@ -1,11 +1,11 @@
 ﻿namespace WopiHost.Models
 {
     /// <summary>
-    /// Model according to https://msdn.microsoft.com/en-us/library/hh622920(v=office.12).aspx
+    /// Model according to https://msdn.microsoft.com/en-us/library/hh622920.aspx
     /// </summary>
     public class CheckFileInfo
     {
-        //TODO: Enrich with comments from the https://msdn.microsoft.com/en-us/library/hh622920(v=office.12).aspx
+        //TODO: Enrich with comments from the https://msdn.microsoft.com/en-us/library/hh622920.aspx
         public bool AllowExternalMarketplace { get; set; }
 
         public string BaseFileName { get; set; }
