@@ -23,3 +23,6 @@ test_script:
  - ps: >-
 
     dotnet test .\WopiHost.FileSystemProvider.Tests\ -xml .\xunit-results.xml
+
+after_test:
+  - bash <(curl -s https://codecov.io/bash)
