@@ -17,6 +17,12 @@ build:
 before_build:
  - ps: dotnet restore
 
-test:
-  assemblies:
-    - '**\*.tests.dll'
+test: off
+	
+test_script:
+ - ps: >-
+ dotnet test .\WopiHost.FileSystemProvider.Tests\ -out xunit-results.xml
+ # upload results to AppVeyor
+ $wc = New-Object 'System.Net.WebClient'
+ $wc.UploadFile("https://ci.appveyor.com/api/testresults/xunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\xunit-results.xml))
+	
