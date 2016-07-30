@@ -18,7 +18,7 @@ before_build:
  - ps: dotnet restore
 
 test: off
-	
+
 test_script:
  - ps: >-
  dotnet test .\WopiHost.FileSystemProvider.Tests\ -out xunit-results.xml
