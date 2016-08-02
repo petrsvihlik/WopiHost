@@ -37,10 +37,10 @@ namespace WopiHost.FileSystemProvider
 
 		private string GetSalt()
 		{
-			using (RandomNumberGenerator g = RandomNumberGenerator.Create())
+			using (RandomNumberGenerator generator = RandomNumberGenerator.Create())
 			{
 				byte[] salt = new byte[_saltLength];
-				g.GetBytes(salt);
+				generator.GetBytes(salt);
 				return Convert.ToBase64String(salt);
 			}
 		}

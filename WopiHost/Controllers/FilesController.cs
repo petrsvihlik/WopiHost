@@ -19,18 +19,18 @@ namespace WopiHost.Controllers
 	[Route("wopi/[controller]")]	
 	public class FilesController : Controller
 	{
-		private IAuthorizationService _authorizationService;
+		private readonly IAuthorizationService _authorizationService;
 
 		private WopiDiscoverer _wopiDiscoverer;
 
 		public IWopiFileProvider FileProvider { get; set; }
+
 		public IConfiguration Configuration { get; set; }
 
 		private WopiDiscoverer WopiDiscoverer
 		{
 			get { return _wopiDiscoverer ?? (_wopiDiscoverer = new WopiDiscoverer(Configuration.GetSection("WopiClientUrl").Value)); }
 		}
-
 
 		public FilesController(IWopiFileProvider fileProvider, IConfiguration configuration, IAuthorizationService authorizationService)
 		{
@@ -77,7 +77,7 @@ namespace WopiHost.Controllers
 		/// <param name="id">File identifier.</param>
 		/// <param name="access_token">Access token used to validate the request.</param>
 		/// <returns></returns>
-		[HttpGet(Constants.EntryRoute)]
+		[HttpGet("{id}")]
 		[Produces("application/json")]
 		public async Task<CheckFileInfo> GetCheckFileInfo(string id, [FromQuery]string access_token)
 		{
@@ -122,7 +122,6 @@ namespace WopiHost.Controllers
 			return new OkResult();
 		}
 
-
 		/// <summary>
 		/// Changes the contents of the file in accordance with [MS-FSSHTTP] and performs other operations like locking.
 		/// MS-FSSHTTP Specification: https://msdn.microsoft.com/en-us/library/dd943623.aspx
@@ -160,6 +159,5 @@ namespace WopiHost.Controllers
 				return new StatusCodeResult((int)HttpStatusCode.NotImplemented);
 			}
 		}
-
 	}
 }

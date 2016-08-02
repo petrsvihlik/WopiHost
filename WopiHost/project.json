@@ -15,7 +15,7 @@
 		"Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore": "1.0.0",
 		"Microsoft.AspNetCore.Hosting": "1.0.0",
 		"Microsoft.AspNetCore.Mvc": "1.0.0",
-		
+
 		/*"Microsoft.AspNetCore.Mvc.ViewFeatures": "1.0.0",*/
 		"Microsoft.AspNetCore.Server.IISIntegration": "1.0.0",
 		"Microsoft.AspNetCore.Server.Kestrel": "1.0.0",
@@ -35,7 +35,8 @@
 		"System.Threading.Timer": "4.0.0",
 		"WopiHost.Abstractions": "1.0.0-*",
 		"WopiHost.Discovery": "1.0.0-*",
-		"WopiHost.FileSystemProvider": "1.0.0-*"
+		"WopiHost.FileSystemProvider": "1.0.0-*",
+		"WopiHost.Url": "1.0.0-*"
 	},
 
 

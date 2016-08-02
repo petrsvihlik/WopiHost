@@ -7,9 +7,9 @@
 <div class="row">
 	<div class="col-md-3">
 		<ul>
-			@foreach (FileModel f in @Model)
+			@foreach (File f in @Model)
 			{
-				<li><a href="@f.FileUrl">@f.FileName</a></li>
+				<li><a href="@f.Url">@f.Name [Version: @f.Version]</a></li>
 			}
 		</ul>
 	</div>

@@ -49,18 +49,7 @@ namespace WopiHost.Web
 			var builder = new ContainerBuilder();
 
 			// Configuration
-			builder.RegisterInstance(Configuration).As<IConfiguration>().SingleInstance();
-
-			
-			
-
-			// File provider implementation
-			var providerAssembly = Configuration.GetSection("WopiFileProviderAssemblyName").Value;
-			var assemblyName = new AssemblyName(providerAssembly);
-
-			var assembly = Assembly.Load(assemblyName);
-			//var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyName(assemblyName);
-			builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
+			builder.RegisterInstance(Configuration).As<IConfiguration>().SingleInstance();			
 
 			builder.Populate(services);
 			var container = builder.Build();

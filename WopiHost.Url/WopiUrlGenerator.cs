@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using WopiHost.Abstractions;
+
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 
@@ -25,30 +25,26 @@ namespace WopiHost.Url
 			get { return _optionalParameters; }
 		}
 
-		public IWopiSecurityHandler SecurityHandler { get; }
-
 		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="wopiClientUrl"></param>
 		/// <param name="wopiHostUrl"></param>
-		/// <param name="securityHandler"></param>
-		public WopiUrlGenerator(string wopiClientUrl, string wopiHostUrl, IWopiSecurityHandler securityHandler)
+		public WopiUrlGenerator(string wopiClientUrl, string wopiHostUrl)
 		{
 			WopiClientUrl = wopiClientUrl;
 			WopiHostUrl = wopiHostUrl;
-			SecurityHandler = securityHandler;
 			OptionalParameters.Add("ui", "en-US"); //TODO: test value
 		}
 
-		public async Task<string> GetUrlAsync(string extension, string fileIdentifier, WopiActionEnum action)
+		public string GetContainerUrl(string containerIdentifier, string accessToken)
 		{
-			// TODO: Consider generating WOPISrc based on routes:
-			// WebAPI2:	https://msdn.microsoft.com/en-us/library/system.web.http.routing.urlhelper.link.aspx
-			// MVC:		https://msdn.microsoft.com/en-us/library/cc668201.aspx
-			////Microsoft.AspNetCore.Mvc.UrlHelper u = new Microsoft.AspNetCore.Mvc.UrlHelper();u.Link()
-			
+			return $"{WopiHostUrl}/wopi/containers/{containerIdentifier}/children?access_token={accessToken}";
+		}
 
+
+		public async Task<string> GetFileUrlAsync(string extension, string fileIdentifier, string accessToken, WopiActionEnum action)
+		{
 			var template = await WopiDiscoverer.GetUrlTemplateAsync(extension, action);
 			if (template != null)
 			{
@@ -62,8 +58,8 @@ namespace WopiHost.Url
 				// Append mandatory parameters
 				var fileUrl = WopiHostUrl + "/wopi/files/" + fileIdentifier;
 				url += "&WOPISrc=" + Uri.EscapeDataString(fileUrl);
-				url += "&access_token=" + Uri.EscapeDataString(SecurityHandler.GenerateAccessToken(fileIdentifier));
-				
+				url += "&access_token=" + Uri.EscapeDataString(accessToken);
+
 				return url;
 			}
 			return null;
