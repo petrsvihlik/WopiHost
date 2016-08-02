@@ -19,12 +19,10 @@ before_build:
 
 test: off
 
-#test_script:
-# - ps: >-
-#    cd .\WopiHost.FileSystemProvider.Tests
-#
-#   dnx test -xml xunit-results.xml
-#
-#    $wc = New-Object 'System.Net.WebClient'
-#
-#$wc.UploadFile("https://ci.appveyor.com/api/testresults/xunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\xunit-results.xml))
+test_script:
+ - ps: >-
+
+    dotnet test .\WopiHost.FileSystemProvider.Tests\ -xml .\xunit-results.xml
+
+after_test:
+  - bash <(curl -s https://codecov.io/bash)
