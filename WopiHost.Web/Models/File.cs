@@ -1,8 +1,7 @@
 ﻿namespace WopiHost.Web.Models
 {
-	public class FileModel
+	public class File
 	{
-		//TODO: considering abstracting to wopi.abstractions along with FolderChild
 		public string Name { get; set; }
 
 		public string Url { get; set; }

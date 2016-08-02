@@ -3838,34 +3838,6 @@
         "runtime": {
           "netstandard1.6/WopiHost.Abstractions.dll": {}
         }
-      },
-      "WopiHost.Discovery/1.0.0": {
-        "type": "project",
-        "framework": ".NETStandard,Version=v1.6",
-        "dependencies": {
-          "NETStandard.Library": "1.6.0"
-        },
-        "compile": {
-          "netstandard1.6/WopiHost.Discovery.dll": {}
-        },
-        "runtime": {
-          "netstandard1.6/WopiHost.Discovery.dll": {}
-        }
-      },
-      "WopiHost.Url/1.0.0": {
-        "type": "project",
-        "framework": ".NETStandard,Version=v1.6",
-        "dependencies": {
-          "System.Text.RegularExpressions": "4.1.0",
-          "WopiHost.Abstractions": "1.0.0",
-          "WopiHost.Discovery": "1.0.0"
-        },
-        "compile": {
-          "netstandard1.6/WopiHost.Url.dll": {}
-        },
-        "runtime": {
-          "netstandard1.6/WopiHost.Url.dll": {}
-        }
       }
     }
   },
@@ -10011,16 +9983,6 @@
       "type": "project",
       "path": "../WopiHost.Abstractions/project.json",
       "msbuildProject": "../WopiHost.Abstractions/WopiHost.Abstractions.xproj"
-    },
-    "WopiHost.Discovery/1.0.0": {
-      "type": "project",
-      "path": "../WopiHost.Discovery/project.json",
-      "msbuildProject": "../WopiHost.Discovery/WopiHost.Discovery.xproj"
-    },
-    "WopiHost.Url/1.0.0": {
-      "type": "project",
-      "path": "../WopiHost.Url/project.json",
-      "msbuildProject": "../WopiHost.Url/WopiHost.Url.xproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -10044,9 +10006,7 @@
       "Microsoft.Extensions.Logging.Debug >= 1.0.0",
       "Microsoft.NETCore.App >= 1.0.0",
       "Microsoft.VisualStudio.Web.BrowserLink.Loader >= 14.0.0",
-      "Newtonsoft.Json >= 9.0.1",
-      "WopiHost.Abstractions >= 1.0.0-*",
-      "WopiHost.Url >= 1.0.0-*"
+      "Newtonsoft.Json >= 9.0.1"
     ],
     ".NETCoreApp,Version=v1.0": []
   },

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using WopiHost.Abstractions;
+
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 
@@ -23,26 +23,27 @@ namespace WopiHost.Url
 		public Dictionary<string, string> OptionalParameters
 		{
 			get { return _optionalParameters; }
-		} 
-
-		//TODO: url generator should not know about security handler...unnecessary coupling
-		public IWopiSecurityHandler SecurityHandler { get; }
+		}
 
 		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="wopiClientUrl"></param>
 		/// <param name="wopiHostUrl"></param>
-		/// <param name="securityHandler"></param>
-		public WopiUrlGenerator(string wopiClientUrl, string wopiHostUrl, IWopiSecurityHandler securityHandler)
+		public WopiUrlGenerator(string wopiClientUrl, string wopiHostUrl)
 		{
 			WopiClientUrl = wopiClientUrl;
 			WopiHostUrl = wopiHostUrl;
-			SecurityHandler = securityHandler;
 			OptionalParameters.Add("ui", "en-US"); //TODO: test value
 		}
 
-		public async Task<string> GetUrlAsync(string extension, string fileIdentifier, WopiActionEnum action)
+		public string GetContainerUrl(string containerIdentifier, string accessToken)
+		{
+			return $"{WopiHostUrl}/wopi/containers/{containerIdentifier}/children?access_token={accessToken}";
+		}
+
+
+		public async Task<string> GetFileUrlAsync(string extension, string fileIdentifier, string accessToken, WopiActionEnum action)
 		{
 			var template = await WopiDiscoverer.GetUrlTemplateAsync(extension, action);
 			if (template != null)
@@ -57,8 +58,8 @@ namespace WopiHost.Url
 				// Append mandatory parameters
 				var fileUrl = WopiHostUrl + "/wopi/files/" + fileIdentifier;
 				url += "&WOPISrc=" + Uri.EscapeDataString(fileUrl);
-				url += "&access_token=" + Uri.EscapeDataString(SecurityHandler.GenerateAccessToken(fileIdentifier));
-				
+				url += "&access_token=" + Uri.EscapeDataString(accessToken);
+
 				return url;
 			}
 			return null;

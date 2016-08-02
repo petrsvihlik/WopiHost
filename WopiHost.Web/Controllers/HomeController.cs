@@ -1,35 +1,26 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-using WopiHost.Abstractions;
-using WopiHost.Discovery.Enumerations;
-using WopiHost.Url;
 using WopiHost.Web.Models;
 
 namespace WopiHost.Web.Controllers
 {
 	public class HomeController : Controller
 	{
-		private IWopiSecurityHandler SecurityHandler { get; }
-
 		private IConfiguration Configuration { get; }
 
 		public string WopiClientUrl => Configuration.GetSection("WopiClientUrl").Value;
 
 		public string WopiHostUrl => Configuration.GetSection("WopiHostUrl").Value;
 
-
-		protected WopiUrlGenerator WopiUrlGenerator => new WopiUrlGenerator(WopiClientUrl, WopiHostUrl, SecurityHandler);
-
-		public HomeController(IWopiSecurityHandler securityHandler, IConfiguration configuration)
+		public HomeController(IConfiguration configuration)
 		{
-			SecurityHandler = securityHandler;
 			Configuration = configuration;
 		}
 
@@ -38,27 +29,21 @@ namespace WopiHost.Web.Controllers
 			return View(await GetFilesAsync());
 		}
 
-		private async Task<IEnumerable<FileModel>> GetFilesAsync()
+		private async Task<IEnumerable<Models.File>> GetFilesAsync()
 		{
 			HttpClient client = new HttpClient();
-			Stream stream = await client.GetStreamAsync(WopiHostUrl + "/folders/TODO?access_token=todo");
+			//TODO: get token
+			//TODO: root folder id http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/GetRootContainer.html?highlight=EnumerateChildren
+			Stream stream = await client.GetStreamAsync(WopiHostUrl + "/wopi/containers/TODO/children?access_token=todo");
 
 			var serializer = new JsonSerializer();
 
 			using (var sr = new StreamReader(stream))
 			using (var jsonTextReader = new JsonTextReader(sr))
 			{
-				dynamic x = serializer.Deserialize(jsonTextReader);
+				Folder folder = serializer.Deserialize<Folder>(jsonTextReader);
+				return folder.Children;
 			}
-
-
-			//var fileModelTasks =   FileProvider.GetWopiItems().Select(async file => new FileModel
-			//{
-			//	Name = file.Name,
-			//	Url = (file.WopiItemType == WopiItemType.File) ? (await WopiUrlGenerator.GetUrlAsync(((IWopiFile)file).Extension, file.Identifier, WopiActionEnum.Edit)) : null
-			//});
-			//return await Task.WhenAll(fileModelTasks);	
-			return null;		
 		}
 	}
 }

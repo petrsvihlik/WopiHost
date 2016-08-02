@@ -2,8 +2,8 @@
 
 namespace WopiHost.Models
 {
-    public class FolderChildren
-    {
+	public class Folder
+	{
 		public IEnumerable<FolderChild> Children { get; set; }
-    }
+	}
 }

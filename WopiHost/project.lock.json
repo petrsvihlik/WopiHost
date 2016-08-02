@@ -2249,6 +2249,21 @@
         "runtime": {
           "net46/WopiHost.FileSystemProvider.dll": {}
         }
+      },
+      "WopiHost.Url/1.0.0": {
+        "type": "project",
+        "framework": ".NETFramework,Version=v4.6",
+        "dependencies": {
+          "System.Text.RegularExpressions": "4.1.0",
+          "WopiHost.Abstractions": "1.0.0",
+          "WopiHost.Discovery": "1.0.0"
+        },
+        "compile": {
+          "net46/WopiHost.Url.dll": {}
+        },
+        "runtime": {
+          "net46/WopiHost.Url.dll": {}
+        }
       }
     }
   },
@@ -6830,6 +6845,11 @@
       "type": "project",
       "path": "../WopiHost.FileSystemProvider/project.json",
       "msbuildProject": "../WopiHost.FileSystemProvider/WopiHost.FileSystemProvider.xproj"
+    },
+    "WopiHost.Url/1.0.0": {
+      "type": "project",
+      "path": "../WopiHost.Url/project.json",
+      "msbuildProject": "../WopiHost.Url/WopiHost.Url.xproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -6859,7 +6879,8 @@
       "System.Threading.Timer >= 4.0.0",
       "WopiHost.Abstractions >= 1.0.0-*",
       "WopiHost.Discovery >= 1.0.0-*",
-      "WopiHost.FileSystemProvider >= 1.0.0-*"
+      "WopiHost.FileSystemProvider >= 1.0.0-*",
+      "WopiHost.Url >= 1.0.0-*"
     ],
     ".NETFramework,Version=v4.6": []
   },
