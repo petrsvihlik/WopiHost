@@ -1,6 +1,10 @@
 {
 	"buildOptions": {
-		"copyToOutput": { "includeFiles": [ "project.json" ] },
+		"copyToOutput": {
+			"includeFiles": [
+				"project.json"
+			]
+		},
 		"emitEntryPoint": true,
 		"preserveCompilationContext": true
 	},
@@ -36,8 +40,7 @@
 		"Newtonsoft.Json": "9.0.1"
 	},
 	"frameworks": {
-		"netcoreapp1.0": {
-		}
+		"netcoreapp1.0": {}
 	},
 	"publishOptions": {
 		"include": [
@@ -55,7 +58,12 @@
 		}
 	},
 	"scripts": {
-		"prepublish": [ "npm install", "bower install", "gulp clean", "gulp min" ]
+		"prepublish": [
+			"npm install",
+			"bower install",
+			"gulp clean",
+			"gulp min"
+		]
 	},
 	"tools": {
 		"Microsoft.AspNetCore.Razor.Tools": "1.0.0-preview2-final",
