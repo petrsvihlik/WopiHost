@@ -75,6 +75,8 @@ Testing
 -------
 Testing the application requires an operational WOPI client. I use Office Web Apps and I'm not sure if there is any other client.
 When deploying OWA 2013 please follow the [guidelines](https://technet.microsoft.com/en-us/library/jj219455.aspx). The deployment requires the server to be part of a domain. If your server is not part of any domain (e.g. you're running it in a VM sandbox) it can be overcame e.g. by installing [DC role](http://social.technet.microsoft.com/wiki/contents/articles/12370.windows-server-2012-set-up-your-first-domain-controller-step-by-step.aspx). After it's deployed you can remove the role and the OWA will remain functional.
+To test your OWA server [follow the instructions here](https://blogs.technet.microsoft.com/office_web_apps_server_2013_support_blog/2013/12/27/how-to-test-viewing-office-documents-using-the-office-web-apps-2013-viewer/).
+To remove the OWA instance use [`Remove-OfficeWebAppsMachine`](http://sharepointjack.com/2014/fun-configuring-office-web-apps-2013-owa/).
 
 Using in your web project
 -------------------------
