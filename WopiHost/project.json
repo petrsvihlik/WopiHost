@@ -1,7 +1,7 @@
 {
 	"buildOptions": {
-		"emitEntryPoint": true,
-		"copyToOutput": { "includeFiles": [ "project.json" ] }
+		"copyToOutput": { "includeFiles": [ "project.json" ] },
+		"emitEntryPoint": true
 	},
 
 	"commands": {

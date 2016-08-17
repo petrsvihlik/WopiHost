@@ -1,6 +1,10 @@
 {
 	"buildOptions": {
-		"copyToOutput": { "includeFiles": [ "project.json" ] },
+		"copyToOutput": {
+			"includeFiles": [
+				"project.json"
+			]
+		},
 		"emitEntryPoint": true,
 		"preserveCompilationContext": true
 	},
@@ -38,8 +42,7 @@
 		"WopiHost.Url": "1.0.0-*"
 	},
 	"frameworks": {
-		"netcoreapp1.0": {
-		}
+		"netcoreapp1.0": {}
 	},
 	"publishOptions": {
 		"include": [
@@ -57,7 +60,12 @@
 		}
 	},
 	"scripts": {
-		"prepublish": [ "npm install", "bower install", "gulp clean", "gulp min" ]
+		"prepublish": [
+			"npm install",
+			"bower install",
+			"gulp clean",
+			"gulp min"
+		]
 	},
 	"tools": {
 		"Microsoft.AspNetCore.Razor.Tools": "1.0.0-preview2-final",
