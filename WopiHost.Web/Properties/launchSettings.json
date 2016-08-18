@@ -1,31 +1,32 @@
 {
-  "iisSettings": {
-    "windowsAuthentication": false,
-    "anonymousAuthentication": true,
-    "iisExpress": {
-      "applicationUrl": "http://localhost:52783/",
-      "sslPort": 0
-    }
-  },
-  "profiles": {
-    "IIS Express": {
-      "commandName": "IISExpress",
-      "launchBrowser": true,
-      "environmentVariables": {
-        "WopiHostUrl": "http://wopihost:5000",
-        "WopiClientUrl": "http://owaserver",
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
-    },
-    "web": {
-      "commandName": "web",
-      "environmentVariables": {
-        "WopiHostUrl": "http://wopihost:5000",
-        "WopiClientUrl": "http://owaserver",
-        "WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
-        "Hosting:Environment": "Development",
-        "WopiRootPath": ".\\wopi-docs"
-      }
-    }
-  }
+	"iisSettings": {
+		"windowsAuthentication": false,
+		"anonymousAuthentication": true,
+		"iisExpress": {
+			"applicationUrl": "http://localhost:52783/",
+			"sslPort": 0
+		}
+	},
+	"profiles": {
+		"IIS Express": {
+			"commandName": "IISExpress",
+			"launchBrowser": true,
+			"environmentVariables": {
+				"WopiHostUrl": "http://wopihost:5000",
+				"WopiClientUrl": "http://owaserver",
+				"ASPNETCORE_ENVIRONMENT": "Development"
+			}
+		},
+		"WopiHost": {
+			"commandName": "Project",
+			"launchBrowser": true,
+			"environmentVariables": {
+				"WopiHostUrl": "http://wopihost:5000",
+				"WopiClientUrl": "http://owaserver",
+				"WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
+				"ASPNETCORE_ENVIRONMENT": "Development",
+				"WopiRootPath": ".\\wopi-docs"
+			}
+		}
+	}
 }

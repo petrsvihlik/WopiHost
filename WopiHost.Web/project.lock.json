@@ -3825,19 +3825,6 @@
         "runtime": {
           "lib/netstandard1.3/System.Xml.XPath.XDocument.dll": {}
         }
-      },
-      "WopiHost.Abstractions/1.0.0": {
-        "type": "project",
-        "framework": ".NETStandard,Version=v1.6",
-        "dependencies": {
-          "NETStandard.Library": "1.6.0"
-        },
-        "compile": {
-          "netstandard1.6/WopiHost.Abstractions.dll": {}
-        },
-        "runtime": {
-          "netstandard1.6/WopiHost.Abstractions.dll": {}
-        }
       }
     }
   },
@@ -9978,11 +9965,6 @@
         "ref/xamarintvos10/_._",
         "ref/xamarinwatchos10/_._"
       ]
-    },
-    "WopiHost.Abstractions/1.0.0": {
-      "type": "project",
-      "path": "../WopiHost.Abstractions/project.json",
-      "msbuildProject": "../WopiHost.Abstractions/WopiHost.Abstractions.xproj"
     }
   },
   "projectFileDependencyGroups": {

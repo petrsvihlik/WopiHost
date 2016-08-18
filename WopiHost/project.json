@@ -3,10 +3,6 @@
 		"copyToOutput": { "includeFiles": [ "project.json" ] },
 		"emitEntryPoint": true
 	},
-
-	"commands": {
-		"web": "Microsoft.AspNetCore.Hosting --server Microsoft.AspNetCore.Server.Kestrel --server.urls http://wopihost:5000"
-	},
 	"dependencies": {
 		"Autofac": "4.0.0-rc3-286",
 		"Autofac.Extensions.DependencyInjection": "4.0.0-rc3-280",
@@ -15,7 +11,6 @@
 		"Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore": "1.0.0",
 		"Microsoft.AspNetCore.Hosting": "1.0.0",
 		"Microsoft.AspNetCore.Mvc": "1.0.0",
-
 		/*"Microsoft.AspNetCore.Mvc.ViewFeatures": "1.0.0",*/
 		"Microsoft.AspNetCore.Server.IISIntegration": "1.0.0",
 		"Microsoft.AspNetCore.Server.Kestrel": "1.0.0",
@@ -56,7 +51,9 @@
 			"web.config"
 		]
 	},
-
+	"scripts": {
+		"postpublish": [ "dotnet publish-iis --publish-folder %publish:OutputPath% --framework %publish:FullTargetFramework%" ]
+	},
 	"tools": {
 		"Microsoft.AspNetCore.Razor.Tools": "1.0.0-preview2-final",
 		"Microsoft.AspNetCore.Server.IISIntegration.Tools": "1.0.0-preview2-final"

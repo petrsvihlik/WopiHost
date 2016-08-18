@@ -25,7 +25,7 @@ namespace WopiHost
 		public Startup(IHostingEnvironment env)
 		{
 			var appEnv = PlatformServices.Default.Application;
-			var builder = new ConfigurationBuilder().SetBasePath(appEnv.ApplicationBasePath)
+			var builder = new ConfigurationBuilder().SetBasePath(env.ContentRootPath)
 				.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).
 				AddInMemoryCollection(new Dictionary<string, string>
 					{ { nameof(env.WebRootPath), env.WebRootPath },
