@@ -14,9 +14,7 @@ namespace WopiHost.Web.Controllers
 	public class HomeController : Controller
 	{
 		private IConfiguration Configuration { get; }
-
-		public string WopiClientUrl => Configuration.GetSection("WopiClientUrl").Value;
-
+		
 		public string WopiHostUrl => Configuration.GetSection("WopiHostUrl").Value;
 
 		public HomeController(IConfiguration configuration)

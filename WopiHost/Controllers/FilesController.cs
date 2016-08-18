@@ -55,6 +55,7 @@ namespace WopiHost.Controllers
 				IWopiFile file = FileProvider.GetWopiFile(fileId);
 
 				//TODO: remove hardcoded action 'Edit'
+				//TODO: handle all requirements in a generic way (requires="cobalt,containers,update")
 				if (await WopiDiscoverer.RequiresCobaltAsync(file.Extension, WopiActionEnum.Edit))
 				{
 					editSession = new CobaltSession(file, sessionId);
