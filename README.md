@@ -2,8 +2,7 @@ Introduction
 ==========
 [![Build status](https://ci.appveyor.com/api/projects/status/l7jn00f4fxydpbed?svg=true)](https://ci.appveyor.com/project/petrsvihlik/wopihost)
 
-This project is an example implementation of a [WOPI host](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx). It's based on [Marx Yu's project](https://github.com/marx-yu/WopiHost). WOPI host allows Office Web Apps or any other WOPI client to consume documents.
-Basically, it allows developers to connect Office Web Apps to any thinkable source of data. (Requires implementation of a few interfaces.)
+This project is an example implementation of a [WOPI host](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx). Basically, it allows developers to integrate custom datasources with Office Web Apps / Office Online Server (or any other WOPI client app) by implementing a few of interfaces.
 
 Motivation
 -------------
@@ -35,8 +34,8 @@ Prerequisites
     * default NuGet source
   * Local (e.g. C:\Users\username\Documents\NuGet)
     * this will contain your Microsoft.CobaltCore.15.0.0.0.nupkg
-3. Microsoft.CobaltCore.15.0.0.0.nupkg. One of the dependencies is Microsoft.CobaltCore.dll. This DLL is part of Office Web Apps 2013 and its license doesn't allow public distribution and therefore it's not part of this repository. Please make sure you have a valid license to OWA 2013 before you start using it.
- 1. Locate Microsoft.CobaltCore.dll (you can find it in the GAC of the OWA server): `C:\Windows\Microsoft.NET\assembly\GAC_MSIL\Microsoft.CobaltCore\v4.0_15.0.0.0__71e9bce111e9429c`
+3. Microsoft.CobaltCore.15.0.0.0.nupkg. One of the dependencies is Microsoft.CobaltCore.dll. This DLL is part of Office Web Apps 2013 / Office Online Server 2016 and its license doesn't allow public distribution and therefore it's not part of this repository. Please make sure your OWA/OOS server and user connecting to it have valid licenses before you start using it.
+ 1. Locate Microsoft.CobaltCore.dll (you can find it in the GAC of the OWA server): `C:\Windows\Microsoft.NET\assembly\GAC_MSIL\Microsoft.CobaltCore\`
  2. Install [NuGet Package Explorer](https://npe.codeplex.com/)
  3. Create new package, drop the dll in it and add some metadata
  4. Put the .nupkg to your local NuGet feed
@@ -45,23 +44,21 @@ Configuration
 -----------
 WopiHost.Web\Properties\launchSettings.json
 - `WopiHostUrl` - used by URL generator
-- `WopiClientUrl` - used by discovery module and for URL generation
-- `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Abstractions interfaces
-- `WopiRootPath` - provider-specific setting used by WopiFileSystemProvider (which is an implementation of IWopiFileProvider working with System.IO)
 
 WopiHost\Properties\launchSettings.json
 - `WopiClientUrl` - used by discovery module and for URL generation
 - `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Abstractions interfaces
 - `WopiRootPath` - provider-specific setting used by WopiFileSystemProvider (which is an implementation of IWopiFileProvider working with System.IO)
+- `server.urls` - hosting URL(s) used by Kestrel. [Read more...](http://andrewlock.net/configuring-urls-with-kestrel-iis-and-iis-express-with-asp-net-core/)
 
 Running the application
 -----------------------
 Once you've successfully built the app you can:
 
-- run it directly from the Visual Studio (in IIS Express or selfhosted `web` command)
-  - make sure you set both `WopiHost` and `WopiHost.Web` as [startup projects](/img/multiple_projects.png?raw=true)
+- run it directly from the Visual Studio using [IIS Express or selfhosted](/img/debug.png?raw=true).
+  - make sure you run both `WopiHost` and `WopiHost.Web`. You can set them both as [startup projects](/img/multiple_projects.png?raw=true)
 - run it from the `cmd`
-  - navigate to the WopiHost folder and run `dnx web`
+  - navigate to the WopiHost folder and run `dotnet run`
 - run it in IIS (tested in IIS 8.5)
   - navigate to the WopiHost folder and run `dnu publish --runtime active`
   - copy the files from WopiHost\bin\output to your desired web application directory
@@ -71,10 +68,14 @@ Once you've successfully built the app you can:
   - go to the application settings and change the value of `dnx clr` to `clr` and the value of `dnx-version` to `1.0.0-rc1`
   - in the same window, add all the configuration settings
 
-Testing
+Testing & Compatibility
 -------
-Testing the application requires an operational WOPI client. I use Office Web Apps and I'm not sure if there is any other client.
-When deploying OWA 2013 please follow the [guidelines](https://technet.microsoft.com/en-us/library/jj219455.aspx). The deployment requires the server to be part of a domain. If your server is not part of any domain (e.g. you're running it in a VM sandbox) it can be overcame e.g. by installing [DC role](http://social.technet.microsoft.com/wiki/contents/articles/12370.windows-server-2012-set-up-your-first-domain-controller-step-by-step.aspx). After it's deployed you can remove the role and the OWA will remain functional.
+Testing the application requires an operational WOPI client. 
+WOPIHost is tested and compatible with:
+ - Office Web Apps 2013 SP1 ([deployment guidelines](https://technet.microsoft.com/en-us/library/jj219455(v=office.15).aspx))
+ - Office Online Server 2016 ([deployment guidelines](https://technet.microsoft.com/en-us/library/jj219455(v=office.16).aspx))
+
+The deployment requires the server to be part of a domain. If your server is not part of any domain (e.g. you're running it in a VM sandbox) it can be overcame e.g. by installing [DC role](http://social.technet.microsoft.com/wiki/contents/articles/12370.windows-server-2012-set-up-your-first-domain-controller-step-by-step.aspx). After it's deployed you can safely remove the role and the OWA server will remain functional.
 To test your OWA server [follow the instructions here](https://blogs.technet.microsoft.com/office_web_apps_server_2013_support_blog/2013/12/27/how-to-test-viewing-office-documents-using-the-office-web-apps-2013-viewer/).
 To remove the OWA instance use [`Remove-OfficeWebAppsMachine`](http://sharepointjack.com/2014/fun-configuring-office-web-apps-2013-owa/).
 
@@ -99,7 +100,7 @@ https://msdn.microsoft.com/en-us/library/ms229042(v=vs.110).aspx
 License
 =======
  - [LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt) - License for my part of the project
- - [ORIGINAL_WORK_LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/ORIGINAL_WORK_LICENSE.txt) - License for Marx Yu's part of the project
+ - [ORIGINAL_WORK_LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/ORIGINAL_WORK_LICENSE.txt) - License for Marx Yu's part of the project. This project is based on [Marx Yu's project](https://github.com/marx-yu/WopiHost).
  - [NOTICE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/NOTICE.txt) - additional notes to how the licenses are applied
 
 Useful resources
