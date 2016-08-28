@@ -27,34 +27,29 @@ namespace WopiHost.FileSystemProvider
 			return new WopiFile(Path.Combine(WopiAbsolutePath, identifier), identifier);
 		}
 
-		public IWopiItem GetWopiFolder(string identifier)
+		public IWopiItem GetWopiContainer(string identifier = "")
 		{
 			return new WopiFolder(Path.Combine(WopiAbsolutePath, identifier), identifier);
 		}
 
-		public List<IWopiFile> GetWopiFiles()
+		public List<IWopiFile> GetWopiFiles(string identifier = "")
 		{
 			List<IWopiFile> files = new List<IWopiFile>();
-			foreach (string path in Directory.GetFiles(WopiAbsolutePath))
+			foreach (string path in Directory.GetFiles(Path.Combine(WopiAbsolutePath, identifier)))
 			{
 				files.Add(GetWopiFile(Path.GetFileName(path)));
 			}
 			return files;
 		}
 
-		public List<IWopiItem> GetWopiFolders()
+		public List<IWopiItem> GetWopiContainers(string identifier = "")
 		{
 			List<IWopiItem> folders = new List<IWopiItem>();
-			foreach (string directory in Directory.GetDirectories(WopiAbsolutePath))
+			foreach (string directory in Directory.GetDirectories(Path.Combine(WopiAbsolutePath, identifier)))
 			{
-				folders.Add(GetWopiFolder(directory.Remove(0, directory.LastIndexOf(Path.DirectorySeparatorChar))));
+				folders.Add(GetWopiContainer("." + directory.Remove(0, directory.LastIndexOf(Path.DirectorySeparatorChar))));
 			}
 			return folders;
 		}
-
-		public List<IWopiItem> GetWopiItems()
-		{
-			return GetWopiFolders().Union(GetWopiFiles()).ToList();
-		} 
 	}
 }

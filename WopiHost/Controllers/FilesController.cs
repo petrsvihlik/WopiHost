@@ -17,26 +17,21 @@ namespace WopiHost.Controllers
 	/// <summary>
 	/// Implementation of WOPI server protocol https://msdn.microsoft.com/en-us/library/hh659001.aspx
 	/// </summary>
-	[Route("wopi/[controller]")]	
-	public class FilesController : Controller
+	[Route("wopi/[controller]")]
+	public class FilesController : WopiControllerBase
 	{
 		private readonly IAuthorizationService _authorizationService;
 
 		private WopiDiscoverer _wopiDiscoverer;
 
-		public IWopiFileProvider FileProvider { get; set; }
-
-		public IConfiguration Configuration { get; set; }
 
 		private WopiDiscoverer WopiDiscoverer
 		{
 			get { return _wopiDiscoverer ?? (_wopiDiscoverer = new WopiDiscoverer(Configuration.GetSection("WopiClientUrl").Value)); }
 		}
 
-		public FilesController(IWopiFileProvider fileProvider, IConfiguration configuration, IAuthorizationService authorizationService)
+		public FilesController(IWopiFileProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration, IAuthorizationService authorizationService) : base(fileProvider, securityHandler, configuration)
 		{
-			FileProvider = fileProvider;
-			Configuration = configuration;
 			_authorizationService = authorizationService;
 		}
 

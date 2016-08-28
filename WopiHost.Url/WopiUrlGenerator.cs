@@ -39,6 +39,8 @@ namespace WopiHost.Url
 
 		public string GetContainerUrl(string containerIdentifier, string accessToken)
 		{
+			containerIdentifier = Uri.EscapeDataString(containerIdentifier);
+			accessToken = Uri.EscapeDataString(accessToken);
 			return $"{WopiHostUrl}/wopi/containers/{containerIdentifier}/children?access_token={accessToken}";
 		}
 

@@ -15,21 +15,24 @@ namespace WopiHost.Abstractions
 		IWopiFile GetWopiFile(string identifier);
 
 		/// <summary>
+		/// Returns a concrete instance of an implementation of the <see cref="IWopiItem"/>.
+		/// </summary>
+		/// <param name="identifier">Generic string identifier of a container (typically some kind of a path).</param>
+		/// <returns>Instance of a container.</returns>
+		IWopiItem GetWopiContainer(string identifier = "");
+
+		/// <summary>
 		/// Returns all files from the given source.
 		/// This method is very likely to change in the future.
 		/// </summary>
-		List<IWopiFile> GetWopiFiles();
+		/// <param name="identifier">Container identifier (use null for root)</param>
+		List<IWopiFile> GetWopiFiles(string identifier = "");
 
 		/// <summary>
-		/// Returns all folders from the given source.
+		/// Returns all containers from the given source.
 		/// This method is very likely to change in the future.
 		/// </summary>
-		List<IWopiItem> GetWopiFolders();
-
-		/// <summary>
-		/// Returns all entries from the given source.
-		/// This method is very likely to change in the future.
-		/// </summary>
-		List<IWopiItem> GetWopiItems();
+		/// <param name="identifier">Container identifier (use null for root)</param>
+		List<IWopiItem> GetWopiContainers(string identifier = "");
 	}
 }

@@ -14,37 +14,10 @@ namespace WopiHost.Controllers
 	/// Implementation of WOPI server protocol https://msdn.microsoft.com/en-us/library/hh659001.aspx
 	/// </summary>
 	[Route("wopi/[controller]")]
-	public class ContainersController : ControllerBase
+	public class ContainersController : WopiControllerBase
 	{
-		public WopiUrlGenerator _urlGenerator;
-
-		public IWopiFileProvider FileProvider { get; set; }
-
-		public IWopiSecurityHandler SecurityHandler { get; set; }
-
-		public IConfiguration Configuration { get; set; }
-
-		public string BaseUrl
+		public ContainersController(IConfiguration configuration, IWopiFileProvider fileProvider, IWopiSecurityHandler securityHandler) : base(fileProvider, securityHandler, configuration)
 		{
-			get
-			{
-				return HttpContext.Request.Scheme + Uri.SchemeDelimiter + HttpContext.Request.Host;
-			}
-		}
-
-		public WopiUrlGenerator UrlGenerator
-		{
-			//TODO: get current url
-			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlGenerator(Configuration.GetSection("WopiClientUrl").Value, BaseUrl)); }
-		}
-
-		public ContainersController(IConfiguration configuration, IWopiFileProvider fileProvider, IWopiSecurityHandler securityHandler)
-		{
-			Configuration = configuration;
-			FileProvider = fileProvider;
-			SecurityHandler = securityHandler;
-
-
 		}
 
 		/// <summary>
@@ -72,24 +45,37 @@ namespace WopiHost.Controllers
 		/// <param name="access_token">Access token used to validate the request.</param>
 		/// <returns></returns>
 		[HttpGet("{id}/children")]
+		//[HttpGet("/children")]
 		[Produces("application/json")]
-		public async Task<Folder> EnumerateChildren(string id, [FromQuery]string access_token)
+		public async Task<Container> EnumerateChildren(string id, [FromQuery]string access_token)
 		{
-			Folder folder = new Folder();
-			var children = new List<FolderChild>();
-			var files = FileProvider.GetWopiFiles();
-			foreach (IWopiFile wopiFile in files)
-			{
-				//TODO: files vs folders: http://wopi.readthedocs.io/projects/wopirest/en/latest/containers/EnumerateChildren.html?highlight=EnumerateChildren
-				children.Add(new FolderChild
-				{
+			Container folder = new Container();
+			var files = new List<ChildFile>();
+			var containers = new List<ChildContainer>();
 
+			foreach (IWopiFile wopiFile in FileProvider.GetWopiFiles(id))
+			{
+				files.Add(new ChildFile
+				{
+					//TODO: add all properties http://wopi.readthedocs.io/projects/wopirest/en/latest/containers/EnumerateChildren.html?highlight=EnumerateChildren
 					Name = wopiFile.Name,
-					Url = (wopiFile.WopiItemType == WopiItemType.File) ? (await UrlGenerator.GetFileUrlAsync(wopiFile.Extension, wopiFile.Identifier, access_token, WopiActionEnum.Edit)) : UrlGenerator.GetContainerUrl(wopiFile.Identifier, access_token),
-					Version = ""
+					Url = await UrlGenerator.GetFileUrlAsync(wopiFile.Extension, wopiFile.Identifier, access_token, WopiActionEnum.Edit)
 				});
 			}
-			folder.Children = children;
+
+			foreach (IWopiItem wopiFolder in FileProvider.GetWopiContainers(id))
+			{
+				containers.Add(new ChildContainer
+				{
+					//TODO: add all properties
+					Name = wopiFolder.Name,
+					Url = UrlGenerator.GetContainerUrl(wopiFolder.Identifier, access_token)
+				});
+			}
+
+			folder.ChildFiles = files;
+			folder.ChildContainers = containers;
+
 			return folder;
 		}
 	}

@@ -93,6 +93,7 @@ namespace WopiHost
 			cfi.OwnerId = Login;
 			cfi.UserFriendlyName = Name;
 			cfi.Version = File.LastWriteTimeUtc.ToString("s");
+			cfi.LastModifiedTime = File.LastWriteTimeUtc.ToString("o");
 			cfi.SupportsCoauth = true;
 			cfi.SupportsFolders = true;
 			cfi.SupportsLocks = true;

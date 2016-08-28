@@ -3,12 +3,12 @@
 	/// <summary>
 	/// Model according to https://msdn.microsoft.com/en-us/library/hh622920.aspx
 	/// </summary>
-	public class CheckFileInfo
+	public class CheckFileInfo : ChildFile
 	{
 		//TODO: Enrich with comments from the https://msdn.microsoft.com/en-us/library/hh622920.aspx
 		public bool AllowExternalMarketplace { get; set; }
 
-		public string BaseFileName { get; set; }
+		public string BaseFileName { get { return Name; } set { Name = value; } }
 
 		public string BreadcrumbBrandName { get; set; }
 
@@ -78,8 +78,6 @@
 
 		public string SignoutUrl { get; set; }
 
-		public long Size { get; set; }
-
 		public bool SupportsCoauth { get; set; }
 
 		public bool SupportsCobalt { get; set; }
@@ -113,8 +111,6 @@
 		public string UserFriendlyName { get; set; }
 
 		public string UserId { get; set; }
-
-		public string Version { get; set; }
 
 		public bool WebEditingDisabled { get; set; }
 	}

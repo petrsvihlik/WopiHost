@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
-
-using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -27,20 +25,19 @@ namespace WopiHost.Web.Controllers
 			return View(await GetFilesAsync());
 		}
 
-		private async Task<IEnumerable<Models.File>> GetFilesAsync()
+		private async Task<Container> GetFilesAsync()
 		{
 			HttpClient client = new HttpClient();
 			//TODO: get token
-			//TODO: root folder id http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/GetRootContainer.html?highlight=EnumerateChildren
-			Stream stream = await client.GetStreamAsync(WopiHostUrl + "/wopi/containers/TODO/children?access_token=todo");
+			//TODO: root folder id http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/GetRootContainer.html?highlight=EnumerateChildren (use ecosystem controller)
+			Stream stream = await client.GetStreamAsync(WopiHostUrl + "/wopi/containers/.%5C/children?access_token=todo");
 
 			var serializer = new JsonSerializer();
 
 			using (var sr = new StreamReader(stream))
 			using (var jsonTextReader = new JsonTextReader(sr))
 			{
-				Folder folder = serializer.Deserialize<Folder>(jsonTextReader);
-				return folder.Children;
+				return serializer.Deserialize<Container>(jsonTextReader);
 			}
 		}
 	}

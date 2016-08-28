@@ -1,12 +1,10 @@
 ﻿namespace WopiHost.Models
 {
-	public class FolderChild
-    {
+	public abstract class AbstractChildBase
+	{
 		//TODO: align with CheckFileInfo / CheckFolderInfo
 		public string Name { get; set; }
 
 		public string Url { get; set; }
-
-		public string Version { get; set; }
-    }
+	}
 }
