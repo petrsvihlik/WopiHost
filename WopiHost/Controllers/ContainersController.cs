@@ -1,12 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using WopiHost.Abstractions;
 using WopiHost.Discovery.Enumerations;
 using WopiHost.Models;
-using WopiHost.Url;
 
 namespace WopiHost.Controllers
 {
@@ -21,27 +19,31 @@ namespace WopiHost.Controllers
 		}
 
 		/// <summary>
-		/// Returns the metadata about a folder specified by an identifier.
+		/// Returns the metadata about a container specified by an identifier.
 		/// Specification: https://msdn.microsoft.com/en-us/library/hh642840.aspx
-		/// Example URL: HTTP://server/<...>/wopi*/folders/<id>
+		/// Example URL: HTTP://server/<...>/wopi*/containers/<id>
 		/// </summary>
-		/// <param name="id">Folder identifier.</param>
+		/// <param name="id">Container identifier.</param>
 		/// <param name="access_token">Access token used to validate the request.</param>
 		/// <returns></returns>
 		[HttpGet("{id}")]
 		[Produces("application/json")]
-		public async Task<CheckFolderInfo> GetCheckFolderInfo(string id, [FromQuery]string access_token)
+		public CheckContainerInfo GetCheckContainerInfo(string id, [FromQuery]string access_token)
 		{
-			throw new NotImplementedException();
+			var container = FileProvider.GetWopiContainer(id);
+			return new CheckContainerInfo
+			{
+				Name = container.Name
+			};
 		}
 
 
 		/// <summary>
-		/// The EnumerateChildren method returns the contents of a folder on the WOPI server.
+		/// The EnumerateChildren method returns the contents of a container on the WOPI server.
 		/// Specification: https://msdn.microsoft.com/en-us/library/hh641593.aspx
-		/// Example URL: HTTP://server/<...>/wopi*/folders/<id>/children
+		/// Example URL: HTTP://server/<...>/wopi*/containers/<id>/children
 		/// </summary>
-		/// <param name="id">Folder identifier.</param>
+		/// <param name="id">Container identifier.</param>
 		/// <param name="access_token">Access token used to validate the request.</param>
 		/// <returns></returns>
 		[HttpGet("{id}/children")]
@@ -49,7 +51,7 @@ namespace WopiHost.Controllers
 		[Produces("application/json")]
 		public async Task<Container> EnumerateChildren(string id, [FromQuery]string access_token)
 		{
-			Container folder = new Container();
+			Container container = new Container();
 			var files = new List<ChildFile>();
 			var containers = new List<ChildContainer>();
 
@@ -63,20 +65,20 @@ namespace WopiHost.Controllers
 				});
 			}
 
-			foreach (IWopiItem wopiFolder in FileProvider.GetWopiContainers(id))
+			foreach (IWopiItem wopiContainer in FileProvider.GetWopiContainers(id))
 			{
 				containers.Add(new ChildContainer
 				{
 					//TODO: add all properties
-					Name = wopiFolder.Name,
-					Url = UrlGenerator.GetContainerUrl(wopiFolder.Identifier, access_token)
+					Name = wopiContainer.Name,
+					Url = UrlGenerator.GetContainerUrl(wopiContainer.Identifier, access_token)
 				});
 			}
 
-			folder.ChildFiles = files;
-			folder.ChildContainers = containers;
+			container.ChildFiles = files;
+			container.ChildContainers = containers;
 
-			return folder;
+			return container;
 		}
 	}
 }
