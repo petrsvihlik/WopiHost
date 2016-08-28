@@ -36,7 +36,7 @@ Prerequisites
   * Local (e.g. C:\Users\username\Documents\NuGet)
     * this will contain your Microsoft.CobaltCore.15.0.0.0.nupkg
 3. Microsoft.CobaltCore.15.0.0.0.nupkg. One of the dependencies is Microsoft.CobaltCore.dll. This DLL is part of Office Web Apps 2013 and its license doesn't allow public distribution and therefore it's not part of this repository. Please make sure you have a valid license to OWA 2013 before you start using it.
- 1. Locate Microsoft.CobaltCore.dll (you can find it in the GAC of the OWA server): `C:\Windows\Microsoft.NET\assembly\GAC_MSIL\Microsoft.CobaltCore\v4.0_15.0.0.0__71e9bce111e9429c`
+ 1. Locate Microsoft.CobaltCore.dll (you can find it in the GAC of the OWA server): `C:\Windows\Microsoft.NET\assembly\GAC_MSIL\Microsoft.CobaltCore\`
  2. Install [NuGet Package Explorer](https://npe.codeplex.com/)
  3. Create new package, drop the dll in it and add some metadata
  4. Put the .nupkg to your local NuGet feed
@@ -45,23 +45,21 @@ Configuration
 -----------
 WopiHost.Web\Properties\launchSettings.json
 - `WopiHostUrl` - used by URL generator
-- `WopiClientUrl` - used by discovery module and for URL generation
-- `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Abstractions interfaces
-- `WopiRootPath` - provider-specific setting used by WopiFileSystemProvider (which is an implementation of IWopiFileProvider working with System.IO)
 
 WopiHost\Properties\launchSettings.json
 - `WopiClientUrl` - used by discovery module and for URL generation
 - `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Abstractions interfaces
 - `WopiRootPath` - provider-specific setting used by WopiFileSystemProvider (which is an implementation of IWopiFileProvider working with System.IO)
+- `server.urls` - hosting URL(s) used by Kestrel. [Read more...](http://andrewlock.net/configuring-urls-with-kestrel-iis-and-iis-express-with-asp-net-core/)
 
 Running the application
 -----------------------
 Once you've successfully built the app you can:
 
-- run it directly from the Visual Studio (in IIS Express or selfhosted `web` command)
-  - make sure you set both `WopiHost` and `WopiHost.Web` as [startup projects](/img/multiple_projects.png?raw=true)
+- run it directly from the Visual Studio using [IIS Express or selfhosted](/img/debug.png?raw=true).
+  - make sure you run both `WopiHost` and `WopiHost.Web`. You can set them both as [startup projects](/img/multiple_projects.png?raw=true)
 - run it from the `cmd`
-  - navigate to the WopiHost folder and run `dnx web`
+  - navigate to the WopiHost folder and run `dotnet run`
 - run it in IIS (tested in IIS 8.5)
   - navigate to the WopiHost folder and run `dnu publish --runtime active`
   - copy the files from WopiHost\bin\output to your desired web application directory
