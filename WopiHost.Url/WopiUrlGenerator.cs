@@ -34,7 +34,8 @@ namespace WopiHost.Url
 		{
 			WopiClientUrl = wopiClientUrl;
 			WopiHostUrl = wopiHostUrl;
-			OptionalParameters.Add("ui", "en-US"); //TODO: test value
+			//TODO: implement the rest of discovery params according to: http://wopi.readthedocs.io/en/latest/discovery.html
+			OptionalParameters.Add("ui", "en-US");
 		}
 
 		public string GetContainerUrl(string containerIdentifier, string accessToken)

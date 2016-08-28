@@ -3,24 +3,21 @@
   "version": 2,
   "targets": {
     ".NETFramework,Version=v4.6": {
-      "Autofac/4.0.0-rc3-286": {
+      "Autofac/4.1.0": {
         "type": "package",
         "compile": {
-          "lib/net451/Autofac.dll": {}
+          "lib/net45/Autofac.dll": {}
         },
         "runtime": {
-          "lib/net451/Autofac.dll": {}
+          "lib/net45/Autofac.dll": {}
         }
       },
-      "Autofac.Extensions.DependencyInjection/4.0.0-rc3-280": {
+      "Autofac.Extensions.DependencyInjection/4.0.0": {
         "type": "package",
         "dependencies": {
-          "Autofac": "4.0.0-rc3-280",
+          "Autofac": "4.0.0",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "1.0.0",
-          "System.Collections": "4.0.11",
-          "System.Diagnostics.Contracts": "4.0.1",
-          "System.Runtime": "4.1.0",
-          "System.Threading.Tasks": "4.0.11"
+          "NETStandard.Library": "1.6.0"
         },
         "compile": {
           "lib/netstandard1.1/Autofac.Extensions.DependencyInjection.dll": {}
@@ -657,20 +654,6 @@
           "lib/net451/Microsoft.AspNetCore.Server.Kestrel.dll": {}
         }
       },
-      "Microsoft.AspNetCore.Server.WebListener/0.1.0": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.AspNetCore.Hosting": "1.0.0",
-          "Microsoft.Net.Http.Headers": "1.0.0",
-          "Microsoft.Net.Http.Server": "0.1.0"
-        },
-        "compile": {
-          "lib/net451/Microsoft.AspNetCore.Server.WebListener.dll": {}
-        },
-        "runtime": {
-          "lib/net451/Microsoft.AspNetCore.Server.WebListener.dll": {}
-        }
-      },
       "Microsoft.AspNetCore.Session/1.0.0": {
         "type": "package",
         "dependencies": {
@@ -1249,19 +1232,6 @@
           "lib/netstandard1.1/Microsoft.Net.Http.Headers.dll": {}
         }
       },
-      "Microsoft.Net.Http.Server/0.1.0": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "1.0.0",
-          "Microsoft.Extensions.Primitives": "1.0.0"
-        },
-        "compile": {
-          "lib/net451/Microsoft.Net.Http.Server.dll": {}
-        },
-        "runtime": {
-          "lib/net451/Microsoft.Net.Http.Server.dll": {}
-        }
-      },
       "Microsoft.NETCore.Platforms/1.0.1": {
         "type": "package",
         "compile": {
@@ -1271,7 +1241,7 @@
           "lib/netstandard1.0/_._": {}
         }
       },
-      "Microsoft.NETCore.Portable.Compatibility/1.0.0": {
+      "Microsoft.NETCore.Portable.Compatibility/1.0.1": {
         "type": "package",
         "compile": {
           "ref/net45/_._": {}
@@ -2268,27 +2238,25 @@
     }
   },
   "libraries": {
-    "Autofac/4.0.0-rc3-286": {
-      "sha512": "9SVHhFBT/L65KW3hhZ4skVYZvt3oHPMou6tChY74E4A8ujGFZvSJhZHNqDOWdo1T/qy5/xRI29gYXUhC5JHVmg==",
+    "Autofac/4.1.0": {
+      "sha512": "PZlRrOjtQ/pyxoA/oDuyFsKlL/toYIxfL4wQvm9TY7lj+/jeQHQIlJ832nwvPFBlOuRZQErHsfsGmo3zW+pCxA==",
       "type": "package",
-      "path": "Autofac/4.0.0-rc3-286",
+      "path": "Autofac/4.1.0",
       "files": [
-        "Autofac.4.0.0-rc3-286.nupkg.sha512",
+        "Autofac.4.1.0.nupkg.sha512",
         "Autofac.nuspec",
-        "lib/net451/Autofac.dll",
-        "lib/net451/Autofac.xml",
+        "lib/net45/Autofac.dll",
+        "lib/net45/Autofac.xml",
         "lib/netstandard1.1/Autofac.dll",
-        "lib/netstandard1.1/Autofac.xml",
-        "lib/uap10.0/Autofac.dll",
-        "lib/uap10.0/Autofac.xml"
+        "lib/netstandard1.1/Autofac.xml"
       ]
     },
-    "Autofac.Extensions.DependencyInjection/4.0.0-rc3-280": {
-      "sha512": "wLwjih+qGn9CPviKOb228u4qjHxEdzOI6xhBC9ofNJtXE8RUQYuv5nGdnn3/HLhl+b9aUCsHKg7eaxC/dH4tEg==",
+    "Autofac.Extensions.DependencyInjection/4.0.0": {
+      "sha512": "UQP+CkHs6wfjWhisuhSFoG8CNrG8fmYOclFwx/aYNc+He1Qoi8s9UDTSzcPncJ2JOtmZmFRWSLT0jhtT6KmYJg==",
       "type": "package",
-      "path": "Autofac.Extensions.DependencyInjection/4.0.0-rc3-280",
+      "path": "Autofac.Extensions.DependencyInjection/4.0.0",
       "files": [
-        "Autofac.Extensions.DependencyInjection.4.0.0-rc3-280.nupkg.sha512",
+        "Autofac.Extensions.DependencyInjection.4.0.0.nupkg.sha512",
         "Autofac.Extensions.DependencyInjection.nuspec",
         "lib/netstandard1.1/Autofac.Extensions.DependencyInjection.dll",
         "lib/netstandard1.1/Autofac.Extensions.DependencyInjection.xml"
@@ -2798,19 +2766,6 @@
         "lib/net451/Microsoft.AspNetCore.Server.Kestrel.xml",
         "lib/netstandard1.3/Microsoft.AspNetCore.Server.Kestrel.dll",
         "lib/netstandard1.3/Microsoft.AspNetCore.Server.Kestrel.xml"
-      ]
-    },
-    "Microsoft.AspNetCore.Server.WebListener/0.1.0": {
-      "sha512": "ziATioPb3q0WZAupIKaSQhady2+bmfbC+/vSD5osM8I3TsItzgcx8twVc+ah09DSo8IWm+QVHHIkRoimn50K9Q==",
-      "type": "package",
-      "path": "Microsoft.AspNetCore.Server.WebListener/0.1.0",
-      "files": [
-        "Microsoft.AspNetCore.Server.WebListener.0.1.0.nupkg.sha512",
-        "Microsoft.AspNetCore.Server.WebListener.nuspec",
-        "lib/net451/Microsoft.AspNetCore.Server.WebListener.dll",
-        "lib/net451/Microsoft.AspNetCore.Server.WebListener.xml",
-        "lib/netstandard1.3/Microsoft.AspNetCore.Server.WebListener.dll",
-        "lib/netstandard1.3/Microsoft.AspNetCore.Server.WebListener.xml"
       ]
     },
     "Microsoft.AspNetCore.Session/1.0.0": {
@@ -3337,19 +3292,6 @@
         "lib/netstandard1.1/Microsoft.Net.Http.Headers.xml"
       ]
     },
-    "Microsoft.Net.Http.Server/0.1.0": {
-      "sha512": "Sy/egIpMDQ277ZV/SF8spgkvBqXW0Yz7lo0HApDEQhBVE2Xup7AjT6hMaHxh/YKpEixIdoYq2Bd6rZNuQ5sCBg==",
-      "type": "package",
-      "path": "Microsoft.Net.Http.Server/0.1.0",
-      "files": [
-        "Microsoft.Net.Http.Server.0.1.0.nupkg.sha512",
-        "Microsoft.Net.Http.Server.nuspec",
-        "lib/net451/Microsoft.Net.Http.Server.dll",
-        "lib/net451/Microsoft.Net.Http.Server.xml",
-        "lib/netstandard1.3/Microsoft.Net.Http.Server.dll",
-        "lib/netstandard1.3/Microsoft.Net.Http.Server.xml"
-      ]
-    },
     "Microsoft.NETCore.Platforms/1.0.1": {
       "sha512": "2G6OjjJzwBfNOO8myRV/nFrbTw5iA+DEm0N+qUqhrOmaVtn4pC77h38I1jsXGw5VH55+dPfQsqHD0We9sCl9FQ==",
       "type": "package",
@@ -3363,25 +3305,15 @@
         "runtime.json"
       ]
     },
-    "Microsoft.NETCore.Portable.Compatibility/1.0.0": {
-      "sha512": "5/IFqf2zN1jzktRJitxO+5kQ+0AilcIbPvSojSJwDG3cGNSMZg44LXLB5E9RkSETE0Wh4QoALdNh1koKoF7/mA==",
+    "Microsoft.NETCore.Portable.Compatibility/1.0.1": {
+      "sha512": "Vd+lvLcGwvkedxtKn0U8s9uR4p0Lm+0U2QvDsLaw7g4S1W4KfPDbaW+ROhhLCSOx/gMYC72/b+z+o4fqS/oxVg==",
       "type": "package",
-      "path": "Microsoft.NETCore.Portable.Compatibility/1.0.0",
+      "path": "Microsoft.NETCore.Portable.Compatibility/1.0.1",
       "files": [
-        "Microsoft.NETCore.Portable.Compatibility.1.0.0.nupkg.sha512",
+        "Microsoft.NETCore.Portable.Compatibility.1.0.1.nupkg.sha512",
         "Microsoft.NETCore.Portable.Compatibility.nuspec",
-        "lib/dnxcore50/System.ComponentModel.DataAnnotations.dll",
-        "lib/dnxcore50/System.Core.dll",
-        "lib/dnxcore50/System.Net.dll",
-        "lib/dnxcore50/System.Numerics.dll",
-        "lib/dnxcore50/System.Runtime.Serialization.dll",
-        "lib/dnxcore50/System.ServiceModel.Web.dll",
-        "lib/dnxcore50/System.ServiceModel.dll",
-        "lib/dnxcore50/System.Windows.dll",
-        "lib/dnxcore50/System.Xml.Linq.dll",
-        "lib/dnxcore50/System.Xml.Serialization.dll",
-        "lib/dnxcore50/System.Xml.dll",
-        "lib/dnxcore50/System.dll",
+        "ThirdPartyNotices.txt",
+        "dotnet_library_license.txt",
         "lib/net45/_._",
         "lib/netcore50/System.ComponentModel.DataAnnotations.dll",
         "lib/netcore50/System.Core.dll",
@@ -3395,22 +3327,21 @@
         "lib/netcore50/System.Xml.Serialization.dll",
         "lib/netcore50/System.Xml.dll",
         "lib/netcore50/System.dll",
+        "lib/netstandard1.0/System.ComponentModel.DataAnnotations.dll",
+        "lib/netstandard1.0/System.Core.dll",
+        "lib/netstandard1.0/System.Net.dll",
+        "lib/netstandard1.0/System.Numerics.dll",
+        "lib/netstandard1.0/System.Runtime.Serialization.dll",
+        "lib/netstandard1.0/System.ServiceModel.Web.dll",
+        "lib/netstandard1.0/System.ServiceModel.dll",
+        "lib/netstandard1.0/System.Windows.dll",
+        "lib/netstandard1.0/System.Xml.Linq.dll",
+        "lib/netstandard1.0/System.Xml.Serialization.dll",
+        "lib/netstandard1.0/System.Xml.dll",
+        "lib/netstandard1.0/System.dll",
         "lib/win8/_._",
         "lib/wp80/_._",
         "lib/wpa81/_._",
-        "ref/dotnet/System.ComponentModel.DataAnnotations.dll",
-        "ref/dotnet/System.Core.dll",
-        "ref/dotnet/System.Net.dll",
-        "ref/dotnet/System.Numerics.dll",
-        "ref/dotnet/System.Runtime.Serialization.dll",
-        "ref/dotnet/System.ServiceModel.Web.dll",
-        "ref/dotnet/System.ServiceModel.dll",
-        "ref/dotnet/System.Windows.dll",
-        "ref/dotnet/System.Xml.Linq.dll",
-        "ref/dotnet/System.Xml.Serialization.dll",
-        "ref/dotnet/System.Xml.dll",
-        "ref/dotnet/System.dll",
-        "ref/dotnet/mscorlib.dll",
         "ref/net45/_._",
         "ref/netcore50/System.ComponentModel.DataAnnotations.dll",
         "ref/netcore50/System.Core.dll",
@@ -3425,6 +3356,19 @@
         "ref/netcore50/System.Xml.dll",
         "ref/netcore50/System.dll",
         "ref/netcore50/mscorlib.dll",
+        "ref/netstandard1.0/System.ComponentModel.DataAnnotations.dll",
+        "ref/netstandard1.0/System.Core.dll",
+        "ref/netstandard1.0/System.Net.dll",
+        "ref/netstandard1.0/System.Numerics.dll",
+        "ref/netstandard1.0/System.Runtime.Serialization.dll",
+        "ref/netstandard1.0/System.ServiceModel.Web.dll",
+        "ref/netstandard1.0/System.ServiceModel.dll",
+        "ref/netstandard1.0/System.Windows.dll",
+        "ref/netstandard1.0/System.Xml.Linq.dll",
+        "ref/netstandard1.0/System.Xml.Serialization.dll",
+        "ref/netstandard1.0/System.Xml.dll",
+        "ref/netstandard1.0/System.dll",
+        "ref/netstandard1.0/mscorlib.dll",
         "ref/win8/_._",
         "ref/wp80/_._",
         "ref/wpa81/_._",
@@ -6854,8 +6798,8 @@
   },
   "projectFileDependencyGroups": {
     "": [
-      "Autofac >= 4.0.0-rc3-286",
-      "Autofac.Extensions.DependencyInjection >= 4.0.0-rc3-280",
+      "Autofac >= 4.1.0",
+      "Autofac.Extensions.DependencyInjection >= 4.0.0",
       "Microsoft.AspNetCore.Authorization >= 1.0.0",
       "Microsoft.AspNetCore.Diagnostics >= 1.0.0",
       "Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore >= 1.0.0",
@@ -6863,7 +6807,6 @@
       "Microsoft.AspNetCore.Mvc >= 1.0.0",
       "Microsoft.AspNetCore.Server.IISIntegration >= 1.0.0",
       "Microsoft.AspNetCore.Server.Kestrel >= 1.0.0",
-      "Microsoft.AspNetCore.Server.WebListener >= 0.1.0",
       "Microsoft.AspNetCore.Session >= 1.0.0",
       "Microsoft.AspNetCore.StaticFiles >= 1.0.0",
       "Microsoft.CobaltCore >= 15.0.0.2",
@@ -6874,7 +6817,7 @@
       "Microsoft.Extensions.Logging.Console >= 1.0.0",
       "Microsoft.Extensions.Logging.Debug >= 1.0.0",
       "Microsoft.Extensions.PlatformAbstractions >= 1.0.0",
-      "Microsoft.NETCore.Portable.Compatibility >= 1.0.0",
+      "Microsoft.NETCore.Portable.Compatibility >= 1.0.1",
       "System.Runtime >= 4.0.20",
       "System.Threading.Timer >= 4.0.0",
       "WopiHost.Abstractions >= 1.0.0-*",

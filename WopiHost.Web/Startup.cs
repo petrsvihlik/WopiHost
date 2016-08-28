@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
-using Autofac;
-using Autofac.Extensions.DependencyInjection;
+﻿using System.Collections.Generic;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -24,10 +21,8 @@ namespace WopiHost.Web
 				AddInMemoryCollection(new Dictionary<string, string>
 					{ { nameof(env.WebRootPath), env.WebRootPath },
 					{ nameof(appEnv.ApplicationBasePath), appEnv.ApplicationBasePath } })
-				/*.AddJsonFile("config.json")
-				.AddJsonFile($"config.{env.EnvironmentName}.json", optional: true)*/;
-
-			builder.AddEnvironmentVariables();
+				.AddJsonFile($"config.{env.EnvironmentName}.json", optional: true)
+				.AddEnvironmentVariables();
 
 			if (env.IsDevelopment())
 			{
@@ -41,22 +36,18 @@ namespace WopiHost.Web
 		/// <summary>
 		/// Sets up the DI container. Loads types dynamically (http://docs.autofac.org/en/latest/register/scanning.html)
 		/// </summary>
-		public IServiceProvider ConfigureServices(IServiceCollection services)
+		public void ConfigureServices(IServiceCollection services)
 		{
-			services.AddMvc();			
-
-			// Autofac resolution
-			var builder = new ContainerBuilder();
-
-			// Configuration
-			builder.RegisterInstance(Configuration).As<IConfiguration>().SingleInstance();			
-
-			builder.Populate(services);
-			var container = builder.Build();
-			return container.Resolve<IServiceProvider>();
+			services.AddMvc();
+			services.AddSingleton(Configuration);
 		}
 
-		// Configure is called after ConfigureServices is called.
+		/// <summary>
+		/// Configure is called after ConfigureServices is called.
+		/// </summary>
+		/// <param name="app"></param>
+		/// <param name="env"></param>
+		/// <param name="loggerFactory"></param>
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
 		{
 			loggerFactory.AddConsole(Configuration.GetSection("Logging"));

@@ -3,34 +3,7 @@
   "version": 2,
   "targets": {
     ".NETCoreApp,Version=v1.0": {
-      "Autofac/4.0.0-rc3-316": {
-        "type": "package",
-        "dependencies": {
-          "NETStandard.Library": "1.6.0",
-          "System.ComponentModel": "4.0.1"
-        },
-        "compile": {
-          "lib/netstandard1.1/Autofac.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard1.1/Autofac.dll": {}
-        }
-      },
-      "Autofac.Extensions.DependencyInjection/4.0.0-rc3-309": {
-        "type": "package",
-        "dependencies": {
-          "Autofac": "4.0.0-rc3-309",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "1.0.0",
-          "NETStandard.Library": "1.6.0"
-        },
-        "compile": {
-          "lib/netstandard1.1/Autofac.Extensions.DependencyInjection.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard1.1/Autofac.Extensions.DependencyInjection.dll": {}
-        }
-      },
-      "BundlerMinifier.Core/2.1.258": {
+      "BundlerMinifier.Core/2.2.281": {
         "type": "package",
         "dependencies": {
           "Microsoft.NETCore.App": "1.0.0",
@@ -754,21 +727,6 @@
           "lib/netstandard1.3/Microsoft.AspNetCore.Server.Kestrel.dll": {}
         }
       },
-      "Microsoft.AspNetCore.Server.WebListener/0.1.0": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.AspNetCore.Hosting": "1.0.0",
-          "Microsoft.Net.Http.Headers": "1.0.0",
-          "Microsoft.Net.Http.Server": "0.1.0",
-          "System.Security.Claims": "4.0.1"
-        },
-        "compile": {
-          "lib/netstandard1.3/Microsoft.AspNetCore.Server.WebListener.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard1.3/Microsoft.AspNetCore.Server.WebListener.dll": {}
-        }
-      },
       "Microsoft.AspNetCore.StaticFiles/1.0.0": {
         "type": "package",
         "dependencies": {
@@ -1429,34 +1387,6 @@
         },
         "runtime": {
           "lib/netstandard1.1/Microsoft.Net.Http.Headers.dll": {}
-        }
-      },
-      "Microsoft.Net.Http.Server/0.1.0": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "1.0.0",
-          "Microsoft.Extensions.Primitives": "1.0.0",
-          "Microsoft.Win32.Primitives": "4.0.1",
-          "System.Diagnostics.Contracts": "4.0.1",
-          "System.Diagnostics.Debug": "4.0.11",
-          "System.Diagnostics.Tools": "4.0.1",
-          "System.IO": "4.1.0",
-          "System.IO.FileSystem": "4.0.1",
-          "System.Net.Primitives": "4.0.11",
-          "System.Runtime.Extensions": "4.1.0",
-          "System.Runtime.InteropServices": "4.1.0",
-          "System.Security.Claims": "4.0.1",
-          "System.Security.Cryptography.X509Certificates": "4.1.0",
-          "System.Security.Principal.Windows": "4.0.0",
-          "System.Text.Encoding.Extensions": "4.0.11",
-          "System.Threading": "4.0.11",
-          "System.Threading.Overlapped": "4.0.1"
-        },
-        "compile": {
-          "lib/netstandard1.3/Microsoft.Net.Http.Server.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard1.3/Microsoft.Net.Http.Server.dll": {}
         }
       },
       "Microsoft.NETCore.App/1.0.0": {
@@ -3601,7 +3531,7 @@
           "System.Runtime.Handles": "4.0.1"
         },
         "compile": {
-          "ref/netstandard1.3/System.Threading.Overlapped.dll": {}
+          "ref/netstandard1.3/_._": {}
         },
         "runtimeTargets": {
           "runtimes/unix/lib/netstandard1.3/System.Threading.Overlapped.dll": {
@@ -3829,38 +3759,12 @@
     }
   },
   "libraries": {
-    "Autofac/4.0.0-rc3-316": {
-      "sha512": "Fx4lqVHUVHLU/F+JiZSFarRz1+9KuS452JkKWwWSPBGxtxlitqxFmxuXPFlOyj/SfLO2lDNhPVyOCyyCwNdfnA==",
+    "BundlerMinifier.Core/2.2.281": {
+      "sha512": "cUiOJT4rjubD9tOsLo0ruPqfLEy5GUByj9JZ2fVlU5uR4QYTIN//BpeQfsmBwIU/GWrpVJqYsyX474Bm0U3XHQ==",
       "type": "package",
-      "path": "Autofac/4.0.0-rc3-316",
+      "path": "BundlerMinifier.Core/2.2.281",
       "files": [
-        "Autofac.4.0.0-rc3-316.nupkg.sha512",
-        "Autofac.nuspec",
-        "lib/net451/Autofac.dll",
-        "lib/net451/Autofac.xml",
-        "lib/netstandard1.1/Autofac.dll",
-        "lib/netstandard1.1/Autofac.xml",
-        "lib/uap10.0/Autofac.dll",
-        "lib/uap10.0/Autofac.xml"
-      ]
-    },
-    "Autofac.Extensions.DependencyInjection/4.0.0-rc3-309": {
-      "sha512": "pvVWo438PnaXU6ezQ0HHUnCPLUlvKWJZlXrnf6lfnKLI3hsOx87puiZP4gmstDKKwFyxAGZHbAOv/dBgDO4Q5w==",
-      "type": "package",
-      "path": "Autofac.Extensions.DependencyInjection/4.0.0-rc3-309",
-      "files": [
-        "Autofac.Extensions.DependencyInjection.4.0.0-rc3-309.nupkg.sha512",
-        "Autofac.Extensions.DependencyInjection.nuspec",
-        "lib/netstandard1.1/Autofac.Extensions.DependencyInjection.dll",
-        "lib/netstandard1.1/Autofac.Extensions.DependencyInjection.xml"
-      ]
-    },
-    "BundlerMinifier.Core/2.1.258": {
-      "sha512": "dHTcSnKRM2Dvk1s2eCLU8U1WCxLlfk4y0GQlBUFaHaLt1NN1JhxJeDhhVo6jqKhHZsBaY7Cz04UYuKrKSwItZQ==",
-      "type": "package",
-      "path": "BundlerMinifier.Core/2.1.258",
-      "files": [
-        "BundlerMinifier.Core.2.1.258.nupkg.sha512",
+        "BundlerMinifier.Core.2.2.281.nupkg.sha512",
         "BundlerMinifier.Core.nuspec",
         "lib/net452/dotnet-bundle.exe",
         "lib/netcoreapp1.0/dotnet-bundle.dll",
@@ -4374,19 +4278,6 @@
         "lib/net451/Microsoft.AspNetCore.Server.Kestrel.xml",
         "lib/netstandard1.3/Microsoft.AspNetCore.Server.Kestrel.dll",
         "lib/netstandard1.3/Microsoft.AspNetCore.Server.Kestrel.xml"
-      ]
-    },
-    "Microsoft.AspNetCore.Server.WebListener/0.1.0": {
-      "sha512": "ziATioPb3q0WZAupIKaSQhady2+bmfbC+/vSD5osM8I3TsItzgcx8twVc+ah09DSo8IWm+QVHHIkRoimn50K9Q==",
-      "type": "package",
-      "path": "Microsoft.AspNetCore.Server.WebListener/0.1.0",
-      "files": [
-        "Microsoft.AspNetCore.Server.WebListener.0.1.0.nupkg.sha512",
-        "Microsoft.AspNetCore.Server.WebListener.nuspec",
-        "lib/net451/Microsoft.AspNetCore.Server.WebListener.dll",
-        "lib/net451/Microsoft.AspNetCore.Server.WebListener.xml",
-        "lib/netstandard1.3/Microsoft.AspNetCore.Server.WebListener.dll",
-        "lib/netstandard1.3/Microsoft.AspNetCore.Server.WebListener.xml"
       ]
     },
     "Microsoft.AspNetCore.StaticFiles/1.0.0": {
@@ -4922,19 +4813,6 @@
         "Microsoft.Net.Http.Headers.nuspec",
         "lib/netstandard1.1/Microsoft.Net.Http.Headers.dll",
         "lib/netstandard1.1/Microsoft.Net.Http.Headers.xml"
-      ]
-    },
-    "Microsoft.Net.Http.Server/0.1.0": {
-      "sha512": "Sy/egIpMDQ277ZV/SF8spgkvBqXW0Yz7lo0HApDEQhBVE2Xup7AjT6hMaHxh/YKpEixIdoYq2Bd6rZNuQ5sCBg==",
-      "type": "package",
-      "path": "Microsoft.Net.Http.Server/0.1.0",
-      "files": [
-        "Microsoft.Net.Http.Server.0.1.0.nupkg.sha512",
-        "Microsoft.Net.Http.Server.nuspec",
-        "lib/net451/Microsoft.Net.Http.Server.dll",
-        "lib/net451/Microsoft.Net.Http.Server.xml",
-        "lib/netstandard1.3/Microsoft.Net.Http.Server.dll",
-        "lib/netstandard1.3/Microsoft.Net.Http.Server.xml"
       ]
     },
     "Microsoft.NETCore.App/1.0.0": {
@@ -9969,15 +9847,12 @@
   },
   "projectFileDependencyGroups": {
     "": [
-      "Autofac >= 4.0.0-rc3-316",
-      "Autofac.Extensions.DependencyInjection >= 4.0.0-rc3-309",
-      "BundlerMinifier.Core >= 2.1.258",
+      "BundlerMinifier.Core >= 2.2.281",
       "Microsoft.AspNetCore.Diagnostics >= 1.0.0",
       "Microsoft.AspNetCore.Mvc >= 1.0.0",
       "Microsoft.AspNetCore.Razor.Tools >= 1.0.0-preview2-final",
       "Microsoft.AspNetCore.Server.IISIntegration >= 1.0.0",
       "Microsoft.AspNetCore.Server.Kestrel >= 1.0.0",
-      "Microsoft.AspNetCore.Server.WebListener >= 0.1.0",
       "Microsoft.AspNetCore.StaticFiles >= 1.0.0",
       "Microsoft.Extensions.Configuration >= 1.0.0",
       "Microsoft.Extensions.Configuration.Abstractions >= 1.0.0",

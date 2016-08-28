@@ -4,17 +4,15 @@
 		"emitEntryPoint": true
 	},
 	"dependencies": {
-		"Autofac": "4.0.0-rc3-286",
-		"Autofac.Extensions.DependencyInjection": "4.0.0-rc3-280",
+		"Autofac": "4.1.0",
+		"Autofac.Extensions.DependencyInjection": "4.0.0",
 		"Microsoft.AspNetCore.Authorization": "1.0.0",
 		"Microsoft.AspNetCore.Diagnostics": "1.0.0",
 		"Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore": "1.0.0",
 		"Microsoft.AspNetCore.Hosting": "1.0.0",
 		"Microsoft.AspNetCore.Mvc": "1.0.0",
-		/*"Microsoft.AspNetCore.Mvc.ViewFeatures": "1.0.0",*/
 		"Microsoft.AspNetCore.Server.IISIntegration": "1.0.0",
 		"Microsoft.AspNetCore.Server.Kestrel": "1.0.0",
-		"Microsoft.AspNetCore.Server.WebListener": "0.1.0",
 		"Microsoft.AspNetCore.Session": "1.0.0",
 		"Microsoft.AspNetCore.StaticFiles": "1.0.0",
 		"Microsoft.CobaltCore": "15.0.0.2",
@@ -25,7 +23,7 @@
 		"Microsoft.Extensions.Logging.Console": "1.0.0",
 		"Microsoft.Extensions.Logging.Debug": "1.0.0",
 		"Microsoft.Extensions.PlatformAbstractions": "1.0.0",
-		"Microsoft.NETCore.Portable.Compatibility": "1.0.0",
+			"Microsoft.NETCore.Portable.Compatibility": "1.0.1",
 		"System.Runtime": "4.0.20",
 		"System.Threading.Timer": "4.0.0",
 		"WopiHost.Abstractions": "1.0.0-*",
