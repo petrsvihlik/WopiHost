@@ -11,12 +11,14 @@
 	},
 	"frameworks": {
 		"netstandard1.6": {
+			"dependencies": {
+				"System.Text.RegularExpressions": "4.1.0"
+			}
 		},
 		"net46": {
 		}
 	},
 	"dependencies": {
-		"System.Text.RegularExpressions": "4.1.0",
 		"WopiHost.Abstractions": "1.0.0-*",
 		"WopiHost.Discovery": "1.0.0-*"
 	}

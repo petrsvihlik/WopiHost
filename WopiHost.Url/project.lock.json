@@ -4714,12 +4714,13 @@
   },
   "projectFileDependencyGroups": {
     "": [
-      "System.Text.RegularExpressions >= 4.1.0",
       "WopiHost.Abstractions >= 1.0.0-*",
       "WopiHost.Discovery >= 1.0.0-*"
     ],
     ".NETFramework,Version=v4.6": [],
-    ".NETStandard,Version=v1.6": []
+    ".NETStandard,Version=v1.6": [
+      "System.Text.RegularExpressions >= 4.1.0"
+    ]
   },
   "tools": {},
   "projectFileToolGroups": {}

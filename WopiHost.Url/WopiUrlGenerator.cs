@@ -11,7 +11,7 @@ namespace WopiHost.Url
 	public class WopiUrlGenerator
 	{
 		private WopiDiscoverer _wopiDiscoverer;
-		private Dictionary<string, string> _optionalParameters = new Dictionary<string, string>();
+
 		private WopiDiscoverer WopiDiscoverer
 		{
 			get { return _wopiDiscoverer ?? (_wopiDiscoverer = new WopiDiscoverer(WopiClientUrl)); }
@@ -20,10 +20,7 @@ namespace WopiHost.Url
 		public string WopiClientUrl { get; }
 		public string WopiHostUrl { get; set; }
 
-		public Dictionary<string, string> OptionalParameters
-		{
-			get { return _optionalParameters; }
-		}
+		public Dictionary<string, string> OptionalParameters { get; } = new Dictionary<string, string>();
 
 		/// <summary>
 		/// 
