@@ -5,7 +5,7 @@ using System.Globalization;
 namespace WopiHost.Url
 {
 	/// <summary>
-	/// Additional URL settings influencing behavior of the WOPI client.
+	/// Additional URL settings influencing behavior of the WOPI client (as defined in http://wopi.readthedocs.io/en/latest/discovery.html#placeholder-values)
 	/// </summary>
 	public class WopiUrlSettings : Dictionary<string, string>
 	{
