@@ -98,10 +98,11 @@ namespace WopiHost.Controllers
 		[Produces("application/octet-stream")]
 		public async Task<ActionResult> GetContents(string id, [FromQuery]string access_token)
 		{
-			if (!await _authorizationService.AuthorizeAsync(User, new TokenContainer { FileId = id, Token = access_token }, PolicyNames.HasValidAccessToken))
-			{
-				return Challenge();
-			}
+			//TODO: implement authorization
+			//if (!await _authorizationService.AuthorizeAsync(User, new TokenContainer { FileId = id, Token = access_token }, PolicyNames.HasValidAccessToken))
+			//{
+			//	return Challenge();
+			//}
 			var editSession = await GetEditSessionAsync(id);
 			return new FileResult(editSession.GetFileContent(), "application/octet-stream");
 		}
