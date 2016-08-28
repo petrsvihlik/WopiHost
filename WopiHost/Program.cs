@@ -1,5 +1,8 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 
 namespace WopiHost
 {
@@ -7,7 +10,11 @@ namespace WopiHost
 	{
 		public static void Main(string[] args)
 		{
-			var host = new WebHostBuilder()
+			//TODO:unify with startup (config required for URLs)
+			var config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
+				.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).AddEnvironmentVariables().Build();
+			
+			var host = new WebHostBuilder().UseConfiguration(config)
 				.UseKestrel()
 				.UseContentRoot(Directory.GetCurrentDirectory())
 				.UseIISIntegration()

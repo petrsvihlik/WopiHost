@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace WopiHost
 {
-    static internal class Extensions
+    internal static class Extensions
     {
         /// <summary>
         /// Copies the stream to a byte array.

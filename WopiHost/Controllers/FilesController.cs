@@ -10,6 +10,7 @@ using WopiHost.Discovery.Enumerations;
 using WopiHost.Models;
 using Microsoft.AspNetCore.Authorization;
 using WopiHost.Authorization;
+using WopiHost.Cobalt;
 
 namespace WopiHost.Controllers
 {

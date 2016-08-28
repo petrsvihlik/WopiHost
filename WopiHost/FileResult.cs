@@ -35,7 +35,7 @@ namespace WopiHost
 			CopyStream = copyStream;
 		}
 		
-		public async override Task ExecuteResultAsync(ActionContext context)
+		public override async Task ExecuteResultAsync(ActionContext context)
 		{
 			var response = context.HttpContext.Response;
 			response.ContentType = ContentType;

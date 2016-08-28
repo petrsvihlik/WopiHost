@@ -16,6 +16,8 @@ namespace WopiHost.FileSystemProvider
 		{
 			get { return fileInfo ?? (fileInfo = new FileInfo(FilePath)); }
 		}
+
+		/// <inheritdoc />
 		public bool Exists
 		{
 			get

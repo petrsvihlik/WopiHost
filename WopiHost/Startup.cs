@@ -30,11 +30,9 @@ namespace WopiHost
 				AddInMemoryCollection(new Dictionary<string, string>
 					{ { nameof(env.WebRootPath), env.WebRootPath },
 					{ nameof(appEnv.ApplicationBasePath), appEnv.ApplicationBasePath } })
-				/*.AddJsonFile("config.json")
-				.AddJsonFile($"config.{env.EnvironmentName}.json", optional: true)*/;
-
-			builder.AddEnvironmentVariables();
-
+				.AddJsonFile($"config.{env.EnvironmentName}.json", optional: true).
+				AddEnvironmentVariables();
+			
 			if (env.IsDevelopment())
 			{
 				// Override with user secrets (http://go.microsoft.com/fwlink/?LinkID=532709)
@@ -50,7 +48,8 @@ namespace WopiHost
 		{
 			services.AddAuthorization(options =>
 			{
-				options.AddPolicy(PolicyNames.HasValidAccessToken, policy => {
+				options.AddPolicy(PolicyNames.HasValidAccessToken, policy =>
+				{
 					policy.Requirements.Add(new AccessTokenRequirement());
 				});
 			});
@@ -99,7 +98,7 @@ namespace WopiHost
 			{
 				app.UseDeveloperExceptionPage();
 			}
-			
+
 			// Add MVC to the request pipeline.
 			//TODO:#10
 			//app.UseSession();

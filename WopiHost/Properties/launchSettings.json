@@ -21,13 +21,13 @@
 		"WopiHost": {
 			"commandName": "Project",
 			"launchBrowser": false,
-			"launchUrl": "http://wopihost:5000",
-			"environmentVariables": {
-				"WopiClientUrl": "http://owaserver",
-				"WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
-				"WopiRootPath": ".\\wopi-docs",
-				"ASPNETCORE_ENVIRONMENT": "Development"
-			}
+					"environmentVariables": {
+						"WopiClientUrl": "http://owaserver",
+						"WopiFileProviderAssemblyName": "WopiHost.FileSystemProvider",
+						"WopiRootPath": ".\\wopi-docs",
+						"ASPNETCORE_ENVIRONMENT": "Development",
+						"server.urls": "http://wopihost:5000"
+					}
 		}
 	}
 }

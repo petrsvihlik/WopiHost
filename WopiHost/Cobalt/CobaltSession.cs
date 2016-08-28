@@ -1,36 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Cobalt;
 using System.Linq;
+using Cobalt;
 using WopiHost.Abstractions;
 
-namespace WopiHost
+namespace WopiHost.Cobalt
 {
 	public class CobaltSession : EditSession
 	{
-		private CobaltFile m_cobaltFile;
+		private DisposalEscrow _disposal;
+		private Dictionary<FilePartitionId, CobaltFilePartitionConfig> _partitionConfs;
+
 		private CobaltFile CobaltFile
 		{
-			get
-			{
-				if (m_cobaltFile == null)
-				{
-					var tempCobaltFile = new CobaltFile(Disposal, PartitionConfs, new CobaltHostLockingStore(this), null);
+			get; set;
+		}
 
-					if (File.Exists)
-					{
-						using (var stream = File.GetReadStream())
-						{
-							var srcAtom = new AtomFromStream(stream);
-							Metrics o1;
-							tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out o1);
-							tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
-							m_cobaltFile = tempCobaltFile;
-						}
-					}
+		private void InitCobaltFile()
+		{
+			var tempCobaltFile = new CobaltFile(Disposal, PartitionConfs, new CobaltHostLockingStore(this), null);
+
+			if (File.Exists)
+			{
+				using (var stream = File.GetReadStream())
+				{
+					var srcAtom = new AtomFromStream(stream);
+					Metrics o1;
+					tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out o1);
+					tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
+					CobaltFile = tempCobaltFile;
 				}
-				return m_cobaltFile;
 			}
 		}
 
@@ -39,8 +39,6 @@ namespace WopiHost
 			get { return true; }
 		}
 
-		private DisposalEscrow _disposal;
-		private Dictionary<FilePartitionId, CobaltFilePartitionConfig> _partitionConfs;
 
 		private DisposalEscrow Disposal
 		{
@@ -96,7 +94,7 @@ namespace WopiHost
 		public CobaltSession(IWopiFile file, string sessionId, string login = "Anonymous", string name = "Anonymous", string email = "", bool isAnonymous = true)
 			: base(file, sessionId, login, name, email, isAnonymous)
 		{
-
+			InitCobaltFile();
 		}
 		public override byte[] GetFileContent()
 		{

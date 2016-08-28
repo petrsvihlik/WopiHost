@@ -14,7 +14,7 @@ namespace WopiHost.Controllers
 	/// Implementation of WOPI server protocol https://msdn.microsoft.com/en-us/library/hh659001.aspx
 	/// </summary>
 	[Route("wopi/[controller]")]
-	public class ContainersController
+	public class ContainersController : ControllerBase
 	{
 		public WopiUrlGenerator _urlGenerator;
 
@@ -24,10 +24,18 @@ namespace WopiHost.Controllers
 
 		public IConfiguration Configuration { get; set; }
 
+		public string BaseUrl
+		{
+			get
+			{
+				return HttpContext.Request.Scheme + Uri.SchemeDelimiter + HttpContext.Request.Host;
+			}
+		}
+
 		public WopiUrlGenerator UrlGenerator
 		{
-			//TODO: get url from hosting config
-			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlGenerator(Configuration.GetSection("WopiClientUrl").Value, "http://wopihost:5000")); }
+			//TODO: get current url
+			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlGenerator(Configuration.GetSection("WopiClientUrl").Value, BaseUrl)); }
 		}
 
 		public ContainersController(IConfiguration configuration, IWopiFileProvider fileProvider, IWopiSecurityHandler securityHandler)
@@ -35,6 +43,8 @@ namespace WopiHost.Controllers
 			Configuration = configuration;
 			FileProvider = fileProvider;
 			SecurityHandler = securityHandler;
+
+
 		}
 
 		/// <summary>

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Cobalt;
 
-namespace WopiHost
+namespace WopiHost.Cobalt
 {
     public class CobaltHostLockingStore : HostLockingStore
     {

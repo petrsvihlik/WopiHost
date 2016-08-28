@@ -15,7 +15,7 @@ namespace WopiHost
 			get { return false; }
 		}
 
-		override public byte[] GetFileContent()
+		public override byte[] GetFileContent()
 		{
 			MemoryStream ms = new MemoryStream();
 			lock (File)
