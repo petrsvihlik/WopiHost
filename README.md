@@ -2,7 +2,7 @@ Introduction
 ==========
 [![Build status](https://ci.appveyor.com/api/projects/status/l7jn00f4fxydpbed?svg=true)](https://ci.appveyor.com/project/petrsvihlik/wopihost)
 
-This project is an example implementation of a [WOPI host](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx). It's based on [Marx Yu's project](https://github.com/marx-yu/WopiHost). Basically, this project allows developers to integrate custom datasources with Office Web Apps / Office Online Server (or any other WOPI client app) by implementing a few of interfaces.
+This project is an example implementation of a [WOPI host](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx). Basically, it allows developers to integrate custom datasources with Office Web Apps / Office Online Server (or any other WOPI client app) by implementing a few of interfaces.
 
 Motivation
 -------------
@@ -100,7 +100,7 @@ https://msdn.microsoft.com/en-us/library/ms229042(v=vs.110).aspx
 License
 =======
  - [LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt) - License for my part of the project
- - [ORIGINAL_WORK_LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/ORIGINAL_WORK_LICENSE.txt) - License for Marx Yu's part of the project
+ - [ORIGINAL_WORK_LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/ORIGINAL_WORK_LICENSE.txt) - License for Marx Yu's part of the project. This project is based on [Marx Yu's project](https://github.com/marx-yu/WopiHost).
  - [NOTICE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/NOTICE.txt) - additional notes to how the licenses are applied
 
 Useful resources
