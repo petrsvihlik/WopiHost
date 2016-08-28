@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -8,6 +7,11 @@ using WopiHost.Discovery.Enumerations;
 
 namespace WopiHost.Url
 {
+	/// <summary>
+	/// Generates WOPI URLs according to the specification
+	/// WOPI v2 spec: http://wopi.readthedocs.io/en/latest/discovery.html
+	/// WOPI v1 spec: https://msdn.microsoft.com/en-us/library/hh695362(v=office.12).aspx
+	/// </summary>
 	public class WopiUrlGenerator
 	{
 		private WopiDiscoverer _wopiDiscoverer;
@@ -20,19 +24,19 @@ namespace WopiHost.Url
 		public string WopiClientUrl { get; }
 		public string WopiHostUrl { get; set; }
 
-		public Dictionary<string, string> OptionalParameters { get; } = new Dictionary<string, string>();
+		public WopiUrlSettings UrlSettings { get; }
 
 		/// <summary>
-		/// 
+		/// Creates a new instance of WOPI URL generator class.
 		/// </summary>
-		/// <param name="wopiClientUrl"></param>
-		/// <param name="wopiHostUrl"></param>
-		public WopiUrlGenerator(string wopiClientUrl, string wopiHostUrl)
+		/// <param name="wopiClientUrl">URL of the WOPI client (OWA/OOS/etc.)</param>
+		/// <param name="wopiHostUrl">URL of the WOPI host (endpoint serving the content to WOPI client).</param>
+		/// <param name="urlSettings">Additional settings influencing behavior of the WOPI client.</param>
+		public WopiUrlGenerator(string wopiClientUrl, string wopiHostUrl, WopiUrlSettings urlSettings = null)
 		{
 			WopiClientUrl = wopiClientUrl;
 			WopiHostUrl = wopiHostUrl;
-			//TODO: implement the rest of discovery params according to: http://wopi.readthedocs.io/en/latest/discovery.html
-			OptionalParameters.Add("ui", "en-US");
+			UrlSettings = urlSettings;
 		}
 
 		public string GetContainerUrl(string containerIdentifier, string accessToken)
@@ -42,18 +46,24 @@ namespace WopiHost.Url
 			return $"{WopiHostUrl}/wopi/containers/{containerIdentifier}/children?access_token={accessToken}";
 		}
 
-
-		public async Task<string> GetFileUrlAsync(string extension, string fileIdentifier, string accessToken, WopiActionEnum action)
+		/// <summary>
+		/// Generates an URL for a given file and action.
+		/// </summary>
+		/// <param name="extension">File extension used to identify a correct URL template.</param>
+		/// <param name="fileIdentifier">Identifier of a file which an object of interest.</param>
+		/// <param name="accessToken">Access token that will be added to the URL.</param>
+		/// <param name="action">Action used to identify a correct URL template.</param>
+		/// <param name="urlSettings">Additional URL settings (if not specified, defaults passed to the class constructor will be used).</param>
+		/// <returns></returns>
+		public async Task<string> GetFileUrlAsync(string extension, string fileIdentifier, string accessToken, WopiActionEnum action, WopiUrlSettings urlSettings = null)
 		{
+			var combinedUrlSettings = new WopiUrlSettings(urlSettings.Merge(UrlSettings));
 			var template = await WopiDiscoverer.GetUrlTemplateAsync(extension, action);
 			if (template != null)
 			{
-				int i = 0;
-
 				// Resolve optional parameters
-				var url = Regex.Replace(template, @"<(\w*)=\w*&*>", m => ResolveOptionalParameter(m.Groups[1].Value, i++));
+				var url = Regex.Replace(template, @"<(?<name>\w*)=(?<value>\w*)&*>", m => ResolveOptionalParameter(m.Groups["name"].Value, m.Groups["value"].Value, combinedUrlSettings));
 				url = url.TrimEnd('&');
-				//TODO: setup preferred ui/data culture (rs,ui)
 
 				// Append mandatory parameters
 				var fileUrl = WopiHostUrl + "/wopi/files/" + fileIdentifier;
@@ -65,12 +75,12 @@ namespace WopiHost.Url
 			return null;
 		}
 
-		private string ResolveOptionalParameter(string s, int i)
+		private string ResolveOptionalParameter(string name, string value, WopiUrlSettings urlSettings)
 		{
 			string param = null;
-			if (OptionalParameters.TryGetValue(s, out param))
+			if (urlSettings.TryGetValue(value, out param))
 			{
-				return s + "=" + Uri.EscapeDataString(param) + "&";
+				return name + "=" + Uri.EscapeDataString(param) + "&";
 			}
 			return null;
 		}

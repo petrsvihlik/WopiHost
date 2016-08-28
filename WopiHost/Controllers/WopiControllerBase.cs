@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Configuration;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using WopiHost.Abstractions;
@@ -26,7 +27,8 @@ namespace WopiHost.Controllers
 
 		public WopiUrlGenerator UrlGenerator
 		{
-			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlGenerator(Configuration.GetSection("WopiClientUrl").Value, BaseUrl)); }
+			//TODO: remove test culture value and load it from configuration
+			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlGenerator(Configuration.GetSection("WopiClientUrl").Value, BaseUrl, new WopiUrlSettings {UI_LLCC = new CultureInfo("en-US")}) ); }
 		}
 
 		public WopiControllerBase(IWopiFileProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration)
