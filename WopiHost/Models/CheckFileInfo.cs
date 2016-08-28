@@ -5,7 +5,8 @@
 	/// </summary>
 	public class CheckFileInfo : ChildFile
 	{
-		//TODO: Enrich with comments from the https://msdn.microsoft.com/en-us/library/hh622920.aspx
+		//TODO: Align with https://wopirest.readthedocs.io/en/latest/files/CheckFileInfo.html#checkfileinfo
+		//TODO: and https://wopi.readthedocs.io/en/latest/scenarios/customization.html?highlight=checkfileinfo
 		public bool AllowExternalMarketplace { get; set; }
 
 		public string BaseFileName { get { return Name; } set { Name = value; } }

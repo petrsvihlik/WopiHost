@@ -52,6 +52,7 @@ namespace WopiHost.Controllers
 
 				//TODO: remove hardcoded action 'Edit'
 				//TODO: handle all requirements in a generic way (requires="cobalt,containers,update")
+				//TODO: http://wopi.readthedocs.io/en/latest/discovery.html#action-requirements
 				if (await WopiDiscoverer.RequiresCobaltAsync(file.Extension, WopiActionEnum.Edit))
 				{
 					editSession = new CobaltSession(file, sessionId);

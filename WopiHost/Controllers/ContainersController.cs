@@ -47,7 +47,6 @@ namespace WopiHost.Controllers
 		/// <param name="access_token">Access token used to validate the request.</param>
 		/// <returns></returns>
 		[HttpGet("{id}/children")]
-		//[HttpGet("/children")]
 		[Produces("application/json")]
 		public async Task<Container> EnumerateChildren(string id, [FromQuery]string access_token)
 		{
