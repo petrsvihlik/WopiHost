@@ -9,7 +9,6 @@ using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 using WopiHost.Models;
 using Microsoft.AspNetCore.Authorization;
-using WopiHost.Authorization;
 using WopiHost.Cobalt;
 
 namespace WopiHost.Controllers
@@ -87,8 +86,8 @@ namespace WopiHost.Controllers
 		/// Specification: https://msdn.microsoft.com/en-us/library/hh657944.aspx
 		/// Example URL: HTTP://server/<...>/wopi*/files/<id>/contents
 		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="access_token"></param>
+		/// <param name="id">File identifier.</param>
+		/// <param name="access_token">Access token used to validate the request.</param>
 		/// <returns></returns>
 		[HttpGet("{id}/contents")]
 		[Produces("application/octet-stream")]
@@ -99,8 +98,10 @@ namespace WopiHost.Controllers
 			//{
 			//	return Challenge();
 			//}
+
 			var editSession = await GetEditSessionAsync(id);
-			return new FileResult(editSession.GetFileContent(), "application/octet-stream");
+			//TODO: consider using return new Microsoft.AspNetCore.Mvc.FileStreamResult(editSession.GetFileContent(), "application/octet-stream");
+			return new FileContentResult(editSession.GetFileContent(), "application/octet-stream");
 		}
 
 		/// <summary>
@@ -108,16 +109,28 @@ namespace WopiHost.Controllers
 		/// Specification: https://msdn.microsoft.com/en-us/library/hh657364.aspx
 		/// Example URL: HTTP://server/<...>/wopi*/files/<id>/contents
 		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="access_token"></param>
+		/// <param name="id">File identifier.</param>
+		/// <param name="access_token">Access token used to validate the request.</param>
 		/// <returns></returns>
 		[HttpPut("{id}/contents")]
 		[HttpPost("{id}/contents")]
 		[Produces("application/octet-stream")]
-		public async Task<IActionResult> PutContents(string id, [FromQuery]string access_token)
+		public async Task<IActionResult> PutFile(string id, [FromQuery]string access_token)
 		{
 			var editSession = await GetEditSessionAsync(id);
 			editSession.SetFileContent(await HttpContext.Request.Body.ReadBytesAsync());
+			return new OkResult();
+		}
+
+		/// <summary>
+		/// The PutRelativeFile operation creates a new file on the host based on the current file.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="access_token"></param>
+		/// <returns></returns>
+		public IActionResult PutRelativeFile(string id, [FromQuery] string access_token)
+		{
+			//TODO: implement according to https://wopirest.readthedocs.io/en/latest/files/PutRelativeFile.html
 			return new OkResult();
 		}
 
@@ -136,6 +149,8 @@ namespace WopiHost.Controllers
 			var editSession = await GetEditSessionAsync(id);
 			string wopiOverrideHeader = HttpContext.Request.Headers["X-WOPI-Override"];
 
+			//TODO: Replace the else-ifs with separate methods (https://github.com/petrsvihlik/WopiHost/issues/7)
+
 			if (wopiOverrideHeader.Equals("COBALT"))
 			{
 				var responseAction = editSession.SetFileContent(await HttpContext.Request.Body.ReadBytesAsync());
@@ -143,12 +158,25 @@ namespace WopiHost.Controllers
 				HttpContext.Response.Headers.Add("X-WOPI-CorellationID", HttpContext.Request.Headers["X-WOPI-CorrelationID"]);
 				HttpContext.Response.Headers.Add("request-id", HttpContext.Request.Headers["X-WOPI-CorrelationID"]);
 
-				return new FileResult(responseAction, "application/octet-stream");
+				return new Results.FileResult(responseAction, "application/octet-stream");
 			}
 			else if (wopiOverrideHeader.Equals("LOCK") || wopiOverrideHeader.Equals("UNLOCK") || wopiOverrideHeader.Equals("REFRESH_LOCK"))
 			{
+				switch (wopiOverrideHeader)
+				{
+					case "GET_LOCK":
+						break;
+
+					case "LOCK":
+						break;
+
+					case "UNLOCK":
+						break;
+
+					case "REFRESH_LOCK":
+						break;
+				}
 				//TODO: implement locking (https://github.com/petrsvihlik/WopiHost/issues/4)
-				//TODO: Replace the else-ifs with separate methods (https://github.com/petrsvihlik/WopiHost/issues/7)
 
 				return new OkResult();
 			}

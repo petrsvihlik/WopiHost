@@ -3,7 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 
-namespace WopiHost
+namespace WopiHost.Results
 {
 	/// <summary>
 	/// Allows returning files as a result of a controller action.

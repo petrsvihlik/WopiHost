@@ -6,8 +6,18 @@ namespace WopiHost.Abstractions
 	/// <summary>
 	/// Representation of a file.
 	/// </summary>
-	public interface IWopiFile : IWopiItem
+	public interface IWopiFile
 	{
+		/// <summary>
+		/// Name of the file (for conclusive identification see the <see cref="Identifier"/>)
+		/// </summary>
+		string Name { get; }
+
+		/// <summary>
+		/// Unique identifier of the file.
+		/// </summary>
+		string Identifier { get; }
+
 		/// <summary>
 		/// Indicates whether the file already exists.
 		/// </summary>
@@ -27,6 +37,16 @@ namespace WopiHost.Abstractions
 		/// Extension without the initial dot.
 		/// </summary>
 		string Extension { get; }
+
+		/// <summary>
+		/// Version of the file.
+		/// </summary>
+		string Version { get; }
+
+		/// <summary>
+		/// Size of the file.
+		/// </summary>
+		long Size { get; }
 
 		/// <summary>
 		/// Gets read-only stream.

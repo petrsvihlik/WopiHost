@@ -8,7 +8,7 @@
 		//TODO: Align with https://wopirest.readthedocs.io/en/latest/files/CheckFileInfo.html#checkfileinfo
 		//TODO: and https://wopi.readthedocs.io/en/latest/scenarios/customization.html?highlight=checkfileinfo
 		public bool AllowExternalMarketplace { get; set; }
-
+		
 		public string BaseFileName { get { return Name; } set { Name = value; } }
 
 		public string BreadcrumbBrandName { get; set; }

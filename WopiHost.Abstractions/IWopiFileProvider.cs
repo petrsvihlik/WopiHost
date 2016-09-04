@@ -19,7 +19,7 @@ namespace WopiHost.Abstractions
 		/// </summary>
 		/// <param name="identifier">Generic string identifier of a container (typically some kind of a path).</param>
 		/// <returns>Instance of a container.</returns>
-		IWopiItem GetWopiContainer(string identifier = "");
+		IWopiFolder GetWopiContainer(string identifier = "");
 
 		/// <summary>
 		/// Returns all files from the given source.
@@ -33,6 +33,6 @@ namespace WopiHost.Abstractions
 		/// This method is very likely to change in the future.
 		/// </summary>
 		/// <param name="identifier">Container identifier (use null for root)</param>
-		List<IWopiItem> GetWopiContainers(string identifier = "");
+		List<IWopiFolder> GetWopiContainers(string identifier = "");
 	}
 }

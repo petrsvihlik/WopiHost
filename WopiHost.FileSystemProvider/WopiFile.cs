@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using WopiHost.Abstractions;
 
@@ -7,14 +9,21 @@ namespace WopiHost.FileSystemProvider
 	public class WopiFile : IWopiFile
 	{
 		public string Identifier { get; }
-		public WopiItemType WopiItemType { get { return WopiItemType.File;} }
-
+		
 		protected FileInfo fileInfo;
+
+		protected FileVersionInfo fileVersionInfo;
+
 		protected string FilePath { get; set; }
 
 		protected FileInfo FileInfo
 		{
 			get { return fileInfo ?? (fileInfo = new FileInfo(FilePath)); }
+		}
+
+		protected FileVersionInfo FileVersionInfo
+		{
+			get { return fileVersionInfo ?? (fileVersionInfo = FileVersionInfo.GetVersionInfo(FilePath)); }
 		}
 
 		/// <inheritdoc />
@@ -37,6 +46,16 @@ namespace WopiHost.FileSystemProvider
 				}
 				return ext;
 			}
+		}
+
+		public string Version
+		{
+			get { return FileVersionInfo.FileVersion ?? FileInfo.LastWriteTimeUtc.ToString(CultureInfo.InvariantCulture); }
+		}
+
+		public long Size
+		{
+			get { return FileInfo.Length; }
 		}
 
 		public long Length

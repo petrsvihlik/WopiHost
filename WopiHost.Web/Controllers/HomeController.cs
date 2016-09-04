@@ -5,14 +5,12 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-using WopiHost.Web.Models;
-
 namespace WopiHost.Web.Controllers
 {
 	public class HomeController : Controller
 	{
 		private IConfiguration Configuration { get; }
-		
+
 		public string WopiHostUrl => Configuration.GetSection("WopiHostUrl").Value;
 
 		public HomeController(IConfiguration configuration)
@@ -25,19 +23,23 @@ namespace WopiHost.Web.Controllers
 			return View(await GetFilesAsync());
 		}
 
-		private async Task<Container> GetFilesAsync()
+		private async Task<dynamic> GetFilesAsync()
 		{
-			HttpClient client = new HttpClient();
-			//TODO: get token
-			//TODO: root folder id http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/GetRootContainer.html?highlight=EnumerateChildren (use ecosystem controller)
-			Stream stream = await client.GetStreamAsync(WopiHostUrl + "/wopi/containers/.%5C/children?access_token=todo");
-
-			var serializer = new JsonSerializer();
-
-			using (var sr = new StreamReader(stream))
-			using (var jsonTextReader = new JsonTextReader(sr))
+			using (HttpClient client = new HttpClient())
 			{
-				return serializer.Deserialize<Container>(jsonTextReader);
+				//TODO: get token
+				//TODO: root folder id http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/GetRootContainer.html?highlight=EnumerateChildren (use ecosystem controller)
+				using (Stream stream = await client.GetStreamAsync(WopiHostUrl + "/wopi/containers/.%5C/children?access_token=todo"))
+				{
+					using (var sr = new StreamReader(stream))
+					{
+						using (var jsonTextReader = new JsonTextReader(sr))
+						{
+							var serializer = new JsonSerializer();
+							return serializer.Deserialize(jsonTextReader);
+						}
+					}
+				}
 			}
 		}
 	}

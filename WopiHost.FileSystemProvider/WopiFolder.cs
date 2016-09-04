@@ -3,7 +3,7 @@ using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider
 {
-	public class WopiFolder : IWopiItem
+	public class WopiFolder : IWopiFolder
 	{
 		protected DirectoryInfo folderInfo;
 
@@ -16,8 +16,6 @@ namespace WopiHost.FileSystemProvider
 		public string Name { get { return FolderInfo.Name; } }
 
 		public string Identifier { get; }
-
-		public WopiItemType WopiItemType { get { return WopiItemType.Folder; } }
 
 		public WopiFolder(string path, string fileIdentifier)
 		{

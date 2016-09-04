@@ -1,5 +1,4 @@
 ﻿@using System.Threading.Tasks
-@using WopiHost.Web.Models
 @{
 	ViewData["Title"] = "Home Page";
 }
@@ -7,13 +6,13 @@
 <div class="row">
 	<div class="col-md-3">
 		<ul>
-			@foreach (Child f in @Model.ChildContainers)
+			@foreach (var f in @Model.ChildContainers)
 			{
 				<li><a href="@f.Url">@f.Name</a></li>
 			}
 		</ul>
 		<ul>
-			@foreach (Child f in @Model.ChildFiles)
+			@foreach (var f in @Model.ChildFiles)
 			{
 				<li><a href="@f.Url">@f.Name</a></li>
 			}

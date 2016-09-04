@@ -25,10 +25,10 @@ namespace WopiHost.Controllers
 		/// <returns></returns>
 		[HttpGet("root_container_pointer")]
 		[Produces("application/json")]
-		public RootContainer GetRootContainer([FromQuery]string access_token)
+		public RootContainerInfo GetRootContainer([FromQuery]string access_token)
 		{
 			var root = FileProvider.GetWopiContainer(@".\");
-			RootContainer rc = new RootContainer
+			RootContainerInfo rc = new RootContainerInfo
 			{
 				ContainerPointer = new ChildContainer
 				{

@@ -40,6 +40,7 @@ namespace WopiHost.Controllers
 
 		/// <summary>
 		/// The EnumerateChildren method returns the contents of a container on the WOPI server.
+		/// Specification: http://wopi.readthedocs.io/projects/wopirest/en/latest/containers/EnumerateChildren.html?highlight=EnumerateChildren
 		/// Specification: https://msdn.microsoft.com/en-us/library/hh641593.aspx
 		/// Example URL: HTTP://server/<...>/wopi*/containers/<id>/children
 		/// </summary>
@@ -58,13 +59,15 @@ namespace WopiHost.Controllers
 			{
 				files.Add(new ChildFile
 				{
-					//TODO: add all properties http://wopi.readthedocs.io/projects/wopirest/en/latest/containers/EnumerateChildren.html?highlight=EnumerateChildren
 					Name = wopiFile.Name,
-					Url = await UrlGenerator.GetFileUrlAsync(wopiFile.Extension, wopiFile.Identifier, access_token, WopiActionEnum.Edit)
-				});
+					Url = await UrlGenerator.GetFileUrlAsync(wopiFile.Extension, wopiFile.Identifier, access_token, WopiActionEnum.Edit),
+					LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o"),
+					Size = wopiFile.Size,
+					Version = wopiFile.Version
+			});
 			}
 
-			foreach (IWopiItem wopiContainer in FileProvider.GetWopiContainers(id))
+			foreach (IWopiFolder wopiContainer in FileProvider.GetWopiContainers(id))
 			{
 				containers.Add(new ChildContainer
 				{

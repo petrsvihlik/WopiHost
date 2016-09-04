@@ -27,7 +27,7 @@ namespace WopiHost.FileSystemProvider
 			return new WopiFile(Path.Combine(WopiAbsolutePath, identifier), identifier);
 		}
 
-		public IWopiItem GetWopiContainer(string identifier = "")
+		public IWopiFolder GetWopiContainer(string identifier = "")
 		{
 			return new WopiFolder(Path.Combine(WopiAbsolutePath, identifier), identifier);
 		}
@@ -42,9 +42,9 @@ namespace WopiHost.FileSystemProvider
 			return files;
 		}
 
-		public List<IWopiItem> GetWopiContainers(string identifier = "")
+		public List<IWopiFolder> GetWopiContainers(string identifier = "")
 		{
-			List<IWopiItem> folders = new List<IWopiItem>();
+			List<IWopiFolder> folders = new List<IWopiFolder>();
 			foreach (string directory in Directory.GetDirectories(Path.Combine(WopiAbsolutePath, identifier)))
 			{
 				folders.Add(GetWopiContainer("." + directory.Remove(0, directory.LastIndexOf(Path.DirectorySeparatorChar))));
