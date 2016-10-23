@@ -9,7 +9,7 @@ namespace WopiHost
 		//TODO: consider using ConcurrentDictionary
 		private static volatile SessionManager _current;
 		private static readonly object _syncObj = new object();
-		private readonly Dictionary<string, EditSession> _sessions = new Dictionary<string, EditSession>();
+		private readonly Dictionary<string, AbstractEditSession> _sessions = new Dictionary<string, AbstractEditSession>();
 		private readonly int m_timeout = 60 * 60 * 1000;
 		private readonly int m_closewait = 3 * 60 * 60;
 		private readonly Timer timer;
@@ -37,9 +37,9 @@ namespace WopiHost
 			timer = new Timer(CleanUp, null, m_timeout, Timeout.Infinite);
 		}
 
-		public EditSession GetSession(string sessionId)
+		public AbstractEditSession GetSession(string sessionId)
 		{
-			EditSession es;
+			AbstractEditSession es;
 
 			lock (_syncObj)
 			{
@@ -52,7 +52,7 @@ namespace WopiHost
 			return es;
 		}
 
-		public void AddSession(EditSession session)
+		public void AddSession(AbstractEditSession session)
 		{
 			lock (_syncObj)
 			{
@@ -60,7 +60,7 @@ namespace WopiHost
 			}
 		}
 
-		public void DelSession(EditSession session)
+		public void DelSession(AbstractEditSession session)
 		{
 			lock (_syncObj)
 			{

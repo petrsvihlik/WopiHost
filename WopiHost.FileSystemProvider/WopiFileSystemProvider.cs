@@ -6,7 +6,7 @@ using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider
 {
-	public class WopiFileSystemProvider : IWopiFileProvider
+	public class WopiFileSystemProvider : IWopiStorageProvider
 	{
 		protected IConfiguration Configuration { get; set; }
 		protected IConfigurationSection WopiRootPath => Configuration.GetSection(nameof(WopiRootPath));

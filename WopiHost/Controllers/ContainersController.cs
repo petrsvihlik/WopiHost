@@ -14,7 +14,7 @@ namespace WopiHost.Controllers
 	[Route("wopi/[controller]")]
 	public class ContainersController : WopiControllerBase
 	{
-		public ContainersController(IConfiguration configuration, IWopiFileProvider fileProvider, IWopiSecurityHandler securityHandler) : base(fileProvider, securityHandler, configuration)
+		public ContainersController(IConfiguration configuration, IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler) : base(fileProvider, securityHandler, configuration)
 		{
 		}
 
@@ -30,7 +30,7 @@ namespace WopiHost.Controllers
 		[Produces("application/json")]
 		public CheckContainerInfo GetCheckContainerInfo(string id, [FromQuery]string access_token)
 		{
-			var container = FileProvider.GetWopiContainer(id);
+			var container = StorageProvider.GetWopiContainer(id);
 			return new CheckContainerInfo
 			{
 				Name = container.Name
@@ -55,7 +55,7 @@ namespace WopiHost.Controllers
 			var files = new List<ChildFile>();
 			var containers = new List<ChildContainer>();
 
-			foreach (IWopiFile wopiFile in FileProvider.GetWopiFiles(id))
+			foreach (IWopiFile wopiFile in StorageProvider.GetWopiFiles(id))
 			{
 				files.Add(new ChildFile
 				{
@@ -67,7 +67,7 @@ namespace WopiHost.Controllers
 			});
 			}
 
-			foreach (IWopiFolder wopiContainer in FileProvider.GetWopiContainers(id))
+			foreach (IWopiFolder wopiContainer in StorageProvider.GetWopiContainers(id))
 			{
 				containers.Add(new ChildContainer
 				{

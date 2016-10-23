@@ -11,7 +11,7 @@ namespace WopiHost.Controllers
 	[Route("wopibootstrapper")]
 	public class WopiBootstrapperController : WopiControllerBase
 	{
-		public WopiBootstrapperController(IWopiFileProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration) : base(fileProvider, securityHandler, configuration)
+		public WopiBootstrapperController(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration) : base(fileProvider, securityHandler, configuration)
 		{
 
 		}
@@ -25,7 +25,7 @@ namespace WopiHost.Controllers
 				var authorizationHeader = HttpContext.Request.Headers["Authorization"];
 				if (ValidateAuthorizationHeader(authorizationHeader))
 				{
-					var root = FileProvider.GetWopiContainer(@".\");
+					var root = StorageProvider.GetWopiContainer(@".\");
 					//TODO: implement bootstrap + token
 					BootstrapRootContainerInfo bootstrapRoot = new BootstrapRootContainerInfo
 					{
@@ -67,7 +67,7 @@ namespace WopiHost.Controllers
 		private bool ValidateAuthorizationHeader(StringValues authorizationHeader)
 		{
 			//TODO: implement header validation http://wopi.readthedocs.io/projects/wopirest/en/latest/bootstrapper/GetRootContainer.html#sample-response
-			http://stackoverflow.com/questions/31948426/oauth-bearer-token-authentication-is-not-passing-signature-validation
+			// http://stackoverflow.com/questions/31948426/oauth-bearer-token-authentication-is-not-passing-signature-validation
 			return true;
 		}
 	}

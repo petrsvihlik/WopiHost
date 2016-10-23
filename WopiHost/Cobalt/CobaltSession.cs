@@ -7,7 +7,7 @@ using WopiHost.Abstractions;
 
 namespace WopiHost.Cobalt
 {
-	public class CobaltSession : EditSession
+	public class CobaltSession : AbstractEditSession
 	{
 		private DisposalEscrow _disposal;
 		private Dictionary<FilePartitionId, CobaltFilePartitionConfig> _partitionConfs;

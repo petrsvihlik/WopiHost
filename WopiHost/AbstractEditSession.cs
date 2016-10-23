@@ -6,7 +6,7 @@ using WopiHost.Models;
 
 namespace WopiHost
 {
-	public abstract class EditSession
+	public abstract class AbstractEditSession
 	{
 		protected IWopiFile File { get; }
 
@@ -42,7 +42,7 @@ namespace WopiHost
 			get; set;
 		}
 
-		protected EditSession(IWopiFile file, string sessionId, string login, string name, string email, bool isAnonymous)
+		protected AbstractEditSession(IWopiFile file, string sessionId, string login, string name, string email, bool isAnonymous)
 		{
 			//TODO: work with users
 			File = file;

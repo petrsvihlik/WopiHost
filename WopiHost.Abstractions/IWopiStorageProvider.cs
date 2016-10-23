@@ -5,7 +5,7 @@ namespace WopiHost.Abstractions
 	/// <summary>
 	/// Provides concrete instances of IWopiFiles.
 	/// </summary>
-	public interface IWopiFileProvider
+	public interface IWopiStorageProvider
 	{
 		/// <summary>
 		/// Returns a concrete instance of an implementation of the <see cref="IWopiFile"/>.
@@ -15,7 +15,7 @@ namespace WopiHost.Abstractions
 		IWopiFile GetWopiFile(string identifier);
 
 		/// <summary>
-		/// Returns a concrete instance of an implementation of the <see cref="IWopiItem"/>.
+		/// Returns a concrete instance of an implementation of the <see cref="IWopiFolder"/>.
 		/// </summary>
 		/// <param name="identifier">Generic string identifier of a container (typically some kind of a path).</param>
 		/// <returns>Instance of a container.</returns>

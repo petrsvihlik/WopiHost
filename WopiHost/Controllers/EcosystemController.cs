@@ -12,7 +12,7 @@ namespace WopiHost.Controllers
 	public class EcosystemController : WopiControllerBase
 	{
 
-		public EcosystemController(IWopiFileProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration) : base(fileProvider, securityHandler, configuration)
+		public EcosystemController(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration) : base(fileProvider, securityHandler, configuration)
 		{
 		}
 
@@ -27,7 +27,7 @@ namespace WopiHost.Controllers
 		[Produces("application/json")]
 		public RootContainerInfo GetRootContainer([FromQuery]string access_token)
 		{
-			var root = FileProvider.GetWopiContainer(@".\");
+			var root = StorageProvider.GetWopiContainer(@".\");
 			RootContainerInfo rc = new RootContainerInfo
 			{
 				ContainerPointer = new ChildContainer

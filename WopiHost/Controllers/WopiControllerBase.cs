@@ -11,7 +11,8 @@ namespace WopiHost.Controllers
 	public class WopiControllerBase : ControllerBase
 	{
 		public WopiUrlGenerator _urlGenerator;
-		public IWopiFileProvider FileProvider { get; set; }
+
+		public IWopiStorageProvider StorageProvider { get; set; }
 
 		public IWopiSecurityHandler SecurityHandler { get; set; }
 
@@ -31,9 +32,9 @@ namespace WopiHost.Controllers
 			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlGenerator(Configuration.GetSection("WopiClientUrl").Value, BaseUrl, new WopiUrlSettings {UI_LLCC = new CultureInfo("en-US")}) ); }
 		}
 
-		public WopiControllerBase(IWopiFileProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration)
+		public WopiControllerBase(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration)
 		{
-			FileProvider = fileProvider;
+			StorageProvider = fileProvider;
 			SecurityHandler = securityHandler;
 			Configuration = configuration;
 		}
