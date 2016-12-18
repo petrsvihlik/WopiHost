@@ -34,7 +34,7 @@ namespace WopiHost.Web
 
 
 		/// <summary>
-		/// Sets up the DI container. Loads types dynamically (http://docs.autofac.org/en/latest/register/scanning.html)
+		/// Sets up the DI container.
 		/// </summary>
 		public void ConfigureServices(IServiceCollection services)
 		{
@@ -45,9 +45,6 @@ namespace WopiHost.Web
 		/// <summary>
 		/// Configure is called after ConfigureServices is called.
 		/// </summary>
-		/// <param name="app"></param>
-		/// <param name="env"></param>
-		/// <param name="loggerFactory"></param>
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
 		{
 			loggerFactory.AddConsole(Configuration.GetSection("Logging"));

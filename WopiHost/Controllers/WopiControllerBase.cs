@@ -1,6 +1,4 @@
-﻿using System;
-using System.Configuration;
-using System.Globalization;
+﻿using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using WopiHost.Abstractions;
@@ -22,14 +20,14 @@ namespace WopiHost.Controllers
 		{
 			get
 			{
-				return HttpContext.Request.Scheme + Uri.SchemeDelimiter + HttpContext.Request.Host;
+				return HttpContext.Request.Scheme + "://" + HttpContext.Request.Host;
 			}
 		}
 
 		public WopiUrlGenerator UrlGenerator
 		{
 			//TODO: remove test culture value and load it from configuration
-			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlGenerator(Configuration.GetSection("WopiClientUrl").Value, BaseUrl, new WopiUrlSettings {UI_LLCC = new CultureInfo("en-US")}) ); }
+			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlGenerator(Configuration.GetValue("WopiClientUrl", string.Empty), BaseUrl, new WopiUrlSettings {UI_LLCC = new CultureInfo("en-US")}) ); }
 		}
 
 		public WopiControllerBase(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration)

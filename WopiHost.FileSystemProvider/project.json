@@ -9,18 +9,14 @@
 			"url": "https://github.com/petrsvihlik/WopiHost.git"
 		}
 	},
-
 	"frameworks": {
-		"netstandard1.6": {
-			"dependencies": {
-				"System.Diagnostics.FileVersionInfo": "4.0.0"
-			}
-		},
-		"net46": {}
+		"netstandard1.3": {
+		}
 	},
 	"dependencies": {
-		"Microsoft.Extensions.Configuration.Abstractions": "1.0.0",
-		"System.IO.FileSystem": "4.0.1",
+		"Microsoft.Extensions.Configuration.Abstractions": "1.1.0",
+		"Microsoft.Extensions.Configuration.Binder": "1.1.0",
+    "System.Diagnostics.FileVersionInfo": "4.3.0",
 		"WopiHost.Abstractions": "1.0.0-*"
 	}
 }

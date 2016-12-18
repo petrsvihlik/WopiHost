@@ -1,7 +1,14 @@
 {
-	"version": "1.0.0-*",
-	"description": "WopiHost.Url Class Library",
 	"authors": [ "Petr Svihlik" ],
+	"dependencies": {
+		"WopiHost.Abstractions": "1.0.0-*",
+		"WopiHost.Discovery": "1.0.0-*"
+	},
+	"description": "WopiHost.Url Class Library",
+	"frameworks": {
+		"netstandard1.3": {
+		}
+	},
 	"packOptions": {
 		"licenseUrl": "https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt",
 		"repository": {
@@ -9,17 +16,5 @@
 			"url": "https://github.com/petrsvihlik/WopiHost.git"
 		}
 	},
-	"frameworks": {
-		"netstandard1.6": {
-			"dependencies": {
-				"System.Text.RegularExpressions": "4.1.0"
-			}
-		},
-		"net46": {
-		}
-	},
-	"dependencies": {
-		"WopiHost.Abstractions": "1.0.0-*",
-		"WopiHost.Discovery": "1.0.0-*"
-	}
+	"version": "1.0.0-*"
 }

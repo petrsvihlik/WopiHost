@@ -10,7 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.PlatformAbstractions;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc.Authorization;
 using WopiHost.Authorization;
 using Newtonsoft.Json.Serialization;
 
@@ -32,7 +31,7 @@ namespace WopiHost
 					{ nameof(appEnv.ApplicationBasePath), appEnv.ApplicationBasePath } })
 				.AddJsonFile($"config.{env.EnvironmentName}.json", optional: true).
 				AddEnvironmentVariables();
-			
+
 			if (env.IsDevelopment())
 			{
 				// Override with user secrets (http://go.microsoft.com/fwlink/?LinkID=532709)
@@ -76,10 +75,18 @@ namespace WopiHost
 			// Configuration
 			builder.RegisterInstance(Configuration).As<IConfiguration>().SingleInstance();
 
+			var path = PlatformServices.Default.Application.ApplicationBasePath;
+
 			// File provider implementation
-			var providerAssembly = Configuration.GetSection("WopiFileProviderAssemblyName").Value;
+			var providerAssembly = Configuration.GetValue("WopiFileProviderAssemblyName", string.Empty);
+#if NET46
 
 			var assembly = AppDomain.CurrentDomain.Load(new AssemblyName(providerAssembly));
+#endif
+
+#if NETCOREAPP1_0
+			var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath(path + "\\" + providerAssembly + ".dll");
+#endif
 			builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
 
 			builder.Populate(services);

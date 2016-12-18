@@ -12,7 +12,6 @@
 			"commandName": "IISExpress",
 			"launchBrowser": true,
 			"environmentVariables": {
-				"WopiHostUrl": "http://wopihost:5000",
 				"ASPNETCORE_ENVIRONMENT": "Development"
 			}
 		},
@@ -20,7 +19,6 @@
 			"commandName": "Project",
 			"launchBrowser": true,
 			"environmentVariables": {
-				"WopiHostUrl": "http://wopihost:5000",
 				"ASPNETCORE_ENVIRONMENT": "Development"
 			}
 		}

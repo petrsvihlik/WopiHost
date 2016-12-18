@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Microsoft.Extensions.Configuration;
 using WopiHost.Abstractions;
 
@@ -9,12 +8,16 @@ namespace WopiHost.FileSystemProvider
 	public class WopiFileSystemProvider : IWopiStorageProvider
 	{
 		protected IConfiguration Configuration { get; set; }
-		protected IConfigurationSection WopiRootPath => Configuration.GetSection(nameof(WopiRootPath));
-		protected IConfigurationSection WebRootPath => Configuration.GetSection(nameof(WebRootPath));
+		protected string WopiRootPath => Configuration.GetValue("WopiRootPath", string.Empty);
+
+		/// <summary>
+		/// Gets root path of the web application (e.g. IHostingEnvironment.WebRootPath for .NET Core apps)
+		/// </summary>
+		protected string WebRootPath => Configuration.GetValue("WebRootPath", string.Empty);
 
 		protected string WopiAbsolutePath
 		{
-			get { return Path.IsPathRooted(WopiRootPath.Value) ? WopiRootPath.Value : Path.Combine(WebRootPath.Value, WopiRootPath.Value); }
+			get { return Path.IsPathRooted(WopiRootPath) ? WopiRootPath : Path.Combine(WebRootPath, WopiRootPath); }
 		}
 
 		public WopiFileSystemProvider(IConfiguration configuration)

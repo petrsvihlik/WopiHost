@@ -11,7 +11,7 @@ namespace WopiHost.Web.Controllers
 	{
 		private IConfiguration Configuration { get; }
 
-		public string WopiHostUrl => Configuration.GetSection("WopiHostUrl").Value;
+		public string WopiHostUrl => Configuration.GetValue("WopiHostUrl", string.Empty);
 
 		public HomeController(IConfiguration configuration)
 		{
