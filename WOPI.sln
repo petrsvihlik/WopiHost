@@ -26,6 +26,12 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.FileSystemProvider
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Web", "WopiHost.Web\WopiHost.Web.xproj", "{5C301182-6FB2-40C5-97ED-58B07A910BFF}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Microsoft.CobaltCore", "Microsoft.CobaltCore", "{F66706B6-D7DD-48FB-963C-870B3D611500}"
+	ProjectSection(SolutionItems) = preProject
+		Microsoft.CobaltCore\Microsoft.CobaltCore.15.0.0.0.nuspec = Microsoft.CobaltCore\Microsoft.CobaltCore.15.0.0.0.nuspec
+		Microsoft.CobaltCore\Microsoft.CobaltCore.16.0.0.0.nuspec = Microsoft.CobaltCore\Microsoft.CobaltCore.16.0.0.0.nuspec
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -93,5 +99,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F66706B6-D7DD-48FB-963C-870B3D611500} = {785E1533-48CE-4B5E-8C59-D6F1FDA8C45C}
 	EndGlobalSection
 EndGlobal

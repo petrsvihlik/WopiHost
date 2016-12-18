@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
@@ -12,6 +11,7 @@ using Microsoft.Extensions.PlatformAbstractions;
 using Microsoft.AspNetCore.Authorization;
 using WopiHost.Authorization;
 using Newtonsoft.Json.Serialization;
+using WopiHost.Models;
 
 namespace WopiHost
 {
@@ -55,6 +55,9 @@ namespace WopiHost
 
 			services.AddTransient<IAuthorizationHandler, WopiAuthorizationHandler>();
 
+			// Ideally, pass a persistant dictionary implementation
+			services.AddTransient<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
+
 			//TODO: check whether OWA is case sensitive, optionally remove the contract resolver
 			services.AddMvc().AddJsonOptions(options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());
 
@@ -74,17 +77,16 @@ namespace WopiHost
 
 			// Configuration
 			builder.RegisterInstance(Configuration).As<IConfiguration>().SingleInstance();
-
-			var path = PlatformServices.Default.Application.ApplicationBasePath;
-
 			// File provider implementation
 			var providerAssembly = Configuration.GetValue("WopiFileProviderAssemblyName", string.Empty);
 #if NET46
 
-			var assembly = AppDomain.CurrentDomain.Load(new AssemblyName(providerAssembly));
+			var assembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName(providerAssembly));
 #endif
 
 #if NETCOREAPP1_0
+
+			var path = PlatformServices.Default.Application.ApplicationBasePath;
 			var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath(path + "\\" + providerAssembly + ".dll");
 #endif
 			builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();

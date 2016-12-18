@@ -26,8 +26,10 @@ namespace WopiHost.Controllers
 
 		private WopiDiscoverer _wopiDiscoverer;
 
-		//TODO: storage for lock should be persistent
-		private static readonly Dictionary<string, LockInfo> Locks = new Dictionary<string, LockInfo>();
+		/// <summary>
+		/// Collection holding information about locks. Should be persistant.
+		/// </summary>
+		private static IDictionary<string, LockInfo> LockStorage;
 
 
 		private WopiDiscoverer WopiDiscoverer
@@ -35,9 +37,10 @@ namespace WopiHost.Controllers
 			get { return _wopiDiscoverer ?? (_wopiDiscoverer = new WopiDiscoverer(Configuration.GetValue("WopiClientUrl", string.Empty))); }
 		}
 
-		public FilesController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration, IAuthorizationService authorizationService) : base(storageProvider, securityHandler, configuration)
+		public FilesController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration, IAuthorizationService authorizationService, IDictionary<string, LockInfo> lockStorage) : base(storageProvider, securityHandler, configuration)
 		{
 			_authorizationService = authorizationService;
+			LockStorage = lockStorage;
 		}
 
 		private async Task<AbstractEditSession> GetEditSessionAsync(string fileId)
@@ -188,10 +191,10 @@ namespace WopiHost.Controllers
 				string oldLock = Request.Headers[WopiHeaders.OldLock];
 				string newLock = Request.Headers[WopiHeaders.Lock];
 
-				LockInfo existingLock = null;
-				bool lockAcquired = TryGetLock(id, out existingLock);
-				lock (Locks)
+				lock (LockStorage)
 				{
+					LockInfo existingLock = null;
+					bool lockAcquired = TryGetLock(id, out existingLock);
 					switch (wopiOverrideHeader)
 					{
 						case "GET_LOCK":
@@ -205,7 +208,7 @@ namespace WopiHost.Controllers
 									if (existingLock.Lock == oldLock)
 									{
 										// Replace the existing lock with the new one
-										Locks[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
+										LockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
 										Response.Headers[WopiHeaders.OldLock] = newLock;
 										return new OkResult();
 									}
@@ -231,7 +234,7 @@ namespace WopiHost.Controllers
 								else
 								{
 									// The file is not currently locked, create and store new lock information
-									Locks[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
+									LockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
 									return new OkResult();
 								}
 							}
@@ -242,7 +245,7 @@ namespace WopiHost.Controllers
 								if (existingLock.Lock == newLock)
 								{
 									// Remove valid lock
-									Locks.Remove(id);
+									LockStorage.Remove(id);
 									return new OkResult();
 								}
 								else
@@ -291,12 +294,11 @@ namespace WopiHost.Controllers
 
 		private bool TryGetLock(string fileId, out LockInfo lockInfo)
 		{
-			//TODO: This lock implementation is not thread safe and not persisted and all in all just an example.
-			if (Locks.TryGetValue(fileId, out lockInfo))
+			if (LockStorage.TryGetValue(fileId, out lockInfo))
 			{
 				if (lockInfo.Expired)
 				{
-					Locks.Remove(fileId);
+					LockStorage.Remove(fileId);
 					return false;
 				}
 				return true;
