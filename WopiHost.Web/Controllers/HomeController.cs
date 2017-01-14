@@ -1,9 +1,11 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using WopiHost.Discovery.Enumerations;
 using WopiHost.Url;
@@ -38,7 +40,8 @@ namespace WopiHost.Web.Controllers
 			if (string.IsNullOrEmpty(url))
 			{
 				//TODO: root folder id http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/GetRootContainer.html?highlight=EnumerateChildren (use ecosystem controller)
-				url = WopiHostUrl + "/wopi/containers/.%5C/children?access_token=todo";
+				string containerId = Uri.EscapeDataString(Convert.ToBase64String(Encoding.UTF8.GetBytes(".\\")));
+				url =  $"{WopiHostUrl}/wopi/containers/{containerId}/children?access_token=todo";
 			}
 
 			//todo: get the stuff from checkfileinfo
