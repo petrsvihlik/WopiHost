@@ -16,7 +16,7 @@ namespace WopiHost.FileSystemProvider
 
 		public WopiSecurityHandler(string key = null)
 		{
-			KeyString = key ?? new Random(DateTime.Now.Millisecond).Next(0,int.MaxValue).ToString();
+			KeyString = key ?? new Random(DateTime.Now.Millisecond).Next(0, int.MaxValue).ToString();
 		}
 
 		public bool ValidateAccessToken(string value, string token)

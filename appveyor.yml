@@ -22,7 +22,7 @@ test: off
 test_script:
  - ps: >-
 
-    dotnet test .\WopiHost.FileSystemProvider.Tests\ -xml .\xunit-results.xml
+    ForEach ($folder in (Get-ChildItem -Path .\ -Directory -Filter *.Tests)) { dotnet test $folder.FullName -xml ($folder.FullName + "\xunit-results.xml") }
 
 after_test:
   - bash <(curl -s https://codecov.io/bash)
