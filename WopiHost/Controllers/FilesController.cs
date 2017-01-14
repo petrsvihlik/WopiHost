@@ -34,7 +34,7 @@ namespace WopiHost.Controllers
 
 		private WopiDiscoverer WopiDiscoverer
 		{
-			get { return _wopiDiscoverer ?? (_wopiDiscoverer = new WopiDiscoverer(Configuration.GetValue("WopiClientUrl", string.Empty))); }
+			get { return _wopiDiscoverer ?? (_wopiDiscoverer = new WopiDiscoverer(new HttpDiscoveryFileProvider(Configuration.GetValue("WopiClientUrl", string.Empty)))); }
 		}
 
 		public FilesController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration, IAuthorizationService authorizationService, IDictionary<string, LockInfo> lockStorage) : base(storageProvider, securityHandler, configuration)

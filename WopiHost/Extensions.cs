@@ -18,5 +18,11 @@ namespace WopiHost
                 return ms.ToArray();
             }
         }
+
+
+	    public static string UrlEncode(this string url)
+	    {
+		    return null;
+	    }
     }
 }

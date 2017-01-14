@@ -26,8 +26,7 @@
 		"Microsoft.NETCore.Portable.Compatibility": "1.0.1",
 		"WopiHost.Abstractions": "1.0.0-*",
 		"WopiHost.Discovery": "1.0.0-*",
-		"WopiHost.FileSystemProvider": "1.0.0-*",
-		"WopiHost.Url": "1.0.0-*"
+		"WopiHost.FileSystemProvider": "1.0.0-*"
 	},
 	"frameworks": {
 		"netcoreapp1.0": {

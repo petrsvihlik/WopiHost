@@ -1,15 +1,13 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using WopiHost.Abstractions;
-using WopiHost.Url;
 
 namespace WopiHost.Controllers
 {
 	public class WopiControllerBase : ControllerBase
 	{
-		public WopiUrlGenerator _urlGenerator;
-
 		public IWopiStorageProvider StorageProvider { get; set; }
 
 		public IWopiSecurityHandler SecurityHandler { get; set; }
@@ -24,17 +22,18 @@ namespace WopiHost.Controllers
 			}
 		}
 
-		public WopiUrlGenerator UrlGenerator
-		{
-			//TODO: remove test culture value and load it from configuration
-			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlGenerator(Configuration.GetValue("WopiClientUrl", string.Empty), BaseUrl, new WopiUrlSettings {UI_LLCC = new CultureInfo("en-US")}) ); }
-		}
-
 		public WopiControllerBase(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration)
 		{
 			StorageProvider = fileProvider;
 			SecurityHandler = securityHandler;
 			Configuration = configuration;
+		}
+
+		public string GetChildUrl(string controller, string identifier, string accessToken)
+		{
+			identifier = Uri.EscapeDataString(identifier);
+			accessToken = Uri.EscapeDataString(accessToken);
+			return $"{BaseUrl}/wopi/{controller}/{identifier}?access_token={accessToken}";
 		}
 	}
 }

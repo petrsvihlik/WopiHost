@@ -11,6 +11,8 @@
 		
 		public string BaseFileName { get { return Name; } set { Name = value; } }
 
+		public string FileExtension { get; set; }
+
 		public string BreadcrumbBrandName { get; set; }
 
 		public string BreadcrumbBrandUrl { get; set; }

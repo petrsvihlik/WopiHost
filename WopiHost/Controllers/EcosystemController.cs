@@ -33,7 +33,7 @@ namespace WopiHost.Controllers
 				ContainerPointer = new ChildContainer
 				{
 					Name = root.Name,
-					Url = UrlGenerator.GetContainerUrl(root.Identifier, access_token)
+					Url = GetChildUrl("containers", root.Identifier, access_token)
 				}
 			};
 			return rc;

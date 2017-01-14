@@ -1,9 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using WopiHost.Abstractions;
-using WopiHost.Discovery.Enumerations;
 using WopiHost.Models;
 
 namespace WopiHost.Controllers
@@ -49,7 +48,7 @@ namespace WopiHost.Controllers
 		/// <returns></returns>
 		[HttpGet("{id}/children")]
 		[Produces("application/json")]
-		public async Task<Container> EnumerateChildren(string id, [FromQuery]string access_token)
+		public Container EnumerateChildren(string id, [FromQuery]string access_token)
 		{
 			Container container = new Container();
 			var files = new List<ChildFile>();
@@ -60,20 +59,19 @@ namespace WopiHost.Controllers
 				files.Add(new ChildFile
 				{
 					Name = wopiFile.Name,
-					Url = await UrlGenerator.GetFileUrlAsync(wopiFile.Extension, wopiFile.Identifier, access_token, WopiActionEnum.Edit),
+					Url = GetChildUrl("files", wopiFile.Identifier, access_token),
 					LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o"),
 					Size = wopiFile.Size,
 					Version = wopiFile.Version
-			});
+				});
 			}
 
 			foreach (IWopiFolder wopiContainer in StorageProvider.GetWopiContainers(id))
 			{
 				containers.Add(new ChildContainer
 				{
-					//TODO: add all properties
 					Name = wopiContainer.Name,
-					Url = UrlGenerator.GetContainerUrl(wopiContainer.Identifier, access_token)
+					Url = GetChildUrl("containers", wopiContainer.Identifier, access_token)
 				});
 			}
 

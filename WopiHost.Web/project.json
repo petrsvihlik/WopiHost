@@ -29,7 +29,8 @@
 			"Microsoft.AspNetCore.Server.IISIntegration": "1.1.0",
 			"Microsoft.AspNetCore.Diagnostics": "1.1.0",
 			"Microsoft.AspNetCore.StaticFiles": "1.1.0",
-			"Microsoft.Extensions.Configuration.Binder": "1.1.0"
+    "Microsoft.Extensions.Configuration.Binder": "1.1.0",
+    "WopiHost.Url": "1.0.0-*"
 	},
 	"frameworks": {
 		"netcoreapp1.0": {}

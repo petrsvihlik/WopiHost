@@ -40,7 +40,8 @@ namespace WopiHost.FileSystemProvider
 			List<IWopiFile> files = new List<IWopiFile>();
 			foreach (string path in Directory.GetFiles(Path.Combine(WopiAbsolutePath, identifier)))
 			{
-				files.Add(GetWopiFile(Path.GetFileName(path)));
+				string fileId = Path.Combine(identifier, Path.GetFileName(path));
+				files.Add(GetWopiFile(fileId));
 			}
 			return files;
 		}

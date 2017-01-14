@@ -3721,20 +3721,6 @@
         "runtime": {
           "netstandard1.3/WopiHost.FileSystemProvider.dll": {}
         }
-      },
-      "WopiHost.Url/1.0.0": {
-        "type": "project",
-        "framework": ".NETStandard,Version=v1.3",
-        "dependencies": {
-          "WopiHost.Abstractions": "1.0.0",
-          "WopiHost.Discovery": "1.0.0"
-        },
-        "compile": {
-          "netstandard1.3/WopiHost.Url.dll": {}
-        },
-        "runtime": {
-          "netstandard1.3/WopiHost.Url.dll": {}
-        }
       }
     },
     ".NETFramework,Version=v4.6": {
@@ -5996,20 +5982,6 @@
         },
         "runtime": {
           "netstandard1.3/WopiHost.FileSystemProvider.dll": {}
-        }
-      },
-      "WopiHost.Url/1.0.0": {
-        "type": "project",
-        "framework": ".NETStandard,Version=v1.3",
-        "dependencies": {
-          "WopiHost.Abstractions": "1.0.0",
-          "WopiHost.Discovery": "1.0.0"
-        },
-        "compile": {
-          "netstandard1.3/WopiHost.Url.dll": {}
-        },
-        "runtime": {
-          "netstandard1.3/WopiHost.Url.dll": {}
         }
       }
     }
@@ -12522,11 +12494,6 @@
       "type": "project",
       "path": "../WopiHost.FileSystemProvider/project.json",
       "msbuildProject": "../WopiHost.FileSystemProvider/WopiHost.FileSystemProvider.xproj"
-    },
-    "WopiHost.Url/1.0.0": {
-      "type": "project",
-      "path": "../WopiHost.Url/project.json",
-      "msbuildProject": "../WopiHost.Url/WopiHost.Url.xproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -12553,8 +12520,7 @@
       "Microsoft.NETCore.Portable.Compatibility >= 1.0.1",
       "WopiHost.Abstractions >= 1.0.0-*",
       "WopiHost.Discovery >= 1.0.0-*",
-      "WopiHost.FileSystemProvider >= 1.0.0-*",
-      "WopiHost.Url >= 1.0.0-*"
+      "WopiHost.FileSystemProvider >= 1.0.0-*"
     ],
     ".NETCoreApp,Version=v1.0": [
       "Microsoft.NETCore.App >= 1.0.1"

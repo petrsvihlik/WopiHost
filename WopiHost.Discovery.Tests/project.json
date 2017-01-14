@@ -1,0 +1,33 @@
+﻿{
+	"authors": [ "Petr Svihlik" ],
+	"dependencies": {
+		"dotnet-test-xunit": "2.2.0-preview2-build1029",
+		"WopiHost.Discovery": "1.0.0-*",
+		"Microsoft.NETCore.App": {
+			"type": "platform",
+			"version": "1.0.1"
+		},
+		"xunit": "2.2.0-beta4-build3444"
+	},
+	"description": "",
+	"frameworks": {
+		"netcoreapp1.0": {
+		}
+	},
+	"buildOptions": {
+		"copyToOutput": {
+			"includeFiles": [
+				"OOS2016_discovery.xml"
+			]
+		}
+	},
+	"packOptions": {
+		"licenseUrl": "https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt",
+		"repository": {
+			"type": "git",
+			"url": "https://github.com/petrsvihlik/WopiHost.git"
+		}
+	},
+	"testRunner": "xunit",
+	"version": "1.0.0-*"
+}

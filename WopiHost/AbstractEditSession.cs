@@ -90,6 +90,7 @@ namespace WopiHost
 			}
 			cfi.SHA256 = sha256;
 			cfi.BaseFileName = File.Name;
+			cfi.FileExtension = "." + File.Extension.TrimStart('.');
 			cfi.OwnerId = Login;
 			cfi.UserFriendlyName = Name;
 			cfi.Version = File.LastWriteTimeUtc.ToString("s");
