@@ -34,11 +34,11 @@ test_script:
 
     $openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
     
-    $targetArgs = '-targetargs: test ' + $folder.FullName + ' -c ' + $ENV:CONFIGURATION + ' -register:user -oldStyle -mergeoutput -output:' + $ENV:APPVEYOR_BUILD_FOLDER + '\coverage.xml'
+    $targetArgs = '-targetargs: test ' + $folder.FullName + ' -c ' + $ENV:CONFIGURATION
 
     $filter = '-filter:-[*.Tests]*'
 
-    & $openCover '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs $filter 
+    & $openCover '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' ('-output:' + $ENV:APPVEYOR_BUILD_FOLDER + '\coverage.xml')
     
     }
 
