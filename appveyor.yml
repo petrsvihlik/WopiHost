@@ -12,6 +12,7 @@ init:
   
 install:
  - cmd: nuget sources add -Name api.nuget.org -Source https://api.nuget.org/v3/index.json
+ - "python.exe -m pip install codecov"
 
 build:
   verbosity: normal
@@ -43,4 +44,4 @@ test_script:
     }
 
 after_test:
-  - bash <(curl -s https://codecov.io/bash)
+  - "codecov"
