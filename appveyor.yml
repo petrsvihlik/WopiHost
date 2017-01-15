@@ -34,7 +34,7 @@ test_script:
 
     $filter = '-filter:-[*.Tests]*'
 
-    & 'opencover' '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' '-output:coverage.xml'
+    & 'OpenCover.Console.exe' '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' '-output:coverage.xml'
     
     }
 
