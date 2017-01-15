@@ -1,3 +1,5 @@
+configuration: Release
+
 skip_commits:
   files:
   - '*.md'
@@ -10,6 +12,7 @@ init:
   
 install:
  - cmd: nuget sources add -Name api.nuget.org -Source https://api.nuget.org/v3/index.json
+ - "python.exe -m pip install codecov"
 
 build:
   verbosity: normal
@@ -22,7 +25,23 @@ test: off
 test_script:
  - ps: >-
 
-    ForEach ($folder in (Get-ChildItem -Path .\ -Directory -Filter *.Tests)) { dotnet test $folder.FullName -xml ($folder.FullName + "\xunit-results.xml") }
+    iwr https://chocolatey.org/install.ps1 -UseBasicParsing | iex
+    
+    choco install opencover.portable -y
+
+    ForEach ($folder in (Get-ChildItem -Path .\ -Directory -Filter *.Tests)) { 
+
+    dotnet test $folder.FullName -xml ($folder.FullName + "\xunit-results.xml") 
+
+    $openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
+    
+    $targetArgs = '-targetargs: test ' + $folder.FullName + ' -c ' + $ENV:CONFIGURATION
+
+    $filter = '-filter:+[Wopi*]*-[*Tests]*'
+
+    & $openCover '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' ('-output:' + $ENV:APPVEYOR_BUILD_FOLDER + '\coverage.xml')
+    
+    }
 
 after_test:
-  - bash <(curl -s https://codecov.io/bash)
+  - "codecov"
