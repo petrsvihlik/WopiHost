@@ -5,15 +5,11 @@ Introduction
 
 This project is an example implementation of a [WOPI host](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx). Basically, it allows developers to integrate custom datasources with Office Web Apps / Office Online Server (or any other WOPI client app) by implementing a few of interfaces.
 
-Motivation
--------------
-The intention was to try out the new technologies like ASP.NET Core MVC in some useful way.
-
 Features / improvements
 -----------------------
  - clean WebAPI built with ASP.NET Core MVC, no references to System.Web
  - automatically discovers capabilities of a WOPI client and acts accordingly
- - can be hosted as a web app as well as a windows application
+ - can be self-hosted or run under IIS
  - file manipulation is extracted to own layer of abstraction (there is no dependency on System.IO)
    - example implementation included (provider for Windows file system)
    - file identifiers can be anything (doesn't have to correspond with the file's name in the file system)
@@ -45,9 +41,10 @@ Configuration
 -----------
 WopiHost.Web\Properties\launchSettings.json
 - `WopiHostUrl` - used by URL generator
+- `WopiClientUrl` - used by the discovery module to load WOPI client URL templates
 
 WopiHost\Properties\launchSettings.json
-- `WopiClientUrl` - used by discovery module and for URL generation
+- `WopiClientUrl` - used by the discovery module to identify capabilities of WOPI client
 - `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Abstractions interfaces
 - `WopiRootPath` - provider-specific setting used by WopiFileSystemProvider (which is an implementation of IWopiFileProvider working with System.IO)
 - `server.urls` - hosting URL(s) used by Kestrel. [Read more...](http://andrewlock.net/configuring-urls-with-kestrel-iis-and-iis-express-with-asp-net-core/)

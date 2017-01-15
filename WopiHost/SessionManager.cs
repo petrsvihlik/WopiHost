@@ -74,15 +74,21 @@ namespace WopiHost
 		{
 			lock (_syncObj)
 			{
+				List<string> toRemove = new List<string>();
 				foreach (var session in _sessions.Values)
 				{
 					if (session.LastUpdated.AddSeconds(m_closewait) < DateTime.Now)
 					{
 						// Clean up
 						session.Dispose();
-						_sessions.Remove(session.SessionId);
+						toRemove.Add(session.SessionId);
 					}
 				}
+				foreach (var sessionId in toRemove)
+				{
+					_sessions.Remove(sessionId);
+				}
+				
 				timer.Change(m_timeout, Timeout.Infinite);
 			}
 		}
