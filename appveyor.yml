@@ -29,12 +29,14 @@ test_script:
     ForEach ($folder in (Get-ChildItem -Path .\ -Directory -Filter *.Tests)) { 
 
     dotnet test $folder.FullName -xml ($folder.FullName + "\xunit-results.xml") 
+
+    $openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
     
     $targetArgs = '-targetargs: test ' + $ENV:APPVEYOR_BUILD_FOLDER + $folder.FullName + ' -c ' + $ENV:CONFIGURATION
 
     $filter = '-filter:-[*.Tests]*'
 
-    & 'OpenCover.Console.exe' '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' '-output:coverage.xml'
+    & $openCover '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' '-output:coverage.xml'
     
     }
 
