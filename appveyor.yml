@@ -34,7 +34,7 @@ test_script:
 
     $openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
     
-    $targetArgs = '-targetargs: test ' + $ENV:APPVEYOR_BUILD_FOLDER + $folder.FullName + ' -c ' + $ENV:CONFIGURATION
+    $targetArgs = '-targetargs: test ' + $folder.FullName + ' -c ' + $ENV:CONFIGURATION
 
     $filter = '-filter:-[*.Tests]*'
 
