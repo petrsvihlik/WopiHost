@@ -36,7 +36,7 @@ test_script:
     
     $targetArgs = '-targetargs: test ' + $folder.FullName + ' -c ' + $ENV:CONFIGURATION
 
-    $filter = '-filter:+[*]*-[*Tests*]*'
+    $filter = '-filter:+[Wopi*]*-[*Tests]*'
 
     & $openCover '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' ('-output:' + $ENV:APPVEYOR_BUILD_FOLDER + '\coverage.xml')
     
