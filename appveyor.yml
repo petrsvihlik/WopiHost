@@ -1,3 +1,5 @@
+configuration: Release
+
 skip_commits:
   files:
   - '*.md'
