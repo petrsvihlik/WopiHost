@@ -14,20 +14,21 @@ namespace WopiHost.Url
 	/// </summary>
 	public class WopiUrlGenerator
 	{
-		private WopiDiscoverer WopiDiscoverer => new WopiDiscoverer(new HttpDiscoveryFileProvider(WopiClientUrl));
+		private readonly IDiscoveryFileProvider _discoveryFileProvider;
 
-		public string WopiClientUrl { get; }
+		private WopiDiscoverer WopiDiscoverer => new WopiDiscoverer(_discoveryFileProvider);
+
 
 		public WopiUrlSettings UrlSettings { get; }
 
 		/// <summary>
 		/// Creates a new instance of WOPI URL generator class.
 		/// </summary>
-		/// <param name="wopiClientUrl">URL of the WOPI client (OWA/OOS/etc.)</param>
+		/// <param name="discoveryFileProvider">Object providing WOPI discovery XML.</param>
 		/// <param name="urlSettings">Additional settings influencing behavior of the WOPI client.</param>
-		public WopiUrlGenerator(string wopiClientUrl, WopiUrlSettings urlSettings = null)
+		public WopiUrlGenerator(IDiscoveryFileProvider discoveryFileProvider, WopiUrlSettings urlSettings = null)
 		{
-			WopiClientUrl = wopiClientUrl;
+			_discoveryFileProvider = discoveryFileProvider;
 			UrlSettings = urlSettings;
 		}
 

@@ -34,6 +34,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Microsoft.CobaltCore", "Mic
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Discovery.Tests", "WopiHost.Discovery.Tests\WopiHost.Discovery.Tests.xproj", "{4089410A-8A12-455C-862B-A4A3834C3100}"
 EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Url.Tests", "WopiHost.Url.Tests\WopiHost.Url.Tests.xproj", "{9FFB3975-2DE6-4944-92C7-7062C39BB8FA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B692B58D-1720-49A8-9CB8-5562894618F6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -106,11 +110,22 @@ Global
 		{4089410A-8A12-455C-862B-A4A3834C3100}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4089410A-8A12-455C-862B-A4A3834C3100}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{4089410A-8A12-455C-862B-A4A3834C3100}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{9FFB3975-2DE6-4944-92C7-7062C39BB8FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9FFB3975-2DE6-4944-92C7-7062C39BB8FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9FFB3975-2DE6-4944-92C7-7062C39BB8FA}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{9FFB3975-2DE6-4944-92C7-7062C39BB8FA}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{9FFB3975-2DE6-4944-92C7-7062C39BB8FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9FFB3975-2DE6-4944-92C7-7062C39BB8FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9FFB3975-2DE6-4944-92C7-7062C39BB8FA}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{9FFB3975-2DE6-4944-92C7-7062C39BB8FA}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{650A5A85-5956-491E-9312-5E25A27D1108} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 		{F66706B6-D7DD-48FB-963C-870B3D611500} = {785E1533-48CE-4B5E-8C59-D6F1FDA8C45C}
+		{4089410A-8A12-455C-862B-A4A3834C3100} = {B692B58D-1720-49A8-9CB8-5562894618F6}
+		{9FFB3975-2DE6-4944-92C7-7062C39BB8FA} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 	EndGlobalSection
 EndGlobal

@@ -14,6 +14,13 @@ namespace WopiHost.FileSystemProvider
 	{
 		protected IConfiguration Configuration { get; set; }
 
+		private string ROOT_PATH = @".\";
+		
+		/// <summary>
+		/// Reference to the root container.
+		/// </summary>
+		public IWopiFolder RootContainerPointer => new WopiFolder(ROOT_PATH, EncodeIdentifier(ROOT_PATH));
+
 		protected string WopiRootPath => Configuration.GetValue("WopiRootPath", string.Empty);
 
 		/// <summary>

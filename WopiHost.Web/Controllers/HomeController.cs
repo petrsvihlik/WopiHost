@@ -7,6 +7,7 @@ using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 using WopiHost.Url;
 
@@ -20,12 +21,15 @@ namespace WopiHost.Web.Controllers
 
 		public string WopiHostUrl => Configuration.GetValue("WopiHostUrl", string.Empty);
 
+		/// <summary>
+		/// URL to OWA or OOS
+		/// </summary>
 		public string WopiClientUrl => Configuration.GetValue("WopiClientUrl", string.Empty);
 
 		public WopiUrlGenerator UrlGenerator
 		{
 			//TODO: remove test culture value and load it from configuration
-			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlGenerator(WopiClientUrl, new WopiUrlSettings { UI_LLCC = new CultureInfo("en-US") })); }
+			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlGenerator(new HttpDiscoveryFileProvider(WopiClientUrl), new WopiUrlSettings { UI_LLCC = new CultureInfo("en-US") })); }
 		}
 
 		public HomeController(IConfiguration configuration)
@@ -41,7 +45,8 @@ namespace WopiHost.Web.Controllers
 			{
 				//TODO: root folder id http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/GetRootContainer.html?highlight=EnumerateChildren (use ecosystem controller)
 				string containerId = Uri.EscapeDataString(Convert.ToBase64String(Encoding.UTF8.GetBytes(".\\")));
-				url =  $"{WopiHostUrl}/wopi/containers/{containerId}/children?access_token=todo";
+				var token = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhbm9ueW1vdXMiLCJlbWFpbCI6Im5hbWVAZG9tYWluLnRsZCIsImp0aSI6IjZkYjNhY2M5LWFiNGYtNGExNS1hZjk1LTMyZDcwZmZiNDNiOSIsImlhdCI6IjE0ODQ1MDY3NTguMDExMTQiLCJuYmYiOjE0ODQ1MDY3NTgsImV4cCI6MTQ4NTgyMDc1OCwiaXNzIjoidG9kbyJ9.";
+				url =  $"{WopiHostUrl}/wopi/containers/{containerId}/children?access_token={token}";
 			}
 
 			//todo: get the stuff from checkfileinfo

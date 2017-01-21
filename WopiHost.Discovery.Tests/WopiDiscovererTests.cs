@@ -37,7 +37,6 @@ namespace WopiHost.Discovery.Tests
 			Assert.False(result, $"{extension} should not be supported!");
 		}
 
-
 		[Theory]
 		[InlineData("html")]
 		[InlineData("txt")]
@@ -49,7 +48,6 @@ namespace WopiHost.Discovery.Tests
 			// Assert
 			Assert.False(result, $"{extension} should not be supported!");
 		}
-
 
 		[Theory]
 		[InlineData("pptx")]
@@ -75,7 +73,6 @@ namespace WopiHost.Discovery.Tests
 			Assert.False(result, $"{extension} should not be supported!");
 		}
 
-
 		[Theory]
 		[InlineData("docx")]
 		public async void SupportedExtensionCobalt(string extension)
@@ -85,6 +82,48 @@ namespace WopiHost.Discovery.Tests
 
 			// Assert
 			Assert.True(result, $"{extension} should be required!");
+		}
+
+		[Theory]
+		[InlineData("xlsx", WopiActionEnum.Edit, "http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&<ui=UI_LLCC&><rs=DC_LLCC&>")]
+		[InlineData("docx", WopiActionEnum.Edit, "http://owaserver/we/wordeditorframe.aspx?<ui=UI_LLCC&><rs=DC_LLCC&><showpagestats=PERFSTATS&>")]
+		[InlineData("html", WopiActionEnum.Edit, null)]
+		[InlineData("txt", WopiActionEnum.Edit, null)]
+		public async void UrlTemplateTests(string extension, WopiActionEnum action, string expectedValue)
+		{
+			// Act
+			var result = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
+
+			// Assert
+			Assert.Equal(expectedValue, result);
+		}
+
+		[Theory]
+		[InlineData("xlsx", "Excel")]
+		[InlineData("docx", "Word")]
+		[InlineData("html", null)]
+		[InlineData("txt", null)]
+		public async void AppNameTests(string extension, string expectedValue)
+		{
+			// Act
+			var result = await _wopiDiscoverer.GetApplicationNameAsync(extension);
+
+			// Assert
+			Assert.Equal(expectedValue, result);
+		}
+
+		[Theory]
+		[InlineData("xlsx", "http://owaserver/x/_layouts/images/FavIcon_Excel.ico")]
+		[InlineData("docx", "http://owaserver/wv/resources/1033/FavIcon_Word.ico")]
+		[InlineData("html", null)]
+		[InlineData("txt", null)]
+		public async void FavIconTests(string extension, string expectedValue)
+		{
+			// Act
+			var result = await _wopiDiscoverer.GetApplicationFavIconAsync(extension);
+
+			// Assert
+			Assert.Equal(expectedValue, result);
 		}
 	}
 }

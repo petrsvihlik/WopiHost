@@ -123,14 +123,17 @@ namespace WopiHost.Url
 
 		public WopiUrlSettings()
 		{
-			
+
 		}
 
 		public WopiUrlSettings(IDictionary<string, string> settings)
 		{
-			foreach (KeyValuePair<string, string> pair in settings)
+			if (settings != null)
 			{
-				Add(pair.Key, pair.Value);
+				foreach (KeyValuePair<string, string> pair in settings)
+				{
+					Add(pair.Key, pair.Value);
+				}
 			}
 		}
 	}

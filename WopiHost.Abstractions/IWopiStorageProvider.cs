@@ -34,5 +34,10 @@ namespace WopiHost.Abstractions
 		/// </summary>
 		/// <param name="identifier">Container identifier (use null for root)</param>
 		List<IWopiFolder> GetWopiContainers(string identifier = "");
+
+		/// <summary>
+		/// Reference to the root container.
+		/// </summary>
+		IWopiFolder RootContainerPointer { get; }
 	}
 }

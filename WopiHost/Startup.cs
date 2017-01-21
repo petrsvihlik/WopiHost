@@ -17,8 +17,6 @@ namespace WopiHost
 {
 	public class Startup
 	{
-		//TODO: investigate objects: IApplicationEnvironment, IRuntimeEnvironment, IAssemblyLoaderContainer, IAssemblyLoadContextAccessor, ILibraryManager, IHostingEnvironment (Microsoft.Extensions.PlatformAbstractions.PlatformServices.Default)
-
 		public IConfigurationRoot Configuration { get; set; }
 
 		public Startup(IHostingEnvironment env)
@@ -45,15 +43,10 @@ namespace WopiHost
 		/// </summary>
 		public IServiceProvider ConfigureServices(IServiceCollection services)
 		{
-			services.AddAuthorization(options =>
-			{
-				options.AddPolicy(PolicyNames.HasValidAccessToken, policy =>
-				{
-					policy.Requirements.Add(new AccessTokenRequirement());
-				});
-			});
+			services.AddAuthorization();
 
-			services.AddTransient<IAuthorizationHandler, WopiAuthorizationHandler>();
+			// Add authorization handler-
+			services.AddSingleton<IAuthorizationHandler, WopiAuthorizationHandler>();
 
 			// Ideally, pass a persistant dictionary implementation
 			services.AddTransient<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());

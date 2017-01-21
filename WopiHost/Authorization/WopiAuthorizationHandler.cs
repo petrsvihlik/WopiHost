@@ -7,14 +7,17 @@ namespace WopiHost.Authorization
 {
 	public class WopiOperations
 	{
-		//TODO: base on WopiAction
-		public static readonly OperationAuthorizationRequirement Edit = new OperationAuthorizationRequirement() { Name = "Edit" };
+		//TODO: base on WopiAction 
+		public static OperationAuthorizationRequirement Create = new OperationAuthorizationRequirement { Name = "Create" };
+		public static OperationAuthorizationRequirement Read = new OperationAuthorizationRequirement { Name = "Read" };
+		public static OperationAuthorizationRequirement Update = new OperationAuthorizationRequirement { Name = "Update" };
+		public static OperationAuthorizationRequirement Delete = new OperationAuthorizationRequirement { Name = "Delete" };
 	}
 
 	/// <summary>
 	/// Performs authorization based on access token (HTTP parameter).
 	/// </summary>
-	public class WopiAuthorizationHandler : AuthorizationHandler<AccessTokenRequirement, TokenContainer>
+	public class WopiAuthorizationHandler : AuthorizationHandler<OperationAuthorizationRequirement, TokenContainer>
 	{
 		public IWopiSecurityHandler SecurityHandler { get; }
 
@@ -22,8 +25,8 @@ namespace WopiHost.Authorization
 		{
 			SecurityHandler = securityHandler;
 		}
-		
-		protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, AccessTokenRequirement requirement, TokenContainer resource)
+
+		protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, OperationAuthorizationRequirement requirement, TokenContainer resource)
 		{
 			//TODO: implement access_token_ttl https://msdn.microsoft.com/en-us/library/hh695362(v=office.12).aspx		
 			//if (requirement == WopiOperations.Edit) //TODO:base on WopiOperations
@@ -33,7 +36,7 @@ namespace WopiHost.Authorization
 					context.Succeed(requirement);
 				}
 			}
-			return Task.FromResult(0);
+			return Task.CompletedTask;
 		}
 	}
 }

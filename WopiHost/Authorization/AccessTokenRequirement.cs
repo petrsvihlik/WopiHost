@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿//using Microsoft.AspNetCore.Authorization;
 
-namespace WopiHost.Authorization
-{
-	public class AccessTokenRequirement : IAuthorizationRequirement
-	{
-	}
-}
+//namespace WopiHost.Authorization
+//{
+//	public class AccessTokenRequirement : IAuthorizationRequirement
+//	{
+		
+//	}
+//}

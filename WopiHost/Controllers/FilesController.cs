@@ -11,6 +11,7 @@ using WopiHost.Discovery.Enumerations;
 using WopiHost.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using WopiHost.Authorization;
 using WopiHost.Cobalt;
 using WopiHost.Results;
 
@@ -103,9 +104,9 @@ namespace WopiHost.Controllers
 		public async Task<ActionResult> GetContents(string id, [FromQuery]string access_token)
 		{
 			//TODO: implement authorization
-			//if (!await _authorizationService.AuthorizeAsync(User, new TokenContainer { FileId = id, Token = access_token }, PolicyNames.HasValidAccessToken))
+			//if (!await _authorizationService.AuthorizeAsync(User, new TokenContainer { FileId = id, Token = access_token }, WopiOperations.Read))
 			//{
-			//	return Challenge();
+			//	return Unauthorized();
 			//}
 
 			var editSession = await GetEditSessionAsync(id);

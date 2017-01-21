@@ -8,5 +8,7 @@
 		public RootContainerInfo RootContainerInfo { get; set; }
 
 		public BootstrapInfo Bootstrap { get; set; }
+
+		public AccessTokenInfo AccessTokenInfo { get; set; }
 	}
 }

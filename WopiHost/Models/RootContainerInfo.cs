@@ -7,6 +7,7 @@
 	{
 		public ChildContainer ContainerPointer { get; set; }
 
+		//TODO: initialize according to http://wopi.readthedocs.io/projects/wopirest/en/latest/bootstrapper/GetRootContainer.html
 		public CheckContainerInfo ContainerInfo { get; set; }
 	}
 }

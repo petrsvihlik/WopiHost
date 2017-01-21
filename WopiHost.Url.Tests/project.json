@@ -9,11 +9,11 @@
 	},
 	"dependencies": {
 		"dotnet-test-xunit": "2.2.0-preview2-build1029",
-		"WopiHost.Discovery": "1.0.0-*",
 		"Microsoft.NETCore.App": {
 			"type": "platform",
 			"version": "1.0.1"
 		},
+		"WopiHost.Url": "1.0.0-*",
 		"xunit": "2.2.0-beta4-build3444"
 	},
 	"description": "",
