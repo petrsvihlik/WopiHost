@@ -12,7 +12,7 @@ namespace WopiHost.Url
 	/// WOPI v2 spec: http://wopi.readthedocs.io/en/latest/discovery.html
 	/// WOPI v1 spec: https://msdn.microsoft.com/en-us/library/hh695362(v=office.12).aspx
 	/// </summary>
-	public class WopiUrlGenerator
+	public class WopiUrlBuilder
 	{
 		private readonly IDiscoveryFileProvider _discoveryFileProvider;
 
@@ -26,7 +26,7 @@ namespace WopiHost.Url
 		/// </summary>
 		/// <param name="discoveryFileProvider">Object providing WOPI discovery XML.</param>
 		/// <param name="urlSettings">Additional settings influencing behavior of the WOPI client.</param>
-		public WopiUrlGenerator(IDiscoveryFileProvider discoveryFileProvider, WopiUrlSettings urlSettings = null)
+		public WopiUrlBuilder(IDiscoveryFileProvider discoveryFileProvider, WopiUrlSettings urlSettings = null)
 		{
 			_discoveryFileProvider = discoveryFileProvider;
 			UrlSettings = urlSettings;

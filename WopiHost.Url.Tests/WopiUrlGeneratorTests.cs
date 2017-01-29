@@ -21,7 +21,7 @@ namespace WopiHost.Url.Tests
 		public async void UrlWithoutAdditionalSettings(string extension, string wopiFileUrl, WopiActionEnum action, string expectedValue)
 		{
 			// Arrange
-			var urlGenerator = new WopiUrlGenerator(_fileProvider);
+			var urlGenerator = new WopiUrlBuilder(_fileProvider);
 
 			// Act
 			var result = await urlGenerator.GetFileUrlAsync(extension, wopiFileUrl, action);
@@ -37,7 +37,7 @@ namespace WopiHost.Url.Tests
 		{
 			// Arrange
 			var settings = new WopiUrlSettings { UI_LLCC = new CultureInfo("en-US") };
-			var urlGenerator = new WopiUrlGenerator(_fileProvider, settings);
+			var urlGenerator = new WopiUrlBuilder(_fileProvider, settings);
 
 			// Act
 			var result = await urlGenerator.GetFileUrlAsync(extension, wopiFileUrl, action);

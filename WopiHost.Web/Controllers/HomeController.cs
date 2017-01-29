@@ -15,7 +15,7 @@ namespace WopiHost.Web.Controllers
 {
 	public class HomeController : Controller
 	{
-		public WopiUrlGenerator _urlGenerator;
+		public WopiUrlBuilder _urlGenerator;
 
 		private IConfiguration Configuration { get; }
 
@@ -26,10 +26,10 @@ namespace WopiHost.Web.Controllers
 		/// </summary>
 		public string WopiClientUrl => Configuration.GetValue("WopiClientUrl", string.Empty);
 
-		public WopiUrlGenerator UrlGenerator
+		public WopiUrlBuilder UrlGenerator
 		{
 			//TODO: remove test culture value and load it from configuration
-			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlGenerator(new HttpDiscoveryFileProvider(WopiClientUrl), new WopiUrlSettings { UI_LLCC = new CultureInfo("en-US") })); }
+			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlBuilder(new HttpDiscoveryFileProvider(WopiClientUrl), new WopiUrlSettings { UI_LLCC = new CultureInfo("en-US") })); }
 		}
 
 		public HomeController(IConfiguration configuration)

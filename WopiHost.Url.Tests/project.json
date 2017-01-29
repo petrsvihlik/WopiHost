@@ -1,4 +1,4 @@
-﻿{
+{
 	"authors": [ "Petr Svihlik" ],
 	"buildOptions": {
 		"copyToOutput": {
@@ -14,7 +14,7 @@
 			"version": "1.0.1"
 		},
 		"WopiHost.Url": "1.0.0-*",
-		"xunit": "2.2.0-beta4-build3444"
+    "xunit": "2.2.0-beta5-build3474"
 	},
 	"description": "",
 	"frameworks": {
