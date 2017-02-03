@@ -1,5 +1,5 @@
 ﻿using System.Globalization;
-using System.IO;
+using FakeItEasy;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 using Xunit;
@@ -8,11 +8,13 @@ namespace WopiHost.Url.Tests
 {
 	public class WopiUrlGeneratorTests
 	{
-		private readonly IDiscoveryFileProvider _fileProvider;
+		private readonly IDiscoverer _discoverer;
 
 		public WopiUrlGeneratorTests()
 		{
-			_fileProvider = new FileSystemDiscoveryFileProvider(Path.Combine(System.AppContext.BaseDirectory, "OOS2016_discovery.xml"));
+			_discoverer = A.Fake<IDiscoverer>();
+			A.CallTo(() => _discoverer.GetUrlTemplateAsync("xlsx", WopiActionEnum.Edit)).ReturnsLazily(() => "http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&<ui=UI_LLCC&><rs=DC_LLCC&>");
+			A.CallTo(() => _discoverer.GetUrlTemplateAsync("docx", WopiActionEnum.View)).ReturnsLazily(() => "http://owaserver/wv/wordviewerframe.aspx?<ui=UI_LLCC&><rs=DC_LLCC&><showpagestats=PERFSTATS&>");
 		}
 
 		[Theory]
@@ -21,7 +23,7 @@ namespace WopiHost.Url.Tests
 		public async void UrlWithoutAdditionalSettings(string extension, string wopiFileUrl, WopiActionEnum action, string expectedValue)
 		{
 			// Arrange
-			var urlGenerator = new WopiUrlBuilder(_fileProvider);
+			var urlGenerator = new WopiUrlBuilder(_discoverer);
 
 			// Act
 			var result = await urlGenerator.GetFileUrlAsync(extension, wopiFileUrl, action);
@@ -37,7 +39,22 @@ namespace WopiHost.Url.Tests
 		{
 			// Arrange
 			var settings = new WopiUrlSettings { UI_LLCC = new CultureInfo("en-US") };
-			var urlGenerator = new WopiUrlBuilder(_fileProvider, settings);
+			var urlGenerator = new WopiUrlBuilder(_discoverer, settings);
+
+			// Act
+			var result = await urlGenerator.GetFileUrlAsync(extension, wopiFileUrl, action);
+
+			// Assert
+			Assert.Equal(expectedValue, result);
+		}
+
+
+		[Theory]
+		[InlineData("html", "http://wopihost:5000/wopi/files/test.xlsx", WopiActionEnum.Edit, null)]
+		public async void NonExistentTemplate(string extension, string wopiFileUrl, WopiActionEnum action, string expectedValue)
+		{
+			// Arrange
+			var urlGenerator = new WopiUrlBuilder(_discoverer);
 
 			// Act
 			var result = await urlGenerator.GetFileUrlAsync(extension, wopiFileUrl, action);

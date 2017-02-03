@@ -14,9 +14,7 @@ namespace WopiHost.Url
 	/// </summary>
 	public class WopiUrlBuilder
 	{
-		private readonly IDiscoveryFileProvider _discoveryFileProvider;
-
-		private WopiDiscoverer WopiDiscoverer => new WopiDiscoverer(_discoveryFileProvider);
+		private readonly IDiscoverer WopiDiscoverer;
 
 
 		public WopiUrlSettings UrlSettings { get; }
@@ -24,11 +22,11 @@ namespace WopiHost.Url
 		/// <summary>
 		/// Creates a new instance of WOPI URL generator class.
 		/// </summary>
-		/// <param name="discoveryFileProvider">Object providing WOPI discovery XML.</param>
+		/// <param name="discoverer">Provider of WOPI discovery data.</param>
 		/// <param name="urlSettings">Additional settings influencing behavior of the WOPI client.</param>
-		public WopiUrlBuilder(IDiscoveryFileProvider discoveryFileProvider, WopiUrlSettings urlSettings = null)
+		public WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings urlSettings = null)
 		{
-			_discoveryFileProvider = discoveryFileProvider;
+			WopiDiscoverer = discoverer;
 			UrlSettings = urlSettings;
 		}
 
@@ -44,7 +42,7 @@ namespace WopiHost.Url
 		{
 			var combinedUrlSettings = new WopiUrlSettings(urlSettings.Merge(UrlSettings));
 			var template = await WopiDiscoverer.GetUrlTemplateAsync(extension, action);
-			if (template != null)
+			if (!string.IsNullOrEmpty(template))
 			{
 				// Resolve optional parameters
 				var url = Regex.Replace(template, @"<(?<name>\w*)=(?<value>\w*)&*>", m => ResolveOptionalParameter(m.Groups["name"].Value, m.Groups["value"].Value, combinedUrlSettings));

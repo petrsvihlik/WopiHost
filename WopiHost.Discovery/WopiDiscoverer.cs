@@ -6,7 +6,7 @@ using WopiHost.Discovery.Enumerations;
 
 namespace WopiHost.Discovery
 {
-	public class WopiDiscoverer
+	public class WopiDiscoverer : IDiscoverer
 	{
 		private const string ELEMENT_NET_ZONE = "net-zone";
 		private const string ELEMENT_APP = "app";

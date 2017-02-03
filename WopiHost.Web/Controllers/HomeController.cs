@@ -28,8 +28,8 @@ namespace WopiHost.Web.Controllers
 
 		public WopiUrlBuilder UrlGenerator
 		{
-			//TODO: remove test culture value and load it from configuration
-			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlBuilder(new HttpDiscoveryFileProvider(WopiClientUrl), new WopiUrlSettings { UI_LLCC = new CultureInfo("en-US") })); }
+			//TODO: remove test culture value and load it from configuration SECTION
+			get { return _urlGenerator ?? (_urlGenerator = new WopiUrlBuilder(new WopiDiscoverer(new HttpDiscoveryFileProvider(WopiClientUrl)), new WopiUrlSettings { UI_LLCC = new CultureInfo("en-US") })); }
 		}
 
 		public HomeController(IConfiguration configuration)
