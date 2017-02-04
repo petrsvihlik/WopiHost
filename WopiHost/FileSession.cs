@@ -1,20 +1,16 @@
 ﻿using System;
 using System.IO;
+using System.Security.Claims;
 using WopiHost.Abstractions;
 
 namespace WopiHost
 {
 	public class FileSession : AbstractEditSession
 	{
-		public FileSession(IWopiFile file, string sessionId, string login, string name, string email, bool isAnonymous)
-			: base(file, sessionId, login, name, email, isAnonymous)
+		public FileSession(IWopiFile file, string sessionId, ClaimsPrincipal principal)
+			: base(file, sessionId, principal)
 		{ }
-
-		public override bool IsCobaltSession
-		{
-			get { return false; }
-		}
-
+		
 		public override byte[] GetFileContent()
 		{
 			MemoryStream ms = new MemoryStream();

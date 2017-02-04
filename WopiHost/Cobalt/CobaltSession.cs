@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using Cobalt;
 using WopiHost.Abstractions;
 
@@ -33,13 +34,7 @@ namespace WopiHost.Cobalt
 				}
 			}
 		}
-
-		public override bool IsCobaltSession
-		{
-			get { return true; }
-		}
-
-
+		
 		private DisposalEscrow Disposal
 		{
 			get
@@ -91,8 +86,8 @@ namespace WopiHost.Cobalt
 			}
 		}
 
-		public CobaltSession(IWopiFile file, string sessionId, string login, string name, string email, bool isAnonymous)
-			: base(file, sessionId, login, name, email, isAnonymous)
+		public CobaltSession(IWopiFile file, string sessionId, ClaimsPrincipal principal)
+			: base(file, sessionId, principal)
 		{
 			InitCobaltFile();
 		}

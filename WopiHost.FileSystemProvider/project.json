@@ -14,6 +14,7 @@
 		}
 	},
   "dependencies": {
+    "Microsoft.AspNetCore.Authorization": "1.1.0",
     "Microsoft.Extensions.Configuration.Abstractions": "1.1.0",
     "Microsoft.Extensions.Configuration.Binder": "1.1.0",
     "System.Diagnostics.FileVersionInfo": "4.3.0",

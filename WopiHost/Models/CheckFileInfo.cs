@@ -111,6 +111,8 @@
 
 		public bool UserCanWrite { get; set; }
 
+		public bool UserCanRename { get; set; }
+
 		public string UserFriendlyName { get; set; }
 
 		public string UserId { get; set; }

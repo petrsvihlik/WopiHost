@@ -13,6 +13,8 @@ namespace WopiHost.Security
 		{
 			try
 			{
+				//TODO: implement access_token_ttl https://msdn.microsoft.com/en-us/library/hh695362(v=office.12).aspx		
+
 				var token = Context.Request.Query[AccessTokenDefaults.AccessTokenQueryName];
 				var principal = Options.SecurityHandler.GetPrincipal(token);
 

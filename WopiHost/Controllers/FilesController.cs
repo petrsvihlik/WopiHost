@@ -65,18 +65,14 @@ namespace WopiHost.Controllers
 				//TODO: handle all requirements in a generic way (requires="cobalt,containers,update")
 				//TODO: http://wopi.readthedocs.io/en/latest/discovery.html#action-requirements
 
-				string login = HttpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-				string name = HttpContext.User?.FindFirst(ClaimTypes.Name)?.Value;
-				string email = HttpContext.User?.FindFirst(ClaimTypes.Email)?.Value;
-
 
 				if (await WopiDiscoverer.RequiresCobaltAsync(file.Extension, WopiActionEnum.Edit))
 				{
-					editSession = new CobaltSession(file, sessionId, login, name, email, false);
+					editSession = new CobaltSession(file, sessionId, HttpContext.User);
 				}
 				else
 				{
-					editSession = new FileSession(file, sessionId, login, name, email, false);
+					editSession = new FileSession(file, sessionId, HttpContext.User);
 				}
 				SessionManager.Current.AddSession(editSession);
 			}

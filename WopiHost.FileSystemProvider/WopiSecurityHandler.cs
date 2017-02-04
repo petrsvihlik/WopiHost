@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-
+using Microsoft.AspNetCore.Authorization;
 using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider
@@ -32,11 +32,23 @@ namespace WopiHost.FileSystemProvider
 				{
 					new Claim(ClaimTypes.NameIdentifier, "12345"),
 					new Claim(ClaimTypes.Name, "Anonymous"),
-					new Claim(ClaimTypes.Email, "anonymous@domain.tld")
+					new Claim(ClaimTypes.Email, "anonymous@domain.tld"),
+					new Claim(WopiClaimTypes.UserPermissions, (WopiUserPermissions.UserCanWrite | WopiUserPermissions.UserCanRename | WopiUserPermissions.UserCanAttend | WopiUserPermissions.UserCanPresent).ToString())
 				}));
 			return principal;
 		}
 
+		public bool IsAuthorized(ClaimsPrincipal principal, string resource, IAuthorizationRequirement operation)
+		{
+			return true;
+		}
+
+		/// <summary>
+		/// Validates the given value against the authorization token.
+		/// </summary>
+		/// <param name="value">Value to validate</param>
+		/// <param name="token">Authorization token</param>
+		/// <returns>TRUE if the token is valid.</returns>
 		public bool ValidateAccessToken(string value, string token)
 		{
 			var saltBase64Length = GetBase64Length(_saltLength);

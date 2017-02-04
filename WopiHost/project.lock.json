@@ -3799,6 +3799,7 @@
         "type": "project",
         "framework": ".NETStandard,Version=v1.3",
         "dependencies": {
+          "Microsoft.AspNetCore.Authorization": "1.1.0",
           "NETStandard.Library": "1.6.1",
           "System.Security.Claims": "4.3.0"
         },
@@ -3826,6 +3827,7 @@
         "type": "project",
         "framework": ".NETStandard,Version=v1.3",
         "dependencies": {
+          "Microsoft.AspNetCore.Authorization": "1.1.0",
           "Microsoft.Extensions.Configuration.Abstractions": "1.1.0",
           "Microsoft.Extensions.Configuration.Binder": "1.1.0",
           "System.Diagnostics.FileVersionInfo": "4.3.0",
@@ -6172,6 +6174,7 @@
         "type": "project",
         "framework": ".NETStandard,Version=v1.3",
         "dependencies": {
+          "Microsoft.AspNetCore.Authorization": "1.1.0",
           "NETStandard.Library": "1.6.1",
           "System.Security.Claims": "4.3.0"
         },
@@ -6199,6 +6202,7 @@
         "type": "project",
         "framework": ".NETStandard,Version=v1.3",
         "dependencies": {
+          "Microsoft.AspNetCore.Authorization": "1.1.0",
           "Microsoft.Extensions.Configuration.Abstractions": "1.1.0",
           "Microsoft.Extensions.Configuration.Binder": "1.1.0",
           "System.Diagnostics.FileVersionInfo": "4.3.0",
