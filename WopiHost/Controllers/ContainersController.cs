@@ -43,11 +43,10 @@ namespace WopiHost.Controllers
 		/// Example URL: HTTP://server/<...>/wopi*/containers/<id>/children
 		/// </summary>
 		/// <param name="id">Container identifier.</param>
-		/// <param name="access_token">Access token used to validate the request.</param>
 		/// <returns></returns>
 		[HttpGet("{id}/children")]
 		[Produces("application/json")]
-		public Container EnumerateChildren(string id, [FromQuery]string access_token)
+		public Container EnumerateChildren(string id)
 		{
 			Container container = new Container();
 			var files = new List<ChildFile>();
@@ -58,7 +57,7 @@ namespace WopiHost.Controllers
 				files.Add(new ChildFile
 				{
 					Name = wopiFile.Name,
-					Url = GetChildUrl("files", wopiFile.Identifier, access_token),
+					Url = GetChildUrl("files", wopiFile.Identifier, AccessToken),
 					LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o"),
 					Size = wopiFile.Size,
 					Version = wopiFile.Version
@@ -70,7 +69,7 @@ namespace WopiHost.Controllers
 				containers.Add(new ChildContainer
 				{
 					Name = wopiContainer.Name,
-					Url = GetChildUrl("containers", wopiContainer.Identifier, access_token)
+					Url = GetChildUrl("containers", wopiContainer.Identifier, AccessToken)
 				});
 			}
 

@@ -1,10 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Authentication;
 using Microsoft.AspNetCore.Http.Features.Authentication;
+using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Security
 {
@@ -12,21 +11,10 @@ namespace WopiHost.Security
 	{
 		protected override Task<AuthenticateResult> HandleAuthenticateAsync()
 		{
-			// get from Context.Request
-
 			try
 			{
-				//TODO: get principal from token validator.ValidateToken(token, validationParameters, out validatedToken);
-				//https://github.com/aspnet/Security/tree/master/src/Microsoft.AspNetCore.Authentication.JwtBearer
-				var token = Context.Request.Query["access_token"];
-
-				var principal = new ClaimsPrincipal();
-				principal.AddIdentity(new ClaimsIdentity(new List<Claim>
-				{
-					new Claim(ClaimTypes.NameIdentifier, "12345"),
-					new Claim(ClaimTypes.Name, "Anonymous"),
-					new Claim(ClaimTypes.Email, "anonymous@domain.tld")
-				}));
+				var token = Context.Request.Query[AccessTokenDefaults.AccessTokenQueryName];
+				var principal = Options.SecurityHandler.GetPrincipal(token);
 
 				var ticket = new AuthenticationTicket(principal, new AuthenticationProperties(), Options.AuthenticationScheme);
 
@@ -34,14 +22,14 @@ namespace WopiHost.Security
 				{
 					ticket.Properties.StoreTokens(new[]
 					{
-						new AuthenticationToken { Name = "access_token", Value = token }
+						new AuthenticationToken { Name = AccessTokenDefaults.AccessTokenQueryName, Value = token }
 					});
 				}
 				return Task.FromResult(AuthenticateResult.Success(ticket));
 			}
 			catch (Exception ex)
 			{
-				//TODO:log
+				Logger.LogError(new EventId(ex.HResult), ex, ex.Message);
 				return Task.FromResult(AuthenticateResult.Fail(ex));
 			}
 		}

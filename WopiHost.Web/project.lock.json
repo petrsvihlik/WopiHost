@@ -3508,7 +3508,8 @@
         "type": "project",
         "framework": ".NETStandard,Version=v1.3",
         "dependencies": {
-          "NETStandard.Library": "1.6.1"
+          "NETStandard.Library": "1.6.1",
+          "System.Security.Claims": "4.3.0"
         },
         "compile": {
           "netstandard1.3/WopiHost.Abstractions.dll": {}

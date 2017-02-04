@@ -1,4 +1,6 @@
-﻿namespace WopiHost.Abstractions
+﻿using System.Security.Claims;
+
+namespace WopiHost.Abstractions
 {
 	/// <summary>
 	/// Performs security-related actions.
@@ -19,5 +21,7 @@
 		/// <param name="value"></param>
 		/// <returns>Authorization token</returns>
 		string GenerateAccessToken(string value);
+
+		ClaimsPrincipal GetPrincipal(string token);
 	}
 }

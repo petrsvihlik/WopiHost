@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -17,6 +19,22 @@ namespace WopiHost.FileSystemProvider
 		public WopiSecurityHandler(string key = null)
 		{
 			KeyString = key ?? new Random(DateTime.Now.Millisecond).Next(0, int.MaxValue).ToString();
+		}
+
+
+		public ClaimsPrincipal GetPrincipal(string token)
+		{
+			//TODO: get principal from token validator.ValidateToken(token, validationParameters, out validatedToken);
+			//https://github.com/aspnet/Security/tree/master/src/Microsoft.AspNetCore.Authentication.JwtBearer
+
+			var principal = new ClaimsPrincipal();
+			principal.AddIdentity(new ClaimsIdentity(new List<Claim>
+				{
+					new Claim(ClaimTypes.NameIdentifier, "12345"),
+					new Claim(ClaimTypes.Name, "Anonymous"),
+					new Claim(ClaimTypes.Email, "anonymous@domain.tld")
+				}));
+			return principal;
 		}
 
 		public bool ValidateAccessToken(string value, string token)

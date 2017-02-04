@@ -21,11 +21,10 @@ namespace WopiHost.Controllers
 		/// Specification: http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/GetRootContainer.html
 		/// Example URL: GET /wopi/ecosystem/root_container_pointer
 		/// </summary>
-		/// <param name="access_token">Access token used to validate the request.</param>
 		/// <returns></returns>
 		[HttpGet("root_container_pointer")]
 		[Produces("application/json")]
-		public RootContainerInfo GetRootContainer([FromQuery]string access_token)
+		public RootContainerInfo GetRootContainer()
 		{
 			var root = StorageProvider.GetWopiContainer(@".\");
 			RootContainerInfo rc = new RootContainerInfo
@@ -33,7 +32,7 @@ namespace WopiHost.Controllers
 				ContainerPointer = new ChildContainer
 				{
 					Name = root.Name,
-					Url = GetChildUrl("containers", root.Identifier, access_token)
+					Url = GetChildUrl("containers", root.Identifier, AccessToken)
 				}
 			};
 			return rc;

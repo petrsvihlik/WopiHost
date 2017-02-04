@@ -3799,7 +3799,8 @@
         "type": "project",
         "framework": ".NETStandard,Version=v1.3",
         "dependencies": {
-          "NETStandard.Library": "1.6.1"
+          "NETStandard.Library": "1.6.1",
+          "System.Security.Claims": "4.3.0"
         },
         "compile": {
           "netstandard1.3/WopiHost.Abstractions.dll": {}
@@ -3828,6 +3829,7 @@
           "Microsoft.Extensions.Configuration.Abstractions": "1.1.0",
           "Microsoft.Extensions.Configuration.Binder": "1.1.0",
           "System.Diagnostics.FileVersionInfo": "4.3.0",
+          "System.Security.Claims": "4.3.0",
           "WopiHost.Abstractions": "1.0.0"
         },
         "compile": {
@@ -5883,6 +5885,18 @@
           "lib/net45/_._": {}
         }
       },
+      "System.Security.Claims/4.3.0": {
+        "type": "package",
+        "frameworkAssemblies": [
+          "mscorlib"
+        ],
+        "compile": {
+          "ref/net46/System.Security.Claims.dll": {}
+        },
+        "runtime": {
+          "lib/net46/System.Security.Claims.dll": {}
+        }
+      },
       "System.Security.Cryptography.Algorithms/4.3.0": {
         "type": "package",
         "dependencies": {
@@ -6158,7 +6172,8 @@
         "type": "project",
         "framework": ".NETStandard,Version=v1.3",
         "dependencies": {
-          "NETStandard.Library": "1.6.1"
+          "NETStandard.Library": "1.6.1",
+          "System.Security.Claims": "4.3.0"
         },
         "compile": {
           "netstandard1.3/WopiHost.Abstractions.dll": {}
@@ -6187,6 +6202,7 @@
           "Microsoft.Extensions.Configuration.Abstractions": "1.1.0",
           "Microsoft.Extensions.Configuration.Binder": "1.1.0",
           "System.Diagnostics.FileVersionInfo": "4.3.0",
+          "System.Security.Claims": "4.3.0",
           "WopiHost.Abstractions": "1.0.0"
         },
         "compile": {

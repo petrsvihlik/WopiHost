@@ -91,7 +91,7 @@ namespace WopiHost.Cobalt
 			}
 		}
 
-		public CobaltSession(IWopiFile file, string sessionId, string login = "Anonymous", string name = "Anonymous", string email = "", bool isAnonymous = true)
+		public CobaltSession(IWopiFile file, string sessionId, string login, string name, string email, bool isAnonymous)
 			: base(file, sessionId, login, name, email, isAnonymous)
 		{
 			InitCobaltFile();

@@ -1,17 +1,19 @@
 ﻿using System;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using WopiHost.Abstractions;
+using WopiHost.Security;
 
 namespace WopiHost.Controllers
 {
-	public class WopiControllerBase : ControllerBase
+	public abstract class WopiControllerBase : ControllerBase
 	{
-		public IWopiStorageProvider StorageProvider { get; set; }
+		protected IWopiStorageProvider StorageProvider { get; set; }
 
-		public IWopiSecurityHandler SecurityHandler { get; set; }
+		protected IWopiSecurityHandler SecurityHandler { get; set; }
 
-		public IConfiguration Configuration { get; set; }
+		protected IConfiguration Configuration { get; set; }
 
 		public string BaseUrl
 		{
@@ -21,14 +23,23 @@ namespace WopiHost.Controllers
 			}
 		}
 
-		public WopiControllerBase(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration)
+		protected string AccessToken
+		{
+			get
+			{
+				var authenticateInfo = HttpContext.Authentication.GetAuthenticateInfoAsync(AccessTokenDefaults.AuthenticationScheme).Result;
+				return authenticateInfo?.Properties?.GetTokenValue(AccessTokenDefaults.AccessTokenQueryName);
+			}
+		}
+
+		protected WopiControllerBase(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration)
 		{
 			StorageProvider = fileProvider;
 			SecurityHandler = securityHandler;
 			Configuration = configuration;
 		}
 
-		public string GetChildUrl(string controller, string identifier, string accessToken)
+		protected string GetChildUrl(string controller, string identifier, string accessToken)
 		{
 			identifier = Uri.EscapeDataString(identifier);
 			accessToken = Uri.EscapeDataString(accessToken);

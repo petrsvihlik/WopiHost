@@ -2072,19 +2072,19 @@
           "lib/netstandard1.3/System.Runtime.Serialization.Primitives.dll": {}
         }
       },
-      "System.Security.Claims/4.0.1": {
+      "System.Security.Claims/4.3.0": {
         "type": "package",
         "dependencies": {
-          "System.Collections": "4.0.11",
-          "System.Globalization": "4.0.11",
-          "System.IO": "4.1.0",
-          "System.Resources.ResourceManager": "4.0.1",
-          "System.Runtime": "4.1.0",
-          "System.Runtime.Extensions": "4.1.0",
-          "System.Security.Principal": "4.0.1"
+          "System.Collections": "4.3.0",
+          "System.Globalization": "4.3.0",
+          "System.IO": "4.3.0",
+          "System.Resources.ResourceManager": "4.3.0",
+          "System.Runtime": "4.3.0",
+          "System.Runtime.Extensions": "4.3.0",
+          "System.Security.Principal": "4.3.0"
         },
         "compile": {
-          "ref/netstandard1.3/_._": {}
+          "ref/netstandard1.3/System.Security.Claims.dll": {}
         },
         "runtime": {
           "lib/netstandard1.3/System.Security.Claims.dll": {}
@@ -2307,10 +2307,10 @@
           }
         }
       },
-      "System.Security.Principal/4.0.1": {
+      "System.Security.Principal/4.3.0": {
         "type": "package",
         "dependencies": {
-          "System.Runtime": "4.1.0"
+          "System.Runtime": "4.3.0"
         },
         "compile": {
           "ref/netstandard1.0/System.Security.Principal.dll": {}
@@ -2763,7 +2763,8 @@
         "type": "project",
         "framework": ".NETStandard,Version=v1.3",
         "dependencies": {
-          "NETStandard.Library": "1.6.1"
+          "NETStandard.Library": "1.6.1",
+          "System.Security.Claims": "4.3.0"
         },
         "compile": {
           "netstandard1.3/WopiHost.Abstractions.dll": {}
@@ -2779,6 +2780,7 @@
           "Microsoft.Extensions.Configuration.Abstractions": "1.1.0",
           "Microsoft.Extensions.Configuration.Binder": "1.1.0",
           "System.Diagnostics.FileVersionInfo": "4.3.0",
+          "System.Security.Claims": "4.3.0",
           "WopiHost.Abstractions": "1.0.0"
         },
         "compile": {
@@ -6844,12 +6846,12 @@
         "runtimes/aot/lib/netcore50/System.Runtime.Serialization.Primitives.dll"
       ]
     },
-    "System.Security.Claims/4.0.1": {
-      "sha512": "4Jlp0OgJLS/Voj1kyFP6MJlIYp3crgfH8kNQk2p7+4JYfc1aAmh9PZyAMMbDhuoolGNtux9HqSOazsioRiDvCw==",
+    "System.Security.Claims/4.3.0": {
+      "sha512": "P/+BR/2lnc4PNDHt/TPBAWHVMLMRHsyYZbU1NphW4HIWzCggz8mJbTQQ3MKljFE7LS3WagmVFuBgoLcFzYXlkA==",
       "type": "package",
-      "path": "System.Security.Claims/4.0.1",
+      "path": "System.Security.Claims/4.3.0",
       "files": [
-        "System.Security.Claims.4.0.1.nupkg.sha512",
+        "System.Security.Claims.4.3.0.nupkg.sha512",
         "System.Security.Claims.nuspec",
         "ThirdPartyNotices.txt",
         "dotnet_library_license.txt",
@@ -7110,12 +7112,12 @@
         "runtimes/win/lib/netstandard1.6/System.Security.Cryptography.X509Certificates.dll"
       ]
     },
-    "System.Security.Principal/4.0.1": {
-      "sha512": "On+SKhXY5rzxh/S8wlH1Rm0ogBlu7zyHNxeNBiXauNrhHRXAe9EuX8Yl5IOzLPGU5Z4kLWHMvORDOCG8iu9hww==",
+    "System.Security.Principal/4.3.0": {
+      "sha512": "I1tkfQlAoMM2URscUtpcRo/hX0jinXx6a/KUtEQoz3owaYwl3qwsO8cbzYVVnjxrzxjHo3nJC+62uolgeGIS9A==",
       "type": "package",
-      "path": "System.Security.Principal/4.0.1",
+      "path": "System.Security.Principal/4.3.0",
       "files": [
-        "System.Security.Principal.4.0.1.nupkg.sha512",
+        "System.Security.Principal.4.3.0.nupkg.sha512",
         "System.Security.Principal.nuspec",
         "ThirdPartyNotices.txt",
         "dotnet_library_license.txt",

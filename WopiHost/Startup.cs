@@ -11,6 +11,7 @@ using Microsoft.Extensions.PlatformAbstractions;
 using Microsoft.AspNetCore.Authorization;
 using WopiHost.Authorization;
 using Newtonsoft.Json.Serialization;
+using WopiHost.Abstractions;
 using WopiHost.Models;
 using WopiHost.Security;
 
@@ -19,6 +20,8 @@ namespace WopiHost
 	public class Startup
 	{
 		public IConfigurationRoot Configuration { get; set; }
+
+		private IContainer _container;
 
 		public Startup(IHostingEnvironment env)
 		{
@@ -51,10 +54,10 @@ namespace WopiHost
 
 			// Ideally, pass a persistant dictionary implementation
 			services.AddTransient<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
-			
+
 			//TODO: check whether OWA is case sensitive, optionally remove the contract resolver
 			services.AddMvc().AddJsonOptions(options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());
-			
+
 
 			/* TODO: #10
 			services.AddCaching();
@@ -86,8 +89,8 @@ namespace WopiHost
 			builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
 
 			builder.Populate(services);
-			var container = builder.Build();
-			return container.Resolve<IServiceProvider>();
+			_container = builder.Build();
+			return _container.Resolve<IServiceProvider>();
 		}
 
 
@@ -105,7 +108,10 @@ namespace WopiHost
 			// Add MVC to the request pipeline.
 			//TODO:#10
 			//app.UseSession();
-			app.UseAccessTokenAuthentication();
+			app.UseAccessTokenAuthentication(new AccessTokenAuthenticationOptions
+			{
+				SecurityHandler = _container.Resolve<IWopiSecurityHandler>()
+			});
 			app.UseMvc();
 		}
 	}

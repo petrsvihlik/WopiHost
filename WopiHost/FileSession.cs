@@ -6,7 +6,7 @@ namespace WopiHost
 {
 	public class FileSession : AbstractEditSession
 	{
-		public FileSession(IWopiFile file, string sessionId, string login = "Anonymous", string name = "Anonymous", string email = "", bool isAnonymous = true)
+		public FileSession(IWopiFile file, string sessionId, string login, string name, string email, bool isAnonymous)
 			: base(file, sessionId, login, name, email, isAnonymous)
 		{ }
 
