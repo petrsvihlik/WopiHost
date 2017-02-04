@@ -23,11 +23,10 @@ namespace WopiHost.Controllers
 		/// Example URL: HTTP://server/<...>/wopi*/containers/<id>
 		/// </summary>
 		/// <param name="id">Container identifier.</param>
-		/// <param name="access_token">Access token used to validate the request.</param>
 		/// <returns></returns>
 		[HttpGet("{id}")]
 		[Produces("application/json")]
-		public CheckContainerInfo GetCheckContainerInfo(string id, [FromQuery]string access_token)
+		public CheckContainerInfo GetCheckContainerInfo(string id)
 		{
 			var container = StorageProvider.GetWopiContainer(id);
 			return new CheckContainerInfo

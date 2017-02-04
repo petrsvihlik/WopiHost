@@ -82,11 +82,10 @@ namespace WopiHost.Controllers
 		/// Example URL: HTTP://server/<...>/wopi*/files/<id>
 		/// </summary>
 		/// <param name="id">File identifier.</param>
-		/// <param name="access_token">Access token used to validate the request.</param>
 		/// <returns></returns>
 		[HttpGet("{id}")]
 		[Produces("application/json")]
-		public async Task<CheckFileInfo> GetCheckFileInfo(string id, [FromQuery]string access_token)
+		public async Task<CheckFileInfo> GetCheckFileInfo(string id)
 		{
 			return (await GetEditSessionAsync(id))?.GetCheckFileInfo();
 		}
@@ -97,17 +96,16 @@ namespace WopiHost.Controllers
 		/// Example URL: HTTP://server/<...>/wopi*/files/<id>/contents
 		/// </summary>
 		/// <param name="id">File identifier.</param>
-		/// <param name="access_token">Access token used to validate the request.</param>
 		/// <returns></returns>
 		[HttpGet("{id}/contents")]
 		[Produces("application/octet-stream")]
-		public async Task<ActionResult> GetContents(string id, [FromQuery]string access_token)
+		public async Task<ActionResult> GetContents(string id)
 		{
-			//TODO: implement authorization
-			//if (!await _authorizationService.AuthorizeAsync(User, new TokenContainer { FileId = id, Token = access_token }, WopiOperations.Read))
-			//{
-			//	return Unauthorized();
-			//}
+			//TODO: implement authorization everywhere
+			if (!await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Read))
+			{
+				return Unauthorized();
+			}
 
 			var editSession = await GetEditSessionAsync(id);
 			//TODO: consider using return new Microsoft.AspNetCore.Mvc.FileStreamResult(editSession.GetFileContent(), "application/octet-stream");
@@ -120,12 +118,11 @@ namespace WopiHost.Controllers
 		/// Example URL: HTTP://server/<...>/wopi*/files/<id>/contents
 		/// </summary>
 		/// <param name="id">File identifier.</param>
-		/// <param name="access_token">Access token used to validate the request.</param>
 		/// <returns></returns>
 		[HttpPut("{id}/contents")]
 		[HttpPost("{id}/contents")]
 		[Produces("application/octet-stream")]
-		public async Task<IActionResult> PutFile(string id, [FromQuery]string access_token)
+		public async Task<IActionResult> PutFile(string id)
 		{
 			var editSession = await GetEditSessionAsync(id);
 			editSession.SetFileContent(await HttpContext.Request.Body.ReadBytesAsync());
@@ -136,9 +133,8 @@ namespace WopiHost.Controllers
 		/// The PutRelativeFile operation creates a new file on the host based on the current file.
 		/// </summary>
 		/// <param name="id"></param>
-		/// <param name="access_token"></param>
 		/// <returns></returns>
-		public IActionResult PutRelativeFile(string id, [FromQuery] string access_token)
+		public IActionResult PutRelativeFile(string id)
 		{
 			//TODO: implement as a filter, middleware or something...
 			//string newLock = Request.Headers[WopiHeaders.Lock];
@@ -167,10 +163,9 @@ namespace WopiHost.Controllers
 		/// Example URL: HTTP://server/<...>/wopi*/files/<id>
 		/// </summary>
 		/// <param name="id"></param>
-		/// <param name="access_token"></param>
 		[HttpPost("{id}")]
 		[Produces("application/octet-stream", "text/html")]
-		public async Task<IActionResult> PerformAction(string id, [FromQuery]string access_token)
+		public async Task<IActionResult> PerformAction(string id)
 		{
 			var editSession = await GetEditSessionAsync(id);
 			string wopiOverrideHeader = HttpContext.Request.Headers[WopiHeaders.WopiOverride];
