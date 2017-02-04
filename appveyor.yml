@@ -4,14 +4,12 @@ skip_commits:
   files:
   - '*.md'
 
-nuget:
-  account_feed: true
-  
 init:
   - git config --global core.autocrlf true
   
 install:
  - cmd: nuget sources add -Name api.nuget.org -Source https://api.nuget.org/v3/index.json
+ - nuget sources add -Name wopi -Source nuget_feed
  - "python.exe -m pip install codecov"
 
 build:
