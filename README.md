@@ -1,6 +1,6 @@
 Introduction
 ==========
-[![Build status](https://ci.appveyor.com/api/projects/status/l7jn00f4fxydpbed?svg=true)](https://ci.appveyor.com/project/petrsvihlik/wopihost) [![codecov](https://codecov.io/gh/petrsvihlik/WopiHost/branch/master/graph/badge.svg)](https://codecov.io/gh/petrsvihlik/WopiHost)
+[![Build status](https://ci.appveyor.com/api/projects/status/l7jn00f4fxydpbed?svg=true)](https://ci.appveyor.com/project/petrsvihlik/wopihost) [![codecov](https://codecov.io/gh/petrsvihlik/WopiHost/branch/master/graph/badge.svg)](https://codecov.io/gh/petrsvihlik/WopiHost) [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/ms-wopi/)
 
 
 This project is an example implementation of a [WOPI host](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx). Basically, it allows developers to integrate custom datasources with Office Web Apps / Office Online Server (or any other WOPI client app) by implementing a few of interfaces.
