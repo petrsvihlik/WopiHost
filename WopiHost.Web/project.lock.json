@@ -3504,21 +3504,6 @@
           "lib/netstandard1.3/System.Xml.XPath.XDocument.dll": {}
         }
       },
-      "WopiHost.Abstractions/1.0.0": {
-        "type": "project",
-        "framework": ".NETStandard,Version=v1.3",
-        "dependencies": {
-          "Microsoft.AspNetCore.Authorization": "1.1.0",
-          "NETStandard.Library": "1.6.1",
-          "System.Security.Claims": "4.3.0"
-        },
-        "compile": {
-          "netstandard1.3/WopiHost.Abstractions.dll": {}
-        },
-        "runtime": {
-          "netstandard1.3/WopiHost.Abstractions.dll": {}
-        }
-      },
       "WopiHost.Discovery/1.0.0": {
         "type": "project",
         "framework": ".NETStandard,Version=v1.3",
@@ -3536,7 +3521,6 @@
         "type": "project",
         "framework": ".NETStandard,Version=v1.3",
         "dependencies": {
-          "WopiHost.Abstractions": "1.0.0",
           "WopiHost.Discovery": "1.0.0"
         },
         "compile": {
@@ -9604,11 +9588,6 @@
         "ref/xamarintvos10/_._",
         "ref/xamarinwatchos10/_._"
       ]
-    },
-    "WopiHost.Abstractions/1.0.0": {
-      "type": "project",
-      "path": "../WopiHost.Abstractions/project.json",
-      "msbuildProject": "../WopiHost.Abstractions/WopiHost.Abstractions.xproj"
     },
     "WopiHost.Discovery/1.0.0": {
       "type": "project",

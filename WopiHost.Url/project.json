@@ -1,7 +1,6 @@
 {
 	"authors": [ "Petr Svihlik" ],
 	"dependencies": {
-		"WopiHost.Abstractions": "1.0.0-*",
 		"WopiHost.Discovery": "1.0.0-*"
 	},
 	"description": "WopiHost.Url Class Library",
