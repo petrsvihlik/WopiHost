@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
@@ -9,11 +10,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.PlatformAbstractions;
 using Microsoft.AspNetCore.Authorization;
-using WopiHost.Authorization;
 using Newtonsoft.Json.Serialization;
 using WopiHost.Abstractions;
-using WopiHost.Models;
-using WopiHost.Security;
+using WopiHost.Core.Controllers;
+using WopiHost.Core.Models;
+using WopiHost.Core.Security.Authentication;
+using WopiHost.Core.Security.Authorization;
 
 namespace WopiHost
 {
@@ -56,17 +58,13 @@ namespace WopiHost
 			services.AddTransient<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
 
 			//TODO: check whether OWA is case sensitive, optionally remove the contract resolver
-			services.AddMvcCore().AddJsonFormatters().AddJsonOptions(options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());
-			
-			/* TODO: #10
-			services.AddCaching();
-			services.AddSession();
-
-			services.ConfigureSession(o =>
-			{
-				o.IdleTimeout = TimeSpan.FromMinutes(5);
-			});*/
-
+			services.AddMvcCore()
+				.AddApplicationPart(typeof(FilesController).GetTypeInfo().Assembly)
+				.AddJsonFormatters()
+				.AddJsonOptions(options =>
+				{
+					options.SerializerSettings.ContractResolver = new DefaultContractResolver();
+				});
 
 			// Autofac resolution
 			var builder = new ContainerBuilder();
@@ -104,13 +102,12 @@ namespace WopiHost
 				app.UseDeveloperExceptionPage();
 			}
 
-			// Add MVC to the request pipeline.
-			//TODO:#10
-			//app.UseSession();
 			app.UseAccessTokenAuthentication(new AccessTokenAuthenticationOptions
 			{
 				SecurityHandler = _container.Resolve<IWopiSecurityHandler>()
 			});
+
+			// Add MVC to the request pipeline.
 			app.UseMvc();
 		}
 	}
