@@ -56,9 +56,8 @@ namespace WopiHost
 			services.AddTransient<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
 
 			//TODO: check whether OWA is case sensitive, optionally remove the contract resolver
-			services.AddMvc().AddJsonOptions(options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());
-
-
+			services.AddMvcCore().AddJsonFormatters().AddJsonOptions(options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());
+			
 			/* TODO: #10
 			services.AddCaching();
 			services.AddSession();
