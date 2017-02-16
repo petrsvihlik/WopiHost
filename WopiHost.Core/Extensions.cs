@@ -18,5 +18,17 @@ namespace WopiHost.Core
 				return ms.ToArray();
 			}
 		}
+
+		/// <summary>
+		/// Tries to parse integer from string. Returns null if parsing fails.
+		/// </summary>
+		/// <param name="s">String to parse</param>
+		/// <returns>Integer parsed from <see cref="s"/></returns>
+		public static int? ToNullableInt(this string s)
+		{
+			int i;
+			if (int.TryParse(s, out i)) return i;
+			return null;
+		}
 	}
 }

@@ -56,8 +56,7 @@ namespace WopiHost
 
 			// Ideally, pass a persistant dictionary implementation
 			services.AddTransient<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
-
-			//TODO: check whether OWA is case sensitive, optionally remove the contract resolver
+			
 			services.AddMvcCore()
 				.AddApplicationPart(typeof(FilesController).GetTypeInfo().Assembly)
 				.AddJsonFormatters()

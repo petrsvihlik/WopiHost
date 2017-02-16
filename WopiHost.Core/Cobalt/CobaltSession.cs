@@ -8,140 +8,160 @@ using WopiHost.Abstractions;
 
 namespace WopiHost.Core.Cobalt
 {
-	public class CobaltSession : AbstractEditSession
-	{
-		private DisposalEscrow _disposal;
-		private Dictionary<FilePartitionId, CobaltFilePartitionConfig> _partitionConfs;
+    public class CobaltSession : AbstractEditSession
+    {
+        private DisposalEscrow _disposal;
+        private Dictionary<FilePartitionId, CobaltFilePartitionConfig> _partitionConfs;
 
-		private CobaltFile CobaltFile
-		{
-			get; set;
-		}
+        private CobaltFile CobaltFile
+        {
+            get; set;
+        }
 
-		private void InitCobaltFile()
-		{
-			var tempCobaltFile = new CobaltFile(Disposal, PartitionConfs, new CobaltHostLockingStore(this), null);
+        private void InitCobaltFile()
+        {
+            var tempCobaltFile = new CobaltFile(Disposal, PartitionConfs, new CobaltHostLockingStore(this), null);
 
-			if (File.Exists)
-			{
-				using (var stream = File.GetReadStream())
-				{
-					var srcAtom = new AtomFromStream(stream);
-					Metrics o1;
-					tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out o1);
-					tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
-					CobaltFile = tempCobaltFile;
-				}
-			}
-		}
-		
-		private DisposalEscrow Disposal
-		{
-			get
-			{
-				return _disposal ?? (_disposal = new DisposalEscrow(SessionId));
-			}
-		}
+            if (File.Exists)
+            {
+                using (var stream = File.GetReadStream())
+                {
+                    var srcAtom = new AtomFromStream(stream);
+                    Metrics o1;
+                    tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out o1);
+                    tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
+                    CobaltFile = tempCobaltFile;
+                }
+            }
+        }
 
-		private Dictionary<FilePartitionId, CobaltFilePartitionConfig> PartitionConfs
-		{
-			get
-			{
-				if (_partitionConfs == null)
-				{
-					CobaltFilePartitionConfig content = new CobaltFilePartitionConfig
-					{
-						IsNewFile = true,
-						HostBlobStore = new TemporaryHostBlobStore(new TemporaryHostBlobStore.Config(), Disposal, SessionId + @".Content"),
-						cellSchemaIsGenericFda = true,
-						CellStorageConfig = new CellStorageConfig(),
-						Schema = CobaltFilePartition.Schema.ShreddedCobalt,
-						PartitionId = FilePartitionId.Content
-					};
+        private DisposalEscrow Disposal
+        {
+            get
+            {
+                return _disposal ?? (_disposal = new DisposalEscrow(SessionId));
+            }
+        }
 
-					CobaltFilePartitionConfig coauth = new CobaltFilePartitionConfig
-					{
-						IsNewFile = true,
-						HostBlobStore = new TemporaryHostBlobStore(new TemporaryHostBlobStore.Config(), Disposal, SessionId + @".CoauthMetadata"),
-						cellSchemaIsGenericFda = false,
-						CellStorageConfig = new CellStorageConfig(),
-						Schema = CobaltFilePartition.Schema.ShreddedCobalt,
-						PartitionId = FilePartitionId.CoauthMetadata
-					};
+        private Dictionary<FilePartitionId, CobaltFilePartitionConfig> PartitionConfs
+        {
+            get
+            {
+                if (_partitionConfs == null)
+                {
+                    CobaltFilePartitionConfig content = new CobaltFilePartitionConfig
+                    {
+                        IsNewFile = true,
+                        HostBlobStore = new TemporaryHostBlobStore(new TemporaryHostBlobStore.Config(), Disposal, SessionId + @".Content"),
+                        cellSchemaIsGenericFda = true,
+                        CellStorageConfig = new CellStorageConfig(),
+                        Schema = CobaltFilePartition.Schema.ShreddedCobalt,
+                        PartitionId = FilePartitionId.Content
+                    };
 
-					CobaltFilePartitionConfig wacupdate = new CobaltFilePartitionConfig
-					{
-						IsNewFile = true,
-						HostBlobStore = new TemporaryHostBlobStore(new TemporaryHostBlobStore.Config(), Disposal, SessionId + @".WordWacUpdate"),
-						cellSchemaIsGenericFda = false,
-						CellStorageConfig = new CellStorageConfig(),
-						Schema = CobaltFilePartition.Schema.ShreddedCobalt,
-						PartitionId = FilePartitionId.WordWacUpdate
-					};
+                    CobaltFilePartitionConfig coauth = new CobaltFilePartitionConfig
+                    {
+                        IsNewFile = true,
+                        HostBlobStore = new TemporaryHostBlobStore(new TemporaryHostBlobStore.Config(), Disposal, SessionId + @".CoauthMetadata"),
+                        cellSchemaIsGenericFda = false,
+                        CellStorageConfig = new CellStorageConfig(),
+                        Schema = CobaltFilePartition.Schema.ShreddedCobalt,
+                        PartitionId = FilePartitionId.CoauthMetadata
+                    };
 
-					Dictionary<FilePartitionId, CobaltFilePartitionConfig> partitionConfs = new Dictionary<FilePartitionId, CobaltFilePartitionConfig> { { FilePartitionId.Content, content }, { FilePartitionId.WordWacUpdate, wacupdate }, { FilePartitionId.CoauthMetadata, coauth } };
-					_partitionConfs = partitionConfs;
-				}
-				return _partitionConfs;
-			}
-		}
+                    CobaltFilePartitionConfig wacupdate = new CobaltFilePartitionConfig
+                    {
+                        IsNewFile = true,
+                        HostBlobStore = new TemporaryHostBlobStore(new TemporaryHostBlobStore.Config(), Disposal, SessionId + @".WordWacUpdate"),
+                        cellSchemaIsGenericFda = false,
+                        CellStorageConfig = new CellStorageConfig(),
+                        Schema = CobaltFilePartition.Schema.ShreddedCobalt,
+                        PartitionId = FilePartitionId.WordWacUpdate
+                    };
 
-		public CobaltSession(IWopiFile file, string sessionId, ClaimsPrincipal principal)
-			: base(file, sessionId, principal)
-		{
-			InitCobaltFile();
-		}
-		public override byte[] GetFileContent()
-		{
-			MemoryStream ms = new MemoryStream();
-			new GenericFda(CobaltFile.CobaltEndpoint).GetContentStream().CopyTo(ms);
-			return ms.ToArray();
-		}
+                    Dictionary<FilePartitionId, CobaltFilePartitionConfig> partitionConfs = new Dictionary<FilePartitionId, CobaltFilePartitionConfig> { { FilePartitionId.Content, content }, { FilePartitionId.WordWacUpdate, wacupdate }, { FilePartitionId.CoauthMetadata, coauth } };
+                    _partitionConfs = partitionConfs;
+                }
+                return _partitionConfs;
+            }
+        }
 
-		public void Save()
-		{
-			lock (File)
-			{
-				using (var stream = File.GetWriteStream())
-				{
-					new GenericFda(CobaltFile.CobaltEndpoint).GetContentStream().CopyTo(stream);
-				}
-			}
-		}
+        public CobaltSession(IWopiFile file, string sessionId, ClaimsPrincipal principal)
+            : base(file, sessionId, principal)
+        {
+            InitCobaltFile();
+        }
 
-		public void ExecuteRequestBatch(RequestBatch requestBatch)
-		{
-			CobaltFile.CobaltEndpoint.ExecuteRequestBatch(requestBatch);
-			LastUpdated = DateTime.Now;
-		}
 
-		public override void Dispose()
-		{
-			// Save the changes to the file
-			Save();
+        public override Stream GetFileStream()
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                new GenericFda(CobaltFile.CobaltEndpoint).GetContentStream().CopyTo(ms);
+                return ms;
+            }
+        }
 
-			Disposal.Dispose();
-		}
+        public override byte[] GetFileContent()
+        {
+            var input = GetFileStream();
+            MemoryStream ms;
+            if (input is MemoryStream)
+            {
+                ms = (MemoryStream)input;
+            }
+            else
+            {
+                ms = new MemoryStream();
+                input.CopyTo(ms);
+            }
+            return ms.ToArray();
+        }
 
-		public override Action<Stream> SetFileContent(byte[] newContent)
-		{
-			// Refactoring tip: there are more ways of initializing Atom
-			AtomFromByteArray atomRequest = new AtomFromByteArray(newContent);
-			RequestBatch requestBatch = new RequestBatch();
+        public void Save()
+        {
+            lock (File)
+            {
+                using (var stream = File.GetWriteStream())
+                {
+                    new GenericFda(CobaltFile.CobaltEndpoint).GetContentStream().CopyTo(stream);
+                }
+            }
+        }
 
-			object ctx;
-			ProtocolVersion protocolVersion;
+        public void ExecuteRequestBatch(RequestBatch requestBatch)
+        {
+            CobaltFile.CobaltEndpoint.ExecuteRequestBatch(requestBatch);
+            LastUpdated = DateTime.Now;
+        }
 
-			requestBatch.DeserializeInputFromProtocol(atomRequest, out ctx, out protocolVersion);
-			ExecuteRequestBatch(requestBatch);
+        public override void Dispose()
+        {
+            // Save the changes to the file
+            Save();
 
-			if (requestBatch.Requests.Any(request => request.GetType() == typeof(PutChangesRequest) && request.PartitionId == FilePartitionId.Content))
-			{
-				Save();
-			}
-			var response = requestBatch.SerializeOutputToProtocol(protocolVersion);
-			Action<Stream> copyToAction = s => { response.CopyTo(s); };
-			return copyToAction;
-		}
-	}
+            Disposal.Dispose();
+        }
+
+        public override Action<Stream> SetFileContent(byte[] newContent)
+        {
+            // Refactoring tip: there are more ways of initializing Atom
+            AtomFromByteArray atomRequest = new AtomFromByteArray(newContent);
+            RequestBatch requestBatch = new RequestBatch();
+
+            object ctx;
+            ProtocolVersion protocolVersion;
+
+            requestBatch.DeserializeInputFromProtocol(atomRequest, out ctx, out protocolVersion);
+            ExecuteRequestBatch(requestBatch);
+
+            if (requestBatch.Requests.Any(request => request.GetType() == typeof(PutChangesRequest) && request.PartitionId == FilePartitionId.Content))
+            {
+                Save();
+            }
+            var response = requestBatch.SerializeOutputToProtocol(protocolVersion);
+            Action<Stream> copyToAction = s => { response.CopyTo(s); };
+            return copyToAction;
+        }
+    }
 }

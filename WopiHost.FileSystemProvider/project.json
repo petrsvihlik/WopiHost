@@ -18,7 +18,9 @@
     "Microsoft.Extensions.Configuration.Abstractions": "1.1.0",
     "Microsoft.Extensions.Configuration.Binder": "1.1.0",
     "System.Diagnostics.FileVersionInfo": "4.3.0",
+    "System.IO.FileSystem.AccessControl": "4.3.0",
     "System.Security.Claims": "4.3.0",
+    "System.Security.Principal.Windows": "4.3.0",
     "WopiHost.Abstractions": "1.0.0-*"
   }
 }

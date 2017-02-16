@@ -15,12 +15,14 @@ namespace WopiHost.Core.Cobalt
 
 		public override WhoAmIRequest.OutputType HandleWhoAmI(WhoAmIRequest.InputType input)
 		{
+			var checkFileInfo = m_session.GetCheckFileInfo();
+
 			WhoAmIRequest.OutputType result = new WhoAmIRequest.OutputType
 			{
 				UserEmailAddress = m_session.Email,
-				UserIsAnonymous = string.IsNullOrEmpty(m_session.CheckFileInfo.UserFriendlyName),
-				UserLogin = m_session.CheckFileInfo.UserId,
-				UserName = m_session.CheckFileInfo.UserFriendlyName
+				UserIsAnonymous = checkFileInfo.IsAnonymousUser,
+				UserLogin = checkFileInfo.UserId,
+				UserName = checkFileInfo.UserFriendlyName
 			};
 
 			return result;

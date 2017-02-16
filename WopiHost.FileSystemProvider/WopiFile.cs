@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Security.Principal;
 using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider
@@ -90,6 +91,14 @@ namespace WopiHost.FileSystemProvider
 		public Stream GetWriteStream()
 		{
 			return FileInfo.Open(FileMode.Truncate);
+		}
+
+		public string Owner
+		{
+			get
+			{
+				return FileInfo.GetAccessControl().GetOwner(typeof(NTAccount)).ToString();
+			}
 		}
 	}
 }

@@ -15,5 +15,8 @@
 		public const string OverwriteRelativeTarget = "X-WOPI-OverwriteRelativeTarget";
 
 		public const string CorrelationId = "X-WOPI-CorrelationID";
+
+	    public const string MaxExpectedSize = "X-WOPI-MaxExpectedSize";
+
 	}
 }
