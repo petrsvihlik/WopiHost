@@ -214,34 +214,15 @@ namespace WopiHost.Core.Controllers
                 switch (WopiOverrideHeader)
                 {
                     case "GET_LOCK":
-                        break;
+                        if (lockAcquired)
+                        {
+                            Response.Headers[WopiHeaders.Lock] = existingLock.Lock;
+                        }
+                        return new OkResult();
 
                     case "LOCK":
                     case "PUT":
-                        if (oldLock != null)
-                        {
-                            if (lockAcquired)
-                            {
-                                if (existingLock.Lock == oldLock)
-                                {
-                                    // Replace the existing lock with the new one
-                                    LockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
-                                    Response.Headers[WopiHeaders.OldLock] = newLock;
-                                    return new OkResult();
-                                }
-                                else
-                                {
-                                    // The existing lock doesn't match the requested one.  Return a lock mismatch error along with the current lock
-                                    return ReturnLockMismatch(Response, existingLock.Lock);
-                                }
-                            }
-                            else
-                            {
-                                // The requested lock does not exist.  That's also a lock mismatch error.
-                                return ReturnLockMismatch(Response, reason: "File not locked");
-                            }
-                        }
-                        else
+                        if (oldLock == null)
                         {
                             if (lockAcquired)
                             {
@@ -253,6 +234,29 @@ namespace WopiHost.Core.Controllers
                                 // The file is not currently locked, create and store new lock information
                                 LockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
                                 return new OkResult();
+                            }
+                        }
+                        else
+                        {
+                            // Unlock and relock
+                            if (lockAcquired)
+                            {
+                                if (existingLock.Lock == oldLock)
+                                {
+                                    // Replace the existing lock with the new one
+                                    LockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
+                                    return new OkResult();
+                                }
+                                else
+                                {
+                                    // The existing lock doesn't match the requested one. Return a lock mismatch error along with the current lock
+                                    return ReturnLockMismatch(Response, existingLock.Lock);
+                                }
+                            }
+                            else
+                            {
+                                // The requested lock does not exist which should result in a lock mismatch error.
+                                return ReturnLockMismatch(Response, reason: "File not locked");
                             }
                         }
 
@@ -267,7 +271,7 @@ namespace WopiHost.Core.Controllers
                             }
                             else
                             {
-                                // The existing lock doesn't match the requested one.  Return a lock mismatch error along with the current lock
+                                // The existing lock doesn't match the requested one. Return a lock mismatch error along with the current lock
                                 return ReturnLockMismatch(Response, existingLock.Lock);
                             }
                         }
