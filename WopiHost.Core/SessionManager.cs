@@ -9,9 +9,9 @@ namespace WopiHost.Core
 		//TODO: consider using ConcurrentDictionary
 		private static volatile SessionManager _current;
 		private static readonly object _syncObj = new object();
-		private readonly Dictionary<string, AbstractEditSession> _sessions = new Dictionary<string, AbstractEditSession>();
-		private readonly int m_timeout = 60 * 60 * 1000;
-		private readonly int m_closewait = 3 * 60 * 60;
+		private readonly Dictionary<string, IEditSession> _sessions = new Dictionary<string, IEditSession>();
+		private readonly int _timeout = 60 * 60 * 1000;
+		private readonly int _closewait = 3 * 60 * 60;
 		private readonly Timer timer;
 
 		public static SessionManager Current
@@ -34,12 +34,12 @@ namespace WopiHost.Core
 
 		public SessionManager()
 		{
-			timer = new Timer(CleanUp, null, m_timeout, Timeout.Infinite);
+			timer = new Timer(CleanUp, null, _timeout, Timeout.Infinite);
 		}
 
-		public AbstractEditSession GetSession(string sessionId)
+		public IEditSession GetSession(string sessionId)
 		{
-			AbstractEditSession es;
+			IEditSession es;
 
 			lock (_syncObj)
 			{
@@ -52,7 +52,7 @@ namespace WopiHost.Core
 			return es;
 		}
 
-		public void AddSession(AbstractEditSession session)
+		public void AddSession(IEditSession session)
 		{
 			lock (_syncObj)
 			{
@@ -60,7 +60,7 @@ namespace WopiHost.Core
 			}
 		}
 
-		public void DelSession(AbstractEditSession session)
+		public void DelSession(IEditSession session)
 		{
 			lock (_syncObj)
 			{
@@ -77,7 +77,7 @@ namespace WopiHost.Core
 				List<string> toRemove = new List<string>();
 				foreach (var session in _sessions.Values)
 				{
-					if (session.LastUpdated.AddSeconds(m_closewait) < DateTime.Now)
+					if (session.LastUpdated.AddSeconds(_closewait) < DateTime.Now)
 					{
 						// Clean up
 						session.Dispose();
@@ -89,7 +89,7 @@ namespace WopiHost.Core
 					_sessions.Remove(sessionId);
 				}
 				
-				timer.Change(m_timeout, Timeout.Infinite);
+				timer.Change(_timeout, Timeout.Infinite);
 			}
 		}
 	}

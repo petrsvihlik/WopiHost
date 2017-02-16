@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -45,10 +44,10 @@ namespace WopiHost.Core.Controllers
             LockStorage = lockStorage;
         }
 
-        private async Task<AbstractEditSession> GetEditSessionAsync(string fileId)
+        private async Task<IEditSession> GetEditSessionAsync(string fileId)
         {
             var sessionId = fileId;
-            AbstractEditSession editSession = SessionManager.Current.GetSession(sessionId);
+            IEditSession editSession = SessionManager.Current.GetSession(sessionId);
 
             if (editSession == null)
             {
@@ -186,7 +185,6 @@ namespace WopiHost.Core.Controllers
                     HttpContext.Response.Headers.Add(WopiHeaders.CorrelationId, HttpContext.Request.Headers[WopiHeaders.CorrelationId]);
                     HttpContext.Response.Headers.Add("request-id", HttpContext.Request.Headers[WopiHeaders.CorrelationId]);
                     return new Results.FileResult(responseAction, "application/octet-stream");
-
 
                 case "LOCK":
                 case "UNLOCK":

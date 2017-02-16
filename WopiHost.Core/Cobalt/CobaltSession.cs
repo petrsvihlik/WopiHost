@@ -11,27 +11,30 @@ namespace WopiHost.Core.Cobalt
     public class CobaltSession : AbstractEditSession
     {
         private DisposalEscrow _disposal;
-        private Dictionary<FilePartitionId, CobaltFilePartitionConfig> _partitionConfs;
+        private Dictionary<FilePartitionId, CobaltFilePartitionConfig> _partitionConfigs;
+        private CobaltFile _cobaltFile;
 
         private CobaltFile CobaltFile
         {
-            get; set;
-        }
-
-        private void InitCobaltFile()
-        {
-            var tempCobaltFile = new CobaltFile(Disposal, PartitionConfs, new CobaltHostLockingStore(this), null);
-
-            if (File.Exists)
+            get
             {
-                using (var stream = File.GetReadStream())
+                if (_cobaltFile == null)
                 {
-                    var srcAtom = new AtomFromStream(stream);
-                    Metrics o1;
-                    tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out o1);
-                    tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
-                    CobaltFile = tempCobaltFile;
+                    var tempCobaltFile = new CobaltFile(Disposal, PartitionConfigs, new CobaltHostLockingStore(this), null);
+
+                    if (File.Exists)
+                    {
+                        using (var stream = File.GetReadStream())
+                        {
+                            var srcAtom = new AtomFromStream(stream);
+                            Metrics o1;
+                            tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out o1);
+                            tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
+                            _cobaltFile = tempCobaltFile;
+                        }
+                    }
                 }
+                return _cobaltFile;
             }
         }
 
@@ -43,11 +46,11 @@ namespace WopiHost.Core.Cobalt
             }
         }
 
-        private Dictionary<FilePartitionId, CobaltFilePartitionConfig> PartitionConfs
+        private Dictionary<FilePartitionId, CobaltFilePartitionConfig> PartitionConfigs
         {
             get
             {
-                if (_partitionConfs == null)
+                if (_partitionConfigs == null)
                 {
                     CobaltFilePartitionConfig content = new CobaltFilePartitionConfig
                     {
@@ -80,16 +83,15 @@ namespace WopiHost.Core.Cobalt
                     };
 
                     Dictionary<FilePartitionId, CobaltFilePartitionConfig> partitionConfs = new Dictionary<FilePartitionId, CobaltFilePartitionConfig> { { FilePartitionId.Content, content }, { FilePartitionId.WordWacUpdate, wacupdate }, { FilePartitionId.CoauthMetadata, coauth } };
-                    _partitionConfs = partitionConfs;
+                    _partitionConfigs = partitionConfs;
                 }
-                return _partitionConfs;
+                return _partitionConfigs;
             }
         }
 
         public CobaltSession(IWopiFile file, string sessionId, ClaimsPrincipal principal)
             : base(file, sessionId, principal)
         {
-            InitCobaltFile();
         }
 
 

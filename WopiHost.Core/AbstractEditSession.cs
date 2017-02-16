@@ -7,7 +7,7 @@ using WopiHost.Core.Models;
 
 namespace WopiHost.Core
 {
-    public abstract class AbstractEditSession
+    public abstract class AbstractEditSession : IEditSession
     {
         private readonly SHA256 SHA = SHA256.Create();
 
@@ -87,33 +87,14 @@ namespace WopiHost.Core
             CheckFileInfo.SupportsUserInfo = false;
         }
 
-        /// <summary>
-        /// Returns content of a file as a byte array. Used if <see cref="GetFileStream"/> is not implemented.
-        /// </summary>
-        /// <returns></returns>
         public abstract byte[] GetFileContent();
 
-        /// <summary>
-        /// Returns a stream of file content. Used primarily to get content of a file. Alternatively, implement <see cref="GetFileContent"/>.
-        /// </summary>
         public abstract Stream GetFileStream();
 
-        /// <summary>
-        /// Disposes of all allocated resources.
-        /// </summary>
         public virtual void Dispose() { }
 
-        /// <summary>
-        /// Accepts new content of a file and replaces old content with it. 
-        /// </summary>
-        /// <param name="newContent">Content to set</param>
-        /// <returns>Gives an opportunity of returning a response to this action (returns null if not applicable)</returns>
         public abstract Action<Stream> SetFileContent(byte[] newContent);
 
-        /// <summary>
-        /// Gets information about a file.
-        /// </summary>
-        /// <returns>Object with attributes according to the specification (https://msdn.microsoft.com/en-us/library/hh622920.aspx)</returns>
         public virtual CheckFileInfo GetCheckFileInfo()
         {
             CheckFileInfo.SHA256 = FileHash;

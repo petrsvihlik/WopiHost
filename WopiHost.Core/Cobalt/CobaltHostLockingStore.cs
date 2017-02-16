@@ -6,20 +6,20 @@ namespace WopiHost.Core.Cobalt
 {
 	public class CobaltHostLockingStore : HostLockingStore
 	{
-		private readonly CobaltSession m_session;
+		private readonly IEditSession _session;
 
 		public CobaltHostLockingStore(CobaltSession session)
 		{
-			m_session = session;
+			_session = session;
 		}
 
 		public override WhoAmIRequest.OutputType HandleWhoAmI(WhoAmIRequest.InputType input)
 		{
-			var checkFileInfo = m_session.GetCheckFileInfo();
+			var checkFileInfo = _session.GetCheckFileInfo();
 
 			WhoAmIRequest.OutputType result = new WhoAmIRequest.OutputType
 			{
-				UserEmailAddress = m_session.Email,
+				UserEmailAddress = _session.Email,
 				UserIsAnonymous = checkFileInfo.IsAnonymousUser,
 				UserLogin = checkFileInfo.UserId,
 				UserName = checkFileInfo.UserFriendlyName
