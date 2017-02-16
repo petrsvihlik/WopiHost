@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -29,6 +30,8 @@ namespace WopiHost.Core.Controllers
 		/// Collection holding information about locks. Should be persistant.
 		/// </summary>
 		private static IDictionary<string, LockInfo> LockStorage;
+
+		private string WopiOverrideHeader => HttpContext.Request.Headers[WopiHeaders.WopiOverride];
 
 
 		private WopiDiscoverer WopiDiscoverer
@@ -85,9 +88,13 @@ namespace WopiHost.Core.Controllers
 		/// <returns></returns>
 		[HttpGet("{id}")]
 		[Produces("application/json")]
-		public async Task<CheckFileInfo> GetCheckFileInfo(string id)
+		public async Task<IActionResult> GetCheckFileInfo(string id)
 		{
-			return (await GetEditSessionAsync(id))?.GetCheckFileInfo();
+			if (!await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Read))
+			{
+				return Unauthorized();
+			}
+			return new JsonResult((await GetEditSessionAsync(id))?.GetCheckFileInfo());
 		}
 
 		/// <summary>
@@ -98,15 +105,13 @@ namespace WopiHost.Core.Controllers
 		/// <param name="id">File identifier.</param>
 		/// <returns></returns>
 		[HttpGet("{id}/contents")]
-		[Produces("application/octet-stream")]
-		public async Task<ActionResult> GetContents(string id)
+		public async Task<IActionResult> GetFile(string id)
 		{
-			//TODO: implement authorization everywhere
 			if (!await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Read))
 			{
 				return Unauthorized();
 			}
-			
+
 			var editSession = await GetEditSessionAsync(id);
 			//TODO: consider using return new Microsoft.AspNetCore.Mvc.FileStreamResult(editSession.GetFileContent(), "application/octet-stream");
 			return new FileContentResult(editSession.GetFileContent(), "application/octet-stream");
@@ -121,12 +126,27 @@ namespace WopiHost.Core.Controllers
 		/// <returns></returns>
 		[HttpPut("{id}/contents")]
 		[HttpPost("{id}/contents")]
-		[Produces("application/octet-stream")]
 		public async Task<IActionResult> PutFile(string id)
 		{
-			var editSession = await GetEditSessionAsync(id);
-			editSession.SetFileContent(await HttpContext.Request.Body.ReadBytesAsync());
-			return new OkResult();
+			// Check permissions
+			if (!await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Update))
+			{
+				return Unauthorized();
+			}
+
+			// Acquire lock
+			var lockResult = ProcessLock(id);
+
+			if (lockResult is OkResult)
+			{
+				// Get session
+				var editSession = await GetEditSessionAsync(id);
+
+				// Save file contents
+				editSession.SetFileContent(await HttpContext.Request.Body.ReadBytesAsync());
+				return new OkResult();
+			}
+			return lockResult;
 		}
 
 		/// <summary>
@@ -164,16 +184,19 @@ namespace WopiHost.Core.Controllers
 		/// </summary>
 		/// <param name="id"></param>
 		[HttpPost("{id}")]
-		[Produces("application/octet-stream", "text/html")]
 		public async Task<IActionResult> PerformAction(string id)
 		{
+			if (!await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Update))
+			{
+				return Unauthorized();
+			}
+
 			var editSession = await GetEditSessionAsync(id);
-			string wopiOverrideHeader = HttpContext.Request.Headers[WopiHeaders.WopiOverride];
 
 			//TODO: Replace the else-ifs with separate methods (https://github.com/petrsvihlik/WopiHost/issues/7)
 			// http://stackoverflow.com/questions/39302121/header-based-routing-in-asp-net-core
 
-			if (wopiOverrideHeader.Equals("COBALT"))
+			if (WopiOverrideHeader.Equals("COBALT"))
 			{
 				var responseAction = editSession.SetFileContent(await HttpContext.Request.Body.ReadBytesAsync());
 
@@ -182,66 +205,44 @@ namespace WopiHost.Core.Controllers
 
 				return new Results.FileResult(responseAction, "application/octet-stream");
 			}
-			else if (wopiOverrideHeader.Equals("LOCK") || wopiOverrideHeader.Equals("UNLOCK") || wopiOverrideHeader.Equals("REFRESH_LOCK") || wopiOverrideHeader.Equals("GET_LOCK"))
+			else if (new[] { "LOCK", "UNLOCK", "REFRESH_LOCK", "GET_LOCK" }.Contains(WopiOverrideHeader))
 			{
-				string oldLock = Request.Headers[WopiHeaders.OldLock];
-				string newLock = Request.Headers[WopiHeaders.Lock];
+				return ProcessLock(id);
+			}
+			else
+			{
+				// Unsupported action
+				return new NotImplementedResult();
+			}
+		}
 
-				lock (LockStorage)
+		#region "Locking"
+
+		private IActionResult ProcessLock(string id)
+		{
+			string oldLock = Request.Headers[WopiHeaders.OldLock];
+			string newLock = Request.Headers[WopiHeaders.Lock];
+
+			lock (LockStorage)
+			{
+				LockInfo existingLock = null;
+				bool lockAcquired = TryGetLock(id, out existingLock);
+				switch (WopiOverrideHeader)
 				{
-					LockInfo existingLock = null;
-					bool lockAcquired = TryGetLock(id, out existingLock);
-					switch (wopiOverrideHeader)
-					{
-						case "GET_LOCK":
-							break;
+					case "GET_LOCK":
+						break;
 
-						case "LOCK":
-							if (oldLock != null)
-							{
-								if (lockAcquired)
-								{
-									if (existingLock.Lock == oldLock)
-									{
-										// Replace the existing lock with the new one
-										LockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
-										Response.Headers[WopiHeaders.OldLock] = newLock;
-										return new OkResult();
-									}
-									else
-									{
-										// The existing lock doesn't match the requested one.  Return a lock mismatch error along with the current lock
-										return ReturnLockMismatch(Response, existingLock.Lock);
-									}
-								}
-								else
-								{
-									// The requested lock does not exist.  That's also a lock mismatch error.
-									return ReturnLockMismatch(Response, reason: "File not locked");
-								}
-							}
-							else
-							{
-								if (lockAcquired)
-								{
-									// There is a valid existing lock on the file
-									return ReturnLockMismatch(Response, existingLock.Lock);
-								}
-								else
-								{
-									// The file is not currently locked, create and store new lock information
-									LockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
-									return new OkResult();
-								}
-							}
-
-						case "UNLOCK":
+					case "LOCK":
+					case "PUT":
+						if (oldLock != null)
+						{
 							if (lockAcquired)
 							{
-								if (existingLock.Lock == newLock)
+								if (existingLock.Lock == oldLock)
 								{
-									// Remove valid lock
-									LockStorage.Remove(id);
+									// Replace the existing lock with the new one
+									LockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
+									Response.Headers[WopiHeaders.OldLock] = newLock;
 									return new OkResult();
 								}
 								else
@@ -252,40 +253,70 @@ namespace WopiHost.Core.Controllers
 							}
 							else
 							{
-								// The requested lock does not exist.
-								return ReturnLockMismatch(Response, reason: "File not locked");
-							}
-
-						case "REFRESH_LOCK":
-							if (lockAcquired)
-							{
-								if (existingLock.Lock == newLock)
-								{
-									// Extend the lock timeout
-									existingLock.DateCreated = DateTime.UtcNow;
-									return new OkResult();
-								}
-								else
-								{
-									// The existing lock doesn't match the requested one. Return a lock mismatch error along with the current lock
-									return ReturnLockMismatch(Response, existingLock.Lock);
-								}
-							}
-							else
-							{
 								// The requested lock does not exist.  That's also a lock mismatch error.
 								return ReturnLockMismatch(Response, reason: "File not locked");
 							}
-					}
-				}
+						}
+						else
+						{
+							if (lockAcquired)
+							{
+								// There is a valid existing lock on the file
+								return ReturnLockMismatch(Response, existingLock.Lock);
+							}
+							else
+							{
+								// The file is not currently locked, create and store new lock information
+								LockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
+								return new OkResult();
+							}
+						}
 
-				return new OkResult();
+					case "UNLOCK":
+						if (lockAcquired)
+						{
+							if (existingLock.Lock == newLock)
+							{
+								// Remove valid lock
+								LockStorage.Remove(id);
+								return new OkResult();
+							}
+							else
+							{
+								// The existing lock doesn't match the requested one.  Return a lock mismatch error along with the current lock
+								return ReturnLockMismatch(Response, existingLock.Lock);
+							}
+						}
+						else
+						{
+							// The requested lock does not exist.
+							return ReturnLockMismatch(Response, reason: "File not locked");
+						}
+
+					case "REFRESH_LOCK":
+						if (lockAcquired)
+						{
+							if (existingLock.Lock == newLock)
+							{
+								// Extend the lock timeout
+								existingLock.DateCreated = DateTime.UtcNow;
+								return new OkResult();
+							}
+							else
+							{
+								// The existing lock doesn't match the requested one. Return a lock mismatch error along with the current lock
+								return ReturnLockMismatch(Response, existingLock.Lock);
+							}
+						}
+						else
+						{
+							// The requested lock does not exist.  That's also a lock mismatch error.
+							return ReturnLockMismatch(Response, reason: "File not locked");
+						}
+				}
 			}
-			else
-			{
-				// Unsupported action
-				return new NotImplementedResult();
-			}
+
+			return new OkResult();
 		}
 
 		private bool TryGetLock(string fileId, out LockInfo lockInfo)
@@ -313,5 +344,7 @@ namespace WopiHost.Core.Controllers
 			}
 			return new ConflictResult();
 		}
+
+		#endregion
 	}
 }

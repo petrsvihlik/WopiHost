@@ -1,7 +1,7 @@
 ﻿namespace WopiHost.Core
 {
-    public class WopiHeaders
-    {
+	public class WopiHeaders
+	{
 
 		public const string WopiOverride = "X-WOPI-Override";
 
@@ -14,6 +14,6 @@
 		public const string RelativeTarget = "X-WOPI-RelativeTarget";
 		public const string OverwriteRelativeTarget = "X-WOPI-OverwriteRelativeTarget";
 
-	    public const string CorrelationId = "X-WOPI-CorrelationID";
-    }
+		public const string CorrelationId = "X-WOPI-CorrelationID";
+	}
 }
