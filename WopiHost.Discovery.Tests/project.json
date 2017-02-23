@@ -3,7 +3,8 @@
 	"buildOptions": {
 		"copyToOutput": {
 			"includeFiles": [
-				"OOS2016_discovery.xml"
+				"OOS2016_discovery.xml",
+				"OWA2013_discovery.xml"
 			]
 		}
 	},

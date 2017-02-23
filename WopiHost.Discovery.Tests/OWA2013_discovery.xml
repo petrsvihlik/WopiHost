@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wopi-discovery>
+  <net-zone name="internal-http">
+    <app name="Excel" favIconUrl="http://owaserver/x/_layouts/images/FavIcon_Excel.ico" checkLicense="true">
+      <action name="view" ext="ods" default="true" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="view" ext="xls" default="true" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="view" ext="xlsb" default="true" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="view" ext="xlsm" default="true" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="view" ext="xlsx" default="true" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="edit" ext="ods" requires="update" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="edit" ext="xlsb" requires="update" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="edit" ext="xlsm" requires="update" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="edit" ext="xlsx" requires="update" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="editnew" ext="xlsx" requires="update" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="interactivepreview" ext="xlsb" default="true" urlsrc="http://owaserver/x/_layouts/xlpreview.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="interactivepreview" ext="xlsm" default="true" urlsrc="http://owaserver/x/_layouts/xlpreview.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="interactivepreview" ext="xlsx" default="true" urlsrc="http://owaserver/x/_layouts/xlpreview.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="mobileView" ext="xls" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="mobileView" ext="xlsb" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="mobileView" ext="xlsm" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="mobileView" ext="xlsx" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="embedview" ext="xlsb" urlsrc="http://owaserver/x/_layouts/xlembed.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="embedview" ext="xlsm" urlsrc="http://owaserver/x/_layouts/xlembed.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="embedview" ext="xlsx" urlsrc="http://owaserver/x/_layouts/xlembed.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="formsubmit" ext="xlsb" urlsrc="http://owaserver/x/_layouts/xlform.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="formsubmit" ext="xlsm" urlsrc="http://owaserver/x/_layouts/xlform.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="formsubmit" ext="xlsx" urlsrc="http://owaserver/x/_layouts/xlform.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="formedit" ext="xlsb" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&amp;startupDialog=FormEdit&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="formedit" ext="xlsm" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&amp;startupDialog=FormEdit&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="formedit" ext="xlsx" urlsrc="http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&amp;startupDialog=FormEdit&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="rest" ext="xlsb" urlsrc="http://owaserver/x/_layouts/xlrestinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="rest" ext="xlsm" urlsrc="http://owaserver/x/_layouts/xlrestinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="rest" ext="xlsx" urlsrc="http://owaserver/x/_layouts/xlrestinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="syndicate" ext="xlsb" urlsrc="http://owaserver/x/_layouts/exceljs.ashx?v=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="syndicate" ext="xlsm" urlsrc="http://owaserver/x/_layouts/exceljs.ashx?v=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="syndicate" ext="xlsx" urlsrc="http://owaserver/x/_layouts/exceljs.ashx?v=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="legacywebservice" progid="Excel.LegacyWebService" urlsrc="http://owaserver/x/_vti_bin/excelserviceinternal.asmx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="legacywebservice" ext="xlsb" urlsrc="http://owaserver/x/_vti_bin/excelserviceinternal.asmx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="legacywebservice" ext="xlsm" urlsrc="http://owaserver/x/_vti_bin/excelserviceinternal.asmx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="legacywebservice" ext="xlsx" urlsrc="http://owaserver/x/_vti_bin/excelserviceinternal.asmx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+    </app>
+    <app name="OneNote" favIconUrl="http://owaserver/o/resources/1033/FavIcon_OneNote.ico" checkLicense="true">
+      <action name="view" progid="OneNote.Notebook" requires="cobalt,containers" urlsrc="http://owaserver/o/onenoteframe.aspx?edit=0&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="view" ext="one" requires="cobalt,containers" urlsrc="http://owaserver/o/onenoteframe.aspx?edit=0&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="view" ext="onetoc2" useParent="true" requires="cobalt,containers" urlsrc="http://owaserver/o/onenoteframe.aspx?edit=0&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="edit" progid="OneNote.Notebook" default="true" requires="cobalt,containers,update" urlsrc="http://owaserver/o/onenoteframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="edit" ext="one" default="true" requires="cobalt,containers,update" urlsrc="http://owaserver/o/onenoteframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="edit" ext="onetoc2" useParent="true" default="true" requires="cobalt,containers,update" urlsrc="http://owaserver/o/onenoteframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="editnew" progid="OneNote.Notebook" requires="cobalt,containers,update" newprogid="OneNote.Notebook" urlsrc="http://owaserver/o/onenoteframe.aspx?edit=1&amp;new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="editnew" ext="one" requires="cobalt,containers,update" newprogid="OneNote.Notebook" urlsrc="http://owaserver/o/onenoteframe.aspx?edit=1&amp;new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="editnew" ext="onepkg" requires="cobalt,containers,update" newprogid="OneNote.Notebook" urlsrc="http://owaserver/o/onenoteframe.aspx?edit=1&amp;new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+    </app>
+    <app name="PowerPoint" favIconUrl="http://owaserver/p/resources/1033/FavIcon_Ppt.ico" checkLicense="true">
+      <action name="view" ext="odp" default="true" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="view" ext="pot" default="true" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="view" ext="potm" default="true" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="view" ext="potx" default="true" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="view" ext="pps" default="true" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="view" ext="ppsm" default="true" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="view" ext="ppsx" default="true" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="view" ext="ppt" default="true" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="view" ext="pptm" default="true" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="view" ext="pptx" default="true" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="edit" ext="odp" requires="update" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=EditView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="edit" ext="ppsx" requires="update" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=EditView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="edit" ext="pptx" requires="update" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=EditView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="editnew" ext="odp" requires="update" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=EditView&amp;New=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="editnew" ext="pptx" requires="update" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=EditView&amp;New=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="imagepreview" ext="odp" urlsrc="http://owaserver/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="imagepreview" ext="pot" urlsrc="http://owaserver/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="imagepreview" ext="potm" urlsrc="http://owaserver/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="imagepreview" ext="potx" urlsrc="http://owaserver/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="imagepreview" ext="pps" urlsrc="http://owaserver/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="imagepreview" ext="ppsm" urlsrc="http://owaserver/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="imagepreview" ext="ppsx" urlsrc="http://owaserver/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="imagepreview" ext="ppt" urlsrc="http://owaserver/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="imagepreview" ext="pptm" urlsrc="http://owaserver/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="imagepreview" ext="pptx" urlsrc="http://owaserver/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="interactivepreview" ext="odp" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="interactivepreview" ext="pot" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="interactivepreview" ext="potm" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="interactivepreview" ext="potx" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="interactivepreview" ext="pps" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="interactivepreview" ext="ppsm" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="interactivepreview" ext="ppsx" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="interactivepreview" ext="ppt" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="interactivepreview" ext="pptm" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="interactivepreview" ext="pptx" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="mobileView" ext="pot" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="mobileView" ext="potm" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="mobileView" ext="potx" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="mobileView" ext="pps" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="mobileView" ext="ppsm" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="mobileView" ext="ppsx" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="mobileView" ext="ppt" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="mobileView" ext="pptm" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="mobileView" ext="pptx" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="embedview" ext="odp" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="embedview" ext="pot" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="embedview" ext="potm" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="embedview" ext="potx" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="embedview" ext="pps" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="embedview" ext="ppsm" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="embedview" ext="ppsx" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="embedview" ext="ppt" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="embedview" ext="pptm" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="embedview" ext="pptx" urlsrc="http://owaserver/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="present" ext="pot" urlsrc="http://owaserver/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="present" ext="potm" urlsrc="http://owaserver/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="present" ext="potx" urlsrc="http://owaserver/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="present" ext="pps" urlsrc="http://owaserver/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="present" ext="ppsm" urlsrc="http://owaserver/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="present" ext="ppsx" urlsrc="http://owaserver/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="present" ext="ppt" urlsrc="http://owaserver/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="present" ext="pptm" urlsrc="http://owaserver/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="present" ext="pptx" urlsrc="http://owaserver/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="presentservice" ext="pot" urlsrc="http://owaserver/m/present_2_0.asmx" />
+      <action name="presentservice" ext="potm" urlsrc="http://owaserver/m/present_2_0.asmx" />
+      <action name="presentservice" ext="potx" urlsrc="http://owaserver/m/present_2_0.asmx" />
+      <action name="presentservice" ext="pps" urlsrc="http://owaserver/m/present_2_0.asmx" />
+      <action name="presentservice" ext="ppsm" urlsrc="http://owaserver/m/present_2_0.asmx" />
+      <action name="presentservice" ext="ppsx" urlsrc="http://owaserver/m/present_2_0.asmx" />
+      <action name="presentservice" ext="ppt" urlsrc="http://owaserver/m/present_2_0.asmx" />
+      <action name="presentservice" ext="pptm" urlsrc="http://owaserver/m/present_2_0.asmx" />
+      <action name="presentservice" ext="pptx" urlsrc="http://owaserver/m/present_2_0.asmx" />
+      <action name="attend" ext="pot" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="attend" ext="potm" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="attend" ext="potx" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="attend" ext="pps" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="attend" ext="ppsm" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="attend" ext="ppsx" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="attend" ext="ppt" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="attend" ext="pptm" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="attend" ext="pptx" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;" />
+      <action name="attendservice" ext="pot" urlsrc="http://owaserver/m/met/participant.svc" />
+      <action name="attendservice" ext="potm" urlsrc="http://owaserver/m/met/participant.svc" />
+      <action name="attendservice" ext="potx" urlsrc="http://owaserver/m/met/participant.svc" />
+      <action name="attendservice" ext="pps" urlsrc="http://owaserver/m/met/participant.svc" />
+      <action name="attendservice" ext="ppsm" urlsrc="http://owaserver/m/met/participant.svc" />
+      <action name="attendservice" ext="ppsx" urlsrc="http://owaserver/m/met/participant.svc" />
+      <action name="attendservice" ext="ppt" urlsrc="http://owaserver/m/met/participant.svc" />
+      <action name="attendservice" ext="pptm" urlsrc="http://owaserver/m/met/participant.svc" />
+      <action name="attendservice" ext="pptx" urlsrc="http://owaserver/m/met/participant.svc" />
+    </app>
+    <app name="Word" favIconUrl="http://owaserver/wv/resources/1033/FavIcon_Word.ico" checkLicense="true">
+      <action name="view" ext="doc" default="true" urlsrc="http://owaserver/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="view" ext="docm" default="true" urlsrc="http://owaserver/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="view" ext="docx" default="true" urlsrc="http://owaserver/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="view" ext="dot" default="true" urlsrc="http://owaserver/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="view" ext="dotm" default="true" urlsrc="http://owaserver/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="view" ext="dotx" default="true" urlsrc="http://owaserver/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="view" ext="odt" default="true" urlsrc="http://owaserver/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="edit" ext="docm" requires="locks,cobalt,update" urlsrc="http://owaserver/we/wordeditorframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="edit" ext="docx" requires="locks,cobalt,update" urlsrc="http://owaserver/we/wordeditorframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="edit" ext="odt" requires="locks,cobalt,update" urlsrc="http://owaserver/we/wordeditorframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="editnew" ext="docx" requires="locks,cobalt,update" urlsrc="http://owaserver/we/wordeditorframe.aspx?new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="editnew" ext="dotx" requires="locks,cobalt,update" newext="docx" urlsrc="http://owaserver/we/wordeditorframe.aspx?new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="editnew" ext="odt" requires="locks,cobalt,update" urlsrc="http://owaserver/we/wordeditorframe.aspx?new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="imagepreview" ext="doc" urlsrc="http://owaserver/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="imagepreview" ext="docm" urlsrc="http://owaserver/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="imagepreview" ext="docx" urlsrc="http://owaserver/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="imagepreview" ext="dot" urlsrc="http://owaserver/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="imagepreview" ext="dotm" urlsrc="http://owaserver/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="imagepreview" ext="dotx" urlsrc="http://owaserver/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="imagepreview" ext="odt" urlsrc="http://owaserver/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="interactivepreview" ext="doc" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="interactivepreview" ext="docm" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="interactivepreview" ext="docx" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="interactivepreview" ext="dot" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="interactivepreview" ext="dotm" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="interactivepreview" ext="dotx" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="interactivepreview" ext="odt" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="mobileView" ext="doc" urlsrc="http://owaserver/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="mobileView" ext="docm" urlsrc="http://owaserver/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="mobileView" ext="docx" urlsrc="http://owaserver/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="mobileView" ext="dot" urlsrc="http://owaserver/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="mobileView" ext="dotm" urlsrc="http://owaserver/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="mobileView" ext="dotx" urlsrc="http://owaserver/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="embedview" ext="doc" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="embedview" ext="docm" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="embedview" ext="docx" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="embedview" ext="dot" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="embedview" ext="dotm" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="embedview" ext="dotx" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="embedview" ext="odt" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="attend" ext="doc" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=1&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="attend" ext="docm" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=1&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="attend" ext="docx" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=1&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="attend" ext="dot" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=1&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="attend" ext="dotm" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=1&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="attend" ext="dotx" urlsrc="http://owaserver/m/ParticipantFrame.aspx?a=1&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+    </app>
+    <app name="WordPdf" favIconUrl="http://owaserver/wv/resources/1033/FavIcon_Word.ico" checkLicense="true">
+      <action name="view" ext="pdf" default="true" urlsrc="http://owaserver/wv/wordviewerframe.aspx?PdfMode=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="imagepreview" ext="pdf" urlsrc="http://owaserver/wv/WordPreviewHandler.ashx?PdfMode=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="interactivepreview" ext="pdf" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;PdfMode=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+      <action name="embedview" ext="pdf" urlsrc="http://owaserver/wv/wordviewerframe.aspx?embed=1&amp;PdfMode=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" />
+    </app>
+  </net-zone>
+  <proof-key oldvalue="BgIAAACkAABSU0ExAAgAAAEAAQBdAq75jtdIR5D9PQneB3FF6uV5GlCA+M3lYHTbGPIXyGw6dRywifsCDEUxGJTGUGuSl5T9a9TTkNq3tPwxRrY1dIP4wVkB/FECCe18pAKPxi2pP0o6ZJWoNOI4Zd9ZY9NREYuN9AbNVHIymBOqJGKb8MzBFNHgS4rm/3/jp97dhSUSKLp2e57T2IO5ZLlwZA3tjlvN/l55zKihOIqi89H9nrpRa+yfMqm0QnEgfMroVWborM5ZwbdXT35hSf9K+r0UXMZikWXee+fZzcIAK8882IQyYzjEcSng7YDloB7dWl3Z/9IGSDgAs8fWO/GelJajCalbn18ixjEOwWpKQ5bH" value="BgIAAACkAABSU0ExAAgAAAEAAQChpzvP5hHf7um8YqSIh3bTmJWB/v/8y6cFFdLTcrvg0BArpdnccrZTAWaP7qXlFYQqFQOBaV52YSJvzXqeJQfBNccF7PA1w0KfKwYiEHPb3UkMNSDp6PaGOw5kZIeeA/LTL1owNb95gcw/leKONZVu9qslwMC0XfWmPni2G5/ftt1QKvTAAew+M+ou85IHwjj0ojw/QtOnTWLtJ1lqp12Na8eGtQkxFRnHFKnwTSmi7rmYCItiJpt9SCGY/RYlGhcUWiQe5C2vaiULCTdT0YO5F2/Mgz5cterBPgaSKYvlJ7otUSHt9JXuJ0mtUreceHmXs1oi2xZzrEo4AnqCbtaP" />
+</wopi-discovery>

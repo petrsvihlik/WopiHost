@@ -6,18 +6,26 @@ namespace WopiHost.Discovery.Tests
 {
 	public class WopiDiscovererTests
 	{
-		private readonly WopiDiscoverer _wopiDiscoverer;
+		private WopiDiscoverer _wopiDiscoverer;
 
 		public WopiDiscovererTests()
 		{
-			_wopiDiscoverer = new WopiDiscoverer(new FileSystemDiscoveryFileProvider(Path.Combine(System.AppContext.BaseDirectory, "OOS2016_discovery.xml")));
+		    //TODO: test netzones	
+		}
+
+		public void InitDiscoverer(string fileName)
+		{
+			_wopiDiscoverer = new WopiDiscoverer(new FileSystemDiscoveryFileProvider(Path.Combine(System.AppContext.BaseDirectory, fileName)));
 		}
 
 		[Theory]
-		[InlineData("xlsx")]
-		[InlineData("docx")]
-		public async void SupportedExtension(string extension)
+		[InlineData("xlsx", "OOS2016_discovery.xml")]
+		[InlineData("docx", "OOS2016_discovery.xml")]
+		public async void SupportedExtension(string extension, string fileName)
 		{
+			// Arrange
+			InitDiscoverer(fileName);
+
 			// Act
 			var result = await _wopiDiscoverer.SupportsExtensionAsync(extension);
 
@@ -26,10 +34,13 @@ namespace WopiHost.Discovery.Tests
 		}
 
 		[Theory]
-		[InlineData("html")]
-		[InlineData("txt")]
-		public async void NonSupportedExtension(string extension)
+		[InlineData("html", "OOS2016_discovery.xml")]
+		[InlineData("txt", "OOS2016_discovery.xml")]
+		public async void NonSupportedExtension(string extension, string fileName)
 		{
+			// Arrange
+			InitDiscoverer(fileName);
+
 			// Act
 			var result = await _wopiDiscoverer.SupportsExtensionAsync(extension);
 
@@ -38,10 +49,13 @@ namespace WopiHost.Discovery.Tests
 		}
 
 		[Theory]
-		[InlineData("html")]
-		[InlineData("txt")]
-		public async void NonSupportedExtensionWithAction(string extension)
+		[InlineData("html", "OOS2016_discovery.xml")]
+		[InlineData("txt", "OOS2016_discovery.xml")]
+		public async void NonSupportedExtensionWithAction(string extension, string fileName)
 		{
+			// Arrange
+			InitDiscoverer(fileName);
+
 			// Act
 			var result = await _wopiDiscoverer.SupportsActionAsync(extension, WopiActionEnum.Edit);
 
@@ -50,10 +64,13 @@ namespace WopiHost.Discovery.Tests
 		}
 
 		[Theory]
-		[InlineData("pptx")]
-		[InlineData("docx")]
-		public async void SupportedExtensionWithAction(string extension)
+		[InlineData("pptx", "OOS2016_discovery.xml")]
+		[InlineData("docx", "OOS2016_discovery.xml")]
+		public async void SupportedExtensionWithAction(string extension, string fileName)
 		{
+			// Arrange
+			InitDiscoverer(fileName);
+
 			// Act
 			var result = await _wopiDiscoverer.SupportsActionAsync(extension, WopiActionEnum.Edit);
 
@@ -62,10 +79,13 @@ namespace WopiHost.Discovery.Tests
 		}
 
 		[Theory]
-		[InlineData("html")]
-		[InlineData("txt")]
-		public async void NonSupportedExtensionCobalt(string extension)
+		[InlineData("html", "OOS2016_discovery.xml")]
+		[InlineData("txt", "OOS2016_discovery.xml")]
+		public async void NonSupportedExtensionCobalt(string extension, string fileName)
 		{
+			// Arrange
+			InitDiscoverer(fileName);
+
 			// Act
 			var result = await _wopiDiscoverer.RequiresCobaltAsync(extension, WopiActionEnum.Edit);
 
@@ -74,23 +94,30 @@ namespace WopiHost.Discovery.Tests
 		}
 
 		[Theory]
-		[InlineData("docx")]
-		public async void SupportedExtensionCobalt(string extension)
+		[InlineData("docx", "OWA2013_discovery.xml", true)]
+		[InlineData("docx", "OOS2016_discovery.xml", false)]
+		public async void SupportedExtensionCobalt(string extension, string fileName, bool expected)
 		{
+			// Arrange
+			InitDiscoverer(fileName);
+
 			// Act
 			var result = await _wopiDiscoverer.RequiresCobaltAsync(extension, WopiActionEnum.Edit);
 
 			// Assert
-			Assert.True(result, $"{extension} should be required!");
+			Assert.Equal(expected, result);
 		}
 
 		[Theory]
-		[InlineData("xlsx", WopiActionEnum.Edit, "http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&<ui=UI_LLCC&><rs=DC_LLCC&>")]
-		[InlineData("docx", WopiActionEnum.Edit, "http://owaserver/we/wordeditorframe.aspx?<ui=UI_LLCC&><rs=DC_LLCC&><showpagestats=PERFSTATS&>")]
-		[InlineData("html", WopiActionEnum.Edit, null)]
-		[InlineData("txt", WopiActionEnum.Edit, null)]
-		public async void UrlTemplateTests(string extension, WopiActionEnum action, string expectedValue)
+		[InlineData("xlsx", WopiActionEnum.Edit, "http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&<ui=UI_LLCC&><rs=DC_LLCC&>", "OWA2013_discovery.xml")]
+		[InlineData("docx", WopiActionEnum.Edit, "http://owaserver/we/wordeditorframe.aspx?<ui=UI_LLCC&><rs=DC_LLCC&><showpagestats=PERFSTATS&>", "OWA2013_discovery.xml")]
+		[InlineData("html", WopiActionEnum.Edit, null, "OWA2013_discovery.xml")]
+		[InlineData("txt", WopiActionEnum.Edit, null, "OWA2013_discovery.xml")]
+		public async void UrlTemplateTests(string extension, WopiActionEnum action, string expectedValue, string fileName)
 		{
+			// Arrange
+			InitDiscoverer(fileName);
+
 			// Act
 			var result = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
 
@@ -99,12 +126,15 @@ namespace WopiHost.Discovery.Tests
 		}
 
 		[Theory]
-		[InlineData("xlsx", "Excel")]
-		[InlineData("docx", "Word")]
-		[InlineData("html", null)]
-		[InlineData("txt", null)]
-		public async void AppNameTests(string extension, string expectedValue)
+		[InlineData("xlsx", "Excel", "OOS2016_discovery.xml")]
+		[InlineData("docx", "Word", "OOS2016_discovery.xml")]
+		[InlineData("html", null, "OOS2016_discovery.xml")]
+		[InlineData("txt", null, "OOS2016_discovery.xml")]
+		public async void AppNameTests(string extension, string expectedValue, string fileName)
 		{
+			// Arrange
+			InitDiscoverer(fileName);
+
 			// Act
 			var result = await _wopiDiscoverer.GetApplicationNameAsync(extension);
 
@@ -113,12 +143,15 @@ namespace WopiHost.Discovery.Tests
 		}
 
 		[Theory]
-		[InlineData("xlsx", "http://owaserver/x/_layouts/images/FavIcon_Excel.ico")]
-		[InlineData("docx", "http://owaserver/wv/resources/1033/FavIcon_Word.ico")]
-		[InlineData("html", null)]
-		[InlineData("txt", null)]
-		public async void FavIconTests(string extension, string expectedValue)
+		[InlineData("xlsx", "http://owaserver/x/_layouts/resources/FavIcon_Excel.ico", "OOS2016_discovery.xml")]
+		[InlineData("docx", "http://owaserver/wv/resources/1033/FavIcon_Word.ico", "OOS2016_discovery.xml")]
+		[InlineData("html", null, "OOS2016_discovery.xml")]
+		[InlineData("txt", null, "OOS2016_discovery.xml")]
+		public async void FavIconTests(string extension, string expectedValue, string fileName)
 		{
+			// Arrange
+			InitDiscoverer(fileName);
+
 			// Act
 			var result = await _wopiDiscoverer.GetApplicationFavIconAsync(extension);
 

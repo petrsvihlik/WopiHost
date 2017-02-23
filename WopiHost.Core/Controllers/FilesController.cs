@@ -53,12 +53,8 @@ namespace WopiHost.Core.Controllers
             {
                 IWopiFile file = StorageProvider.GetWopiFile(fileId);
 
-                //TODO: remove hardcoded action 'Edit'
-                //TODO: handle all requirements in a generic way (requires="cobalt,containers,update")
-                //TODO: http://wopi.readthedocs.io/en/latest/discovery.html#action-requirements
-
-
-                if (await WopiDiscoverer.RequiresCobaltAsync(file.Extension, WopiActionEnum.Edit))
+                //TODO: get rid of sessions, make cobalt optional, set up capabilities instead of the check
+                if (await WopiDiscoverer.RequiresCobaltAsync(file.Extension, WopiActionEnum.Edit) || file.Extension == "docx")
                 {
                     editSession = new CobaltSession(file, sessionId, HttpContext.User);
                 }
