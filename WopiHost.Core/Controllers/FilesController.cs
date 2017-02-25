@@ -54,7 +54,7 @@ namespace WopiHost.Core.Controllers
                 IWopiFile file = StorageProvider.GetWopiFile(fileId);
 
                 //TODO: get rid of sessions, make cobalt optional, set up capabilities instead of the check
-                if (await WopiDiscoverer.RequiresCobaltAsync(file.Extension, WopiActionEnum.Edit) || file.Extension == "docx")
+                if (await WopiDiscoverer.RequiresCobaltAsync(file.Extension, WopiActionEnum.Edit))//|| file.Extension == "docx")
                 {
                     editSession = new CobaltSession(file, sessionId, HttpContext.User);
                 }
@@ -188,6 +188,9 @@ namespace WopiHost.Core.Controllers
                 case "GET_LOCK":
                     return ProcessLock(id);
 
+                case "PUT_RELATIVE":
+                    return new NotImplementedResult();
+
                 default:
                     // Unsupported action
                     return new NotImplementedResult();
@@ -218,10 +221,20 @@ namespace WopiHost.Core.Controllers
                     case "PUT":
                         if (oldLock == null)
                         {
+                            // Lock / put
                             if (lockAcquired)
                             {
-                                // There is a valid existing lock on the file
-                                return ReturnLockMismatch(Response, existingLock.Lock);
+                                if (existingLock.Lock == newLock)
+                                {
+                                    // File is currently locked and the lock ids match, refresh lock
+                                    existingLock.DateCreated = DateTime.UtcNow;
+                                    return new OkResult();
+                                }
+                                else
+                                {
+                                    // There is a valid existing lock on the file
+                                    return ReturnLockMismatch(Response, existingLock.Lock);
+                                }
                             }
                             else
                             {
@@ -232,7 +245,7 @@ namespace WopiHost.Core.Controllers
                         }
                         else
                         {
-                            // Unlock and relock
+                            // Unlock and relock (http://wopi.readthedocs.io/projects/wopirest/en/latest/files/UnlockAndRelock.html)
                             if (lockAcquired)
                             {
                                 if (existingLock.Lock == oldLock)

@@ -55,7 +55,7 @@ namespace WopiHost
 			services.AddSingleton<IAuthorizationHandler, WopiAuthorizationHandler>();
 
 			// Ideally, pass a persistant dictionary implementation
-			services.AddTransient<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
+			services.AddSingleton<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
 			
 			services.AddMvcCore()
 				.AddApplicationPart(typeof(FilesController).GetTypeInfo().Assembly)
