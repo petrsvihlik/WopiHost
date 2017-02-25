@@ -7,7 +7,7 @@
 			"type": "platform",
 			"version": "1.0.1"
 		},
-    "xunit": "2.2.0-beta5-build3474"
+    "xunit": "2.2.0"
 	},
 	"description": "",
 	"frameworks": {

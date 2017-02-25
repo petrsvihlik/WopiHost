@@ -17,7 +17,7 @@
           "lib/net451/Microsoft.AspNetCore.Authorization.dll": {}
         }
       },
-      "Microsoft.CobaltCore/15.0.0": {
+      "Microsoft.CobaltCore/15.0.4557.1000": {
         "type": "package",
         "compile": {
           "lib/net46/Microsoft.CobaltCore.dll": {}
@@ -774,15 +774,14 @@
         "lib/netstandard1.3/Microsoft.AspNetCore.Authorization.xml"
       ]
     },
-    "Microsoft.CobaltCore/15.0.0": {
-      "sha512": "WAOOP3T9GEx39GHJ6WwHq4i1f8LQtNUc7HatIPPkMyI1PQC5M9evOyEWHv5otO9beZML4aic4jdIerZGXp9FsA==",
+    "Microsoft.CobaltCore/15.0.4557.1000": {
+      "sha512": "GyzMZbBZgzRrSQYIrYYiMcKejciaWy79KQ2jfjEHV4Lg4GnvWVTMZ5FmwLrSevODIJ0jQbY6Ajd2xGRRZaS0Iw==",
       "type": "package",
-      "path": "Microsoft.CobaltCore/15.0.0",
+      "path": "Microsoft.CobaltCore/15.0.4557.1000",
       "files": [
-        "Microsoft.CobaltCore.15.0.0.nupkg.sha512",
+        "Microsoft.CobaltCore.15.0.4557.1000.nupkg.sha512",
         "Microsoft.CobaltCore.nuspec",
-        "lib/net46/Microsoft.CobaltCore.dll",
-        "lib/netstandard1.3/Microsoft.CobaltCore.dll"
+        "lib/net46/Microsoft.CobaltCore.dll"
       ]
     },
     "Microsoft.Extensions.DependencyInjection.Abstractions/1.1.0": {
@@ -3553,7 +3552,7 @@
   },
   "projectFileDependencyGroups": {
     "": [
-      "Microsoft.CobaltCore >= 15.0.0",
+      "Microsoft.CobaltCore >= 15.0.4557.1000",
       "NETStandard.Library >= 1.6.1",
       "WopiHost.Abstractions >= 1.0.0-*"
     ],

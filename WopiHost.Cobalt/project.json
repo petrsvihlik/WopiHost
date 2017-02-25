@@ -2,7 +2,7 @@
   "authors": [ "Petr Svihlik" ],
   "dependencies": {
     "NETStandard.Library": "1.6.1",
-    "Microsoft.CobaltCore": "15.0.0",
+    "Microsoft.CobaltCore": "15.0.4557.1000",
     "WopiHost.Abstractions": "1.0.0-*"
   },
   "description": "WopiHost.Cobalt Class Library",

@@ -2,13 +2,13 @@
 	"authors": [ "Petr Svihlik" ],
 	"dependencies": {
 		"dotnet-test-xunit": "2.2.0-preview2-build1029",
-		"FakeItEasy": "3.0.0-beta002-build000066",
+    "FakeItEasy": "3.0.0",
 		"Microsoft.NETCore.App": {
 			"type": "platform",
 			"version": "1.0.1"
 		},
 		"WopiHost.Url": "1.0.0-*",
-		"xunit": "2.2.0-beta5-build3474"
+    "xunit": "2.2.0"
 	},
 	"description": "",
 	"frameworks": {
