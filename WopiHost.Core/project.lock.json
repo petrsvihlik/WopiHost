@@ -345,15 +345,6 @@
           "lib/net451/Microsoft.AspNetCore.WebUtilities.dll": {}
         }
       },
-      "Microsoft.CobaltCore/15.0.0": {
-        "type": "package",
-        "compile": {
-          "lib/net46/Microsoft.CobaltCore.dll": {}
-        },
-        "runtime": {
-          "lib/net46/Microsoft.CobaltCore.dll": {}
-        }
-      },
       "Microsoft.DotNet.PlatformAbstractions/1.1.0": {
         "type": "package",
         "compile": {
@@ -1325,19 +1316,6 @@
         "runtime": {
           "netstandard1.3/WopiHost.Abstractions.dll": {}
         }
-      },
-      "WopiHost.Discovery/1.0.0": {
-        "type": "project",
-        "framework": ".NETStandard,Version=v1.3",
-        "dependencies": {
-          "NETStandard.Library": "1.6.1"
-        },
-        "compile": {
-          "netstandard1.3/WopiHost.Discovery.dll": {}
-        },
-        "runtime": {
-          "netstandard1.3/WopiHost.Discovery.dll": {}
-        }
       }
     },
     ".NETStandard,Version=v1.6": {
@@ -1689,15 +1667,6 @@
         },
         "runtime": {
           "lib/netstandard1.3/Microsoft.AspNetCore.WebUtilities.dll": {}
-        }
-      },
-      "Microsoft.CobaltCore/15.0.0": {
-        "type": "package",
-        "compile": {
-          "lib/netstandard1.3/Microsoft.CobaltCore.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard1.3/Microsoft.CobaltCore.dll": {}
         }
       },
       "Microsoft.CSharp/4.3.0": {
@@ -3534,19 +3503,6 @@
         "runtime": {
           "netstandard1.3/WopiHost.Abstractions.dll": {}
         }
-      },
-      "WopiHost.Discovery/1.0.0": {
-        "type": "project",
-        "framework": ".NETStandard,Version=v1.3",
-        "dependencies": {
-          "NETStandard.Library": "1.6.1"
-        },
-        "compile": {
-          "netstandard1.3/WopiHost.Discovery.dll": {}
-        },
-        "runtime": {
-          "netstandard1.3/WopiHost.Discovery.dll": {}
-        }
       }
     }
   },
@@ -3835,17 +3791,6 @@
         "lib/net451/Microsoft.AspNetCore.WebUtilities.xml",
         "lib/netstandard1.3/Microsoft.AspNetCore.WebUtilities.dll",
         "lib/netstandard1.3/Microsoft.AspNetCore.WebUtilities.xml"
-      ]
-    },
-    "Microsoft.CobaltCore/15.0.0": {
-      "sha512": "WAOOP3T9GEx39GHJ6WwHq4i1f8LQtNUc7HatIPPkMyI1PQC5M9evOyEWHv5otO9beZML4aic4jdIerZGXp9FsA==",
-      "type": "package",
-      "path": "Microsoft.CobaltCore/15.0.0",
-      "files": [
-        "Microsoft.CobaltCore.15.0.0.nupkg.sha512",
-        "Microsoft.CobaltCore.nuspec",
-        "lib/net46/Microsoft.CobaltCore.dll",
-        "lib/netstandard1.3/Microsoft.CobaltCore.dll"
       ]
     },
     "Microsoft.CSharp/4.3.0": {
@@ -7999,11 +7944,6 @@
       "type": "project",
       "path": "../WopiHost.Abstractions/project.json",
       "msbuildProject": "../WopiHost.Abstractions/WopiHost.Abstractions.xproj"
-    },
-    "WopiHost.Discovery/1.0.0": {
-      "type": "project",
-      "path": "../WopiHost.Discovery/project.json",
-      "msbuildProject": "../WopiHost.Discovery/WopiHost.Discovery.xproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -8011,13 +7951,11 @@
       "Microsoft.AspNetCore.Identity >= 1.1.0",
       "Microsoft.AspNetCore.Mvc.Core >= 1.1.1",
       "Microsoft.AspNetCore.Mvc.Formatters.Json >= 1.1.1",
-      "Microsoft.CobaltCore >= 15.0.0",
       "Microsoft.Extensions.Configuration.Binder >= 1.1.0",
       "Microsoft.NETCore.Portable.Compatibility >= 1.0.1",
       "NETStandard.Library >= 1.6.1",
       "System.IdentityModel.Tokens.Jwt >= 5.1.2",
-      "WopiHost.Abstractions >= 1.0.0-*",
-      "WopiHost.Discovery >= 1.0.0-*"
+      "WopiHost.Abstractions >= 1.0.0-*"
     ],
     ".NETFramework,Version=v4.6": [],
     ".NETStandard,Version=v1.6": []

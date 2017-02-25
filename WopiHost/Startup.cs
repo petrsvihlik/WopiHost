@@ -56,7 +56,7 @@ namespace WopiHost
 
 			// Ideally, pass a persistant dictionary implementation
 			services.AddSingleton<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
-			
+
 			services.AddMvcCore()
 				.AddApplicationPart(typeof(FilesController).GetTypeInfo().Assembly)
 				.AddJsonFormatters()
@@ -73,20 +73,24 @@ namespace WopiHost
 			// File provider implementation
 			var providerAssembly = Configuration.GetValue("WopiFileProviderAssemblyName", string.Empty);
 #if NET46
+            // Load cobalt when running under the full .NET Framework
+            var cobaltAssembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName("WopiHost.Cobalt"));
+            services.AddTransient<ICobaltProcessor, Cobalt.CobaltProcessor>();
 
-			var assembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName(providerAssembly));
+            // Load file provider
+            var assembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName(providerAssembly));
 #endif
 
 #if NETCOREAPP1_0
-
+            // Load file provider
 			var path = PlatformServices.Default.Application.ApplicationBasePath;
 			var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath(path + "\\" + providerAssembly + ".dll");
 #endif
-			builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
+            builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
 
-			builder.Populate(services);
+            builder.Populate(services);
 			_container = builder.Build();
-			return _container.Resolve<IServiceProvider>();
+			return new AutofacServiceProvider(_container);//_container.Resolve<IServiceProvider>();
 		}
 
 

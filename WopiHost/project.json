@@ -34,6 +34,9 @@
       }
     },
     "net46": {
+      "dependencies": {
+        "WopiHost.Cobalt": "1.0.0-*"
+      }
     }
   },
   "publishOptions": {

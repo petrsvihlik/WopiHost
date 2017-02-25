@@ -552,15 +552,6 @@
           "lib/netstandard1.3/Microsoft.AspNetCore.WebUtilities.dll": {}
         }
       },
-      "Microsoft.CobaltCore/15.0.0": {
-        "type": "package",
-        "compile": {
-          "lib/netstandard1.3/Microsoft.CobaltCore.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard1.3/Microsoft.CobaltCore.dll": {}
-        }
-      },
       "Microsoft.CodeAnalysis.Analyzers/1.1.0": {
         "type": "package"
       },
@@ -3415,32 +3406,17 @@
           "Microsoft.AspNetCore.Identity": "1.1.0",
           "Microsoft.AspNetCore.Mvc.Core": "1.1.1",
           "Microsoft.AspNetCore.Mvc.Formatters.Json": "1.1.1",
-          "Microsoft.CobaltCore": "15.0.0",
           "Microsoft.Extensions.Configuration.Binder": "1.1.0",
           "Microsoft.NETCore.Portable.Compatibility": "1.0.1",
           "NETStandard.Library": "1.6.1",
           "System.IdentityModel.Tokens.Jwt": "5.1.2",
-          "WopiHost.Abstractions": "1.0.0",
-          "WopiHost.Discovery": "1.0.0"
+          "WopiHost.Abstractions": "1.0.0"
         },
         "compile": {
           "netstandard1.6/WopiHost.Core.dll": {}
         },
         "runtime": {
           "netstandard1.6/WopiHost.Core.dll": {}
-        }
-      },
-      "WopiHost.Discovery/1.0.0": {
-        "type": "project",
-        "framework": ".NETStandard,Version=v1.3",
-        "dependencies": {
-          "NETStandard.Library": "1.6.1"
-        },
-        "compile": {
-          "netstandard1.3/WopiHost.Discovery.dll": {}
-        },
-        "runtime": {
-          "netstandard1.3/WopiHost.Discovery.dll": {}
         }
       },
       "WopiHost.FileSystemProvider/1.0.0": {
@@ -5255,6 +5231,21 @@
           "netstandard1.3/WopiHost.Abstractions.dll": {}
         }
       },
+      "WopiHost.Cobalt/1.0.0": {
+        "type": "project",
+        "framework": ".NETFramework,Version=v4.6",
+        "dependencies": {
+          "Microsoft.CobaltCore": "15.0.0",
+          "NETStandard.Library": "1.6.1",
+          "WopiHost.Abstractions": "1.0.0"
+        },
+        "compile": {
+          "net46/WopiHost.Cobalt.dll": {}
+        },
+        "runtime": {
+          "net46/WopiHost.Cobalt.dll": {}
+        }
+      },
       "WopiHost.Core/1.0.0": {
         "type": "project",
         "framework": ".NETFramework,Version=v4.6",
@@ -5262,32 +5253,17 @@
           "Microsoft.AspNetCore.Identity": "1.1.0",
           "Microsoft.AspNetCore.Mvc.Core": "1.1.1",
           "Microsoft.AspNetCore.Mvc.Formatters.Json": "1.1.1",
-          "Microsoft.CobaltCore": "15.0.0",
           "Microsoft.Extensions.Configuration.Binder": "1.1.0",
           "Microsoft.NETCore.Portable.Compatibility": "1.0.1",
           "NETStandard.Library": "1.6.1",
           "System.IdentityModel.Tokens.Jwt": "5.1.2",
-          "WopiHost.Abstractions": "1.0.0",
-          "WopiHost.Discovery": "1.0.0"
+          "WopiHost.Abstractions": "1.0.0"
         },
         "compile": {
           "net46/WopiHost.Core.dll": {}
         },
         "runtime": {
           "net46/WopiHost.Core.dll": {}
-        }
-      },
-      "WopiHost.Discovery/1.0.0": {
-        "type": "project",
-        "framework": ".NETStandard,Version=v1.3",
-        "dependencies": {
-          "NETStandard.Library": "1.6.1"
-        },
-        "compile": {
-          "netstandard1.3/WopiHost.Discovery.dll": {}
-        },
-        "runtime": {
-          "netstandard1.3/WopiHost.Discovery.dll": {}
         }
       },
       "WopiHost.FileSystemProvider/1.0.0": {
@@ -11358,15 +11334,15 @@
       "path": "../WopiHost.Abstractions/project.json",
       "msbuildProject": "../WopiHost.Abstractions/WopiHost.Abstractions.xproj"
     },
+    "WopiHost.Cobalt/1.0.0": {
+      "type": "project",
+      "path": "../WopiHost.Cobalt/project.json",
+      "msbuildProject": "../WopiHost.Cobalt/WopiHost.Cobalt.xproj"
+    },
     "WopiHost.Core/1.0.0": {
       "type": "project",
       "path": "../WopiHost.Core/project.json",
       "msbuildProject": "../WopiHost.Core/WopiHost.Core.xproj"
-    },
-    "WopiHost.Discovery/1.0.0": {
-      "type": "project",
-      "path": "../WopiHost.Discovery/project.json",
-      "msbuildProject": "../WopiHost.Discovery/WopiHost.Discovery.xproj"
     },
     "WopiHost.FileSystemProvider/1.0.0": {
       "type": "project",
@@ -11399,7 +11375,9 @@
     ".NETCoreApp,Version=v1.0": [
       "Microsoft.NETCore.App >= 1.0.1"
     ],
-    ".NETFramework,Version=v4.6": []
+    ".NETFramework,Version=v4.6": [
+      "WopiHost.Cobalt >= 1.0.0-*"
+    ]
   },
   "tools": {},
   "projectFileToolGroups": {}

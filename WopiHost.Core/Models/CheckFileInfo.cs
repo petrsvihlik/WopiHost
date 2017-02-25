@@ -121,9 +121,9 @@
 
         public bool SupportsDeleteFile { get; set; }
 
-        public string UserInfo { get; set; }
-
         public bool SupportsUserInfo { get; set; }
+
+        public string UserInfo { get; set; }
 
         public string TenantId { get; set; }
 

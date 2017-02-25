@@ -6,12 +6,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using WopiHost.Abstractions;
-using WopiHost.Core.Cobalt;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
 using WopiHost.Core.Security;
-using WopiHost.Discovery;
-using WopiHost.Discovery.Enumerations;
 
 namespace WopiHost.Core.Controllers
 {
@@ -23,7 +20,18 @@ namespace WopiHost.Core.Controllers
     {
         private readonly IAuthorizationService _authorizationService;
 
-        private WopiDiscoverer _wopiDiscoverer;
+        public ICobaltProcessor CobaltProcessor { get; set; }
+
+        private HostCapabilities HostCapabilities => new HostCapabilities
+        {
+            SupportsCobalt = CobaltProcessor != null,
+            SupportsGetLock = true,
+            SupportsLocks = true,
+            SupportsExtendedLockLength = true,
+            SupportsFolders = true,//?
+            SupportsCoauth = true,//?
+            SupportsUpdate = nameof(PutFile) != null //&& PutRelativeFile
+        };
 
         /// <summary>
         /// Collection holding information about locks. Should be persistant.
@@ -32,40 +40,11 @@ namespace WopiHost.Core.Controllers
 
         private string WopiOverrideHeader => HttpContext.Request.Headers[WopiHeaders.WopiOverride];
 
-
-        private WopiDiscoverer WopiDiscoverer
-        {
-            get { return _wopiDiscoverer ?? (_wopiDiscoverer = new WopiDiscoverer(new HttpDiscoveryFileProvider(Configuration.GetValue("WopiClientUrl", string.Empty)))); }
-        }
-
-        public FilesController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration, IAuthorizationService authorizationService, IDictionary<string, LockInfo> lockStorage) : base(storageProvider, securityHandler, configuration)
+        public FilesController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration, IAuthorizationService authorizationService, IDictionary<string, LockInfo> lockStorage, ICobaltProcessor cobaltProcessor = null) : base(storageProvider, securityHandler, configuration)
         {
             _authorizationService = authorizationService;
             LockStorage = lockStorage;
-        }
-
-        private async Task<IEditSession> GetEditSessionAsync(string fileId)
-        {
-            var sessionId = fileId;
-            IEditSession editSession = SessionManager.Current.GetSession(sessionId);
-
-            if (editSession == null)
-            {
-                IWopiFile file = StorageProvider.GetWopiFile(fileId);
-
-                //TODO: get rid of sessions, make cobalt optional, set up capabilities instead of the check
-                if (await WopiDiscoverer.RequiresCobaltAsync(file.Extension, WopiActionEnum.Edit))//|| file.Extension == "docx")
-                {
-                    editSession = new CobaltSession(file, sessionId, HttpContext.User);
-                }
-                else
-                {
-                    editSession = new FileSession(file, sessionId, HttpContext.User);
-                }
-                SessionManager.Current.AddSession(editSession);
-            }
-
-            return editSession;
+            CobaltProcessor = cobaltProcessor;
         }
 
         /// <summary>
@@ -82,7 +61,7 @@ namespace WopiHost.Core.Controllers
             {
                 return Unauthorized();
             }
-            return new JsonResult((await GetEditSessionAsync(id))?.GetCheckFileInfo());
+            return new JsonResult(StorageProvider.GetWopiFile(id)?.GetCheckFileInfo(HttpContext.User, HostCapabilities));
         }
 
         /// <summary>
@@ -101,26 +80,18 @@ namespace WopiHost.Core.Controllers
                 return Unauthorized();
             }
 
-            // Get session
-            var editSession = await GetEditSessionAsync(id);
+            // Get file
+            var file = StorageProvider.GetWopiFile(id);
 
             // Check expected size
             int? maximumExpectedSize = HttpContext.Request.Headers[WopiHeaders.MaxExpectedSize].ToString().ToNullableInt();
-            if (maximumExpectedSize != null && editSession.GetCheckFileInfo().Size > maximumExpectedSize.Value)
+            if (maximumExpectedSize != null && file.GetCheckFileInfo(HttpContext.User, HostCapabilities).Size > maximumExpectedSize.Value)
             {
                 return new PreconditionFailedResult();
             }
 
-            try
-            {
-                // Try to read content from a stream
-                return new FileStreamResult(editSession.GetFileStream(), "application/octet-stream");
-            }
-            catch (NotImplementedException)
-            {
-                // Try to read content from a byte array
-                return new FileContentResult(editSession.GetFileContent(), "application/octet-stream");
-            }
+            // Try to read content from a stream
+            return new FileStreamResult(file.GetReadStream(), "application/octet-stream");
         }
 
         /// <summary>
@@ -145,11 +116,16 @@ namespace WopiHost.Core.Controllers
 
             if (lockResult is OkResult)
             {
-                // Get session
-                var editSession = await GetEditSessionAsync(id);
+                // Get file
+                var file = StorageProvider.GetWopiFile(id);
 
                 // Save file contents
-                editSession.SetFileContent(await HttpContext.Request.Body.ReadBytesAsync());
+                var newContent = await HttpContext.Request.Body.ReadBytesAsync();
+                using (var stream = file.GetWriteStream())
+                {
+                    stream.Write(newContent, 0, newContent.Length);
+                }
+
                 return new OkResult();
             }
             return lockResult;
@@ -172,12 +148,12 @@ namespace WopiHost.Core.Controllers
                 return Unauthorized();
             }
 
-            var editSession = await GetEditSessionAsync(id);
+            var file = StorageProvider.GetWopiFile(id);
 
             switch (WopiOverrideHeader)
             {
                 case "COBALT":
-                    var responseAction = editSession.SetFileContent(await HttpContext.Request.Body.ReadBytesAsync());
+                    var responseAction = CobaltProcessor.ProcessCobalt(file, HttpContext.User, await HttpContext.Request.Body.ReadBytesAsync());
                     HttpContext.Response.Headers.Add(WopiHeaders.CorrelationId, HttpContext.Request.Headers[WopiHeaders.CorrelationId]);
                     HttpContext.Response.Headers.Add("request-id", HttpContext.Request.Headers[WopiHeaders.CorrelationId]);
                     return new Results.FileResult(responseAction, "application/octet-stream");
