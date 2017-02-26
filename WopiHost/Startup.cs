@@ -75,7 +75,7 @@ namespace WopiHost
 #if NET46
             // Load cobalt when running under the full .NET Framework
             var cobaltAssembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName("WopiHost.Cobalt"));
-            services.AddTransient<ICobaltProcessor, Cobalt.CobaltProcessor>();
+            builder.RegisterAssemblyTypes(cobaltAssembly).AsImplementedInterfaces();
 
             // Load file provider
             var assembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName(providerAssembly));
