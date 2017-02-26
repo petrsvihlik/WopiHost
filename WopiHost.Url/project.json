@@ -1,8 +1,11 @@
 {
 	"authors": [ "Petr Svihlik" ],
-	"dependencies": {
-		"WopiHost.Discovery": "1.0.0-*"
-	},
+  "dependencies": {
+    "System.Globalization": "4.3.0",
+    "System.Runtime.Extensions": "4.3.0",
+    "System.Text.RegularExpressions": "4.3.0",
+    "WopiHost.Discovery": "1.0.0-*"
+  },
 	"description": "WopiHost.Url Class Library",
 	"frameworks": {
 		"netstandard1.3": {

@@ -1,7 +1,11 @@
 {
   "authors": [ "Petr Svihlik" ],
   "dependencies": {
-    "NETStandard.Library": "1.6.1"
+    "System.IO.FileSystem": "4.3.0",
+    "System.Linq": "4.3.0",
+    "System.Net.Http": "4.3.1",
+    "System.Runtime.InteropServices": "4.3.0",
+    "System.Xml.XDocument": "4.3.0"
   },
   "description": "WopiHost.Discovery Class Library",
   "frameworks": {
