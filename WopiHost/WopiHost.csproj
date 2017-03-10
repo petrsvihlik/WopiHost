@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Autofac" Version="4.3.0" />
+    <PackageReference Include="Autofac" Version="4.4.0" />
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="4.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="1.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics" Version="1.1.1" />
