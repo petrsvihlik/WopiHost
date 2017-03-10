@@ -11,6 +11,10 @@ init:
   
 install:
  - cmd: nuget sources add -Name api.nuget.org -Source https://api.nuget.org/v3/index.json
+ - ps: Write-Host "Downloading latest .NET Core SDK..."
+ - ps:(new-object net.webclient).DownloadFile('https://go.microsoft.com/fwlink/?linkid=843448', 'dotnet-core-sdk.exe')
+ - ps:Write-Host "Installing .NET Core SDK..."
+ - ps:Invoke-Command -ScriptBlock { ./dotnet-core-sdk.exe /S /v/qn }
  - nuget sources add -Name wopi -Source %nuget_feed%
  - "python.exe -m pip install codecov"
 
@@ -30,6 +34,8 @@ test_script:
     choco install opencover.portable -y
 
     ForEach ($folder in (Get-ChildItem -Path .\ -Directory -Filter *.Tests)) { 
+    
+    Write-Host $folder.FullName
 
     dotnet test $folder.FullName -xml ($folder.FullName + "\xunit-results.xml") 
 
