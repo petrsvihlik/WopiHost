@@ -14,7 +14,7 @@ install:
  - ps: Write-Host "Downloading latest .NET Core SDK..."
  - ps: (new-object net.webclient).DownloadFile('https://go.microsoft.com/fwlink/?linkid=843448', 'dotnet-core-sdk.exe')
  - ps: Write-Host "Installing .NET Core SDK..."
- - ps: dotnet-core-sdk.exe /quiet /norestart
+ - ps: Start-Process "dotnet-core-sdk.exe" "/quiet /norestart" -Wait
  - nuget sources add -Name wopi -Source %nuget_feed%
  - "python.exe -m pip install codecov"
 
