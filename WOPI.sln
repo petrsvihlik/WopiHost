@@ -1,45 +1,44 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.4
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost", "WopiHost\WopiHost.xproj", "{21B81530-CC57-46F1-9524-08F984187DE2}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{785E1533-48CE-4B5E-8C59-D6F1FDA8C45C}"
 	ProjectSection(SolutionItems) = preProject
 		appveyor.yml = appveyor.yml
-		global.json = global.json
 		LICENSE.txt = LICENSE.txt
 		NOTICE.txt = NOTICE.txt
 		ORIGINAL_WORK_LICENSE.txt = ORIGINAL_WORK_LICENSE.txt
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Discovery", "WopiHost.Discovery\WopiHost.Discovery.xproj", "{84B896D2-1A87-4671-B583-92A6AF3645F0}"
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Abstractions", "WopiHost.Abstractions\WopiHost.Abstractions.xproj", "{D3B3947E-94DD-4FCD-BDDC-4E579ACF9B5B}"
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.FileSystemProvider", "WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.xproj", "{3B756B87-FEA9-4DF9-91F3-8D91373C27AA}"
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Url", "WopiHost.Url\WopiHost.Url.xproj", "{64A6F7C1-8864-4D1A-A039-0E59D06274E1}"
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.FileSystemProvider.Tests", "WopiHost.FileSystemProvider.Tests\WopiHost.FileSystemProvider.Tests.xproj", "{650A5A85-5956-491E-9312-5E25A27D1108}"
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Web", "WopiHost.Web\WopiHost.Web.xproj", "{5C301182-6FB2-40C5-97ED-58B07A910BFF}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Microsoft.CobaltCore", "Microsoft.CobaltCore", "{F66706B6-D7DD-48FB-963C-870B3D611500}"
 	ProjectSection(SolutionItems) = preProject
 		Microsoft.CobaltCore\Microsoft.CobaltCore.15.0.4557.1000.nuspec = Microsoft.CobaltCore\Microsoft.CobaltCore.15.0.4557.1000.nuspec
 	EndProjectSection
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Discovery.Tests", "WopiHost.Discovery.Tests\WopiHost.Discovery.Tests.xproj", "{4089410A-8A12-455C-862B-A4A3834C3100}"
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Url.Tests", "WopiHost.Url.Tests\WopiHost.Url.Tests.xproj", "{9FFB3975-2DE6-4944-92C7-7062C39BB8FA}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B692B58D-1720-49A8-9CB8-5562894618F6}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Core", "WopiHost.Core\WopiHost.Core.xproj", "{C456339E-ED69-4A18-873B-5E9DAAC26C8B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost", "WopiHost\WopiHost.csproj", "{21B81530-CC57-46F1-9524-08F984187DE2}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "WopiHost.Cobalt", "WopiHost.Cobalt\WopiHost.Cobalt.xproj", "{5195E64C-B991-4B1F-BC5C-8DA3281CB559}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Discovery", "WopiHost.Discovery\WopiHost.Discovery.csproj", "{84B896D2-1A87-4671-B583-92A6AF3645F0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Abstractions", "WopiHost.Abstractions\WopiHost.Abstractions.csproj", "{D3B3947E-94DD-4FCD-BDDC-4E579ACF9B5B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.FileSystemProvider", "WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj", "{3B756B87-FEA9-4DF9-91F3-8D91373C27AA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Url", "WopiHost.Url\WopiHost.Url.csproj", "{64A6F7C1-8864-4D1A-A039-0E59D06274E1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.FileSystemProvider.Tests", "WopiHost.FileSystemProvider.Tests\WopiHost.FileSystemProvider.Tests.csproj", "{650A5A85-5956-491E-9312-5E25A27D1108}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Web", "WopiHost.Web\WopiHost.Web.csproj", "{5C301182-6FB2-40C5-97ED-58B07A910BFF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Discovery.Tests", "WopiHost.Discovery.Tests\WopiHost.Discovery.Tests.csproj", "{4089410A-8A12-455C-862B-A4A3834C3100}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Url.Tests", "WopiHost.Url.Tests\WopiHost.Url.Tests.csproj", "{9FFB3975-2DE6-4944-92C7-7062C39BB8FA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Core", "WopiHost.Core\WopiHost.Core.csproj", "{C456339E-ED69-4A18-873B-5E9DAAC26C8B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Cobalt", "WopiHost.Cobalt\WopiHost.Cobalt.csproj", "{5195E64C-B991-4B1F-BC5C-8DA3281CB559}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -142,8 +141,8 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{650A5A85-5956-491E-9312-5E25A27D1108} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 		{F66706B6-D7DD-48FB-963C-870B3D611500} = {785E1533-48CE-4B5E-8C59-D6F1FDA8C45C}
+		{650A5A85-5956-491E-9312-5E25A27D1108} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 		{4089410A-8A12-455C-862B-A4A3834C3100} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 		{9FFB3975-2DE6-4944-92C7-7062C39BB8FA} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 	EndGlobalSection

@@ -1,0 +1,26 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit http://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+<form id="office_form" name="office_form" target="office_frame"
+      action="<OFFICE_ONLINE_ACTION_URL>" method="post">
+    <input name="access_token" value="<ACCESS_TOKEN_VALUE>" type="hidden" />
+    <input name="access_token_ttl" value="<ACCESS_TOKEN_TTL_VALUE>" type="hidden" />
+</form>
+
+<span id="frameholder"></span>
+
+<script type="text/javascript">
+    var frameholder = document.getElementById('frameholder');
+    var office_frame = document.createElement('iframe');
+    office_frame.name = 'office_frame';
+    office_frame.id ='office_frame';
+    // The title should be set for accessibility
+    office_frame.title = 'Office Online Frame';
+    // This attribute allows true fullscreen mode in slideshow view
+    // when using PowerPoint Online's 'view' action.
+    office_frame.setAttribute('allowfullscreen', 'true');
+    frameholder.appendChild(office_frame);
+    document.getElementById('office_form').submit();
+</script>

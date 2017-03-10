@@ -8,9 +8,9 @@ namespace WopiHost
 	{
 		public static void Main(string[] args)
 		{
-			//TODO:unify with startup (config required for URLs)
+			// Get hosting URL configuration
 			var config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
-				.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).AddEnvironmentVariables().Build();
+				.AddJsonFile("appsettings.json", true, true).AddEnvironmentVariables().Build();
 			
 			var host = new WebHostBuilder().UseConfiguration(config)
 				.UseKestrel()

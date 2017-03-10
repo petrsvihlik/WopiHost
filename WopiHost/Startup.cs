@@ -28,13 +28,15 @@ namespace WopiHost
 		public Startup(IHostingEnvironment env)
 		{
 			var appEnv = PlatformServices.Default.Application;
-			var builder = new ConfigurationBuilder().SetBasePath(env.ContentRootPath)
-				.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).
-				AddInMemoryCollection(new Dictionary<string, string>
+
+			var builder = new ConfigurationBuilder()
+				.SetBasePath(env.ContentRootPath)
+				.AddJsonFile("appsettings.json", true, true)
+				.AddInMemoryCollection(new Dictionary<string, string>
 					{ { nameof(env.WebRootPath), env.WebRootPath },
 					{ nameof(appEnv.ApplicationBasePath), appEnv.ApplicationBasePath } })
-				.AddJsonFile($"config.{env.EnvironmentName}.json", optional: true).
-				AddEnvironmentVariables();
+				.AddJsonFile($"config.{env.EnvironmentName}.json", true)
+				.AddEnvironmentVariables();
 
 			if (env.IsDevelopment())
 			{
@@ -73,22 +75,22 @@ namespace WopiHost
 			// File provider implementation
 			var providerAssembly = Configuration.GetValue("WopiFileProviderAssemblyName", string.Empty);
 #if NET46
-            // Load cobalt when running under the full .NET Framework
-            var cobaltAssembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName("WopiHost.Cobalt"));
-            builder.RegisterAssemblyTypes(cobaltAssembly).AsImplementedInterfaces();
+			// Load cobalt when running under the full .NET Framework
+			var cobaltAssembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName("WopiHost.Cobalt"));
+			builder.RegisterAssemblyTypes(cobaltAssembly).AsImplementedInterfaces();
 
-            // Load file provider
-            var assembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName(providerAssembly));
+			// Load file provider
+			var assembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName(providerAssembly));
 #endif
 
 #if NETCOREAPP1_0
-            // Load file provider
+			// Load file provider
 			var path = PlatformServices.Default.Application.ApplicationBasePath;
 			var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath(path + "\\" + providerAssembly + ".dll");
 #endif
-            builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
+			builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
 
-            builder.Populate(services);
+			builder.Populate(services);
 			_container = builder.Build();
 			return new AutofacServiceProvider(_container);//_container.Resolve<IServiceProvider>();
 		}
