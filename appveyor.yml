@@ -8,12 +8,12 @@ skip_commits:
 
 init:
   - git config --global core.autocrlf true
-  
+# For debugging purposes (RDP)
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   
 install:
  - cmd: nuget sources add -Name api.nuget.org -Source https://api.nuget.org/v3/index.json
- - ps: .\Install-Net-Core.ps1
+# - ps: .\Install-Net-Core.ps1
  - nuget sources add -Name wopi -Source %nuget_feed%
  - "python.exe -m pip install codecov"
 
@@ -33,18 +33,18 @@ test_script:
     choco install opencover.portable -y
 
     ForEach ($folder in (Get-ChildItem -Path .\ -Directory -Filter *.Tests)) { 
+
+    $project = Get-ChildItem -Path ($folder.FullName+"\*.csproj") | Select-Object -First 1
+
+    dotnet test $project.FullName #-xml ($folder.FullName + "\xunit-results.xml") 
+
+    #$openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
     
-    Write-Host $folder.FullName
+    #$targetArgs = '-targetargs: test ' + $folder.FullName + ' -c ' + $ENV:CONFIGURATION
 
-    dotnet test $folder.FullName -xml ($folder.FullName + "\xunit-results.xml") 
+    #$filter = '-filter:+[Wopi*]*-[*Tests]*'
 
-    $openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
-    
-    $targetArgs = '-targetargs: test ' + $folder.FullName + ' -c ' + $ENV:CONFIGURATION
-
-    $filter = '-filter:+[Wopi*]*-[*Tests]*'
-
-    & $openCover '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' ('-output:' + $ENV:APPVEYOR_BUILD_FOLDER + '\coverage.xml')
+    #& $openCover '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' ('-output:' + $ENV:APPVEYOR_BUILD_FOLDER + '\coverage.xml')
     
     }
 
