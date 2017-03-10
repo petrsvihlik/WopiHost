@@ -7,6 +7,8 @@ skip_commits:
 init:
   - git config --global core.autocrlf true
   
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  
 install:
  - cmd: nuget sources add -Name api.nuget.org -Source https://api.nuget.org/v3/index.json
  - nuget sources add -Name wopi -Source %nuget_feed%
