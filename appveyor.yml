@@ -36,15 +36,15 @@ test_script:
 
     $project = Get-ChildItem -Path ($folder.FullName+"\*.csproj") | Select-Object -First 1
 
-    dotnet test $project.FullName #-xml ($folder.FullName + "\xunit-results.xml") 
+    dotnet test $project.FullName ("--logger:trx;LogFileName=" + $folder.FullName + "\xunit-results.xml") 
 
-    #$openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
+    $openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
     
-    #$targetArgs = '-targetargs: test ' + $folder.FullName + ' -c ' + $ENV:CONFIGURATION
+    $targetArgs = '-targetargs: test ' + $folder.FullName + ' -c ' + $ENV:CONFIGURATION
 
-    #$filter = '-filter:+[Wopi*]*-[*Tests]*'
+    $filter = '-filter:+[Wopi*]*-[*Tests]*'
 
-    #& $openCover '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' ('-output:' + $ENV:APPVEYOR_BUILD_FOLDER + '\coverage.xml')
+    & $openCover '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' ('-output:' + $ENV:APPVEYOR_BUILD_FOLDER + '\coverage.xml')
     
     }
 
