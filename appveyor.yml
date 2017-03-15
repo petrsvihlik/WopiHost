@@ -35,12 +35,14 @@ test_script:
     ForEach ($folder in (Get-ChildItem -Path .\ -Directory -Filter *.Tests)) { 
 
     $project = Get-ChildItem -Path ($folder.FullName+"\*.csproj") | Select-Object -First 1
+    
+    $logger = ("--logger:trx;LogFileName=" + $folder.FullName + "\xunit-results.xml")
 
-    dotnet test $project.FullName ("--logger:trx;LogFileName=" + $folder.FullName + "\xunit-results.xml") 
+    dotnet test $project.FullName $logger
 
     $openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
     
-    $targetArgs = '-targetargs: test ' + $folder.FullName + ' -c ' + $ENV:CONFIGURATION
+    $targetArgs = '-targetargs: test ' + $project.FullName + ' ' + $folder.FullName + ' -c ' + $ENV:CONFIGURATION + ' ' + $logger
 
     $filter = '-filter:+[Wopi*]*-[*Tests]*'
 
