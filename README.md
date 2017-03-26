@@ -24,7 +24,7 @@ Usage
 
 Prerequisites
 -------------
- - [Visual Studio 2015](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) + [ASP.NET Core 1.0](https://blogs.msdn.microsoft.com/webdev/2016/06/27/announcing-asp-net-core-1-0/)
+ - [Visual Studio 2017 with the .NET Core workload](https://www.microsoft.com/net/core)
 
 Building the app
 ----------------
