@@ -11,8 +11,8 @@ namespace WopiHost.Core.Controllers
 	[Route("wopi/[controller]")]
 	public class EcosystemController : WopiControllerBase
 	{
-
-		public EcosystemController(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration) : base(fileProvider, securityHandler, configuration)
+		public EcosystemController(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration) 
+            : base(fileProvider, securityHandler, configuration)
 		{
 		}
 
@@ -32,7 +32,7 @@ namespace WopiHost.Core.Controllers
 				ContainerPointer = new ChildContainer
 				{
 					Name = root.Name,
-					Url = GetChildUrl("containers", root.Identifier, AccessToken)
+					Url = GetWopiUrl("containers", root.Identifier, AccessToken)
 				}
 			};
 			return rc;

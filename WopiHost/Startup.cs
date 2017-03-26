@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
@@ -9,111 +8,82 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.PlatformAbstractions;
-using Microsoft.AspNetCore.Authorization;
-using Newtonsoft.Json.Serialization;
 using WopiHost.Abstractions;
-using WopiHost.Core.Controllers;
+using WopiHost.Core;
 using WopiHost.Core.Models;
-using WopiHost.Core.Security.Authentication;
-using WopiHost.Core.Security.Authorization;
 
 namespace WopiHost
 {
-	public class Startup
-	{
-		public IConfigurationRoot Configuration { get; set; }
+    public class Startup
+    {
+        public IConfigurationRoot Configuration { get; set; }
 
-		private IContainer _container;
+        private IContainer _container;
 
-		public Startup(IHostingEnvironment env)
-		{
-			var appEnv = PlatformServices.Default.Application;
+        public Startup(IHostingEnvironment env)
+        {
+            var appEnv = PlatformServices.Default.Application;
 
-			var builder = new ConfigurationBuilder()
-				.SetBasePath(env.ContentRootPath)
-				.AddJsonFile("appsettings.json", true, true)
-				.AddInMemoryCollection(new Dictionary<string, string>
-					{ { nameof(env.WebRootPath), env.WebRootPath },
-					{ nameof(appEnv.ApplicationBasePath), appEnv.ApplicationBasePath } })
-				.AddJsonFile($"config.{env.EnvironmentName}.json", true)
-				.AddEnvironmentVariables();
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(env.ContentRootPath)
+                .AddJsonFile("appsettings.json", true, true)
+                .AddInMemoryCollection(new Dictionary<string, string>
+                    { { nameof(env.WebRootPath), env.WebRootPath },
+                    { nameof(appEnv.ApplicationBasePath), appEnv.ApplicationBasePath } })
+                .AddJsonFile($"config.{env.EnvironmentName}.json", true)
+                .AddEnvironmentVariables();
 
-			if (env.IsDevelopment())
-			{
-				// Override with user secrets (http://go.microsoft.com/fwlink/?LinkID=532709)
-				builder.AddUserSecrets<Startup>();
-			}
-			Configuration = builder.Build();
-		}
+            if (env.IsDevelopment())
+            {
+                // Override with user secrets (http://go.microsoft.com/fwlink/?LinkID=532709)
+                builder.AddUserSecrets<Startup>();
+            }
+            Configuration = builder.Build();
+        }
 
-		/// <summary>
-		/// Sets up the DI container. Loads types dynamically (http://docs.autofac.org/en/latest/register/scanning.html)
-		/// </summary>
-		public IServiceProvider ConfigureServices(IServiceCollection services)
-		{
-			services.AddAuthorization();
+        /// <summary>
+        /// Sets up the DI container. Loads types dynamically (http://docs.autofac.org/en/latest/register/scanning.html)
+        /// </summary>
+        public IServiceProvider ConfigureServices(IServiceCollection services)
+        {
+            // Ideally, pass a persistant dictionary implementation
+            services.AddSingleton<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
+            
+            // Add WOPI
+            services.AddWopi();
 
-			// Add authorization handler-
-			services.AddSingleton<IAuthorizationHandler, WopiAuthorizationHandler>();
+            // Autofac resolution
+            var builder = new ContainerBuilder();
 
-			// Ideally, pass a persistant dictionary implementation
-			services.AddSingleton<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
+            // Configuration
+            builder.RegisterInstance(Configuration).As<IConfiguration>().SingleInstance();
 
-			services.AddMvcCore()
-				.AddApplicationPart(typeof(FilesController).GetTypeInfo().Assembly)
-				.AddJsonFormatters()
-				.AddJsonOptions(options =>
-				{
-					options.SerializerSettings.ContractResolver = new DefaultContractResolver();
-				});
+            // Add cobalt
+            builder.AddCobalt();
 
-			// Autofac resolution
-			var builder = new ContainerBuilder();
+            // Add file provider implementation
+            builder.AddFileProvider(Configuration);
 
-			// Configuration
-			builder.RegisterInstance(Configuration).As<IConfiguration>().SingleInstance();
-			// File provider implementation
-			var providerAssembly = Configuration.GetValue("WopiFileProviderAssemblyName", string.Empty);
-#if NET46
-			// Load cobalt when running under the full .NET Framework
-			var cobaltAssembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName("WopiHost.Cobalt"));
-			builder.RegisterAssemblyTypes(cobaltAssembly).AsImplementedInterfaces();
-
-			// Load file provider
-			var assembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName(providerAssembly));
-#endif
-
-#if NETCOREAPP1_0
-			// Load file provider
-			var path = PlatformServices.Default.Application.ApplicationBasePath;
-			var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath(path + "\\" + providerAssembly + ".dll");
-#endif
-			builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
-
-			builder.Populate(services);
-			_container = builder.Build();
-			return new AutofacServiceProvider(_container);//_container.Resolve<IServiceProvider>();
-		}
+            builder.Populate(services);
+            _container = builder.Build();
+            return new AutofacServiceProvider(_container);//_container.Resolve<IServiceProvider>();
+        }
 
 
-		// Configure is called after ConfigureServices is called.
-		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
-		{
-			loggerFactory.AddConsole(Configuration.GetSection("Logging"));
-			loggerFactory.AddDebug();
+        /// <summary>
+        /// Configure is called after ConfigureServices is called.
+        /// </summary>
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        {
+            loggerFactory.AddConsole(Configuration.GetSection("Logging"));
+            loggerFactory.AddDebug();
 
-			if (env.IsDevelopment())
-			{
-				app.UseDeveloperExceptionPage();
-			}
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
 
-			app.UseAccessTokenAuthentication(new AccessTokenAuthenticationOptions
-			{
-				SecurityHandler = _container.Resolve<IWopiSecurityHandler>()
-			});
-
-			// Add MVC to the request pipeline.
-			app.UseMvc();
-		}
-	}
+            app.UseWopi(_container.Resolve<IWopiSecurityHandler>()).UseMvc();
+        }
+    }
 }

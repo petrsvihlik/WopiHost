@@ -18,5 +18,11 @@
 
 	    public const string MaxExpectedSize = "X-WOPI-MaxExpectedSize";
 
+	    public const string WopiSrc = "X-WOPI-WopiSrc";
+
+	    public const string EcosystemOperation = "X-WOPI-EcosystemOperation";
+
+
+
 	}
 }

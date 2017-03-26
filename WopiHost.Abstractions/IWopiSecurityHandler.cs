@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
 
 namespace WopiHost.Abstractions
 {
@@ -8,16 +9,20 @@ namespace WopiHost.Abstractions
 	/// </summary>
 	public interface IWopiSecurityHandler
 	{
-		/// <summary>
-		/// Generates authorization token for the given value.
-		/// </summary>
-		/// <param name="value"></param>
-		/// <returns>Authorization token</returns>
-		string GenerateAccessToken(string value);
+	    /// <summary>
+	    /// Generates authorization token for the given value.
+	    /// </summary>
+	    /// <returns>Authorization token</returns>
+	    SecurityToken GenerateAccessToken(string user, string resourceId);
 
 		ClaimsPrincipal GetPrincipal(string token);
 
 
-		bool IsAuthorized(ClaimsPrincipal principal, string resource, IAuthorizationRequirement operation);
-	}
+		bool IsAuthorized(ClaimsPrincipal principal, string resourceId, IAuthorizationRequirement operation);
+
+	    /// <summary>
+	    /// Converts the security token to a Base64 string.
+	    /// </summary>
+	    string WriteToken(SecurityToken token);
+    }
 }

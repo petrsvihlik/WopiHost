@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using WopiHost.Discovery;
@@ -36,22 +38,21 @@ namespace WopiHost.Web.Controllers
             Configuration = configuration;
         }
 
-        public async Task<ActionResult> Index([FromQuery]string url)
+        public async Task<ActionResult> Index([FromQuery]string containerUrl)
         {
-            //TODO: add proper access tokens
-
-            if (string.IsNullOrEmpty(url))
+            if (string.IsNullOrEmpty(containerUrl))
             {
                 //TODO: root folder id http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/GetRootContainer.html?highlight=EnumerateChildren (use ecosystem controller)
                 string containerId = Uri.EscapeDataString(Convert.ToBase64String(Encoding.UTF8.GetBytes(".\\")));
-                var token = "xyz";//"eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhbm9ueW1vdXMiLCJlbWFpbCI6Im5hbWVAZG9tYWluLnRsZCIsImp0aSI6IjZkYjNhY2M5LWFiNGYtNGExNS1hZjk1LTMyZDcwZmZiNDNiOSIsImlhdCI6IjE0ODQ1MDY3NTguMDExMTQiLCJuYmYiOjE0ODQ1MDY3NTgsImV4cCI6MTQ4NTgyMDc1OCwiaXNzIjoidG9kbyJ9.";
-                url = $"{WopiHostUrl}/wopi/containers/{containerId}/children?access_token={token}";
+                string rootContainerUrl = $"{WopiHostUrl}/wopi/containers/{containerId}";
+                containerUrl = rootContainerUrl;
             }
 
-            //todo: get the stuff from checkfileinfo
+            var token = (await GetAccessToken(containerUrl)).AccessToken;
+
             try
             {
-                dynamic data = await GetDataAsync(url);
+                dynamic data = await GetDataAsync(containerUrl + $"/children?access_token={token}");
                 foreach (var file in data.ChildFiles)
                 {
                     string fileUrl = file.Url.ToString();
@@ -80,15 +81,25 @@ namespace WopiHost.Web.Controllers
 
         public async Task<ActionResult> Detail(string id)
         {
-            string token = "xyz";
             string url = $"{WopiHostUrl}/wopi/files/{id}";
-            dynamic fileDetails = await GetDataAsync(url);
-            ViewData["access_token"] = token;
-            //ViewData["access_token_ttl"] = token.ValidTo.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
+            var tokenInfo = await GetAccessToken(url);
+            
+            ViewData["access_token"] = tokenInfo.AccessToken;
+            //TODO: fix
+            //ViewData["access_token_ttl"] = tokenInfo.AccessTokenExpiry;
+
+            dynamic fileDetails = await GetDataAsync(url + $"?access_token={tokenInfo.AccessToken}");
             var extension = fileDetails.FileExtension.ToString().TrimStart('.');
             ViewData["urlsrc"] = await UrlGenerator.GetFileUrlAsync(extension, url, WopiActionEnum.Edit);
             ViewData["favicon"] = await Discoverer.GetApplicationFavIconAsync(extension);
             return View();
+        }
+
+        private async Task<dynamic> GetAccessToken(string resourceUrl)
+        {
+            var getAccessTokenUrl = $"{WopiHostUrl}/wopibootstrapper";
+            dynamic accessTokenData = await RequestDataAsync(getAccessTokenUrl, HttpMethod.Post, new Dictionary<string, string> { { "X-WOPI-EcosystemOperation", "GET_NEW_ACCESS_TOKEN" }, { "X-WOPI-WopiSrc", resourceUrl } });
+            return accessTokenData.AccessTokenInfo;
         }
 
         private async Task<dynamic> GetDataAsync(string url)
@@ -105,6 +116,27 @@ namespace WopiHost.Web.Controllers
                             return serializer.Deserialize(jsonTextReader);
                         }
                     }
+                }
+            }
+        }
+        private async Task<dynamic> RequestDataAsync(string url, HttpMethod method = null, Dictionary<string, string> headers = null)
+        {
+            method = method ?? HttpMethod.Get;
+            using (HttpClient client = new HttpClient())
+            {
+                HttpRequestMessage requestMessage = new HttpRequestMessage(method, url);
+                if (headers != null)
+                {
+                    foreach (var header in headers)
+                    {
+                        requestMessage.Headers.Add(header.Key, header.Value);
+                    }
+                }
+
+                using (HttpResponseMessage responseMessage = await client.SendAsync(requestMessage))
+                {
+                    string content = await responseMessage.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject(content);
                 }
             }
         }

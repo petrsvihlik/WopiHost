@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -29,6 +30,16 @@ namespace WopiHost.Core
             int i;
             if (int.TryParse(s, out i)) return i;
             return null;
+        }
+
+        /// <summary>
+        /// Converts <see cref="DateTime"/> to UNIX timestamp.
+        /// </summary>
+        public static long ToUnixTimestamp(this DateTime dateTime)
+        {
+            DateTime unixStart = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            long unixTimeStampInTicks = (dateTime.ToUniversalTime() - unixStart).Ticks;
+            return unixTimeStampInTicks / TimeSpan.TicksPerSecond;
         }
     }
 }
