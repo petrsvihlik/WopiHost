@@ -26,11 +26,10 @@ namespace WopiHost.Web.Controllers
         /// </summary>
         public string WopiClientUrl => Configuration.GetValue("WopiClientUrl", string.Empty);
 
-        public WopiUrlBuilder UrlGenerator
-        {
-            //TODO: remove test culture value and load it from configuration SECTION
-            get { return _urlGenerator ?? (_urlGenerator = new WopiUrlBuilder(new WopiDiscoverer(new HttpDiscoveryFileProvider(WopiClientUrl)), new WopiUrlSettings { UI_LLCC = new CultureInfo("en-US") })); }
-        }
+        public WopiDiscoverer Discoverer => new WopiDiscoverer(new HttpDiscoveryFileProvider(WopiClientUrl));
+
+        //TODO: remove test culture value and load it from configuration SECTION
+        public WopiUrlBuilder UrlGenerator => _urlGenerator ?? (_urlGenerator = new WopiUrlBuilder(Discoverer, new WopiUrlSettings { UI_LLCC = new CultureInfo("en-US") }));
 
         public HomeController(IConfiguration configuration)
         {
@@ -45,7 +44,7 @@ namespace WopiHost.Web.Controllers
             {
                 //TODO: root folder id http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/GetRootContainer.html?highlight=EnumerateChildren (use ecosystem controller)
                 string containerId = Uri.EscapeDataString(Convert.ToBase64String(Encoding.UTF8.GetBytes(".\\")));
-                var token = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhbm9ueW1vdXMiLCJlbWFpbCI6Im5hbWVAZG9tYWluLnRsZCIsImp0aSI6IjZkYjNhY2M5LWFiNGYtNGExNS1hZjk1LTMyZDcwZmZiNDNiOSIsImlhdCI6IjE0ODQ1MDY3NTguMDExMTQiLCJuYmYiOjE0ODQ1MDY3NTgsImV4cCI6MTQ4NTgyMDc1OCwiaXNzIjoidG9kbyJ9.";
+                var token = "xyz";//"eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhbm9ueW1vdXMiLCJlbWFpbCI6Im5hbWVAZG9tYWluLnRsZCIsImp0aSI6IjZkYjNhY2M5LWFiNGYtNGExNS1hZjk1LTMyZDcwZmZiNDNiOSIsImlhdCI6IjE0ODQ1MDY3NTguMDExMTQiLCJuYmYiOjE0ODQ1MDY3NTgsImV4cCI6MTQ4NTgyMDc1OCwiaXNzIjoidG9kbyJ9.";
                 url = $"{WopiHostUrl}/wopi/containers/{containerId}/children?access_token={token}";
             }
 
@@ -56,9 +55,14 @@ namespace WopiHost.Web.Controllers
                 foreach (var file in data.ChildFiles)
                 {
                     string fileUrl = file.Url.ToString();
+                    string fileId = fileUrl.Substring($"{WopiHostUrl}/wopi/files/".Length);
+                    fileId = fileId.Substring(0, fileId.IndexOf("?", StringComparison.Ordinal));
+                    fileId = Uri.UnescapeDataString(fileId);
+                    file.Id = fileId;
+
+
                     var fileDetails = await GetDataAsync(fileUrl);
                     file.EditUrl = await UrlGenerator.GetFileUrlAsync(fileDetails.FileExtension.ToString().TrimStart('.'), fileUrl, WopiActionEnum.Edit) + "&access_token=xyz";
-
                 }
                 //http://dotnet-stuff.com/tutorials/aspnet-mvc/how-to-render-different-layout-in-asp-net-mvc
                 foreach (var container in data.ChildContainers)
@@ -77,11 +81,13 @@ namespace WopiHost.Web.Controllers
         public async Task<ActionResult> Detail(string id)
         {
             string token = "xyz";
-            string url = $"{WopiHostUrl}/wopi/files/{id}?access_token={token}";
+            string url = $"{WopiHostUrl}/wopi/files/{id}";
             dynamic fileDetails = await GetDataAsync(url);
             ViewData["access_token"] = token;
             //ViewData["access_token_ttl"] = token.ValidTo.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
-            ViewData["wopi_urlsrc"] = await UrlGenerator.GetFileUrlAsync(fileDetails.FileExtension.ToString().TrimStart('.'), url, WopiActionEnum.Edit) + "&access_token=xyz";
+            var extension = fileDetails.FileExtension.ToString().TrimStart('.');
+            ViewData["urlsrc"] = await UrlGenerator.GetFileUrlAsync(extension, url, WopiActionEnum.Edit);
+            ViewData["favicon"] = await Discoverer.GetApplicationFavIconAsync(extension);
             return View();
         }
 

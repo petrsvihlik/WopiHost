@@ -14,7 +14,7 @@
 		<ul>
 			@foreach (var f in @Model.ChildFiles)
 			{
-				<li>@Html.ActionLink((string)f.Name,"Detail", "Index")</li>
+				<li><a href="@Url.Action("Detail",new {f.Id})">@f.Name</a> - <a href="@f.EditUrl">Direct Edit Link</a></li>
 			}
 		</ul>
 	</div>

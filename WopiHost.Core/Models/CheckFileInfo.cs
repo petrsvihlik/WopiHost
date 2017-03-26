@@ -1,15 +1,28 @@
 ﻿namespace WopiHost.Core.Models
 {
     /// <summary>
-    /// Model according to https://msdn.microsoft.com/en-us/library/hh622920.aspx
+    /// Model according to https://wopirest.readthedocs.io/en/latest/files/CheckFileInfo.html#checkfileinfo and https://msdn.microsoft.com/en-us/library/hh622920.aspx
     /// </summary>
-    public class CheckFileInfo : ChildFile
+    public class CheckFileInfo
     {
-        //TODO: Align with https://wopirest.readthedocs.io/en/latest/files/CheckFileInfo.html#checkfileinfo
         //TODO: and https://wopi.readthedocs.io/en/latest/scenarios/customization.html?highlight=checkfileinfo
-        public bool AllowExternalMarketplace { get; set; }
+        #region "Required properties"
 
-        public string BaseFileName { get { return Name; } set { Name = value; } }
+        public string BaseFileName { get; set; }
+
+        public string OwnerId { get; set; }
+
+        public long Size { get; set; }
+
+        public string UserId { get; set; }
+
+        public string Version { get; set; }
+
+        #endregion
+
+        #region "Optional properties"
+
+        public string LastModifiedTime { get; set; }
 
         public string FileExtension { get; set; }
 
@@ -36,6 +49,8 @@
         public bool DisableBrowserCachingOfUserContent { get; set; }
 
         public bool AllowAdditionalMicrosoftServices { get; set; }
+
+        public bool AllowExternalMarketplace { get; set; }
 
         public bool DisablePrint { get; set; }
 
@@ -66,8 +81,6 @@
         public string IrmPolicyDescription { get; set; }
 
         public string IrmPolicyTitle { get; set; }
-
-        public string OwnerId { get; set; }
 
         public string PresenceProvider { get; set; }
 
@@ -149,10 +162,10 @@
 
         public string UserFriendlyName { get; set; }
 
-        public string UserId { get; set; }
-
         public string UserPrincipalName { get; set; }
 
         public bool WebEditingDisabled { get; set; }
+
+        #endregion
     }
 }

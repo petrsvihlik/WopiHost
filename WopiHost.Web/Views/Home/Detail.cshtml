@@ -1,12 +1,9 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit http://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    Layout = "~/Views/Shared/_LayoutWOPI.cshtml";
 }
-<form id="office_form" name="office_form" target="office_frame"
-      action="<OFFICE_ONLINE_ACTION_URL>" method="post">
-    <input name="access_token" value="<ACCESS_TOKEN_VALUE>" type="hidden" />
-    <input name="access_token_ttl" value="<ACCESS_TOKEN_TTL_VALUE>" type="hidden" />
+<form id="office_form" name="office_form" target="office_frame" action="@ViewData["urlsrc"]" method="post">
+    <input name="access_token" value="@ViewData["access_token"]" type="hidden" />
+    <input name="access_token_ttl" value="@ViewData["access_token_ttl"]" type="hidden" />
 </form>
 
 <span id="frameholder"></span>

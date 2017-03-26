@@ -27,7 +27,7 @@ namespace WopiHost.Web
 			if (env.IsDevelopment())
 			{
 				// Override with user secrets (http://go.microsoft.com/fwlink/?LinkID=532709)
-				builder.AddUserSecrets();
+				builder.AddUserSecrets<Startup>();
 			}
 			Configuration = builder.Build();
 		}
