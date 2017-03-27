@@ -10,7 +10,7 @@ namespace WopiHost
         public static void AddFileProvider(this ContainerBuilder builder, IConfigurationRoot configuration)
         {
             var providerAssembly = configuration.GetValue("WopiFileProviderAssemblyName", string.Empty);
-#if NET46
+#if NET461
 // Load file provider
 			var assembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName(providerAssembly));
 #endif
@@ -26,7 +26,7 @@ namespace WopiHost
 
         public static void AddCobalt(this ContainerBuilder builder)
         {
-#if NET46
+#if NET461
 // Load cobalt when running under the full .NET Framework
 			var cobaltAssembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName("WopiHost.Cobalt"));
 			builder.RegisterAssemblyTypes(cobaltAssembly).AsImplementedInterfaces();

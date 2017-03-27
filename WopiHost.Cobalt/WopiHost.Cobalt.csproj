@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>WopiHost.Cobalt Class Library</Description>
     <Authors>Petr Svihlik</Authors>
-    <TargetFramework>net46</TargetFramework>
+    <TargetFramework>net461</TargetFramework>
     <AssemblyName>WopiHost.Cobalt</AssemblyName>
     <PackageId>WopiHost.Cobalt</PackageId>
     <PackageLicenseUrl>https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt</PackageLicenseUrl>
@@ -23,7 +23,7 @@
     <PackageReference Include="Microsoft.CobaltCore" Version="15.0.4557.1000" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net46' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' ">
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
