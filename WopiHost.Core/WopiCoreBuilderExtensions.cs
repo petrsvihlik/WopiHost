@@ -36,8 +36,7 @@ namespace WopiHost.Core
             }
 
             // Add MVC to the request pipeline.
-            app
-                .UseAccessTokenAuthentication(new AccessTokenAuthenticationOptions { SecurityHandler = securityHandler });
+            app.UseAccessTokenAuthentication(new AccessTokenAuthenticationOptions { SecurityHandler = securityHandler });
 
             return app;
         }

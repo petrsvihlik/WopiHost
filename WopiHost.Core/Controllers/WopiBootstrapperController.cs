@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using WopiHost.Abstractions;
 using WopiHost.Core.Models;
@@ -12,8 +12,8 @@ namespace WopiHost.Core.Controllers
     [Route("wopibootstrapper")]
     public class WopiBootstrapperController : WopiControllerBase
     {
-        public WopiBootstrapperController(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration)
-            : base(fileProvider, securityHandler, configuration)
+        public WopiBootstrapperController(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions)
+            : base(fileProvider, securityHandler, wopiHostOptions)
         {
 
         }

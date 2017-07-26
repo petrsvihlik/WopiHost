@@ -11,6 +11,7 @@ using Microsoft.Extensions.PlatformAbstractions;
 using WopiHost.Abstractions;
 using WopiHost.Core;
 using WopiHost.Core.Models;
+using Microsoft.Extensions.Options;
 
 namespace WopiHost
 {
@@ -48,25 +49,27 @@ namespace WopiHost
         {
             // Ideally, pass a persistant dictionary implementation
             services.AddSingleton<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
-            
+
+            // Configuration
+            services.AddOptions();
+            services.Configure<WopiHostOptions>(Configuration);
+
             // Add WOPI
             services.AddWopi();
 
             // Autofac resolution
             var builder = new ContainerBuilder();
 
-            // Configuration
-            builder.RegisterInstance(Configuration).As<IConfiguration>().SingleInstance();
-
             // Add cobalt
             builder.AddCobalt();
 
             // Add file provider implementation
-            builder.AddFileProvider(Configuration);
+            builder.AddFileProvider(services.BuildServiceProvider().GetRequiredService<IOptionsSnapshot<WopiHostOptions>>().Value);
 
             builder.Populate(services);
             _container = builder.Build();
-            return new AutofacServiceProvider(_container);//_container.Resolve<IServiceProvider>();
+            //return _container.Resolve<IServiceProvider>();
+            return new AutofacServiceProvider(_container);
         }
 
 

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider
@@ -12,8 +12,8 @@ namespace WopiHost.FileSystemProvider
 	/// </summary>
 	public class WopiFileSystemProvider : IWopiStorageProvider
 	{
-		protected IConfiguration Configuration { get; set; }
-
+	    public IOptionsSnapshot<WopiHostOptions> WopiHostOptions { get; }
+        
 		private string ROOT_PATH = @".\";
 		
 		/// <summary>
@@ -21,21 +21,21 @@ namespace WopiHost.FileSystemProvider
 		/// </summary>
 		public IWopiFolder RootContainerPointer => new WopiFolder(ROOT_PATH, EncodeIdentifier(ROOT_PATH));
 
-		protected string WopiRootPath => Configuration.GetValue("WopiRootPath", string.Empty);
+		protected string WopiRootPath => WopiHostOptions.Value.WopiRootPath;
 
 		/// <summary>
 		/// Gets root path of the web application (e.g. IHostingEnvironment.WebRootPath for .NET Core apps)
 		/// </summary>
-		protected string WebRootPath => Configuration.GetValue("WebRootPath", string.Empty);
+		protected string WebRootPath => WopiHostOptions.Value.WebRootPath;
 
 		protected string WopiAbsolutePath
 		{
 			get { return Path.IsPathRooted(WopiRootPath) ? WopiRootPath : Path.Combine(WebRootPath, WopiRootPath); }
 		}
 
-		public WopiFileSystemProvider(IConfiguration configuration)
+		public WopiFileSystemProvider(IOptionsSnapshot<WopiHostOptions> wopiHostOptions)
 		{
-			Configuration = configuration;
+		    WopiHostOptions = wopiHostOptions;
 		}
 
 		/// <summary>

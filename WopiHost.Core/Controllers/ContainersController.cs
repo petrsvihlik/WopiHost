@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Models;
 
@@ -12,7 +12,7 @@ namespace WopiHost.Core.Controllers
     [Route("wopi/[controller]")]
     public class ContainersController : WopiControllerBase
     {
-        public ContainersController(IConfiguration configuration, IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler) : base(fileProvider, securityHandler, configuration)
+        public ContainersController(IOptionsSnapshot<WopiHostOptions> wopiHostOptions, IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler) : base(fileProvider, securityHandler, wopiHostOptions)
         {
         }
 

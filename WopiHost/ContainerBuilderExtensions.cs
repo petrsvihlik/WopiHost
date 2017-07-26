@@ -1,17 +1,17 @@
 ﻿using System;
 using Autofac;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.PlatformAbstractions;
+using WopiHost.Abstractions;
 
 namespace WopiHost
 {
     public static class ContainerBuilderExtensions
     {
-        public static void AddFileProvider(this ContainerBuilder builder, IConfigurationRoot configuration)
+        public static void AddFileProvider(this ContainerBuilder builder, WopiHostOptions options)
         {
-            var providerAssembly = configuration.GetValue("WopiFileProviderAssemblyName", string.Empty);
+            var providerAssembly = options.WopiFileProviderAssemblyName;
+            // Load file provider
 #if NET461
-// Load file provider
 			var assembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName(providerAssembly));
 #endif
 
@@ -26,11 +26,10 @@ namespace WopiHost
 
         public static void AddCobalt(this ContainerBuilder builder)
         {
+            // Load cobalt when running under the full .NET Framework
 #if NET461
-// Load cobalt when running under the full .NET Framework
 			var cobaltAssembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName("WopiHost.Cobalt"));
 			builder.RegisterAssemblyTypes(cobaltAssembly).AsImplementedInterfaces();
-            
 #endif
         }
     }

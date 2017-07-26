@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Models;
 
@@ -11,8 +11,8 @@ namespace WopiHost.Core.Controllers
 	[Route("wopi/[controller]")]
 	public class EcosystemController : WopiControllerBase
 	{
-		public EcosystemController(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration) 
-            : base(fileProvider, securityHandler, configuration)
+		public EcosystemController(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions) 
+            : base(fileProvider, securityHandler, wopiHostOptions)
 		{
 		}
 

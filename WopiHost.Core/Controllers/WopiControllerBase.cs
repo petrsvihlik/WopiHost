@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Security.Authentication;
 
@@ -12,8 +12,6 @@ namespace WopiHost.Core.Controllers
         protected IWopiStorageProvider StorageProvider { get; set; }
 
         protected IWopiSecurityHandler SecurityHandler { get; set; }
-
-        protected IConfiguration Configuration { get; set; }
 
         public string BaseUrl => HttpContext.Request.Scheme + "://" + HttpContext.Request.Host;
 
@@ -26,11 +24,10 @@ namespace WopiHost.Core.Controllers
             }
         }
 
-        protected WopiControllerBase(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IConfiguration configuration)
+        protected WopiControllerBase(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions)
         {
             StorageProvider = fileProvider;
             SecurityHandler = securityHandler;
-            Configuration = configuration;
         }
 
         protected string GetWopiUrl(string controller, string identifier = null, string accessToken = null)
