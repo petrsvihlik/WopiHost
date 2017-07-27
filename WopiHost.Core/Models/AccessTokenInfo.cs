@@ -5,6 +5,5 @@
 		public string AccessToken { get; set; }
 
 		public long AccessTokenExpiry { get; set; }
-
 	}
 }

@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using WopiHost.Abstractions;
 
@@ -68,13 +65,15 @@ namespace WopiHost.FileSystemProvider
         {
             //TODO: https://github.com/aspnet/Security/tree/master/src/Microsoft.AspNetCore.Authentication.JwtBearer
 
-            var tokenValidation = new TokenValidationParameters();
-            tokenValidation.ValidateAudience = false;
-            tokenValidation.ValidateIssuer = false;
-            tokenValidation.ValidateActor = false;
-            tokenValidation.ValidateLifetime = true;
-            tokenValidation.ValidateIssuerSigningKey = true;
-            tokenValidation.IssuerSigningKey = Key;
+            var tokenValidation = new TokenValidationParameters
+            {
+                ValidateAudience = false,
+                ValidateIssuer = false,
+                ValidateActor = false,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = Key
+            };
 
             try
             {
@@ -89,7 +88,7 @@ namespace WopiHost.FileSystemProvider
             }
         }
 
-        public bool IsAuthorized(ClaimsPrincipal principal, string resourceId, IAuthorizationRequirement operation)
+        public bool IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation)
         {
             return true;
         }

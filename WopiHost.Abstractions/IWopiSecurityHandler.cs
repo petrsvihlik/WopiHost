@@ -1,5 +1,4 @@
 ﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 
 namespace WopiHost.Abstractions
@@ -18,7 +17,7 @@ namespace WopiHost.Abstractions
 		ClaimsPrincipal GetPrincipal(string token);
 
 
-		bool IsAuthorized(ClaimsPrincipal principal, string resourceId, IAuthorizationRequirement operation);
+		bool IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation);
 
 	    /// <summary>
 	    /// Converts the security token to a Base64 string.
