@@ -34,7 +34,6 @@ namespace WopiHost.Discovery
 
         private async Task<IEnumerable<XElement>> GetAppsAsync()
         {
-
             return (await DiscoveryFileProvider.GetDiscoveryXmlAsync())
                 .Elements(ELEMENT_NET_ZONE)
                 .Where(ValidateNetZone)
@@ -64,7 +63,7 @@ namespace WopiHost.Discovery
         public async Task<bool> SupportsActionAsync(string extension, WopiActionEnum action)
         {
             string actionString = action.ToString().ToLower();
-            ;
+
             var query = (await GetAppsAsync()).Elements().Where(e => (string) e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string) e.Attribute(ATTR_ACTION_NAME) == actionString);
 
             return query.Any();
