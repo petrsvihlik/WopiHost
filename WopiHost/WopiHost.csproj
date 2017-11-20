@@ -1,12 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp1.0;net461</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.0;net461</TargetFrameworks>
     <AssemblyName>WopiHost</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>WopiHost</PackageId>
     <UserSecretsId>aspnet5-WopiHost-20150905035313</UserSecretsId>
-    <RuntimeFrameworkVersion Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">1.0.4</RuntimeFrameworkVersion>
   </PropertyGroup>
 
   <ItemGroup>

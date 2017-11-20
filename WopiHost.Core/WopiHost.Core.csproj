@@ -3,13 +3,13 @@
   <PropertyGroup>
     <Description>WopiHost.Core Class Library</Description>
     <Authors>Petr Svihlik</Authors>
-    <TargetFrameworks>netstandard1.6;net461</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <AssemblyName>WopiHost.Core</AssemblyName>
     <PackageId>WopiHost.Core</PackageId>
     <PackageLicenseUrl>https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt</PackageLicenseUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/petrsvihlik/WopiHost.git</RepositoryUrl>
-    <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
+    <NetStandardImplicitPackageVersion>2.0.1</NetStandardImplicitPackageVersion>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
@@ -26,11 +26,6 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="1.1.2" />
     <PackageReference Include="Microsoft.NETCore.Portable.Compatibility" Version="1.0.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="5.1.4" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net46' ">
-    <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
 </Project>

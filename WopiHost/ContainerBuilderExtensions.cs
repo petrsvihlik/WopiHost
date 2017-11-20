@@ -15,7 +15,7 @@ namespace WopiHost
 			var assembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName(providerAssembly));
 #endif
 
-#if NETCOREAPP1_0
+#if NETCOREAPP2_0
             // Load file provider
             var path = PlatformServices.Default.Application.ApplicationBasePath;
             var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath(path + "\\" + providerAssembly + ".dll");
