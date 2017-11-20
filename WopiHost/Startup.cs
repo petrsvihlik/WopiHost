@@ -54,9 +54,6 @@ namespace WopiHost
             services.AddOptions();
             services.Configure<WopiHostOptions>(Configuration);
 
-            // Add WOPI
-            services.AddWopi();
-
             // Autofac resolution
             var builder = new ContainerBuilder();
 
@@ -65,6 +62,9 @@ namespace WopiHost
 
             // Add file provider implementation
             builder.AddFileProvider(services.BuildServiceProvider().GetRequiredService<IOptionsSnapshot<WopiHostOptions>>().Value);
+
+            // Add WOPI (depends on file provider)
+            services.AddWopi(services.BuildServiceProvider().GetRequiredService<IWopiSecurityHandler>());
 
             builder.Populate(services);
             _container = builder.Build();
@@ -86,7 +86,7 @@ namespace WopiHost
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseWopi(_container.Resolve<IWopiSecurityHandler>()).UseMvc();
+            app.UseMvc();
         }
     }
 }

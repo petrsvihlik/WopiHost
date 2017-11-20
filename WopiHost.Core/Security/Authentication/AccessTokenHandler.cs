@@ -1,9 +1,9 @@
 using System;
+using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http.Authentication;
-using Microsoft.AspNetCore.Http.Features.Authentication;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace WopiHost.Core.Security.Authentication
 {
@@ -18,7 +18,7 @@ namespace WopiHost.Core.Security.Authentication
 				var token = Context.Request.Query[AccessTokenDefaults.AccessTokenQueryName];
 				var principal = Options.SecurityHandler.GetPrincipal(token);
 
-				var ticket = new AuthenticationTicket(principal, new AuthenticationProperties(), Options.AuthenticationScheme);
+				var ticket = new AuthenticationTicket(principal, new AuthenticationProperties(), Scheme.Name);
 
 				if (Options.SaveToken)
 				{
@@ -35,15 +35,10 @@ namespace WopiHost.Core.Security.Authentication
 				return Task.FromResult(AuthenticateResult.Fail(ex));
 			}
 		}
+        
 
-		protected override Task HandleSignInAsync(SignInContext context)
-		{
-			throw new NotImplementedException();
-		}
-
-		protected override Task HandleSignOutAsync(SignOutContext context)
-		{
-			throw new NotImplementedException();
-		}
+	    public AccessTokenHandler(IOptionsMonitor<AccessTokenAuthenticationOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock) : base(options, logger, encoder, clock)
+	    {
+	    }
 	}
 }

@@ -57,7 +57,7 @@ namespace WopiHost.Core.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCheckFileInfo(string id)
         {
-            if (!await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Read))
+            if (!(await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Read)).Succeeded)
             {
                 return Unauthorized();
             }
@@ -75,7 +75,7 @@ namespace WopiHost.Core.Controllers
         public async Task<IActionResult> GetFile(string id)
         {
             // Check permissions
-            if (!await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Read))
+            if (!(await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Read)).Succeeded)
             {
                 return Unauthorized();
             }
@@ -106,7 +106,9 @@ namespace WopiHost.Core.Controllers
         public async Task<IActionResult> PutFile(string id)
         {
             // Check permissions
-            if (!await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Update))
+            var authorizationResult = await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Update);
+            
+            if (!authorizationResult.Succeeded)
             {
                 return Unauthorized();
             }
@@ -143,7 +145,7 @@ namespace WopiHost.Core.Controllers
         public async Task<IActionResult> PerformAction(string id)
         {
             // Check permissions
-            if (!await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Update))
+            if (!(await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Update)).Succeeded)
             {
                 return Unauthorized();
             }
@@ -182,8 +184,7 @@ namespace WopiHost.Core.Controllers
 
             lock (LockStorage)
             {
-                LockInfo existingLock = null;
-                bool lockAcquired = TryGetLock(id, out existingLock);
+                bool lockAcquired = TryGetLock(id, out var existingLock);
                 switch (WopiOverrideHeader)
                 {
                     case "GET_LOCK":

@@ -1,7 +1,5 @@
-﻿using System;
-using System.Reflection;
+﻿using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Serialization;
 using WopiHost.Abstractions;
@@ -12,7 +10,7 @@ namespace WopiHost.Core
 {
     public static class WopiCoreBuilderExtensions
     {
-        public static void AddWopi(this IServiceCollection services)
+        public static void AddWopi(this IServiceCollection services, IWopiSecurityHandler securityHandler)
         {
             services.AddAuthorization();
 
@@ -26,19 +24,9 @@ namespace WopiHost.Core
                 {
                     options.SerializerSettings.ContractResolver = new DefaultContractResolver();
                 });
-        }
 
-        public static IApplicationBuilder UseWopi(this IApplicationBuilder app, IWopiSecurityHandler securityHandler)
-        {
-            if (app == null)
-            {
-                throw new ArgumentNullException(nameof(app));
-            }
-
-            // Add MVC to the request pipeline.
-            app.UseAccessTokenAuthentication(new AccessTokenAuthenticationOptions { SecurityHandler = securityHandler });
-
-            return app;
+            services.AddAuthentication(o => { o.DefaultScheme = AccessTokenDefaults.AuthenticationScheme; })
+                .AddTokenAuthentication(AccessTokenDefaults.AuthenticationScheme, AccessTokenDefaults.AuthenticationScheme, options => { options.SecurityHandler = securityHandler; });
         }
     }
 }

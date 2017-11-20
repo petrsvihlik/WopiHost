@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.PlatformAbstractions;
 
 namespace WopiHost.Web
 {
@@ -15,12 +14,12 @@ namespace WopiHost.Web
 
         public Startup(IHostingEnvironment env)
         {
-            var appEnv = PlatformServices.Default.Application;
+               var baseDir = System.AppContext.BaseDirectory;
             var builder = new ConfigurationBuilder().SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).
                 AddInMemoryCollection(new Dictionary<string, string>
                     { { nameof(env.WebRootPath), env.WebRootPath },
-                    { nameof(appEnv.ApplicationBasePath), appEnv.ApplicationBasePath } })
+                    { "ApplicationBasePath", baseDir } })
                 .AddJsonFile($"config.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
 
