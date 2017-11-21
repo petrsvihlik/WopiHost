@@ -1,9 +1,12 @@
 Introduction
 ==========
-[![Build status](https://ci.appveyor.com/api/projects/status/l7jn00f4fxydpbed?svg=true)](https://ci.appveyor.com/project/petrsvihlik/wopihost) [![codecov](https://codecov.io/gh/petrsvihlik/WopiHost/branch/master/graph/badge.svg)](https://codecov.io/gh/petrsvihlik/WopiHost) [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/ms-wopi/)
+[![Build status](https://ci.appveyor.com/api/projects/status/l7jn00f4fxydpbed?svg=true)](https://ci.appveyor.com/project/petrsvihlik/wopihost) 
+[![codecov](https://codecov.io/gh/petrsvihlik/WopiHost/branch/master/graph/badge.svg)](https://codecov.io/gh/petrsvihlik/WopiHost) 
+[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/ms-wopi/)
+[![.NET Core](https://img.shields.io/badge/netcore-2.0-692079.svg)](https://www.microsoft.com/net/learn/get-started/windows)
 
 
-This project is an example implementation of a [WOPI host](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx). Basically, it allows developers to integrate custom datasources with Office Online Server (formerly Office Web Apps) or any other WOPI client by implementing a few interfaces.
+This project is a sample implementation of a [WOPI host](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx). Basically, it allows developers to integrate custom datasources with Office Online Server (formerly Office Web Apps) or any other WOPI client by implementing a bunch of interfaces.
 
 Features / improvements compared to existing samples on the web
 -----------------------
@@ -28,7 +31,7 @@ Prerequisites
 
 Building the app
 ----------------
-The WopiHost app targets `net46` and `netcoreapp1.0`. You can choose which one you want to use. If you get errors that Microsoft.CobaltCore.15.0.0.0.nupkg can't be found then just remove the reference or see the chapter "Cobalt" below.
+The WopiHost app targets `net46` and `netcoreapp2.0`. You can choose which one you want to use. If you get errors that Microsoft.CobaltCore.15.0.0.0.nupkg can't be found then just remove the reference or see the chapter "Cobalt" below.
  
 Configuration
 -----------
