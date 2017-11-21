@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ using WopiHost.Abstractions;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
 using WopiHost.Core.Security;
+using WopiHost.Core.Security.Authentication;
 
 namespace WopiHost.Core.Controllers
 {
@@ -34,7 +36,7 @@ namespace WopiHost.Core.Controllers
         };
 
         /// <summary>
-        /// Collection holding information about locks. Should be persistant.
+        /// Collection holding information about locks. Should be persistent.
         /// </summary>
         private static IDictionary<string, LockInfo> LockStorage;
 
@@ -61,7 +63,7 @@ namespace WopiHost.Core.Controllers
             {
                 return Unauthorized();
             }
-            return new JsonResult(StorageProvider.GetWopiFile(id)?.GetCheckFileInfo(HttpContext.User, HostCapabilities));
+            return new JsonResult(StorageProvider.GetWopiFile(id)?.GetCheckFileInfo(User, HostCapabilities));
         }
 
         /// <summary>
@@ -85,7 +87,7 @@ namespace WopiHost.Core.Controllers
 
             // Check expected size
             int? maximumExpectedSize = HttpContext.Request.Headers[WopiHeaders.MaxExpectedSize].ToString().ToNullableInt();
-            if (maximumExpectedSize != null && file.GetCheckFileInfo(HttpContext.User, HostCapabilities).Size > maximumExpectedSize.Value)
+            if (maximumExpectedSize != null && file.GetCheckFileInfo(User, HostCapabilities).Size > maximumExpectedSize.Value)
             {
                 return new PreconditionFailedResult();
             }
@@ -155,7 +157,7 @@ namespace WopiHost.Core.Controllers
             switch (WopiOverrideHeader)
             {
                 case "COBALT":
-                    var responseAction = CobaltProcessor.ProcessCobalt(file, HttpContext.User, await HttpContext.Request.Body.ReadBytesAsync());
+                    var responseAction = CobaltProcessor.ProcessCobalt(file, User, await HttpContext.Request.Body.ReadBytesAsync());
                     HttpContext.Response.Headers.Add(WopiHeaders.CorrelationId, HttpContext.Request.Headers[WopiHeaders.CorrelationId]);
                     HttpContext.Response.Headers.Add("request-id", HttpContext.Request.Headers[WopiHeaders.CorrelationId]);
                     return new Results.FileResult(responseAction, "application/octet-stream");

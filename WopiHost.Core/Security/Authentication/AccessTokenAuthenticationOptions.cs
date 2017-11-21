@@ -1,6 +1,4 @@
-﻿
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Authentication;
 using WopiHost.Abstractions;
 
 namespace WopiHost.Core.Security.Authentication
@@ -13,11 +11,7 @@ namespace WopiHost.Core.Security.Authentication
         /// </summary>
         public bool SaveToken { get; set; } = true;
 
-
+        
         public IWopiSecurityHandler SecurityHandler { get; set; }
-
-        public AccessTokenAuthenticationOptions()
-        {
-        }
     }
 }
