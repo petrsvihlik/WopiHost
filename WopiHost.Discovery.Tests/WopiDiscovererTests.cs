@@ -13,7 +13,7 @@ namespace WopiHost.Discovery.Tests
 		    //TODO: test netzones	
 		}
 
-		public void InitDiscoverer(string fileName)
+	    private void InitDiscoverer(string fileName)
 		{
 			_wopiDiscoverer = new WopiDiscoverer(new FileSystemDiscoveryFileProvider(Path.Combine(System.AppContext.BaseDirectory, fileName)));
 		}

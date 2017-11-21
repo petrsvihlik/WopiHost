@@ -1,9 +1,9 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Authentication;
 using WopiHost.Abstractions;
 
 namespace WopiHost.Core.Security.Authentication
 {
-    public class AccessTokenAuthenticationOptions : AuthenticationOptions
+    public class AccessTokenAuthenticationOptions : AuthenticationSchemeOptions
     {
         /// <summary>
         /// Defines whether the token should be stored in the
@@ -11,14 +11,7 @@ namespace WopiHost.Core.Security.Authentication
         /// </summary>
         public bool SaveToken { get; set; } = true;
 
-
+        
         public IWopiSecurityHandler SecurityHandler { get; set; }
-
-        public AccessTokenAuthenticationOptions()
-        {
-            AuthenticationScheme = AccessTokenDefaults.AuthenticationScheme;
-            AutomaticAuthenticate = true;
-            AutomaticChallenge = true;
-        }
     }
 }

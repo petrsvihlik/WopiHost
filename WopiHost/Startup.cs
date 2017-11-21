@@ -19,8 +19,6 @@ namespace WopiHost
     {
         public IConfigurationRoot Configuration { get; set; }
 
-        private IContainer _container;
-
         public Startup(IHostingEnvironment env)
         {
             var appEnv = PlatformServices.Default.Application;
@@ -47,29 +45,39 @@ namespace WopiHost
         /// </summary>
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
-            // Ideally, pass a persistant dictionary implementation
+            // Ideally, pass a persistent dictionary implementation
             services.AddSingleton<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
 
             // Configuration
             services.AddOptions();
             services.Configure<WopiHostOptions>(Configuration);
 
-            // Add WOPI
-            services.AddWopi();
-
             // Autofac resolution
             var builder = new ContainerBuilder();
+
+            // Add file provider
+            builder.AddFileProvider(services.BuildServiceProvider().GetRequiredService<IOptionsSnapshot<WopiHostOptions>>().Value);
 
             // Add cobalt
             builder.AddCobalt();
 
-            // Add file provider implementation
-            builder.AddFileProvider(services.BuildServiceProvider().GetRequiredService<IOptionsSnapshot<WopiHostOptions>>().Value);
+            // Add WOPI (depends on file provider)
+            services.AddWopi(GetSecurityHandler(services));
 
             builder.Populate(services);
-            _container = builder.Build();
-            //return _container.Resolve<IServiceProvider>();
-            return new AutofacServiceProvider(_container);
+            var container = builder.Build();
+            //return container.Resolve<IServiceProvider>(); // Default DI
+            return new AutofacServiceProvider(container);
+        }
+
+        private IWopiSecurityHandler GetSecurityHandler(IServiceCollection services)
+        {
+            var providerBuilder = new ContainerBuilder();
+            // Add file provider implementation
+            providerBuilder.AddFileProvider(services.BuildServiceProvider().GetRequiredService<IOptionsSnapshot<WopiHostOptions>>().Value);
+            providerBuilder.Populate(services);
+            var providerContainer = providerBuilder.Build();
+            return providerContainer.Resolve<IWopiSecurityHandler>();
         }
 
 
@@ -86,7 +94,10 @@ namespace WopiHost
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseWopi(_container.Resolve<IWopiSecurityHandler>()).UseMvc();
+            // Automatically authenticate
+            app.UseAuthentication();
+            
+            app.UseMvc();
         }
     }
 }

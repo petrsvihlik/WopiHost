@@ -78,8 +78,7 @@ namespace WopiHost.FileSystemProvider
             try
             {
                 // Try to validate the token
-                SecurityToken token = null;
-                var principal = tokenHandler.ValidateToken(tokenString, tokenValidation, out token);
+                var principal = tokenHandler.ValidateToken(tokenString, tokenValidation, out SecurityToken token);
                 return principal;
             }
             catch (Exception ex)
