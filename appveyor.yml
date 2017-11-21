@@ -12,7 +12,6 @@ init:
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   
 install:
- - cmd: nuget sources add -Name api.nuget.org -Source https://api.nuget.org/v3/index.json
 # - ps: .\Install-Net-Core.ps1
  - nuget sources add -Name wopi -Source %nuget_feed%
  - "python.exe -m pip install codecov"
