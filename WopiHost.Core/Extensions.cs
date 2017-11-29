@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace WopiHost.Core
@@ -40,6 +41,18 @@ namespace WopiHost.Core
             DateTime unixStart = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
             long unixTimeStampInTicks = (dateTime.ToUniversalTime() - unixStart).Ticks;
             return unixTimeStampInTicks / TimeSpan.TicksPerSecond;
+        }
+
+        /// <summary>
+        /// Replaces forbidden characters in identity properties with an underscore.
+        /// Accordingly to: http://wopi.readthedocs.io/projects/wopirest/en/latest/files/CheckFileInfo.html#user-identity-requirements
+        /// </summary>
+        /// <param name="identity">Identity property value</param>
+        /// <returns>String safe to use as an identity property</returns>
+        public static string ToSafeIdentity(this string identity)
+        {
+            const string forbiddenChars = "<>\"#{}^[]`\\/";
+            return forbiddenChars.Aggregate(identity, (current, forbiddenChar) => current.Replace(forbiddenChar, '_'));
         }
     }
 }

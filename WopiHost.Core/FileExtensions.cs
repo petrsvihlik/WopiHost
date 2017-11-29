@@ -15,7 +15,7 @@ namespace WopiHost.Core
             CheckFileInfo CheckFileInfo = new CheckFileInfo();
             if (principal != null)
             {
-                CheckFileInfo.UserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                CheckFileInfo.UserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value.ToSafeIdentity();
                 CheckFileInfo.UserFriendlyName = principal.FindFirst(ClaimTypes.Name)?.Value;
 
                 WopiUserPermissions permissions = (WopiUserPermissions)Enum.Parse(typeof(WopiUserPermissions), principal.FindFirst(WopiClaimTypes.UserPermissions).Value);
@@ -34,7 +34,7 @@ namespace WopiHost.Core
                 CheckFileInfo.IsAnonymousUser = true;
             }
 
-            CheckFileInfo.OwnerId = file.Owner;
+            CheckFileInfo.OwnerId = file.Owner.ToSafeIdentity();
 
             // Set host capabilities
             CheckFileInfo.SupportsCoauth = capabilities.SupportsCoauth;
