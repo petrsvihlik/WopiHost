@@ -117,7 +117,11 @@ Support the project
 ===================
 If this project helped you and you want to support its further development, please consider donating an amount of your choice. Thank you!
 
-[![Donate with PayPal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.me/Svihlik)
+
+<table>
+<tr><td colspan="2"><a href="https://www.paypal.me/Svihlik"><img src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" alt="Donate with PayPal" /></a></td></tr>
+<tr><td><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Bitcoin_logo.svg/2000px-Bitcoin_logo.svg.png" width="100" alt="Donate with BitCoin" /></td><td>3PuqLrSsV4EFFr55brj9cSJVoaRoc23b3p</td></tr>
+</table>
 
 Useful resources
 =============
