@@ -12,9 +12,9 @@ init:
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   
 install:
-# - ps: .\Install-Net-Core.ps1
  - nuget sources add -Name wopi -Source %nuget_feed%
- - "python.exe -m pip install codecov"
+ - cinst opencover.portable
+ - cinst codecov
 
 build:
   verbosity: normal
@@ -26,10 +26,6 @@ test: off
 
 test_script:
  - ps: >-
-
-    iwr https://chocolatey.org/install.ps1 -UseBasicParsing | iex
-    
-    choco install opencover.portable -y
 
     ForEach ($folder in (Get-ChildItem -Path .\ -Directory -Filter *.Tests)) { 
 
@@ -49,5 +45,3 @@ test_script:
     
     }
 
-after_test:
-  - "codecov"
