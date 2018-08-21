@@ -311,8 +311,8 @@ namespace WopiHost.Core.Controllers
 
         private StatusCodeResult ReturnLockMismatch(HttpResponse response, string existingLock = null, string reason = null)
         {
-            response.Headers[WopiHeaders.Lock] = existingLock ?? String.Empty;
-            if (!String.IsNullOrEmpty(reason))
+            response.Headers[WopiHeaders.Lock] = existingLock ?? string.Empty;
+            if (!string.IsNullOrEmpty(reason))
             {
                 response.Headers[WopiHeaders.LockFailureReason] = reason;
             }
