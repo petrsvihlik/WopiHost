@@ -120,7 +120,7 @@
 
         public bool SupportsGetFileWopiSrc { get; set; }
 
-        public bool SupportedShareUrlTypes { get; set; }
+        public string[] SupportedShareUrlTypes { get; set; }
 
         public bool SupportsScenarioLinks { get; set; }
 
