@@ -36,7 +36,8 @@ The WopiHost app targets `net46` and `netcoreapp2.0`. You can choose which one y
 Configuration
 -----------
 
-[WopiHost\Properties\appSettings.json](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost/appsettings.json)
+### WopiHost
+[WopiHost\appSettings.json](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost/appsettings.json)
 
 | Parameter | Sample value | Description |
 | :--- | :--- | :--- |
@@ -44,7 +45,8 @@ Configuration
 |`WopiRootPath` | [`".\\wopi-docs"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost/wwwroot/wopi-docs) | Provider-specific setting used by `WopiHost.FileSystemProvider` (which is an implementation of `IWopiStorageProvider` working with System.IO) |
 | `server.urls` | `"wopihost:5000"` | URL(s) at which the WopiHost will be hosted - used by [Kestrel](http://andrewlock.net/configuring-urls-with-kestrel-iis-and-iis-express-with-asp-net-core/) |
 
-[WopiHost.Web\Properties\appSettings.json](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost.Web/appsettings.json)
+### WopiHost.Web
+[WopiHost.Web\appSettings.json](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost.Web/appsettings.json)
 
 | Parameter | Sample value | Description |
 | :--- | :--- | :--- |
