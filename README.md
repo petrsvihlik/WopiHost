@@ -35,14 +35,23 @@ The WopiHost app targets `net46` and `netcoreapp2.0`. You can choose which one y
  
 Configuration
 -----------
-WopiHost.Web\Properties\launchSettings.json
-- `WopiHostUrl` - used by URL generator
-- `WopiClientUrl` - used by the discovery module to load WOPI client URL templates
 
-WopiHost\Properties\launchSettings.json
-- `WopiFileProviderAssemblyName` - name of assembly containing implementation of WopiHost.Abstractions interfaces
-- `WopiRootPath` - provider-specific setting used by WopiFileSystemProvider (which is an implementation of IWopiFileProvider working with System.IO)
-- `server.urls` - hosting URL(s) used by Kestrel. [Read more...](http://andrewlock.net/configuring-urls-with-kestrel-iis-and-iis-express-with-asp-net-core/)
+[WopiHost\Properties\appSettings.json](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost/appsettings.json)
+
+| Parameter | Sample value | Description |
+| :--- | :--- | :--- |
+|`WopiFileProviderAssemblyName`| [`"WopiHost.FileSystemProvider"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost.FileSystemProvider) | Name of assembly containing implementation of `WopiHost.Abstractions` interfaces |
+|`WopiRootPath` | [`".\\wopi-docs"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost/wwwroot/wopi-docs) | Provider-specific setting used by `WopiHost.FileSystemProvider` (which is an implementation of `IWopiStorageProvider` working with System.IO) |
+| `server.urls` | `"wopihost:5000"` | URL(s) at which the WopiHost will be hosted - used by [Kestrel](http://andrewlock.net/configuring-urls-with-kestrel-iis-and-iis-express-with-asp-net-core/) |
+
+[WopiHost.Web\Properties\appSettings.json](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost.Web/appsettings.json)
+
+| Parameter | Sample value | Description |
+| :--- | :--- | :--- |
+| `WopiHostUrl` | `"http://wopihost:5000"` | URL pointing to a WopiHost instance (above). It's used by the URL generator. |
+| `WopiClientUrl` | ` "http://owaserver"` | Base URL of your WOPI client - typically, [Office Online Server](#compatible-wopi-clients) - used by the discovery module to load WOPI client URL templates |
+
+Additionally, you can use the [secret storage](https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-2.2&tabs=windows) to configure both of the apps.
 
 Running the application
 -----------------------
