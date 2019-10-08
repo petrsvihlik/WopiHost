@@ -10,7 +10,7 @@ init:
   - git config --global core.autocrlf true
 # For debugging purposes (RDP)
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-  
+
 install:
  - nuget sources add -Name wopi -Source %nuget_feed%
  - cinst opencover.portable
@@ -25,23 +25,7 @@ before_build:
 test: off
 
 test_script:
- - ps: >-
+ - ps: ./coverage.ps1
 
-    ForEach ($folder in (Get-ChildItem -Path .\ -Directory -Filter *.Tests)) { 
-
-    $project = Get-ChildItem -Path ($folder.FullName+"\*.csproj") | Select-Object -First 1
-    
-    $logger = ("--logger:trx;LogFileName=" + $folder.FullName + "\xunit-results.xml")
-
-    dotnet test $project.FullName $logger
-
-    $openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
-    
-    $targetArgs = '-targetargs: test ' + $project.FullName + ' ' + $folder.FullName + ' -c ' + $ENV:CONFIGURATION + ' ' + $logger
-
-    $filter = '-filter:+[Wopi*]*-[*Tests]*'
-
-    & $openCover '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' ('-output:' + $ENV:APPVEYOR_BUILD_FOLDER + '\coverage.xml')
-    
-    }
-
+after_test:
+ - codecov -f coverage.xml
