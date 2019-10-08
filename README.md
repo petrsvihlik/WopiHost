@@ -1,6 +1,6 @@
 Introduction
 ==========
-[![Build status](https://ci.appveyor.com/api/projects/status/l7jn00f4fxydpbed?svg=true)](https://ci.appveyor.com/project/petrsvihlik/wopihost) 
+[![Build status](https://ci.appveyor.com/api/projects/status/l7jn00f4fxydpbed/branch/master?svg=true)](https://ci.appveyor.com/project/petrsvihlik/wopihost/branch/master)
 [![codecov](https://codecov.io/gh/petrsvihlik/WopiHost/branch/master/graph/badge.svg)](https://codecov.io/gh/petrsvihlik/WopiHost) 
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/ms-wopi/)
 [![.NET Core](https://img.shields.io/badge/netcore-2.0-692079.svg)](https://www.microsoft.com/net/learn/get-started/windows)
