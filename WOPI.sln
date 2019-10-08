@@ -1,10 +1,11 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26228.9
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29319.158
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{785E1533-48CE-4B5E-8C59-D6F1FDA8C45C}"
 	ProjectSection(SolutionItems) = preProject
 		appveyor.yml = appveyor.yml
+		codecov.ps1 = codecov.ps1
 		LICENSE.txt = LICENSE.txt
 		NOTICE.txt = NOTICE.txt
 		ORIGINAL_WORK_LICENSE.txt = ORIGINAL_WORK_LICENSE.txt
@@ -145,5 +146,8 @@ Global
 		{650A5A85-5956-491E-9312-5E25A27D1108} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 		{4089410A-8A12-455C-862B-A4A3834C3100} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 		{9FFB3975-2DE6-4944-92C7-7062C39BB8FA} = {B692B58D-1720-49A8-9CB8-5562894618F6}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {91B6EE44-4505-4272-9D80-E4C73B09BF25}
 	EndGlobalSection
 EndGlobal

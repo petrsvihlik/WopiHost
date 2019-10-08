@@ -25,23 +25,7 @@ before_build:
 test: off
 
 test_script:
- - ps: >-
-
-    ForEach ($folder in (Get-ChildItem -Path .\ -Directory -Filter *.Tests)) { 
-
-    $project = Get-ChildItem -Path ($folder.FullName+"\*.csproj") | Select-Object -First 1
+ - ps: ./coverage.ps1
     
-    $logger = ("--logger:trx;LogFileName=" + $folder.FullName + "\xunit-results.xml")
-
-    dotnet test $project.FullName $logger
-
-    $openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
-    
-    $targetArgs = '-targetargs: test ' + $project.FullName + ' ' + $folder.FullName + ' -c ' + $ENV:CONFIGURATION + ' ' + $logger
-
-    $filter = '-filter:+[Wopi*]*-[*Tests]*'
-
-    & $openCover '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' ('-output:' + $ENV:APPVEYOR_BUILD_FOLDER + '\coverage.xml')
-    
-    }
-
+after_test:
+ - codecov -f coverage.xml
