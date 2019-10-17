@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.Loader;
 using Autofac;
 using WopiHost.Abstractions;
 
@@ -8,28 +9,21 @@ namespace WopiHost
     {
         public static void AddFileProvider(this ContainerBuilder builder, WopiHostOptions options)
         {
+            //TODO: options should be a specific section of the config
+
             var providerAssembly = options.WopiFileProviderAssemblyName;
             // Load file provider
-#if NET48
-			var assembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName(providerAssembly));
-#endif
-
-#if NETCOREAPP3_0
-            // Load file provider
-            var path = AppContext.BaseDirectory;//PlatformServices.Default.Application.ApplicationBasePath; // http://hishambinateya.com/goodbye-platform-abstractions
-            var assembly = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath($"{path}\\{providerAssembly}.dll");
-#endif
+            var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath($"{AppContext.BaseDirectory}\\{providerAssembly}.dll");
             builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
         }
 
 
         public static void AddCobalt(this ContainerBuilder builder)
         {
-            // Load cobalt when running under the full .NET Framework
-#if NET48
-			var cobaltAssembly = AppDomain.CurrentDomain.Load(new System.Reflection.AssemblyName("WopiHost.Cobalt"));
-			builder.RegisterAssemblyTypes(cobaltAssembly).AsImplementedInterfaces();
-#endif
+            //TODO Convert Cobalt to .NET Standard
+            // Load Cobalt            
+            //var cobaltAssembly = AssemblyLoadContext.Default.LoadFromAssemblyPath($"{AppContext.BaseDirectory}\\WopiHost.Cobalt.dll");
+			//builder.RegisterAssemblyTypes(cobaltAssembly).AsImplementedInterfaces();
         }
     }
 }

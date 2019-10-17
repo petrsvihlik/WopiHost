@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>WopiHost.Cobalt Class Library</Description>
     <Authors>Petr Svihlik</Authors>
-    <TargetFramework>net461</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
     <AssemblyName>WopiHost.Cobalt</AssemblyName>
     <PackageId>WopiHost.Cobalt</PackageId>
     <PackageLicenseUrl>https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt</PackageLicenseUrl>

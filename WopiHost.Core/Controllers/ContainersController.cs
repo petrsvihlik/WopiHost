@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
@@ -57,7 +58,7 @@ namespace WopiHost.Core.Controllers
                 {
                     Name = wopiFile.Name,
                     Url = GetWopiUrl("files", wopiFile.Identifier, AccessToken),
-                    LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o"),
+                    LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
                     Size = wopiFile.Size,
                     Version = wopiFile.Version
                 });

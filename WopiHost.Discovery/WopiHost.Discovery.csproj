@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>WopiHost.Discovery Class Library</Description>
     <Authors>Petr Svihlik</Authors>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>WopiHost.Discovery</AssemblyName>
     <PackageId>WopiHost.Discovery</PackageId>
     <PackageLicenseUrl>https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt</PackageLicenseUrl>

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +9,6 @@ using WopiHost.Abstractions;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
 using WopiHost.Core.Security;
-using WopiHost.Core.Security.Authentication;
 
 namespace WopiHost.Core.Controllers
 {
@@ -63,7 +61,7 @@ namespace WopiHost.Core.Controllers
             {
                 return Unauthorized();
             }
-            return new JsonResult(StorageProvider.GetWopiFile(id)?.GetCheckFileInfo(User, HostCapabilities));
+            return new JsonResult(StorageProvider.GetWopiFile(id)?.GetCheckFileInfo(User, HostCapabilities), null);
         }
 
         /// <summary>

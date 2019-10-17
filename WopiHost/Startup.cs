@@ -53,7 +53,6 @@ namespace WopiHost
         /// </summary>
         public void ConfigureServices(IServiceCollection services)
         {
-            //services.AddMvc();
             services.AddControllers();//.AddControllersAsServices(); https://autofaccn.readthedocs.io/en/latest/integration/aspnetcore.html#controllers-as-services
 
             // Ideally, pass a persistent dictionary implementation
@@ -67,13 +66,10 @@ namespace WopiHost
 
             // Configuration
             services.AddOptions();
-            services.Configure<WopiHostOptions>(Configuration);            
-            
+            services.Configure<WopiHostOptions>(Configuration);                       
 
             // Add WOPI (depends on file provider)
             services.AddWopi(GetSecurityHandler(services));
-
-           // builder.Populate(services);
 
         }
 
