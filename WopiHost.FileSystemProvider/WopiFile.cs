@@ -11,37 +11,25 @@ namespace WopiHost.FileSystemProvider
 	{
 		public string Identifier { get; }
 		
-		protected FileInfo fileInfo;
+		private FileInfo fileInfo;
 
-		protected FileVersionInfo fileVersionInfo;
+		private FileVersionInfo fileVersionInfo;
 
 		protected string FilePath { get; set; }
 
-		protected FileInfo FileInfo
-		{
-			get { return fileInfo ?? (fileInfo = new FileInfo(FilePath)); }
-		}
+        protected FileInfo FileInfo => fileInfo ?? (fileInfo = new FileInfo(FilePath));
 
-		protected FileVersionInfo FileVersionInfo
-		{
-			get { return fileVersionInfo ?? (fileVersionInfo = FileVersionInfo.GetVersionInfo(FilePath)); }
-		}
+        protected FileVersionInfo FileVersionInfo => fileVersionInfo ?? (fileVersionInfo = FileVersionInfo.GetVersionInfo(FilePath));
 
-		/// <inheritdoc />
-		public bool Exists
-		{
-			get
-			{
-				return FileInfo.Exists;
-			}
-		}
+        /// <inheritdoc />
+        public bool Exists => FileInfo.Exists;
 
-		public string Extension
+        public string Extension
 		{
 			get
 			{
 				var ext = FileInfo.Extension;
-				if (ext.StartsWith("."))
+				if (ext.StartsWith(".", StringComparison.InvariantCulture))
 				{
 					ext = ext.Substring(1);
 				}
@@ -49,35 +37,17 @@ namespace WopiHost.FileSystemProvider
 			}
 		}
 
-		public string Version
-		{
-			get { return FileVersionInfo.FileVersion ?? FileInfo.LastWriteTimeUtc.ToString(CultureInfo.InvariantCulture); }
-		}
+        public string Version => FileVersionInfo.FileVersion ?? FileInfo.LastWriteTimeUtc.ToString(CultureInfo.InvariantCulture);
 
-		public long Size
-		{
-			get { return FileInfo.Length; }
-		}
+        public long Size => FileInfo.Length;
 
-		public long Length
-		{
-			get
-			{
-				return FileInfo.Length;
-			}
-		}
+        public long Length => FileInfo.Length;
 
-		public string Name
-		{
-			get { return FileInfo.Name; }
-		}
+        public string Name => FileInfo.Name;
 
-		public DateTime LastWriteTimeUtc
-		{
-			get { return FileInfo.LastWriteTimeUtc; }
-		}
+        public DateTime LastWriteTimeUtc => FileInfo.LastWriteTimeUtc;
 
-		public WopiFile(string filePath, string fileIdentifier)
+        public WopiFile(string filePath, string fileIdentifier)
 		{
 			FilePath = filePath;
 			Identifier = fileIdentifier;
@@ -93,12 +63,6 @@ namespace WopiHost.FileSystemProvider
 			return FileInfo.Open(FileMode.Truncate);
 		}
 
-		public string Owner
-		{
-			get
-			{
-				return FileInfo.GetAccessControl().GetOwner(typeof(NTAccount)).ToString();
-			}
-		}
-	}
+        public string Owner => FileInfo.GetAccessControl().GetOwner(typeof(NTAccount)).ToString();
+    }
 }

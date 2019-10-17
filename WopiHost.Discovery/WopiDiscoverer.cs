@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -45,7 +46,7 @@ namespace WopiHost.Discovery
             if (NetZone != NetZoneEnum.Any)
             {
                 var netZoneString = (string)e.Attribute(ATTR_NET_ZONE_NAME);
-                netZoneString = netZoneString.Replace("-", "");
+                netZoneString = netZoneString.Replace("-", "", StringComparison.InvariantCulture);
                 NetZoneEnum netZone;
                 bool success = Enum.TryParse(netZoneString, true, out netZone);
                 return success && (netZone == NetZone);
@@ -62,7 +63,7 @@ namespace WopiHost.Discovery
 
         public async Task<bool> SupportsActionAsync(string extension, WopiActionEnum action)
         {
-            string actionString = action.ToString().ToLower();
+            string actionString = action.ToString().ToLowerInvariant();
 
             var query = (await GetAppsAsync()).Elements().Where(e => (string) e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string) e.Attribute(ATTR_ACTION_NAME) == actionString);
 
@@ -71,7 +72,7 @@ namespace WopiHost.Discovery
 
         public async Task<IEnumerable<string>> GetActionRequirementsAsync(string extension, WopiActionEnum action)
         {
-            string actionString = action.ToString().ToLower();
+            string actionString = action.ToString().ToLowerInvariant();
 
             var query = (await GetAppsAsync()).Elements().Where(e => (string) e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string) e.Attribute(ATTR_ACTION_NAME) == actionString).Select(e => e.Attribute(ATTR_ACTION_REQUIRES).Value.Split(','));
 
@@ -86,7 +87,7 @@ namespace WopiHost.Discovery
 
         public async Task<string> GetUrlTemplateAsync(string extension, WopiActionEnum action)
         {
-            string actionString = action.ToString().ToLower();
+            string actionString = action.ToString().ToLowerInvariant();
 
             var query = (await GetAppsAsync()).Elements().Where(e => (string) e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string) e.Attribute(ATTR_ACTION_NAME) == actionString).Select(e => e.Attribute(ATTR_ACTION_URL).Value);
 

@@ -108,7 +108,7 @@ namespace WopiHost.Core.Controllers
         {
             // Check permissions
             var authorizationResult = await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Update);
-            
+
             if (!authorizationResult.Succeeded)
             {
                 return Unauthorized();
@@ -156,7 +156,7 @@ namespace WopiHost.Core.Controllers
             switch (WopiOverrideHeader)
             {
                 case "COBALT":
-                    // TODO: remove workaround https://github.com/aspnet/Announcements/issues/342
+                    // TODO: remove workaround https://github.com/aspnet/Announcements/issues/342 (use FileBufferingWriteStream)
                     var syncIOFeature = HttpContext.Features.Get<IHttpBodyControlFeature>();
                     if (syncIOFeature != null)
                     {

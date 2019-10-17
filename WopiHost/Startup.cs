@@ -29,7 +29,7 @@ namespace WopiHost
                     { "ApplicationBasePath", AppContext.BaseDirectory } })
                 .AddJsonFile($"config.{env.EnvironmentName}.json", true)
                 .AddEnvironmentVariables();
-            
+
             if (env.IsDevelopment())
             {
                 // Override with user secrets (http://go.microsoft.com/fwlink/?LinkID=532709)
@@ -68,7 +68,7 @@ namespace WopiHost
 
             // Configuration
             services.AddOptions();
-            services.Configure<WopiHostOptions>(Configuration);                       
+            services.Configure<WopiHostOptions>(Configuration);
 
             // Add WOPI (depends on file provider)
             services.AddWopi(GetSecurityHandler(services));

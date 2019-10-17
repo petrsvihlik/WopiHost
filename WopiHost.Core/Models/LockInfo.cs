@@ -8,6 +8,6 @@ namespace WopiHost.Core.Models
 
 		public DateTime DateCreated { get; set; }
 
-		public bool Expired { get { return DateCreated.AddMinutes(30) < DateTime.UtcNow; } }
-	}
+        public bool Expired => DateCreated.AddMinutes(30) < DateTime.UtcNow;
+    }
 }

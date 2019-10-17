@@ -28,12 +28,9 @@ namespace WopiHost.FileSystemProvider
 		/// </summary>
 		protected string WebRootPath => WopiHostOptions.Value.WebRootPath;
 
-		protected string WopiAbsolutePath
-		{
-			get { return Path.IsPathRooted(WopiRootPath) ? WopiRootPath : Path.Combine(WebRootPath, WopiRootPath); }
-		}
+        protected string WopiAbsolutePath => Path.IsPathRooted(WopiRootPath) ? WopiRootPath : Path.Combine(WebRootPath, WopiRootPath);
 
-		public WopiFileSystemProvider(IOptionsSnapshot<WopiHostOptions> wopiHostOptions)
+        public WopiFileSystemProvider(IOptionsSnapshot<WopiHostOptions> wopiHostOptions)
 		{
 		    WopiHostOptions = wopiHostOptions;
 		}
