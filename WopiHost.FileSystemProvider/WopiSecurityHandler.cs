@@ -32,7 +32,7 @@ namespace WopiHost.FileSystemProvider
         }
 
         //TODO: abstract
-        private Dictionary<string, ClaimsPrincipal> UserDatabase = new Dictionary<string, ClaimsPrincipal>
+        private readonly Dictionary<string, ClaimsPrincipal> UserDatabase = new Dictionary<string, ClaimsPrincipal>
         {
             {"Anonymous",new ClaimsPrincipal(
                 new ClaimsIdentity(new List<Claim>
@@ -53,7 +53,7 @@ namespace WopiHost.FileSystemProvider
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = user.Identities.FirstOrDefault(),
-                Expires = DateTime.UtcNow.AddHours(1),
+                Expires = DateTime.UtcNow.AddHours(1), //access token ttl: https://wopi.readthedocs.io/projects/wopirest/en/latest/concepts.html#term-access-token-ttl
                 SigningCredentials = new SigningCredentials(Key, SecurityAlgorithms.HmacSha256)
             };
 
@@ -89,6 +89,7 @@ namespace WopiHost.FileSystemProvider
 
         public bool IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation)
         {
+            //TODO: logic
             return true;
         }
 

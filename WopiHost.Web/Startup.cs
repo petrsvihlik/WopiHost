@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
+using WopiHost.Abstractions;
+using WopiHost.FileSystemProvider;
 
 namespace WopiHost.Web
 {
@@ -12,9 +15,9 @@ namespace WopiHost.Web
     {
         public IConfiguration Configuration { get; set; }
 
-        public Startup(IHostingEnvironment env)
+        public Startup(IWebHostEnvironment env)
         {
-               var baseDir = System.AppContext.BaseDirectory;
+            var baseDir = System.AppContext.BaseDirectory;
             var builder = new ConfigurationBuilder().SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).
                 AddInMemoryCollection(new Dictionary<string, string>
@@ -37,30 +40,42 @@ namespace WopiHost.Web
         /// </summary>
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddControllersWithViews();
             services.AddMvc();
             services.AddSingleton(Configuration);
+
+            // Configuration
+            services.AddOptions();
+            services.Configure<WopiHostOptions>(Configuration);
+            services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
+
+            services.AddLogging(loggingBuilder =>
+            {
+                loggingBuilder.AddConsole();//Configuration.GetSection("Logging")
+                loggingBuilder.AddDebug();
+            });
         }
 
         /// <summary>
         /// Configure is called after ConfigureServices is called.
         /// </summary>
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            loggerFactory.AddConsole(Configuration.GetSection("Logging"));
-            loggerFactory.AddDebug();
-
             app.UseDeveloperExceptionPage();
-            //app.UseExceptionHandler("/Error");
+
+            app.UseHttpsRedirection();
 
             // Add static files to the request pipeline.
             app.UseStaticFiles();
 
+            app.UseRouting();
+
             // Add MVC to the request pipeline.
-            app.UseMvc(routes =>
+            app.UseEndpoints(endpoints =>
             {
-                routes.MapRoute(
+                endpoints.MapControllerRoute(
                     name: "default",
-                    template: "{controller=Home}/{action=Index}/{id?}");
+                    pattern: "{controller=Home}/{action=Index}/{id?}");
             });
         }
     }

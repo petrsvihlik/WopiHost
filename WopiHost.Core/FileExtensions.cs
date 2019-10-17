@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using WopiHost.Abstractions;
@@ -12,59 +13,59 @@ namespace WopiHost.Core
 
         public static CheckFileInfo GetCheckFileInfo(this IWopiFile file, ClaimsPrincipal principal, HostCapabilities capabilities)
         {
-            CheckFileInfo CheckFileInfo = new CheckFileInfo();
+            CheckFileInfo checkFileInfo = new CheckFileInfo();
             if (principal != null)
             {
-                CheckFileInfo.UserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value.ToSafeIdentity();
-                CheckFileInfo.UserFriendlyName = principal.FindFirst(ClaimTypes.Name)?.Value;
+                checkFileInfo.UserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value.ToSafeIdentity();
+                checkFileInfo.UserFriendlyName = principal.FindFirst(ClaimTypes.Name)?.Value;
 
                 WopiUserPermissions permissions = (WopiUserPermissions)Enum.Parse(typeof(WopiUserPermissions), principal.FindFirst(WopiClaimTypes.UserPermissions).Value);
 
-                CheckFileInfo.ReadOnly = permissions.HasFlag(WopiUserPermissions.ReadOnly);
-                CheckFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiUserPermissions.RestrictedWebViewOnly);
-                CheckFileInfo.UserCanAttend = permissions.HasFlag(WopiUserPermissions.UserCanAttend);
-                CheckFileInfo.UserCanNotWriteRelative = permissions.HasFlag(WopiUserPermissions.UserCanNotWriteRelative);
-                CheckFileInfo.UserCanPresent = permissions.HasFlag(WopiUserPermissions.UserCanPresent);
-                CheckFileInfo.UserCanRename = permissions.HasFlag(WopiUserPermissions.UserCanRename);
-                CheckFileInfo.UserCanWrite = permissions.HasFlag(WopiUserPermissions.UserCanWrite);
-                CheckFileInfo.WebEditingDisabled = permissions.HasFlag(WopiUserPermissions.WebEditingDisabled);
+                checkFileInfo.ReadOnly = permissions.HasFlag(WopiUserPermissions.ReadOnly);
+                checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiUserPermissions.RestrictedWebViewOnly);
+                checkFileInfo.UserCanAttend = permissions.HasFlag(WopiUserPermissions.UserCanAttend);
+                checkFileInfo.UserCanNotWriteRelative = permissions.HasFlag(WopiUserPermissions.UserCanNotWriteRelative);
+                checkFileInfo.UserCanPresent = permissions.HasFlag(WopiUserPermissions.UserCanPresent);
+                checkFileInfo.UserCanRename = permissions.HasFlag(WopiUserPermissions.UserCanRename);
+                checkFileInfo.UserCanWrite = permissions.HasFlag(WopiUserPermissions.UserCanWrite);
+                checkFileInfo.WebEditingDisabled = permissions.HasFlag(WopiUserPermissions.WebEditingDisabled);
             }
             else
             {
-                CheckFileInfo.IsAnonymousUser = true;
+                checkFileInfo.IsAnonymousUser = true;
             }
 
-            CheckFileInfo.OwnerId = file.Owner.ToSafeIdentity();
+            checkFileInfo.OwnerId = file.Owner.ToSafeIdentity();
 
             // Set host capabilities
-            CheckFileInfo.SupportsCoauth = capabilities.SupportsCoauth;
-            CheckFileInfo.SupportsFolders = capabilities.SupportsFolders;
-            CheckFileInfo.SupportsLocks = capabilities.SupportsLocks;
-            CheckFileInfo.SupportsGetLock = capabilities.SupportsGetLock;
-            CheckFileInfo.SupportsExtendedLockLength = capabilities.SupportsExtendedLockLength;
-            CheckFileInfo.SupportsEcosystem = capabilities.SupportsEcosystem;
-            CheckFileInfo.SupportsGetFileWopiSrc = capabilities.SupportsGetFileWopiSrc;
-            CheckFileInfo.SupportedShareUrlTypes = capabilities.SupportedShareUrlTypes;
-            CheckFileInfo.SupportsScenarioLinks = capabilities.SupportsScenarioLinks;
-            CheckFileInfo.SupportsSecureStore = capabilities.SupportsSecureStore;
-            CheckFileInfo.SupportsUpdate = capabilities.SupportsUpdate;
-            CheckFileInfo.SupportsCobalt = capabilities.SupportsCobalt;
-            CheckFileInfo.SupportsRename = capabilities.SupportsRename;
-            CheckFileInfo.SupportsDeleteFile = capabilities.SupportsDeleteFile;
-            CheckFileInfo.SupportsUserInfo = capabilities.SupportsUserInfo;
-            CheckFileInfo.SupportsFileCreation = capabilities.SupportsFileCreation;
+            checkFileInfo.SupportsCoauth = capabilities.SupportsCoauth;
+            checkFileInfo.SupportsFolders = capabilities.SupportsFolders;
+            checkFileInfo.SupportsLocks = capabilities.SupportsLocks;
+            checkFileInfo.SupportsGetLock = capabilities.SupportsGetLock;
+            checkFileInfo.SupportsExtendedLockLength = capabilities.SupportsExtendedLockLength;
+            checkFileInfo.SupportsEcosystem = capabilities.SupportsEcosystem;
+            checkFileInfo.SupportsGetFileWopiSrc = capabilities.SupportsGetFileWopiSrc;
+            checkFileInfo.SupportedShareUrlTypes = capabilities.SupportedShareUrlTypes;
+            checkFileInfo.SupportsScenarioLinks = capabilities.SupportsScenarioLinks;
+            checkFileInfo.SupportsSecureStore = capabilities.SupportsSecureStore;
+            checkFileInfo.SupportsUpdate = capabilities.SupportsUpdate;
+            checkFileInfo.SupportsCobalt = capabilities.SupportsCobalt;
+            checkFileInfo.SupportsRename = capabilities.SupportsRename;
+            checkFileInfo.SupportsDeleteFile = capabilities.SupportsDeleteFile;
+            checkFileInfo.SupportsUserInfo = capabilities.SupportsUserInfo;
+            checkFileInfo.SupportsFileCreation = capabilities.SupportsFileCreation;
 
             using (var stream = file.GetReadStream())
             {
                 byte[] checksum = SHA.ComputeHash(stream);
-                CheckFileInfo.SHA256 = Convert.ToBase64String(checksum);
+                checkFileInfo.SHA256 = Convert.ToBase64String(checksum);
             }
-            CheckFileInfo.BaseFileName = file.Name;
-            CheckFileInfo.FileExtension = "." + file.Extension.TrimStart('.');
-            CheckFileInfo.Version = file.LastWriteTimeUtc.ToString("s");
-            CheckFileInfo.LastModifiedTime = file.LastWriteTimeUtc.ToString("o");
-            CheckFileInfo.Size = file.Exists ? file.Length : 0;
-            return CheckFileInfo;
+            checkFileInfo.BaseFileName = file.Name;
+            checkFileInfo.FileExtension = "." + file.Extension.TrimStart('.');
+            checkFileInfo.Version = file.LastWriteTimeUtc.ToString("s", CultureInfo.InvariantCulture);
+            checkFileInfo.LastModifiedTime = file.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture);
+            checkFileInfo.Size = file.Exists ? file.Length : 0;
+            return checkFileInfo;
         }
     }
 }

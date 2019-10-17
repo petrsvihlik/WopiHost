@@ -38,7 +38,7 @@ namespace WopiHost.Core.Security.Authentication
 				}
                 return Task.FromResult(AuthenticateResult.Success(ticket));
 			}
-			catch (Exception ex)
+            catch (Exception ex)
 			{
 				Logger.LogError(new EventId(ex.HResult), ex, ex.Message);
 				return Task.FromResult(AuthenticateResult.Fail(ex));

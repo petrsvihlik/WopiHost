@@ -25,9 +25,9 @@ namespace WopiHost.Core.Controllers
             }
         }
 
-        protected WopiControllerBase(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions)
+        protected WopiControllerBase(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions)
         {
-            StorageProvider = fileProvider;
+            StorageProvider = storageProvider;
             SecurityHandler = securityHandler;
         }
 

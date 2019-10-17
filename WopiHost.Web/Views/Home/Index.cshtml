@@ -1,21 +1,18 @@
 ﻿@using System.Threading.Tasks
+@using WopiHost.Abstractions
+@model IEnumerable<IWopiFile>
 @{
-	ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "List of WOPI files";
 }
 
+
 <div class="row">
-	<div class="col-md-3">
-		<ul>
-			@foreach (var f in @Model.ChildContainers)
-			{
-				<li><a href="@f.Url">@f.Name</a></li>
-			}
-		</ul>
-		<ul>
-			@foreach (var f in @Model.ChildFiles)
-			{
-				<li><a href="@Url.Action("Detail",new {f.Id})">@f.Name</a> - <a href="@f.EditUrl">Direct Edit Link</a></li>
-			}
-		</ul>
-	</div>
+    <div class="col-md-3">
+        <ul>
+            @foreach (var file in @Model)
+            {
+                <li><a asp-area="" asp-controller="Home" asp-action="Detail" asp-route-id="@file.Identifier">@file.Name</a></li>
+            }
+        </ul>
+    </div>
 </div>

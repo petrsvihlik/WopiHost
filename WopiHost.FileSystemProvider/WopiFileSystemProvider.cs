@@ -8,13 +8,13 @@ using WopiHost.Abstractions;
 namespace WopiHost.FileSystemProvider
 {
 	/// <summary>
-	/// Provides files and folders based on a base64-ecoded paths.
+	/// Provides files and folders based on a base64-encoded paths.
 	/// </summary>
 	public class WopiFileSystemProvider : IWopiStorageProvider
 	{
 	    public IOptionsSnapshot<WopiHostOptions> WopiHostOptions { get; }
         
-		private string ROOT_PATH = @".\";
+		private readonly string ROOT_PATH = @".\";
 		
 		/// <summary>
 		/// Reference to the root container.
@@ -66,8 +66,8 @@ namespace WopiHost.FileSystemProvider
 		{
 			string folderPath = DecodeIdentifier(identifier);
 			List<IWopiFile> files = new List<IWopiFile>();
-			foreach (string path in Directory.GetFiles(Path.Combine(WopiAbsolutePath, folderPath)))
-			{
+			foreach (string path in Directory.GetFiles(Path.Combine(WopiAbsolutePath, folderPath)))  //TODO Directory.Enumerate...
+            {
 				string filePath = Path.Combine(folderPath, Path.GetFileName(path));
 				string fileId = EncodeIdentifier(filePath);
 				files.Add(GetWopiFile(fileId));
@@ -76,7 +76,7 @@ namespace WopiHost.FileSystemProvider
 		}
 
 		/// <summary>
-		/// Gets all subfolders of a folder.
+		/// Gets all sub-folders of a folder.
 		/// </summary>
 		/// <param name="identifier">A base64-encoded folder path.</param>
 		public List<IWopiFolder> GetWopiContainers(string identifier = "")
