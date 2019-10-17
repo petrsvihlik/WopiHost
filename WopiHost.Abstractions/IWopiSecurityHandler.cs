@@ -16,7 +16,6 @@ namespace WopiHost.Abstractions
 
 		ClaimsPrincipal GetPrincipal(string token);
 
-
 		bool IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation);
 
 	    /// <summary>

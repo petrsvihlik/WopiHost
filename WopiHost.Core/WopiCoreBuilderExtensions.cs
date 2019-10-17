@@ -18,9 +18,8 @@ namespace WopiHost.Core
 
             services.AddControllers()
                 .AddApplicationPart(typeof(WopiCoreBuilderExtensions).GetTypeInfo().Assembly) // Add controllers from this assembly
-                .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null) // Ensure PascalCase property name-style
-                ;
-            
+                .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null); // Ensure PascalCase property name-style
+
             services.AddAuthentication(o => { o.DefaultScheme = AccessTokenDefaults.AuthenticationScheme; })
                 .AddTokenAuthentication(AccessTokenDefaults.AuthenticationScheme, AccessTokenDefaults.AuthenticationScheme, options => { options.SecurityHandler = securityHandler; });
         }

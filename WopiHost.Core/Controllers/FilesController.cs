@@ -134,7 +134,6 @@ namespace WopiHost.Core.Controllers
             return lockResult;
         }
 
-
         /// <summary>
         /// Changes the contents of the file in accordance with [MS-FSSHTTP] and performs other operations like locking.
         /// MS-FSSHTTP Specification: https://msdn.microsoft.com/en-us/library/dd943623.aspx
@@ -313,7 +312,6 @@ namespace WopiHost.Core.Controllers
 
             return false;
         }
-
 
         private StatusCodeResult ReturnLockMismatch(HttpResponse response, string existingLock = null, string reason = null)
         {

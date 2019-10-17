@@ -19,7 +19,6 @@ namespace WopiHost
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
-                })
-            ;
+                });
     }
 }

@@ -87,7 +87,6 @@ namespace WopiHost.Cobalt
             return result;
         }
 
-
         public override ReleaseExclusiveLockRequest.OutputType HandleReleaseExclusiveLock(ReleaseExclusiveLockRequest.InputType input)
         {
             ReleaseExclusiveLockRequest.OutputType result = new ReleaseExclusiveLockRequest.OutputType();

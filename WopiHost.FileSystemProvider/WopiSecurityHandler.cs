@@ -14,7 +14,6 @@ namespace WopiHost.FileSystemProvider
         private readonly JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
         private SymmetricSecurityKey _key = null;
 
-
         private SymmetricSecurityKey Key
         {
             get
@@ -45,7 +44,6 @@ namespace WopiHost.FileSystemProvider
             ) }
         };
 
-
         public SecurityToken GenerateAccessToken(string userId, string resourceId)
         {
             var user = UserDatabase[userId];
@@ -59,7 +57,6 @@ namespace WopiHost.FileSystemProvider
 
             return tokenHandler.CreateToken(tokenDescriptor);
         }
-
 
         public ClaimsPrincipal GetPrincipal(string tokenString)
         {
@@ -92,7 +89,6 @@ namespace WopiHost.FileSystemProvider
             //TODO: logic
             return true;
         }
-
 
         /// <summary>
         /// Converts the security token to a Base64 string.

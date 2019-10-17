@@ -72,7 +72,6 @@ namespace WopiHost
 
             // Add WOPI (depends on file provider)
             services.AddWopi(GetSecurityHandler(services));
-
         }
 
         private IWopiSecurityHandler GetSecurityHandler(IServiceCollection services)
