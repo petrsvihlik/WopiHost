@@ -50,7 +50,6 @@ namespace WopiHost.Core.Results
             else if (Content != null)
             {
                 await targetStream.WriteAsync(Content, 0, Content.Length);
-
             }
             else
             {

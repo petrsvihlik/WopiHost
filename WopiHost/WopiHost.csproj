@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\WopiHost.Cobalt\WopiHost.Cobalt.csproj" />
     <ProjectReference Include="..\WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj" />
     <ProjectReference Include="..\WopiHost.Core\WopiHost.Core.csproj" />    
   </ItemGroup>

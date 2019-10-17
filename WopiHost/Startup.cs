@@ -43,9 +43,11 @@ namespace WopiHost
             // Add file provider
             builder.AddFileProvider(Configuration.Get<WopiHostOptions>());
 
-            // Add cobalt
-            builder.AddCobalt();
-
+            if (Configuration.GetValue<bool>("UseCobalt"))
+            {
+                // Add cobalt
+                builder.AddCobalt();
+            }
         }
 
         /// <summary>

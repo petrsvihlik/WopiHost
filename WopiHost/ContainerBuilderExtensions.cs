@@ -20,10 +20,9 @@ namespace WopiHost
 
         public static void AddCobalt(this ContainerBuilder builder)
         {
-            //TODO Convert Cobalt to .NET Standard
             // Load Cobalt            
-            //var cobaltAssembly = AssemblyLoadContext.Default.LoadFromAssemblyPath($"{AppContext.BaseDirectory}\\WopiHost.Cobalt.dll");
-			//builder.RegisterAssemblyTypes(cobaltAssembly).AsImplementedInterfaces();
+            var cobaltAssembly = AssemblyLoadContext.Default.LoadFromAssemblyPath($"{AppContext.BaseDirectory}\\WopiHost.Cobalt.dll");
+			builder.RegisterAssemblyTypes(cobaltAssembly).AsImplementedInterfaces();
         }
     }
 }
