@@ -3,14 +3,14 @@ Introduction
 [![Build status](https://ci.appveyor.com/api/projects/status/l7jn00f4fxydpbed?svg=true)](https://ci.appveyor.com/project/petrsvihlik/wopihost) 
 [![codecov](https://codecov.io/gh/petrsvihlik/WopiHost/branch/master/graph/badge.svg)](https://codecov.io/gh/petrsvihlik/WopiHost) 
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/ms-wopi/)
-[![.NET Core](https://img.shields.io/badge/netcore-2.0-692079.svg)](https://www.microsoft.com/net/learn/get-started/windows)
+[![.NET Core](https://img.shields.io/badge/netcore-3.0-692079.svg)](https://www.microsoft.com/net/learn/get-started/windows)
 
 
 This project is a sample implementation of a [WOPI host](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx). Basically, it allows developers to integrate custom datasources with Office Online Server (formerly Office Web Apps) or any other WOPI client by implementing a bunch of interfaces.
 
 Features / improvements compared to existing samples on the web
 -----------------------
- - clean WebAPI built with ASP.NET Core MVC, no references to System.Web
+ - clean WebAPI built with ASP.NET Core MVC (no references to System.Web)
  - uses new ASP.NET Core features (configuration, etc.)
  - can be self-hosted or run under IIS
  - file manipulation is extracted to own layer of abstraction (there is no dependency on System.IO)
@@ -27,11 +27,14 @@ Usage
 
 Prerequisites
 -------------
- - [Visual Studio 2017 with the .NET Core workload](https://www.microsoft.com/net/core)
+ - [Visual Studio 2019 with the .NET Core 3.0 workload](https://www.microsoft.com/net/core)
 
 Building the app
 ----------------
-The WopiHost app targets `net46` and `netcoreapp2.0`. You can choose which one you want to use. If you get errors that Microsoft.CobaltCore.15.0.0.0.nupkg can't be found then just remove the reference or see the chapter "Cobalt" below.
+The WopiHost app targets `netcoreapp3.0` only. 
+The full .NET Framework version has been discontinued (due to the upcoming [.NET 5](https://devblogs.microsoft.com/dotnet/introducing-net-5/)), but you can grab the sources in the [Releases](https://github.com/petrsvihlik/WopiHost/releases/tag/1.0.0).
+
+If you get errors saying that Microsoft.CobaltCore.*.nupkg can't be found, then just remove the reference or see the chapter [Cobalt](#Cobalt) below.
  
 Configuration
 -----------
@@ -44,6 +47,7 @@ Configuration
 |`WopiFileProviderAssemblyName`| [`"WopiHost.FileSystemProvider"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost.FileSystemProvider) | Name of assembly containing implementation of `WopiHost.Abstractions` interfaces |
 |`WopiRootPath` | [`".\\wopi-docs"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost/wwwroot/wopi-docs) | Provider-specific setting used by `WopiHost.FileSystemProvider` (which is an implementation of `IWopiStorageProvider` working with System.IO) |
 | `server.urls` | `"wopihost:5000"` | URL(s) at which the WopiHost will be hosted - used by [Kestrel](http://andrewlock.net/configuring-urls-with-kestrel-iis-and-iis-express-with-asp-net-core/) |
+|`UseCobalt`| `true`| Whether or not to use [MS-FSSHTTP](https://docs.microsoft.com/en-us/openspecs/sharepoint_protocols/ms-fsshttp/) for file synchronization. More details at [Cobalt](#cobalt)|
 
 ### WopiHost.Web
 [WopiHost.Web\appSettings.json](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost.Web/appsettings.json)
@@ -52,6 +56,9 @@ Configuration
 | :--- | :--- | :--- |
 | `WopiHostUrl` | `"http://wopihost:5000"` | URL pointing to a WopiHost instance (above). It's used by the URL generator. |
 | `WopiClientUrl` | ` "http://owaserver"` | Base URL of your WOPI client - typically, [Office Online Server](#compatible-wopi-clients) - used by the discovery module to load WOPI client URL templates |
+|`WopiFileProviderAssemblyName`| [`"WopiHost.FileSystemProvider"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost.FileSystemProvider) | Name of assembly containing implementation of `WopiHost.Abstractions` interfaces |
+|`WopiRootPath` | [`"..\\..\\WopiHost\\wwwroot\\wopi-docs"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost/wwwroot/wopi-docs) | Provider-specific setting used by `WopiHost.FileSystemProvider` (which is an implementation of `IWopiStorageProvider` working with System.IO) |
+
 
 Additionally, you can use the [secret storage](https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-2.2&tabs=windows) to configure both of the apps.
 
@@ -59,18 +66,12 @@ Running the application
 -----------------------
 Once you've successfully built the app you can:
 
-- run it directly from the Visual Studio using [IIS Express or selfhosted](/img/debug.png?raw=true).
+- run it directly from the Visual Studio using [IIS Express or self-hosted](/img/debug.png?raw=true).
   - make sure you run both `WopiHost` and `WopiHost.Web`. You can set them both as [startup projects](/img/multiple_projects.png?raw=true)
 - run it from the `cmd`
   - navigate to the WopiHost folder and run `dotnet run`
 - run it in IIS (tested in IIS 8.5)
-  - navigate to the WopiHost folder and run `dnu publish --runtime active`
-  - copy the files from WopiHost\bin\output to your desired web application directory
-  - run the web.cmd file as administrator, wait for it to finish and close it (Ctrl+C and y)
-  - create a new application in IIS and set the physical path to the wwwroot in the web application directory
-  - make sure the site you're adding it to has a binding with port 5000
-  - go to the application settings and change the value of `dnx clr` to `clr` and the value of `dnx-version` to `1.0.0-rc1`
-  - in the same window, add all the configuration settings
+  - TODO
 
 Compatible WOPI Clients
 -------
@@ -87,18 +88,11 @@ To remove the OWA instance use [`Remove-OfficeWebAppsMachine`](http://sharepoint
 
 Cobalt
 ------
-In the past (in Office Web Apps 2013), some actions required support of MS-FSSHTTP protocol (also known as "cobalt"). This is no longer true with Office Online Server 2016.
-However, if the WOPI client discovers (via [SupportsCobalt](http://wopi.readthedocs.io/projects/wopirest/en/latest/files/CheckFileInfo.html#term-supportscobalt) property) that the WOPI host supports cobalt, it'll use it as it's more efficient.
+In the past (in Office Web Apps 2013), some HTTP actions required support of MS-FSSHTTP protocol (also known as "cobalt"). This is no longer true with Office Online Server 2016.
+However, if the WOPI client discovers (via [SupportsCobalt](http://wopi.readthedocs.io/projects/wopirest/en/latest/files/CheckFileInfo.html#term-supportscobalt) property) that the WOPI host supports cobalt, it'll take advantage of it as it's more efficient.
 
-If you want to make the project work with Office Web Apps 2013 SP1 ([deployment guidelines](https://technet.microsoft.com/en-us/library/jj219455(v=office.15).aspx)), you'll need to create a NuGet package called Microsoft.CobaltCore.15.0.0.0.nupkg containing Microsoft.CobaltCore.dll. This DLL is part of Office Web Apps 2013 / Office Online Server 2016 and its license doesn't allow public distribution and therefore it's not part of this repository. Please make sure your OWA/OOS server and user connecting to it have valid licenses before you start using it.
+If you need or want your project to use Cobalt, you'll need to [create a NuGet package called Microsoft.CobaltCore.nupkg](https://github.com/petrsvihlik/WopiHost/wiki/Craft-your-own-Microsoft.CobaltCore-NuGet-package) containing Microsoft.CobaltCore.dll. This DLL is part of Office Web Apps 2013 / Office Online Server 2016 and its license doesn't allow public distribution and therefore it's not part of this repository. Please always make sure your OWA/OOS server and user connecting to it have valid licenses before you start using it.
 
- 1. Locate Microsoft.CobaltCore.dll (you can find it in the GAC of the OWA server): `C:\Windows\Microsoft.NET\assembly\GAC_MSIL\Microsoft.CobaltCore\`
- 2. Install [NuGet Package Explorer](https://npe.codeplex.com/)
- 3. Use .nuspec located in the [Microsoft.CobaltCore](https://github.com/petrsvihlik/WopiHost/tree/master/Microsoft.CobaltCore) folder to create new package
- 4. Put the .nupkg to your local NuGet feed
- 5. Configure Visual Studio to use your local NuGet feed
-
-Note: the Microsoft.CobaltCore.dll targets the full .NET Framework, it's not possible to use it in an application that targets .NET Core.
 
 Using in your web project
 -------------------------
@@ -116,7 +110,7 @@ There is plenty of space for improvements in the overall architecture, implement
 
 Contributing
 ==========
-https://msdn.microsoft.com/en-us/library/ms229042(v=vs.110).aspx
+https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/
 
 License
 =======
@@ -138,27 +132,18 @@ Useful resources
 =============
 Building WOPI Host
 -----------------------
- - !!! NEW & SUPERCOOL Documentation: https://wopi.readthedocs.org/
- - http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx
- - http://blogs.msdn.com/b/scicoria/archive/2013/07/22/building-an-office-web-apps-owa-wopi-host.aspx
- - https://code.msdn.microsoft.com/office/Building-an-Office-Web-f98650d6
- - https://github.com/OfficeDev/PnP-WOPI + video https://www.youtube.com/watch?v=9lGonu0eoGA
+ - [Official WOPI Documentation](https://wopi.readthedocs.io)
+ - [Official WOPI REST API Reference](https://wopi.readthedocs.io/projects/wopirest/en/latest/)
+ - [Introducing WOPI by S. D. Oliver](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx)
+ - [Building an Office Web Apps (OWA) WOPI Host by Shawn Cicoria](https://code.msdn.microsoft.com/office/Building-an-Office-Web-f98650d6) + [WOPI Host and url paths](https://www.cicoria.com/office-web-appswopi-host-and-url-paths/)
+ - [Office Online integration via WOPI Host by Richard diZerega](https://github.com/OfficeDev/PnP-WOPI) + [video](https://www.youtube.com/watch?v=9lGonu0eoGA)
 
-FSSHTTP
+MS-FSSHTTP (Cobalt)
 -------
  - https://msdn.microsoft.com/en-us/library/dd956775(v=office.12).aspx
  - https://channel9.msdn.com/Events/Open-Specifications-Plugfests/Redmond-Interoperability-Protocols-Plugfest-2015/FSSHTTP-File-Synchronization-over-HTTP
 
-
-Other relevant resources
------------------------------
- - [Content roadmap for Office Web Apps Server](https://technet.microsoft.com/en-us/library/dn135237.aspx)
- - http://www.asp.net/web-api/overview/formats-and-model-binding/parameter-binding-in-aspnet-web-api
- - https://weblog.west-wind.com/posts/2009/Feb/05/Html-and-Uri-String-Encoding-without-SystemWeb
- - http://blogs.msdn.com/b/scicoria/archive/2013/06/24/office-web-apps-wopi-host-and-url-paths.aspx
- - http://weblogs.asp.net/imranbaloch/k-kvm-kpm-klr-kre-in-asp-net-vnext
-
 Building WOPI Client
 -------------------------
- - http://www.sharepointcolumn.com/edition-1-wopi-client-in-sharepoint-2013/
+ - http://www.wictorwilen.se/sharepoint-2013-building-your-own-wopi-client-part-1
  - http://www.wictorwilen.se/sharepoint-2013-building-your-own-wopi-client-part-2

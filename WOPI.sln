@@ -15,7 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Microsoft.CobaltCore", "Microsoft.CobaltCore", "{F66706B6-D7DD-48FB-963C-870B3D611500}"
 	ProjectSection(SolutionItems) = preProject
-		Microsoft.CobaltCore\Microsoft.CobaltCore.15.0.4557.1000.nuspec = Microsoft.CobaltCore\Microsoft.CobaltCore.15.0.4557.1000.nuspec
+		Microsoft.CobaltCore.dll.txt = Microsoft.CobaltCore.dll.txt
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B692B58D-1720-49A8-9CB8-5562894618F6}"
