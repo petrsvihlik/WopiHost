@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
@@ -10,7 +9,6 @@ using Microsoft.Extensions.Logging;
 using WopiHost.Abstractions;
 using WopiHost.Core;
 using WopiHost.Core.Models;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Hosting;
 
 namespace WopiHost
@@ -21,12 +19,8 @@ namespace WopiHost
 
         public Startup(IWebHostEnvironment env)
         {
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(env.ContentRootPath)
+            var builder = new ConfigurationBuilder().SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", true, true)
-                .AddInMemoryCollection(new Dictionary<string, string>
-                    { { nameof(env.WebRootPath), env.WebRootPath },
-                    { "ApplicationBasePath", AppContext.BaseDirectory } })
                 .AddJsonFile($"config.{env.EnvironmentName}.json", true)
                 .AddEnvironmentVariables();
 
@@ -40,10 +34,11 @@ namespace WopiHost
 
         public void ConfigureContainer(ContainerBuilder builder)
         {
+            var config = Configuration.GetSection(WopiConfigurationSections.WOPI_ROOT).Get<WopiHostOptions>();
             // Add file provider
-            builder.AddFileProvider(Configuration.Get<WopiHostOptions>());
+            builder.AddFileProvider(config.StorageProviderAssemblyName);
 
-            if (Configuration.GetValue<bool>("UseCobalt"))
+            if (config.UseCobalt)
             {
                 // Add cobalt
                 builder.AddCobalt();
@@ -68,17 +63,21 @@ namespace WopiHost
 
             // Configuration
             services.AddOptions();
-            services.Configure<WopiHostOptions>(Configuration);
+
+            var config = Configuration.GetSection(WopiConfigurationSections.WOPI_ROOT);
+
+            services.Configure<WopiHostOptions>(config);            
+
 
             // Add WOPI (depends on file provider)
-            services.AddWopi(GetSecurityHandler(services));
+            services.AddWopi(GetSecurityHandler(services, config.Get<WopiHostOptions>().StorageProviderAssemblyName));
         }
 
-        private IWopiSecurityHandler GetSecurityHandler(IServiceCollection services)
+        private IWopiSecurityHandler GetSecurityHandler(IServiceCollection services, string storageProviderAssemblyName)
         {
             var providerBuilder = new ContainerBuilder();
             // Add file provider implementation
-            providerBuilder.AddFileProvider(services.BuildServiceProvider().GetRequiredService<IOptionsSnapshot<WopiHostOptions>>().Value);
+            providerBuilder.AddFileProvider(storageProviderAssemblyName);
             providerBuilder.Populate(services);
             var providerContainer = providerBuilder.Build();
             return providerContainer.Resolve<IWopiSecurityHandler>();

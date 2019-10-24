@@ -24,8 +24,9 @@ namespace WopiHost.FileSystemProvider
                     //byte[] key = new byte[128];
                     //rng.GetBytes(key);
                     var key = Encoding.ASCII.GetBytes("secretKeysecretKeysecretKey123"/* + new Random(DateTime.Now.Millisecond).Next(1,999)*/);
-                    _key = new SymmetricSecurityKey(key);
+                    _key = new SymmetricSecurityKey(key); 
                 }
+                
                 return _key;
             }
         }
@@ -33,12 +34,14 @@ namespace WopiHost.FileSystemProvider
         //TODO: abstract
         private readonly Dictionary<string, ClaimsPrincipal> UserDatabase = new Dictionary<string, ClaimsPrincipal>
         {
-            {"Anonymous",new ClaimsPrincipal(
+            {"Anonymous", new ClaimsPrincipal(
                 new ClaimsIdentity(new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, "12345"),
                     new Claim(ClaimTypes.Name, "Anonymous"),
                     new Claim(ClaimTypes.Email, "anonymous@domain.tld"),
+
+                    //TDOO: this needs to be done per file
                     new Claim(WopiClaimTypes.UserPermissions, (WopiUserPermissions.UserCanWrite | WopiUserPermissions.UserCanRename | WopiUserPermissions.UserCanAttend | WopiUserPermissions.UserCanPresent).ToString())
                 })
             ) }
@@ -86,6 +89,7 @@ namespace WopiHost.FileSystemProvider
 
         public bool IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation)
         {
+
             //TODO: logic
             return true;
         }

@@ -9,6 +9,6 @@ namespace WopiHost.Abstractions
         Create = 1,
         Read = 2,
         Update = 4,
-        Delte = 8
+        Delete = 8
     }
 }

@@ -31,7 +31,7 @@ namespace WopiHost.Core.Controllers
             SupportsExtendedLockLength = true,
             SupportsFolders = true,//?
             SupportsCoauth = true,//?
-            SupportsUpdate = nameof(PutFile) != null //&& PutRelativeFile
+            SupportsUpdate = nameof(PutFile) != null //&& PutRelativeFile - usercannotwriterelative
         };
 
         /// <summary>

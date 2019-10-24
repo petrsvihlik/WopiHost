@@ -1,6 +1,5 @@
 ﻿using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using System.Net.Http;
 using System.Threading.Tasks;
 using WopiHost.Discovery;
@@ -8,6 +7,8 @@ using WopiHost.Discovery.Enumerations;
 using WopiHost.Url;
 using WopiHost.Abstractions;
 using WopiHost.FileSystemProvider;
+using WopiHost.Web.Models;
+using Microsoft.Extensions.Options;
 
 namespace WopiHost.Web.Controllers
 {
@@ -15,25 +16,18 @@ namespace WopiHost.Web.Controllers
     {
         private WopiUrlBuilder _urlGenerator;
 
-        private IConfiguration Configuration { get; }
+        private IOptionsSnapshot<WopiOptions> WopiOptions { get; }
 
         protected IWopiStorageProvider StorageProvider { get; set; }
-
-        public string WopiHostUrl => Configuration.GetValue("WopiHostUrl", string.Empty);
-
-        /// <summary>
-        /// URL to OWA or OOS
-        /// </summary>
-        public string WopiClientUrl => Configuration.GetValue("WopiClientUrl", string.Empty);
-
-        public WopiDiscoverer Discoverer => new WopiDiscoverer(new HttpDiscoveryFileProvider(WopiClientUrl));
+        
+        public WopiDiscoverer Discoverer => new WopiDiscoverer(new HttpDiscoveryFileProvider(WopiOptions.Value.ClientUrl));
 
         //TODO: remove test culture value and load it from configuration SECTION
         public WopiUrlBuilder UrlGenerator => _urlGenerator ?? (_urlGenerator = new WopiUrlBuilder(Discoverer, new WopiUrlSettings { UI_LLCC = new CultureInfo("en-US") }));
 
-        public HomeController(IConfiguration configuration, IWopiStorageProvider storageProvider)
+        public HomeController(IOptionsSnapshot<WopiOptions> wopiOptions, IWopiStorageProvider storageProvider)
         {
-            Configuration = configuration;
+            WopiOptions = wopiOptions;
             StorageProvider = storageProvider;
         }
 
@@ -69,7 +63,7 @@ namespace WopiHost.Web.Controllers
 
 
             var extension = file.Extension.TrimStart('.');
-            ViewData["urlsrc"] = await UrlGenerator.GetFileUrlAsync(extension, $"{WopiHostUrl}/wopi/files/{id}", WopiActionEnum.Edit);
+            ViewData["urlsrc"] = await UrlGenerator.GetFileUrlAsync(extension, $"{WopiOptions.Value.HostUrl}/wopi/files/{id}", WopiActionEnum.Edit);
             ViewData["favicon"] = await Discoverer.GetApplicationFavIconAsync(extension);
             return View();
         }

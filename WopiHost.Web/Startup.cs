@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-
+﻿
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -8,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using WopiHost.Abstractions;
 using WopiHost.FileSystemProvider;
+using WopiHost.Web.Models;
 
 namespace WopiHost.Web
 {
@@ -17,12 +17,8 @@ namespace WopiHost.Web
 
         public Startup(IWebHostEnvironment env)
         {
-            var baseDir = System.AppContext.BaseDirectory;
             var builder = new ConfigurationBuilder().SetBasePath(env.ContentRootPath)
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).
-                AddInMemoryCollection(new Dictionary<string, string>
-                    { { nameof(env.WebRootPath), env.WebRootPath },
-                    { "ApplicationBasePath", baseDir } })
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .AddJsonFile($"config.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
 
@@ -41,12 +37,14 @@ namespace WopiHost.Web
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllersWithViews();
-            services.AddMvc();
             services.AddSingleton(Configuration);
 
             // Configuration
             services.AddOptions();
-            services.Configure<WopiHostOptions>(Configuration);
+            services.Configure<WopiOptions>(Configuration.GetSection(WopiConfigurationSections.WOPI_ROOT));
+
+
+            //services.Configure()
             services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
 
             services.AddLogging(loggingBuilder =>
@@ -59,7 +57,7 @@ namespace WopiHost.Web
         /// <summary>
         /// Configure is called after ConfigureServices is called.
         /// </summary>
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app)
         {
             app.UseDeveloperExceptionPage();
 
