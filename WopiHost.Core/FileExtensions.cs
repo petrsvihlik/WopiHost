@@ -13,6 +13,16 @@ namespace WopiHost.Core
 
         public static CheckFileInfo GetCheckFileInfo(this IWopiFile file, ClaimsPrincipal principal, HostCapabilities capabilities)
         {
+            if (file is null)
+            {
+                throw new ArgumentNullException(nameof(file));
+            }
+
+            if (capabilities is null)
+            {
+                throw new ArgumentNullException(nameof(capabilities));
+            }
+
             CheckFileInfo checkFileInfo = new CheckFileInfo();
             if (principal != null)
             {

@@ -1,19 +1,15 @@
 ﻿using System;
 using System.Runtime.Loader;
 using Autofac;
-using WopiHost.Abstractions;
 
 namespace WopiHost
 {
     public static class ContainerBuilderExtensions
     {
-        public static void AddFileProvider(this ContainerBuilder builder, WopiHostOptions options)
+        public static void AddFileProvider(this ContainerBuilder builder, string storageProviderAssemblyName)
         {
-            //TODO: options should be a specific section of the config
-
-            var providerAssembly = options.WopiFileProviderAssemblyName;
             // Load file provider
-            var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath($"{AppContext.BaseDirectory}\\{providerAssembly}.dll");
+            var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath($"{AppContext.BaseDirectory}\\{storageProviderAssemblyName}.dll");
             builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
         }
 

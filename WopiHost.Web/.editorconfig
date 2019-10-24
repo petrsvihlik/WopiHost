@@ -4,4 +4,4 @@
 dotnet_diagnostic.CA2007.severity = suggestion
 
 # CA1822: Mark members as static
-dotnet_diagnostic.CA1822.severity = suggestion
+dotnet_diagnostic.CA1822.severity = silent

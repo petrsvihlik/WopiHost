@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
+    <IncludeOpenAPIAnalyzers>true</IncludeOpenAPIAnalyzers>
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <AssemblyName>WopiHost.Web</AssemblyName>
     <OutputType>Exe</OutputType>

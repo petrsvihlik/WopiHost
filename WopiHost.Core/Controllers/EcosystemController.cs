@@ -5,10 +5,10 @@ using WopiHost.Core.Models;
 
 namespace WopiHost.Core.Controllers
 {
-	/// <summary>
-	/// Implementation of WOPI server protocol http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/CheckEcosystem.html
-	/// </summary>
-	[Route("wopi/[controller]")]
+    /// <summary>
+    /// Implementation of WOPI server protocol http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/CheckEcosystem.html
+    /// </summary>
+    [Route("wopi/[controller]")]
 	public class EcosystemController : WopiControllerBase
 	{
 		public EcosystemController(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions) 
