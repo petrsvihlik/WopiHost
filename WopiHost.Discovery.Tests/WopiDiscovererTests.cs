@@ -175,7 +175,6 @@ namespace WopiHost.Discovery.Tests
             IEnumerable<string> result = await _wopiDiscoverer.GetActionRequirementsAsync(extension, action);
 
             Assert.Contains(expectedValue, result);
-          
         }
 
         [Theory]
@@ -190,7 +189,6 @@ namespace WopiHost.Discovery.Tests
             IEnumerable<string> result = await _wopiDiscoverer.GetActionRequirementsAsync(extension, action);
 
             Assert.DoesNotContain(expectedValue, result);
-
         }
     }
 }
