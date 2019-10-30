@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Update="OOS2016_discovery.xml;OWA2013_discovery.xml">
+    <None Update="OOS2016_discovery.xml;OWA2013_discovery.xml;OO2019_discovery.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
