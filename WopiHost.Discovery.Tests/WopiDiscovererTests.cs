@@ -170,10 +170,13 @@ namespace WopiHost.Discovery.Tests
         [InlineData("one", WopiActionEnum.View, "containers", XML_OWA_2013)]
         public async void ActionRequirementsTests(string extension, WopiActionEnum action, string expectedValue, string fileName)
         {
+            // Arrange
             InitDiscoverer(fileName);
 
+            // Act
             IEnumerable<string> result = await _wopiDiscoverer.GetActionRequirementsAsync(extension, action);
 
+            // Assert
             Assert.Contains(expectedValue, result);
         }
 
@@ -184,10 +187,13 @@ namespace WopiHost.Discovery.Tests
         [InlineData("xlsx", WopiActionEnum.Edit, "cobalt", XML_OOS_2016)]
         public async void ActionRequirementsNegativeTests(string extension, WopiActionEnum action, string expectedValue, string fileName)
         {
+			// Arrange
             InitDiscoverer(fileName);
 
+			// Act
             IEnumerable<string> result = await _wopiDiscoverer.GetActionRequirementsAsync(extension, action);
 
+			// Assert
             Assert.DoesNotContain(expectedValue, result);
         }
     }
