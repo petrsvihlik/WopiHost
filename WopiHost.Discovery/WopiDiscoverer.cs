@@ -87,8 +87,8 @@ namespace WopiHost.Discovery
         public async Task<string> GetUrlTemplateAsync(string extension, WopiActionEnum action)
         {
             string actionString = action.ToString().ToLowerInvariant();
-
-            var query = (await GetAppsAsync()).Elements().Where(e => (string) e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string) e.Attribute(ATTR_ACTION_NAME) == actionString).Select(e => e.Attribute(ATTR_ACTION_URL).Value);
+var query = (await GetAppsAsync()).Elements().Where(e => (string) e.Attribute(ATTR_ACTION_EXTENSION) == extension && e.Attribute(ATTR_ACTION_NAME).Value.ToLowerInvariant() == actionString).Select(e => e.Attribute(ATTR_ACTION_URL).Value);
+            
 
             return query.FirstOrDefault();
         }

@@ -10,16 +10,34 @@ namespace WopiHost.Discovery.Tests
         private WopiDiscoverer _wopiDiscoverer;
         private const string XML_OOS_2016 = "OOS2016_discovery.xml";
         private const string XML_OWA_2013 = "OWA2013_discovery.xml";
+		private const string XML_OO_2019 = "OO2019_discovery.xml";
 
         public WopiDiscovererTests()
 		{
 		    //TODO: test netzones	
 		}
 
-	    private void InitDiscoverer(string fileName)
+	    private void InitDiscoverer(string fileName, NetZoneEnum netZone = NetZoneEnum.Any)
 		{
-			_wopiDiscoverer = new WopiDiscoverer(new FileSystemDiscoveryFileProvider(Path.Combine(System.AppContext.BaseDirectory, fileName)));
+			_wopiDiscoverer = new WopiDiscoverer(new FileSystemDiscoveryFileProvider(Path.Combine(System.AppContext.BaseDirectory, fileName)), netZone);
 		}
+
+		[Theory]
+        [InlineData(NetZoneEnum.ExternalHttps, "xlsm", WopiActionEnum.LegacyWebService, "https://excel.officeapps.live.com/x/_vti_bin/excelserviceinternal.asmx?<ui=UI_LLCC&><rs=DC_LLCC&><dchat=DISABLE_CHAT&><hid=HOST_SESSION_ID&><sc=SESSION_CONTEXT&><wopisrc=WOPI_SOURCE&>", XML_OO_2019)]
+        [InlineData(NetZoneEnum.InternalHttp, "xlsx", WopiActionEnum.MobileView, "http://owaserver/x/_layouts/xlviewerinternal.aspx?<ui=UI_LLCC&><rs=DC_LLCC&><dchat=DISABLE_CHAT&>", XML_OO_2019)]
+        [InlineData(NetZoneEnum.InternalHttp, "ods", WopiActionEnum.Edit, "http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&<ui=UI_LLCC&><rs=DC_LLCC&>", XML_OWA_2013)]
+        public async void NetZoneTests(NetZoneEnum netZone, string extension, WopiActionEnum action, string expectedValue, string fileName)
+        {
+            // Arrange
+            InitDiscoverer(fileName, netZone);
+
+            // Act
+            var result = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
+			
+
+            // Assert
+            Assert.Equal(expectedValue, result);
+        }
 
 		[Theory]
 		[InlineData("xlsx", XML_OOS_2016)]
