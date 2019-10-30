@@ -50,23 +50,23 @@
         /// </summary>
         EmbedView,
 
-		/// <summary>
+        /// <summary>
         /// An action that provides a static image preview of the file type.
         /// Not supported within the Office 365 - Cloud Storage Partner Program.
         /// </summary>
         ImagePreview,
 
-		/// <summary>
+        /// <summary>
         /// An action that supports accepting changes to the file type via a form-style interface.
         /// </summary>
-        FormSubmit,        
-		
-		/// <summary>
+        FormSubmit,
+
+        /// <summary>
         /// An action that supports editing the file type in a mode better suited to working with files that have been used to collect form data via the formsubmit action.
         /// </summary>
         FormEdit,
-		
-		/// <summary>
+
+        /// <summary>
         /// An action that supports interacting with the file type via additional URL parameters that are specific to the file type in question.
         /// </summary>
         Rest,
@@ -126,8 +126,8 @@
         /// </summary>
         Collab,
 
-		/// <summary>
-		/// Not supported within the Office 365 - Cloud Storage Partner Program.
+        /// <summary>
+        /// Not supported within the Office 365 - Cloud Storage Partner Program.
         /// </summary>
         DocumentChat
 

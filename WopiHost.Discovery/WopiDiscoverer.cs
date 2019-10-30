@@ -64,7 +64,7 @@ namespace WopiHost.Discovery
         {
             string actionString = action.ToString().ToLowerInvariant();
 
-            var query = (await GetAppsAsync()).Elements().Where(e => (string) e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string) e.Attribute(ATTR_ACTION_NAME) == actionString);
+            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string)e.Attribute(ATTR_ACTION_NAME).Value.ToLowerInvariant() == actionString);
 
             return query.Any();
         }
@@ -73,7 +73,7 @@ namespace WopiHost.Discovery
         {
             string actionString = action.ToString().ToLowerInvariant();
 
-            var query = (await GetAppsAsync()).Elements().Where(e => (string) e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string) e.Attribute(ATTR_ACTION_NAME) == actionString).Select(e => e.Attribute(ATTR_ACTION_REQUIRES).Value.Split(','));
+            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string)e.Attribute(ATTR_ACTION_NAME).Value.ToLowerInvariant() == actionString).Select(e => e.Attribute(ATTR_ACTION_REQUIRES).Value.Split(','));
 
             return query.FirstOrDefault();
         }
@@ -87,22 +87,20 @@ namespace WopiHost.Discovery
         public async Task<string> GetUrlTemplateAsync(string extension, WopiActionEnum action)
         {
             string actionString = action.ToString().ToLowerInvariant();
-var query = (await GetAppsAsync()).Elements().Where(e => (string) e.Attribute(ATTR_ACTION_EXTENSION) == extension && e.Attribute(ATTR_ACTION_NAME).Value.ToLowerInvariant() == actionString).Select(e => e.Attribute(ATTR_ACTION_URL).Value);
-            
-
+            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(ATTR_ACTION_EXTENSION) == extension && e.Attribute(ATTR_ACTION_NAME).Value.ToLowerInvariant() == actionString).Select(e => e.Attribute(ATTR_ACTION_URL).Value);
             return query.FirstOrDefault();
         }
 
         public async Task<string> GetApplicationNameAsync(string extension)
         {
-            var query = (await GetAppsAsync()).Where(e => e.Descendants(ELEMENT_ACTION).Any(d => (string) d.Attribute(ATTR_ACTION_EXTENSION) == extension)).Select(e => e.Attribute(ATTR_APP_NAME).Value);
+            var query = (await GetAppsAsync()).Where(e => e.Descendants(ELEMENT_ACTION).Any(d => (string)d.Attribute(ATTR_ACTION_EXTENSION) == extension)).Select(e => e.Attribute(ATTR_APP_NAME).Value);
 
             return query.FirstOrDefault();
         }
 
         public async Task<string> GetApplicationFavIconAsync(string extension)
         {
-            var query = (await GetAppsAsync()).Where(e => e.Descendants(ELEMENT_ACTION).Any(d => (string) d.Attribute(ATTR_ACTION_EXTENSION) == extension)).Select(e => e.Attribute(ATTR_APP_FAVICON).Value);
+            var query = (await GetAppsAsync()).Where(e => e.Descendants(ELEMENT_ACTION).Any(d => (string)d.Attribute(ATTR_ACTION_EXTENSION) == extension)).Select(e => e.Attribute(ATTR_APP_FAVICON).Value);
 
             return query.FirstOrDefault();
         }
