@@ -5,7 +5,6 @@
     /// </summary>
     public enum WopiActionEnum
     {
-
         /// <summary>
         /// An action that renders a non-editable view of a document.
         /// </summary>
@@ -130,6 +129,5 @@
         /// Not supported within the Office 365 - Cloud Storage Partner Program.
         /// </summary>
         DocumentChat
-
     }
 }
