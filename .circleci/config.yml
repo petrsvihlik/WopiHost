@@ -11,6 +11,3 @@ jobs:
       - run:
           name: Build
           command: dotnet build
-      - run:
-          name: Unit tests
-          command: dotnet test
