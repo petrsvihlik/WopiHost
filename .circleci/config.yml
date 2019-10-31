@@ -6,9 +6,9 @@ jobs:
     steps:
       - checkout      
       - run:
-          name: Add WOPI NuGet feed
+          name: Restore from private NuGet feed
           command: | 
-            nuget sources add -name WopiFeed -Source ${myget_feed}
+            dotnet restore -s ${myget_feed}
       - run:
           name: Build
           command: dotnet build
