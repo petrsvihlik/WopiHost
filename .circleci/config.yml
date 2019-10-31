@@ -1,0 +1,18 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: mcr.microsoft.com/dotnet/core/sdk:3.0
+    steps:
+      - checkout      
+      - run:
+          name: Add WOPI NuGet feed
+          command: | 
+            nuget sources add -name WopiFeed -Source ${myget_feed}
+      - run:
+          name: Build
+          command: dotnet build
+      - run:
+          name: Unit tests
+          command: | 
+            dotnet test
