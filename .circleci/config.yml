@@ -13,4 +13,6 @@ jobs:
           command: dotnet build
       - run:
           name: Unit tests
-          command: .\coverage.ps1
+          command: dotnet test --no-build -c Release -o test-results
+      - store_test_results:
+          path: test-results
