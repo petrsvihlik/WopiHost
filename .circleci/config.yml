@@ -13,6 +13,6 @@ jobs:
           command: dotnet build
       - run:
           name: Unit tests
-          command: dotnet test --no-build -c Release -o test-results
+          command: dotnet test --no-build -c Release -r test-results
       - store_test_results:
           path: test-results
