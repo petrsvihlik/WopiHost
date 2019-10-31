@@ -1,6 +1,6 @@
 image: Visual Studio 2019
 
-configuration: Release
+configuration: Debug
 
 skip_commits:
   files:
@@ -8,8 +8,6 @@ skip_commits:
 
 init:
   - git config --global core.autocrlf true
-# For debugging purposes (RDP)
-#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 install:
  - nuget sources add -Name wopi -Source %nuget_feed%
@@ -25,6 +23,8 @@ before_build:
 test: off
 
 test_script:
+# For debugging purposes (RDP)
+# - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
  - ps: ./coverage.ps1
 
 after_test:

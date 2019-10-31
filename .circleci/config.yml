@@ -1,0 +1,13 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: mcr.microsoft.com/dotnet/core/sdk:3.0
+    steps:
+      - checkout       
+      - run:
+          name: Restore NuGets from two feeds
+          command: dotnet restore -s ${myget_feed} -s https://api.nuget.org/v3/index.json
+      - run:
+          name: Build
+          command: dotnet build
