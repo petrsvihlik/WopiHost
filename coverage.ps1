@@ -9,7 +9,7 @@ ForEach ($folder in (Get-ChildItem -Path .\ -Directory -Filter *.Tests)) {
     dotnet test $project.FullName $logger
     $openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
     
-    $targetArgs = '-targetargs: test ' + $project.FullName + ' ' +  ' -c Debug ' + $logger + ' /p:DebugType=full' 
+    $targetArgs = '-targetargs: test ' + $project.FullName + ' ' +  ' -c ' + $ENV:CONFIGURATION + ' ' + $logger + ' /p:DebugType=full' 
     $filter = '-filter:+[Wopi*]*-[*Tests]*'
     & $openCover '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' ('-output:' + $ENV:APPVEYOR_BUILD_FOLDER + '\coverage.xml')
 	
