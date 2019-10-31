@@ -7,6 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.gitignore = .gitignore
 		appveyor.yml = appveyor.yml
 		coverage.ps1 = coverage.ps1
+		Directory.build.props = Directory.build.props
 		LICENSE.txt = LICENSE.txt
 		NOTICE.txt = NOTICE.txt
 		ORIGINAL_WORK_LICENSE.txt = ORIGINAL_WORK_LICENSE.txt
