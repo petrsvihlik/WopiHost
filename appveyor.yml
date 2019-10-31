@@ -1,6 +1,6 @@
 image: Visual Studio 2019
 
-configuration: Release
+configuration: Debug
 
 skip_commits:
   files:
