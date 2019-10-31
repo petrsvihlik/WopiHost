@@ -14,7 +14,8 @@ using WopiHost.Core.Security;
 namespace WopiHost.Core.Controllers
 {
     /// <summary>
-    /// Implementation of WOPI server protocol https://msdn.microsoft.com/en-us/library/hh659001.aspx
+    /// Implementation of WOPI server protocol
+    /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/
     /// </summary>
     [Route("wopi/[controller]")]
     public class FilesController : WopiControllerBase
@@ -50,8 +51,8 @@ namespace WopiHost.Core.Controllers
 
         /// <summary>
         /// Returns the metadata about a file specified by an identifier.
-        /// Specification: https://msdn.microsoft.com/en-us/library/hh643136.aspx
-        /// Example URL: HTTP://server/<...>/wopi*/files/<id>
+        /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/files/CheckFileInfo.html
+        /// Example URL path: /wopi/files/(file_id)
         /// </summary>
         /// <param name="id">File identifier.</param>
         /// <returns></returns>
@@ -67,8 +68,8 @@ namespace WopiHost.Core.Controllers
 
         /// <summary>
         /// Returns contents of a file specified by an identifier.
-        /// Specification: https://msdn.microsoft.com/en-us/library/hh657944.aspx
-        /// Example URL: HTTP://server/<...>/wopi*/files/<id>/contents
+        /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/files/GetFile.html
+        /// Example URL path: /wopi/files/(file_id)/contents
         /// </summary>
         /// <param name="id">File identifier.</param>
         /// <returns></returns>
@@ -97,8 +98,8 @@ namespace WopiHost.Core.Controllers
 
         /// <summary>
         /// Updates a file specified by an identifier. (Only for non-cobalt files.)
-        /// Specification: https://msdn.microsoft.com/en-us/library/hh657364.aspx
-        /// Example URL: HTTP://server/<...>/wopi*/files/<id>/contents
+        /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/files/PutFile.html
+        /// Example URL path: /wopi/files/(file_id)/contents
         /// </summary>
         /// <param name="id">File identifier.</param>
         /// <returns></returns>
@@ -134,14 +135,20 @@ namespace WopiHost.Core.Controllers
             return lockResult;
         }
 
+        [HttpPost("{id}"), WopiOverrideHeader(new[] { "PUT_RELATIVE" })]
+        public async Task<IActionResult> PutRelativeFile(string id)
+        {
+            throw new NotImplementedException($"{nameof(PutRelativeFile)} is not implemented yet.");
+        }
+
         /// <summary>
-        /// Changes the contents of the file in accordance with [MS-FSSHTTP] and performs other operations like locking.
+        /// Changes the contents of the file in accordance with [MS-FSSHTTP].
         /// MS-FSSHTTP Specification: https://msdn.microsoft.com/en-us/library/dd943623.aspx
         /// Specification: https://msdn.microsoft.com/en-us/library/hh659581.aspx
-        /// Example URL: HTTP://server/<...>/wopi*/files/<id>
+        /// Example URL path: /wopi/files/(file_id)
         /// </summary>
-        /// <param name="id"></param>
-        [HttpPost("{id}")]
+        /// <param name="id">File identifier.</param>
+        [HttpPost("{id}"), WopiOverrideHeader(new[] { "COBALT" })]
         public async Task<IActionResult> PerformAction(string id)
         {
             // Check permissions
@@ -152,39 +159,29 @@ namespace WopiHost.Core.Controllers
 
             var file = StorageProvider.GetWopiFile(id);
 
-            switch (WopiOverrideHeader)
+            // TODO: remove workaround https://github.com/aspnet/Announcements/issues/342 (use FileBufferingWriteStream)
+            var syncIOFeature = HttpContext.Features.Get<IHttpBodyControlFeature>();
+            if (syncIOFeature != null)
             {
-                case "COBALT":
-                    // TODO: remove workaround https://github.com/aspnet/Announcements/issues/342 (use FileBufferingWriteStream)
-                    var syncIOFeature = HttpContext.Features.Get<IHttpBodyControlFeature>();
-                    if (syncIOFeature != null)
-                    {
-                        syncIOFeature.AllowSynchronousIO = true;
-                    }
-
-                    var responseAction = CobaltProcessor.ProcessCobalt(file, User, await HttpContext.Request.Body.ReadBytesAsync());
-                    HttpContext.Response.Headers.Add(WopiHeaders.CorrelationId, HttpContext.Request.Headers[WopiHeaders.CorrelationId]);
-                    HttpContext.Response.Headers.Add("request-id", HttpContext.Request.Headers[WopiHeaders.CorrelationId]);
-                    return new Results.FileResult(responseAction, "application/octet-stream");
-
-                case "LOCK":
-                case "UNLOCK":
-                case "REFRESH_LOCK":
-                case "GET_LOCK":
-                    return ProcessLock(id);
-
-                case "PUT_RELATIVE":
-                    return new NotImplementedResult();
-
-                default:
-                    // Unsupported action
-                    return new NotImplementedResult();
+                syncIOFeature.AllowSynchronousIO = true;
             }
+
+            var responseAction = CobaltProcessor.ProcessCobalt(file, User, await HttpContext.Request.Body.ReadBytesAsync());
+            HttpContext.Response.Headers.Add(WopiHeaders.CorrelationId, HttpContext.Request.Headers[WopiHeaders.CorrelationId]);
+            HttpContext.Response.Headers.Add("request-id", HttpContext.Request.Headers[WopiHeaders.CorrelationId]);
+            return new Results.FileResult(responseAction, "application/octet-stream");
         }
 
         #region "Locking"
 
-        private IActionResult ProcessLock(string id)
+        /// <summary>
+        /// Processes lock-related operations.
+        /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/files/Lock.html
+        /// Example URL path: /wopi/files/(file_id)
+        /// </summary>
+        /// <param name="id">File identifier.</param>
+        [HttpPost("{id}"), WopiOverrideHeader(new[] { "LOCK", "UNLOCK", "REFRESH_LOCK", "GET_LOCK" })]
+        public IActionResult ProcessLock(string id)
         {
             string oldLock = Request.Headers[WopiHeaders.OldLock];
             string newLock = Request.Headers[WopiHeaders.Lock];

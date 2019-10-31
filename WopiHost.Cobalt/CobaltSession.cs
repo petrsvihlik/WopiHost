@@ -53,8 +53,7 @@ namespace WopiHost.Cobalt
                 using (var stream = file.GetReadStream())
                 {
                     var srcAtom = new AtomFromStream(stream);
-                    Metrics o1;
-                    tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out o1);
+                    tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out Metrics o1);
                     tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
                 }
             }
@@ -80,10 +79,8 @@ namespace WopiHost.Cobalt
             AtomFromByteArray atomRequest = new AtomFromByteArray(newContent);
             RequestBatch requestBatch = new RequestBatch();
 
-            object ctx;
-            ProtocolVersion protocolVersion;
 
-            requestBatch.DeserializeInputFromProtocol(atomRequest, out ctx, out protocolVersion);
+            requestBatch.DeserializeInputFromProtocol(atomRequest, out object ctx, out ProtocolVersion protocolVersion);
             var cobaltFile = GetCobaltFile(file, principal);
             cobaltFile.CobaltEndpoint.ExecuteRequestBatch(requestBatch);
 

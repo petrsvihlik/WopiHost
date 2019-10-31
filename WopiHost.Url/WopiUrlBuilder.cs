@@ -58,12 +58,11 @@ namespace WopiHost.Url
 
 		private string ResolveOptionalParameter(string name, string value, WopiUrlSettings urlSettings)
 		{
-			string param = null;
-			if (urlSettings.TryGetValue(value, out param))
-			{
-				return name + "=" + Uri.EscapeDataString(param) + "&";
-			}
-			return null;
+            if (urlSettings.TryGetValue(value, out string param))
+            {
+                return name + "=" + Uri.EscapeDataString(param) + "&";
+            }
+            return null;
 		}
 	}
 }

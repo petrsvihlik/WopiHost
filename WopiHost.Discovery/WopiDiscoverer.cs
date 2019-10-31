@@ -46,8 +46,7 @@ namespace WopiHost.Discovery
             {
                 var netZoneString = (string)e.Attribute(ATTR_NET_ZONE_NAME);
                 netZoneString = netZoneString.Replace("-", "", StringComparison.InvariantCulture);
-                NetZoneEnum netZone;
-                bool success = Enum.TryParse(netZoneString, true, out netZone);
+                bool success = Enum.TryParse(netZoneString, true, out NetZoneEnum netZone);
                 return success && (netZone == NetZone);
             }
             return true;

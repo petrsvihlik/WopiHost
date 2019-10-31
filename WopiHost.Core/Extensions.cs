@@ -28,8 +28,7 @@ namespace WopiHost.Core
         /// <returns>Integer parsed from <see cref="s"/></returns>
         public static int? ToNullableInt(this string s)
         {
-            int i;
-            if (int.TryParse(s, out i)) return i;
+            if (int.TryParse(s, out int i)) return i;
             return null;
         }
 
