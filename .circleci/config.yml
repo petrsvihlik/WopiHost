@@ -7,12 +7,10 @@ jobs:
       - checkout       
       - run:
           name: Restore NuGets from two feeds
-          command:
-            dotnet restore -s ${myget_feed} -s https://api.nuget.org/v3/index.json
+          command: dotnet restore -s ${myget_feed} -s https://api.nuget.org/v3/index.json
       - run:
           name: Build
           command: dotnet build
       - run:
           name: Unit tests
-          command:
-            dotnet test
+          command: dotnet test
