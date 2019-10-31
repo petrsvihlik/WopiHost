@@ -13,4 +13,4 @@ jobs:
           command: dotnet build
       - run:
           name: Unit tests
-          command: dotnet test
+          command: .\coverage.ps1
