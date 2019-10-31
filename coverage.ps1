@@ -6,7 +6,7 @@ ForEach ($folder in (Get-ChildItem -Path .\ -Directory -Filter *.Tests)) {
     $project = Get-ChildItem -Path ($folder.FullName+"\*.csproj") | Select-Object -First 1
     
     $logger = ("--logger:trx;LogFileName=" + $folder.FullName + "\results.trx")
-    #dotnet test $project.FullName $logger
+    dotnet test $project.FullName
     $openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
     
     $targetArgs = '-targetargs: test ' + $project.FullName + ' ' +  ' -c ' + $ENV:CONFIGURATION + ' ' + $logger + ' /p:DebugType=full' 
