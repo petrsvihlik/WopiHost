@@ -3,6 +3,7 @@ $ENV:CONFIGURATION = if ($ENV:CONFIGURATION -eq $null) { "Release" } else { $ENV
 $ENV:APPVEYOR_BUILD_FOLDER = if ($ENV:APPVEYOR_BUILD_FOLDER -eq $null) { $PSScriptRoot } else { $ENV:APPVEYOR_BUILD_FOLDER }
 
 $openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.Console.exe'
+dotnet --version
 dotnet test
 
 $logger = ("--logger:trx;LogFileName=results.trx")    
