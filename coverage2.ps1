@@ -10,9 +10,8 @@ $target = '-target:C:\Program Files\dotnet\dotnet.exe'
 $targetArgs = '-targetargs:"test -c:' + $buildConfig + ' --logger:trx;LogFileName=results.trx /p:DebugType=full"' 
 $filter = '-filter:+[Wopi*]*-[*Tests]*'
 $output = '-output:' + $buildFolder + '\coverage.xml'
+$register = if ($ENV:APPVEYOR -eq $true ) { '-register' } else { '-register:user' } # Magical parameter that fucks up things
 
-
-
-& $openCover $target $targetArgs $filter '-register:user' '-oldStyle' '-mergeoutput' $output
+& $openCover $target $targetArgs $filter $register '-oldStyle' '-mergeoutput' $output
 	
   
