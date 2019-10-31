@@ -6,7 +6,7 @@ $openCover = 'C:\ProgramData\chocolatey\lib\opencover.portable\tools\OpenCover.C
 dotnet test
 
 $logger = ("--logger:trx;LogFileName=results.trx")    
-$targetArgs = '-targetargs: test -c ' + $ENV:CONFIGURATION + ' ' + $logger + ' /p:DebugType=full' 
+$targetArgs = '-targetargs:" test -c ' + $ENV:CONFIGURATION + ' ' + $logger + ' /p:DebugType=full"' 
 $filter = '-filter:+[Wopi*]*-[*Tests]*'
 & $openCover '-target:C:\Program Files\dotnet\dotnet.exe' $targetArgs '-register:user' $filter '-oldStyle' '-mergeoutput' ('-output:' + $ENV:APPVEYOR_BUILD_FOLDER + '\coverage.xml')
 	
