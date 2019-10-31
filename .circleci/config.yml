@@ -6,13 +6,9 @@ jobs:
     steps:
       - checkout       
       - run:
-          name: Restore packages
+          name: Restore NuGets from two feeds
           command: | 
-            dotnet restore
-      - run:
-          name: Restore from private NuGet feed
-          command: | 
-            dotnet restore -s ${myget_feed}
+            dotnet restore -s ${myget_feed} -s https://api.nuget.org/v3/index.json
       - run:
           name: Build
           command: dotnet build
