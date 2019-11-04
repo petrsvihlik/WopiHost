@@ -149,7 +149,7 @@ namespace WopiHost.Core.Controllers
         /// </summary>
         /// <param name="id">File identifier.</param>
         [HttpPost("{id}"), WopiOverrideHeader(new[] { "COBALT" })]
-        public async Task<IActionResult> PerformAction(string id)
+        public async Task<IActionResult> ProcessCobalt(string id)
         {
             // Check permissions
             if (!(await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Update)).Succeeded)

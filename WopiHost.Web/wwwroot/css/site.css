@@ -1,34 +1,20 @@
-﻿body {
-    padding-top: 50px;
-    padding-bottom: 20px;
+﻿footer {
+    position: fixed;
+    bottom: 0px;
+    margin: 0px;
 }
 
-/* Wrapping element */
-/* Set some basic padding to keep content from hitting the edges */
-.body-content {
-    padding-left: 15px;
-    padding-right: 15px;
+nav {
+    box-shadow: 0 1px 2px rgba(99, 114, 130, 0.06), 0 3px 6px rgba(27, 39, 51, 0.08);
 }
 
-/* Set widths on the form inputs since otherwise they're 100% wide */
-input,
-select,
-textarea {
-    max-width: 280px;
-}
-
-/* Carousel */
-.carousel-caption {
-    z-index: 10 !important;
-}
-
-    .carousel-caption p {
-        font-size: 20px;
-        line-height: 1.4;
+    nav ul {
+        padding-bottom: 8px;
+        padding-top: 8px;
+        margin: 0;
     }
 
-@media (min-width: 768px) {
-    .carousel-caption {
-        z-index: 10 !important;
+    nav li {
+        display: inline;
+        padding: 16px;
     }
-}

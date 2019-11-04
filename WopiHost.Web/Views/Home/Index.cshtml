@@ -1,18 +1,13 @@
-﻿@using System.Threading.Tasks
-@using WopiHost.Abstractions
+﻿@using WopiHost.Abstractions
 @model IEnumerable<IWopiFile>
 @{
     ViewData["Title"] = "List of WOPI files";
 }
 
-
-<div class="row">
-    <div class="col-md-3">
-        <ul>
-            @foreach (var file in @Model)
-            {
-                <li><a asp-area="" asp-controller="Home" asp-action="Detail" asp-route-id="@file.Identifier">@file.Name</a></li>
-            }
-        </ul>
-    </div>
-</div>
+<h2>Documents:</h2>
+<ul>
+    @foreach (var file in @Model)
+    {
+        <li><a asp-area="" asp-controller="Home" asp-action="Detail" asp-route-id="@file.Identifier">@file.Name</a></li>
+    }
+</ul>
