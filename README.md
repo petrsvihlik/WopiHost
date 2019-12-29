@@ -6,7 +6,7 @@ Introduction
 [![Maintainability](https://api.codeclimate.com/v1/badges/369f0a7ff28279088d9c/maintainability)](https://codeclimate.com/github/petrsvihlik/WopiHost/maintainability)
 [![CodeFactor](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/badge/master)](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/overview/master)
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/ms-wopi/)
-[![.NET Core](https://img.shields.io/badge/netcore-3.0-692079.svg)](https://www.microsoft.com/net/learn/get-started/windows)
+[![.NET Core](https://img.shields.io/badge/netcore-3.1-692079.svg)](https://www.microsoft.com/net/learn/get-started/windows)
 
 
 This project is a sample implementation of a [WOPI host](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx). Basically, it allows developers to integrate custom datasources with Office Online Server (formerly Office Web Apps) or any other WOPI client by implementing a bunch of interfaces.
@@ -30,11 +30,11 @@ Usage
 
 Prerequisites
 -------------
- - [Visual Studio 2019 with the .NET Core 3.0 workload](https://www.microsoft.com/net/core)
+ - [Visual Studio 2019 with the .NET Core 3.1 workload](https://www.microsoft.com/net/core)
 
 Building the app
 ----------------
-The WopiHost app targets `netcoreapp3.0` only. 
+The WopiHost app targets `netcoreapp3.1` only. 
 The full .NET Framework version has been discontinued (due to the upcoming [.NET 5](https://devblogs.microsoft.com/dotnet/introducing-net-5/)), but you can grab the sources in the [Releases](https://github.com/petrsvihlik/WopiHost/releases/tag/1.0.0).
 
 If you get errors saying that Microsoft.CobaltCore.*.nupkg can't be found, then just remove the reference or see the chapter [Cobalt](#Cobalt) below.
