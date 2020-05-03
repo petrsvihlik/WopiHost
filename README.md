@@ -119,7 +119,7 @@ License
  - [ORIGINAL_WORK_LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/ORIGINAL_WORK_LICENSE.txt) - License for Marx Yu's part of the project. This project is based on [Marx Yu's project](https://github.com/marx-yu/WopiHost).
  - [NOTICE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/NOTICE.txt) - additional notes to how the licenses are applied
 
-Support the project
+Supporters
 ===================
 If this project helped you and you want to support its further development, please consider donating an amount of your choice. Thank you!
 
