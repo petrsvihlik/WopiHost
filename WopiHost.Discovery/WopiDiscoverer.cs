@@ -56,7 +56,7 @@ namespace WopiHost.Discovery
         {
             var query = (await GetAppsAsync()).Elements()
                 .FirstOrDefault(e => (string)e.Attribute(ATTR_ACTION_EXTENSION) == extension);
-            return query != null;
+            return query is { };
         }
 
         public async Task<bool> SupportsActionAsync(string extension, WopiActionEnum action)
@@ -80,7 +80,7 @@ namespace WopiHost.Discovery
         public async Task<bool> RequiresCobaltAsync(string extension, WopiActionEnum action)
         {
             var requirements = await GetActionRequirementsAsync(extension, action);
-            return requirements != null && requirements.Contains(ATTR_VAL_COBALT);
+            return requirements is { } && requirements.Contains(ATTR_VAL_COBALT);
         }
 
         public async Task<string> GetUrlTemplateAsync(string extension, WopiActionEnum action)

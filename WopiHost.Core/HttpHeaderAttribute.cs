@@ -17,7 +17,7 @@ namespace WopiHost.Core
 
         public bool Accept(ActionConstraintContext context)
         {
-            return context == null
+            return context is null
                 ? false
                 : context.RouteContext.HttpContext.Request.Headers.TryGetValue(Header, out var value) ? Values.Contains(value[0]) : false;
         }

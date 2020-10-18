@@ -18,7 +18,7 @@ namespace WopiHost.FileSystemProvider
         {
             get
             {
-                if (_key == null)
+                if (_key is null)
                 {
                     //RandomNumberGenerator rng = RandomNumberGenerator.Create();
                     //byte[] key = new byte[128];

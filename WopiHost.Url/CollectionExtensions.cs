@@ -11,11 +11,11 @@ namespace WopiHost.Url
         /// <returns></returns>
         public static IDictionary<TKey, TValue> Merge<TKey, TValue>(this IDictionary<TKey, TValue> dictA, IDictionary<TKey, TValue> dictB) where TValue : class
         {
-            if (dictA == null)
+            if (dictA is null)
             {
                 return dictB;
             }
-            if (dictB == null)
+            if (dictB is null)
             {
                 return dictA;
             }

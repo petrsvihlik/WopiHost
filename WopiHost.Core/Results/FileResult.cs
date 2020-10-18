@@ -40,14 +40,14 @@ namespace WopiHost.Core.Results
             var response = context.HttpContext.Response;
             response.ContentType = ContentType;
             var targetStream = response.Body;
-            if (CopyStream != null)
+            if (CopyStream is { })
             {
                 await Task.Factory.StartNew(() =>
                 {
                     CopyStream(targetStream);
                 });
             }
-            else if (Content != null)
+            else if (Content is { })
             {
                 await targetStream.WriteAsync(Content, 0, Content.Length);
             }
