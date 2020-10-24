@@ -24,7 +24,7 @@ namespace WopiHost.Core
             }
 
             var checkFileInfo = new CheckFileInfo();
-            if (principal != null)
+            if (principal is { })
             {
                 checkFileInfo.UserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value.ToSafeIdentity();
                 checkFileInfo.UserFriendlyName = principal.FindFirst(ClaimTypes.Name)?.Value;

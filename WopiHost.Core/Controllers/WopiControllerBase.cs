@@ -37,7 +37,7 @@ namespace WopiHost.Core.Controllers
 
         protected string GetWopiUrl(string controller, string identifier = null, string accessToken = null)
         {
-            identifier = identifier == null ? "" : "/" + Uri.EscapeDataString(identifier);
+            identifier = identifier is null ? "" : "/" + Uri.EscapeDataString(identifier);
             accessToken = Uri.EscapeDataString(accessToken);
             return $"{BaseUrl}/wopi/{controller}{identifier}?access_token={accessToken}";
         }

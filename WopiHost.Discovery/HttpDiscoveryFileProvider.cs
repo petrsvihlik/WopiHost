@@ -24,7 +24,7 @@ namespace WopiHost.Discovery
         /// <inheritdoc />
         public async Task<XElement> GetDiscoveryXmlAsync()
         {
-            if (_discoveryXml == null)
+            if (_discoveryXml is null)
             {
                 try
                 {
