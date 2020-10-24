@@ -2,7 +2,7 @@
 {
     public class WopiOverrideHeaderAttribute : HttpHeaderAttribute
     {
-        public WopiOverrideHeaderAttribute(string[] values) : base(WopiHeaders.WopiOverride, values)
+        public WopiOverrideHeaderAttribute(string[] values) : base(WopiHeaders.WOPI_OVERRIDE, values)
         {
         }
     }

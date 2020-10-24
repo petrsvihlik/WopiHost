@@ -38,7 +38,7 @@ namespace WopiHost.Url.Tests
 		public async void UrlWithAdditionalSettings(string extension, string wopiFileUrl, WopiActionEnum action, string expectedValue)
 		{
 			// Arrange
-			var settings = new WopiUrlSettings { UI_LLCC = new CultureInfo("en-US") };
+			var settings = new WopiUrlSettings { UiLlcc = new CultureInfo("en-US") };
 			var urlGenerator = new WopiUrlBuilder(_discoverer, settings);
 
 			// Act

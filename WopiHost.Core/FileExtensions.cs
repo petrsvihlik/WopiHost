@@ -9,7 +9,7 @@ namespace WopiHost.Core
 {
     public static class FileExtensions
     {
-        private static readonly SHA256 SHA = SHA256.Create();
+        private static readonly SHA256 Sha = SHA256.Create();
 
         public static CheckFileInfo GetCheckFileInfo(this IWopiFile file, ClaimsPrincipal principal, HostCapabilities capabilities)
         {
@@ -23,13 +23,13 @@ namespace WopiHost.Core
                 throw new ArgumentNullException(nameof(capabilities));
             }
 
-            CheckFileInfo checkFileInfo = new CheckFileInfo();
+            var checkFileInfo = new CheckFileInfo();
             if (principal is { })
             {
                 checkFileInfo.UserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value.ToSafeIdentity();
                 checkFileInfo.UserFriendlyName = principal.FindFirst(ClaimTypes.Name)?.Value;
 
-                WopiUserPermissions permissions = (WopiUserPermissions)Enum.Parse(typeof(WopiUserPermissions), principal.FindFirst(WopiClaimTypes.UserPermissions).Value);
+                var permissions = (WopiUserPermissions)Enum.Parse(typeof(WopiUserPermissions), principal.FindFirst(WopiClaimTypes.USER_PERMISSIONS).Value);
 
                 checkFileInfo.ReadOnly = permissions.HasFlag(WopiUserPermissions.ReadOnly);
                 checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiUserPermissions.RestrictedWebViewOnly);
@@ -67,8 +67,8 @@ namespace WopiHost.Core
 
             using (var stream = file.GetReadStream())
             {
-                byte[] checksum = SHA.ComputeHash(stream);
-                checkFileInfo.SHA256 = Convert.ToBase64String(checksum);
+                var checksum = Sha.ComputeHash(stream);
+                checkFileInfo.Sha256 = Convert.ToBase64String(checksum);
             }
             checkFileInfo.BaseFileName = file.Name;
             checkFileInfo.FileExtension = "." + file.Extension.TrimStart('.');

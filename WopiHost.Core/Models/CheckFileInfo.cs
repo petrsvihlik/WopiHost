@@ -96,7 +96,7 @@
 
         public bool RestrictedWebViewOnly { get; set; }
 
-        public string SHA256 { get; set; }
+        public string Sha256 { get; set; }
 
         public string UniqueContentId { get; set; }
 
@@ -106,7 +106,11 @@
 
         public bool SupportsCobalt { get; set; }
 
-        public bool SupportsFolders { get { return SupportsContainers; } set { SupportsContainers = value; } }
+        public bool SupportsFolders
+        {
+            get => SupportsContainers;
+            set => SupportsContainers = value;
+        }
 
         public bool SupportsContainers { get; set; }
 

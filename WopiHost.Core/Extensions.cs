@@ -14,7 +14,7 @@ namespace WopiHost.Core
         /// <returns>Byte array copy of a stream</returns>
         public static async Task<byte[]> ReadBytesAsync(this Stream input)
         {
-            using (MemoryStream ms = new MemoryStream())
+            using (var ms = new MemoryStream())
             {
                 await input.CopyToAsync(ms);
                 return ms.ToArray();
@@ -28,7 +28,7 @@ namespace WopiHost.Core
         /// <returns>Integer parsed from <see cref="s"/></returns>
         public static int? ToNullableInt(this string s)
         {
-            if (int.TryParse(s, out int i)) return i;
+            if (int.TryParse(s, out var i)) return i;
             return null;
         }
 
@@ -37,8 +37,8 @@ namespace WopiHost.Core
         /// </summary>
         public static long ToUnixTimestamp(this DateTime dateTime)
         {
-            DateTime unixStart = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-            long unixTimeStampInTicks = (dateTime.ToUniversalTime() - unixStart).Ticks;
+            var unixStart = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            var unixTimeStampInTicks = (dateTime.ToUniversalTime() - unixStart).Ticks;
             return unixTimeStampInTicks / TimeSpan.TicksPerSecond;
         }
 

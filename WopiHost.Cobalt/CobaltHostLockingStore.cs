@@ -16,7 +16,7 @@ namespace WopiHost.Cobalt
 
         public override WhoAmIRequest.OutputType HandleWhoAmI(WhoAmIRequest.InputType input)
         {
-            WhoAmIRequest.OutputType result = new WhoAmIRequest.OutputType
+            var result = new WhoAmIRequest.OutputType
             {
                 UserEmailAddress = _principal?.FindFirst(ClaimTypes.Email).Value,
                 UserIsAnonymous = string.IsNullOrEmpty(_principal?.FindFirst(ClaimTypes.NameIdentifier).Value),
@@ -29,14 +29,14 @@ namespace WopiHost.Cobalt
 
         public override ServerTimeRequest.OutputType HandleServerTime(ServerTimeRequest.InputType input)
         {
-            ServerTimeRequest.OutputType result = new ServerTimeRequest.OutputType { ServerTime = DateTime.UtcNow };
+            var result = new ServerTimeRequest.OutputType { ServerTime = DateTime.UtcNow };
 
             return result;
         }
 
         public override LockAndCheckOutStatusRequest.OutputType HandleLockAndCheckOutStatus(LockAndCheckOutStatusRequest.InputType input)
         {
-            LockAndCheckOutStatusRequest.OutputType result = new LockAndCheckOutStatusRequest.OutputType
+            var result = new LockAndCheckOutStatusRequest.OutputType
             {
                 LockType = 1U,
                 CheckOutType = 0U
@@ -47,84 +47,84 @@ namespace WopiHost.Cobalt
 
         public override GetExclusiveLockRequest.OutputType HandleGetExclusiveLock(GetExclusiveLockRequest.InputType input)
         {
-            GetExclusiveLockRequest.OutputType result = new GetExclusiveLockRequest.OutputType();
+            var result = new GetExclusiveLockRequest.OutputType();
 
             return result;
         }
 
         public override RefreshExclusiveLockRequest.OutputType HandleRefreshExclusiveLock(RefreshExclusiveLockRequest.InputType input)
         {
-            RefreshExclusiveLockRequest.OutputType result = new RefreshExclusiveLockRequest.OutputType();
+            var result = new RefreshExclusiveLockRequest.OutputType();
 
             return result;
         }
 
         public override CheckExclusiveLockAvailabilityRequest.OutputType HandleCheckExclusiveLockAvailability(CheckExclusiveLockAvailabilityRequest.InputType input)
         {
-            CheckExclusiveLockAvailabilityRequest.OutputType result = new CheckExclusiveLockAvailabilityRequest.OutputType();
+            var result = new CheckExclusiveLockAvailabilityRequest.OutputType();
 
             return result;
         }
 
         public override ConvertExclusiveLockToSchemaLockRequest.OutputType HandleConvertExclusiveLockToSchemaLock(ConvertExclusiveLockToSchemaLockRequest.InputType input, int protocolMajorVersion, int protocolMinorVersion)
         {
-            ConvertExclusiveLockToSchemaLockRequest.OutputType result = new ConvertExclusiveLockToSchemaLockRequest.OutputType();
+            var result = new ConvertExclusiveLockToSchemaLockRequest.OutputType();
 
             return result;
         }
 
         public override ConvertExclusiveLockWithCoauthTransitionRequest.OutputType HandleConvertExclusiveLockWithCoauthTransition(ConvertExclusiveLockWithCoauthTransitionRequest.InputType input, int protocolMajorVersion, int protocolMinorVersion)
         {
-            ConvertExclusiveLockWithCoauthTransitionRequest.OutputType result = new ConvertExclusiveLockWithCoauthTransitionRequest.OutputType();
+            var result = new ConvertExclusiveLockWithCoauthTransitionRequest.OutputType();
 
             return result;
         }
 
         public override GetSchemaLockRequest.OutputType HandleGetSchemaLock(GetSchemaLockRequest.InputType input, int protocolMajorVersion, int protocolMinorVersion)
         {
-            GetSchemaLockRequest.OutputType result = new GetSchemaLockRequest.OutputType();
+            var result = new GetSchemaLockRequest.OutputType();
 
             return result;
         }
 
         public override ReleaseExclusiveLockRequest.OutputType HandleReleaseExclusiveLock(ReleaseExclusiveLockRequest.InputType input)
         {
-            ReleaseExclusiveLockRequest.OutputType result = new ReleaseExclusiveLockRequest.OutputType();
+            var result = new ReleaseExclusiveLockRequest.OutputType();
 
             return result;
         }
 
         public override ReleaseSchemaLockRequest.OutputType HandleReleaseSchemaLock(ReleaseSchemaLockRequest.InputType input, int protocolMajorVersion, int protocolMinorVersion)
         {
-            ReleaseSchemaLockRequest.OutputType result = new ReleaseSchemaLockRequest.OutputType();
+            var result = new ReleaseSchemaLockRequest.OutputType();
 
             return result;
         }
 
         public override RefreshSchemaLockRequest.OutputType HandleRefreshSchemaLock(RefreshSchemaLockRequest.InputType input, int protocolMajorVersion, int protocolMinorVersion)
         {
-            RefreshSchemaLockRequest.OutputType result = new RefreshSchemaLockRequest.OutputType { Lock = LockType.SchemaLock };
+            var result = new RefreshSchemaLockRequest.OutputType { Lock = LockType.SchemaLock };
 
             return result;
         }
 
         public override ConvertSchemaLockToExclusiveLockRequest.OutputType HandleConvertSchemaLockToExclusiveLock(ConvertSchemaLockToExclusiveLockRequest.InputType input)
         {
-            ConvertSchemaLockToExclusiveLockRequest.OutputType result = new ConvertSchemaLockToExclusiveLockRequest.OutputType();
+            var result = new ConvertSchemaLockToExclusiveLockRequest.OutputType();
 
             return result;
         }
 
         public override CheckSchemaLockAvailabilityRequest.OutputType HandleCheckSchemaLockAvailability(CheckSchemaLockAvailabilityRequest.InputType input)
         {
-            CheckSchemaLockAvailabilityRequest.OutputType result = new CheckSchemaLockAvailabilityRequest.OutputType();
+            var result = new CheckSchemaLockAvailabilityRequest.OutputType();
 
             return result;
         }
 
         public override JoinCoauthoringRequest.OutputType HandleJoinCoauthoring(JoinCoauthoringRequest.InputType input, int protocolMajorVersion, int protocolMinorVersion)
         {
-            JoinCoauthoringRequest.OutputType result = new JoinCoauthoringRequest.OutputType
+            var result = new JoinCoauthoringRequest.OutputType
             {
                 Lock = LockType.SchemaLock,
                 CoauthStatus = CoauthStatusType.Alone,
@@ -135,14 +135,14 @@ namespace WopiHost.Cobalt
 
         public override ExitCoauthoringRequest.OutputType HandleExitCoauthoring(ExitCoauthoringRequest.InputType input, int protocolMajorVersion, int protocolMinorVersion)
         {
-            ExitCoauthoringRequest.OutputType result = new ExitCoauthoringRequest.OutputType();
+            var result = new ExitCoauthoringRequest.OutputType();
 
             return result;
         }
 
         public override RefreshCoauthoringSessionRequest.OutputType HandleRefreshCoauthoring(RefreshCoauthoringSessionRequest.InputType input, int protocolMajorVersion, int protocolMinorVersion)
         {
-            RefreshCoauthoringSessionRequest.OutputType result = new RefreshCoauthoringSessionRequest.OutputType
+            var result = new RefreshCoauthoringSessionRequest.OutputType
             {
                 Lock = LockType.SchemaLock,
                 CoauthStatus = CoauthStatusType.Alone
@@ -153,28 +153,28 @@ namespace WopiHost.Cobalt
 
         public override ConvertCoauthLockToExclusiveLockRequest.OutputType HandleConvertCoauthLockToExclusiveLock(ConvertCoauthLockToExclusiveLockRequest.InputType input)
         {
-            ConvertCoauthLockToExclusiveLockRequest.OutputType result = new ConvertCoauthLockToExclusiveLockRequest.OutputType();
+            var result = new ConvertCoauthLockToExclusiveLockRequest.OutputType();
 
             return result;
         }
 
         public override CheckCoauthLockAvailabilityRequest.OutputType HandleCheckCoauthLockAvailability(CheckCoauthLockAvailabilityRequest.InputType input)
         {
-            CheckCoauthLockAvailabilityRequest.OutputType result = new CheckCoauthLockAvailabilityRequest.OutputType();
+            var result = new CheckCoauthLockAvailabilityRequest.OutputType();
 
             return result;
         }
 
         public override MarkCoauthTransitionCompleteRequest.OutputType HandleMarkCoauthTransitionComplete(MarkCoauthTransitionCompleteRequest.InputType input)
         {
-            MarkCoauthTransitionCompleteRequest.OutputType result = new MarkCoauthTransitionCompleteRequest.OutputType();
+            var result = new MarkCoauthTransitionCompleteRequest.OutputType();
 
             return result;
         }
 
         public override GetCoauthoringStatusRequest.OutputType HandleGetCoauthoringStatus(GetCoauthoringStatusRequest.InputType input)
         {
-            GetCoauthoringStatusRequest.OutputType result = new GetCoauthoringStatusRequest.OutputType
+            var result = new GetCoauthoringStatusRequest.OutputType
             {
                 CoauthStatus = CoauthStatusType.Alone
             };
@@ -189,35 +189,35 @@ namespace WopiHost.Cobalt
 
         public override JoinEditingSessionRequest.OutputType HandleJoinEditingSession(JoinEditingSessionRequest.InputType input)
         {
-            JoinEditingSessionRequest.OutputType result = new JoinEditingSessionRequest.OutputType();
+            var result = new JoinEditingSessionRequest.OutputType();
 
             return result;
         }
 
         public override RefreshEditingSessionRequest.OutputType HandleRefreshEditingSession(RefreshEditingSessionRequest.InputType input)
         {
-            RefreshEditingSessionRequest.OutputType result = new RefreshEditingSessionRequest.OutputType();
+            var result = new RefreshEditingSessionRequest.OutputType();
 
             return result;
         }
 
         public override LeaveEditingSessionRequest.OutputType HandleLeaveEditingSession(LeaveEditingSessionRequest.InputType input)
         {
-            LeaveEditingSessionRequest.OutputType result = new LeaveEditingSessionRequest.OutputType();
+            var result = new LeaveEditingSessionRequest.OutputType();
 
             return result;
         }
 
         public override UpdateEditorMetadataRequest.OutputType HandleUpdateEditorMetadata(UpdateEditorMetadataRequest.InputType input)
         {
-            UpdateEditorMetadataRequest.OutputType result = new UpdateEditorMetadataRequest.OutputType();
+            var result = new UpdateEditorMetadataRequest.OutputType();
 
             return result;
         }
 
         public override RemoveEditorMetadataRequest.OutputType HandleRemoveEditorMetadata(RemoveEditorMetadataRequest.InputType input)
         {
-            RemoveEditorMetadataRequest.OutputType result = new RemoveEditorMetadataRequest.OutputType();
+            var result = new RemoveEditorMetadataRequest.OutputType();
 
             return result;
         }
@@ -229,21 +229,21 @@ namespace WopiHost.Cobalt
 
         public override AmIAloneRequest.OutputType HandleAmIAlone(AmIAloneRequest.InputType input)
         {
-            AmIAloneRequest.OutputType result = new AmIAloneRequest.OutputType { AmIAlone = true };
+            var result = new AmIAloneRequest.OutputType { AmIAlone = true };
 
             return result;
         }
 
         public override DocMetaInfoRequest.OutputType HandleDocMetaInfo(DocMetaInfoRequest.InputType input)
         {
-            DocMetaInfoRequest.OutputType result = new DocMetaInfoRequest.OutputType();
+            var result = new DocMetaInfoRequest.OutputType();
 
             return result;
         }
 
         public override VersionsRequest.OutputType HandleVersions(VersionsRequest.InputType input)
         {
-            VersionsRequest.OutputType result = new VersionsRequest.OutputType { Enabled = false };
+            var result = new VersionsRequest.OutputType { Enabled = false };
 
             return result;
         }

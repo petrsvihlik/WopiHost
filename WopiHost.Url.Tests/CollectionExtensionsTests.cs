@@ -9,7 +9,7 @@ namespace WopiHost.Url.Tests
         public void MergeWorksWithNulls()
         {
             // Arrange
-            Dictionary<string, string> full = new Dictionary<string, string>();
+            var full = new Dictionary<string, string>();
             Dictionary<string, string> empty = null;
 
             // Act
@@ -25,8 +25,8 @@ namespace WopiHost.Url.Tests
         public void MergeTwoDictionaries()
         {
             // Arrange
-            Dictionary<string, string> a = new Dictionary<string, string> { { "A", "B"}, { "C", "D" } };
-            Dictionary<string, string> b = new Dictionary<string, string> { { "G", "H" }, { "I", "J" } };
+            var a = new Dictionary<string, string> { { "A", "B"}, { "C", "D" } };
+            var b = new Dictionary<string, string> { { "G", "H" }, { "I", "J" } };
 
             // Act
             var result = a.Merge(b);

@@ -11,15 +11,15 @@ namespace WopiHost.FileSystemProvider
     {
         public string Identifier { get; }
 
-        private FileInfo fileInfo;
+        private FileInfo _fileInfo;
 
-        private FileVersionInfo fileVersionInfo;
+        private FileVersionInfo _fileVersionInfo;
 
         protected string FilePath { get; set; }
 
-        protected FileInfo FileInfo => fileInfo ?? (fileInfo = new FileInfo(FilePath));
+        protected FileInfo FileInfo => _fileInfo ??= new FileInfo(FilePath);
 
-        protected FileVersionInfo FileVersionInfo => fileVersionInfo ?? (fileVersionInfo = FileVersionInfo.GetVersionInfo(FilePath));
+        protected FileVersionInfo FileVersionInfo => _fileVersionInfo ??= FileVersionInfo.GetVersionInfo(FilePath);
 
         /// <inheritdoc />
         public bool Exists => FileInfo.Exists;

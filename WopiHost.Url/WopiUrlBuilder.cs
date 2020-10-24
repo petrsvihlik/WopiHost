@@ -14,7 +14,7 @@ namespace WopiHost.Url
 	/// </summary>
 	public class WopiUrlBuilder
 	{
-		private readonly IDiscoverer WopiDiscoverer;
+		private readonly IDiscoverer _wopiDiscoverer;
 
 
 		public WopiUrlSettings UrlSettings { get; }
@@ -26,7 +26,7 @@ namespace WopiHost.Url
 		/// <param name="urlSettings">Additional settings influencing behavior of the WOPI client.</param>
 		public WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings urlSettings = null)
 		{
-			WopiDiscoverer = discoverer;
+			_wopiDiscoverer = discoverer;
 			UrlSettings = urlSettings;
 		}
 
@@ -41,7 +41,7 @@ namespace WopiHost.Url
 		public async Task<string> GetFileUrlAsync(string extension, string wopiFileUrl, WopiActionEnum action, WopiUrlSettings urlSettings = null)
 		{
 			var combinedUrlSettings = new WopiUrlSettings(urlSettings.Merge(UrlSettings));
-			var template = await WopiDiscoverer.GetUrlTemplateAsync(extension, action);
+			var template = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
 			if (!string.IsNullOrEmpty(template))
 			{
 				// Resolve optional parameters
@@ -56,9 +56,9 @@ namespace WopiHost.Url
 			return null;
 		}
 
-		private string ResolveOptionalParameter(string name, string value, WopiUrlSettings urlSettings)
+		private static string ResolveOptionalParameter(string name, string value, WopiUrlSettings urlSettings)
 		{
-            if (urlSettings.TryGetValue(value, out string param))
+            if (urlSettings.TryGetValue(value, out var param))
             {
                 return name + "=" + Uri.EscapeDataString(param) + "&";
             }
