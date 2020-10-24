@@ -7,19 +7,22 @@ using WopiHost.Discovery.Enumerations;
 
 namespace WopiHost.Discovery
 {
+    ///<inheritdoc cref="IDiscoverer"/>
     public class WopiDiscoverer : IDiscoverer
     {
-        private const string ELEMENT_NET_ZONE = "net-zone";
-        private const string ELEMENT_APP = "app";
-        private const string ELEMENT_ACTION = "action";
-        private const string ATTR_NET_ZONE_NAME = "name";
-        private const string ATTR_ACTION_EXTENSION = "ext";
-        private const string ATTR_ACTION_NAME = "name";
-        private const string ATTR_ACTION_URL = "urlsrc";
-        private const string ATTR_ACTION_REQUIRES = "requires";
-        private const string ATTR_APP_NAME = "name";
-        private const string ATTR_APP_FAVICON = "favIconUrl";
-        private const string ATTR_VAL_COBALT = "cobalt";
+        private const string ElementNetZone = "net-zone";
+        private const string ElementApp = "app";
+        private const string ElementAction = "action";
+        private const string AttrNetZoneName = "name";
+        private const string AttrActionExtension = "ext";
+        private const string AttrActionName = "name";
+        private const string AttrActionUrl = "urlsrc";
+        private const string AttrActionRequires = "requires";
+        private const string AttrAppName = "name";
+        private const string AttrAppFavicon = "favIconUrl";
+        private const string AttrValCobalt = "cobalt";
+
+        private IEnumerable<XElement> _apps;
 
         private IDiscoveryFileProvider DiscoveryFileProvider { get; }
 
@@ -34,74 +37,86 @@ namespace WopiHost.Discovery
 
         private async Task<IEnumerable<XElement>> GetAppsAsync()
         {
-            return (await DiscoveryFileProvider.GetDiscoveryXmlAsync())
-                .Elements(ELEMENT_NET_ZONE)
-                .Where(ValidateNetZone)
-                .Elements(ELEMENT_APP);
+            if (_apps == null)
+            {
+                _apps = (await DiscoveryFileProvider.GetDiscoveryXmlAsync())
+                    .Elements(ElementNetZone)
+                    .Where(ValidateNetZone)
+                    .Elements(ElementApp);
+            }
+
+            return _apps;
         }
 
         private bool ValidateNetZone(XElement e)
         {
             if (NetZone != NetZoneEnum.Any)
             {
-                var netZoneString = (string)e.Attribute(ATTR_NET_ZONE_NAME);
+                var netZoneString = (string)e.Attribute(AttrNetZoneName);
                 netZoneString = netZoneString.Replace("-", "", StringComparison.InvariantCulture);
-                bool success = Enum.TryParse(netZoneString, true, out NetZoneEnum netZone);
+                var success = Enum.TryParse(netZoneString, true, out NetZoneEnum netZone);
                 return success && (netZone == NetZone);
             }
             return true;
         }
 
+        ///<inheritdoc />
         public async Task<bool> SupportsExtensionAsync(string extension)
         {
             var query = (await GetAppsAsync()).Elements()
-                .FirstOrDefault(e => (string)e.Attribute(ATTR_ACTION_EXTENSION) == extension);
+                .FirstOrDefault(e => (string)e.Attribute(AttrActionExtension) == extension);
             return query != null;
         }
 
+        ///<inheritdoc />
         public async Task<bool> SupportsActionAsync(string extension, WopiActionEnum action)
         {
-            string actionString = action.ToString().ToLowerInvariant();
+            var actionString = action.ToString().ToLowerInvariant();
 
-            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string)e.Attribute(ATTR_ACTION_NAME).Value.ToLowerInvariant() == actionString);
+            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && (string)e.Attribute(AttrActionName).Value.ToLowerInvariant() == actionString);
 
             return query.Any();
         }
 
+        ///<inheritdoc />
         public async Task<IEnumerable<string>> GetActionRequirementsAsync(string extension, WopiActionEnum action)
         {
-            string actionString = action.ToString().ToLowerInvariant();
+            var actionString = action.ToString().ToLowerInvariant();
 
-            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(ATTR_ACTION_EXTENSION) == extension && (string)e.Attribute(ATTR_ACTION_NAME).Value.ToLowerInvariant() == actionString).Select(e => e.Attribute(ATTR_ACTION_REQUIRES).Value.Split(','));
+            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && (string)e.Attribute(AttrActionName).Value.ToLowerInvariant() == actionString).Select(e => e.Attribute(AttrActionRequires).Value.Split(','));
 
             return query.FirstOrDefault();
         }
 
+        ///<inheritdoc />
         public async Task<bool> RequiresCobaltAsync(string extension, WopiActionEnum action)
         {
             var requirements = await GetActionRequirementsAsync(extension, action);
-            return requirements != null && requirements.Contains(ATTR_VAL_COBALT);
+            return requirements != null && requirements.Contains(AttrValCobalt);
         }
 
+        ///<inheritdoc />
         public async Task<string> GetUrlTemplateAsync(string extension, WopiActionEnum action)
         {
-            string actionString = action.ToString().ToLowerInvariant();
-            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(ATTR_ACTION_EXTENSION) == extension && e.Attribute(ATTR_ACTION_NAME).Value.ToLowerInvariant() == actionString).Select(e => e.Attribute(ATTR_ACTION_URL).Value);
+            var actionString = action.ToString().ToLowerInvariant();
+            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.ToLowerInvariant() == actionString).Select(e => e.Attribute(AttrActionUrl).Value);
             return query.FirstOrDefault();
         }
 
+        ///<inheritdoc />
         public async Task<string> GetApplicationNameAsync(string extension)
         {
-            var query = (await GetAppsAsync()).Where(e => e.Descendants(ELEMENT_ACTION).Any(d => (string)d.Attribute(ATTR_ACTION_EXTENSION) == extension)).Select(e => e.Attribute(ATTR_APP_NAME).Value);
+            var query = (await GetAppsAsync()).Where(e => e.Descendants(ElementAction).Any(d => (string)d.Attribute(AttrActionExtension) == extension)).Select(e => e.Attribute(AttrAppName).Value);
 
             return query.FirstOrDefault();
         }
 
-        public async Task<string> GetApplicationFavIconAsync(string extension)
+        ///<inheritdoc />
+        public async Task<Uri> GetApplicationFavIconAsync(string extension)
         {
-            var query = (await GetAppsAsync()).Where(e => e.Descendants(ELEMENT_ACTION).Any(d => (string)d.Attribute(ATTR_ACTION_EXTENSION) == extension)).Select(e => e.Attribute(ATTR_APP_FAVICON).Value);
-
-            return query.FirstOrDefault();
+            var query = (await GetAppsAsync()).Where(e => e.Descendants(ElementAction).Any(d => (string)d.Attribute(AttrActionExtension) == extension)).Select(e => e.Attribute(AttrAppFavicon).Value);
+            var result = query.FirstOrDefault();
+            return result != null ? new Uri(result) : null;
         }
     }
 }

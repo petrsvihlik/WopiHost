@@ -13,14 +13,14 @@ namespace WopiHost.FileSystemProvider
     /// </summary>
     public class WopiFileSystemProvider : IWopiStorageProvider
     {
-        public WopiFileSystemProviderOptions FileSystemProviderOptions { get; }
+        private WopiFileSystemProviderOptions FileSystemProviderOptions { get; }
 
-        private readonly string ROOT_PATH = @".\";
+        private const string _rootPath = @".\";
 
         /// <summary>
         /// Reference to the root container.
         /// </summary>
-        public IWopiFolder RootContainerPointer => new WopiFolder(ROOT_PATH, EncodeIdentifier(ROOT_PATH));
+        public IWopiFolder RootContainerPointer => new WopiFolder(_rootPath, EncodeIdentifier(_rootPath));
 
         protected string WopiRootPath => FileSystemProviderOptions.RootPath;
 
@@ -33,18 +33,13 @@ namespace WopiHost.FileSystemProvider
 
         public WopiFileSystemProvider(IHostEnvironment env, IConfiguration configuration)
         {
-            if (env is null)
-            {
-                throw new ArgumentNullException(nameof(env));
-            }
-
             if (configuration is null)
             {
                 throw new ArgumentNullException(nameof(configuration));
             }
 
-            HostEnvironment = env;
-            FileSystemProviderOptions = configuration.GetSection(WopiConfigurationSections.STORAGE_OPTIONS).Get<WopiFileSystemProviderOptions>();
+            HostEnvironment = env ?? throw new ArgumentNullException(nameof(env));
+            FileSystemProviderOptions = configuration.GetSection(WopiConfigurationSections.STORAGE_OPTIONS).Get<WopiFileSystemProviderOptions>(); //TODO: rework
         }
 
         /// <summary>
@@ -53,7 +48,7 @@ namespace WopiHost.FileSystemProvider
         /// <param name="identifier">A base64-encoded file path.</param>
         public IWopiFile GetWopiFile(string identifier)
         {
-            string filePath = DecodeIdentifier(identifier);
+            var filePath = DecodeIdentifier(identifier);
             return new WopiFile(Path.Combine(WopiAbsolutePath, filePath), identifier);
         }
 
@@ -63,7 +58,7 @@ namespace WopiHost.FileSystemProvider
         /// <param name="identifier">A base64-encoded folder path.</param>
         public IWopiFolder GetWopiContainer(string identifier = "")
         {
-            string folderPath = DecodeIdentifier(identifier);
+            var folderPath = DecodeIdentifier(identifier);
             return new WopiFolder(Path.Combine(WopiAbsolutePath, folderPath), identifier);
         }
 
@@ -73,12 +68,12 @@ namespace WopiHost.FileSystemProvider
         /// <param name="identifier">A base64-encoded folder path.</param>
         public List<IWopiFile> GetWopiFiles(string identifier = "")
         {
-            string folderPath = DecodeIdentifier(identifier);
-            List<IWopiFile> files = new List<IWopiFile>();
-            foreach (string path in Directory.GetFiles(Path.Combine(WopiAbsolutePath, folderPath)))  //TODO Directory.Enumerate...
+            var folderPath = DecodeIdentifier(identifier);
+            var files = new List<IWopiFile>();
+            foreach (var path in Directory.GetFiles(Path.Combine(WopiAbsolutePath, folderPath)))  //TODO Directory.Enumerate...
             {
-                string filePath = Path.Combine(folderPath, Path.GetFileName(path));
-                string fileId = EncodeIdentifier(filePath);
+                var filePath = Path.Combine(folderPath, Path.GetFileName(path));
+                var fileId = EncodeIdentifier(filePath);
                 files.Add(GetWopiFile(fileId));
             }
             return files;
@@ -90,24 +85,24 @@ namespace WopiHost.FileSystemProvider
         /// <param name="identifier">A base64-encoded folder path.</param>
         public List<IWopiFolder> GetWopiContainers(string identifier = "")
         {
-            string folderPath = DecodeIdentifier(identifier);
-            List<IWopiFolder> folders = new List<IWopiFolder>();
-            foreach (string directory in Directory.GetDirectories(Path.Combine(WopiAbsolutePath, folderPath)))
+            var folderPath = DecodeIdentifier(identifier);
+            var folders = new List<IWopiFolder>();
+            foreach (var directory in Directory.GetDirectories(Path.Combine(WopiAbsolutePath, folderPath)))
             {
                 var subfolderPath = "." + directory.Remove(0, directory.LastIndexOf(Path.DirectorySeparatorChar));
-                string folderId = EncodeIdentifier(subfolderPath);
+                var folderId = EncodeIdentifier(subfolderPath);
                 folders.Add(GetWopiContainer(folderId));
             }
             return folders;
         }
 
-        private string DecodeIdentifier(string identifier)
+        private static string DecodeIdentifier(string identifier)
         {
             var bytes = Convert.FromBase64String(identifier);
             return Encoding.UTF8.GetString(bytes);
         }
 
-        private string EncodeIdentifier(string path)
+        private static string EncodeIdentifier(string path)
         {
             var bytes = Encoding.UTF8.GetBytes(path);
             return Convert.ToBase64String(bytes);

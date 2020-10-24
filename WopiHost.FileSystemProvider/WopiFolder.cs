@@ -5,11 +5,11 @@ namespace WopiHost.FileSystemProvider
 {
 	public class WopiFolder : IWopiFolder
 	{
-		private DirectoryInfo folderInfo;
+		private DirectoryInfo _folderInfo;
 
 		protected string Path { get; set; }
 
-        protected DirectoryInfo FolderInfo => folderInfo ?? (folderInfo = new DirectoryInfo(Path));
+        protected DirectoryInfo FolderInfo => _folderInfo ??= new DirectoryInfo(Path);
         public string Name => FolderInfo.Name;
 
         public string Identifier { get; }

@@ -11,7 +11,7 @@ namespace WopiHost.FileSystemProvider
 {
     public class WopiSecurityHandler : IWopiSecurityHandler
     {
-        private readonly JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+        private readonly JwtSecurityTokenHandler _tokenHandler = new JwtSecurityTokenHandler();
         private SymmetricSecurityKey _key = null;
 
         private SymmetricSecurityKey Key
@@ -32,7 +32,7 @@ namespace WopiHost.FileSystemProvider
         }
 
         //TODO: abstract
-        private readonly Dictionary<string, ClaimsPrincipal> UserDatabase = new Dictionary<string, ClaimsPrincipal>
+        private readonly Dictionary<string, ClaimsPrincipal> _userDatabase = new Dictionary<string, ClaimsPrincipal>
         {
             {"Anonymous", new ClaimsPrincipal(
                 new ClaimsIdentity(new List<Claim>
@@ -42,14 +42,14 @@ namespace WopiHost.FileSystemProvider
                     new Claim(ClaimTypes.Email, "anonymous@domain.tld"),
 
                     //TDOO: this needs to be done per file
-                    new Claim(WopiClaimTypes.UserPermissions, (WopiUserPermissions.UserCanWrite | WopiUserPermissions.UserCanRename | WopiUserPermissions.UserCanAttend | WopiUserPermissions.UserCanPresent).ToString())
+                    new Claim(WopiClaimTypes.USER_PERMISSIONS, (WopiUserPermissions.UserCanWrite | WopiUserPermissions.UserCanRename | WopiUserPermissions.UserCanAttend | WopiUserPermissions.UserCanPresent).ToString())
                 })
             ) }
         };
 
         public SecurityToken GenerateAccessToken(string userId, string resourceId)
         {
-            var user = UserDatabase[userId];
+            var user = _userDatabase[userId];
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -58,7 +58,7 @@ namespace WopiHost.FileSystemProvider
                 SigningCredentials = new SigningCredentials(Key, SecurityAlgorithms.HmacSha256)
             };
 
-            return tokenHandler.CreateToken(tokenDescriptor);
+            return _tokenHandler.CreateToken(tokenDescriptor);
         }
 
         public ClaimsPrincipal GetPrincipal(string tokenString)
@@ -78,7 +78,7 @@ namespace WopiHost.FileSystemProvider
             try
             {
                 // Try to validate the token
-                var principal = tokenHandler.ValidateToken(tokenString, tokenValidation, out SecurityToken token);
+                var principal = _tokenHandler.ValidateToken(tokenString, tokenValidation, out var token);
                 return principal;
             }
             catch (Exception ex)
@@ -99,7 +99,7 @@ namespace WopiHost.FileSystemProvider
         /// </summary>
         public string WriteToken(SecurityToken token)
         {
-            return tokenHandler.WriteToken(token);
+            return _tokenHandler.WriteToken(token);
         }
     }
 }

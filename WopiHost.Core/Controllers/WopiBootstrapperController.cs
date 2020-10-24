@@ -23,8 +23,8 @@ namespace WopiHost.Core.Controllers
         public IActionResult GetRootContainer()
         {
             var authorizationHeader = HttpContext.Request.Headers["Authorization"];
-            var ecosystemOperation = HttpContext.Request.Headers[WopiHeaders.EcosystemOperation];
-            string wopiSrc = HttpContext.Request.Headers[WopiHeaders.WopiSrc].FirstOrDefault();
+            var ecosystemOperation = HttpContext.Request.Headers[WopiHeaders.ECOSYSTEM_OPERATION];
+            var wopiSrc = HttpContext.Request.Headers[WopiHeaders.WOPI_SRC].FirstOrDefault();
 
             if (ValidateAuthorizationHeader(authorizationHeader))
             {
@@ -32,7 +32,7 @@ namespace WopiHost.Core.Controllers
                 var user = "Anonymous";
 
                 //TODO: implement bootstrap
-                BootstrapRootContainerInfo bootstrapRoot = new BootstrapRootContainerInfo
+                var bootstrapRoot = new BootstrapRootContainerInfo
                 {
                     Bootstrap = new BootstrapInfo
                     {
@@ -75,10 +75,10 @@ namespace WopiHost.Core.Controllers
             else
             {
                 //TODO: implement WWW-authentication header https://wopirest.readthedocs.io/en/latest/bootstrapper/Bootstrap.html#www-authenticate-header
-                string authorizationUri = "https://contoso.com/api/oauth2/authorize";
-                string tokenIssuanceUri = "https://contoso.com/api/oauth2/token";
-                string providerId = "tp_contoso";
-                string urlSchemes = Uri.EscapeDataString("{\"iOS\" : [\"contoso\",\"contoso - EMM\"], \"Android\" : [\"contoso\",\"contoso - EMM\"], \"UWP\": [\"contoso\",\"contoso - EMM\"]}");
+                var authorizationUri = "https://contoso.com/api/oauth2/authorize";
+                var tokenIssuanceUri = "https://contoso.com/api/oauth2/token";
+                var providerId = "tp_contoso";
+                var urlSchemes = Uri.EscapeDataString("{\"iOS\" : [\"contoso\",\"contoso - EMM\"], \"Android\" : [\"contoso\",\"contoso - EMM\"], \"UWP\": [\"contoso\",\"contoso - EMM\"]}");
                 Response.Headers.Add("WWW-Authenticate", $"Bearer authorization_uri=\"{authorizationUri}\",tokenIssuance_uri=\"{tokenIssuanceUri}\",providerId=\"{providerId}\", UrlSchemes=\"{urlSchemes}\"");
                 return new UnauthorizedResult();
             }
@@ -87,7 +87,7 @@ namespace WopiHost.Core.Controllers
 
         private string GetIdFromUrl(string resourceUrl)
         {
-            string resourceId = resourceUrl.Substring(resourceUrl.LastIndexOf("/", StringComparison.Ordinal) + 1);
+            var resourceId = resourceUrl.Substring(resourceUrl.LastIndexOf("/", StringComparison.Ordinal) + 1);
             var queryIndex = resourceId.IndexOf("?", StringComparison.Ordinal);
             if (queryIndex > -1)
             {

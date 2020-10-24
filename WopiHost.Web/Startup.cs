@@ -1,4 +1,4 @@
-﻿
+﻿using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using WopiHost.Abstractions;
+using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.Web.Models;
 
@@ -43,8 +44,12 @@ namespace WopiHost.Web
             services.AddOptions();
             services.Configure<WopiOptions>(Configuration.GetSection(WopiConfigurationSections.WOPI_ROOT));
 
+            services.AddHttpClient<IDiscoveryFileProvider, HttpDiscoveryFileProvider>(client =>
+            {
+                client.BaseAddress = new Uri(Configuration[$"{WopiConfigurationSections.WOPI_ROOT}:ClientUrl"]);
+            });
+            services.AddSingleton<IDiscoverer, WopiDiscoverer>();
 
-            //services.Configure()
             services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
 
             services.AddLogging(loggingBuilder =>

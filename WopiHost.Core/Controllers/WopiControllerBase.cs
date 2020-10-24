@@ -23,8 +23,8 @@ namespace WopiHost.Core.Controllers
             get
             {
                 //TODO: an alternative would be HttpContext.GetTokenAsync(AccessTokenDefaults.AuthenticationScheme, AccessTokenDefaults.AccessTokenQueryName).Result (if the code below doesn't work)
-                var authenticateInfo = HttpContext.AuthenticateAsync(AccessTokenDefaults.AuthenticationScheme).Result;
-                return authenticateInfo?.Properties?.GetTokenValue(AccessTokenDefaults.AccessTokenQueryName);
+                var authenticateInfo = HttpContext.AuthenticateAsync(AccessTokenDefaults.AUTHENTICATION_SCHEME).Result;
+                return authenticateInfo?.Properties?.GetTokenValue(AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME);
             }
         }
 

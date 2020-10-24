@@ -13,7 +13,7 @@ namespace WopiHost.Cobalt
         private CobaltFile GetCobaltFile(IWopiFile file, ClaimsPrincipal principal)
         {
             var disposal = new DisposalEscrow(file.Owner);
-            CobaltFilePartitionConfig content = new CobaltFilePartitionConfig
+            var content = new CobaltFilePartitionConfig
             {
                 IsNewFile = true,
                 HostBlobStore = new TemporaryHostBlobStore(new TemporaryHostBlobStore.Config(), disposal, file.Identifier + @".Content"),
@@ -23,7 +23,7 @@ namespace WopiHost.Cobalt
                 PartitionId = FilePartitionId.Content
             };
 
-            CobaltFilePartitionConfig coauth = new CobaltFilePartitionConfig
+            var coauth = new CobaltFilePartitionConfig
             {
                 IsNewFile = true,
                 HostBlobStore = new TemporaryHostBlobStore(new TemporaryHostBlobStore.Config(), disposal, file.Identifier + @".CoauthMetadata"),
@@ -33,7 +33,7 @@ namespace WopiHost.Cobalt
                 PartitionId = FilePartitionId.CoauthMetadata
             };
 
-            CobaltFilePartitionConfig wacupdate = new CobaltFilePartitionConfig
+            var wacupdate = new CobaltFilePartitionConfig
             {
                 IsNewFile = true,
                 HostBlobStore = new TemporaryHostBlobStore(new TemporaryHostBlobStore.Config(), disposal, file.Identifier + @".WordWacUpdate"),
@@ -43,7 +43,7 @@ namespace WopiHost.Cobalt
                 PartitionId = FilePartitionId.WordWacUpdate
             };
 
-            Dictionary<FilePartitionId, CobaltFilePartitionConfig> partitionConfigs = new Dictionary<FilePartitionId, CobaltFilePartitionConfig> { { FilePartitionId.Content, content }, { FilePartitionId.WordWacUpdate, wacupdate }, { FilePartitionId.CoauthMetadata, coauth } };
+            var partitionConfigs = new Dictionary<FilePartitionId, CobaltFilePartitionConfig> { { FilePartitionId.Content, content }, { FilePartitionId.WordWacUpdate, wacupdate }, { FilePartitionId.CoauthMetadata, coauth } };
 
 
             var tempCobaltFile = new CobaltFile(disposal, partitionConfigs, new CobaltHostLockingStore(principal), null);
@@ -53,7 +53,7 @@ namespace WopiHost.Cobalt
                 using (var stream = file.GetReadStream())
                 {
                     var srcAtom = new AtomFromStream(stream);
-                    tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out Metrics o1);
+                    tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out var o1);
                     tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
                 }
             }
@@ -65,7 +65,7 @@ namespace WopiHost.Cobalt
         public Stream GetFileStream(IWopiFile file, ClaimsPrincipal principal)
         {
             //TODO: use in filescontroller
-            using (MemoryStream ms = new MemoryStream())
+            using (var ms = new MemoryStream())
             {
                 new GenericFda(GetCobaltFile(file, principal).CobaltEndpoint).GetContentStream().CopyTo(ms);
                 return ms;
@@ -76,11 +76,11 @@ namespace WopiHost.Cobalt
         public Action<Stream> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent)
         {
             // Refactoring tip: there are more ways of initializing Atom
-            AtomFromByteArray atomRequest = new AtomFromByteArray(newContent);
-            RequestBatch requestBatch = new RequestBatch();
+            var atomRequest = new AtomFromByteArray(newContent);
+            var requestBatch = new RequestBatch();
 
 
-            requestBatch.DeserializeInputFromProtocol(atomRequest, out object ctx, out ProtocolVersion protocolVersion);
+            requestBatch.DeserializeInputFromProtocol(atomRequest, out var ctx, out var protocolVersion);
             var cobaltFile = GetCobaltFile(file, principal);
             cobaltFile.CobaltEndpoint.ExecuteRequestBatch(requestBatch);
 

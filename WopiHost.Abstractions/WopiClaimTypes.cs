@@ -2,6 +2,6 @@
 {
 	public class WopiClaimTypes
 	{
-		public const string UserPermissions = nameof(UserPermissions);
+		public const string USER_PERMISSIONS = nameof(USER_PERMISSIONS);
 	}
 }

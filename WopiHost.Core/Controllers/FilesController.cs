@@ -38,14 +38,14 @@ namespace WopiHost.Core.Controllers
         /// <summary>
         /// Collection holding information about locks. Should be persistent.
         /// </summary>
-        private static IDictionary<string, LockInfo> LockStorage;
+        private static IDictionary<string, LockInfo> _lockStorage;
 
-        private string WopiOverrideHeader => HttpContext.Request.Headers[WopiHeaders.WopiOverride];
+        private string WopiOverrideHeader => HttpContext.Request.Headers[WopiHeaders.WOPI_OVERRIDE];
 
         public FilesController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions, IAuthorizationService authorizationService, IDictionary<string, LockInfo> lockStorage, ICobaltProcessor cobaltProcessor = null) : base(storageProvider, securityHandler, wopiHostOptions)
         {
             _authorizationService = authorizationService;
-            LockStorage = lockStorage;
+            _lockStorage = lockStorage;
             CobaltProcessor = cobaltProcessor;
         }
 
@@ -86,7 +86,7 @@ namespace WopiHost.Core.Controllers
             var file = StorageProvider.GetWopiFile(id);
 
             // Check expected size
-            int? maximumExpectedSize = HttpContext.Request.Headers[WopiHeaders.MaxExpectedSize].ToString().ToNullableInt();
+            var maximumExpectedSize = HttpContext.Request.Headers[WopiHeaders.MAX_EXPECTED_SIZE].ToString().ToNullableInt();
             if (maximumExpectedSize != null && file.GetCheckFileInfo(User, HostCapabilities).Size > maximumExpectedSize.Value)
             {
                 return new PreconditionFailedResult();
@@ -125,9 +125,9 @@ namespace WopiHost.Core.Controllers
 
                 // Save file contents
                 var newContent = await HttpContext.Request.Body.ReadBytesAsync();
-                using (var stream = file.GetWriteStream())
+                await using (var stream = file.GetWriteStream())
                 {
-                    stream.Write(newContent, 0, newContent.Length);
+                    await stream.WriteAsync(newContent, 0, newContent.Length);
                 }
 
                 return new OkResult();
@@ -160,15 +160,15 @@ namespace WopiHost.Core.Controllers
             var file = StorageProvider.GetWopiFile(id);
 
             // TODO: remove workaround https://github.com/aspnet/Announcements/issues/342 (use FileBufferingWriteStream)
-            var syncIOFeature = HttpContext.Features.Get<IHttpBodyControlFeature>();
-            if (syncIOFeature != null)
+            var syncIoFeature = HttpContext.Features.Get<IHttpBodyControlFeature>();
+            if (syncIoFeature != null)
             {
-                syncIOFeature.AllowSynchronousIO = true;
+                syncIoFeature.AllowSynchronousIO = true;
             }
 
             var responseAction = CobaltProcessor.ProcessCobalt(file, User, await HttpContext.Request.Body.ReadBytesAsync());
-            HttpContext.Response.Headers.Add(WopiHeaders.CorrelationId, HttpContext.Request.Headers[WopiHeaders.CorrelationId]);
-            HttpContext.Response.Headers.Add("request-id", HttpContext.Request.Headers[WopiHeaders.CorrelationId]);
+            HttpContext.Response.Headers.Add(WopiHeaders.CORRELATION_ID, HttpContext.Request.Headers[WopiHeaders.CORRELATION_ID]);
+            HttpContext.Response.Headers.Add("request-id", HttpContext.Request.Headers[WopiHeaders.CORRELATION_ID]);
             return new Results.FileResult(responseAction, "application/octet-stream");
         }
 
@@ -183,18 +183,18 @@ namespace WopiHost.Core.Controllers
         [HttpPost("{id}"), WopiOverrideHeader(new[] { "LOCK", "UNLOCK", "REFRESH_LOCK", "GET_LOCK" })]
         public IActionResult ProcessLock(string id)
         {
-            string oldLock = Request.Headers[WopiHeaders.OldLock];
-            string newLock = Request.Headers[WopiHeaders.Lock];
+            string oldLock = Request.Headers[WopiHeaders.OLD_LOCK];
+            string newLock = Request.Headers[WopiHeaders.LOCK];
 
-            lock (LockStorage)
+            lock (_lockStorage)
             {
-                bool lockAcquired = TryGetLock(id, out var existingLock);
+                var lockAcquired = TryGetLock(id, out var existingLock);
                 switch (WopiOverrideHeader)
                 {
                     case "GET_LOCK":
                         if (lockAcquired)
                         {
-                            Response.Headers[WopiHeaders.Lock] = existingLock.Lock;
+                            Response.Headers[WopiHeaders.LOCK] = existingLock.Lock;
                         }
                         return new OkResult();
 
@@ -220,7 +220,7 @@ namespace WopiHost.Core.Controllers
                             else
                             {
                                 // The file is not currently locked, create and store new lock information
-                                LockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
+                                _lockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
                                 return new OkResult();
                             }
                         }
@@ -232,7 +232,7 @@ namespace WopiHost.Core.Controllers
                                 if (existingLock.Lock == oldLock)
                                 {
                                     // Replace the existing lock with the new one
-                                    LockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
+                                    _lockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
                                     return new OkResult();
                                 }
                                 else
@@ -254,7 +254,7 @@ namespace WopiHost.Core.Controllers
                             if (existingLock.Lock == newLock)
                             {
                                 // Remove valid lock
-                                LockStorage.Remove(id);
+                                _lockStorage.Remove(id);
                                 return new OkResult();
                             }
                             else
@@ -297,11 +297,11 @@ namespace WopiHost.Core.Controllers
 
         private bool TryGetLock(string fileId, out LockInfo lockInfo)
         {
-            if (LockStorage.TryGetValue(fileId, out lockInfo))
+            if (_lockStorage.TryGetValue(fileId, out lockInfo))
             {
                 if (lockInfo.Expired)
                 {
-                    LockStorage.Remove(fileId);
+                    _lockStorage.Remove(fileId);
                     return false;
                 }
                 return true;
@@ -312,10 +312,10 @@ namespace WopiHost.Core.Controllers
 
         private StatusCodeResult ReturnLockMismatch(HttpResponse response, string existingLock = null, string reason = null)
         {
-            response.Headers[WopiHeaders.Lock] = existingLock ?? string.Empty;
+            response.Headers[WopiHeaders.LOCK] = existingLock ?? string.Empty;
             if (!string.IsNullOrEmpty(reason))
             {
-                response.Headers[WopiHeaders.LockFailureReason] = reason;
+                response.Headers[WopiHeaders.LOCK_FAILURE_REASON] = reason;
             }
             return new ConflictResult();
         }

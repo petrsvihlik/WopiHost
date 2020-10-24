@@ -27,7 +27,7 @@ namespace WopiHost.Core.Controllers
 		public RootContainerInfo GetRootContainer()
 		{
 			var root = StorageProvider.GetWopiContainer(@".\");
-			RootContainerInfo rc = new RootContainerInfo
+			var rc = new RootContainerInfo
 			{
 				ContainerPointer = new ChildContainer
 				{

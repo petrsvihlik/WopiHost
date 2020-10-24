@@ -48,11 +48,11 @@ namespace WopiHost.Core.Controllers
         [Produces("application/json")]
         public Container EnumerateChildren(string id)
         {
-            Container container = new Container();
+            var container = new Container();
             var files = new List<ChildFile>();
             var containers = new List<ChildContainer>();
 
-            foreach (IWopiFile wopiFile in StorageProvider.GetWopiFiles(id))
+            foreach (var wopiFile in StorageProvider.GetWopiFiles(id))
             {
                 files.Add(new ChildFile
                 {
@@ -64,7 +64,7 @@ namespace WopiHost.Core.Controllers
                 });
             }
 
-            foreach (IWopiFolder wopiContainer in StorageProvider.GetWopiContainers(id))
+            foreach (var wopiContainer in StorageProvider.GetWopiContainers(id))
             {
                 containers.Add(new ChildContainer
                 {
