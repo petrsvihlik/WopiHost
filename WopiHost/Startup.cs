@@ -10,6 +10,7 @@ using WopiHost.Abstractions;
 using WopiHost.Core;
 using WopiHost.Core.Models;
 using Microsoft.Extensions.Hosting;
+using Serilog;
 
 namespace WopiHost
 {
@@ -66,7 +67,7 @@ namespace WopiHost
 
             var config = Configuration.GetSection(WopiConfigurationSections.WOPI_ROOT);
 
-            services.Configure<WopiHostOptions>(config);            
+            services.Configure<WopiHostOptions>(config);
 
 
             // Add WOPI (depends on file provider)
@@ -95,6 +96,11 @@ namespace WopiHost
             }
 
             //app.UseHttpsRedirection();
+            app.UseSerilogRequestLogging(options =>
+            {
+                options.EnrichDiagnosticContext = LogHelper.EnrichWithWopiDiagnostics;
+                options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} with [WOPI CorrelationID: {" + nameof(WopiHeaders.CORRELATION_ID) + "}, WOPI SessionID: {" + nameof(WopiHeaders.SESSION_ID) + "}] responded {StatusCode} in {Elapsed:0.0000} ms";
+            });
 
             app.UseRouting();
 
