@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Authors>Petr Svihlik</Authors>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <AssemblyName>WopiHost.Url.Tests</AssemblyName>
     <PackageId>WopiHost.Url.Tests</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>

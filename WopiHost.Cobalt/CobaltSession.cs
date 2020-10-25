@@ -50,12 +50,10 @@ namespace WopiHost.Cobalt
 
             if (file.Exists)
             {
-                using (var stream = file.GetReadStream())
-                {
-                    var srcAtom = new AtomFromStream(stream);
-                    tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out var o1);
-                    tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
-                }
+                using var stream = file.GetReadStream();
+                var srcAtom = new AtomFromStream(stream);
+                tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out var o1);
+                tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
             }
             return tempCobaltFile;
         }
@@ -65,11 +63,9 @@ namespace WopiHost.Cobalt
         public Stream GetFileStream(IWopiFile file, ClaimsPrincipal principal)
         {
             //TODO: use in filescontroller
-            using (var ms = new MemoryStream())
-            {
-                new GenericFda(GetCobaltFile(file, principal).CobaltEndpoint).GetContentStream().CopyTo(ms);
-                return ms;
-            }
+            using var ms = new MemoryStream();
+            new GenericFda(GetCobaltFile(file, principal).CobaltEndpoint).GetContentStream().CopyTo(ms);
+            return ms;
         }
 
 
@@ -86,10 +82,8 @@ namespace WopiHost.Cobalt
 
             if (requestBatch.Requests.Any(request => request is PutChangesRequest && request.PartitionId == FilePartitionId.Content))
             {
-                using (var stream = file.GetWriteStream())
-                {
-                    new GenericFda(cobaltFile.CobaltEndpoint).GetContentStream().CopyTo(stream);
-                }
+                using var stream = file.GetWriteStream();
+                new GenericFda(cobaltFile.CobaltEndpoint).GetContentStream().CopyTo(stream);
             }
             var response = requestBatch.SerializeOutputToProtocol(protocolVersion);
             Action<Stream> copyToAction = s => { response.CopyTo(s); };
