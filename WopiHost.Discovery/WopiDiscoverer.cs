@@ -37,7 +37,7 @@ namespace WopiHost.Discovery
 
         private async Task<IEnumerable<XElement>> GetAppsAsync()
         {
-            if (_apps == null)
+            if (_apps is null)
             {
                 _apps = (await DiscoveryFileProvider.GetDiscoveryXmlAsync())
                     .Elements(ElementNetZone)
@@ -65,7 +65,7 @@ namespace WopiHost.Discovery
         {
             var query = (await GetAppsAsync()).Elements()
                 .FirstOrDefault(e => (string)e.Attribute(AttrActionExtension) == extension);
-            return query is { };
+            return query is not null;
         }
 
         ///<inheritdoc />
@@ -73,7 +73,7 @@ namespace WopiHost.Discovery
         {
             var actionString = action.ToString().ToLowerInvariant();
 
-            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && (string)e.Attribute(AttrActionName).Value.ToLowerInvariant() == actionString);
+            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.ToLowerInvariant() == actionString);
 
             return query.Any();
         }
@@ -83,7 +83,7 @@ namespace WopiHost.Discovery
         {
             var actionString = action.ToString().ToLowerInvariant();
 
-            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && (string)e.Attribute(AttrActionName).Value.ToLowerInvariant() == actionString).Select(e => e.Attribute(AttrActionRequires).Value.Split(','));
+            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.ToLowerInvariant() == actionString).Select(e => e.Attribute(AttrActionRequires).Value.Split(','));
 
             return query.FirstOrDefault();
         }
@@ -92,7 +92,7 @@ namespace WopiHost.Discovery
         public async Task<bool> RequiresCobaltAsync(string extension, WopiActionEnum action)
         {
             var requirements = await GetActionRequirementsAsync(extension, action);
-            return requirements is { } && requirements.Contains(AttrValCobalt);
+            return requirements is not null && requirements.Contains(AttrValCobalt);
         }
 
         ///<inheritdoc />
@@ -116,7 +116,7 @@ namespace WopiHost.Discovery
         {
             var query = (await GetAppsAsync()).Where(e => e.Descendants(ElementAction).Any(d => (string)d.Attribute(AttrActionExtension) == extension)).Select(e => e.Attribute(AttrAppFavicon).Value);
             var result = query.FirstOrDefault();
-            return result != null ? new Uri(result) : null;
+            return result is not null ? new Uri(result) : null;
         }
     }
 }
