@@ -1,10 +1,8 @@
-﻿using System;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Hosting;
+using System;
 using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
@@ -14,23 +12,12 @@ namespace WopiHost.Web
 {
     public class Startup
     {
-        public IConfiguration Configuration { get; set; }
+        public IConfiguration Configuration { get; }
 
-        public Startup(IWebHostEnvironment env)
+        public Startup(IConfiguration configuration)
         {
-            var builder = new ConfigurationBuilder().SetBasePath(env.ContentRootPath)
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .AddJsonFile($"config.{env.EnvironmentName}.json", optional: true)
-                .AddEnvironmentVariables();
-
-            if (env.IsDevelopment())
-            {
-                // Override with user secrets (http://go.microsoft.com/fwlink/?LinkID=532709)
-                builder.AddUserSecrets<Startup>();
-            }
-            Configuration = builder.Build();
+            Configuration = configuration;
         }
-
 
         /// <summary>
         /// Sets up the DI container.
@@ -66,7 +53,7 @@ namespace WopiHost.Web
         {
             app.UseDeveloperExceptionPage();
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
 
             // Add static files to the request pipeline.
             app.UseStaticFiles();

@@ -16,21 +16,11 @@ namespace WopiHost
 {
     public class Startup
     {
-        public IConfigurationRoot Configuration { get; set; }
+        public IConfiguration Configuration { get; set; }
 
-        public Startup(IWebHostEnvironment env)
+        public Startup(IConfiguration configuration)
         {
-            var builder = new ConfigurationBuilder().SetBasePath(env.ContentRootPath)
-                .AddJsonFile("appsettings.json", true, true)
-                .AddJsonFile($"config.{env.EnvironmentName}.json", true)
-                .AddEnvironmentVariables();
-
-            if (env.IsDevelopment())
-            {
-                // Override with user secrets (http://go.microsoft.com/fwlink/?LinkID=532709)
-                builder.AddUserSecrets<Startup>();
-            }
-            Configuration = builder.Build();
+            Configuration = configuration;
         }
 
         public void ConfigureContainer(ContainerBuilder builder)
