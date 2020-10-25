@@ -26,13 +26,13 @@ namespace WopiHost.Core.Controllers
 
         private HostCapabilities HostCapabilities => new HostCapabilities
         {
-            SupportsCobalt = CobaltProcessor is { },
+            SupportsCobalt = CobaltProcessor is not null,
             SupportsGetLock = true,
             SupportsLocks = true,
             SupportsExtendedLockLength = true,
             SupportsFolders = true,//?
             SupportsCoauth = true,//?
-            SupportsUpdate = nameof(PutFile) is { } //&& PutRelativeFile - usercannotwriterelative
+            SupportsUpdate = nameof(PutFile) is not null //&& PutRelativeFile - usercannotwriterelative
         };
 
         /// <summary>
@@ -87,7 +87,7 @@ namespace WopiHost.Core.Controllers
 
             // Check expected size
             var maximumExpectedSize = HttpContext.Request.Headers[WopiHeaders.MAX_EXPECTED_SIZE].ToString().ToNullableInt();
-            if (maximumExpectedSize is { } && file.GetCheckFileInfo(User, HostCapabilities).Size > maximumExpectedSize.Value)
+            if (maximumExpectedSize is not null && file.GetCheckFileInfo(User, HostCapabilities).Size > maximumExpectedSize.Value)
             {
                 return new PreconditionFailedResult();
             }
@@ -161,7 +161,7 @@ namespace WopiHost.Core.Controllers
 
             // TODO: remove workaround https://github.com/aspnet/Announcements/issues/342 (use FileBufferingWriteStream)
             var syncIoFeature = HttpContext.Features.Get<IHttpBodyControlFeature>();
-            if (syncIoFeature is { })
+            if (syncIoFeature is not null)
             {
                 syncIoFeature.AllowSynchronousIO = true;
             }

@@ -176,7 +176,7 @@ namespace WopiHost.Discovery.Tests
             var result = await _wopiDiscoverer.GetApplicationFavIconAsync(extension);
 
             // Assert
-            Assert.Equal(expectedValue != null ? new Uri(expectedValue) : null, result);
+            Assert.Equal(expectedValue is not null ? new Uri(expectedValue) : null, result);
         }
 
         [Theory]

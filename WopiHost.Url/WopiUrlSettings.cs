@@ -128,7 +128,7 @@ namespace WopiHost.Url
 
 		public WopiUrlSettings(IDictionary<string, string> settings)
 		{
-			if (settings is { })
+			if (settings is not null)
 			{
 				foreach (var pair in settings)
 				{

@@ -1,5 +1,6 @@
 <Project>
  <PropertyGroup>
    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+   <LangVersion>preview</LangVersion>
  </PropertyGroup>
 </Project>
