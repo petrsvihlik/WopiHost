@@ -1,7 +1,7 @@
 ﻿namespace WopiHost.Core.Models
 {
     /// <summary>
-    /// Model according to https://wopirest.readthedocs.io/en/latest/files/CheckFileInfo.html#checkfileinfo and https://msdn.microsoft.com/en-us/library/hh622920.aspx
+    /// Model according to <see href="https://wopirest.readthedocs.io/en/latest/files/CheckFileInfo.html#checkfileinfo">CheckFileInfo documentation</see> and <see href="https://msdn.microsoft.com/en-us/library/hh622920.aspx">Microsoft WOPI documentation</see>
     /// </summary>
     public class CheckFileInfo
     {
@@ -60,6 +60,9 @@
 
         public bool CloseButtonClosesWindow { get; set; }
 
+        /// <summary>
+        /// A URI to a web page that the WOPI client should navigate to when the application closes, or in the event of an unrecoverable error.
+        /// </summary>
         public string CloseUrl { get; set; }
 
         public bool DisableBrowserCachingOfUserContent { get; set; }
@@ -72,18 +75,43 @@
 
         public bool DisableTranslation { get; set; }
 
+        /// <summary>
+        /// A user-accessible URI to the file intended to allow the user to download a copy of the file. This URI should directly download the file and it should always provide the most recent version of the file.
+        /// </summary>
         public string DownloadUrl { get; set; }
 
+        /// <summary>
+        /// A URI to a location that allows the user to create an embeddable URI to the file.
+        /// </summary>
+        public string FileEmbedCommandUrl { get; set; }
+
+        /// <summary>
+        /// A URI to a location that allows the user to share the file.
+        /// </summary>
         public string FileSharingUrl { get; set; }
 
+        /// <summary>
+        /// A URI to the file location that the WOPI client uses to get the file.
+        /// </summary>
         public string FileUrl { get; set; }
+
+        /// <summary>
+        /// A URI to a location that allows the user to view the version history for the file.
+        /// </summary>
+        public string FileVersionUrl { get; set; }
 
         public string HostAuthenticationId { get; set; }
 
+        /// <summary>
+        /// A URI to a <see href="https://wopi.readthedocs.io/en/latest/glossary.html#term-host-page">host page</see> that loads the <c>edit</c> WOPI action.
+        /// </summary>
         public string HostEditUrl { get; set; }
 
         public string HostEmbeddedEditUrl { get; set; }
 
+        /// <summary>
+        /// A URI to a web page that provides access to a viewing experience for the file that can be embedded in another HTML page. This is typically a URI to a <see href="https://wopi.readthedocs.io/en/latest/glossary.html#term-host-page">host page</see> that loads the <c>embedview</c> WOPI action.
+        /// </summary>
         public string HostEmbeddedViewUrl { get; set; }
 
         public string HostName { get; set; }
@@ -92,6 +120,9 @@
 
         public string HostRestUrl { get; set; }
 
+        /// <summary>
+        /// A URI to a <see href="https://wopi.readthedocs.io/en/latest/glossary.html#term-host-page">host page</see> that loads the <c>view</c> WOPI action. This URL is used by Office Online to navigate between view and edit mode.
+        /// </summary>
         public string HostViewUrl { get; set; }
 
         public string IrmPolicyDescription { get; set; }
@@ -108,14 +139,23 @@
 
         public string SignInUrl { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates that, for this user, the file cannot be changed.
+        /// </summary>
         public bool ReadOnly { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates that the WOPI client should restrict what actions the user can perform on the file. The behavior of this property is dependent on the WOPI client.
+        /// </summary>
         public bool RestrictedWebViewOnly { get; set; }
 
         public string Sha256 { get; set; }
 
         public string UniqueContentId { get; set; }
 
+        /// <summary>
+        /// A URI that will sign the current user out of the host’s authentication system.
+        /// </summary>
         public string SignoutUrl { get; set; }
 
         /// <summary>
@@ -150,7 +190,7 @@
         /// <description><see href="https://wopi.readthedocs.io/projects/wopirest/en/latest/files/DeleteFile.html#deletefile">DeleteFile</see></description>
         /// </item>
         /// </list>
-        /// </summary>   
+        /// </summary>
         public bool SupportsFolders
         {
             get => SupportsContainers;
@@ -306,6 +346,9 @@
         /// </summary>
         public bool SupportsUserInfo { get; set; }
 
+        /// <summary>
+        /// A string value containing information about the user. This string can be passed from a WOPI client to the host by means of a <see href="https://wopi.readthedocs.io/projects/wopirest/en/latest/files/PutUserInfo.html#putuserinfo">PutUserInfo</see> operation. If the host has a UserInfo string for the user, they must include it in this property.
+        /// </summary>
         public string UserInfo { get; set; }
 
         public string TenantId { get; set; }
@@ -314,22 +357,52 @@
 
         public string TimeZone { get; set; }
 
+        /// <summary>
+        /// A Boolean value indicating whether the user is authenticated with the host or not. Hosts should always set this to <c>true</c> for unauthenticated users, so that clients are aware that the user is anonymous.
+        /// </summary>
         public bool IsAnonymousUser { get; set; }
 
+        /// <summary>
+        /// A Boolean value indicating whether the user is an education user or not.
+        /// </summary>
         public bool IsEduUser { get; set; }
 
+        /// <summary>
+        /// A Boolean value indicating whether the user is a business user or not.
+        /// <para>
+        /// See also <seealso href="https://wopi.readthedocs.io/en/latest/scenarios/business.html#business-editing">Supporting document editing for business users</seealso>
+        /// </para>
+        /// </summary>
         public bool LicenseCheckForEditIsEnabled { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates that the user has permission to view a <see href="https://wopi.readthedocs.io/en/latest/glossary.html#term-broadcast">broadcast</see> of this file.
+        /// </summary>
         public bool UserCanAttend { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates the user does not have sufficient permission to create new files on the WOPI server. Setting this to <c>true</c> tells the WOPI client that calls to <see href="https://wopi.readthedocs.io/projects/wopirest/en/latest/files/PutRelativeFile.html#putrelativefile">PutRelativeFile</see> will fail for this user on the current file.
+        /// </summary>
         public bool UserCanNotWriteRelative { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates that the user has permission to <see href="https://wopi.readthedocs.io/en/latest/glossary.html#term-broadcast">broadcast</see> this file to a set of users who have permission to broadcast or view a broadcast of the current file.
+        /// </summary>
         public bool UserCanPresent { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates that the user has permission to alter the file. Setting this to <c>true</c> tells the WOPI client that it can call <see href="https://wopi.readthedocs.io/projects/wopirest/en/latest/files/PutFile.html#putfile">PutFile</see> on behalf of the user.
+        /// </summary>
         public bool UserCanWrite { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates the user has permission to rename the current file.
+        /// </summary>
         public bool UserCanRename { get; set; }
 
+        /// <summary>
+        /// A string that is the name of the user, suitable for displaying in UI.
+        /// </summary>
         public string UserFriendlyName { get; set; }
 
         public string UserPrincipalName { get; set; }
