@@ -118,6 +118,9 @@
 
         public string SignoutUrl { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates that the WOPI server supports multiple users making changes to this file simultaneously.
+        /// </summary>
         public bool SupportsCoauth { get; set; }
 
         /// <summary>
@@ -147,8 +150,7 @@
         /// <description><see href="https://wopi.readthedocs.io/projects/wopirest/en/latest/files/DeleteFile.html#deletefile">DeleteFile</see></description>
         /// </item>
         /// </list>
-        /// </summary>
-        /// <value></value>
+        /// </summary>   
         public bool SupportsFolders
         {
             get => SupportsContainers;
@@ -261,10 +263,19 @@
         /// </summary>
         public string[] SupportedShareUrlTypes { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates that the host supports scenarios where users can operate on files in limited ways via restricted URLs.
+        /// </summary>
         public bool SupportsScenarioLinks { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates that the host supports calls to a secure data store utilizing credentials stored in the file.
+        /// </summary>
         public bool SupportsSecureStore { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates that the host supports creating new files using the WOPI client.
+        /// </summary>
         public bool SupportsFileCreation { get; set; }
 
         /// <summary>
