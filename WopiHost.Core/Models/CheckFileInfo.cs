@@ -190,7 +190,7 @@
         /// <description><see href="https://wopi.readthedocs.io/projects/wopirest/en/latest/files/DeleteFile.html#deletefile">DeleteFile</see></description>
         /// </item>
         /// </list>
-        /// </summary>
+        /// </summary>   
         public bool SupportsFolders
         {
             get => SupportsContainers;
