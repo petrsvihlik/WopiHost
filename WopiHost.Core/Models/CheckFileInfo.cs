@@ -5,7 +5,6 @@
     /// </summary>
     public class CheckFileInfo
     {
-        //TODO: and https://wopi.readthedocs.io/en/latest/scenarios/customization.html?highlight=checkfileinfo
         #region "Required properties"
 
         /// <summary>
@@ -38,26 +37,59 @@
 
         #region "Optional properties"
 
+        /// <summary>
+        /// A string that represents the last time that the file was modified. This time must always be a must be a UTC time, and must be formatted in ISO 8601 round-trip format. For example, <c>"2009-06-15T13:45:30.0000000Z"</c>.
+        /// </summary>
         public string LastModifiedTime { get; set; }
 
+        /// <summary>
+        /// A string value representing the file extension for the file. This value must begin with a <c>.</c>. If provided, WOPI clients will use this value as the file extension. Otherwise the extension will be parsed from the <see cref="BaseFileName"/>.
+        /// </summary>
         public string FileExtension { get; set; }
 
+        /// <summary>
+        /// An integer value that indicates the maximum length for file names that the WOPI host supports, excluding the file extension. The default value is 250. Note that WOPI clients will use this default value if the property is omitted or if it is explicitly set to <c>0</c>.
+        /// </summary>
         public int FileNameMaxLength { get; set; }
 
+        /// <summary>
+        /// A string that indicates the brand name of the host.
+        /// </summary>
         public string BreadcrumbBrandName { get; set; }
 
+        /// <summary>
+        /// A URI to a web page that the WOPI client should navigate to when the user clicks on UI that displays <see cref="BreadcrumbBrandName"/>.
+        /// </summary>
         public string BreadcrumbBrandUrl { get; set; }
 
+        /// <summary>
+        /// A string that indicates the name of the file. If this is not provided, WOPI clients may use the <see cref="BaseFileName"/> value.
+        /// </summary>
         public string BreadcrumbDocName { get; set; }
 
+        /// <summary>
+        /// MAY specifies a URI to a web page that the WOPI client navigates to when the user clicks on UI that displays <see cref="BreadcrumbDocName"/>.
+        /// </summary>
         public string BreadcrumbDocUrl { get; set; }
 
+        /// <summary>
+        /// A string that indicates the name of the container that contains the file.
+        /// </summary>
         public string BreadcrumbFolderName { get; set; }
 
+        /// <summary>
+        /// A URI to a web page that the WOPI client should navigate to when the user clicks on UI that displays <see cref="BreadcrumbFolderName"/>.
+        /// </summary>
         public string BreadcrumbFolderUrl { get; set; }
 
+        /// <summary>
+        /// A user-accessible URI directly to the file intended for opening the file through a client.
+        /// </summary>
         public string ClientUrl { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates the WOPI client should close the window or tab when the user activates any <c>Close</c> UI in the WOPI client.
+        /// </summary>
         public bool CloseButtonClosesWindow { get; set; }
 
         /// <summary>
@@ -65,14 +97,34 @@
         /// </summary>
         public string CloseUrl { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates that the WOPI client should disable caching of file contents in the browser cache. Note that this has important performance implications for web browser-based WOPI clients.
+        /// </summary>
         public bool DisableBrowserCachingOfUserContent { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates a WOPI client may connect to Microsoft services to provide end-user functionality.
+        /// </summary>
         public bool AllowAdditionalMicrosoftServices { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates that in the event of an error, the WOPI client is permitted to prompt the user for permission to collect a detailed report about their specific error. The information gathered could include the user’s file and other session-specific state.
+        /// </summary>
+        public bool AllowErrorReportPrompt { get; set; }
+
+        /// <summary>
+        /// A Boolean value that indicates a WOPI client may allow connections to external services referenced in the file (for example, a marketplace of embeddable JavaScript apps).
+        /// </summary>
         public bool AllowExternalMarketplace { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates the WOPI client should disable all print functionality.
+        /// </summary>
         public bool DisablePrint { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates the WOPI client should disable all machine translation functionality.
+        /// </summary>
         public bool DisableTranslation { get; set; }
 
         /// <summary>
@@ -100,6 +152,9 @@
         /// </summary>
         public string FileVersionUrl { get; set; }
 
+        /// <summary>
+        /// A string value uniquely identifying the user currently accessing the file.
+        /// </summary>
         public string HostAuthenticationId { get; set; }
 
         /// <summary>
@@ -107,6 +162,9 @@
         /// </summary>
         public string HostEditUrl { get; set; }
 
+        /// <summary>
+        /// A URI to a web page that provides access to an editing experience for the file that can be embedded in another HTML page.
+        /// </summary>
         public string HostEmbeddedEditUrl { get; set; }
 
         /// <summary>
@@ -114,10 +172,19 @@
         /// </summary>
         public string HostEmbeddedViewUrl { get; set; }
 
+        /// <summary>
+        /// A string that is the name provided by the WOPI server used to identify it for logging and other informational purposes.
+        /// </summary>
         public string HostName { get; set; }
 
+        /// <summary>
+        /// A string that is used by the host to pass arbitrary information to the WOPI client.
+        /// </summary>
         public string HostNotes { get; set; }
 
+        /// <summary>
+        /// A URI that is the base URI for REST operations for the file.
+        /// </summary>
         public string HostRestUrl { get; set; }
 
         /// <summary>
@@ -125,18 +192,40 @@
         /// </summary>
         public string HostViewUrl { get; set; }
 
+        /// <summary>
+        /// A string that the WOPI client should display to the user indicating the IRM policy for the file. This value should be combined with <see cref="IrmPolicyTitle"/>.
+        /// </summary>
         public string IrmPolicyDescription { get; set; }
 
+        /// <summary>
+        /// A string that the WOPI client should display to the user indicating the IRM policy for the file. This value should be combined with <see cref="IrmPolicyDescription"/>.
+        /// </summary>
         public string IrmPolicyTitle { get; set; }
 
+        /// <summary>
+        /// A string that identifies the provider of information that a WOPI client may use to discover information about the user’s online status (for example, whether a user is available via instant messenger).
+        /// </summary>
         public string PresenceProvider { get; set; }
 
+        /// <summary>
+        /// A string that identifies the user in the context of the <see cref="PresenceProvider"/>.
+        /// </summary>
         public string PresenceUserId { get; set; }
 
+        /// <summary>
+        /// A URI to a webpage that explains the privacy policy of the WOPI server.
+        /// </summary>
         public string PrivacyUrl { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates that the WOPI client should take measures to prevent copying and printing of the file. 
+        /// </summary>
         public bool ProtectInClient { get; set; }
 
+        /// <summary>
+        /// A URI that will allow the user to sign in using the host’s authentication system. This property can be used when supporting anonymous users. If this property is not provided, no sign in UI will be shown in Office Online.
+        /// <para>See also <seealso cref="SignoutUrl"/></para>
+        /// </summary>
         public string SignInUrl { get; set; }
 
         /// <summary>
@@ -149,8 +238,15 @@
         /// </summary>
         public bool RestrictedWebViewOnly { get; set; }
 
+        /// <summary>
+        /// A 256 bit SHA-2-encoded [<see href="http://csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf">FIPS 180-2</see>] hash of the file contents, as a Base64-encoded string. Used for caching purposes in WOPI clients.
+        /// </summary>
         public string Sha256 { get; set; }
 
+        
+        /// <summary>
+        /// This string value can be provided rather than a SHA256 value if and only if the host can guarantee that two different files with the same content will have the same UniqueContentId value.
+        /// </summary>
         public string UniqueContentId { get; set; }
 
         /// <summary>
@@ -351,10 +447,19 @@
         /// </summary>
         public string UserInfo { get; set; }
 
+        /// <summary>
+        /// A string value uniquely identifying the user’s ‘tenant,’ or group/organization to which they belong.
+        /// </summary>
         public string TenantId { get; set; }
 
+        /// <summary>
+        /// A URI to a webpage that explains the terms of use policy of the WOPI server.
+        /// </summary>
         public string TermsOfUseUrl { get; set; }
 
+        /// <summary>
+        /// A string that is used to pass time zone information to a WOPI client. The format of this value is determined by the host.
+        /// </summary>
         public string TimeZone { get; set; }
 
         /// <summary>
@@ -405,8 +510,14 @@
         /// </summary>
         public string UserFriendlyName { get; set; }
 
+        /// <summary>
+        /// A string value uniquely identifying the user currently accessing the file.
+        /// </summary>
         public string UserPrincipalName { get; set; }
 
+        /// <summary>
+        /// A Boolean value that indicates that the WOPI client must not allow the user to edit the file.
+        /// </summary>
         public bool WebEditingDisabled { get; set; }
 
         #endregion
