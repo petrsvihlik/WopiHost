@@ -243,7 +243,6 @@
         /// </summary>
         public string Sha256 { get; set; }
 
-        
         /// <summary>
         /// This string value can be provided rather than a SHA256 value if and only if the host can guarantee that two different files with the same content will have the same UniqueContentId value.
         /// </summary>
