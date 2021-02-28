@@ -1,6 +1,7 @@
 Introduction
 ==========
-[![Build status](https://ci.appveyor.com/api/projects/status/l7jn00f4fxydpbed/branch/master?svg=true)](https://ci.appveyor.com/project/petrsvihlik/wopihost/branch/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/l7jn00f4fxydpbed/branch/master?svg=true)](https://ci.appveyor.com/project/petrsvihlik/wopihost/branch/master)[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_shield)
+
 [![CircleCI](https://circleci.com/gh/petrsvihlik/WopiHost/tree/master.svg?style=svg)](https://circleci.com/gh/petrsvihlik/WopiHost/tree/master)
 [![codecov](https://codecov.io/gh/petrsvihlik/WopiHost/branch/master/graph/badge.svg)](https://codecov.io/gh/petrsvihlik/WopiHost) 
 [![Maintainability](https://api.codeclimate.com/v1/badges/369f0a7ff28279088d9c/maintainability)](https://codeclimate.com/github/petrsvihlik/WopiHost/maintainability)
@@ -152,3 +153,6 @@ Building WOPI Client
 -------------------------
  - http://www.wictorwilen.se/sharepoint-2013-building-your-own-wopi-client-part-1
  - http://www.wictorwilen.se/sharepoint-2013-building-your-own-wopi-client-part-2
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_large)
