@@ -38,7 +38,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         override_pr: ${{ github.event.number }}
         override_commit: ${{ github.event.pull_request.head.sha }}
-    - name: Run FOSSA scan
-      uses: fossa-contrib/fossa-action@v1
-      with:
-        fossa-api-key: ${{ secrets.FOSSA_API_KEY }}
+    #- name: Run FOSSA scan
+    #  uses: fossa-contrib/fossa-action@v1
+    #  with:
+    #    fossa-api-key: ${{ secrets.FOSSA_API_KEY }}
