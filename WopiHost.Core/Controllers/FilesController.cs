@@ -24,7 +24,7 @@ namespace WopiHost.Core.Controllers
 
         public ICobaltProcessor CobaltProcessor { get; set; }
 
-        private HostCapabilities HostCapabilities => new HostCapabilities
+        private HostCapabilities HostCapabilities => new()
         {
             SupportsCobalt = CobaltProcessor is not null,
             SupportsGetLock = true,
