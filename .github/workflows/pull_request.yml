@@ -29,11 +29,11 @@ jobs:
       env:
         MYGET_FEED: ${{ secrets.MYGET_FEED }}        
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
     - name: Test
       run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
     - name: Codecov
-      uses: codecov/codecov-action@v1.2.1
+      uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         override_pr: ${{ github.event.number }}
