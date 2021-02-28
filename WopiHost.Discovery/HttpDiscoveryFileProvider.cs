@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -28,7 +29,7 @@ namespace WopiHost.Discovery
             {
                 try
                 {
-                    var stream = await _httpClient.GetStreamAsync("/hosting/discovery");
+                    var stream = await _httpClient.GetStreamAsync(new Uri("/hosting/discovery", UriKind.Relative));
                     _discoveryXml = XElement.Load(stream);
                 }
                 catch (HttpRequestException e)
