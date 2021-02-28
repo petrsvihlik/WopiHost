@@ -21,7 +21,9 @@ jobs:
     - name: Create a global version file
       run: echo "<Project><PropertyGroup><Version>${{ steps.get_version.outputs.version-without-v }}</Version></PropertyGroup></Project>" > Directory.Build.props
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore -s ${MYGET_FEED} -s https://api.nuget.org/v3/index.json
+      env:
+        MYGET_FEED: ${{ secrets.MYGET_FEED }}   
     - name: Build
       run: dotnet build --no-restore --configuration Release
     - name: Test
