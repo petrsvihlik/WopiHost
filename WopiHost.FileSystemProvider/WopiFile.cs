@@ -7,23 +7,26 @@ using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider
 {
+    /// <inheritdoc/>
     public class WopiFile : IWopiFile
     {
-        public string Identifier { get; }
-
         private FileInfo _fileInfo;
 
         private FileVersionInfo _fileVersionInfo;
 
-        protected string FilePath { get; set; }
+        private string FilePath { get; set; }
 
-        protected FileInfo FileInfo => _fileInfo ??= new FileInfo(FilePath);
+        private FileInfo FileInfo => _fileInfo ??= new FileInfo(FilePath);
 
-        protected FileVersionInfo FileVersionInfo => _fileVersionInfo ??= FileVersionInfo.GetVersionInfo(FilePath);
+        private FileVersionInfo FileVersionInfo => _fileVersionInfo ??= FileVersionInfo.GetVersionInfo(FilePath);
+
+        /// <inheritdoc/>
+        public string Identifier { get; }
 
         /// <inheritdoc />
         public bool Exists => FileInfo.Exists;
 
+        /// <inheritdoc/>
         public string Extension
         {
             get
@@ -37,14 +40,19 @@ namespace WopiHost.FileSystemProvider
             }
         }
 
+        /// <inheritdoc/>
         public string Version => FileVersionInfo.FileVersion ?? FileInfo.LastWriteTimeUtc.ToString(CultureInfo.InvariantCulture);
 
+        /// <inheritdoc/>
         public long Size => FileInfo.Length;
 
+        /// <inheritdoc/>
         public long Length => FileInfo.Length;
 
+        /// <inheritdoc/>
         public string Name => FileInfo.Name;
 
+        /// <inheritdoc/>
         public DateTime LastWriteTimeUtc => FileInfo.LastWriteTimeUtc;
 
         public WopiFile(string filePath, string fileIdentifier)
@@ -53,16 +61,19 @@ namespace WopiHost.FileSystemProvider
             Identifier = fileIdentifier;
         }
 
+        /// <inheritdoc/>
         public Stream GetReadStream()
         {
             return FileInfo.OpenRead();
         }
 
+        /// <inheritdoc/>
         public Stream GetWriteStream()
         {
             return FileInfo.Open(FileMode.Truncate);
         }
 
+        /// <inheritdoc/>
         public string Owner => FileInfo.GetAccessControl().GetOwner(typeof(NTAccount)).ToString();
     }
 }

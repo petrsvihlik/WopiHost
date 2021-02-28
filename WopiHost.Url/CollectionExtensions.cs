@@ -3,6 +3,9 @@ using System.Linq;
 
 namespace WopiHost.Url
 {
+    /// <summary>
+    /// Provides helper methods for collections of objects.
+    /// </summary>
     public static class CollectionExtensions
     {
         /// <summary>

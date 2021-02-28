@@ -24,7 +24,8 @@ namespace WopiHost.Web
         /// </summary>
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllersWithViews();
+            services.AddControllersWithViews()
+                .AddRazorRuntimeCompilation(); // Add browser link
             services.AddSingleton(Configuration);
 
             // Configuration
