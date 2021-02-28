@@ -7,10 +7,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 		.gitignore = .gitignore
 		Directory.build.props = Directory.build.props
+		.github\workflows\integrate.yml = .github\workflows\integrate.yml
 		LICENSE.txt = LICENSE.txt
 		NOTICE.txt = NOTICE.txt
 		ORIGINAL_WORK_LICENSE.txt = ORIGINAL_WORK_LICENSE.txt
 		README.md = README.md
+		.github\workflows\release.yml = .github\workflows\release.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Microsoft.CobaltCore", "Microsoft.CobaltCore", "{F66706B6-D7DD-48FB-963C-870B3D611500}"
