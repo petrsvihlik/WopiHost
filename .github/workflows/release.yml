@@ -1,0 +1,41 @@
+name: Publish to NuGet
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Extract version from tag
+      id: get_version
+      uses: battila7/get-version-action@v2
+    - name: Create a global version file
+      run: echo "<Project><PropertyGroup><Version>${{ steps.get_version.outputs.version-without-v }}</Version></PropertyGroup></Project>" > Directory.Build.props
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+    - name: Test
+      run: dotnet test --no-build --verbosity normal --configuration Release /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+    - name: Codecov
+      uses: codecov/codecov-action@v1.2.1    
+    - name: Pack
+      run: dotnet pack --no-build --include-symbols --verbosity normal --configuration Release --output ./artifacts
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: "NuGet packages"
+        path: ./artifacts
+    - name: Publish artifacts to NuGet.org
+      run: dotnet nuget push ./artifacts/*.nupkg -s https://api.nuget.org/v3/index.json -k ${NUGET_API_KEY} --skip-duplicate
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
