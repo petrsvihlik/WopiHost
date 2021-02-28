@@ -18,7 +18,9 @@ jobs:
       with:
         dotnet-version: 5.0.x
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore -s $env:MYGET_FEED -s https://api.nuget.org/v3/index.json
+      env:
+        MYGET_FEED: ${{ secrets.MYGET_FEED }}        
     - name: Build
       run: dotnet build --no-restore
     - name: Test
