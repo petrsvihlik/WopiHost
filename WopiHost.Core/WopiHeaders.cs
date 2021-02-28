@@ -1,6 +1,9 @@
 ﻿namespace WopiHost.Core
 {
-    public class WopiHeaders
+    /// <summary>
+    /// WOPI HTTP header names.
+    /// </summary>
+    public static class WopiHeaders
     {
         /// <summary>
         /// A string specifying the requested operation from the WOPI server.
@@ -12,9 +15,20 @@
         /// </summary>
 		public const string LOCK = "X-WOPI-Lock";
 
-
+        /// <summary>
+        /// A string provided by the WOPI client that is the existing lock on the file. Required. Note that if X-WOPI-OldLock is not provided, the request is identical to a Lock request.
+        /// </summary>
         public const string OLD_LOCK = "X-WOPI-OldLock";
+
+        /// <summary>
+        /// An optional string value indicating the cause of a lock failure. This header may be included when responding to the request with 409 Conflict. There is no standard for how this string is formatted, and it must only be used for logging purposes.
+        /// </summary>
         public const string LOCK_FAILURE_REASON = "X-WOPI-LockFailureReason";
+
+        /// <summary>
+        /// A string indicating that the file is currently locked by another client. This header SHOULD only be included when responding with the 409 status code.
+        /// Note: This header is deprecated and should be ignored by WOPI clients.
+        /// </summary>
         public const string LOCKED_BY_OTHER_INTERFACE = "X-WOPI-LockedByOtherInterface";
 
         /// <summary>
@@ -45,10 +59,20 @@
         /// </summary>
         public const string SESSION_ID = "X-UserSessionId";
 
+        /// <summary>
+        /// An integer specifying the upper bound of the expected size of the file being requested. Optional. The host should use the maximum value of a 4-byte integer if this value is not set in the request. If the file requested is larger than this value, the host must respond with a 412 Precondition Failed.
+        /// </summary>
         public const string MAX_EXPECTED_SIZE = "X-WOPI-MaxExpectedSize";
 
+        /// <summary>
+        ///  The WopiSrc (a string) for the file or container. Used for:
+        ///  POST /wopibootstrapper
+        /// </summary>
         public const string WOPI_SRC = "X-WOPI-WopiSrc";
 
+        /// <summary>
+        /// The string GET_NEW_ACCESS_TOKEN. Required.
+        /// </summary>
         public const string ECOSYSTEM_OPERATION = "X-WOPI-EcosystemOperation";
     }
 }
