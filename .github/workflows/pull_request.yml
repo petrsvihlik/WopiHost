@@ -36,3 +36,5 @@ jobs:
       uses: codecov/codecov-action@v1.2.1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        override_pr: ${{ github.event.number }}
+        override_sha: ${{ github.event.pull_request.head.sha }}
