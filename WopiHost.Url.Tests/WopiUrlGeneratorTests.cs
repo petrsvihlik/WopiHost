@@ -90,8 +90,7 @@ namespace WopiHost.Url.Tests
             // Act
 
             // Assert
-            Assert.Equal(14, settings.Count);
-
+            Assert.Equal(15, settings.Count);
         }
     }
 }
