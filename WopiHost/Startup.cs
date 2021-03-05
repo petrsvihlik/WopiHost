@@ -41,14 +41,14 @@ namespace WopiHost
         /// </summary>
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();//.AddControllersAsServices(); https://autofaccn.readthedocs.io/en/latest/integration/aspnetcore.html#controllers-as-services
+            services.AddControllers(); //.AddControllersAsServices(); https://autofaccn.readthedocs.io/en/latest/integration/aspnetcore.html#controllers-as-services
 
             // Ideally, pass a persistent dictionary implementation
             services.AddSingleton<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
 
             services.AddLogging(loggingBuilder =>
             {
-                loggingBuilder.AddConsole();//Configuration.GetSection("Logging")
+                loggingBuilder.AddConsole(); //Configuration.GetSection("Logging")
                 loggingBuilder.AddDebug();
             });
 
@@ -73,7 +73,6 @@ namespace WopiHost
             var providerContainer = providerBuilder.Build();
             return providerContainer.Resolve<IWopiSecurityHandler>();
         }
-
 
         /// <summary>
         /// Configure is called after ConfigureServices is called.

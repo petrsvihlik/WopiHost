@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using FakeItEasy;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
@@ -62,5 +63,34 @@ namespace WopiHost.Url.Tests
 			// Assert
 			Assert.Equal(expectedValue, result);
 		}
-	}
+
+        [Fact]
+        public void SettingsArePresent()
+        {
+            // Arrange
+            var settings = new WopiUrlSettings()
+            {
+                BusinessUser = 1,
+                UiLlcc = new CultureInfo("en-US"),
+                DcLlcc = new CultureInfo("es-ES"),
+                Embedded = true,
+                DisableAsync = true,
+                DisableBroadcast = true,
+                Fullscreen = true,
+                Recording = true,
+                ThemeId = 1,
+                DisableChat = 1,
+                Perfstats = 1,
+                HostSessionId = Guid.NewGuid().ToString(),
+                SessionContext = Guid.NewGuid().ToString(),
+                WopiSource = "c:\\doc.docx",
+                ValidatorTestCategory = "All"
+            };
+
+            // Act
+
+            // Assert
+            Assert.Equal(15, settings.Count);
+        }
+    }
 }

@@ -113,12 +113,13 @@ namespace WopiHost.Url
         }
 
         /// <summary>
+        /// Makes a purple, clickable box appear if you set it to 1.
         /// Sorry, this documentation hasn't been written yet. https://github.com/Microsoft/Office-Online-Test-Tools-and-Documentation/issues/52
         /// </summary>
-        public string Perfstats
+        public int Perfstats
         {
-            get => this["PERFSTATS"];
-            set => this["PERFSTATS"] = value;
+            get => Convert.ToInt32(this["PERFSTATS"], CultureInfo.InvariantCulture);
+            set => this["PERFSTATS"] = value.ToString(CultureInfo.InvariantCulture);
         }
 
         /// <summary>
@@ -151,6 +152,7 @@ namespace WopiHost.Url
         }
 
         /// <summary>
+        /// TODO: convert to enum
         /// This value is used to run the WOPI Validation application in different modes.
         /// This value can be set to All, OfficeOnline or OfficeNativeClient to activate tests specific to Office Online and Office for iOS.If omitted, the default value is All.
         /// All: activates all WOPI Validation application tests.

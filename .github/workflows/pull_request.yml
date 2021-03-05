@@ -5,13 +5,13 @@ on:
     branches: [ master ]
 
 jobs:
-  approve:    
+  approve:
     runs-on: ubuntu-latest
 
     steps:
     - name: Approve
       run: echo For security reasons, all pull requests need to be approved first before running any automated CI.
-  
+ 
   build:
     runs-on: ubuntu-latest
 
@@ -19,7 +19,7 @@ jobs:
     environment:
       name: Integrate Pull Request
     steps:
-    - uses: actions/checkout@v2      
+    - uses: actions/checkout@v2
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 2
@@ -30,7 +30,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore -s ${MYGET_FEED} -s https://api.nuget.org/v3/index.json
       env:
-        MYGET_FEED: ${{ secrets.MYGET_FEED }}        
+        MYGET_FEED: ${{ secrets.MYGET_FEED }}
     - name: Build
       run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
     - name: Test
