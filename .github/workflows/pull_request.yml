@@ -39,8 +39,8 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        #override_pr: ${{ github.event.number }}
-        #override_commit: ${{ github.event.pull_request.head.sha }}
+        override_pr: ${{ github.event.number }}
+        override_commit: ${{ github.event.pull_request.head.sha }}
 
 
     #- name: Run FOSSA scan
