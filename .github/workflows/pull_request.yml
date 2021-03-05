@@ -22,6 +22,7 @@ jobs:
     - uses: actions/checkout@v2      
       with:
         ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 2
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
@@ -38,8 +39,10 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        override_pr: ${{ github.event.number }}
-        override_commit: ${{ github.event.pull_request.head.sha }}
+        #override_pr: ${{ github.event.number }}
+        #override_commit: ${{ github.event.pull_request.head.sha }}
+
+
     #- name: Run FOSSA scan
     #  uses: fossa-contrib/fossa-action@v1
     #  with:
