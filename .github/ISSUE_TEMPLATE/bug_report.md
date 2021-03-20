@@ -20,6 +20,9 @@ Steps to reproduce the behavior:
 **Expected behavior**
 A clear and concise description of what you expected to happen.
 
+**Have you modified the source?**
+Have you modified the source of `petrsvihlik/WopiHost`? If so, how (attach your source, link your fork)? (Note: I can't support significantly modified sources unless you [sponsor](https://github.com/sponsors/petrsvihlik) the project.)
+
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
