@@ -7,6 +7,7 @@
     <AssemblyName>WopiHost.Cobalt</AssemblyName>
     <PackageId>WopiHost.Cobalt</PackageId>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageIcon>logo.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/petrsvihlik/WopiHost.git</RepositoryUrl>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
@@ -17,6 +18,7 @@
   
   <ItemGroup>
     <None Include="..\LICENSE.txt" Pack="true" PackagePath=""/>
+    <None Include="..\img\logo.png" Pack="true" PackagePath=""/>
   </ItemGroup>
 
   <PropertyGroup>

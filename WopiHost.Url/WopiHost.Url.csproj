@@ -7,6 +7,7 @@
     <AssemblyName>WopiHost.Url</AssemblyName>
     <PackageId>WopiHost.Url</PackageId>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageIcon>logo.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/petrsvihlik/WopiHost.git</RepositoryUrl>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
@@ -20,6 +21,7 @@
   
   <ItemGroup>
     <None Include="..\LICENSE.txt" Pack="true" PackagePath=""/>
+    <None Include="..\img\logo.png" Pack="true" PackagePath=""/>
   </ItemGroup>
 
   <PropertyGroup>
