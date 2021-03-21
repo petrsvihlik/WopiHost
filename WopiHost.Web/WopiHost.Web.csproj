@@ -10,6 +10,7 @@
     <UserSecretsId>aspnet5-SampleWeb-20150906061332</UserSecretsId>
     <PublishReadyToRun>true</PublishReadyToRun>
     <PublishTrimmed>true</PublishTrimmed>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
