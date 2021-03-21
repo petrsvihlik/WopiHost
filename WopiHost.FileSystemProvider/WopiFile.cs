@@ -34,7 +34,7 @@ namespace WopiHost.FileSystemProvider
                 var ext = FileInfo.Extension;
                 if (ext.StartsWith(".", StringComparison.InvariantCulture))
                 {
-                    ext = ext.Substring(1);
+                    ext = ext[1..];
                 }
                 return ext;
             }
@@ -55,6 +55,11 @@ namespace WopiHost.FileSystemProvider
         /// <inheritdoc/>
         public DateTime LastWriteTimeUtc => FileInfo.LastWriteTimeUtc;
 
+        /// <summary>
+        /// Creates an instance of <see cref="WopiFile"/>.
+        /// </summary>
+        /// <param name="filePath">Path on the file system.</param>
+        /// <param name="fileIdentifier">Identifier of a file.</param>
         public WopiFile(string filePath, string fileIdentifier)
         {
             FilePath = filePath;

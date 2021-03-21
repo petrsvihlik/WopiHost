@@ -114,7 +114,7 @@ namespace WopiHost.Core.Controllers
         /// Example URL path: /wopi/files/(file_id)/contents
         /// </summary>
         /// <param name="id">File identifier.</param>
-        /// <returns></returns>
+        /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
         [HttpPut("{id}/contents")]
         [HttpPost("{id}/contents")]
         public async Task<IActionResult> PutFile(string id)
@@ -147,6 +147,13 @@ namespace WopiHost.Core.Controllers
             return lockResult;
         }
 
+        /// <summary>
+        /// The PutRelativeFile operation creates a new file on the host based on the current file.
+        /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/files/PutRelativeFile.html
+        /// Example URL path: /wopi/files/(file_id)
+        /// </summary>
+        /// <param name="id">File identifier.</param>
+        /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
         [HttpPost("{id}"), WopiOverrideHeader(new[] { "PUT_RELATIVE" })]
         public async Task<IActionResult> PutRelativeFile(string id)
         {
