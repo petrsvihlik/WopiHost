@@ -68,7 +68,7 @@ namespace WopiHost.Cobalt
             return ms;
         }
 
-
+        /// <inheritdoc/>
         public Action<Stream> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent)
         {
             // Refactoring tip: there are more ways of initializing Atom

@@ -22,6 +22,9 @@ namespace WopiHost.Core.Controllers
     {
         private readonly IAuthorizationService _authorizationService;
 
+        /// <summary>
+        /// Service that can process MS-FSSHTTP requests.
+        /// </summary>
         public ICobaltProcessor CobaltProcessor { get; set; }
 
         private HostCapabilities HostCapabilities => new()
