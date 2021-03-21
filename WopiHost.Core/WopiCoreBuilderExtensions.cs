@@ -7,8 +7,16 @@ using WopiHost.Core.Security.Authorization;
 
 namespace WopiHost.Core
 {
+    /// <summary>
+    /// Extensions for registering WOPI into the application pipeline.
+    /// </summary>
     public static class WopiCoreBuilderExtensions
     {
+        /// <summary>
+        /// Adds core WOPI services and controllers to the <see cref="IServiceCollection"/>.
+        /// </summary>
+        /// <param name="services">Service collection to add WOPI services to.</param>
+        /// <param name="securityHandler">An instance of a security handler.</param>
         public static void AddWopi(this IServiceCollection services, IWopiSecurityHandler securityHandler)
         {
             services.AddAuthorizationCore();

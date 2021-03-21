@@ -45,6 +45,15 @@ namespace WopiHost.Core.Controllers
 
         private string WopiOverrideHeader => HttpContext.Request.Headers[WopiHeaders.WOPI_OVERRIDE];
 
+        /// <summary>
+        /// Creates an instance of <see cref="FilesController"/>.
+        /// </summary>
+        /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
+        /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
+        /// <param name="wopiHostOptions">WOPI Host configuration</param>
+        /// <param name="authorizationService">An instance of authorization service capable of resource-based authorization.</param>
+        /// <param name="lockStorage">An instance of a storage for lock information.</param>
+        /// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
         public FilesController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions, IAuthorizationService authorizationService, IDictionary<string, LockInfo> lockStorage, ICobaltProcessor cobaltProcessor = null) : base(storageProvider, securityHandler, wopiHostOptions)
         {
             _authorizationService = authorizationService;

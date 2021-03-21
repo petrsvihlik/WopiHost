@@ -13,7 +13,13 @@ namespace WopiHost.Core.Controllers
     [Route("wopi/[controller]")]
     public class ContainersController : WopiControllerBase
     {
-        public ContainersController(IOptionsSnapshot<WopiHostOptions> wopiHostOptions, IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler) : base(fileProvider, securityHandler, wopiHostOptions)
+        /// <summary>
+        /// Creates an instance of <see cref="ContainersController"/>.
+        /// </summary>
+        /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
+        /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
+        /// <param name="wopiHostOptions">WOPI Host configuration</param>
+        public ContainersController(IOptionsSnapshot<WopiHostOptions> wopiHostOptions, IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler) : base(storageProvider, securityHandler, wopiHostOptions)
         {
         }
 

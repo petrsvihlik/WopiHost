@@ -8,6 +8,9 @@ namespace WopiHost.Abstractions
 	[Flags]
 	public enum WopiUserPermissions
 	{
+		/// <summary>
+		/// Default value - user has no permissions.
+		/// </summary>
 		None = 0,
 
 		/// <summary>
