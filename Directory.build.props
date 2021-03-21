@@ -1,5 +1,7 @@
 <Project>
  <PropertyGroup>
    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+   <EnableNETAnalyzers>true</EnableNETAnalyzers>
+   <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
  </PropertyGroup>
 </Project>
