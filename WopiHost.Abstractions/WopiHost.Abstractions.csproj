@@ -8,6 +8,7 @@
     <PackageId>WopiHost.Abstractions</PackageId>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageIcon>logo.png</PackageIcon>
+    <PackageTags>WOPI;MS-WOPI;MS-FSSHTTP;Office Online Server;Office Web Apps;Web Application Open Platform Interface</PackageTags>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/petrsvihlik/WopiHost.git</RepositoryUrl>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
