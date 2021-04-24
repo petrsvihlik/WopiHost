@@ -7,6 +7,9 @@ namespace WopiHost.Core.Results
     /// </summary>
     public class PreconditionFailedResult : StatusCodeResult
     {
+        /// <summary>
+        /// Creates an instance of <see cref="PreconditionFailedResult"/>.
+        /// </summary>
         public PreconditionFailedResult() : base(412)
         {
 

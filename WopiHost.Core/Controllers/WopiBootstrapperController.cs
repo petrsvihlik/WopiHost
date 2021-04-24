@@ -12,8 +12,14 @@ namespace WopiHost.Core.Controllers
     [Route("wopibootstrapper")]
     public class WopiBootstrapperController : WopiControllerBase
     {
-        public WopiBootstrapperController(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions)
-            : base(fileProvider, securityHandler, wopiHostOptions)
+        /// <summary>
+		/// Creates an instance of <see cref="WopiBootstrapperController"/>.
+        /// </summary>
+        /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
+        /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
+        /// <param name="wopiHostOptions">WOPI Host configuration</param>
+        public WopiBootstrapperController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions)
+            : base(storageProvider, securityHandler, wopiHostOptions)
         {
 
         }

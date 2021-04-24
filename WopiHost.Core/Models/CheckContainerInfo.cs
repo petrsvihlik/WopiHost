@@ -8,6 +8,9 @@
 	{
 		#region "Required properties"
 
+		/// <summary>
+		/// The name of the container without a path. This value will be displayed in the WOPI client UI.
+		/// </summary>
 		public string Name { get; set; }
 
 		#endregion

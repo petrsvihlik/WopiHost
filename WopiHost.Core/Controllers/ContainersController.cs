@@ -13,14 +13,20 @@ namespace WopiHost.Core.Controllers
     [Route("wopi/[controller]")]
     public class ContainersController : WopiControllerBase
     {
-        public ContainersController(IOptionsSnapshot<WopiHostOptions> wopiHostOptions, IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler) : base(fileProvider, securityHandler, wopiHostOptions)
+        /// <summary>
+        /// Creates an instance of <see cref="ContainersController"/>.
+        /// </summary>
+        /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
+        /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
+        /// <param name="wopiHostOptions">WOPI Host configuration</param>
+        public ContainersController(IOptionsSnapshot<WopiHostOptions> wopiHostOptions, IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler) : base(storageProvider, securityHandler, wopiHostOptions)
         {
         }
 
         /// <summary>
         /// Returns the metadata about a container specified by an identifier.
-        /// Specification: https://msdn.microsoft.com/en-us/library/hh642840.aspx
-        /// Example URL: HTTP://server/<...>/wopi*/containers/<id>
+        /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/containers/CheckContainerInfo.html
+        /// Example URL path: /wopi/containers/(container_id)
         /// </summary>
         /// <param name="id">Container identifier.</param>
         /// <returns></returns>
@@ -39,8 +45,7 @@ namespace WopiHost.Core.Controllers
         /// <summary>
         /// The EnumerateChildren method returns the contents of a container on the WOPI server.
         /// Specification: http://wopi.readthedocs.io/projects/wopirest/en/latest/containers/EnumerateChildren.html?highlight=EnumerateChildren
-        /// Specification: https://msdn.microsoft.com/en-us/library/hh641593.aspx
-        /// Example URL: HTTP://server/<...>/wopi*/containers/<id>/children
+        /// Example URL path: /wopi/containers/(container_id)/children
         /// </summary>
         /// <param name="id">Container identifier.</param>
         /// <returns></returns>

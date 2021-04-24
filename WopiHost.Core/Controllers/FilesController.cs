@@ -22,9 +22,12 @@ namespace WopiHost.Core.Controllers
     {
         private readonly IAuthorizationService _authorizationService;
 
+        /// <summary>
+        /// Service that can process MS-FSSHTTP requests.
+        /// </summary>
         public ICobaltProcessor CobaltProcessor { get; set; }
 
-        private HostCapabilities HostCapabilities => new HostCapabilities
+        private HostCapabilities HostCapabilities => new()
         {
             SupportsCobalt = CobaltProcessor is not null,
             SupportsGetLock = true,
@@ -42,6 +45,15 @@ namespace WopiHost.Core.Controllers
 
         private string WopiOverrideHeader => HttpContext.Request.Headers[WopiHeaders.WOPI_OVERRIDE];
 
+        /// <summary>
+        /// Creates an instance of <see cref="FilesController"/>.
+        /// </summary>
+        /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
+        /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
+        /// <param name="wopiHostOptions">WOPI Host configuration</param>
+        /// <param name="authorizationService">An instance of authorization service capable of resource-based authorization.</param>
+        /// <param name="lockStorage">An instance of a storage for lock information.</param>
+        /// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
         public FilesController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions, IAuthorizationService authorizationService, IDictionary<string, LockInfo> lockStorage, ICobaltProcessor cobaltProcessor = null) : base(storageProvider, securityHandler, wopiHostOptions)
         {
             _authorizationService = authorizationService;
@@ -102,7 +114,7 @@ namespace WopiHost.Core.Controllers
         /// Example URL path: /wopi/files/(file_id)/contents
         /// </summary>
         /// <param name="id">File identifier.</param>
-        /// <returns></returns>
+        /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
         [HttpPut("{id}/contents")]
         [HttpPost("{id}/contents")]
         public async Task<IActionResult> PutFile(string id)
@@ -135,6 +147,13 @@ namespace WopiHost.Core.Controllers
             return lockResult;
         }
 
+        /// <summary>
+        /// The PutRelativeFile operation creates a new file on the host based on the current file.
+        /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/files/PutRelativeFile.html
+        /// Example URL path: /wopi/files/(file_id)
+        /// </summary>
+        /// <param name="id">File identifier.</param>
+        /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
         [HttpPost("{id}"), WopiOverrideHeader(new[] { "PUT_RELATIVE" })]
         public async Task<IActionResult> PutRelativeFile(string id)
         {

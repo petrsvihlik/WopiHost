@@ -16,7 +16,9 @@ namespace WopiHost.Url
 	{
 		private readonly IDiscoverer _wopiDiscoverer;
 
-
+		/// <summary>
+		/// Additional URL parameters influencing the behavior of the WOPI client.
+		/// </summary>
 		public WopiUrlSettings UrlSettings { get; }
 
 		/// <summary>
