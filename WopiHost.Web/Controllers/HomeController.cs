@@ -11,6 +11,7 @@ using WopiHost.Web.Models;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
 
 namespace WopiHost.Web.Controllers
 {
@@ -21,16 +22,18 @@ namespace WopiHost.Web.Controllers
         private IOptionsSnapshot<WopiOptions> WopiOptions { get; }
         private IWopiStorageProvider StorageProvider { get; }
         private IDiscoverer Discoverer { get; }
+        public IConfiguration Configuration { get; }
 
 
         //TODO: remove test culture value and load it from configuration SECTION
         public WopiUrlBuilder UrlGenerator => _urlGenerator ??= new WopiUrlBuilder(Discoverer, new WopiUrlSettings { UiLlcc = new CultureInfo("en-US") });
 
-        public HomeController(IOptionsSnapshot<WopiOptions> wopiOptions, IWopiStorageProvider storageProvider, IDiscoverer discoverer)
+        public HomeController(IOptionsSnapshot<WopiOptions> wopiOptions, IWopiStorageProvider storageProvider, IDiscoverer discoverer, IConfiguration configuration)
         {
             WopiOptions = wopiOptions;
             StorageProvider = storageProvider;
             Discoverer = discoverer;
+            Configuration = configuration;
         }
 
         public async Task<ActionResult> Index()
@@ -76,10 +79,9 @@ namespace WopiHost.Web.Controllers
             //ViewData["access_token_ttl"] = //token.ValidTo
 
             //http://dotnet-stuff.com/tutorials/aspnet-mvc/how-to-render-different-layout-in-asp-net-mvc
-
-
+            
             var extension = file.Extension.TrimStart('.');
-            ViewData["urlsrc"] = await UrlGenerator.GetFileUrlAsync(extension, $"{WopiOptions.Value.HostUrl}/wopi/files/{id}", actionEnum);
+            ViewData["urlsrc"] = await UrlGenerator.GetFileUrlAsync(extension, $"{Configuration.GetServiceUri("wopihost")}wopi/files/{id}", actionEnum);
             ViewData["favicon"] = await Discoverer.GetApplicationFavIconAsync(extension);
             return View();
         }
