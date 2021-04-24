@@ -10,7 +10,7 @@ services:
   project: WopiHost/WopiHost.csproj
   bindings:
     - port: 5000
-      host: rocky-ntb
+      host: DESKTOP-C6H53HB
   args: --urls http://*:5000
 
 - name: wopihost-web
