@@ -9,9 +9,10 @@ using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider
 {
+    /// <inheritdoc/>
     public class WopiSecurityHandler : IWopiSecurityHandler
     {
-        private readonly JwtSecurityTokenHandler _tokenHandler = new JwtSecurityTokenHandler();
+        private readonly JwtSecurityTokenHandler _tokenHandler = new();
         private SymmetricSecurityKey _key = null;
 
         private SymmetricSecurityKey Key
@@ -24,17 +25,19 @@ namespace WopiHost.FileSystemProvider
                     //byte[] key = new byte[128];
                     //rng.GetBytes(key);
                     var key = Encoding.ASCII.GetBytes("secretKeysecretKeysecretKey123"/* + new Random(DateTime.Now.Millisecond).Next(1,999)*/);
-                    _key = new SymmetricSecurityKey(key); 
+                    _key = new SymmetricSecurityKey(key);
                 }
-                
+
                 return _key;
             }
         }
 
         //TODO: abstract
-        private readonly Dictionary<string, ClaimsPrincipal> _userDatabase = new Dictionary<string, ClaimsPrincipal>
+        private readonly Dictionary<string, ClaimsPrincipal> _userDatabase = new()
         {
-            {"Anonymous", new ClaimsPrincipal(
+            {
+                "Anonymous",
+                new ClaimsPrincipal(
                 new ClaimsIdentity(new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, "12345"),
@@ -44,9 +47,11 @@ namespace WopiHost.FileSystemProvider
                     //TDOO: this needs to be done per file
                     new Claim(WopiClaimTypes.USER_PERMISSIONS, (WopiUserPermissions.UserCanWrite | WopiUserPermissions.UserCanRename | WopiUserPermissions.UserCanAttend | WopiUserPermissions.UserCanPresent).ToString())
                 })
-            ) }
+            )
+            }
         };
 
+        /// <inheritdoc/>
         public SecurityToken GenerateAccessToken(string userId, string resourceId)
         {
             var user = _userDatabase[userId];
@@ -61,6 +66,7 @@ namespace WopiHost.FileSystemProvider
             return _tokenHandler.CreateToken(tokenDescriptor);
         }
 
+        /// <inheritdoc/>
         public ClaimsPrincipal GetPrincipal(string tokenString)
         {
             //TODO: https://github.com/aspnet/Security/tree/master/src/Microsoft.AspNetCore.Authentication.JwtBearer
@@ -87,6 +93,7 @@ namespace WopiHost.FileSystemProvider
             }
         }
 
+        /// <inheritdoc/>
         public bool IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation)
         {
 

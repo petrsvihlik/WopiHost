@@ -11,8 +11,14 @@ namespace WopiHost.Core.Controllers
     [Route("wopi/[controller]")]
 	public class EcosystemController : WopiControllerBase
 	{
-		public EcosystemController(IWopiStorageProvider fileProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions) 
-            : base(fileProvider, securityHandler, wopiHostOptions)
+		/// <summary>
+		/// Creates an instance of <see cref="EcosystemController"/>.
+		/// </summary>
+		/// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
+		/// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
+		/// <param name="wopiHostOptions">WOPI Host configuration</param>
+		public EcosystemController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions) 
+            : base(storageProvider, securityHandler, wopiHostOptions)
 		{
 		}
 

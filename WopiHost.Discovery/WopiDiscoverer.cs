@@ -26,9 +26,13 @@ namespace WopiHost.Discovery
 
         private IDiscoveryFileProvider DiscoveryFileProvider { get; }
 
-        public NetZoneEnum NetZone { get; }
+        private NetZoneEnum NetZone { get; }
 
-
+        /// <summary>
+        /// Creates a new instance of the <see cref="WopiDiscoverer"/>, a class for examining the capabilities of the WOPI client.
+        /// </summary>
+        /// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
+        /// <param name="netZone">A network zone to examine.</param>
         public WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, NetZoneEnum netZone = NetZoneEnum.Any)
         {
             DiscoveryFileProvider = discoveryFileProvider;
@@ -71,9 +75,9 @@ namespace WopiHost.Discovery
         ///<inheritdoc />
         public async Task<bool> SupportsActionAsync(string extension, WopiActionEnum action)
         {
-            var actionString = action.ToString().ToLowerInvariant();
+            var actionString = action.ToString().ToUpperInvariant();
 
-            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.ToLowerInvariant() == actionString);
+            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.ToUpperInvariant() == actionString);
 
             return query.Any();
         }
@@ -81,9 +85,9 @@ namespace WopiHost.Discovery
         ///<inheritdoc />
         public async Task<IEnumerable<string>> GetActionRequirementsAsync(string extension, WopiActionEnum action)
         {
-            var actionString = action.ToString().ToLowerInvariant();
+            var actionString = action.ToString().ToUpperInvariant();
 
-            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.ToLowerInvariant() == actionString).Select(e => e.Attribute(AttrActionRequires).Value.Split(','));
+            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.ToUpperInvariant() == actionString).Select(e => e.Attribute(AttrActionRequires).Value.Split(','));
 
             return query.FirstOrDefault();
         }
@@ -98,8 +102,8 @@ namespace WopiHost.Discovery
         ///<inheritdoc />
         public async Task<string> GetUrlTemplateAsync(string extension, WopiActionEnum action)
         {
-            var actionString = action.ToString().ToLowerInvariant();
-            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.ToLowerInvariant() == actionString).Select(e => e.Attribute(AttrActionUrl).Value);
+            var actionString = action.ToString().ToUpperInvariant();
+            var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.ToUpperInvariant() == actionString).Select(e => e.Attribute(AttrActionUrl).Value);
             return query.FirstOrDefault();
         }
 

@@ -14,18 +14,16 @@ namespace WopiHost.Core
         /// <returns>Byte array copy of a stream</returns>
         public static async Task<byte[]> ReadBytesAsync(this Stream input)
         {
-            using (var ms = new MemoryStream())
-            {
-                await input.CopyToAsync(ms);
-                return ms.ToArray();
-            }
+            using var ms = new MemoryStream();
+            await input.CopyToAsync(ms);
+            return ms.ToArray();
         }
 
         /// <summary>
         /// Tries to parse integer from string. Returns null if parsing fails.
         /// </summary>
         /// <param name="s">String to parse</param>
-        /// <returns>Integer parsed from <see cref="s"/></returns>
+        /// <returns>Integer parsed from <paramref name="s"/></returns>
         public static int? ToNullableInt(this string s)
         {
             if (int.TryParse(s, out var i)) return i;

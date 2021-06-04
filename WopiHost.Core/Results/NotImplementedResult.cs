@@ -7,6 +7,9 @@ namespace WopiHost.Core.Results
     /// </summary>
     public class NotImplementedResult : StatusCodeResult
     {
+        /// <summary>
+        /// Creates an instance of <see cref="NotImplementedResult"/>
+        /// </summary>
         public NotImplementedResult() : base(501)
         {
         }

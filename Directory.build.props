@@ -1,6 +1,7 @@
 <Project>
  <PropertyGroup>
    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-   <LangVersion>preview</LangVersion>
+   <EnableNETAnalyzers>true</EnableNETAnalyzers>
+   <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
  </PropertyGroup>
 </Project>

@@ -1,8 +1,10 @@
-This product includes software developed by Marx Yu (https://github.com/marx-yu). See also the file ORIGINAL_WORK_LICENSE.txt.
 The purpose of this NOTICE.txt file is to contain notices that are required by the copyright owner and their license. 
 
-The following parts were significantly (and some classes entirely) inspired by Marx Yu's code:
-- Implementation of [MS-WOPI] and [MS-FSSHTTP]
-- Edit session management
+This product includes software developed by Marx Yu (https://github.com/marx-yu). 
+See also the file ORIGINAL_WORK_LICENSE.txt - located at https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost.Cobalt/ORIGINAL_WORK_LICENSE.txt.
+The following parts were significantly inspired by Marx Yu's code:
+- WopiHost.Cobalt
+  - Implementation of [MS-WOPI] and [MS-FSSHTTP]
+  - Edit session management
 
-The original project can be found at https://github.com/marx-yu/WopiHost 
+The original project can be found at https://github.com/marx-yu/WopiHost

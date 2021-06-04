@@ -7,10 +7,20 @@ using WopiHost.Core.Models;
 
 namespace WopiHost.Core
 {
+    /// <summary>
+    /// Extension methods for <see cref="IWopiFile"/>.
+    /// </summary>
     public static class FileExtensions
     {
         private static readonly SHA256 Sha = SHA256.Create();
 
+        /// <summary>
+        /// Returns a CheckFileInfo model according to https://wopi.readthedocs.io/projects/wopirest/en/latest/files/CheckFileInfo.html
+        /// </summary>
+        /// <param name="file">File properties of which should be returned.</param>
+        /// <param name="principal">A user object which the CheckFileInfo should be correlated with.</param>
+        /// <param name="capabilities">WOPI host capabilities</param>
+        /// <returns>CheckFileInfo model</returns>
         public static CheckFileInfo GetCheckFileInfo(this IWopiFile file, ClaimsPrincipal principal, HostCapabilities capabilities)
         {
             if (file is null)
