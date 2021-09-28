@@ -43,6 +43,9 @@ namespace WopiHost.Core.Controllers
         /// </summary>
         private static IDictionary<string, LockInfo> _lockStorage;
 
+        /// <summary>
+        /// A string specifying the requested operation from the WOPI server
+        /// </summary>
         private string WopiOverrideHeader => HttpContext.Request.Headers[WopiHeaders.WOPI_OVERRIDE];
 
         /// <summary>
@@ -155,7 +158,9 @@ namespace WopiHost.Core.Controllers
         /// <param name="id">File identifier.</param>
         /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
         [HttpPost("{id}"), WopiOverrideHeader(new[] { "PUT_RELATIVE" })]
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         public async Task<IActionResult> PutRelativeFile(string id)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             throw new NotImplementedException($"{nameof(PutRelativeFile)} is not implemented yet.");
         }

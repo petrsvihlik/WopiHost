@@ -68,7 +68,7 @@ namespace WopiHost
         {
             var providerBuilder = new ContainerBuilder();
             // Add file provider implementation
-            providerBuilder.AddFileProvider(storageProviderAssemblyName);
+            providerBuilder.AddFileProvider(storageProviderAssemblyName); //TODO: why?
             providerBuilder.Populate(services);
             var providerContainer = providerBuilder.Build();
             return providerContainer.Resolve<IWopiSecurityHandler>();

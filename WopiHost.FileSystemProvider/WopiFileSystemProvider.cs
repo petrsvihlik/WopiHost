@@ -17,20 +17,25 @@ namespace WopiHost.FileSystemProvider
 
         private const string _rootPath = @".\";
 
+        private string WopiRootPath => FileSystemProviderOptions.RootPath;
+
+        private string WopiAbsolutePath => Path.IsPathRooted(WopiRootPath) ? WopiRootPath : Path.Combine(HostEnvironment.ContentRootPath, WopiRootPath);
+
         /// <summary>
         /// Reference to the root container.
         /// </summary>
         public IWopiFolder RootContainerPointer => new WopiFolder(_rootPath, EncodeIdentifier(_rootPath));
-
-        protected string WopiRootPath => FileSystemProviderOptions.RootPath;
 
         /// <summary>
         /// Context of the hosting environment.
         /// </summary>
         protected IHostEnvironment HostEnvironment { get; set; }
 
-        protected string WopiAbsolutePath => Path.IsPathRooted(WopiRootPath) ? WopiRootPath : Path.Combine(HostEnvironment.ContentRootPath, WopiRootPath);
-
+        /// <summary>
+        /// Creates a new instance of the <see cref="WopiFileSystemProvider"/> based on the provided hosting environment and configuration.
+        /// </summary>
+        /// <param name="env">Provides information about the hosting environment an application is running in.</param>
+        /// <param name="configuration">Application configuration.</param>
         public WopiFileSystemProvider(IHostEnvironment env, IConfiguration configuration)
         {
             if (configuration is null)

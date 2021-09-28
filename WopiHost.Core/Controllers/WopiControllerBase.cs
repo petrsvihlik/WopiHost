@@ -31,7 +31,7 @@ namespace WopiHost.Core.Controllers
         /// <summary>
         /// WOPI Host base URL
         /// </summary>
-        public string BaseUrl => HttpContext.Request.Scheme + "://" + HttpContext.Request.Host;
+        public Uri BaseUrl => new(HttpContext.Request.Scheme + "://" + HttpContext.Request.Host);
 
         /// <summary>
         /// WOPI authentication token
@@ -59,11 +59,18 @@ namespace WopiHost.Core.Controllers
             WopiHostOptions = wopiHostOptions;
         }
 
-        protected string GetWopiUrl(string controller, string identifier = null, string accessToken = null)
+        /// <summary>
+        /// Creates a simple URL to access a WOPI object of choice.
+        /// </summary>
+        /// <param name="controller">Controller to be called.</param>
+        /// <param name="identifier">Identifier of an object associated to the controller.</param>
+        /// <param name="accessToken">Access token to use for authentication for the given controller.</param>
+        /// <returns></returns>
+        protected Uri GetWopiUrl(string controller, string identifier = null, string accessToken = null)
         {
             identifier = identifier is null ? "" : "/" + Uri.EscapeDataString(identifier);
             accessToken = Uri.EscapeDataString(accessToken);
-            return $"{BaseUrl}/wopi/{controller}{identifier}?access_token={accessToken}";
+            return new Uri($"{BaseUrl}/wopi/{controller}{identifier}?access_token={accessToken}");
         }
     }
 }

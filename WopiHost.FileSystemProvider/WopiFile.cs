@@ -58,7 +58,7 @@ namespace WopiHost.FileSystemProvider
         /// <summary>
         /// Creates an instance of <see cref="WopiFile"/>.
         /// </summary>
-        /// <param name="filePath">Path on the file system.</param>
+        /// <param name="filePath">Path on the file system the file is located in.</param>
         /// <param name="fileIdentifier">Identifier of a file.</param>
         public WopiFile(string filePath, string fileIdentifier)
         {
@@ -78,7 +78,14 @@ namespace WopiHost.FileSystemProvider
             return FileInfo.Open(FileMode.Truncate);
         }
 
+
         /// <inheritdoc/>
-        public string Owner => FileInfo.GetAccessControl().GetOwner(typeof(NTAccount)).ToString();
+        public string Owner
+        {
+            get
+            {
+                return FileInfo.GetAccessControl().GetOwner(typeof(NTAccount)).ToString();
+            }
+        }
     }
 }

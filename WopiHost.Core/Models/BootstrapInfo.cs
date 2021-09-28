@@ -1,4 +1,6 @@
-﻿namespace WopiHost.Core.Models
+﻿using System;
+
+namespace WopiHost.Core.Models
 {
 	/// <summary>
 	/// Implemented in accordance with: https://wopi.readthedocs.io/projects/wopirest/en/latest/bootstrapper/GetRootContainer.html#sample-response
@@ -8,7 +10,7 @@
 		/// <summary>
 		/// A string URI for the WOPI server’s 🔧 Ecosystem endpoint, with a WOPI access token appended. A GET request to this URL will invoke the CheckEcosystem operation.
 		/// </summary>
-		public string EcosystemUrl { get; set; }
+		public Uri EcosystemUrl { get; set; }
 
 		/// <summary>
 		/// A string value uniquely identifying the user making the request. This value should match the UserId value provided in <see cref="CheckFileInfo"/>. 

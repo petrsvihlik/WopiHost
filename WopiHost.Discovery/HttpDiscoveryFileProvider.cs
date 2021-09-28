@@ -11,7 +11,6 @@ namespace WopiHost.Discovery
     public class HttpDiscoveryFileProvider : IDiscoveryFileProvider
     {
         private readonly HttpClient _httpClient;
-        private XElement _discoveryXml;
 
         /// <summary>
         /// Creates an instance of a discovery file provider that loads the discovery file from a WOPI client over HTTP.
@@ -25,19 +24,15 @@ namespace WopiHost.Discovery
         /// <inheritdoc />
         public async Task<XElement> GetDiscoveryXmlAsync()
         {
-            if (_discoveryXml is null)
+            try
             {
-                try
-                {
-                    var stream = await _httpClient.GetStreamAsync(new Uri("/hosting/discovery", UriKind.Relative));
-                    _discoveryXml = XElement.Load(stream);
-                }
-                catch (HttpRequestException e)
-                {
-                    throw new DiscoveryException($"There was a problem retrieving the discovery file. Please check availability of the WOPI Client at '{_httpClient.BaseAddress}'.", e);
-                }
+                var stream = await _httpClient.GetStreamAsync(new Uri("/hosting/discovery", UriKind.Relative));
+                return XElement.Load(stream);
             }
-            return _discoveryXml;
+            catch (HttpRequestException e)
+            {
+                throw new DiscoveryException($"There was a problem retrieving the discovery file. Please check availability of the WOPI Client at '{_httpClient.BaseAddress}'.", e);
+            }
         }
     }
 }
