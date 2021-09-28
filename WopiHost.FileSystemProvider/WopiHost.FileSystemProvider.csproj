@@ -21,8 +21,8 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <None Include="..\LICENSE.txt" Pack="true" PackagePath=""/>
-    <None Include="..\img\logo.png" Pack="true" PackagePath=""/>
+    <None Include="..\LICENSE.txt" Pack="true" PackagePath="" />
+    <None Include="..\img\logo.png" Pack="true" PackagePath="" />
   </ItemGroup>
   
   <PropertyGroup>
@@ -35,6 +35,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="5.0.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+    <PackageReference Include="Mono.Unix" Version="7.1.0-final.1.21458.1" />
   </ItemGroup>
 
   <ItemGroup>
