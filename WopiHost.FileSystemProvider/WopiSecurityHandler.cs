@@ -107,7 +107,6 @@ namespace WopiHost.FileSystemProvider
         /// <inheritdoc/>
         public bool IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation)
         {
-
             //TODO: logic
             return true;
         }

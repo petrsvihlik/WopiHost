@@ -12,7 +12,6 @@ namespace WopiHost.Core.Results
         /// </summary>
         public PreconditionFailedResult() : base(412)
         {
-
         }
     }
 }

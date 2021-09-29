@@ -170,7 +170,6 @@ namespace WopiHost.Url
         /// </summary>
         public WopiUrlSettings()
         {
-
         }
 
         /// <summary>

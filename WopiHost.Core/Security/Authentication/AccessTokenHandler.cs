@@ -30,7 +30,6 @@ namespace WopiHost.Core.Security.Authentication
                     //TODO: Implement properly: http://wopi.readthedocs.io/projects/wopirest/en/latest/bootstrapper/Bootstrap.html
                     //Should be removed or replaced with bearer token check
                     token = Options.SecurityHandler.WriteToken(Options.SecurityHandler.GenerateAccessToken("Anonymous", Convert.ToBase64String(Encoding.UTF8.GetBytes(".\\"))));
-
                 }
 
                 if (!string.IsNullOrEmpty(token))

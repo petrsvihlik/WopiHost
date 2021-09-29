@@ -25,7 +25,6 @@ namespace WopiHost.Core.Controllers
         public WopiBootstrapperController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions)
             : base(storageProvider, securityHandler, wopiHostOptions)
         {
-
         }
 
         /// <summary>
@@ -98,7 +97,6 @@ namespace WopiHost.Core.Controllers
             }
         }
 
-
         private string GetIdFromUrl(string resourceUrl)
         {
             var resourceId = resourceUrl[(resourceUrl.LastIndexOf("/", StringComparison.Ordinal) + 1)..];
@@ -110,7 +108,6 @@ namespace WopiHost.Core.Controllers
             resourceId = Uri.UnescapeDataString(resourceId);
             return resourceId;
         }
-
 
         private bool ValidateAuthorizationHeader(StringValues authorizationHeader)
         {

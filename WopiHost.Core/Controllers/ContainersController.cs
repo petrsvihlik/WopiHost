@@ -42,7 +42,6 @@ namespace WopiHost.Core.Controllers
             };
         }
 
-
         /// <summary>
         /// The EnumerateChildren method returns the contents of a container on the WOPI server.
         /// Specification: http://wopi.readthedocs.io/projects/wopirest/en/latest/containers/EnumerateChildren.html?highlight=EnumerateChildren

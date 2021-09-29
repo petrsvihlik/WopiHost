@@ -15,12 +15,11 @@ namespace WopiHost
             builder.RegisterAssemblyTypes(assembly).AsImplementedInterfaces();
         }
 
-
         public static void AddCobalt(this ContainerBuilder builder)
         {
             // Load Cobalt            
             var cobaltAssembly = AssemblyLoadContext.Default.LoadFromAssemblyPath($"{AppContext.BaseDirectory}\\WopiHost.Cobalt.dll");
-			builder.RegisterAssemblyTypes(cobaltAssembly).AsImplementedInterfaces();
+            builder.RegisterAssemblyTypes(cobaltAssembly).AsImplementedInterfaces();
         }
     }
 }
