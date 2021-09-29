@@ -40,7 +40,7 @@ namespace WopiHost.Url
 		/// <param name="action">Action used to identify a correct URL template.</param>
 		/// <param name="urlSettings">Additional URL settings (if not specified, defaults passed to the class constructor will be used).</param>
 		/// <returns></returns>
-		public async Task<string> GetFileUrlAsync(string extension, string wopiFileUrl, WopiActionEnum action, WopiUrlSettings urlSettings = null)
+		public async Task<string> GetFileUrlAsync(string extension, Uri wopiFileUrl, WopiActionEnum action, WopiUrlSettings urlSettings = null)
 		{
 			var combinedUrlSettings = new WopiUrlSettings(urlSettings.Merge(UrlSettings));
 			var template = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
@@ -51,7 +51,7 @@ namespace WopiHost.Url
 				url = url.TrimEnd('&');
 
 				// Append mandatory parameters
-				url += "&WOPISrc=" + Uri.EscapeDataString(wopiFileUrl);
+				url += "&WOPISrc=" + Uri.EscapeDataString(wopiFileUrl.ToString());
 
 				return url;
 			}

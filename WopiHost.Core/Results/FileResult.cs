@@ -80,7 +80,7 @@ namespace WopiHost.Core.Results
             }
             else if (Content is not null)
             {
-                await targetStream.WriteAsync(Content, 0, Content.Length);
+                await targetStream.WriteAsync(Content.AsMemory(0, Content.Length));
             }
             else
             {

@@ -35,7 +35,7 @@ namespace WopiHost.Core.Controllers
             SupportsExtendedLockLength = true,
             SupportsFolders = true,//?
             SupportsCoauth = true,//?
-            SupportsUpdate = nameof(PutFile) is not null //&& PutRelativeFile - usercannotwriterelative
+            SupportsUpdate = true //TODO: PutRelativeFile - usercannotwriterelative
         };
 
         /// <summary>
@@ -142,7 +142,7 @@ namespace WopiHost.Core.Controllers
                 var newContent = await HttpContext.Request.Body.ReadBytesAsync();
                 await using (var stream = file.GetWriteStream())
                 {
-                    await stream.WriteAsync(newContent, 0, newContent.Length);
+                    await stream.WriteAsync(newContent.AsMemory(0, newContent.Length));
                 }
 
                 return new OkResult();
@@ -229,17 +229,7 @@ namespace WopiHost.Core.Controllers
                             // Lock / put
                             if (lockAcquired)
                             {
-                                if (existingLock.Lock == newLock)
-                                {
-                                    // File is currently locked and the lock ids match, refresh lock
-                                    existingLock.DateCreated = DateTime.UtcNow;
-                                    return new OkResult();
-                                }
-                                else
-                                {
-                                    // There is a valid existing lock on the file
-                                    return ReturnLockMismatch(Response, existingLock.Lock);
-                                }
+                                return LockOrRefresh(newLock, existingLock);
                             }
                             else
                             {
@@ -250,7 +240,7 @@ namespace WopiHost.Core.Controllers
                         }
                         else
                         {
-                            // Unlock and relock (http://wopi.readthedocs.io/projects/wopirest/en/latest/files/UnlockAndRelock.html)
+                            // Unlock and re-lock (http://wopi.readthedocs.io/projects/wopirest/en/latest/files/UnlockAndRelock.html)
                             if (lockAcquired)
                             {
                                 if (existingLock.Lock == oldLock)
@@ -296,52 +286,57 @@ namespace WopiHost.Core.Controllers
                     case "REFRESH_LOCK":
                         if (lockAcquired)
                         {
-                            if (existingLock.Lock == newLock)
-                            {
-                                // Extend the lock timeout
-                                existingLock.DateCreated = DateTime.UtcNow;
-                                return new OkResult();
-                            }
-                            else
-                            {
-                                // The existing lock doesn't match the requested one. Return a lock mismatch error along with the current lock
-                                return ReturnLockMismatch(Response, existingLock.Lock);
-                            }
+                            return LockOrRefresh(newLock, existingLock);
                         }
                         else
                         {
-                            // The requested lock does not exist.  That's also a lock mismatch error.
+                            // The requested lock does not exist. That's also a lock mismatch error.
                             return ReturnLockMismatch(Response, reason: "File not locked");
                         }
                 }
             }
 
             return new OkResult();
-        }
 
-        private bool TryGetLock(string fileId, out LockInfo lockInfo)
-        {
-            if (_lockStorage.TryGetValue(fileId, out lockInfo))
+            IActionResult LockOrRefresh(string newLock, LockInfo existingLock)
             {
-                if (lockInfo.Expired)
+                if (existingLock.Lock == newLock)
                 {
-                    _lockStorage.Remove(fileId);
-                    return false;
+                    // File is currently locked and the lock ids match, refresh lock (extend the lock timeout)
+                    existingLock.DateCreated = DateTime.UtcNow;
+                    return new OkResult();
                 }
-                return true;
+                else
+                {
+                    // The existing lock doesn't match the requested one (someone else might have locked the file). Return a lock mismatch error along with the current lock
+                    return ReturnLockMismatch(Response, existingLock.Lock);
+                }
             }
 
-            return false;
-        }
-
-        private StatusCodeResult ReturnLockMismatch(HttpResponse response, string existingLock = null, string reason = null)
-        {
-            response.Headers[WopiHeaders.LOCK] = existingLock ?? string.Empty;
-            if (!string.IsNullOrEmpty(reason))
+            StatusCodeResult ReturnLockMismatch(HttpResponse response, string existingLock = null, string reason = null)
             {
-                response.Headers[WopiHeaders.LOCK_FAILURE_REASON] = reason;
+                response.Headers[WopiHeaders.LOCK] = existingLock ?? string.Empty;
+                if (!string.IsNullOrEmpty(reason))
+                {
+                    response.Headers[WopiHeaders.LOCK_FAILURE_REASON] = reason;
+                }
+                return new ConflictResult();
             }
-            return new ConflictResult();
+
+            bool TryGetLock(string fileId, out LockInfo lockInfo)
+            {
+                if (_lockStorage.TryGetValue(fileId, out lockInfo))
+                {
+                    if (lockInfo.Expired)
+                    {
+                        _lockStorage.Remove(fileId);
+                        return false;
+                    }
+                    return true;
+                }
+
+                return false;
+            }
         }
 
         #endregion

@@ -27,7 +27,7 @@ namespace WopiHost.Url.Tests
 			var urlGenerator = new WopiUrlBuilder(_discoverer);
 
 			// Act
-			var result = await urlGenerator.GetFileUrlAsync(extension, wopiFileUrl, action);
+			var result = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiFileUrl), action);
 
 			// Assert
 			Assert.Equal(expectedValue, result);
@@ -43,7 +43,7 @@ namespace WopiHost.Url.Tests
 			var urlGenerator = new WopiUrlBuilder(_discoverer, settings);
 
 			// Act
-			var result = await urlGenerator.GetFileUrlAsync(extension, wopiFileUrl, action);
+			var result = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiFileUrl), action);
 
 			// Assert
 			Assert.Equal(expectedValue, result);
@@ -58,7 +58,7 @@ namespace WopiHost.Url.Tests
 			var urlGenerator = new WopiUrlBuilder(_discoverer);
 
 			// Act
-			var result = await urlGenerator.GetFileUrlAsync(extension, wopiFileUrl, action);
+			var result = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiFileUrl), action);
 
 			// Assert
 			Assert.Equal(expectedValue, result);

@@ -70,7 +70,7 @@ namespace WopiHost.Core.Controllers
         {
             identifier = identifier is null ? "" : "/" + Uri.EscapeDataString(identifier);
             accessToken = Uri.EscapeDataString(accessToken);
-            return new Uri($"{BaseUrl}/wopi/{controller}{identifier}?access_token={accessToken}");
+            return new Uri(BaseUrl, $"/wopi/{controller}{identifier}?access_token={accessToken}");
         }
     }
 }
