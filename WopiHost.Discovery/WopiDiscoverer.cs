@@ -22,7 +22,7 @@ namespace WopiHost.Discovery
         private const string AttrAppFavicon = "favIconUrl";
         private const string AttrValCobalt = "cobalt";
 
-        private IEnumerable<XElement> _apps;
+        private AsyncExpiringLazy<IEnumerable<XElement>> _apps;
 
         private IDiscoveryFileProvider DiscoveryFileProvider { get; }
 
@@ -37,19 +37,24 @@ namespace WopiHost.Discovery
         {
             DiscoveryFileProvider = discoveryFileProvider;
             NetZone = netZone;
+
+            _apps = new AsyncExpiringLazy<IEnumerable<XElement>>(async metadata =>
+            {
+                return new TemporaryValue<IEnumerable<XElement>>
+                {
+                    Result = (await DiscoveryFileProvider.GetDiscoveryXmlAsync())
+                    .Elements(ElementNetZone)
+                    .Where(ValidateNetZone)
+                    .Elements(ElementApp),
+
+                    ValidUntil = DateTimeOffset.UtcNow.AddSeconds(20)
+                };
+            });
         }
 
         private async Task<IEnumerable<XElement>> GetAppsAsync()
         {
-            if (_apps is null)
-            {
-                _apps = (await DiscoveryFileProvider.GetDiscoveryXmlAsync())
-                    .Elements(ElementNetZone)
-                    .Where(ValidateNetZone)
-                    .Elements(ElementApp);
-            }
-
-            return _apps;
+            return await _apps.Value();
         }
 
         private bool ValidateNetZone(XElement e)

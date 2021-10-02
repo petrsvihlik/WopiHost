@@ -1,4 +1,6 @@
-﻿namespace WopiHost.Core.Models
+﻿using System.Collections.Generic;
+
+namespace WopiHost.Core.Models
 {
     /// <summary>
     /// Model according to <see href="https://wopi.readthedocs.io/projects/wopirest/en/latest/files/CheckFileInfo.html#wopi-host-capabilities-properties">WOPI host capabilities properties</see>
@@ -144,7 +146,7 @@
         /// </list>
         /// </para>
         /// </summary>
-        public string[] SupportedShareUrlTypes { get; set; }
+        public IEnumerable<string> SupportedShareUrlTypes { get; set; }
 
         /// <summary>
         /// A Boolean value that indicates that the host supports scenarios where users can operate on files in limited ways via restricted URLs.
