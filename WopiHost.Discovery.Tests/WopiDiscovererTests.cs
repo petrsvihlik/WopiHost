@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using System.Xml.Linq;
 using WopiHost.Discovery.Enumerations;
 using Xunit;
 
@@ -11,6 +13,7 @@ namespace WopiHost.Discovery.Tests
         private const string XmlOos2016 = "OOS2016_discovery.xml";
         private const string XmlOwa2013 = "OWA2013_discovery.xml";
         private const string XmlOo2019 = "OO2019_discovery.xml";
+        private const string XmlInvalid = "INVALID_discovery.xml";
 
         public WopiDiscovererTests()
         {
@@ -36,6 +39,19 @@ namespace WopiHost.Discovery.Tests
 
             // Assert
             Assert.Equal(expectedValue, result);
+        }
+
+        [Fact]
+        public async void InvalidNetZone()
+        {
+            // Arrange
+            InitDiscoverer(XmlInvalid, NetZoneEnum.InternalHttp);
+
+            // Act
+            var result = await _wopiDiscoverer.GetAppsAsync();
+
+            // Assert
+            Assert.Empty(result.Elements());
         }
 
         [Theory]

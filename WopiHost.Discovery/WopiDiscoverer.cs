@@ -39,7 +39,7 @@ namespace WopiHost.Discovery
             DiscoveryOptions = discoveryOptions;
         }
 
-        private async Task<IEnumerable<XElement>> GetAppsAsync()
+        internal async Task<IEnumerable<XElement>> GetAppsAsync()
         {
             if (_apps is null)
             {
