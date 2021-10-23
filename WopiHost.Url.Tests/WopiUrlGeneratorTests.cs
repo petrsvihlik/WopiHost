@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using FakeItEasy;
 using WopiHost.Discovery;
@@ -67,29 +68,59 @@ namespace WopiHost.Url.Tests
         public void SettingsArePresent()
         {
             // Arrange
-            var settings = new WopiUrlSettings()
-            {
-                BusinessUser = 1,
-                UiLlcc = new CultureInfo("en-US"),
-                DcLlcc = new CultureInfo("es-ES"),
-                Embedded = true,
-                DisableAsync = true,
-                DisableBroadcast = true,
-                Fullscreen = true,
-                Recording = true,
-                ThemeId = 1,
-                DisableChat = 1,
-                Perfstats = 1,
-                HostSessionId = Guid.NewGuid().ToString(),
-                SessionContext = Guid.NewGuid().ToString(),
-                WopiSource = "c:\\doc.docx",
-                ValidatorTestCategory = "All"
-            };
+            var businessUser = new Random(DateTime.Now.Millisecond).Next();
+            var uiLlcc = new CultureInfo("en-US");
+            var dcLlcc = new CultureInfo("es-ES");
+            var embedded = true;
+            var disableAsync = true;
+            var disableBroadcast = true;
+            var fullscreen = true;
+            var recording = true;
+            var themeId = new Random(DateTime.Now.Millisecond).Next();
+            var disableChat = new Random(DateTime.Now.Millisecond).Next();
+            var perfstats = new Random(DateTime.Now.Millisecond).Next();
+            var hostSessionId = Guid.NewGuid().ToString();
+            var sessionContext = Guid.NewGuid().ToString();
+            var wopiSource = "c:\\doc.docx";
+            var validatorTestCategory = "All";
 
             // Act
+            var settings = new WopiUrlSettings()
+            {
+                BusinessUser = businessUser,
+                UiLlcc = uiLlcc,
+                DcLlcc = dcLlcc,
+                Embedded = embedded,
+                DisableAsync = disableAsync,
+                DisableBroadcast = disableBroadcast,
+                Fullscreen = fullscreen,
+                Recording = recording,
+                ThemeId = themeId,
+                DisableChat = disableChat,
+                Perfstats = perfstats,
+                HostSessionId = hostSessionId,
+                SessionContext = sessionContext,
+                WopiSource = wopiSource,
+                ValidatorTestCategory = validatorTestCategory
+            };
 
             // Assert
             Assert.Equal(15, settings.Count);
+            Assert.Equal(businessUser, settings.BusinessUser);
+            Assert.Equal(uiLlcc, settings.UiLlcc);
+            Assert.Equal(dcLlcc, settings.DcLlcc);
+            Assert.Equal(embedded, settings.Embedded);
+            Assert.Equal(disableAsync, settings.DisableAsync);
+            Assert.Equal(disableBroadcast, settings.DisableBroadcast);
+            Assert.Equal(fullscreen, settings.Fullscreen);
+            Assert.Equal(recording, settings.Recording);
+            Assert.Equal(themeId, settings.ThemeId);
+            Assert.Equal(disableChat, settings.DisableChat);
+            Assert.Equal(perfstats, settings.Perfstats);
+            Assert.Equal(hostSessionId, settings.HostSessionId);
+            Assert.Equal(sessionContext, settings.SessionContext);
+            Assert.Equal(wopiSource, settings.WopiSource);
+            Assert.Equal(validatorTestCategory, settings.ValidatorTestCategory);
         }
     }
 }
