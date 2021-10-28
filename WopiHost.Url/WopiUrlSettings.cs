@@ -158,7 +158,15 @@ namespace WopiHost.Url
         /// OfficeOnline: activates all tests necessary for Office Online integration.
         /// OfficeNativeClient: activates all tests necessary for Office for iOS integration.
         /// </summary>
-        public string ValidatorTestCategory { get; set; }
+        public ValidatorTestCategoryEnum ValidatorTestCategory
+        {
+            get
+            {
+                Enum.TryParse(this["VALIDATOR_TEST_CATEGORY"], out ValidatorTestCategoryEnum validator);
+                return validator;
+            }
+            set => this["VALIDATOR_TEST_CATEGORY"] = value.ToString();
+        }
 
         /// <summary>
         /// Initializes an empty settings object.

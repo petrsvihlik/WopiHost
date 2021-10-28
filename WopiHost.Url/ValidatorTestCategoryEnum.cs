@@ -1,9 +1,3 @@
-#region Header
-// ValidatorTestCategoryEnum.cs
-// Developed by Taygun Savaş
-// taygun.savas@triflesgames.com
-#endregion
-
 namespace WopiHost.Url
 {
     /// <summary>
