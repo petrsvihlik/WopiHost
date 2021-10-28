@@ -19,5 +19,4 @@ namespace WopiHost.Url
         /// </summary>
         OfficeNativeClient
     }
-
 }
