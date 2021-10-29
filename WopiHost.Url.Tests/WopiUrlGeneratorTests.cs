@@ -82,7 +82,7 @@ namespace WopiHost.Url.Tests
             var hostSessionId = Guid.NewGuid().ToString();
             var sessionContext = Guid.NewGuid().ToString();
             var wopiSource = "c:\\doc.docx";
-            var validatorTestCategory = "All";
+            var validatorTestCategory = ValidatorTestCategoryEnum.All;
 
             // Act
             var settings = new WopiUrlSettings()

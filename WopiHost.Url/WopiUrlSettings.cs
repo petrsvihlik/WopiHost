@@ -152,17 +152,20 @@ namespace WopiHost.Url
         }
 
         /// <summary>
-        /// TODO: convert to enum
         /// This value is used to run the WOPI Validation application in different modes.
         /// This value can be set to All, OfficeOnline or OfficeNativeClient to activate tests specific to Office Online and Office for iOS.If omitted, the default value is All.
         /// All: activates all WOPI Validation application tests.
         /// OfficeOnline: activates all tests necessary for Office Online integration.
         /// OfficeNativeClient: activates all tests necessary for Office for iOS integration.
         /// </summary>
-        public string ValidatorTestCategory
+        public ValidatorTestCategoryEnum ValidatorTestCategory
         {
-            get => this["VALIDATOR_TEST_CATEGORY"];
-            set => this["VALIDATOR_TEST_CATEGORY"] = value;
+            get
+            {
+                Enum.TryParse(this["VALIDATOR_TEST_CATEGORY"], out ValidatorTestCategoryEnum validator);
+                return validator;
+            }
+            set => this["VALIDATOR_TEST_CATEGORY"] = value.ToString();
         }
 
         /// <summary>
