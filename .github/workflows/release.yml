@@ -21,13 +21,15 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore -s ${MYGET_FEED} -s https://api.nuget.org/v3/index.json
       env:
-        MYGET_FEED: ${{ secrets.MYGET_FEED }}   
+        MYGET_FEED: ${{ secrets.MYGET_FEED }}
     - name: Build
       run: dotnet build --no-restore --configuration Release /p:ContinuousIntegrationBuild=true /p:Version="${{ steps.get_version.outputs.version-without-v }}"
     - name: Test
       run: dotnet test --no-build --verbosity normal --configuration Release /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
     - name: Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v2
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
     - name: Pack
       run: dotnet pack --no-build --include-symbols --verbosity normal --configuration Release --output ./artifacts /p:PackageVersion="${{ steps.get_version.outputs.version-without-v }}"
     - name: Upload artifacts

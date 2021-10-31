@@ -11,7 +11,7 @@
         public bool UseCobalt { get; set; }
 
         /// <summary>
-        /// Name of the assembly containing the implementation of the <see cref="WopiHost.Abstractions.IWopiStorageProvider"/>.
+        /// Name of the assembly containing the implementation of the <see cref="Abstractions.IWopiStorageProvider"/>.
         /// </summary>
         public string StorageProviderAssemblyName { get; set; }
     }

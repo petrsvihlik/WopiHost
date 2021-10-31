@@ -5,7 +5,6 @@
     /// </summary>
     public class HostCapabilities
     {
-
         /// <summary>
         /// A Boolean value that indicates that the WOPI server supports multiple users making changes to this file simultaneously.
         /// </summary>
@@ -189,6 +188,5 @@
         /// A Boolean value that indicates that the host supports the <see href="https://wopi.readthedocs.io/projects/wopirest/en/latest/files/PutUserInfo.html#putuserinfo">PutUserInfo</see> operation.
         /// </summary>
         public bool SupportsUserInfo { get; set; }
-
     }
 }

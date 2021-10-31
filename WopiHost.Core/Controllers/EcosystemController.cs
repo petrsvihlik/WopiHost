@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Net.Mime;
 using WopiHost.Abstractions;
 using WopiHost.Core.Models;
 
@@ -29,8 +30,8 @@ namespace WopiHost.Core.Controllers
 		/// </summary>
 		/// <returns></returns>
 		[HttpGet("root_container_pointer")]
-		[Produces("application/json")]
-		public RootContainerInfo GetRootContainer()
+		[Produces(MediaTypeNames.Application.Json)]
+		public RootContainerInfo GetRootContainer() //TODO: fix the path
 		{
 			var root = StorageProvider.GetWopiContainer(@".\");
 			var rc = new RootContainerInfo

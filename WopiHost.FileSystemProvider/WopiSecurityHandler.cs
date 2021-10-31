@@ -4,6 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using WopiHost.Abstractions;
 
@@ -12,6 +13,7 @@ namespace WopiHost.FileSystemProvider
     /// <inheritdoc/>
     public class WopiSecurityHandler : IWopiSecurityHandler
     {
+        private readonly ILogger _logger;
         private readonly JwtSecurityTokenHandler _tokenHandler = new();
         private SymmetricSecurityKey _key = null;
 
@@ -51,6 +53,15 @@ namespace WopiHost.FileSystemProvider
             }
         };
 
+        /// <summary>
+        /// Creates a new instance of the <see cref="WopiSecurityHandler"/>.
+        /// </summary>
+        /// <param name="loggerFactory">An instance of a type used to configure the logging system and create instances of Microsoft.Extensions.Logging.ILogger from the registered Microsoft.Extensions.Logging.ILoggerProviders.</param>
+        public WopiSecurityHandler(ILoggerFactory loggerFactory)
+        {
+            _logger = loggerFactory.CreateLogger<WopiSecurityHandler>();
+        }
+
         /// <inheritdoc/>
         public SecurityToken GenerateAccessToken(string userId, string resourceId)
         {
@@ -84,11 +95,11 @@ namespace WopiHost.FileSystemProvider
             try
             {
                 // Try to validate the token
-                var principal = _tokenHandler.ValidateToken(tokenString, tokenValidation, out var token);
-                return principal;
+                return _tokenHandler.ValidateToken(tokenString, tokenValidation, out var token);
             }
             catch (Exception ex)
             {
+                _logger.LogError(new EventId(ex.HResult), ex, ex.Message);
                 return null;
             }
         }
@@ -96,7 +107,6 @@ namespace WopiHost.FileSystemProvider
         /// <inheritdoc/>
         public bool IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation)
         {
-
             //TODO: logic
             return true;
         }

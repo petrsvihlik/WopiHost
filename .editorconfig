@@ -5,3 +5,13 @@ dotnet_diagnostic.CA2007.severity = none
 
 # CA1707: Identifiers should not contain underscores
 dotnet_diagnostic.CA1707.severity = none
+
+# CA1822: Mark members as static
+dotnet_diagnostic.CA1822.severity = silent
+
+
+# CA1056: Uri properties should not be strings
+dotnet_diagnostic.CA1056.severity = suggestion
+
+# CA1819: Properties should not return arrays
+dotnet_diagnostic.CA1819.severity = suggestion

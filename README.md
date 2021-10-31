@@ -18,7 +18,7 @@
 
 Introduction
 ==========
-This project is a sample implementation of a [WOPI host](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx). Basically, it allows developers to integrate custom datasources with Office Online Server (formerly Office Web Apps) or any other WOPI client by implementing a bunch of interfaces.
+This project is a sample implementation of a WOPI host. Basically, it allows developers to integrate custom datasources with Office Online Server (formerly Office Web Apps) or any other WOPI client by implementing a bunch of interfaces.
 
 Features / improvements compared to existing samples on the web
 -----------------------
@@ -61,7 +61,7 @@ Configuration
 | Parameter | Sample value | Description |
 | :--- | :--- | :--- |
 |`Wopi:StorageProviderAssemblyName`| [`"WopiHost.FileSystemProvider"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost.FileSystemProvider) | Name of assembly containing implementation of `WopiHost.Abstractions` interfaces |
-|`Wopi:StorageProviderOptions:RootPath` | [`".\\wopi-docs"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost/wwwroot/wopi-docs) | Provider-specific setting used by `WopiHost.FileSystemProvider` (which is an implementation of `IWopiStorageProvider` working with System.IO) |
+|`Wopi:StorageProvider:RootPath` | [`".\\wopi-docs"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost/wwwroot/wopi-docs) | Provider-specific setting used by `WopiHost.FileSystemProvider` (which is an implementation of `IWopiStorageProvider` working with System.IO) |
 |`Wopi:UseCobalt`| `true`| Whether or not to use [MS-FSSHTTP](https://docs.microsoft.com/en-us/openspecs/sharepoint_protocols/ms-fsshttp/) for file synchronization. More details at [Cobalt](#cobalt)|
 
 ### WopiHost.Web
@@ -71,7 +71,8 @@ Configuration
 | :--- | :--- | :--- |
 | `Wopi:HostUrl` | `"http://wopihost:5000"` | URL pointing to a WopiHost instance (above). It's used by the URL generator. |
 | `Wopi:ClientUrl` | ` "http://owaserver"` | Base URL of your WOPI client - typically, [Office Online Server](#compatible-wopi-clients) - used by the discovery module to load WOPI client URL templates |
-|`Wopi:StorageProviderOptions:RootPath` | [`"..\\..\\WopiHost\\wwwroot\\wopi-docs"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost/wwwroot/wopi-docs) | Provider-specific setting used by `WopiHost.FileSystemProvider` (which is an implementation of `IWopiStorageProvider` working with System.IO) |
+| `Wopi:StorageProvider:RootPath` | [`"..\\..\\WopiHost\\wwwroot\\wopi-docs"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost/wwwroot/wopi-docs) | Provider-specific setting used by `WopiHost.FileSystemProvider` (which is an implementation of `IWopiStorageProvider` working with System.IO) |
+| `Wopi:Discovery:NetZone` | `"InternalHttp"` | Determines the target zone configuration of your [OOS Deployment](https://docs.microsoft.com/en-us/officeonlineserver/deploy-office-online-server). Values correspond with the [`NetZoneEnum`](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost.Discovery/NetZoneEnum.cs). |
 
 
 Additionally, you can use the [secret storage](https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-2.2&tabs=windows) to configure both of the apps.
@@ -91,19 +92,19 @@ Compatible WOPI Clients
 -------
 Running the application only makes sense with a WOPI client as its counterpart. WopiHost is compatible with the following clients:
 
- - Office Online Server 2016 ([deployment guidelines](https://technet.microsoft.com/en-us/library/jj219455(v=office.16).aspx))
+ - Office Online Server 2016 ([deployment guidelines](https://docs.microsoft.com/en-us/officeonlineserver/deploy-office-online-server))
  - Office Online https://wopi.readthedocs.io/en/latest/
 
-Note that WopiHost will always be compatible only with the latest version of OOS because Microsoft also [supports only the latest version](https://blogs.office.com/2016/11/18/office-online-server-november-release/).
+Note that WopiHost will always be compatible only with the latest version of OOS because Microsoft also [supports only the latest version](https://docs.microsoft.com/en-us/officeonlineserver/office-online-server-release-schedule).
 
-The deployment of OOS/OWA requires the server to be part of a domain. If your server is not part of any domain (e.g. you're running it in a VM sandbox) it can be overcame e.g. by installing [DC role](http://social.technet.microsoft.com/wiki/contents/articles/12370.windows-server-2012-set-up-your-first-domain-controller-step-by-step.aspx). After it's deployed you can safely remove the role and the OWA server will remain functional.
-To test your OWA server [follow the instructions here](https://blogs.technet.microsoft.com/office_web_apps_server_2013_support_blog/2013/12/27/how-to-test-viewing-office-documents-using-the-office-web-apps-2013-viewer/).
+The deployment of OOS/OWA requires the server to be part of a domain. If your server is not part of any domain (e.g. you're running it in a VM sandbox) it can be overcome by promoting your machine to a [Domain Controller](https://social.technet.microsoft.com/wiki/contents/articles/12370.windows-server-2012-set-up-your-first-domain-controller-step-by-step.aspx).
+To test your OWA server [follow the instructions here](https://docs.microsoft.com/en-us/office/troubleshoot/administration/test-viewing-documents-by-using-office-online-server-viewer).
 To remove the OWA instance use [`Remove-OfficeWebAppsMachine`](http://sharepointjack.com/2014/fun-configuring-office-web-apps-2013-owa/).
 
 Cobalt
 ------
 In the past (in Office Web Apps 2013), some HTTP actions required support of MS-FSSHTTP protocol (also known as "cobalt"). This is no longer true with Office Online Server 2016.
-However, if the WOPI client discovers (via [SupportsCobalt](http://wopi.readthedocs.io/projects/wopirest/en/latest/files/CheckFileInfo.html#term-supportscobalt) property) that the WOPI host supports cobalt, it'll take advantage of it as it's more efficient.
+However, if the WOPI client discovers (via [SupportsCobalt](https://docs.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo#supportscobalt) property) that the WOPI host supports cobalt, it'll take advantage of it as it's more efficient.
 
 If you need or want your project to use Cobalt, you'll need to [create a NuGet package called Microsoft.CobaltCore.nupkg](https://github.com/petrsvihlik/WopiHost/wiki/Craft-your-own-Microsoft.CobaltCore-NuGet-package) containing Microsoft.CobaltCore.dll. This DLL is part of Office Web Apps 2013 / Office Online Server 2016 and its license doesn't allow public distribution and therefore it's not part of this repository. Please always make sure your OWA/OOS server and user connecting to it have valid licenses before you start using it.
 
@@ -129,7 +130,7 @@ https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/
 License
 =======
  - [LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt) - License for my part of the project
- - [ORIGINAL_WORK_LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/ORIGINAL_WORK_LICENSE.txt) - License for Marx Yu's part of the project. This project is based on [Marx Yu's project](https://github.com/marx-yu/WopiHost).
+ - [ORIGINAL_WORK_LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost.Cobalt/ORIGINAL_WORK_LICENSE.txt) - License for Marx Yu's part of the project. This project is based on [Marx Yu's project](https://github.com/marx-yu/WopiHost).
  - [NOTICE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/NOTICE.txt) - additional notes to how the licenses are applied
 
 Supporters
@@ -148,19 +149,18 @@ Building WOPI Host
 -----------------------
  - [Official WOPI Documentation](https://wopi.readthedocs.io)
  - [Official WOPI REST API Reference](https://wopi.readthedocs.io/projects/wopirest/en/latest/)
- - [Introducing WOPI by S. D. Oliver](http://blogs.msdn.com/b/officedevdocs/archive/2013/03/20/introducing-wopi.aspx)
  - [Building an Office Web Apps (OWA) WOPI Host by Shawn Cicoria](https://code.msdn.microsoft.com/office/Building-an-Office-Web-f98650d6) + [WOPI Host and url paths](https://www.cicoria.com/office-web-appswopi-host-and-url-paths/)
  - [Office Online integration via WOPI Host by Richard diZerega](https://github.com/OfficeDev/PnP-WOPI) + [video](https://www.youtube.com/watch?v=9lGonu0eoGA)
 
 MS-FSSHTTP (Cobalt)
 -------
- - https://msdn.microsoft.com/en-us/library/dd956775(v=office.12).aspx
+ - https://docs.microsoft.com/en-us/openspecs/sharepoint_protocols/ms-fsshttp/6d078cbe-2651-43a0-b460-685ac3f14c45
  - https://channel9.msdn.com/Events/Open-Specifications-Plugfests/Redmond-Interoperability-Protocols-Plugfest-2015/FSSHTTP-File-Synchronization-over-HTTP
 
 Building WOPI Client
 -------------------------
- - http://www.wictorwilen.se/sharepoint-2013-building-your-own-wopi-client-part-1
- - http://www.wictorwilen.se/sharepoint-2013-building-your-own-wopi-client-part-2
+ - [SharePoint 2013: Building your own WOPI Client, part 1](https://www.wictorwilen.se/blog/sharepoint-2013-building-your-own-wopi-client-part-1/)
+ - [SharePoint 2013: Building your own WOPI Client, part 2](https://www.wictorwilen.se/blog/sharepoint-2013-building-your-own-wopi-client-part-2/)
 
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_large)

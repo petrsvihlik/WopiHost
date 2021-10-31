@@ -45,7 +45,6 @@ namespace WopiHost.Cobalt
 
             var partitionConfigs = new Dictionary<FilePartitionId, CobaltFilePartitionConfig> { { FilePartitionId.Content, content }, { FilePartitionId.WordWacUpdate, wacupdate }, { FilePartitionId.CoauthMetadata, coauth } };
 
-
             var tempCobaltFile = new CobaltFile(disposal, partitionConfigs, new CobaltHostLockingStore(principal), null);
 
             if (file.Exists)
@@ -57,8 +56,6 @@ namespace WopiHost.Cobalt
             }
             return tempCobaltFile;
         }
-
-
 
         public Stream GetFileStream(IWopiFile file, ClaimsPrincipal principal)
         {
@@ -74,7 +71,6 @@ namespace WopiHost.Cobalt
             // Refactoring tip: there are more ways of initializing Atom
             var atomRequest = new AtomFromByteArray(newContent);
             var requestBatch = new RequestBatch();
-
 
             requestBatch.DeserializeInputFromProtocol(atomRequest, out var ctx, out var protocolVersion);
             var cobaltFile = GetCobaltFile(file, principal);

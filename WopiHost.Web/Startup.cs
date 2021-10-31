@@ -34,8 +34,9 @@ namespace WopiHost.Web
 
             services.AddHttpClient<IDiscoveryFileProvider, HttpDiscoveryFileProvider>(client =>
             {
-                client.BaseAddress = new Uri(Configuration[$"{WopiConfigurationSections.WOPI_ROOT}:ClientUrl"]);
+                client.BaseAddress = new Uri(Configuration[$"{WopiConfigurationSections.WOPI_ROOT}:{nameof(WopiOptions.ClientUrl)}"]);
             });
+            services.Configure<DiscoveryOptions>(Configuration.GetSection($"{WopiConfigurationSections.DISCOEVRY_OPTIONS}"));
             services.AddSingleton<IDiscoverer, WopiDiscoverer>();
 
             services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();

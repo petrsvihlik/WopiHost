@@ -21,8 +21,8 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <None Include="..\LICENSE.txt" Pack="true" PackagePath=""/>
-    <None Include="..\img\logo.png" Pack="true" PackagePath=""/>
+    <None Include="..\LICENSE.txt" Pack="true" PackagePath="" />
+    <None Include="..\img\logo.png" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -37,9 +37,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="5.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="5.0.11" />
     <PackageReference Include="System.Security.Claims" Version="4.3.0" />
-    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="6.9.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="6.13.1" />
   </ItemGroup>
 
 </Project>

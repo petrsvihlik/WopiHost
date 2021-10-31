@@ -52,6 +52,5 @@ namespace WopiHost.Abstractions
 		/// A Boolean value that indicates that the WOPI client must not allow the user to edit the file. This does not mean that the user doesn’t have rights to edit the file. Hosts should use the UserCanWrite property for that purpose.
 		/// </summary>
 		WebEditingDisabled = 128
-
 	}
 }

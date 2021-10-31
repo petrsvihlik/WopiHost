@@ -18,13 +18,15 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore -s ${MYGET_FEED} -s https://api.nuget.org/v3/index.json
       env:
-        MYGET_FEED: ${{ secrets.MYGET_FEED }}        
+        MYGET_FEED: ${{ secrets.MYGET_FEED }}
     - name: Build
       run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
     - name: Test
       run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
     - name: Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v2
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
     #- name: Run FOSSA scan
     #  uses: fossa-contrib/fossa-action@v1
     #  with:

@@ -11,6 +11,7 @@ using WopiHost.Web.Models;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Web.Controllers
 {
@@ -21,16 +22,18 @@ namespace WopiHost.Web.Controllers
         private IOptionsSnapshot<WopiOptions> WopiOptions { get; }
         private IWopiStorageProvider StorageProvider { get; }
         private IDiscoverer Discoverer { get; }
+        private ILoggerFactory LoggerFactory { get; }
 
 
         //TODO: remove test culture value and load it from configuration SECTION
         public WopiUrlBuilder UrlGenerator => _urlGenerator ??= new WopiUrlBuilder(Discoverer, new WopiUrlSettings { UiLlcc = new CultureInfo("en-US") });
 
-        public HomeController(IOptionsSnapshot<WopiOptions> wopiOptions, IWopiStorageProvider storageProvider, IDiscoverer discoverer)
+        public HomeController(IOptionsSnapshot<WopiOptions> wopiOptions, IWopiStorageProvider storageProvider, IDiscoverer discoverer, ILoggerFactory loggerFactory)
         {
             WopiOptions = wopiOptions;
             StorageProvider = storageProvider;
             Discoverer = discoverer;
+            LoggerFactory = loggerFactory;
         }
 
         public async Task<ActionResult> Index()
@@ -65,7 +68,7 @@ namespace WopiHost.Web.Controllers
         public async Task<ActionResult> Detail(string id, string wopiAction)
         {
             var actionEnum = Enum.Parse<WopiActionEnum>(wopiAction);
-            var securityHandler = new WopiSecurityHandler();
+            var securityHandler = new WopiSecurityHandler(LoggerFactory); //TODO: via DI
 
             var file = StorageProvider.GetWopiFile(id);
             var token = securityHandler.GenerateAccessToken("Anonymous", file.Identifier);
@@ -79,7 +82,7 @@ namespace WopiHost.Web.Controllers
 
 
             var extension = file.Extension.TrimStart('.');
-            ViewData["urlsrc"] = await UrlGenerator.GetFileUrlAsync(extension, $"{WopiOptions.Value.HostUrl}/wopi/files/{id}", actionEnum);
+            ViewData["urlsrc"] = await UrlGenerator.GetFileUrlAsync(extension, new Uri(WopiOptions.Value.HostUrl, $"/wopi/files/{id}"), actionEnum); //TODO: add a test for the URL not to contain double slashes between host and path
             ViewData["favicon"] = await Discoverer.GetApplicationFavIconAsync(extension);
             return View();
         }

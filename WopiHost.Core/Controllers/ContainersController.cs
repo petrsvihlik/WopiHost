@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Globalization;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
@@ -31,7 +32,7 @@ namespace WopiHost.Core.Controllers
         /// <param name="id">Container identifier.</param>
         /// <returns></returns>
         [HttpGet("{id}")]
-        [Produces("application/json")]
+        [Produces(MediaTypeNames.Application.Json)]
         public CheckContainerInfo GetCheckContainerInfo(string id)
         {
             var container = StorageProvider.GetWopiContainer(id);
@@ -41,7 +42,6 @@ namespace WopiHost.Core.Controllers
             };
         }
 
-
         /// <summary>
         /// The EnumerateChildren method returns the contents of a container on the WOPI server.
         /// Specification: http://wopi.readthedocs.io/projects/wopirest/en/latest/containers/EnumerateChildren.html?highlight=EnumerateChildren
@@ -50,7 +50,7 @@ namespace WopiHost.Core.Controllers
         /// <param name="id">Container identifier.</param>
         /// <returns></returns>
         [HttpGet("{id}/children")]
-        [Produces("application/json")]
+        [Produces(MediaTypeNames.Application.Json)]
         public Container EnumerateChildren(string id)
         {
             var container = new Container();

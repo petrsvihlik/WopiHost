@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -9,6 +10,9 @@ using WopiHost.Core.Results;
 
 namespace WopiHost.Core.Controllers
 {
+    /// <summary>
+    /// Controller containing the bootstrap operation.
+    /// </summary>
     [Route("wopibootstrapper")]
     public class WopiBootstrapperController : WopiControllerBase
     {
@@ -21,12 +25,15 @@ namespace WopiHost.Core.Controllers
         public WopiBootstrapperController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions)
             : base(storageProvider, securityHandler, wopiHostOptions)
         {
-
         }
 
+        /// <summary>
+        /// Gets information about the root container.
+        /// </summary>
+        /// <returns></returns>
         [HttpPost]
-        [Produces("application/json")]
-        public IActionResult GetRootContainer()
+        [Produces(MediaTypeNames.Application.Json)]
+        public IActionResult GetRootContainer() //TODO: fix the path
         {
             var authorizationHeader = HttpContext.Request.Headers["Authorization"];
             var ecosystemOperation = HttpContext.Request.Headers[WopiHeaders.ECOSYSTEM_OPERATION];
@@ -90,10 +97,9 @@ namespace WopiHost.Core.Controllers
             }
         }
 
-
         private string GetIdFromUrl(string resourceUrl)
         {
-            var resourceId = resourceUrl.Substring(resourceUrl.LastIndexOf("/", StringComparison.Ordinal) + 1);
+            var resourceId = resourceUrl[(resourceUrl.LastIndexOf("/", StringComparison.Ordinal) + 1)..];
             var queryIndex = resourceId.IndexOf("?", StringComparison.Ordinal);
             if (queryIndex > -1)
             {
@@ -102,7 +108,6 @@ namespace WopiHost.Core.Controllers
             resourceId = Uri.UnescapeDataString(resourceId);
             return resourceId;
         }
-
 
         private bool ValidateAuthorizationHeader(StringValues authorizationHeader)
         {
