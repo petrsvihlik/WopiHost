@@ -14,7 +14,8 @@ namespace WopiHost.Discovery
 
         /// <summary>
         /// Determines how often should the discovery file be fetched again.
+        /// The default value is 24 hours.
         /// </summary>
-        public TimeSpan RefreshInterval { get; set; }
+        public TimeSpan RefreshInterval { get; set; } = TimeSpan.FromHours(24);
     }
 }
