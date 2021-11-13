@@ -6,7 +6,7 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/badge/master)](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/overview/master)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_shield)
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/ms-wopi/)
-[![.NET Core](https://img.shields.io/badge/net-5-692079.svg)](https://dotnet.microsoft.com/download/dotnet/5.0)
+[![.NET Core](https://img.shields.io/badge/net-5-692079.svg)](https://dotnet.microsoft.com/download/dotnet/6.0)
 
 | Package | Version | Downloads |
 | ------------- | :-------------: | :-------------: | 
@@ -39,14 +39,15 @@ Usage
 
 Prerequisites
 -------------
- - [.NET 5 SDK](https://dotnet.microsoft.com/download/dotnet/5.0)
- - Recommended: [VS Code](https://code.visualstudio.com/) or [Visual Studio 2019](https://visualstudio.microsoft.com/vs/)
+ - [.NET 6 SDK](https://dotnet.microsoft.com/download/dotnet/6.0)
+ - Recommended: [VS Code](https://code.visualstudio.com/) or [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)
 
 Building the app
 ----------------
-The WopiHost app targets `net5.0` exclusively. This is due to the [announced discontinuation of .NET Framework and .NET Core](https://devblogs.microsoft.com/dotnet/introducing-net-5/) and [replacement of .NET Standard](https://devblogs.microsoft.com/dotnet/the-future-of-net-standard/).
+The WopiHost app targets `net6.0` exclusively.
 
 If you need a version that's targeting an older version of .NET, check out the releases:
+- [.NET 5](https://github.com/petrsvihlik/WopiHost/releases/tag/3.0.0)
 - [.NET Core 2.1 + .NET Framewokr 4.6](https://github.com/petrsvihlik/WopiHost/releases/tag/1.0.0)
 - [.NET Core 3.1 + .NET Standard 2.1](https://github.com/petrsvihlik/WopiHost/releases/tag/2.0.0)
 
