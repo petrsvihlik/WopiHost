@@ -12,7 +12,7 @@ namespace WopiHost.Discovery
     /// <typeparam name="T">Type of the temporary value.</typeparam>
     public class AsyncExpiringLazy<T>
     {
-        private static readonly SemaphoreSlim SyncLock = new SemaphoreSlim(initialCount: 1);
+        private static readonly SemaphoreSlim SyncLock = new(initialCount: 1);
         private readonly Func<TemporaryValue<T>, Task<TemporaryValue<T>>> _valueProvider;
         private TemporaryValue<T> _value;
         private bool IsValueCreatedInternal => _value.Result != null && _value.ValidUntil > DateTimeOffset.UtcNow;
@@ -80,7 +80,7 @@ namespace WopiHost.Discovery
         public async Task Invalidate()
         {
             await SyncLock.WaitAsync().ConfigureAwait(false);
-            _value = default(TemporaryValue<T>);
+            _value = default;
             SyncLock.Release();
         }
     }

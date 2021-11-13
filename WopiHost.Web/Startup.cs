@@ -36,6 +36,7 @@ namespace WopiHost.Web
             {
                 client.BaseAddress = new Uri(Configuration[$"{WopiConfigurationSections.WOPI_ROOT}:{nameof(WopiOptions.ClientUrl)}"]);
             });
+            services.Configure<DiscoveryOptions>(Configuration.GetSection($"{WopiConfigurationSections.DISCOEVRY_OPTIONS}"));
             services.AddSingleton<IDiscoverer, WopiDiscoverer>();
 
             services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();

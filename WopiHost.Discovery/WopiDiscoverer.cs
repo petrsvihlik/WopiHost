@@ -26,9 +26,7 @@ namespace WopiHost.Discovery
 
         private IDiscoveryFileProvider DiscoveryFileProvider { get; }
 
-        private NetZoneEnum NetZone { get; }
-
-        private DiscoveryOptions Options { get; }
+        private DiscoveryOptions DiscoveryOptions { get; }
 
         private AsyncExpiringLazy<IEnumerable<XElement>> Apps
         {
@@ -43,7 +41,7 @@ namespace WopiHost.Discovery
                         .Where(ValidateNetZone)
                         .Elements(ElementApp),
 
-                        ValidUntil = DateTimeOffset.UtcNow.Add(Options.RefreshInterval)
+                        ValidUntil = DateTimeOffset.UtcNow.Add(DiscoveryOptions.RefreshInterval)
                     };
                 });
             }
@@ -53,30 +51,24 @@ namespace WopiHost.Discovery
         /// Creates a new instance of the <see cref="WopiDiscoverer"/>, a class for examining the capabilities of the WOPI client.
         /// </summary>
         /// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
-        /// <param name="netZone">A network zone to examine.</param>
-        /// <param name="options"></param>
-        public WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, NetZoneEnum netZone = NetZoneEnum.Any, DiscoveryOptions options)
+        /// <param name="discoveryOptions"></param>
+        public WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, DiscoveryOptions discoveryOptions)
         {
             DiscoveryFileProvider = discoveryFileProvider;
-            NetZone = netZone;
-            Options = options;
+            DiscoveryOptions = discoveryOptions;
         }
 
-        private async Task<IEnumerable<XElement>> GetAppsAsync()
+        internal async Task<IEnumerable<XElement>> GetAppsAsync()
         {
             return await Apps.Value();
         }
 
         private bool ValidateNetZone(XElement e)
         {
-            if (NetZone != NetZoneEnum.Any)
-            {
-                var netZoneString = (string)e.Attribute(AttrNetZoneName);
-                netZoneString = netZoneString.Replace("-", "", StringComparison.InvariantCulture);
-                var success = Enum.TryParse(netZoneString, true, out NetZoneEnum netZone);
-                return success && (netZone == NetZone);
-            }
-            return true;
+            var netZoneString = (string)e.Attribute(AttrNetZoneName);
+            netZoneString = netZoneString.Replace("-", "", StringComparison.InvariantCulture);
+            var success = Enum.TryParse(netZoneString, true, out NetZoneEnum netZone);
+            return success && (netZone == DiscoveryOptions.NetZone);
         }
 
         ///<inheritdoc />
