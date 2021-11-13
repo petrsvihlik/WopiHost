@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>WopiHost.Core Class Library</Description>
     <Authors>Petr Svihlik</Authors>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>WopiHost.Core</AssemblyName>
     <PackageId>WopiHost.Core</PackageId>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
