@@ -28,33 +28,43 @@ namespace WopiHost.Discovery
 
         private NetZoneEnum NetZone { get; }
 
+        private DiscoveryOptions Options { get; }
+
+        private AsyncExpiringLazy<IEnumerable<XElement>> Apps
+        {
+            get
+            {
+                return _apps ??= new AsyncExpiringLazy<IEnumerable<XElement>>(async metadata =>
+                {
+                    return new TemporaryValue<IEnumerable<XElement>>
+                    {
+                        Result = (await DiscoveryFileProvider.GetDiscoveryXmlAsync())
+                        .Elements(ElementNetZone)
+                        .Where(ValidateNetZone)
+                        .Elements(ElementApp),
+
+                        ValidUntil = DateTimeOffset.UtcNow.Add(Options.RefreshInterval)
+                    };
+                });
+            }
+        }
+
         /// <summary>
         /// Creates a new instance of the <see cref="WopiDiscoverer"/>, a class for examining the capabilities of the WOPI client.
         /// </summary>
         /// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
         /// <param name="netZone">A network zone to examine.</param>
-        public WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, NetZoneEnum netZone = NetZoneEnum.Any)
+        /// <param name="options"></param>
+        public WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, NetZoneEnum netZone = NetZoneEnum.Any, DiscoveryOptions options)
         {
             DiscoveryFileProvider = discoveryFileProvider;
             NetZone = netZone;
-
-            _apps = new AsyncExpiringLazy<IEnumerable<XElement>>(async metadata =>
-            {
-                return new TemporaryValue<IEnumerable<XElement>>
-                {
-                    Result = (await DiscoveryFileProvider.GetDiscoveryXmlAsync())
-                    .Elements(ElementNetZone)
-                    .Where(ValidateNetZone)
-                    .Elements(ElementApp),
-
-                    ValidUntil = DateTimeOffset.UtcNow.AddSeconds(20)
-                };
-            });
+            Options = options;
         }
 
         private async Task<IEnumerable<XElement>> GetAppsAsync()
         {
-            return await _apps.Value();
+            return await Apps.Value();
         }
 
         private bool ValidateNetZone(XElement e)
