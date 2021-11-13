@@ -6,7 +6,7 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/badge/master)](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/overview/master)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_shield)
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/ms-wopi/)
-[![.NET Core](https://img.shields.io/badge/net-5-692079.svg)](https://dotnet.microsoft.com/download/dotnet/6.0)
+[![.NET Core](https://img.shields.io/badge/net-6-692079.svg)](https://dotnet.microsoft.com/download/dotnet/6.0)
 
 | Package | Version | Downloads |
 | ------------- | :-------------: | :-------------: | 
