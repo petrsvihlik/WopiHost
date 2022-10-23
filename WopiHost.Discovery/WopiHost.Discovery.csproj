@@ -42,11 +42,4 @@
 		<PackageReference Include="System.Net.Http" Version="4.3.4" />
 		<PackageReference Include="System.Xml.XDocument" Version="4.3.0" />
 	</ItemGroup>
-
-	<ItemGroup>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-			<_Parameter1>WopiHost.Discovery.Tests</_Parameter1>
-		</AssemblyAttribute>
-	</ItemGroup>
-
 </Project>
