@@ -30,9 +30,8 @@ namespace WopiHost.Core
         /// </summary>
         public static long ToUnixTimestamp(this DateTime dateTime)
         {
-            var unixStart = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-            var unixTimeStampInTicks = (dateTime.ToUniversalTime() - unixStart).Ticks;
-            return unixTimeStampInTicks / TimeSpan.TicksPerSecond;
+            DateTimeOffset dto = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+            return dto.ToUnixTimeSeconds();
         }
 
         /// <summary>
