@@ -1,5 +1,5 @@
-﻿namespace WopiHost.Core.Models
-{
+﻿namespace WopiHost.Core.Models;
+
 	/// <summary>
 	/// Model implmented in accordance with the new specification https://docs.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo
 	/// Does not implement CheckFolderInfo members from the original specification (https://msdn.microsoft.com/en-us/library/hh642596.aspx)
@@ -59,4 +59,3 @@
 
 		#endregion
 	}
-}

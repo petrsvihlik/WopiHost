@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 
-namespace WopiHost.Core.Security.Authentication
-{
+namespace WopiHost.Core.Security.Authentication;
+
 	/// <summary>
 	/// Default values and constants related to the access token authentication.
 	/// </summary>
@@ -17,4 +17,3 @@ namespace WopiHost.Core.Security.Authentication
 		/// </summary>
 		public const string ACCESS_TOKEN_QUERY_NAME = "access_token";
 	}
-}

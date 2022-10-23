@@ -1,5 +1,5 @@
-﻿namespace WopiHost.Abstractions
-{
+﻿namespace WopiHost.Abstractions;
+
 	/// <summary>
 	/// Object that represents a container with files.
 	/// </summary>
@@ -15,4 +15,3 @@
 		/// </summary>
 		string Identifier { get; }
 	}
-}

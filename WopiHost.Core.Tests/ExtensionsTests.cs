@@ -4,23 +4,22 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WopiHost.Core.Tests
+namespace WopiHost.Core.Tests;
+
+public class ExtensionsTests
 {
-    public class ExtensionsTests
+    [Fact]
+    public void ToUnixTimestampTest()
     {
-        [Fact]
-        public void ToUnixTimestampTest()
-        {
-            // Arrange
-            long ticks = 1664582400;
-            DateTime dateTime = new(2022, 10, 1);
+        // Arrange
+        long ticks = 1664582400;
+        DateTime dateTime = new(2022, 10, 1);
 
-            // Act
+        // Act
 
-            long actual = dateTime.ToUnixTimestamp();
+        long actual = dateTime.ToUnixTimestamp();
 
-            // Assert
-            Assert.Equal(ticks, actual);
-        }
+        // Assert
+        Assert.Equal(ticks, actual);
     }
 }

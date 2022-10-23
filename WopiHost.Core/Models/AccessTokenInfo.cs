@@ -1,5 +1,5 @@
-﻿namespace WopiHost.Core.Models
-{
+﻿namespace WopiHost.Core.Models;
+
 	/// <summary>
 	/// Represents a WOPI access token.
 	/// </summary>
@@ -16,4 +16,3 @@
 		/// </summary>
 		public long AccessTokenExpiry { get; set; }
 	}
-}

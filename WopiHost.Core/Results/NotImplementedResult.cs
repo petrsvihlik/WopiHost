@@ -1,17 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace WopiHost.Core.Results
+namespace WopiHost.Core.Results;
+
+/// <summary>
+/// The server either does not recognize the request method, or it lacks the ability to fulfill the request.
+/// </summary>
+public class NotImplementedResult : StatusCodeResult
 {
     /// <summary>
-    /// The server either does not recognize the request method, or it lacks the ability to fulfill the request.
+    /// Creates an instance of <see cref="NotImplementedResult"/>
     /// </summary>
-    public class NotImplementedResult : StatusCodeResult
+    public NotImplementedResult() : base(501)
     {
-        /// <summary>
-        /// Creates an instance of <see cref="NotImplementedResult"/>
-        /// </summary>
-        public NotImplementedResult() : base(501)
-        {
-        }
     }
 }

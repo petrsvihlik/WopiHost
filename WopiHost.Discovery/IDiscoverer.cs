@@ -1,11 +1,11 @@
 using WopiHost.Discovery.Enumerations;
 
-namespace WopiHost.Discovery
-{
-    /// <summary>
-    /// Provides information about the capabilities of a WOPI client.
-    /// </summary>
-    public interface IDiscoverer
+namespace WopiHost.Discovery;
+
+/// <summary>
+/// Provides information about the capabilities of a WOPI client.
+/// </summary>
+public interface IDiscoverer
 	{
 		/// <summary>
 		/// Gets the URL template for the given file extension and action.
@@ -41,23 +41,22 @@ namespace WopiHost.Discovery
 		/// <summary>
 		/// Determines if files with the given extension require MS-FSSHTTP (Cobalt) to be implemented in order to support the given action.
 		/// </summary>
-        /// <param name="extension">File extension to consider (without the leading dot).</param>
-        /// <param name="action">WOPI action to consider.</param>
+    /// <param name="extension">File extension to consider (without the leading dot).</param>
+    /// <param name="action">WOPI action to consider.</param>
 		/// <returns>True if MS-FSSHTTP (Cobalt) is required for the combination of action and file extension.</returns>
 		Task<bool> RequiresCobaltAsync(string extension, WopiActionEnum action); //TODO: convert to an extension method (remove from interface)
 
 		/// <summary>
 		/// Gets the name of the application that handles files with the given extension.
 		/// </summary>
-        /// <param name="extension">File extension to get the app name for (without the leading dot).</param>
+    /// <param name="extension">File extension to get the app name for (without the leading dot).</param>
 		/// <returns>Name of the app.</returns>
 		Task<string> GetApplicationNameAsync(string extension);
 
 		/// <summary>
 		/// Gets the icon of the application that handles files with the given extension.
 		/// </summary>
-        /// <param name="extension">File extension to get the icon for (without the leading dot).</param>
+    /// <param name="extension">File extension to get the icon for (without the leading dot).</param>
 		/// <returns>Icon of the app.</returns>
 		Task<Uri> GetApplicationFavIconAsync(string extension);
-    }
 }

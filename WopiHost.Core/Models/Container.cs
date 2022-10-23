@@ -1,9 +1,9 @@
-﻿namespace WopiHost.Core.Models
-{
-    /// <summary>
-    /// An object representing a WOPI Container.
-    /// </summary>
-    public class Container
+﻿namespace WopiHost.Core.Models;
+
+/// <summary>
+/// An object representing a WOPI Container.
+/// </summary>
+public class Container
 	{
 		/// <summary>
 		/// A collection containing child containers.
@@ -15,4 +15,3 @@
 		/// </summary>
 		public IEnumerable<ChildFile> ChildFiles { get; set; }
 	}
-}

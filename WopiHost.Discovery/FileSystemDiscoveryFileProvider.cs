@@ -1,11 +1,11 @@
 using System.Xml.Linq;
 
-namespace WopiHost.Discovery
-{
-    /// <summary>
-    /// Loads the WOPI discovery XML file from the local file system.
-    /// </summary>
-    public class FileSystemDiscoveryFileProvider : IDiscoveryFileProvider
+namespace WopiHost.Discovery;
+
+/// <summary>
+/// Loads the WOPI discovery XML file from the local file system.
+/// </summary>
+public class FileSystemDiscoveryFileProvider : IDiscoveryFileProvider
 	{
 		private readonly string _filePath;
 
@@ -24,4 +24,3 @@ namespace WopiHost.Discovery
 			return Task.FromResult(XElement.Parse(File.ReadAllText(_filePath)));
 		}
 	}
-}

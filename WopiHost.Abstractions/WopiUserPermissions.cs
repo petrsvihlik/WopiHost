@@ -1,9 +1,9 @@
-﻿namespace WopiHost.Abstractions
-{
-    /// <summary>
-    /// WOPI claims  implemented in accordance with: http://wopi.readthedocs.io/projects/wopirest/en/latest/files/CheckFileInfo.html#user-permissions-properties
-    /// </summary>
-    [Flags]
+﻿namespace WopiHost.Abstractions;
+
+/// <summary>
+/// WOPI claims  implemented in accordance with: http://wopi.readthedocs.io/projects/wopirest/en/latest/files/CheckFileInfo.html#user-permissions-properties
+/// </summary>
+[Flags]
 	public enum WopiUserPermissions
 	{
 		/// <summary>
@@ -51,4 +51,3 @@
 		/// </summary>
 		WebEditingDisabled = 128
 	}
-}

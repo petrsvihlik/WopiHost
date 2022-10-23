@@ -1,5 +1,5 @@
-﻿namespace WopiHost.Core.Models
-{
+﻿namespace WopiHost.Core.Models;
+
 	/// <summary>
 	/// Object describing the root container.
 	/// Implemented in accordance with https://docs.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getrootcontainer#required-response-properties
@@ -18,4 +18,3 @@
 		/// </summary>
 		public CheckContainerInfo ContainerInfo { get; set; }
 	}
-}
