@@ -5,7 +5,6 @@
     <AssemblyName>WopiHost</AssemblyName>
     <OutputType>Exe</OutputType>
     <PublishReadyToRun>true</PublishReadyToRun>
-    <PublishTrimmed>true</PublishTrimmed>
     <PackageId>WopiHost</PackageId>
     <UserSecretsId>aspnet5-WopiHost-20150905035313</UserSecretsId>
     <IsPackable>false</IsPackable>
