@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace WopiHost.Web.Models
+﻿namespace WopiHost.Web.Models
 {
     /// <summary>
     /// Configuration object for the the WopiHost.Web application.

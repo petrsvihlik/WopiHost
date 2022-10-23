@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.Loader;
+﻿using System.Runtime.Loader;
 using Autofac;
 
 namespace WopiHost

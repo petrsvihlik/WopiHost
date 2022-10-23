@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc.ActionConstraints;
-using System;
-using System.Linq;
 
 namespace WopiHost.Core
 {

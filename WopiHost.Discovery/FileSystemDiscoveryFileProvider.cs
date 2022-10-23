@@ -1,13 +1,11 @@
-using System.IO;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace WopiHost.Discovery
 {
-	/// <summary>
-	/// Loads the WOPI discovery XML file from the local file system.
-	/// </summary>
-	public class FileSystemDiscoveryFileProvider : IDiscoveryFileProvider
+    /// <summary>
+    /// Loads the WOPI discovery XML file from the local file system.
+    /// </summary>
+    public class FileSystemDiscoveryFileProvider : IDiscoveryFileProvider
 	{
 		private readonly string _filePath;
 

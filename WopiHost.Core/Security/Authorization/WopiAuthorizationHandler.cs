@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using WopiHost.Abstractions;
 
 namespace WopiHost.Core.Security.Authorization

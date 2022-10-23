@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace WopiHost.Core.Models
+﻿namespace WopiHost.Core.Models
 {
     /// <summary>
     /// Model according to <see href="https://wopirest.readthedocs.io/en/latest/files/CheckFileInfo.html#checkfileinfo">CheckFileInfo documentation</see> and <see href="https://msdn.microsoft.com/en-us/library/hh622920.aspx">Microsoft WOPI documentation</see>

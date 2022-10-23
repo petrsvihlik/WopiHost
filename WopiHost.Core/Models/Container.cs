@@ -1,11 +1,9 @@
-﻿using System.Collections.Generic;
-
-namespace WopiHost.Core.Models
+﻿namespace WopiHost.Core.Models
 {
-	/// <summary>
-	/// An object representing a WOPI Container.
-	/// </summary>
-	public class Container
+    /// <summary>
+    /// An object representing a WOPI Container.
+    /// </summary>
+    public class Container
 	{
 		/// <summary>
 		/// A collection containing child containers.

@@ -1,8 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-
 namespace WopiHost.Core
 {
     internal static class Extensions

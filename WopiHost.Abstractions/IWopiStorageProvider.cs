@@ -1,11 +1,9 @@
-﻿using System.Collections.Generic;
-
-namespace WopiHost.Abstractions
+﻿namespace WopiHost.Abstractions
 {
-	/// <summary>
-	/// Provides concrete instances of IWopiFiles.
-	/// </summary>
-	public interface IWopiStorageProvider
+    /// <summary>
+    /// Provides concrete instances of IWopiFiles.
+    /// </summary>
+    public interface IWopiStorageProvider
 	{
 		/// <summary>
 		/// Returns a concrete instance of an implementation of the <see cref="IWopiFile"/>.

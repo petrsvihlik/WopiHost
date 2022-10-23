@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace WopiHost.Core.Models
+﻿namespace WopiHost.Core.Models
 {
     /// <summary>
     /// Model according to <see href="https://wopi.readthedocs.io/projects/wopirest/en/latest/files/CheckFileInfo.html#wopi-host-capabilities-properties">WOPI host capabilities properties</see>

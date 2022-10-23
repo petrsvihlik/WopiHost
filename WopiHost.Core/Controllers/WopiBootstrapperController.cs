@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;

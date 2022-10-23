@@ -1,15 +1,8 @@
-﻿using System.Collections.Generic;
-using Autofac;
+﻿using Autofac;
 using Autofac.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using WopiHost.Abstractions;
 using WopiHost.Core;
 using WopiHost.Core.Models;
-using Microsoft.Extensions.Hosting;
 using Serilog;
 
 namespace WopiHost
