@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace WopiHost.Core
+﻿namespace WopiHost.Core
 {
     /// <summary>
     /// An action constraint based on the X-WOPI-Override header.

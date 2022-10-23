@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace WopiHost.Discovery
+﻿namespace WopiHost.Discovery
 {
     /// <summary>
     /// An exception that might occur during retrieval of the WOPI discovery file.

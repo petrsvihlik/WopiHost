@@ -1,8 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-
-namespace WopiHost.Web
+﻿namespace WopiHost.Web
 {
     public static class ServiceCollectionExtensions
     {

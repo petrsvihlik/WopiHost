@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace WopiHost.Discovery
+﻿namespace WopiHost.Discovery
 {
     /// <summary>
     /// Represents a value that's about to expire.

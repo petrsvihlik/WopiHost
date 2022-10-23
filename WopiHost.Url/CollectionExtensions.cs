@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-
-namespace WopiHost.Url
+﻿namespace WopiHost.Url
 {
     /// <summary>
     /// Provides helper methods for collections of objects.

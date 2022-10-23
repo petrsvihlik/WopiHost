@@ -1,8 +1,4 @@
-﻿using System;
-using System.IO;
-using Autofac.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
+﻿using Autofac.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
 

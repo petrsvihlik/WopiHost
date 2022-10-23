@@ -1,11 +1,9 @@
-﻿using System;
-
-namespace WopiHost.Core.Models
+﻿namespace WopiHost.Core.Models
 {
-	/// <summary>
-	/// Represents an editing file lock.
-	/// </summary>
-	public class LockInfo
+    /// <summary>
+    /// Represents an editing file lock.
+    /// </summary>
+    public class LockInfo
 	{
 		/// <summary>
 		/// Lock identifier.

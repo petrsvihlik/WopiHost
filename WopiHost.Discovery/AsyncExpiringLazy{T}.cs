@@ -1,8 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace WopiHost.Discovery
+﻿namespace WopiHost.Discovery
 {
     /// <summary>
     /// Wraps a type in an expiring envelope.

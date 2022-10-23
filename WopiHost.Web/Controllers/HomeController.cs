@@ -1,7 +1,5 @@
 ﻿using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http;
-using System.Threading.Tasks;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 using WopiHost.Url;
@@ -9,9 +7,6 @@ using WopiHost.Abstractions;
 using WopiHost.FileSystemProvider;
 using WopiHost.Web.Models;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Web.Controllers
 {

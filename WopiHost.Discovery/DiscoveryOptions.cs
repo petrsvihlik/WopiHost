@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace WopiHost.Discovery
+﻿namespace WopiHost.Discovery
 {
     /// <summary>
     /// Configuration object for <see cref="IDiscoverer"/>.

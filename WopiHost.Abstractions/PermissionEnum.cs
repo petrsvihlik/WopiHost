@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace WopiHost.Abstractions
+﻿namespace WopiHost.Abstractions
 {
     /// <summary>
     /// Permissions used for authorization requirements

@@ -1,8 +1,4 @@
-﻿using System.IO;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
-
-namespace WopiHost.Web
+﻿namespace WopiHost.Web
 {
     public class Program
     {

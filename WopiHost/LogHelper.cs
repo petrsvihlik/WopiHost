@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Serilog;
-using System.Linq;
+﻿using Serilog;
 using WopiHost.Core;
 
 namespace WopiHost

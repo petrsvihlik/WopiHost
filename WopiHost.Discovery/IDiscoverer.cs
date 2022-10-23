@@ -1,14 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using WopiHost.Discovery.Enumerations;
 
 namespace WopiHost.Discovery
 {
-	/// <summary>
-	/// Provides information about the capabilities of a WOPI client.
-	/// </summary>
-	public interface IDiscoverer
+    /// <summary>
+    /// Provides information about the capabilities of a WOPI client.
+    /// </summary>
+    public interface IDiscoverer
 	{
 		/// <summary>
 		/// Gets the URL template for the given file extension and action.

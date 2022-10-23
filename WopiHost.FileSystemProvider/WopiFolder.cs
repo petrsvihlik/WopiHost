@@ -1,10 +1,9 @@
-﻿using System.IO;
-using WopiHost.Abstractions;
+﻿using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider
 {
-	/// <inheritdoc/>
-	public class WopiFolder : IWopiFolder
+    /// <inheritdoc/>
+    public class WopiFolder : IWopiFolder
 	{
 		private DirectoryInfo _folderInfo;
 
