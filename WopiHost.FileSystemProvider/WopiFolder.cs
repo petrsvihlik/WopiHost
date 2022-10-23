@@ -1,9 +1,9 @@
 ﻿using WopiHost.Abstractions;
 
-namespace WopiHost.FileSystemProvider
-{
-    /// <inheritdoc/>
-    public class WopiFolder : IWopiFolder
+namespace WopiHost.FileSystemProvider;
+
+/// <inheritdoc/>
+public class WopiFolder : IWopiFolder
 	{
 		private DirectoryInfo _folderInfo;
 
@@ -30,4 +30,3 @@ namespace WopiHost.FileSystemProvider
 			Identifier = folderIdentifier;
 		}
 	}
-}

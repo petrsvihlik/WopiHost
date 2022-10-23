@@ -1,5 +1,5 @@
-﻿namespace WopiHost.Core.Models
-{
+﻿namespace WopiHost.Core.Models;
+
 	/// <summary>
 	/// Represents a child file of a container.
 	/// </summary>
@@ -20,4 +20,3 @@
 		/// </summary>
 		public string LastModifiedTime { get; set; }
 	}
-}

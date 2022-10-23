@@ -1,9 +1,9 @@
-﻿namespace WopiHost.Core.Models
-{
-    /// <summary>
-    /// Represents a child object of an arbitrary type.
-    /// </summary>
-    public abstract class AbstractChildBase
+﻿namespace WopiHost.Core.Models;
+
+/// <summary>
+/// Represents a child object of an arbitrary type.
+/// </summary>
+public abstract class AbstractChildBase
 	{
 		/// <summary>
 		/// Name of the object.
@@ -15,4 +15,3 @@
 		/// </summary>
 		public Uri Url { get; set; }
 	}
-}

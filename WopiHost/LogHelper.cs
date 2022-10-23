@@ -1,41 +1,40 @@
 ﻿using Serilog;
 using WopiHost.Core;
 
-namespace WopiHost
+namespace WopiHost;
+
+/// <summary>
+/// Contains logging helper methods.
+/// </summary>
+public static class LogHelper
 {
     /// <summary>
-    /// Contains logging helper methods.
+    /// Adds WOPI diagnostic codes to the diagnostic context.
     /// </summary>
-    public static class LogHelper
+    /// <param name="diagnosticContext">Serilog's diagnostic context.</param>
+    /// <param name="httpContext">HTTP context instance</param>
+    public static void EnrichWithWopiDiagnostics(IDiagnosticContext diagnosticContext, HttpContext httpContext)
     {
-        /// <summary>
-        /// Adds WOPI diagnostic codes to the diagnostic context.
-        /// </summary>
-        /// <param name="diagnosticContext">Serilog's diagnostic context.</param>
-        /// <param name="httpContext">HTTP context instance</param>
-        public static void EnrichWithWopiDiagnostics(IDiagnosticContext diagnosticContext, HttpContext httpContext)
+        if (diagnosticContext is null)
         {
-            if (diagnosticContext is null)
-            {
-                throw new System.ArgumentNullException(nameof(diagnosticContext));
-            }
+            throw new System.ArgumentNullException(nameof(diagnosticContext));
+        }
 
-            if (httpContext is null)
-            {
-                throw new System.ArgumentNullException(nameof(httpContext));
-            }
+        if (httpContext is null)
+        {
+            throw new System.ArgumentNullException(nameof(httpContext));
+        }
 
-            var request = httpContext.Request;
+        var request = httpContext.Request;
 
-            if(request.Headers.TryGetValue(WopiHeaders.CORRELATION_ID, out var correlationId))
-            {
-                diagnosticContext.Set(nameof(WopiHeaders.CORRELATION_ID), correlationId.First());
-            }
+        if(request.Headers.TryGetValue(WopiHeaders.CORRELATION_ID, out var correlationId))
+        {
+            diagnosticContext.Set(nameof(WopiHeaders.CORRELATION_ID), correlationId.First());
+        }
 
-            if (request.Headers.TryGetValue(WopiHeaders.SESSION_ID, out var sessionId))
-            {
-                diagnosticContext.Set(nameof(WopiHeaders.SESSION_ID), sessionId.First());
-            }
+        if (request.Headers.TryGetValue(WopiHeaders.SESSION_ID, out var sessionId))
+        {
+            diagnosticContext.Set(nameof(WopiHeaders.SESSION_ID), sessionId.First());
         }
     }
 }

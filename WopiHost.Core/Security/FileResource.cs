@@ -1,10 +1,10 @@
-﻿namespace WopiHost.Core.Security
-{
+﻿namespace WopiHost.Core.Security;
+
 	/// <summary>
 	/// Represents a resource for a resource-based authroization.
 	/// </summary>
 	public class FileResource
-    {
+{
 		/// <summary>
 		/// Identifier of a resource.
 		/// </summary>
@@ -18,5 +18,4 @@
 	    {
 		    FileId = fileId;
 	    }
-    }
 }

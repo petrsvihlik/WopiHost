@@ -3,8 +3,8 @@
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 
-namespace WopiHost.Url
-{
+namespace WopiHost.Url;
+
 	/// <summary>
 	/// Generates WOPI URLs according to the specification
 	/// WOPI v2 spec: http://wopi.readthedocs.io/en/latest/discovery.html
@@ -58,11 +58,10 @@ namespace WopiHost.Url
 
 		private static string ResolveOptionalParameter(string name, string value, WopiUrlSettings urlSettings)
 		{
-            if (urlSettings.TryGetValue(value, out var param))
-            {
-                return name + "=" + Uri.EscapeDataString(param) + "&";
-            }
-            return null;
+        if (urlSettings.TryGetValue(value, out var param))
+        {
+            return name + "=" + Uri.EscapeDataString(param) + "&";
+        }
+        return null;
 		}
 	}
-}

@@ -1,8 +1,8 @@
 ﻿using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 
-namespace WopiHost.Abstractions
-{
+namespace WopiHost.Abstractions;
+
 	/// <summary>
 	/// Performs security-related actions.
 	/// </summary>
@@ -34,5 +34,4 @@ namespace WopiHost.Abstractions
 	    /// Returns a string representation of a <see cref="SecurityToken"/>
 	    /// </summary>
 	    string WriteToken(SecurityToken token);
-    }
 }

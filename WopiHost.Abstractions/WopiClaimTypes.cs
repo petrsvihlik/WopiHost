@@ -1,5 +1,5 @@
-﻿namespace WopiHost.Abstractions
-{
+﻿namespace WopiHost.Abstractions;
+
 	/// <summary>
 	/// WOPI-specific authorization claims.
 	/// </summary>
@@ -10,4 +10,3 @@
 		/// </summary>
 		public const string USER_PERMISSIONS = nameof(USER_PERMISSIONS);
 	}
-}

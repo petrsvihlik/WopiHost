@@ -1,34 +1,33 @@
-﻿namespace WopiHost.Abstractions
+﻿namespace WopiHost.Abstractions;
+
+/// <summary>
+/// Permissions used for authorization requirements
+/// </summary>
+[Flags]
+public enum Permission
 {
     /// <summary>
-    /// Permissions used for authorization requirements
+    /// User has no permissions
     /// </summary>
-    [Flags]
-    public enum Permission
-    {
-        /// <summary>
-        /// User has no permissions
-        /// </summary>
-        None = 0,
+    None = 0,
 
-        /// <summary>
-        /// User can create files
-        /// </summary>
-        Create = 1,
+    /// <summary>
+    /// User can create files
+    /// </summary>
+    Create = 1,
 
-        /// <summary>
-        /// User can view files
-        /// </summary>
-        Read = 2,
+    /// <summary>
+    /// User can view files
+    /// </summary>
+    Read = 2,
 
-        /// <summary>
-        /// User can modify files
-        /// </summary>
-        Update = 4,
+    /// <summary>
+    /// User can modify files
+    /// </summary>
+    Update = 4,
 
-        /// <summary>
-        /// User can delete files
-        /// </summary>
-        Delete = 8
-    }
+    /// <summary>
+    /// User can delete files
+    /// </summary>
+    Delete = 8
 }

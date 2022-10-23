@@ -1,5 +1,5 @@
-﻿namespace WopiHost.Core.Models
-{
+﻿namespace WopiHost.Core.Models;
+
 	/// <summary>
 	/// Implemented in accordance with: https://wopirest.readthedocs.io/en/latest/bootstrapper/GetRootContainer.html#sample-response
 	/// </summary>
@@ -20,4 +20,3 @@
 		/// </summary>
 		public AccessTokenInfo AccessTokenInfo { get; set; }
 	}
-}

@@ -1,9 +1,9 @@
-﻿namespace WopiHost.Abstractions
-{
-    /// <summary>
-    /// Provides concrete instances of IWopiFiles.
-    /// </summary>
-    public interface IWopiStorageProvider
+﻿namespace WopiHost.Abstractions;
+
+/// <summary>
+/// Provides concrete instances of IWopiFiles.
+/// </summary>
+public interface IWopiStorageProvider
 	{
 		/// <summary>
 		/// Returns a concrete instance of an implementation of the <see cref="IWopiFile"/>.
@@ -38,4 +38,3 @@
 		/// </summary>
 		IWopiFolder RootContainerPointer { get; }
 	}
-}

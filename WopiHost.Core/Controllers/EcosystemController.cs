@@ -4,12 +4,12 @@ using System.Net.Mime;
 using WopiHost.Abstractions;
 using WopiHost.Core.Models;
 
-namespace WopiHost.Core.Controllers
-{
-    /// <summary>
-    /// Implementation of WOPI server protocol http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/CheckEcosystem.html
-    /// </summary>
-    [Route("wopi/[controller]")]
+namespace WopiHost.Core.Controllers;
+
+/// <summary>
+/// Implementation of WOPI server protocol http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/CheckEcosystem.html
+/// </summary>
+[Route("wopi/[controller]")]
 	public class EcosystemController : WopiControllerBase
 	{
 		/// <summary>
@@ -19,7 +19,7 @@ namespace WopiHost.Core.Controllers
 		/// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
 		/// <param name="wopiHostOptions">WOPI Host configuration</param>
 		public EcosystemController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions) 
-            : base(storageProvider, securityHandler, wopiHostOptions)
+        : base(storageProvider, securityHandler, wopiHostOptions)
 		{
 		}
 
@@ -45,4 +45,3 @@ namespace WopiHost.Core.Controllers
 			return rc;
 		}
 	}
-}

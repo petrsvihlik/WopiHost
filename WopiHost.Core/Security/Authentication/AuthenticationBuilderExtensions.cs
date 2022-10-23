@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 
-namespace WopiHost.Core.Security.Authentication
-{
-    /// <summary>
-    /// WOPI-related extensions for <see cref="AuthenticationBuilder"/>.
-    /// </summary>
-    public static class AuthenticationBuilderExtensions
+namespace WopiHost.Core.Security.Authentication;
+
+/// <summary>
+/// WOPI-related extensions for <see cref="AuthenticationBuilder"/>.
+/// </summary>
+public static class AuthenticationBuilderExtensions
 	{
 		/// <summary>
 		/// Adds <see cref="AccessTokenHandler"/> to the <see cref="AuthenticationBuilder"/>.
@@ -19,5 +19,4 @@ namespace WopiHost.Core.Security.Authentication
 	    {
 	        return builder.AddScheme<AccessTokenAuthenticationOptions, AccessTokenHandler>(authenticationScheme, displayName, configureOptions);
 	    }
-    }
 }

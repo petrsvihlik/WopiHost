@@ -1,9 +1,9 @@
-﻿namespace WopiHost.Core.Models
-{
-    /// <summary>
-    /// Implemented in accordance with: https://wopi.readthedocs.io/projects/wopirest/en/latest/bootstrapper/GetRootContainer.html#sample-response
-    /// </summary>
-    public class BootstrapInfo
+﻿namespace WopiHost.Core.Models;
+
+/// <summary>
+/// Implemented in accordance with: https://wopi.readthedocs.io/projects/wopirest/en/latest/bootstrapper/GetRootContainer.html#sample-response
+/// </summary>
+public class BootstrapInfo
 	{
 		/// <summary>
 		/// A string URI for the WOPI server’s 🔧 Ecosystem endpoint, with a WOPI access token appended. A GET request to this URL will invoke the CheckEcosystem operation.
@@ -26,4 +26,3 @@
 		/// </summary>
 		public string UserFriendlyName { get; set; }
 	}
-}
