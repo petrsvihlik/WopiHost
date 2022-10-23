@@ -45,11 +45,4 @@
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.24.0" />
 	</ItemGroup>
-
-	<ItemGroup>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-			<_Parameter1>WopiHost.Core.Tests</_Parameter1>
-		</AssemblyAttribute>
-	</ItemGroup>
-
 </Project>
