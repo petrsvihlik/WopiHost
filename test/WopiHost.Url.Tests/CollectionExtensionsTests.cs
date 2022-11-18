@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using Xunit;
-
-namespace WopiHost.Url.Tests;
+﻿namespace WopiHost.Url.Tests;
 
 public class CollectionExtensionsTests
 {

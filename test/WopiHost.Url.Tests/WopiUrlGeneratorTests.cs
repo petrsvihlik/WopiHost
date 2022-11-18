@@ -1,9 +1,7 @@
-﻿using System;
-using System.Globalization;
+﻿using System.Globalization;
 using FakeItEasy;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
-using Xunit;
 
 namespace WopiHost.Url.Tests;
 

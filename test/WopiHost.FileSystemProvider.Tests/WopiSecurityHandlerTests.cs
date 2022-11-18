@@ -1,12 +1,10 @@
-﻿using Xunit;
+﻿namespace WopiHost.FileSystemProvider.Tests;
 
-namespace WopiHost.FileSystemProvider.Tests;
-
-	public class WopiSecurityHandlerTests
-	{
+public class WopiSecurityHandlerTests
+{
     [Fact]
     public void DummyTest()
     {
         Assert.True(true);
     }
-	}
+}

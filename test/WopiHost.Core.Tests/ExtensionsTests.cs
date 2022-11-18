@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace WopiHost.Core.Tests;
+﻿namespace WopiHost.Core.Tests;
 
 public class ExtensionsTests
 {
