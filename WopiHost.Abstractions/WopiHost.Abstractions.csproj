@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>WopiHost.Abstractions Class Library</Description>
     <Authors>Petr Svihlik</Authors>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <AssemblyName>WopiHost.Abstractions</AssemblyName>
     <PackageId>WopiHost.Abstractions</PackageId>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
@@ -37,9 +37,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="7.0.0" />
     <PackageReference Include="System.Security.Claims" Version="4.3.0" />
-    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="6.24.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="6.25.0" />
   </ItemGroup>
 
 </Project>

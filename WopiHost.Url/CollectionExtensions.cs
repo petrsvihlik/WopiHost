@@ -19,6 +19,6 @@ public static class CollectionExtensions
         {
             return dictA;
         }
-        return dictA.Keys.Union(dictB.Keys).ToDictionary(k => k, k => dictA.ContainsKey(k) ? dictA[k] : dictB[k]);
+        return dictA.Keys.Union(dictB.Keys).ToDictionary(k => k, k => dictA.TryGetValue(k, out TValue value) ? value : dictB[k]);
     }
 }
