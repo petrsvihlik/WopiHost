@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using FakeItEasy;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;

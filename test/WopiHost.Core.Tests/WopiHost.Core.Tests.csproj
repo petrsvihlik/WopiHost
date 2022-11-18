@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WopiHost.Core\WopiHost.Core.csproj" />
+    <ProjectReference Include="..\..\src\WopiHost.Core\WopiHost.Core.csproj" />
   </ItemGroup>
 
 </Project>

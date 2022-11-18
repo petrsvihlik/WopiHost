@@ -18,8 +18,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="..\LICENSE.txt" Pack="true" PackagePath="" />
-		<None Include="..\img\logo.png" Pack="true" PackagePath="" />
+		<None Include="..\..\LICENSE.txt" Pack="true" PackagePath="" />
+		<None Include="..\..\img\logo.png" Pack="true" PackagePath="" />
 	</ItemGroup>
 
 	<PropertyGroup>

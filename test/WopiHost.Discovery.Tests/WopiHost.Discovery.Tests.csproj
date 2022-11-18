@@ -13,7 +13,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\WopiHost.Discovery\WopiHost.Discovery.csproj" />
+		<ProjectReference Include="..\..\src\WopiHost.Discovery\WopiHost.Discovery.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
