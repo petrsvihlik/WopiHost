@@ -6,7 +6,7 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/badge/master)](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/overview/master)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_shield)
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/ms-wopi/)
-[![.NET Core](https://img.shields.io/badge/net-6-692079.svg)](https://dotnet.microsoft.com/download/dotnet/6.0)
+[![.NET Core](https://img.shields.io/badge/net-7-692079.svg)](https://dotnet.microsoft.com/download/dotnet/7.0)
 
 | Package | Version | Downloads |
 | ------------- | :-------------: | :-------------: | 
@@ -39,14 +39,15 @@ Usage
 
 Prerequisites
 -------------
- - [.NET 6 SDK](https://dotnet.microsoft.com/download/dotnet/6.0)
+ - [.NET 7 SDK](https://dotnet.microsoft.com/download/dotnet/7.0)
  - Recommended: [VS Code](https://code.visualstudio.com/) or [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)
 
 Building the app
 ----------------
-The WopiHost app targets `net6.0` exclusively.
+The WopiHost app targets `net7.0` exclusively.
 
 If you need a version that's targeting an older version of .NET, check out the releases:
+- [.NET 6](TBD)
 - [.NET 5](https://github.com/petrsvihlik/WopiHost/releases/tag/3.0.0)
 - [.NET Core 2.1 + .NET Framewokr 4.6](https://github.com/petrsvihlik/WopiHost/releases/tag/1.0.0)
 - [.NET Core 3.1 + .NET Standard 2.1](https://github.com/petrsvihlik/WopiHost/releases/tag/2.0.0)
@@ -134,22 +135,13 @@ License
  - [ORIGINAL_WORK_LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost.Cobalt/ORIGINAL_WORK_LICENSE.txt) - License for Marx Yu's part of the project. This project is based on [Marx Yu's project](https://github.com/marx-yu/WopiHost).
  - [NOTICE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/NOTICE.txt) - additional notes to how the licenses are applied
 
-Supporters
-===================
-If this project helped you and you want to support its further development, please consider donating an amount of your choice. Thank you!
-
-
-<table>
-<tr><td colspan="2"><a href="https://www.paypal.me/Svihlik"><img src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" alt="Donate with PayPal" /></a></td></tr>
-<tr><td><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Bitcoin_logo.svg/2000px-Bitcoin_logo.svg.png" width="100" alt="Donate with BitCoin" /></td><td>3PuqLrSsV4EFFr55brj9cSJVoaRoc23b3p</td></tr>
-</table>
 
 Useful resources
 =============
 Building WOPI Host
 -----------------------
- - [Official WOPI Documentation](https://wopi.readthedocs.io)
- - [Official WOPI REST API Reference](https://wopi.readthedocs.io/projects/wopirest/en/latest/)
+ - [Official WOPI Documentation](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/)
+ - [Official WOPI REST API Reference](https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/6a8bb410-68ad-47e4-9dc3-6cf29c6b046b)
  - [Building an Office Web Apps (OWA) WOPI Host by Shawn Cicoria](https://code.msdn.microsoft.com/office/Building-an-Office-Web-f98650d6) + [WOPI Host and url paths](https://www.cicoria.com/office-web-appswopi-host-and-url-paths/)
  - [Office Online integration via WOPI Host by Richard diZerega](https://github.com/OfficeDev/PnP-WOPI) + [video](https://www.youtube.com/watch?v=9lGonu0eoGA)
 
