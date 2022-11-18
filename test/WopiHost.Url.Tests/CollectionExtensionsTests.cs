@@ -7,7 +7,7 @@ public class CollectionExtensionsTests
     {
         // Arrange
         var full = new Dictionary<string, string>();
-        Dictionary<string, string> empty = null;
+        Dictionary<string, string>? empty = null;
 
         // Act
         var one = full.Merge(empty);

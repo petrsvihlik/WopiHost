@@ -77,8 +77,6 @@ public class CobaltProcessor : ICobaltProcessor
             using var stream = file.GetWriteStream();
             new GenericFda(cobaltFile.CobaltEndpoint).GetContentStream().CopyTo(stream);
         }
-        var response = requestBatch.SerializeOutputToProtocol(protocolVersion);
-        Action<Stream> copyToAction = s => { response.CopyTo(s); };
-        return copyToAction;
+        return requestBatch.SerializeOutputToProtocol(protocolVersion).CopyTo;
     }
 }
