@@ -149,7 +149,8 @@ public class FilesController : WopiControllerBase
 
     /// <summary>
     /// The PutRelativeFile operation creates a new file on the host based on the current file.
-    /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/files/PutRelativeFile.html
+    /// M365 spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile
+    /// Protocol spec: https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/d12ab554-eab7-480f-bdc7-0bdf14922e6f
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
