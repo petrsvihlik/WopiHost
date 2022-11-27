@@ -42,7 +42,7 @@ jobs:
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
     - name: Upload artifacts to the GitHub release
-      uses: Roang-zero1/github-upload-release-artifacts-action@v2.1.0
+      uses: Roang-zero1/github-upload-release-artifacts-action@v3
       with:
         args: ./artifacts
       env:
