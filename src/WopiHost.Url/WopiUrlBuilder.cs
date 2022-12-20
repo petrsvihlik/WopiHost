@@ -7,7 +7,7 @@ namespace WopiHost.Url;
 
 /// <summary>
 /// Generates WOPI URLs according to the specification
-/// WOPI v2 spec: http://wopi.readthedocs.io/en/latest/discovery.html
+/// WOPI v2 spec: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/discovery
 /// WOPI v1 spec: https://msdn.microsoft.com/en-us/library/hh695362(v=office.12).aspx
 /// </summary>
 public partial class WopiUrlBuilder

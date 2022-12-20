@@ -94,7 +94,7 @@ Compatible WOPI Clients
 Running the application only makes sense with a WOPI client as its counterpart. WopiHost is compatible with the following clients:
 
  - Office Online Server 2016 ([deployment guidelines](https://docs.microsoft.com/en-us/officeonlineserver/deploy-office-online-server))
- - Office Online https://wopi.readthedocs.io/en/latest/
+ - Office Online https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/
 
 Note that WopiHost will always be compatible only with the latest version of OOS because Microsoft also [supports only the latest version](https://docs.microsoft.com/en-us/officeonlineserver/office-online-server-release-schedule).
 

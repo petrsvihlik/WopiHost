@@ -25,7 +25,7 @@ public class AccessTokenHandler : AuthenticationHandler<AccessTokenAuthenticatio
 
             if (Context.Request.Path.Value == "/wopibootstrapper")
             {
-                //TODO: Implement properly: http://wopi.readthedocs.io/projects/wopirest/en/latest/bootstrapper/Bootstrap.html
+                //TODO: Implement properly: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap
                 //Should be removed or replaced with bearer token check
                 token = Options.SecurityHandler.WriteToken(Options.SecurityHandler.GenerateAccessToken("Anonymous", Convert.ToBase64String(Encoding.UTF8.GetBytes(".\\"))));
             }

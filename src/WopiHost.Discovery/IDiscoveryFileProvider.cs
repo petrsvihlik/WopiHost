@@ -4,7 +4,7 @@ namespace WopiHost.Discovery;
 
 /// <summary>
 /// Provides access to the WOPI discovery XML file.
-/// https://wopi.readthedocs.io/en/latest/discovery.html
+/// https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/discovery
 /// </summary>
 public interface IDiscoveryFileProvider
 {

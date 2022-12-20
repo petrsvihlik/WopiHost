@@ -7,7 +7,7 @@ using WopiHost.Core.Models;
 namespace WopiHost.Core.Controllers;
 
 /// <summary>
-/// Implementation of WOPI server protocol http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/CheckEcosystem.html
+/// Implementation of WOPI server protocol https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/ecosystem/checkecosystem
 /// </summary>
 [Route("wopi/[controller]")]
 	public class EcosystemController : WopiControllerBase
@@ -25,7 +25,7 @@ namespace WopiHost.Core.Controllers;
 
 		/// <summary>
 		/// The GetRootContainer operation returns the root container. A WOPI client can use this operation to get a reference to the root container, from which the client can call EnumerateChildren (containers) to navigate a container hierarchy.
-		/// Specification: http://wopi.readthedocs.io/projects/wopirest/en/latest/ecosystem/GetRootContainer.html
+		/// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getrootcontainer
 		/// Example URL: GET /wopi/ecosystem/root_container_pointer
 		/// </summary>
 		/// <returns></returns>

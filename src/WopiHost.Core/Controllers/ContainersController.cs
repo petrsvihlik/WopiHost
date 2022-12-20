@@ -25,7 +25,7 @@ public class ContainersController : WopiControllerBase
 
     /// <summary>
     /// Returns the metadata about a container specified by an identifier.
-    /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/containers/CheckContainerInfo.html
+    /// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo
     /// Example URL path: /wopi/containers/(container_id)
     /// </summary>
     /// <param name="id">Container identifier.</param>
@@ -43,7 +43,7 @@ public class ContainersController : WopiControllerBase
 
     /// <summary>
     /// The EnumerateChildren method returns the contents of a container on the WOPI server.
-    /// Specification: http://wopi.readthedocs.io/projects/wopirest/en/latest/containers/EnumerateChildren.html?highlight=EnumerateChildren
+    /// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/enumeratechildren
     /// Example URL path: /wopi/containers/(container_id)/children
     /// </summary>
     /// <param name="id">Container identifier.</param>
