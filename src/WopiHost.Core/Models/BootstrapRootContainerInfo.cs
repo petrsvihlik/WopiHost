@@ -1,7 +1,7 @@
 ﻿namespace WopiHost.Core.Models;
 
 	/// <summary>
-	/// Implemented in accordance with: https://wopirest.readthedocs.io/en/latest/bootstrapper/GetRootContainer.html#sample-response
+	/// Implemented in accordance with: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getrootcontainer#sample-response
 	/// </summary>
 	public class BootstrapRootContainerInfo
 	{

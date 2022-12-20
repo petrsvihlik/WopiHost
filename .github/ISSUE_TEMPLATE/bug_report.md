@@ -35,4 +35,4 @@ Add any other context about the problem here.
 
 - Stack trace
 - [Event viewer -> Applications and Service Logs -> Office Web Apps](https://stackoverflow.com/a/62384305/1332034)
-- [CheckFileInfo](https://wopi.readthedocs.io/projects/wopirest/en/latest/files/CheckFileInfo.html)
+- [CheckFileInfo](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo)

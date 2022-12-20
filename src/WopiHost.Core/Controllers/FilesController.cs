@@ -12,7 +12,7 @@ namespace WopiHost.Core.Controllers;
 
 /// <summary>
 /// Implementation of WOPI server protocol
-/// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/
+/// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/
 /// </summary>
 [Route("wopi/[controller]")]
 public class FilesController : WopiControllerBase
@@ -63,7 +63,7 @@ public class FilesController : WopiControllerBase
 
     /// <summary>
     /// Returns the metadata about a file specified by an identifier.
-    /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/files/CheckFileInfo.html
+    /// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
@@ -80,7 +80,7 @@ public class FilesController : WopiControllerBase
 
     /// <summary>
     /// Returns contents of a file specified by an identifier.
-    /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/files/GetFile.html
+    /// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getfile
     /// Example URL path: /wopi/files/(file_id)/contents
     /// </summary>
     /// <param name="id">File identifier.</param>
@@ -110,7 +110,7 @@ public class FilesController : WopiControllerBase
 
     /// <summary>
     /// Updates a file specified by an identifier. (Only for non-cobalt files.)
-    /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/files/PutFile.html
+    /// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putfile
     /// Example URL path: /wopi/files/(file_id)/contents
     /// </summary>
     /// <param name="id">File identifier.</param>
@@ -198,7 +198,7 @@ public class FilesController : WopiControllerBase
 
     /// <summary>
     /// Processes lock-related operations.
-    /// Specification: https://wopi.readthedocs.io/projects/wopirest/en/latest/files/Lock.html
+    /// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/lock
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
@@ -238,7 +238,7 @@ public class FilesController : WopiControllerBase
                     }
                     else
                     {
-                        // Unlock and re-lock (http://wopi.readthedocs.io/projects/wopirest/en/latest/files/UnlockAndRelock.html)
+                        // Unlock and re-lock (https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock)
                         if (lockAcquired)
                         {
                             if (existingLock.Lock == oldLock)

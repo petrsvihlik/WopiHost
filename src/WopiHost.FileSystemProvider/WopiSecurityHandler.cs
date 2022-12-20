@@ -67,7 +67,7 @@ public class WopiSecurityHandler : IWopiSecurityHandler
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = user.Identities.FirstOrDefault(),
-            Expires = DateTime.UtcNow.AddHours(1), //access token ttl: https://wopi.readthedocs.io/projects/wopirest/en/latest/concepts.html#term-access-token-ttl
+            Expires = DateTime.UtcNow.AddHours(1), //access token ttl: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/concepts#the-access_token_ttl-property
             SigningCredentials = new SigningCredentials(Key, SecurityAlgorithms.HmacSha256)
         };
 
