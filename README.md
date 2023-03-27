@@ -20,6 +20,8 @@ Supporters
 
 Sponsors
 ---------
+<a href="https://github.com/scottgal"><img src="https://github.com/scottgal.png" width="80" alt="scottgal" /></a>
+
 <!-- sponsors --><!-- sponsors -->
 
 Contributors
