@@ -15,6 +15,19 @@
 | `WopiHost.FileSystemProvider` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.FileSystemProvider.svg)](https://www.nuget.org/packages/WopiHost.FileSystemProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.FileSystemProvider.svg)](https://www.nuget.org/packages/WopiHost.FileSystemProvider) |
 | `WopiHost.Url` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Url.svg)](https://www.nuget.org/packages/WopiHost.Url) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Url.svg)](https://www.nuget.org/packages/WopiHost.Url) |
 
+Supporters
+==========
+
+Sponsors
+---------
+<!-- sponsors --><!-- sponsors -->
+
+Contributors
+---------
+[![Contributors](https://contrib.rocks/image?repo=petrsvihlik/wopihost)](https://github.com/petrsvihlik/wopihost/graphs/contributors)
+
+
+
 Introduction
 ==========
 This project is a sample implementation of a WOPI host. Basically, it allows developers to integrate custom datasources with Office Online Server (formerly Office Web Apps) or any other WOPI client by implementing a bunch of interfaces.
