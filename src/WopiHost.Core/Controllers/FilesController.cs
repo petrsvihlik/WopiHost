@@ -158,6 +158,7 @@ public class FilesController : WopiControllerBase
     [HttpPost("{id}"), WopiOverrideHeader(["PUT_RELATIVE"])]
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
     public async Task<IActionResult> PutRelativeFile(string id) => throw new NotImplementedException($"{nameof(PutRelativeFile)} is not implemented yet.");
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
 
     /// <summary>
     /// Changes the contents of the file in accordance with [MS-FSSHTTP].

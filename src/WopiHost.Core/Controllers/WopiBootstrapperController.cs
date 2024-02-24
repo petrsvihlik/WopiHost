@@ -108,5 +108,6 @@ public class WopiBootstrapperController(IWopiStorageProvider storageProvider, IW
     {
         //TODO: implement header validation https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getrootcontainer#sample-response
         // http://stackoverflow.com/questions/31948426/oauth-bearer-token-authentication-is-not-passing-signature-validation
-        true;
+        return true;
+    }
 }
