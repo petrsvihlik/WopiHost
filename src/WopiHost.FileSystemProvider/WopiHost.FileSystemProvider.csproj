@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>WopiHost.FileSystemProvider Class Library</Description>
     <Authors>Petr Svihlik</Authors>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>WopiHost.FileSystemProvider</AssemblyName>
     <PackageId>WopiHost.FileSystemProvider</PackageId>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>

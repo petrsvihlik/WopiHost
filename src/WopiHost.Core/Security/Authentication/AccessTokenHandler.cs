@@ -74,8 +74,7 @@ public class AccessTokenHandler : AuthenticationHandler<AccessTokenAuthenticatio
     /// <param name="options">The monitor for the options instance.</param>
     /// <param name="logger">The Microsoft.Extensions.Logging.ILoggerFactory.</param>
     /// <param name="encoder">The System.Text.Encodings.Web.UrlEncoder.</param>
-    /// <param name="clock">The Microsoft.AspNetCore.Authentication.ISystemClock.</param>
-    public AccessTokenHandler(IOptionsMonitor<AccessTokenAuthenticationOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock) : base(options, logger, encoder, clock)
+    public AccessTokenHandler(IOptionsMonitor<AccessTokenAuthenticationOptions> options, ILoggerFactory logger, UrlEncoder encoder) : base(options, logger, encoder)
     {
         // Used by for Dependency Injection
     }

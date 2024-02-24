@@ -189,8 +189,8 @@ public class FilesController : WopiControllerBase
         }
 
         var responseAction = CobaltProcessor.ProcessCobalt(file, User, await HttpContext.Request.Body.ReadBytesAsync());
-        HttpContext.Response.Headers.Add(WopiHeaders.CORRELATION_ID, HttpContext.Request.Headers[WopiHeaders.CORRELATION_ID]);
-        HttpContext.Response.Headers.Add("request-id", HttpContext.Request.Headers[WopiHeaders.CORRELATION_ID]);
+        HttpContext.Response.Headers.Append(WopiHeaders.CORRELATION_ID, HttpContext.Request.Headers[WopiHeaders.CORRELATION_ID]);
+        HttpContext.Response.Headers.Append("request-id", HttpContext.Request.Headers[WopiHeaders.CORRELATION_ID]);
         return new Results.FileResult(responseAction, "application/octet-stream");
     }
 

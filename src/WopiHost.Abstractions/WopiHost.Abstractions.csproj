@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>WopiHost.Abstractions Class Library</Description>
     <Authors>Petr Svihlik</Authors>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>WopiHost.Abstractions</AssemblyName>
     <PackageId>WopiHost.Abstractions</PackageId>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
