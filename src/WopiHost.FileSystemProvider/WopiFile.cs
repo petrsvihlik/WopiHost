@@ -80,10 +80,10 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
             {
                 return FileInfo.GetAccessControl().GetOwner(typeof(NTAccount)).ToString();
             }
-            else if (OperatingSystem.IsLinux())
-            {
-                return Mono.Unix.UnixFileSystemInfo.GetFileSystemEntry(FilePath).OwnerUser.UserName; //TODO: test
-            }
+            //else if (OperatingSystem.IsLinux())
+            //{
+            //    return Mono.Unix.UnixFileSystemInfo.GetFileSystemEntry(FilePath).OwnerUser.UserName; //TODO: test
+            //}
             else
             {
                 return "UNSUPPORTED_PLATFORM";

@@ -175,7 +175,7 @@ public class CobaltHostLockingStore(ClaimsPrincipal principal) : HostLockingStor
         return result;
     }
 
-    public override Dictionary<string, EditorsTableEntry> QueryEditorsTable() => new Dictionary<string, EditorsTableEntry>();
+    public override Dictionary<string, EditorsTableEntry> QueryEditorsTable() => new();
 
     public override JoinEditingSessionRequest.OutputType HandleJoinEditingSession(JoinEditingSessionRequest.InputType input)
     {
