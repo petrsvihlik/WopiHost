@@ -49,7 +49,7 @@ public class WopiUrlGeneratorTests
 
     [Theory]
     [InlineData("html", "http://wopihost:5000/wopi/files/test.xlsx", WopiActionEnum.Edit, null)]
-    public async void NonExistentTemplate(string extension, string wopiFileUrl, WopiActionEnum action, string expectedValue)
+    public async void NonExistentTemplate(string extension, string wopiFileUrl, WopiActionEnum action, string? expectedValue)
     {
         // Arrange
         var urlGenerator = new WopiUrlBuilder(_discoverer);

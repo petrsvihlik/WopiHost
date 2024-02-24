@@ -3,14 +3,9 @@ using Cobalt;
 
 namespace WopiHost.Cobalt;
 
-public class CobaltHostLockingStore : HostLockingStore
+public class CobaltHostLockingStore(ClaimsPrincipal principal) : HostLockingStore
 {
-    private readonly ClaimsPrincipal _principal;
-
-    public CobaltHostLockingStore(ClaimsPrincipal principal)
-    {
-        _principal = principal;
-    }
+    private readonly ClaimsPrincipal _principal = principal;
 
     public override WhoAmIRequest.OutputType HandleWhoAmI(WhoAmIRequest.InputType input)
     {
@@ -180,10 +175,7 @@ public class CobaltHostLockingStore : HostLockingStore
         return result;
     }
 
-    public override Dictionary<string, EditorsTableEntry> QueryEditorsTable()
-    {
-        return new Dictionary<string, EditorsTableEntry>();
-    }
+    public override Dictionary<string, EditorsTableEntry> QueryEditorsTable() => new Dictionary<string, EditorsTableEntry>();
 
     public override JoinEditingSessionRequest.OutputType HandleJoinEditingSession(JoinEditingSessionRequest.InputType input)
     {
@@ -220,10 +212,7 @@ public class CobaltHostLockingStore : HostLockingStore
         return result;
     }
 
-    public override ulong GetEditorsTableWaterline()
-    {
-        return 0;
-    }
+    public override ulong GetEditorsTableWaterline() => 0;
 
     public override AmIAloneRequest.OutputType HandleAmIAlone(AmIAloneRequest.InputType input)
     {

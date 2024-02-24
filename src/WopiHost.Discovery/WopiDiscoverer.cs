@@ -4,7 +4,12 @@ using WopiHost.Discovery.Enumerations;
 namespace WopiHost.Discovery;
 
 ///<inheritdoc cref="IDiscoverer"/>
-public class WopiDiscoverer : IDiscoverer
+/// <summary>
+/// Creates a new instance of the <see cref="WopiDiscoverer"/>, a class for examining the capabilities of the WOPI client.
+/// </summary>
+/// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
+/// <param name="discoveryOptions"></param>
+public class WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, DiscoveryOptions discoveryOptions) : IDiscoverer
 {
     private const string ElementNetZone = "net-zone";
     private const string ElementApp = "app";
@@ -20,9 +25,9 @@ public class WopiDiscoverer : IDiscoverer
 
     private AsyncExpiringLazy<IEnumerable<XElement>> _apps;
 
-    private IDiscoveryFileProvider DiscoveryFileProvider { get; }
+    private IDiscoveryFileProvider DiscoveryFileProvider { get; } = discoveryFileProvider;
 
-    private DiscoveryOptions DiscoveryOptions { get; }
+    private DiscoveryOptions DiscoveryOptions { get; } = discoveryOptions;
 
     private AsyncExpiringLazy<IEnumerable<XElement>> Apps
     {
@@ -43,21 +48,7 @@ public class WopiDiscoverer : IDiscoverer
         }
     }
 
-    /// <summary>
-    /// Creates a new instance of the <see cref="WopiDiscoverer"/>, a class for examining the capabilities of the WOPI client.
-    /// </summary>
-    /// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
-    /// <param name="discoveryOptions"></param>
-    public WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, DiscoveryOptions discoveryOptions)
-    {
-        DiscoveryFileProvider = discoveryFileProvider;
-        DiscoveryOptions = discoveryOptions;
-    }
-
-    internal async Task<IEnumerable<XElement>> GetAppsAsync()
-    {
-        return await Apps.Value();
-    }
+    internal async Task<IEnumerable<XElement>> GetAppsAsync() => await Apps.Value();
 
     private bool ValidateNetZone(XElement e)
     {
@@ -80,7 +71,7 @@ public class WopiDiscoverer : IDiscoverer
     {
         var actionString = action.ToString().ToUpperInvariant();
 
-        var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.ToUpperInvariant() == actionString);
+        var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase));
 
         return query.Any();
     }
@@ -90,7 +81,7 @@ public class WopiDiscoverer : IDiscoverer
     {
         var actionString = action.ToString().ToUpperInvariant();
 
-        var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.ToUpperInvariant() == actionString).Select(e => e.Attribute(AttrActionRequires).Value.Split(','));
+        var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase)).Select(e => e.Attribute(AttrActionRequires).Value.Split(','));
 
         return query.FirstOrDefault();
     }
@@ -106,7 +97,7 @@ public class WopiDiscoverer : IDiscoverer
     public async Task<string> GetUrlTemplateAsync(string extension, WopiActionEnum action)
     {
         var actionString = action.ToString().ToUpperInvariant();
-        var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.ToUpperInvariant() == actionString).Select(e => e.Attribute(AttrActionUrl).Value);
+        var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase)).Select(e => e.Attribute(AttrActionUrl).Value);
         return query.FirstOrDefault();
     }
 

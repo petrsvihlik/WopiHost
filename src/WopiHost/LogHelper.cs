@@ -15,15 +15,9 @@ public static class LogHelper
     /// <param name="httpContext">HTTP context instance</param>
     public static void EnrichWithWopiDiagnostics(IDiagnosticContext diagnosticContext, HttpContext httpContext)
     {
-        if (diagnosticContext is null)
-        {
-            throw new System.ArgumentNullException(nameof(diagnosticContext));
-        }
+        ArgumentNullException.ThrowIfNull(diagnosticContext);
 
-        if (httpContext is null)
-        {
-            throw new System.ArgumentNullException(nameof(httpContext));
-        }
+        ArgumentNullException.ThrowIfNull(httpContext);
 
         var request = httpContext.Request;
 

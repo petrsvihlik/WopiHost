@@ -10,28 +10,22 @@ namespace WopiHost.Url;
 /// WOPI v2 spec: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/discovery
 /// WOPI v1 spec: https://msdn.microsoft.com/en-us/library/hh695362(v=office.12).aspx
 /// </summary>
-public partial class WopiUrlBuilder
+/// <remarks>
+/// Creates a new instance of WOPI URL generator class.
+/// </remarks>
+/// <param name="discoverer">Provider of WOPI discovery data.</param>
+/// <param name="urlSettings">Additional settings influencing behavior of the WOPI client.</param>
+public partial class WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings urlSettings = null)
 {
     [GeneratedRegex("<(?<name>\\w*)=(?<value>\\w*)&*>")]
     private static partial Regex UrlParamRegex();
     
-    private readonly IDiscoverer _wopiDiscoverer;
+    private readonly IDiscoverer _wopiDiscoverer = discoverer;
 
     /// <summary>
     /// Additional URL parameters influencing the behavior of the WOPI client.
     /// </summary>
-    public WopiUrlSettings UrlSettings { get; }
-
-    /// <summary>
-    /// Creates a new instance of WOPI URL generator class.
-    /// </summary>
-    /// <param name="discoverer">Provider of WOPI discovery data.</param>
-    /// <param name="urlSettings">Additional settings influencing behavior of the WOPI client.</param>
-    public WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings urlSettings = null)
-    {
-        _wopiDiscoverer = discoverer;
-        UrlSettings = urlSettings;
-    }
+    public WopiUrlSettings UrlSettings { get; } = urlSettings;
 
     /// <summary>
     /// Generates an URL for a given file and action.

@@ -6,22 +6,17 @@
 /// https://www.strathweb.com/2016/11/lazy-async-initialization-for-expiring-objects/
 /// </summary>
 /// <typeparam name="T">Type of the temporary value.</typeparam>
-public class AsyncExpiringLazy<T>
+/// <remarks>
+/// Creates a new instance of <see cref="AsyncExpiringLazy{T}"/>.
+/// </remarks>
+/// <param name="valueProvider">A delegate that facilitates the creation of the value.</param>
+/// <exception cref="ArgumentNullException">The <paramref name="valueProvider"/> must be initialized.</exception>
+public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>>> valueProvider)
 {
     private static readonly SemaphoreSlim SyncLock = new(initialCount: 1);
-    private readonly Func<TemporaryValue<T>, Task<TemporaryValue<T>>> _valueProvider;
+    private readonly Func<TemporaryValue<T>, Task<TemporaryValue<T>>> _valueProvider = valueProvider ?? throw new ArgumentNullException(nameof(valueProvider));
     private TemporaryValue<T> _value;
     private bool IsValueCreatedInternal => _value.Result != null && _value.ValidUntil > DateTimeOffset.UtcNow;
-
-    /// <summary>
-    /// Creates a new instance of <see cref="AsyncExpiringLazy{T}"/>.
-    /// </summary>
-    /// <param name="valueProvider">A delegate that facilitates the creation of the value.</param>
-    /// <exception cref="ArgumentNullException">The <paramref name="valueProvider"/> must be initialized.</exception>
-    public AsyncExpiringLazy(Func<TemporaryValue<T>, Task<TemporaryValue<T>>> valueProvider)
-    {
-        _valueProvider = valueProvider ?? throw new ArgumentNullException(nameof(valueProvider));
-    }
 
     /// <summary>
     /// Returns true if a value has been created and is still valid.

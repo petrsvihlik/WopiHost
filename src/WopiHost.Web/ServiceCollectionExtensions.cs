@@ -4,8 +4,8 @@ public static class ServiceCollectionExtensions
 {
     public static TConfig Configure<TConfig>(this IServiceCollection services, IConfiguration configuration) where TConfig : class, new()
     {
-        if (services == null) throw new ArgumentNullException(nameof(services));
-        if (configuration == null) throw new ArgumentNullException(nameof(configuration));
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
 
         var config = new TConfig();
         configuration.Bind(config);
@@ -15,9 +15,9 @@ public static class ServiceCollectionExtensions
 
     public static TConfig Configure<TConfig>(this IServiceCollection services, IConfiguration configuration, Func<TConfig> pocoProvider) where TConfig : class
     {
-        if (services == null) throw new ArgumentNullException(nameof(services));
-        if (configuration == null) throw new ArgumentNullException(nameof(configuration));
-        if (pocoProvider == null) throw new ArgumentNullException(nameof(pocoProvider));
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(pocoProvider);
 
         var config = pocoProvider();
         configuration.Bind(config);
@@ -27,9 +27,9 @@ public static class ServiceCollectionExtensions
 
     public static TConfig Configure<TConfig>(this IServiceCollection services, IConfiguration configuration, TConfig config) where TConfig : class
     {
-        if (services == null) throw new ArgumentNullException(nameof(services));
-        if (configuration == null) throw new ArgumentNullException(nameof(configuration));
-        if (config == null) throw new ArgumentNullException(nameof(config));
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(config);
 
         configuration.Bind(config);
         services.AddSingleton(config);

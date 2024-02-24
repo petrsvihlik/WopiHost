@@ -10,22 +10,28 @@ namespace WopiHost.Core.Controllers;
 /// <summary>
 /// Extends the <see cref="ControllerBase"/> with some basic WOPI-related functionality.
 /// </summary>
-public abstract class WopiControllerBase : ControllerBase
+/// <remarks>
+/// Default constructor.
+/// </remarks>
+/// <param name="storageProvider">Object facilitating access to the storage of WOPI files.</param>
+/// <param name="securityHandler">Object facilitating security-related actions.</param>
+/// <param name="wopiHostOptions">WOPI Host configuration object</param>
+public abstract class WopiControllerBase(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions) : ControllerBase
 {
     /// <summary>
     /// Provides access to the storage.
     /// </summary>
-    protected IWopiStorageProvider StorageProvider { get; }
+    protected IWopiStorageProvider StorageProvider { get; } = storageProvider;
 
     /// <summary>
     /// Provides security-related actions.
     /// </summary>
-    protected IWopiSecurityHandler SecurityHandler { get; }
+    protected IWopiSecurityHandler SecurityHandler { get; } = securityHandler;
 
     /// <summary>
     /// WOPI Host configuration object.
     /// </summary>
-    protected IOptionsSnapshot<WopiHostOptions> WopiHostOptions { get; }
+    protected IOptionsSnapshot<WopiHostOptions> WopiHostOptions { get; } = wopiHostOptions;
 
     /// <summary>
     /// WOPI Host base URL
@@ -43,19 +49,6 @@ public abstract class WopiControllerBase : ControllerBase
             var authenticateInfo = HttpContext.AuthenticateAsync(AccessTokenDefaults.AUTHENTICATION_SCHEME).Result;
             return authenticateInfo?.Properties?.GetTokenValue(AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME);
         }
-    }
-
-    /// <summary>
-    /// Default constructor.
-    /// </summary>
-    /// <param name="storageProvider">Object facilitating access to the storage of WOPI files.</param>
-    /// <param name="securityHandler">Object facilitating security-related actions.</param>
-    /// <param name="wopiHostOptions">WOPI Host configuration object</param>
-    protected WopiControllerBase(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions)
-    {
-        StorageProvider = storageProvider;
-        SecurityHandler = securityHandler;
-        WopiHostOptions = wopiHostOptions;
     }
 
     /// <summary>

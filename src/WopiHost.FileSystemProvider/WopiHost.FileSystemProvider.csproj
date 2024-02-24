@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>WopiHost.FileSystemProvider Class Library</Description>
     <Authors>Petr Svihlik</Authors>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>WopiHost.FileSystemProvider</AssemblyName>
     <PackageId>WopiHost.FileSystemProvider</PackageId>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
@@ -33,26 +33,22 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="7.0.0" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
     <PackageReference Include="Mono.Unix" Version="7.1.0-final.1.21458.1" />
+	  <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="8.0.2" />
+	  <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+	  <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.1" />
+	  <PackageReference Include="System.Diagnostics.FileVersionInfo" Version="4.3.0" />
+	  <PackageReference Include="System.IO.FileSystem.AccessControl" Version="5.0.0" />
+	  <PackageReference Include="System.Security.Claims" Version="4.3.0" />
+	  <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
+	  <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.3.1" />
+	  <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.3.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WopiHost.Abstractions\WopiHost.Abstractions.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="7.0.0" />
-    <PackageReference Include="System.Diagnostics.FileVersionInfo" Version="4.3.0" />
-    <PackageReference Include="System.IO.FileSystem.AccessControl" Version="5.0.0" />
-    <PackageReference Include="System.Security.Claims" Version="4.3.0" />
-    <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
-    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="6.25.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.25.0" />
-    
+	  <ProjectReference Include="..\WopiHost.Abstractions\WopiHost.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

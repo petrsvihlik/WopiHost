@@ -3,8 +3,5 @@
 public class WopiSecurityHandlerTests
 {
     [Fact]
-    public void DummyTest()
-    {
-        Assert.True(true);
-    }
+    public void DummyTest() => Assert.True(true);
 }

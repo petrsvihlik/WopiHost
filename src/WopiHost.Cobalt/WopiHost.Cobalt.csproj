@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>WopiHost.Cobalt Class Library</Description>
     <Authors>Petr Svihlik</Authors>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>WopiHost.Cobalt</AssemblyName>
     <PackageId>WopiHost.Cobalt</PackageId>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
@@ -30,7 +30,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>

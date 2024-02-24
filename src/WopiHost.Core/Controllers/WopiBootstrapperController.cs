@@ -1,4 +1,5 @@
 ﻿using System.Net.Mime;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -11,19 +12,15 @@ namespace WopiHost.Core.Controllers;
 /// <summary>
 /// Controller containing the bootstrap operation.
 /// </summary>
+/// <remarks>
+/// Creates an instance of <see cref="WopiBootstrapperController"/>.
+/// </remarks>
+/// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
+/// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
+/// <param name="wopiHostOptions">WOPI Host configuration</param>
 [Route("wopibootstrapper")]
-public class WopiBootstrapperController : WopiControllerBase
+public class WopiBootstrapperController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions) : WopiControllerBase(storageProvider, securityHandler, wopiHostOptions)
 {
-    /// <summary>
-		/// Creates an instance of <see cref="WopiBootstrapperController"/>.
-    /// </summary>
-    /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
-    /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
-    /// <param name="wopiHostOptions">WOPI Host configuration</param>
-    public WopiBootstrapperController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions)
-        : base(storageProvider, securityHandler, wopiHostOptions)
-    {
-    }
 
     /// <summary>
     /// Gets information about the root container.
@@ -33,7 +30,7 @@ public class WopiBootstrapperController : WopiControllerBase
     [Produces(MediaTypeNames.Application.Json)]
     public IActionResult GetRootContainer() //TODO: fix the path
     {
-        var authorizationHeader = HttpContext.Request.Headers["Authorization"];
+        var authorizationHeader = HttpContext.Request.Headers.Authorization;
         var ecosystemOperation = HttpContext.Request.Headers[WopiHeaders.ECOSYSTEM_OPERATION];
         var wopiSrc = HttpContext.Request.Headers[WopiHeaders.WOPI_SRC].FirstOrDefault();
 
@@ -90,18 +87,18 @@ public class WopiBootstrapperController : WopiControllerBase
             var tokenIssuanceUri = "https://contoso.com/api/oauth2/token";
             var providerId = "tp_contoso";
             var urlSchemes = Uri.EscapeDataString("{\"iOS\" : [\"contoso\",\"contoso - EMM\"], \"Android\" : [\"contoso\",\"contoso - EMM\"], \"UWP\": [\"contoso\",\"contoso - EMM\"]}");
-            Response.Headers.Add("WWW-Authenticate", $"Bearer authorization_uri=\"{authorizationUri}\",tokenIssuance_uri=\"{tokenIssuanceUri}\",providerId=\"{providerId}\", UrlSchemes=\"{urlSchemes}\"");
+            Response.Headers.Append("WWW-Authenticate", $"Bearer authorization_uri=\"{authorizationUri}\",tokenIssuance_uri=\"{tokenIssuanceUri}\",providerId=\"{providerId}\", UrlSchemes=\"{urlSchemes}\"");
             return new UnauthorizedResult();
         }
     }
 
     private string GetIdFromUrl(string resourceUrl)
     {
-        var resourceId = resourceUrl[(resourceUrl.LastIndexOf("/", StringComparison.Ordinal) + 1)..];
-        var queryIndex = resourceId.IndexOf("?", StringComparison.Ordinal);
+        var resourceId = resourceUrl[(resourceUrl.LastIndexOf('/') + 1)..];
+        var queryIndex = resourceId.IndexOf('?');
         if (queryIndex > -1)
         {
-            resourceId = resourceId.Substring(0, queryIndex);
+            resourceId = resourceId[..queryIndex];
         }
         resourceId = Uri.UnescapeDataString(resourceId);
         return resourceId;
@@ -111,6 +108,5 @@ public class WopiBootstrapperController : WopiControllerBase
     {
         //TODO: implement header validation https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getrootcontainer#sample-response
         // http://stackoverflow.com/questions/31948426/oauth-bearer-token-authentication-is-not-passing-signature-validation
-        return true;
-    }
+        true;
 }

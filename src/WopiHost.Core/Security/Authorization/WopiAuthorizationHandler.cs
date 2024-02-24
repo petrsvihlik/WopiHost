@@ -6,21 +6,16 @@ namespace WopiHost.Core.Security.Authorization;
 /// <summary>
 /// Performs resource-based authorization.
 /// </summary>
-public class WopiAuthorizationHandler : AuthorizationHandler<WopiAuthorizationRequirement, FileResource>
+/// <remarks>
+/// Creates an instance of <see cref="WopiAuthorizationHandler"/>.
+/// </remarks>
+/// <param name="securityHandler">AuthNZ handler.</param>
+public class WopiAuthorizationHandler(IWopiSecurityHandler securityHandler) : AuthorizationHandler<WopiAuthorizationRequirement, FileResource>
 {
     /// <summary>
     /// Provides authentication and performs authorization operations for WOPI objects
     /// </summary>
-    public IWopiSecurityHandler SecurityHandler { get; }
-
-    /// <summary>
-    /// Creates an instance of <see cref="WopiAuthorizationHandler"/>.
-    /// </summary>
-    /// <param name="securityHandler">AuthNZ handler.</param>
-    public WopiAuthorizationHandler(IWopiSecurityHandler securityHandler)
-    {
-        SecurityHandler = securityHandler;
-    }
+    public IWopiSecurityHandler SecurityHandler { get; } = securityHandler;
 
     /// <summary>
     /// Performs resource-based authorization check.

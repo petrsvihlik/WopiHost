@@ -7,14 +7,9 @@ using Serilog;
 
 namespace WopiHost;
 
-public class Startup
+public class Startup(IConfiguration configuration)
 {
-    public IConfiguration Configuration { get; set; }
-
-    public Startup(IConfiguration configuration)
-    {
-        Configuration = configuration;
-    }
+    public IConfiguration Configuration { get; set; } = configuration;
 
     public void ConfigureContainer(ContainerBuilder builder)
     {
