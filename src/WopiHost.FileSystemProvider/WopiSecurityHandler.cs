@@ -8,9 +8,13 @@ using WopiHost.Abstractions;
 namespace WopiHost.FileSystemProvider;
 
 /// <inheritdoc/>
-public class WopiSecurityHandler : IWopiSecurityHandler
+/// <summary>
+/// Creates a new instance of the <see cref="WopiSecurityHandler"/>.
+/// </summary>
+/// <param name="loggerFactory">An instance of a type used to configure the logging system and create instances of Microsoft.Extensions.Logging.ILogger from the registered Microsoft.Extensions.Logging.ILoggerProviders.</param>
+public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHandler
 {
-    private readonly ILogger _logger;
+    private readonly ILogger _logger = loggerFactory.CreateLogger<WopiSecurityHandler>();
     private readonly JwtSecurityTokenHandler _tokenHandler = new();
     private SymmetricSecurityKey _key = null;
 
@@ -49,15 +53,6 @@ public class WopiSecurityHandler : IWopiSecurityHandler
         )
         }
     };
-
-    /// <summary>
-    /// Creates a new instance of the <see cref="WopiSecurityHandler"/>.
-    /// </summary>
-    /// <param name="loggerFactory">An instance of a type used to configure the logging system and create instances of Microsoft.Extensions.Logging.ILogger from the registered Microsoft.Extensions.Logging.ILoggerProviders.</param>
-    public WopiSecurityHandler(ILoggerFactory loggerFactory)
-    {
-        _logger = loggerFactory.CreateLogger<WopiSecurityHandler>();
-    }
 
     /// <inheritdoc/>
     public SecurityToken GenerateAccessToken(string userId, string resourceId)
@@ -102,17 +97,12 @@ public class WopiSecurityHandler : IWopiSecurityHandler
     }
 
     /// <inheritdoc/>
-    public bool IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation)
-    {
+    public bool IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation) =>
         //TODO: logic
-        return true;
-    }
+        true;
 
     /// <summary>
     /// Converts the security token to a Base64 string.
     /// </summary>
-    public string WriteToken(SecurityToken token)
-    {
-        return _tokenHandler.WriteToken(token);
-    }
+    public string WriteToken(SecurityToken token) => _tokenHandler.WriteToken(token);
 }

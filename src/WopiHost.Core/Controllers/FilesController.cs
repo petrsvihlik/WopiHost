@@ -155,13 +155,9 @@ public class FilesController : WopiControllerBase
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
-    [HttpPost("{id}"), WopiOverrideHeader(new[] { "PUT_RELATIVE" })]
+    [HttpPost("{id}"), WopiOverrideHeader(["PUT_RELATIVE"])]
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-    public async Task<IActionResult> PutRelativeFile(string id)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
-    {
-        throw new NotImplementedException($"{nameof(PutRelativeFile)} is not implemented yet.");
-    }
+    public async Task<IActionResult> PutRelativeFile(string id) => throw new NotImplementedException($"{nameof(PutRelativeFile)} is not implemented yet.");
 
     /// <summary>
     /// Changes the contents of the file in accordance with [MS-FSSHTTP].
@@ -170,7 +166,7 @@ public class FilesController : WopiControllerBase
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
-    [HttpPost("{id}"), WopiOverrideHeader(new[] { "COBALT" })]
+    [HttpPost("{id}"), WopiOverrideHeader(["COBALT"])]
     public async Task<IActionResult> ProcessCobalt(string id)
     {
         // Check permissions
@@ -202,7 +198,7 @@ public class FilesController : WopiControllerBase
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
-    [HttpPost("{id}"), WopiOverrideHeader(new[] { "LOCK", "UNLOCK", "REFRESH_LOCK", "GET_LOCK" })]
+    [HttpPost("{id}"), WopiOverrideHeader(["LOCK", "UNLOCK", "REFRESH_LOCK", "GET_LOCK"])]
     public IActionResult ProcessLock(string id)
     {
         string oldLock = Request.Headers[WopiHeaders.OLD_LOCK];

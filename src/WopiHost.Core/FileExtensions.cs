@@ -22,15 +22,9 @@ public static class FileExtensions
     /// <returns>CheckFileInfo model</returns>
     public static CheckFileInfo GetCheckFileInfo(this IWopiFile file, ClaimsPrincipal principal, HostCapabilities capabilities)
     {
-        if (file is null)
-        {
-            throw new ArgumentNullException(nameof(file));
-        }
+        ArgumentNullException.ThrowIfNull(file);
 
-        if (capabilities is null)
-        {
-            throw new ArgumentNullException(nameof(capabilities));
-        }
+        ArgumentNullException.ThrowIfNull(capabilities);
 
         var checkFileInfo = new CheckFileInfo();
         if (principal is not null)

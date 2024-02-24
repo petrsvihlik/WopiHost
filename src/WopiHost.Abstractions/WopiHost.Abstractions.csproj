@@ -37,9 +37,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="7.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="8.0.2" />
     <PackageReference Include="System.Security.Claims" Version="4.3.0" />
-    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="6.35.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.3.1" />
   </ItemGroup>
 
 </Project>

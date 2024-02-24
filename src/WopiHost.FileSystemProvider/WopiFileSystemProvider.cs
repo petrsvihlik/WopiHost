@@ -35,10 +35,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider
     /// <param name="configuration">Application configuration.</param>
     public WopiFileSystemProvider(IHostEnvironment env, IConfiguration configuration)
     {
-        if (configuration is null)
-        {
-            throw new ArgumentNullException(nameof(configuration));
-        }
+        ArgumentNullException.ThrowIfNull(configuration);
 
         HostEnvironment = env ?? throw new ArgumentNullException(nameof(env));
         FileSystemProviderOptions = configuration.GetSection(WopiConfigurationSections.STORAGE_OPTIONS).Get<WopiFileSystemProviderOptions>(); //TODO: rework

@@ -9,7 +9,13 @@ namespace WopiHost.Core.Security.Authentication;
 /// <summary>
 /// Class facilitating authentication using an access token query parameter.
 /// </summary>
-public class AccessTokenHandler : AuthenticationHandler<AccessTokenAuthenticationOptions>
+/// <remarks>
+/// Creates an instance of <see cref="AccessTokenHandler"/>.
+/// </remarks>
+/// <param name="options">The monitor for the options instance.</param>
+/// <param name="logger">The Microsoft.Extensions.Logging.ILoggerFactory.</param>
+/// <param name="encoder">The System.Text.Encodings.Web.UrlEncoder.</param>
+public class AccessTokenHandler(IOptionsMonitor<AccessTokenAuthenticationOptions> options, ILoggerFactory logger, UrlEncoder encoder) : AuthenticationHandler<AccessTokenAuthenticationOptions>(options, logger, encoder)
 {
     /// <summary>
     /// Handles authentication using the access_token query parameter.
@@ -40,10 +46,10 @@ public class AccessTokenHandler : AuthenticationHandler<AccessTokenAuthenticatio
 
                     if (Options.SaveToken)
                     {
-                        ticket.Properties.StoreTokens(new[]
-                        {
+                        ticket.Properties.StoreTokens(
+                        [
                             new AuthenticationToken { Name = AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME, Value = token }
-                        });
+                        ]);
                     }
                     return Task.FromResult(AuthenticateResult.Success(ticket));
                 }
@@ -66,16 +72,5 @@ public class AccessTokenHandler : AuthenticationHandler<AccessTokenAuthenticatio
             Logger.LogError(new EventId(ex.HResult), ex, ex.Message);
             return Task.FromResult(AuthenticateResult.Fail(ex));
         }
-    }
-
-    /// <summary>
-    /// Creates an instance of <see cref="AccessTokenHandler"/>.
-    /// </summary>
-    /// <param name="options">The monitor for the options instance.</param>
-    /// <param name="logger">The Microsoft.Extensions.Logging.ILoggerFactory.</param>
-    /// <param name="encoder">The System.Text.Encodings.Web.UrlEncoder.</param>
-    public AccessTokenHandler(IOptionsMonitor<AccessTokenAuthenticationOptions> options, ILoggerFactory logger, UrlEncoder encoder) : base(options, logger, encoder)
-    {
-        // Used by for Dependency Injection
     }
 }

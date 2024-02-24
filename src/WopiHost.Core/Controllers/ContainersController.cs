@@ -10,18 +10,15 @@ namespace WopiHost.Core.Controllers;
 /// <summary>
 /// Implementation of WOPI server protocol https://msdn.microsoft.com/en-us/library/hh659001.aspx
 /// </summary>
+/// <remarks>
+/// Creates an instance of <see cref="ContainersController"/>.
+/// </remarks>
+/// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
+/// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
+/// <param name="wopiHostOptions">WOPI Host configuration</param>
 [Route("wopi/[controller]")]
-public class ContainersController : WopiControllerBase
+public class ContainersController(IOptionsSnapshot<WopiHostOptions> wopiHostOptions, IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler) : WopiControllerBase(storageProvider, securityHandler, wopiHostOptions)
 {
-    /// <summary>
-    /// Creates an instance of <see cref="ContainersController"/>.
-    /// </summary>
-    /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
-    /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
-    /// <param name="wopiHostOptions">WOPI Host configuration</param>
-    public ContainersController(IOptionsSnapshot<WopiHostOptions> wopiHostOptions, IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler) : base(storageProvider, securityHandler, wopiHostOptions)
-    {
-    }
 
     /// <summary>
     /// Returns the metadata about a container specified by an identifier.

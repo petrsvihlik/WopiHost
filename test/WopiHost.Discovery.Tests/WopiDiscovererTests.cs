@@ -15,10 +15,7 @@ public class WopiDiscovererTests
     {
     }
 
-    private void InitDiscoverer(string fileName, NetZoneEnum netZone)
-    {
-        _wopiDiscoverer = new WopiDiscoverer(new FileSystemDiscoveryFileProvider(Path.Combine(AppContext.BaseDirectory, fileName)), new DiscoveryOptions { NetZone = netZone });
-    }
+    private void InitDiscoverer(string fileName, NetZoneEnum netZone) => _wopiDiscoverer = new WopiDiscoverer(new FileSystemDiscoveryFileProvider(Path.Combine(AppContext.BaseDirectory, fileName)), new DiscoveryOptions { NetZone = netZone });
 
     [Theory]
     [InlineData(NetZoneEnum.ExternalHttps, "xlsm", WopiActionEnum.LegacyWebService, "https://excel.officeapps.live.com/x/_vti_bin/excelserviceinternal.asmx?<ui=UI_LLCC&><rs=DC_LLCC&><dchat=DISABLE_CHAT&><hid=HOST_SESSION_ID&><sc=SESSION_CONTEXT&><wopisrc=WOPI_SOURCE&>", XmlOo2019)]
@@ -145,7 +142,7 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "docx", WopiActionEnum.Edit, "http://owaserver/we/wordeditorframe.aspx?<ui=UI_LLCC&><rs=DC_LLCC&><showpagestats=PERFSTATS&>", XmlOwa2013)]
     [InlineData(NetZoneEnum.InternalHttp, "html", WopiActionEnum.Edit, null, XmlOwa2013)]
     [InlineData(NetZoneEnum.InternalHttp, "txt", WopiActionEnum.Edit, null, XmlOwa2013)]
-    public async void UrlTemplateTests(NetZoneEnum netZone, string extension, WopiActionEnum action, string expectedValue, string fileName)
+    public async void UrlTemplateTests(NetZoneEnum netZone, string extension, WopiActionEnum action, string? expectedValue, string fileName)
     {
         // Arrange
         InitDiscoverer(fileName, netZone);
@@ -162,7 +159,7 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "docx", "Word", XmlOos2016)]
     [InlineData(NetZoneEnum.InternalHttp, "html", null, XmlOos2016)]
     [InlineData(NetZoneEnum.InternalHttp, "txt", null, XmlOos2016)]
-    public async void AppNameTests(NetZoneEnum netZone, string extension, string expectedValue, string fileName)
+    public async void AppNameTests(NetZoneEnum netZone, string extension, string? expectedValue, string fileName)
     {
         // Arrange
         InitDiscoverer(fileName, netZone);
@@ -179,7 +176,7 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "docx", "http://owaserver/wv/resources/1033/FavIcon_Word.ico", XmlOos2016)]
     [InlineData(NetZoneEnum.InternalHttp, "html", null, XmlOos2016)]
     [InlineData(NetZoneEnum.InternalHttp, "txt", null, XmlOos2016)]
-    public async void FavIconTests(NetZoneEnum netZone, string extension, string expectedValue, string fileName)
+    public async void FavIconTests(NetZoneEnum netZone, string extension, string? expectedValue, string fileName)
     {
         // Arrange
         InitDiscoverer(fileName, netZone);

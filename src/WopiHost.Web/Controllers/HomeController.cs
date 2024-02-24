@@ -10,26 +10,18 @@ using Microsoft.Extensions.Options;
 
 namespace WopiHost.Web.Controllers;
 
-public class HomeController : Controller
+public class HomeController(IOptionsSnapshot<WopiOptions> wopiOptions, IWopiStorageProvider storageProvider, IDiscoverer discoverer, ILoggerFactory loggerFactory) : Controller
 {
     private WopiUrlBuilder _urlGenerator;
 
-    private IOptionsSnapshot<WopiOptions> WopiOptions { get; }
-    private IWopiStorageProvider StorageProvider { get; }
-    private IDiscoverer Discoverer { get; }
-    private ILoggerFactory LoggerFactory { get; }
+    private IOptionsSnapshot<WopiOptions> WopiOptions { get; } = wopiOptions;
+    private IWopiStorageProvider StorageProvider { get; } = storageProvider;
+    private IDiscoverer Discoverer { get; } = discoverer;
+    private ILoggerFactory LoggerFactory { get; } = loggerFactory;
 
 
     //TODO: remove test culture value and load it from configuration SECTION
     public WopiUrlBuilder UrlGenerator => _urlGenerator ??= new WopiUrlBuilder(Discoverer, new WopiUrlSettings { UiLlcc = new CultureInfo("en-US") });
-
-    public HomeController(IOptionsSnapshot<WopiOptions> wopiOptions, IWopiStorageProvider storageProvider, IDiscoverer discoverer, ILoggerFactory loggerFactory)
-    {
-        WopiOptions = wopiOptions;
-        StorageProvider = storageProvider;
-        Discoverer = discoverer;
-        LoggerFactory = loggerFactory;
-    }
 
     public async Task<ActionResult> Index()
     {

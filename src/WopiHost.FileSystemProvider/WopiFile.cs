@@ -7,20 +7,25 @@ using WopiHost.Abstractions;
 namespace WopiHost.FileSystemProvider;
 
 /// <inheritdoc/>
-public class WopiFile : IWopiFile
+/// <summary>
+/// Creates an instance of <see cref="WopiFile"/>.
+/// </summary>
+/// <param name="filePath">Path on the file system the file is located in.</param>
+/// <param name="fileIdentifier">Identifier of a file.</param>
+public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
 {
     private FileInfo _fileInfo;
 
     private FileVersionInfo _fileVersionInfo;
 
-    private string FilePath { get; set; }
+    private string FilePath { get; set; } = filePath;
 
     private FileInfo FileInfo => _fileInfo ??= new FileInfo(FilePath);
 
     private FileVersionInfo FileVersionInfo => _fileVersionInfo ??= FileVersionInfo.GetVersionInfo(FilePath);
 
     /// <inheritdoc/>
-    public string Identifier { get; }
+    public string Identifier { get; } = fileIdentifier;
 
     /// <inheritdoc />
     public bool Exists => FileInfo.Exists;
@@ -31,7 +36,7 @@ public class WopiFile : IWopiFile
         get
         {
             var ext = FileInfo.Extension;
-            if (ext.StartsWith(".", StringComparison.InvariantCulture))
+            if (ext.StartsWith('.'))
             {
                 ext = ext[1..];
             }
@@ -54,28 +59,11 @@ public class WopiFile : IWopiFile
     /// <inheritdoc/>
     public DateTime LastWriteTimeUtc => FileInfo.LastWriteTimeUtc;
 
-    /// <summary>
-    /// Creates an instance of <see cref="WopiFile"/>.
-    /// </summary>
-    /// <param name="filePath">Path on the file system the file is located in.</param>
-    /// <param name="fileIdentifier">Identifier of a file.</param>
-    public WopiFile(string filePath, string fileIdentifier)
-    {
-        FilePath = filePath;
-        Identifier = fileIdentifier;
-    }
+    /// <inheritdoc/>
+    public Stream GetReadStream() => FileInfo.OpenRead();
 
     /// <inheritdoc/>
-    public Stream GetReadStream()
-    {
-        return FileInfo.OpenRead();
-    }
-
-    /// <inheritdoc/>
-    public Stream GetWriteStream()
-    {
-        return FileInfo.Open(FileMode.Truncate);
-    }
+    public Stream GetWriteStream() => FileInfo.Open(FileMode.Truncate);
 
     /// <summary>
     /// A string that uniquely identifies the owner of the file.
