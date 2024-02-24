@@ -5,7 +5,7 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/369f0a7ff28279088d9c/maintainability)](https://codeclimate.com/github/petrsvihlik/WopiHost/maintainability)
 [![CodeFactor](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/badge/master)](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/overview/master)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_shield)
-[![.NET Core](https://img.shields.io/badge/net-7-692079.svg)](https://dotnet.microsoft.com/download/dotnet/7.0)
+[![.NET Core](https://img.shields.io/badge/net-8-692079.svg)](https://dotnet.microsoft.com/download/dotnet/8.0)
 
 | Package | Version | Downloads |
 | ------------- | :-------------: | :-------------: | 
@@ -53,12 +53,12 @@ Usage
 
 Prerequisites
 -------------
- - [.NET 7 SDK](https://dotnet.microsoft.com/download/dotnet/7.0)
+ - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
  - Recommended: [VS Code](https://code.visualstudio.com/) or [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)
 
 Building the app
 ----------------
-The WopiHost app targets `net7.0` exclusively.
+The WopiHost app targets `net8.0` exclusively.
 
 If you need a version that's targeting an older version of .NET, check out the releases:
 - [.NET 6](TBD)
