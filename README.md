@@ -5,7 +5,7 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/369f0a7ff28279088d9c/maintainability)](https://codeclimate.com/github/petrsvihlik/WopiHost/maintainability)
 [![CodeFactor](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/badge/master)](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/overview/master)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_shield)
-[![.NET Core](https://img.shields.io/badge/net-8-692079.svg)](https://dotnet.microsoft.com/download/dotnet/8.0)
+[![.NET Core](https://img.shields.io/badge/net-9-692079.svg)](https://dotnet.microsoft.com/download/dotnet/9.0)
 
 | Package | Version | Downloads |
 | ------------- | :-------------: | :-------------: | 
@@ -14,20 +14,6 @@
 | `WopiHost.Discovery` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Discovery.svg)](https://www.nuget.org/packages/WopiHost.Discovery) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Discovery.svg)](https://www.nuget.org/packages/WopiHost.Discovery) |
 | `WopiHost.FileSystemProvider` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.FileSystemProvider.svg)](https://www.nuget.org/packages/WopiHost.FileSystemProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.FileSystemProvider.svg)](https://www.nuget.org/packages/WopiHost.FileSystemProvider) |
 | `WopiHost.Url` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Url.svg)](https://www.nuget.org/packages/WopiHost.Url) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Url.svg)](https://www.nuget.org/packages/WopiHost.Url) |
-
-Supporters
-==========
-
-Sponsors
----------
-<a href="https://github.com/scottgal"><img src="https://github.com/scottgal.png" width="80" alt="scottgal" /></a>
-
-<!-- sponsors --><!-- sponsors -->
-
-Contributors
----------
-[![Contributors](https://contrib.rocks/image?repo=petrsvihlik/wopihost)](https://github.com/petrsvihlik/wopihost/graphs/contributors)
-
 
 
 Introduction
@@ -53,12 +39,12 @@ Usage
 
 Prerequisites
 -------------
- - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+ - [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
  - Recommended: [VS Code](https://code.visualstudio.com/) or [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)
 
 Building the app
 ----------------
-The WopiHost app targets `net8.0` exclusively.
+The WopiHost app targets `net9.0` exclusively.
 
 If you need a version that's targeting an older version of .NET, check out the releases:
 - [.NET 6](TBD)
@@ -146,7 +132,7 @@ https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/
 License
 =======
  - [LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt) - License for my part of the project
- - [ORIGINAL_WORK_LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost.Cobalt/ORIGINAL_WORK_LICENSE.txt) - License for Marx Yu's part of the project. This project is based on [Marx Yu's project](https://github.com/marx-yu/WopiHost).
+ - [ORIGINAL_WORK_LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/src/WopiHost.Cobalt/ORIGINAL_WORK_LICENSE.txt) - License for Marx Yu's part of the project. This project is based on [Marx Yu's project](https://github.com/marx-yu/WopiHost).
  - [NOTICE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/NOTICE.txt) - additional notes to how the licenses are applied
 
 
@@ -156,13 +142,12 @@ Building WOPI Host
 -----------------------
  - [Official WOPI Documentation](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/)
  - [Official WOPI REST API Reference](https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/6a8bb410-68ad-47e4-9dc3-6cf29c6b046b)
- - [Building an Office Web Apps (OWA) WOPI Host by Shawn Cicoria](https://code.msdn.microsoft.com/office/Building-an-Office-Web-f98650d6) + [WOPI Host and url paths](https://www.cicoria.com/office-web-appswopi-host-and-url-paths/)
+ - [WOPI Host and url paths](https://www.cicoria.com/office-web-appswopi-host-and-url-paths/)
  - [Office Online integration via WOPI Host by Richard diZerega](https://github.com/OfficeDev/PnP-WOPI) + [video](https://www.youtube.com/watch?v=9lGonu0eoGA)
 
 MS-FSSHTTP (Cobalt)
 -------
  - https://docs.microsoft.com/en-us/openspecs/sharepoint_protocols/ms-fsshttp/6d078cbe-2651-43a0-b460-685ac3f14c45
- - https://channel9.msdn.com/Events/Open-Specifications-Plugfests/Redmond-Interoperability-Protocols-Plugfest-2015/FSSHTTP-File-Synchronization-over-HTTP
 
 Building WOPI Client
 -------------------------

@@ -60,7 +60,7 @@ public class CheckFileInfo
     /// <summary>
     /// A URI to a web page that the WOPI client should navigate to when the user clicks on UI that displays <see cref="BreadcrumbBrandName"/>.
     /// </summary>
-    public string BreadcrumbBrandUrl { get; set; }
+    public Uri BreadcrumbBrandUrl { get; set; }
 
     /// <summary>
     /// A string that indicates the name of the file. If this is not provided, WOPI clients may use the <see cref="BaseFileName"/> value.
@@ -70,7 +70,7 @@ public class CheckFileInfo
     /// <summary>
     /// MAY specifies a URI to a web page that the WOPI client navigates to when the user clicks on UI that displays <see cref="BreadcrumbDocName"/>.
     /// </summary>
-    public string BreadcrumbDocUrl { get; set; }
+    public Uri BreadcrumbDocUrl { get; set; }
 
     /// <summary>
     /// A string that indicates the name of the container that contains the file.
@@ -80,12 +80,12 @@ public class CheckFileInfo
     /// <summary>
     /// A URI to a web page that the WOPI client should navigate to when the user clicks on UI that displays <see cref="BreadcrumbFolderName"/>.
     /// </summary>
-    public string BreadcrumbFolderUrl { get; set; }
+    public Uri BreadcrumbFolderUrl { get; set; }
 
     /// <summary>
     /// A user-accessible URI directly to the file intended for opening the file through a client.
     /// </summary>
-    public string ClientUrl { get; set; }
+    public Uri ClientUrl { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates the WOPI client should close the window or tab when the user activates any <c>Close</c> UI in the WOPI client.
@@ -95,7 +95,7 @@ public class CheckFileInfo
     /// <summary>
     /// A URI to a web page that the WOPI client should navigate to when the application closes, or in the event of an unrecoverable error.
     /// </summary>
-    public string CloseUrl { get; set; }
+    public Uri CloseUrl { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates that the WOPI client should disable caching of file contents in the browser cache. Note that this has important performance implications for web browser-based WOPI clients.
@@ -130,27 +130,27 @@ public class CheckFileInfo
     /// <summary>
     /// A user-accessible URI to the file intended to allow the user to download a copy of the file. This URI should directly download the file and it should always provide the most recent version of the file.
     /// </summary>
-    public string DownloadUrl { get; set; }
+    public Uri DownloadUrl { get; set; }
 
     /// <summary>
     /// A URI to a location that allows the user to create an embeddable URI to the file.
     /// </summary>
-    public string FileEmbedCommandUrl { get; set; }
+    public Uri FileEmbedCommandUrl { get; set; }
 
     /// <summary>
     /// A URI to a location that allows the user to share the file.
     /// </summary>
-    public string FileSharingUrl { get; set; }
+    public Uri FileSharingUrl { get; set; }
 
     /// <summary>
     /// A URI to the file location that the WOPI client uses to get the file.
     /// </summary>
-    public string FileUrl { get; set; }
+    public Uri FileUrl { get; set; }
 
     /// <summary>
     /// A URI to a location that allows the user to view the version history for the file.
     /// </summary>
-    public string FileVersionUrl { get; set; }
+    public Uri FileVersionUrl { get; set; }
 
     /// <summary>
     /// A string value uniquely identifying the user currently accessing the file.
@@ -160,17 +160,17 @@ public class CheckFileInfo
     /// <summary>
     /// A URI to a <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/glossary#host-page">host page</see> that loads the <c>edit</c> WOPI action.
     /// </summary>
-    public string HostEditUrl { get; set; }
+    public Uri HostEditUrl { get; set; }
 
     /// <summary>
     /// A URI to a web page that provides access to an editing experience for the file that can be embedded in another HTML page.
     /// </summary>
-    public string HostEmbeddedEditUrl { get; set; }
+    public Uri HostEmbeddedEditUrl { get; set; }
 
     /// <summary>
     /// A URI to a web page that provides access to a viewing experience for the file that can be embedded in another HTML page. This is typically a URI to a <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/glossary#host-page">host page</see> that loads the <c>embedview</c> WOPI action.
     /// </summary>
-    public string HostEmbeddedViewUrl { get; set; }
+    public Uri HostEmbeddedViewUrl { get; set; }
 
     /// <summary>
     /// A string that is the name provided by the WOPI server used to identify it for logging and other informational purposes.
@@ -185,12 +185,12 @@ public class CheckFileInfo
     /// <summary>
     /// A URI that is the base URI for REST operations for the file.
     /// </summary>
-    public string HostRestUrl { get; set; }
+    public Uri HostRestUrl { get; set; }
 
     /// <summary>
     /// A URI to a <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/glossary#host-page">host page</see> that loads the <c>view</c> WOPI action. This URL is used by Office Online to navigate between view and edit mode.
     /// </summary>
-    public string HostViewUrl { get; set; }
+    public Uri HostViewUrl { get; set; }
 
     /// <summary>
     /// A string that the WOPI client should display to the user indicating the IRM policy for the file. This value should be combined with <see cref="IrmPolicyTitle"/>.
@@ -215,7 +215,7 @@ public class CheckFileInfo
     /// <summary>
     /// A URI to a webpage that explains the privacy policy of the WOPI server.
     /// </summary>
-    public string PrivacyUrl { get; set; }
+    public Uri PrivacyUrl { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates that the WOPI client should take measures to prevent copying and printing of the file. 
@@ -226,7 +226,7 @@ public class CheckFileInfo
     /// A URI that will allow the user to sign in using the host’s authentication system. This property can be used when supporting anonymous users. If this property is not provided, no sign in UI will be shown in Office Online.
     /// <para>See also <seealso cref="SignoutUrl"/></para>
     /// </summary>
-    public string SignInUrl { get; set; }
+    public Uri SignInUrl { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates that, for this user, the file cannot be changed.
@@ -251,7 +251,7 @@ public class CheckFileInfo
     /// <summary>
     /// A URI that will sign the current user out of the host’s authentication system.
     /// </summary>
-    public string SignoutUrl { get; set; }
+    public Uri SignoutUrl { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates that the WOPI server supports multiple users making changes to this file simultaneously.
@@ -454,7 +454,7 @@ public class CheckFileInfo
     /// <summary>
     /// A URI to a webpage that explains the terms of use policy of the WOPI server.
     /// </summary>
-    public string TermsOfUseUrl { get; set; }
+    public Uri TermsOfUseUrl { get; set; }
 
     /// <summary>
     /// A string that is used to pass time zone information to a WOPI client. The format of this value is determined by the host.

@@ -20,7 +20,7 @@
 		/// <summary>
 		/// A URI to a webpage for the container.
 		/// </summary>
-		public string HostUrl { get; set; }
+		public Uri HostUrl { get; set; }
 
 		/// <summary>
 		/// A Boolean value indicating whether the user is an education user or not. This should match the IsEduUser value returned in CheckFileInfo.
@@ -35,7 +35,7 @@
 		/// <summary>
 		/// A URI to a webpage to allow the user to control sharing of the container. This is analogous to the FileSharingUrl in CheckFileInfo.
 		/// </summary>
-		public string SharingUrl { get; set; }
+		public Uri SharingUrl { get; set; }
 
 		/// <summary>
 		/// A Boolean value that indicates the user has permission to create a new container in the container.
