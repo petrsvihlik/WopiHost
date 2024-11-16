@@ -1,4 +1,6 @@
-﻿using Autofac.Extensions.DependencyInjection;
+﻿using Autofac;
+using Autofac.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
 
@@ -19,7 +21,23 @@ public static class Program
         try
         {
             Log.Information("Starting WOPI host");
-            CreateHostBuilder(args).Build().Run();
+
+            var builder = WebApplication.CreateBuilder(args);
+            var startup = new Startup(builder.Configuration);
+            builder.Host
+                .UseSerilog()
+                .UseServiceProviderFactory(new AutofacServiceProviderFactory())
+                .ConfigureContainer<ContainerBuilder>(startup.ConfigureContainer)
+                .UseContentRoot(Directory.GetCurrentDirectory());
+
+            startup.ConfigureServices(builder.Services);
+
+            var app = builder.Build();
+
+            startup.Configure(app, app.Environment);
+
+            app.Run();
+
             return 0;
         }
         catch (Exception ex)
@@ -32,13 +50,4 @@ public static class Program
             Log.CloseAndFlush();
         }
     }
-
-    public static IHostBuilder CreateHostBuilder(string[] args) =>
-        Host.CreateDefaultBuilder(args).UseSerilog()
-            .UseServiceProviderFactory(new AutofacServiceProviderFactory())
-            .UseContentRoot(Directory.GetCurrentDirectory())
-            .ConfigureWebHostDefaults(webBuilder =>
-            {
-                webBuilder.UseStartup<Startup>();
-            });
 }
