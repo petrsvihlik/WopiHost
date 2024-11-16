@@ -32,7 +32,7 @@ public static class FileExtensions
             checkFileInfo.UserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value.ToSafeIdentity();
             checkFileInfo.UserFriendlyName = principal.FindFirst(ClaimTypes.Name)?.Value;
 
-            var permissions = (WopiUserPermissions)Enum.Parse(typeof(WopiUserPermissions), principal.FindFirst(WopiClaimTypes.USER_PERMISSIONS).Value);
+            var permissions = Enum.Parse<WopiUserPermissions>(principal.FindFirst(WopiClaimTypes.USER_PERMISSIONS).Value);
 
             checkFileInfo.ReadOnly = permissions.HasFlag(WopiUserPermissions.ReadOnly);
             checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiUserPermissions.RestrictedWebViewOnly);

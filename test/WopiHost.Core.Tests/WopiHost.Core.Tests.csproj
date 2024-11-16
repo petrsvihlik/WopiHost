@@ -1,27 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net9.0</TargetFramework>
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\WopiHost.Core\WopiHost.Core.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-	  <PackageReference Update="coverlet.collector" Version="6.0.1">
+	  <PackageReference Update="coverlet.collector" Version="6.0.2">
 	    <PrivateAssets>all</PrivateAssets>
 	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 	  </PackageReference>
-	  <PackageReference Update="coverlet.msbuild" Version="6.0.1">
+	  <PackageReference Update="coverlet.msbuild" Version="6.0.2">
 	    <PrivateAssets>all</PrivateAssets>
 	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 	  </PackageReference>
-	  <PackageReference Update="FakeItEasy" Version="8.1.0" />
-	  <PackageReference Update="Microsoft.NET.Test.Sdk" Version="17.9.0" />
-	  <PackageReference Update="xunit" Version="2.7.0" />
-	  <PackageReference Update="xunit.runner.console" Version="2.7.0">
+	  <PackageReference Update="FakeItEasy" Version="8.3.0" />
+	  <PackageReference Update="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+	  <PackageReference Update="xunit" Version="2.9.2" />
+	  <PackageReference Update="xunit.runner.console" Version="2.9.2">
 	    <PrivateAssets>all</PrivateAssets>
 	    <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 	  </PackageReference>
-	  <PackageReference Update="xunit.runner.visualstudio" Version="2.5.7">
+	  <PackageReference Update="xunit.runner.visualstudio" Version="2.8.2">
 	    <PrivateAssets>all</PrivateAssets>
 	    <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 	  </PackageReference>

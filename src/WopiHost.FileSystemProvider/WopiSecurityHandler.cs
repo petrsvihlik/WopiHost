@@ -41,15 +41,15 @@ public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHa
         {
             "Anonymous",
             new ClaimsPrincipal(
-            new ClaimsIdentity(new List<Claim>
-            {
+            new ClaimsIdentity(
+            [
                 new(ClaimTypes.NameIdentifier, "12345"),
                 new(ClaimTypes.Name, "Anonymous"),
                 new(ClaimTypes.Email, "anonymous@domain.tld"),
 
                 //TDOO: this needs to be done per file
                 new(WopiClaimTypes.USER_PERMISSIONS, (WopiUserPermissions.UserCanWrite | WopiUserPermissions.UserCanRename | WopiUserPermissions.UserCanAttend | WopiUserPermissions.UserCanPresent).ToString())
-            })
+            ])
         )
         }
     };
