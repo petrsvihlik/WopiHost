@@ -30,5 +30,7 @@ public static class WopiCoreBuilderExtensions
 
         services.AddAuthentication(o => { o.DefaultScheme = AccessTokenDefaults.AUTHENTICATION_SCHEME; })
             .AddTokenAuthentication(AccessTokenDefaults.AUTHENTICATION_SCHEME, AccessTokenDefaults.AUTHENTICATION_SCHEME, options => { options.SecurityHandler = securityHandler; });
+
+        services.AddOpenApi();
     }
 }

@@ -85,6 +85,7 @@ public class Startup(IConfiguration configuration)
 
         app.UseEndpoints(endpoints =>
         {
+            endpoints.MapOpenApi();
             endpoints.MapControllers();
         });
     }
