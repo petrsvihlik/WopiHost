@@ -26,13 +26,21 @@ public static class FileExtensions
 
         ArgumentNullException.ThrowIfNull(capabilities);
 
-        var checkFileInfo = new CheckFileInfo();
+        var checkFileInfo = new CheckFileInfo
+        {
+            UserId = string.Empty,
+            BaseFileName = file.Name,
+            OwnerId = file.Owner,
+            Version = file.LastWriteTimeUtc.ToString("s", CultureInfo.InvariantCulture)
+        };
+
         if (principal is not null)
         {
-            checkFileInfo.UserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value.ToSafeIdentity();
+            checkFileInfo.UserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value.ToSafeIdentity()
+                ?? throw new ArgumentNullException(nameof(principal));
             checkFileInfo.UserFriendlyName = principal.FindFirst(ClaimTypes.Name)?.Value;
 
-            var permissions = Enum.Parse<WopiUserPermissions>(principal.FindFirst(WopiClaimTypes.USER_PERMISSIONS).Value);
+            var permissions = Enum.Parse<WopiUserPermissions>(principal.FindFirstValue(WopiClaimTypes.USER_PERMISSIONS) ?? string.Empty);
 
             checkFileInfo.ReadOnly = permissions.HasFlag(WopiUserPermissions.ReadOnly);
             checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiUserPermissions.RestrictedWebViewOnly);
@@ -73,9 +81,7 @@ public static class FileExtensions
             var checksum = Sha.ComputeHash(stream);
             checkFileInfo.Sha256 = Convert.ToBase64String(checksum);
         }
-        checkFileInfo.BaseFileName = file.Name;
         checkFileInfo.FileExtension = "." + file.Extension.TrimStart('.');
-        checkFileInfo.Version = file.LastWriteTimeUtc.ToString("s", CultureInfo.InvariantCulture);
         checkFileInfo.LastModifiedTime = file.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture);
         checkFileInfo.Size = file.Exists ? file.Length : 0;
         return checkFileInfo;

@@ -10,17 +10,17 @@ public class FileResult : ActionResult
     /// <summary>
     /// An action that returns a stream with data to be written to the response body.
     /// </summary>
-    private Action<Stream> CopyStream { get; }
+    private Action<Stream>? CopyStream { get; }
 
     /// <summary>
     /// Byte array with the content to be written to the response body.
     /// </summary>
-    private byte[] Content { get; set; }
+    private byte[]? Content { get; set; }
 
     /// <summary>
     /// Source stream with data to be written to the response body.
     /// </summary>
-    private Stream SourceStream { get; }
+    private Stream? SourceStream { get; }
 
     /// <summary>
     /// Response content type header value.
@@ -81,6 +81,7 @@ public class FileResult : ActionResult
         }
         else
         {
+            ArgumentNullException.ThrowIfNull(SourceStream);
             using (SourceStream)
             {
                 if (SourceStream.CanSeek)

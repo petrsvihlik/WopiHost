@@ -16,5 +16,5 @@ public class AccessTokenAuthenticationOptions : AuthenticationSchemeOptions
     /// <summary>
     /// Performs AuthNZ operations. 
     /// </summary>
-    public IWopiSecurityHandler SecurityHandler { get; set; }
+    public IWopiSecurityHandler? SecurityHandler { get; set; }
 }

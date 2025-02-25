@@ -41,7 +41,7 @@ public abstract class WopiControllerBase(IWopiStorageProvider storageProvider, I
     /// <summary>
     /// WOPI authentication token
     /// </summary>
-    protected string AccessToken
+    protected string? AccessToken
     {
         get
         {
@@ -58,9 +58,10 @@ public abstract class WopiControllerBase(IWopiStorageProvider storageProvider, I
     /// <param name="identifier">Identifier of an object associated to the controller.</param>
     /// <param name="accessToken">Access token to use for authentication for the given controller.</param>
     /// <returns></returns>
-    protected Uri GetWopiUrl(string controller, string identifier = null, string accessToken = null)
+    protected Uri GetWopiUrl(string controller, string? identifier = null, string? accessToken = null)
     {
-        identifier = identifier is null ? "" : "/" + Uri.EscapeDataString(identifier);
+        ArgumentException.ThrowIfNullOrEmpty(accessToken);
+        identifier = identifier is null ? string.Empty : "/" + Uri.EscapeDataString(identifier);
         accessToken = Uri.EscapeDataString(accessToken);
         return new Uri(BaseUrl, $"/wopi/{controller}{identifier}?access_token={accessToken}");
     }
