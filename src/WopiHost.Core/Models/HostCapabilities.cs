@@ -144,7 +144,7 @@ public class HostCapabilities
     /// </list>
     /// </para>
     /// </summary>
-    public IEnumerable<string> SupportedShareUrlTypes { get; set; }
+    public IEnumerable<string> SupportedShareUrlTypes { get; set; } = [];
 
     /// <summary>
     /// A Boolean value that indicates that the host supports scenarios where users can operate on files in limited ways via restricted URLs.

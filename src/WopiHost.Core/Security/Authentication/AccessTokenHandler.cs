@@ -15,7 +15,10 @@ namespace WopiHost.Core.Security.Authentication;
 /// <param name="options">The monitor for the options instance.</param>
 /// <param name="logger">The Microsoft.Extensions.Logging.ILoggerFactory.</param>
 /// <param name="encoder">The System.Text.Encodings.Web.UrlEncoder.</param>
-public class AccessTokenHandler(IOptionsMonitor<AccessTokenAuthenticationOptions> options, ILoggerFactory logger, UrlEncoder encoder) : AuthenticationHandler<AccessTokenAuthenticationOptions>(options, logger, encoder)
+public class AccessTokenHandler(
+    IOptionsMonitor<AccessTokenAuthenticationOptions> options, 
+    ILoggerFactory logger, 
+    UrlEncoder encoder) : AuthenticationHandler<AccessTokenAuthenticationOptions>(options, logger, encoder)
 {
     /// <summary>
     /// Handles authentication using the access_token query parameter.
@@ -23,6 +26,7 @@ public class AccessTokenHandler(IOptionsMonitor<AccessTokenAuthenticationOptions
     /// <returns><see cref="AuthenticateResult"/> set to <see cref="AuthenticateResult.Succeeded"/> when the token is valid and <see cref="AuthenticateResult.Failure"/> when the token is invalid or expired.</returns>
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        ArgumentNullException.ThrowIfNull(Options.SecurityHandler);
         try
         {
             //TODO: implement access_token_ttl https://msdn.microsoft.com/en-us/library/hh695362(v=office.12).aspx		

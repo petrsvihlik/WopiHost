@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +23,7 @@ public class FilesController : WopiControllerBase
     /// <summary>
     /// Service that can process MS-FSSHTTP requests.
     /// </summary>
-    public ICobaltProcessor CobaltProcessor { get; set; }
+    public ICobaltProcessor? CobaltProcessor { get; set; }
 
     private HostCapabilities HostCapabilities => new()
     {
@@ -38,12 +39,12 @@ public class FilesController : WopiControllerBase
     /// <summary>
     /// Collection holding information about locks. Should be persistent.
     /// </summary>
-    private static IDictionary<string, LockInfo> _lockStorage;
+    private readonly IDictionary<string, LockInfo> _lockStorage;
 
     /// <summary>
     /// A string specifying the requested operation from the WOPI server
     /// </summary>
-    private string WopiOverrideHeader => HttpContext.Request.Headers[WopiHeaders.WOPI_OVERRIDE];
+    private string WopiOverrideHeader => HttpContext.Request?.Headers[WopiHeaders.WOPI_OVERRIDE].ToString() ?? string.Empty;
 
     /// <summary>
     /// Creates an instance of <see cref="FilesController"/>.
@@ -54,10 +55,16 @@ public class FilesController : WopiControllerBase
     /// <param name="authorizationService">An instance of authorization service capable of resource-based authorization.</param>
     /// <param name="lockStorage">An instance of a storage for lock information.</param>
     /// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
-    public FilesController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions, IAuthorizationService authorizationService, IDictionary<string, LockInfo> lockStorage, ICobaltProcessor cobaltProcessor = null) : base(storageProvider, securityHandler, wopiHostOptions)
+    public FilesController(
+        IWopiStorageProvider storageProvider, 
+        IWopiSecurityHandler securityHandler, 
+        IOptionsSnapshot<WopiHostOptions> wopiHostOptions, 
+        IAuthorizationService authorizationService, 
+        IDictionary<string, LockInfo> lockStorage, 
+        ICobaltProcessor? cobaltProcessor = null) : base(storageProvider, securityHandler, wopiHostOptions)
     {
         _authorizationService = authorizationService;
-        _lockStorage = lockStorage;
+        _lockStorage = lockStorage ?? throw new ArgumentNullException(nameof(lockStorage));
         CobaltProcessor = cobaltProcessor;
     }
 
@@ -84,9 +91,12 @@ public class FilesController : WopiControllerBase
     /// Example URL path: /wopi/files/(file_id)/contents
     /// </summary>
     /// <param name="id">File identifier.</param>
+    /// <param name="maximumExpectedSize"></param>
     /// <returns></returns>
     [HttpGet("{id}/contents")]
-    public async Task<IActionResult> GetFile(string id)
+    public async Task<IActionResult> GetFile(
+        string id,
+        [FromHeader(Name = WopiHeaders.MAX_EXPECTED_SIZE)] int? maximumExpectedSize = null)
     {
         // Check permissions
         if (!(await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Read)).Succeeded)
@@ -98,7 +108,6 @@ public class FilesController : WopiControllerBase
         var file = StorageProvider.GetWopiFile(id);
 
         // Check expected size
-        var maximumExpectedSize = HttpContext.Request.Headers[WopiHeaders.MAX_EXPECTED_SIZE].ToString().ToNullableInt();
         if (maximumExpectedSize is not null && file.GetCheckFileInfo(User, HostCapabilities).Size > maximumExpectedSize.Value)
         {
             return new PreconditionFailedResult();
@@ -167,9 +176,13 @@ public class FilesController : WopiControllerBase
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
+    /// <param name="correlationId"></param>
     [HttpPost("{id}"), WopiOverrideHeader(["COBALT"])]
-    public async Task<IActionResult> ProcessCobalt(string id)
+    public async Task<IActionResult> ProcessCobalt(
+        string id,
+        [FromHeader(Name = WopiHeaders.CORRELATION_ID)] string? correlationId = null)
     {
+        ArgumentNullException.ThrowIfNull(CobaltProcessor);
         // Check permissions
         if (!(await _authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Update)).Succeeded)
         {
@@ -186,8 +199,11 @@ public class FilesController : WopiControllerBase
         }
 
         var responseAction = CobaltProcessor.ProcessCobalt(file, User, await HttpContext.Request.Body.ReadBytesAsync());
-        HttpContext.Response.Headers.Append(WopiHeaders.CORRELATION_ID, HttpContext.Request.Headers[WopiHeaders.CORRELATION_ID]);
-        HttpContext.Response.Headers.Append("request-id", HttpContext.Request.Headers[WopiHeaders.CORRELATION_ID]);
+        if (!string.IsNullOrEmpty(correlationId))
+        {
+            HttpContext.Response.Headers.Append(WopiHeaders.CORRELATION_ID, correlationId);
+            HttpContext.Response.Headers.Append("request-id", correlationId);
+        }
         return new Results.FileResult(responseAction, "application/octet-stream");
     }
 
@@ -199,12 +215,14 @@ public class FilesController : WopiControllerBase
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
+    /// <param name="oldLock"></param>
+    /// <param name="newLock"></param>
     [HttpPost("{id}"), WopiOverrideHeader(["LOCK", "UNLOCK", "REFRESH_LOCK", "GET_LOCK"])]
-    public IActionResult ProcessLock(string id)
+    public IActionResult ProcessLock(
+        string id,
+        [FromHeader(Name = WopiHeaders.OLD_LOCK)] string? oldLock = null,
+        [FromHeader(Name = WopiHeaders.LOCK)] string? newLock = null)
     {
-        string oldLock = Request.Headers[WopiHeaders.OLD_LOCK];
-        string newLock = Request.Headers[WopiHeaders.LOCK];
-
         lock (_lockStorage)
         {
             var lockAcquired = TryGetLock(id, out var existingLock);
@@ -213,6 +231,7 @@ public class FilesController : WopiControllerBase
                 case "GET_LOCK":
                     if (lockAcquired)
                     {
+                        ArgumentNullException.ThrowIfNull(existingLock);
                         Response.Headers[WopiHeaders.LOCK] = existingLock.Lock;
                     }
                     return new OkResult();
@@ -221,9 +240,12 @@ public class FilesController : WopiControllerBase
                 case "PUT":
                     if (oldLock is null)
                     {
+                        ArgumentException.ThrowIfNullOrEmpty(newLock);
+
                         // Lock / put
                         if (lockAcquired)
                         {
+                            ArgumentNullException.ThrowIfNull(existingLock);
                             return LockOrRefresh(newLock, existingLock);
                         }
                         else
@@ -238,8 +260,10 @@ public class FilesController : WopiControllerBase
                         // Unlock and re-lock (https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock)
                         if (lockAcquired)
                         {
+                            ArgumentNullException.ThrowIfNull(existingLock);
                             if (existingLock.Lock == oldLock)
                             {
+                                ArgumentException.ThrowIfNullOrEmpty(newLock);
                                 // Replace the existing lock with the new one
                                 _lockStorage[id] = new LockInfo { DateCreated = DateTime.UtcNow, Lock = newLock };
                                 return new OkResult();
@@ -260,6 +284,7 @@ public class FilesController : WopiControllerBase
                 case "UNLOCK":
                     if (lockAcquired)
                     {
+                        ArgumentNullException.ThrowIfNull(existingLock);
                         if (existingLock.Lock == newLock)
                         {
                             // Remove valid lock
@@ -281,6 +306,8 @@ public class FilesController : WopiControllerBase
                 case "REFRESH_LOCK":
                     if (lockAcquired)
                     {
+                        ArgumentException.ThrowIfNullOrEmpty(newLock);
+                        ArgumentNullException.ThrowIfNull(existingLock);
                         return LockOrRefresh(newLock, existingLock);
                     }
                     else
@@ -308,7 +335,7 @@ public class FilesController : WopiControllerBase
             }
         }
 
-        StatusCodeResult ReturnLockMismatch(HttpResponse response, string existingLock = null, string reason = null)
+        StatusCodeResult ReturnLockMismatch(HttpResponse response, string? existingLock = null, string? reason = null)
         {
             response.Headers[WopiHeaders.LOCK] = existingLock ?? string.Empty;
             if (!string.IsNullOrEmpty(reason))
@@ -318,7 +345,7 @@ public class FilesController : WopiControllerBase
             return new ConflictResult();
         }
 
-        bool TryGetLock(string fileId, out LockInfo lockInfo)
+        bool TryGetLock(string fileId, [NotNullWhen(true)] out LockInfo? lockInfo)
         {
             if (_lockStorage.TryGetValue(fileId, out lockInfo))
             {
@@ -329,8 +356,10 @@ public class FilesController : WopiControllerBase
                 }
                 return true;
             }
-
-            return false;
+            else
+            {
+                return false;
+            }
         }
     }
 
