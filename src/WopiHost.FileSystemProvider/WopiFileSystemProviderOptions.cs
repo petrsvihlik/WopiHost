@@ -8,5 +8,5 @@ public class WopiFileSystemProviderOptions
     /// <summary>
     /// File system path indicating the root of the folder hierarchy considered by the <see cref="WopiFileSystemProvider"/>.
     /// </summary>
-    public string RootPath { get; set; }
+    public required string RootPath { get; set; }
 }
