@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<Description>WopiHost.Core Class Library</Description>
 		<Authors>Petr Svihlik</Authors>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
 		<AssemblyName>WopiHost.Core</AssemblyName>
 		<PackageId>WopiHost.Core</PackageId>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
@@ -41,7 +41,12 @@
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 
-	<ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.1" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.3.1" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.0" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
 	</ItemGroup>

@@ -1,45 +1,50 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <Description>WopiHost.Abstractions Class Library</Description>
-    <Authors>Petr Svihlik</Authors>
-    <TargetFramework>net9.0</TargetFramework>
-    <AssemblyName>WopiHost.Abstractions</AssemblyName>
-    <PackageId>WopiHost.Abstractions</PackageId>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <PackageIcon>logo.png</PackageIcon>
-    <PackageTags>WOPI;MS-WOPI;MS-FSSHTTP;Office Online Server;Office Web Apps;Web Application Open Platform Interface</PackageTags>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/petrsvihlik/WopiHost.git</RepositoryUrl>
-    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
-  </PropertyGroup>
-  
-  <ItemGroup>
-    <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="" />
-    <None Include="..\..\img\logo.png" Pack="true" PackagePath="" />
-  </ItemGroup>
+	<PropertyGroup>
+		<Description>WopiHost.Abstractions Class Library</Description>
+		<Authors>Petr Svihlik</Authors>
+		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+		<AssemblyName>WopiHost.Abstractions</AssemblyName>
+		<PackageId>WopiHost.Abstractions</PackageId>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageTags>WOPI;MS-WOPI;MS-FSSHTTP;Office Online Server;Office Web Apps;Web Application Open Platform Interface</PackageTags>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/petrsvihlik/WopiHost.git</RepositoryUrl>
+		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+		<GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+		<GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+		<DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
-  </PropertyGroup>
+	<ItemGroup>
+		<None Include="..\..\LICENSE.txt" Pack="true" PackagePath="" />
+		<None Include="..\..\img\logo.png" Pack="true" PackagePath="" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-  </ItemGroup>
+	<PropertyGroup>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="9.0.0" />
-    <PackageReference Include="System.Security.Claims" Version="4.3.0" />
-    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.2.1" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+		<PackageReference Include="System.Security.Claims" Version="4.3.0" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<PackageReference Include="Microsoft.AspNetCore.Authorization" Version="8.0.2" />
+		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.3.1" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+		<PackageReference Include="Microsoft.AspNetCore.Authorization" Version="9.0.0" />
+		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.2.1" />
+	</ItemGroup>
 
 </Project>
