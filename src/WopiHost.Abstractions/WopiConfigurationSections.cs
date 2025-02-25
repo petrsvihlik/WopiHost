@@ -18,5 +18,5 @@ public class WopiConfigurationSections
     /// <summary>
     /// Name of the configuration section related to WOPI discovery.
     /// </summary>
-    public const string DISCOEVRY_OPTIONS = WOPI_ROOT + ":Discovery";
+    public const string DISCOVERY_OPTIONS = WOPI_ROOT + ":Discovery";
 }
