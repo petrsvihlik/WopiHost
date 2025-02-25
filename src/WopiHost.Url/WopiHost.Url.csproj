@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<Nullable>enable</Nullable>
 		<Description>WopiHost.Url Class Library</Description>
 		<Authors>Petr Svihlik</Authors>
 		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>

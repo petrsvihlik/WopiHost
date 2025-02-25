@@ -9,7 +9,9 @@ public static class CollectionExtensions
     /// Merges two dictionaries. If duplicate occurs, <param name="dictA"></param> wins over <param name="dictB" />.
     /// </summary>
     /// <returns></returns>
-    public static IDictionary<TKey, TValue> Merge<TKey, TValue>(this IDictionary<TKey, TValue> dictA, IDictionary<TKey, TValue> dictB) where TValue : class
+    public static IDictionary<TKey, TValue>? Merge<TKey, TValue>(this IDictionary<TKey, TValue>? dictA, IDictionary<TKey, TValue>? dictB)
+        where TKey : notnull
+        where TValue : class
     {
         if (dictA is null)
         {
@@ -19,6 +21,6 @@ public static class CollectionExtensions
         {
             return dictA;
         }
-        return dictA.Keys.Union(dictB.Keys).ToDictionary(k => k, k => dictA.TryGetValue(k, out TValue value) ? value : dictB[k]);
+        return dictA.Keys.Union(dictB.Keys).ToDictionary(k => k, k => dictA.TryGetValue(k, out TValue? value) ? value : dictB[k]);
     }
 }
