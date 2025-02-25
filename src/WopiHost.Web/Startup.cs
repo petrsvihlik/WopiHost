@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
@@ -5,28 +6,30 @@ using WopiHost.Web.Models;
 
 namespace WopiHost.Web;
 
-public class Startup(IConfiguration configuration)
+public class Startup
 {
-    public IConfiguration Configuration { get; } = configuration;
+    protected Startup()
+    {
+    }
 
     /// <summary>
     /// Sets up the DI container.
     /// </summary>
-    public void ConfigureServices(IServiceCollection services)
+    public static void ConfigureServices(IServiceCollection services)
     {
         services.AddControllersWithViews()
             .AddRazorRuntimeCompilation(); // Add browser link
-        services.AddSingleton(Configuration);
 
         // Configuration
         services.AddOptions();
-        services.Configure<WopiOptions>(Configuration.GetSection(WopiConfigurationSections.WOPI_ROOT));
+        services.AddOptions<WopiOptions>(WopiConfigurationSections.WOPI_ROOT);
 
-        services.AddHttpClient<IDiscoveryFileProvider, HttpDiscoveryFileProvider>(client =>
+        services.AddHttpClient<IDiscoveryFileProvider, HttpDiscoveryFileProvider>((sp, client) =>
         {
-            client.BaseAddress = new Uri(Configuration[$"{WopiConfigurationSections.WOPI_ROOT}:{nameof(WopiOptions.ClientUrl)}"]);
+            var wopiOptions = sp.GetRequiredService<IOptions<WopiOptions>>();
+            client.BaseAddress = wopiOptions.Value.ClientUrl;
         });
-        services.Configure<DiscoveryOptions>(Configuration.GetSection($"{WopiConfigurationSections.DISCOEVRY_OPTIONS}"));
+        services.AddOptions<DiscoveryOptions>(WopiConfigurationSections.DISCOVERY_OPTIONS);
         services.AddSingleton<IDiscoverer, WopiDiscoverer>();
 
         services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
@@ -41,7 +44,7 @@ public class Startup(IConfiguration configuration)
     /// <summary>
     /// Configure is called after ConfigureServices is called.
     /// </summary>
-    public void Configure(IApplicationBuilder app)
+    public static void Configure(IApplicationBuilder app)
     {
         app.UseDeveloperExceptionPage();
 
