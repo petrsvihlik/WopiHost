@@ -23,7 +23,7 @@ public class WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, Discov
     private const string AttrAppFavicon = "favIconUrl";
     private const string AttrValCobalt = "cobalt";
 
-    private AsyncExpiringLazy<IEnumerable<XElement>> _apps;
+    private AsyncExpiringLazy<IEnumerable<XElement>>? _apps;
 
     private IDiscoveryFileProvider DiscoveryFileProvider { get; } = discoveryFileProvider;
 
@@ -52,7 +52,11 @@ public class WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, Discov
 
     private bool ValidateNetZone(XElement e)
     {
-        var netZoneString = (string)e.Attribute(AttrNetZoneName);
+        var netZoneString = e.Attribute(AttrNetZoneName)?.Value;
+        if (string.IsNullOrEmpty(netZoneString))
+        {
+            return false;
+        }
         netZoneString = netZoneString.Replace("-", "", StringComparison.InvariantCulture);
         var success = Enum.TryParse(netZoneString, true, out NetZoneEnum netZone);
         return success && (netZone == DiscoveryOptions.NetZone);
@@ -62,7 +66,7 @@ public class WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, Discov
     public async Task<bool> SupportsExtensionAsync(string extension)
     {
         var query = (await GetAppsAsync()).Elements()
-            .FirstOrDefault(e => (string)e.Attribute(AttrActionExtension) == extension);
+            .FirstOrDefault(e => e.Attribute(AttrActionExtension)?.Value == extension);
         return query is not null;
     }
 
@@ -71,7 +75,9 @@ public class WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, Discov
     {
         var actionString = action.ToString().ToUpperInvariant();
 
-        var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase));
+        var query = (await GetAppsAsync()).Elements()
+            .Where(e => e.Attribute(AttrActionExtension)?.Value == extension && 
+                e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true);
 
         return query.Any();
     }
@@ -81,9 +87,12 @@ public class WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, Discov
     {
         var actionString = action.ToString().ToUpperInvariant();
 
-        var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase)).Select(e => e.Attribute(AttrActionRequires).Value.Split(','));
+        var query = (await GetAppsAsync()).Elements()
+            .Where(e => e.Attribute(AttrActionExtension)?.Value == extension && 
+                e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true)
+            .Select(e => e.Attribute(AttrActionRequires)?.Value.Split(','));
 
-        return query.FirstOrDefault();
+        return query?.FirstOrDefault() ?? [];
     }
 
     ///<inheritdoc />
@@ -94,25 +103,32 @@ public class WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, Discov
     }
 
     ///<inheritdoc />
-    public async Task<string> GetUrlTemplateAsync(string extension, WopiActionEnum action)
+    public async Task<string?> GetUrlTemplateAsync(string extension, WopiActionEnum action)
     {
         var actionString = action.ToString().ToUpperInvariant();
-        var query = (await GetAppsAsync()).Elements().Where(e => (string)e.Attribute(AttrActionExtension) == extension && e.Attribute(AttrActionName).Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase)).Select(e => e.Attribute(AttrActionUrl).Value);
+        var query = (await GetAppsAsync()).Elements()
+            .Where(e => e.Attribute(AttrActionExtension)?.Value == extension && 
+                e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true)
+            .Select(e => e.Attribute(AttrActionUrl)?.Value);
         return query.FirstOrDefault();
     }
 
     ///<inheritdoc />
-    public async Task<string> GetApplicationNameAsync(string extension)
+    public async Task<string?> GetApplicationNameAsync(string extension)
     {
-        var query = (await GetAppsAsync()).Where(e => e.Descendants(ElementAction).Any(d => (string)d.Attribute(AttrActionExtension) == extension)).Select(e => e.Attribute(AttrAppName).Value);
+        var query = (await GetAppsAsync())
+            .Where(e => e.Descendants(ElementAction).Any(d => d.Attribute(AttrActionExtension)?.Value == extension))
+            .Select(e => e.Attribute(AttrAppName)?.Value);
 
         return query.FirstOrDefault();
     }
 
     ///<inheritdoc />
-    public async Task<Uri> GetApplicationFavIconAsync(string extension)
+    public async Task<Uri?> GetApplicationFavIconAsync(string extension)
     {
-        var query = (await GetAppsAsync()).Where(e => e.Descendants(ElementAction).Any(d => (string)d.Attribute(AttrActionExtension) == extension)).Select(e => e.Attribute(AttrAppFavicon).Value);
+        var query = (await GetAppsAsync())
+            .Where(e => e.Descendants(ElementAction).Any(d => d.Attribute(AttrActionExtension)?.Value == extension))
+            .Select(e => e.Attribute(AttrAppFavicon)?.Value);
         var result = query.FirstOrDefault();
         return result is not null ? new Uri(result) : null;
     }
