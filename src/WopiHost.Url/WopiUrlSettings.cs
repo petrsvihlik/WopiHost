@@ -177,7 +177,7 @@ public class WopiUrlSettings : Dictionary<string, string>
     /// Initializes the settings object with a dictionary representing setting keys and values.
     /// </summary>
     /// <param name="settings">A dictionary with key-value pairs representing settings.</param>
-    public WopiUrlSettings(IDictionary<string, string> settings)
+    public WopiUrlSettings(IDictionary<string, string>? settings)
     {
         if (settings is not null)
         {
