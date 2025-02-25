@@ -7,35 +7,23 @@ using WopiHost.Abstractions;
 namespace WopiHost.FileSystemProvider;
 
 /// <inheritdoc/>
-/// <summary>
-/// Creates an instance of <see cref="WopiFile"/>.
-/// </summary>
-/// <param name="filePath">Path on the file system the file is located in.</param>
-/// <param name="fileIdentifier">Identifier of a file.</param>
-public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
+public class WopiFile : IWopiFile
 {
-    private FileInfo _fileInfo;
-
-    private FileVersionInfo _fileVersionInfo;
-
-    private string FilePath { get; set; } = filePath;
-
-    private FileInfo FileInfo => _fileInfo ??= new FileInfo(FilePath);
-
-    private FileVersionInfo FileVersionInfo => _fileVersionInfo ??= FileVersionInfo.GetVersionInfo(FilePath);
+    private readonly FileInfo fileInfo;
+    private readonly FileVersionInfo fileVersionInfo;
 
     /// <inheritdoc/>
-    public string Identifier { get; } = fileIdentifier;
+    public string Identifier { get; }
 
     /// <inheritdoc />
-    public bool Exists => FileInfo.Exists;
+    public bool Exists => fileInfo.Exists;
 
     /// <inheritdoc/>
     public string Extension
     {
         get
         {
-            var ext = FileInfo.Extension;
+            var ext = fileInfo.Extension;
             if (ext.StartsWith('.'))
             {
                 ext = ext[1..];
@@ -45,25 +33,37 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
     }
 
     /// <inheritdoc/>
-    public string Version => FileVersionInfo.FileVersion ?? FileInfo.LastWriteTimeUtc.ToString(CultureInfo.InvariantCulture);
+    public string Version => fileVersionInfo.FileVersion ?? fileInfo.LastWriteTimeUtc.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
-    public long Size => FileInfo.Length;
+    public long Size => fileInfo.Length;
 
     /// <inheritdoc/>
-    public long Length => FileInfo.Length;
+    public long Length => fileInfo.Length;
 
     /// <inheritdoc/>
-    public string Name => FileInfo.Name;
+    public string Name => fileInfo.Name;
 
     /// <inheritdoc/>
-    public DateTime LastWriteTimeUtc => FileInfo.LastWriteTimeUtc;
+    public DateTime LastWriteTimeUtc => fileInfo.LastWriteTimeUtc;
 
     /// <inheritdoc/>
-    public Stream GetReadStream() => FileInfo.OpenRead();
+    public Stream GetReadStream() => fileInfo.OpenRead();
 
     /// <inheritdoc/>
-    public Stream GetWriteStream() => FileInfo.Open(FileMode.Truncate);
+    public Stream GetWriteStream() => fileInfo.Open(FileMode.Truncate);
+
+    /// <summary>
+    /// Creates an instance of <see cref="WopiFile"/>.
+    /// </summary>
+    /// <param name="filePath">Path on the file system the file is located in.</param>
+    /// <param name="fileIdentifier">Identifier of a file.</param>
+    public WopiFile(string filePath, string fileIdentifier)
+    {
+        fileInfo = new FileInfo(filePath);
+        fileVersionInfo = FileVersionInfo.GetVersionInfo(filePath);
+        Identifier = fileIdentifier;
+    }
 
     /// <summary>
     /// A string that uniquely identifies the owner of the file.
@@ -78,7 +78,7 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
         {
             if (OperatingSystem.IsWindows())
             {
-                return FileInfo.GetAccessControl().GetOwner(typeof(NTAccount)).ToString();
+                return fileInfo.GetAccessControl().GetOwner(typeof(NTAccount))?.ToString() ?? string.Empty;
             }
             //else if (OperatingSystem.IsLinux())
             //{

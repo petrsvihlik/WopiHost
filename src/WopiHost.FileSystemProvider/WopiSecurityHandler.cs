@@ -16,7 +16,7 @@ public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHa
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<WopiSecurityHandler>();
     private readonly JwtSecurityTokenHandler _tokenHandler = new();
-    private SymmetricSecurityKey _key = null;
+    private SymmetricSecurityKey? _key = null;
 
     private SymmetricSecurityKey Key
     {
@@ -70,7 +70,7 @@ public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHa
     }
 
     /// <inheritdoc/>
-    public ClaimsPrincipal GetPrincipal(string tokenString)
+    public ClaimsPrincipal? GetPrincipal(string token)
     {
         //TODO: https://github.com/aspnet/Security/tree/master/src/Microsoft.AspNetCore.Authentication.JwtBearer
 
@@ -87,7 +87,7 @@ public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHa
         try
         {
             // Try to validate the token
-            return _tokenHandler.ValidateToken(tokenString, tokenValidation, out var token);
+            return _tokenHandler.ValidateToken(token, tokenValidation, out var _);
         }
         catch (Exception ex)
         {
