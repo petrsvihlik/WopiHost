@@ -3,8 +3,8 @@
   <PropertyGroup>
     <Description>WopiHost.Url Class Library</Description>
     <Authors>Petr Svihlik</Authors>
-    <TargetFramework>net9.0</TargetFramework>
-    <AssemblyName>WopiHost.Url</AssemblyName>
+	<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+	<AssemblyName>WopiHost.Url</AssemblyName>
     <PackageId>WopiHost.Url</PackageId>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageIcon>logo.png</PackageIcon>
