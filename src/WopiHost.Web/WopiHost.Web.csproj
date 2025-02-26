@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
+		<Nullable>enable</Nullable>
 		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
 		<IncludeOpenAPIAnalyzers>true</IncludeOpenAPIAnalyzers>
 		<PreserveCompilationContext>true</PreserveCompilationContext>

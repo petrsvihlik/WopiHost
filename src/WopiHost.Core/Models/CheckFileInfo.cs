@@ -10,12 +10,12 @@ public class CheckFileInfo
     /// <summary>
     /// The string name of the file, including extension, without a path. Used for display in user interface (UI), and determining the extension of the file.
     /// </summary>
-    public string BaseFileName { get; set; }
+    public required string BaseFileName { get; set; }
 
     /// <summary>
     /// A string that uniquely identifies the owner of the file. In most cases, the user who uploaded or created the file should be considered the owner. This ID is subject to uniqueness and consistency requirements. See <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#requirements-for-user-identity-properties">Requirements for user identity properties</see> for more information.
     /// </summary>
-    public string OwnerId { get; set; }
+    public required string OwnerId { get; set; }
 
     /// <summary>
     /// The size of the file in bytes, expressed as a long, a 64-bit signed integer.
@@ -25,13 +25,13 @@ public class CheckFileInfo
     /// <summary>
     /// A string value uniquely identifying the user currently accessing the file. This ID is subject to uniqueness and consistency requirements. See <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#requirements-for-user-identity-properties">Requirements for user identity properties</see> for more information.
     /// </summary>
-    public string UserId { get; set; }
+    public required string UserId { get; set; }
 
     /// <summary>
     /// The current version of the file based on the server’s file version schema, as a string. This value must change when the file changes, and version values must never repeat for a given file.
     /// This value must be a string, even if numbers are used to represent versions.
     /// </summary>
-    public string Version { get; set; }
+    public required string Version { get; set; }
 
     #endregion
 
@@ -40,12 +40,12 @@ public class CheckFileInfo
     /// <summary>
     /// A string that represents the last time that the file was modified. This time must always be a must be a UTC time, and must be formatted in ISO 8601 round-trip format. For example, <c>"2009-06-15T13:45:30.0000000Z"</c>.
     /// </summary>
-    public string LastModifiedTime { get; set; }
+    public string? LastModifiedTime { get; set; }
 
     /// <summary>
     /// A string value representing the file extension for the file. This value must begin with a <c>.</c>. If provided, WOPI clients will use this value as the file extension. Otherwise the extension will be parsed from the <see cref="BaseFileName"/>.
     /// </summary>
-    public string FileExtension { get; set; }
+    public string? FileExtension { get; set; }
 
     /// <summary>
     /// An integer value that indicates the maximum length for file names that the WOPI host supports, excluding the file extension. The default value is 250. Note that WOPI clients will use this default value if the property is omitted or if it is explicitly set to <c>0</c>.
@@ -55,37 +55,37 @@ public class CheckFileInfo
     /// <summary>
     /// A string that indicates the brand name of the host.
     /// </summary>
-    public string BreadcrumbBrandName { get; set; }
+    public string? BreadcrumbBrandName { get; set; }
 
     /// <summary>
     /// A URI to a web page that the WOPI client should navigate to when the user clicks on UI that displays <see cref="BreadcrumbBrandName"/>.
     /// </summary>
-    public Uri BreadcrumbBrandUrl { get; set; }
+    public Uri? BreadcrumbBrandUrl { get; set; }
 
     /// <summary>
     /// A string that indicates the name of the file. If this is not provided, WOPI clients may use the <see cref="BaseFileName"/> value.
     /// </summary>
-    public string BreadcrumbDocName { get; set; }
+    public string? BreadcrumbDocName { get; set; }
 
     /// <summary>
     /// MAY specifies a URI to a web page that the WOPI client navigates to when the user clicks on UI that displays <see cref="BreadcrumbDocName"/>.
     /// </summary>
-    public Uri BreadcrumbDocUrl { get; set; }
+    public Uri? BreadcrumbDocUrl { get; set; }
 
     /// <summary>
     /// A string that indicates the name of the container that contains the file.
     /// </summary>
-    public string BreadcrumbFolderName { get; set; }
+    public string? BreadcrumbFolderName { get; set; }
 
     /// <summary>
     /// A URI to a web page that the WOPI client should navigate to when the user clicks on UI that displays <see cref="BreadcrumbFolderName"/>.
     /// </summary>
-    public Uri BreadcrumbFolderUrl { get; set; }
+    public Uri? BreadcrumbFolderUrl { get; set; }
 
     /// <summary>
     /// A user-accessible URI directly to the file intended for opening the file through a client.
     /// </summary>
-    public Uri ClientUrl { get; set; }
+    public Uri? ClientUrl { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates the WOPI client should close the window or tab when the user activates any <c>Close</c> UI in the WOPI client.
@@ -95,7 +95,7 @@ public class CheckFileInfo
     /// <summary>
     /// A URI to a web page that the WOPI client should navigate to when the application closes, or in the event of an unrecoverable error.
     /// </summary>
-    public Uri CloseUrl { get; set; }
+    public Uri? CloseUrl { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates that the WOPI client should disable caching of file contents in the browser cache. Note that this has important performance implications for web browser-based WOPI clients.
@@ -130,92 +130,92 @@ public class CheckFileInfo
     /// <summary>
     /// A user-accessible URI to the file intended to allow the user to download a copy of the file. This URI should directly download the file and it should always provide the most recent version of the file.
     /// </summary>
-    public Uri DownloadUrl { get; set; }
+    public Uri? DownloadUrl { get; set; }
 
     /// <summary>
     /// A URI to a location that allows the user to create an embeddable URI to the file.
     /// </summary>
-    public Uri FileEmbedCommandUrl { get; set; }
+    public Uri? FileEmbedCommandUrl { get; set; }
 
     /// <summary>
     /// A URI to a location that allows the user to share the file.
     /// </summary>
-    public Uri FileSharingUrl { get; set; }
+    public Uri? FileSharingUrl { get; set; }
 
     /// <summary>
     /// A URI to the file location that the WOPI client uses to get the file.
     /// </summary>
-    public Uri FileUrl { get; set; }
+    public Uri? FileUrl { get; set; }
 
     /// <summary>
     /// A URI to a location that allows the user to view the version history for the file.
     /// </summary>
-    public Uri FileVersionUrl { get; set; }
+    public Uri? FileVersionUrl { get; set; }
 
     /// <summary>
     /// A string value uniquely identifying the user currently accessing the file.
     /// </summary>
-    public string HostAuthenticationId { get; set; }
+    public string? HostAuthenticationId { get; set; }
 
     /// <summary>
     /// A URI to a <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/glossary#host-page">host page</see> that loads the <c>edit</c> WOPI action.
     /// </summary>
-    public Uri HostEditUrl { get; set; }
+    public Uri? HostEditUrl { get; set; }
 
     /// <summary>
     /// A URI to a web page that provides access to an editing experience for the file that can be embedded in another HTML page.
     /// </summary>
-    public Uri HostEmbeddedEditUrl { get; set; }
+    public Uri? HostEmbeddedEditUrl { get; set; }
 
     /// <summary>
     /// A URI to a web page that provides access to a viewing experience for the file that can be embedded in another HTML page. This is typically a URI to a <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/glossary#host-page">host page</see> that loads the <c>embedview</c> WOPI action.
     /// </summary>
-    public Uri HostEmbeddedViewUrl { get; set; }
+    public Uri? HostEmbeddedViewUrl { get; set; }
 
     /// <summary>
     /// A string that is the name provided by the WOPI server used to identify it for logging and other informational purposes.
     /// </summary>
-    public string HostName { get; set; }
+    public string? HostName { get; set; }
 
     /// <summary>
     /// A string that is used by the host to pass arbitrary information to the WOPI client.
     /// </summary>
-    public string HostNotes { get; set; }
+    public string? HostNotes { get; set; }
 
     /// <summary>
     /// A URI that is the base URI for REST operations for the file.
     /// </summary>
-    public Uri HostRestUrl { get; set; }
+    public Uri? HostRestUrl { get; set; }
 
     /// <summary>
     /// A URI to a <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/glossary#host-page">host page</see> that loads the <c>view</c> WOPI action. This URL is used by Office Online to navigate between view and edit mode.
     /// </summary>
-    public Uri HostViewUrl { get; set; }
+    public Uri? HostViewUrl { get; set; }
 
     /// <summary>
     /// A string that the WOPI client should display to the user indicating the IRM policy for the file. This value should be combined with <see cref="IrmPolicyTitle"/>.
     /// </summary>
-    public string IrmPolicyDescription { get; set; }
+    public string? IrmPolicyDescription { get; set; }
 
     /// <summary>
     /// A string that the WOPI client should display to the user indicating the IRM policy for the file. This value should be combined with <see cref="IrmPolicyDescription"/>.
     /// </summary>
-    public string IrmPolicyTitle { get; set; }
+    public string? IrmPolicyTitle { get; set; }
 
     /// <summary>
     /// A string that identifies the provider of information that a WOPI client may use to discover information about the user’s online status (for example, whether a user is available via instant messenger).
     /// </summary>
-    public string PresenceProvider { get; set; }
+    public string? PresenceProvider { get; set; }
 
     /// <summary>
     /// A string that identifies the user in the context of the <see cref="PresenceProvider"/>.
     /// </summary>
-    public string PresenceUserId { get; set; }
+    public string? PresenceUserId { get; set; }
 
     /// <summary>
     /// A URI to a webpage that explains the privacy policy of the WOPI server.
     /// </summary>
-    public Uri PrivacyUrl { get; set; }
+    public Uri? PrivacyUrl { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates that the WOPI client should take measures to prevent copying and printing of the file. 
@@ -226,7 +226,7 @@ public class CheckFileInfo
     /// A URI that will allow the user to sign in using the host’s authentication system. This property can be used when supporting anonymous users. If this property is not provided, no sign in UI will be shown in Office Online.
     /// <para>See also <seealso cref="SignoutUrl"/></para>
     /// </summary>
-    public Uri SignInUrl { get; set; }
+    public Uri? SignInUrl { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates that, for this user, the file cannot be changed.
@@ -241,17 +241,17 @@ public class CheckFileInfo
     /// <summary>
     /// A 256 bit SHA-2-encoded [<see href="http://csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf">FIPS 180-2</see>] hash of the file contents, as a Base64-encoded string. Used for caching purposes in WOPI clients.
     /// </summary>
-    public string Sha256 { get; set; }
+    public string? Sha256 { get; set; }
 
     /// <summary>
     /// This string value can be provided rather than a SHA256 value if and only if the host can guarantee that two different files with the same content will have the same UniqueContentId value.
     /// </summary>
-    public string UniqueContentId { get; set; }
+    public string? UniqueContentId { get; set; }
 
     /// <summary>
     /// A URI that will sign the current user out of the host’s authentication system.
     /// </summary>
-    public Uri SignoutUrl { get; set; }
+    public Uri? SignoutUrl { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates that the WOPI server supports multiple users making changes to this file simultaneously.
@@ -396,7 +396,7 @@ public class CheckFileInfo
     /// </list>
     /// </para>
     /// </summary>
-    public IEnumerable<string> SupportedShareUrlTypes { get; set; }
+    public IEnumerable<string> SupportedShareUrlTypes { get; set; } = [];
 
     /// <summary>
     /// A Boolean value that indicates that the host supports scenarios where users can operate on files in limited ways via restricted URLs.
@@ -444,22 +444,22 @@ public class CheckFileInfo
     /// <summary>
     /// A string value containing information about the user. This string can be passed from a WOPI client to the host by means of a <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo">PutUserInfo</see> operation. If the host has a UserInfo string for the user, they must include it in this property.
     /// </summary>
-    public string UserInfo { get; set; }
+    public string? UserInfo { get; set; }
 
     /// <summary>
     /// A string value uniquely identifying the user’s ‘tenant,’ or group/organization to which they belong.
     /// </summary>
-    public string TenantId { get; set; }
+    public string? TenantId { get; set; }
 
     /// <summary>
     /// A URI to a webpage that explains the terms of use policy of the WOPI server.
     /// </summary>
-    public Uri TermsOfUseUrl { get; set; }
+    public Uri? TermsOfUseUrl { get; set; }
 
     /// <summary>
     /// A string that is used to pass time zone information to a WOPI client. The format of this value is determined by the host.
     /// </summary>
-    public string TimeZone { get; set; }
+    public string? TimeZone { get; set; }
 
     /// <summary>
     /// A Boolean value indicating whether the user is authenticated with the host or not. Hosts should always set this to <c>true</c> for unauthenticated users, so that clients are aware that the user is anonymous.
@@ -507,12 +507,12 @@ public class CheckFileInfo
     /// <summary>
     /// A string that is the name of the user, suitable for displaying in UI.
     /// </summary>
-    public string UserFriendlyName { get; set; }
+    public string? UserFriendlyName { get; set; }
 
     /// <summary>
     /// A string value uniquely identifying the user currently accessing the file.
     /// </summary>
-    public string UserPrincipalName { get; set; }
+    public string? UserPrincipalName { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates that the WOPI client must not allow the user to edit the file.

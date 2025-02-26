@@ -29,6 +29,7 @@ public class CollectionExtensionsTests
         var result = a.Merge(b);
 
         // Assert
+        Assert.NotNull(result);
         Assert.Contains("A", result);
         Assert.Contains("G", result);
     }

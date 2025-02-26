@@ -13,5 +13,5 @@ public class WopiHostOptions
     /// <summary>
     /// Name of the assembly containing the implementation of the <see cref="Abstractions.IWopiStorageProvider"/>.
     /// </summary>
-    public string StorageProviderAssemblyName { get; set; }
+    public required string StorageProviderAssemblyName { get; set; }
 }

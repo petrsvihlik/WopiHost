@@ -15,7 +15,7 @@ namespace WopiHost.Url;
 /// </remarks>
 /// <param name="discoverer">Provider of WOPI discovery data.</param>
 /// <param name="urlSettings">Additional settings influencing behavior of the WOPI client.</param>
-public partial class WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings urlSettings = null)
+public partial class WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings? urlSettings = null)
 {
     [GeneratedRegex("<(?<name>\\w*)=(?<value>\\w*)&*>")]
     private static partial Regex UrlParamRegex();
@@ -25,7 +25,7 @@ public partial class WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings urlS
     /// <summary>
     /// Additional URL parameters influencing the behavior of the WOPI client.
     /// </summary>
-    public WopiUrlSettings UrlSettings { get; } = urlSettings;
+    public WopiUrlSettings? UrlSettings { get; } = urlSettings;
 
     /// <summary>
     /// Generates an URL for a given file and action.
@@ -35,14 +35,14 @@ public partial class WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings urlS
     /// <param name="action">Action used to identify a correct URL template.</param>
     /// <param name="urlSettings">Additional URL settings (if not specified, defaults passed to the class constructor will be used).</param>
     /// <returns></returns>
-    public async Task<string> GetFileUrlAsync(string extension, Uri wopiFileUrl, WopiActionEnum action, WopiUrlSettings urlSettings = null)
+    public async Task<string?> GetFileUrlAsync(string extension, Uri wopiFileUrl, WopiActionEnum action, WopiUrlSettings? urlSettings = null)
     {
-        var combinedUrlSettings = new WopiUrlSettings(urlSettings.Merge(UrlSettings));
+        var combinedUrlSettings = new WopiUrlSettings((urlSettings ?? []).Merge(UrlSettings ?? []));
         var template = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
         if (!string.IsNullOrEmpty(template))
         {
             // Resolve optional parameters
-            var url = UrlParamRegex().Replace(template, m => ResolveOptionalParameter(m.Groups["name"].Value, m.Groups["value"].Value, combinedUrlSettings));
+            var url = UrlParamRegex().Replace(template, m => ResolveOptionalParameter(m.Groups["name"].Value, m.Groups["value"].Value, combinedUrlSettings) ?? string.Empty);
             url = url.TrimEnd('&');
 
             // Append mandatory parameters
@@ -53,7 +53,7 @@ public partial class WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings urlS
         return null;
     }
 
-    private static string ResolveOptionalParameter(string name, string value, WopiUrlSettings urlSettings)
+    private static string? ResolveOptionalParameter(string name, string value, WopiUrlSettings urlSettings)
     {
         if (urlSettings.TryGetValue(value, out var param))
         {

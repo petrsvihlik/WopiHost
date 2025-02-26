@@ -1,11 +1,12 @@
-﻿using System.Xml.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Xml.Linq;
 using WopiHost.Discovery.Enumerations;
 
 namespace WopiHost.Discovery.Tests;
 
 public class WopiDiscovererTests
 {
-    private WopiDiscoverer _wopiDiscoverer;
+    private WopiDiscoverer? _wopiDiscoverer;
     private const string XmlOos2016 = "OOS2016_discovery.xml";
     private const string XmlOwa2013 = "OWA2013_discovery.xml";
     private const string XmlOo2019 = "OO2019_discovery.xml";
@@ -15,6 +16,7 @@ public class WopiDiscovererTests
     {
     }
 
+    [MemberNotNull(nameof(_wopiDiscoverer))]
     private void InitDiscoverer(string fileName, NetZoneEnum netZone) => _wopiDiscoverer = new WopiDiscoverer(new FileSystemDiscoveryFileProvider(Path.Combine(AppContext.BaseDirectory, fileName)), new DiscoveryOptions { NetZone = netZone });
 
     [Theory]

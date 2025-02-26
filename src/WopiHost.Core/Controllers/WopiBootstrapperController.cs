@@ -19,7 +19,10 @@ namespace WopiHost.Core.Controllers;
 /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
 /// <param name="wopiHostOptions">WOPI Host configuration</param>
 [Route("wopibootstrapper")]
-public class WopiBootstrapperController(IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler, IOptionsSnapshot<WopiHostOptions> wopiHostOptions) : WopiControllerBase(storageProvider, securityHandler, wopiHostOptions)
+public class WopiBootstrapperController(
+    IWopiStorageProvider storageProvider, 
+    IWopiSecurityHandler securityHandler, 
+    IOptionsSnapshot<WopiHostOptions> wopiHostOptions) : WopiControllerBase(storageProvider, securityHandler, wopiHostOptions)
 {
 
     /// <summary>
@@ -28,12 +31,12 @@ public class WopiBootstrapperController(IWopiStorageProvider storageProvider, IW
     /// <returns></returns>
     [HttpPost]
     [Produces(MediaTypeNames.Application.Json)]
-    public IActionResult GetRootContainer() //TODO: fix the path
+    public IActionResult GetRootContainer(
+        [FromHeader(Name = WopiHeaders.ECOSYSTEM_OPERATION)] string? ecosystemOperation = null,
+        [FromHeader(Name = WopiHeaders.WOPI_SRC)] string? wopiSrc = null)
+        //TODO: fix the path
     {
         var authorizationHeader = HttpContext.Request.Headers.Authorization;
-        var ecosystemOperation = HttpContext.Request.Headers[WopiHeaders.ECOSYSTEM_OPERATION];
-        var wopiSrc = HttpContext.Request.Headers[WopiHeaders.WOPI_SRC].FirstOrDefault();
-
         if (ValidateAuthorizationHeader(authorizationHeader))
         {
             //TODO: supply user
@@ -66,6 +69,7 @@ public class WopiBootstrapperController(IWopiStorageProvider storageProvider, IW
             }
             else if (ecosystemOperation == "GET_NEW_ACCESS_TOKEN")
             {
+                ArgumentException.ThrowIfNullOrEmpty(wopiSrc);
                 var token = SecurityHandler.GenerateAccessToken(user, GetIdFromUrl(wopiSrc));
 
                 bootstrapRoot.AccessTokenInfo = new AccessTokenInfo
@@ -92,7 +96,7 @@ public class WopiBootstrapperController(IWopiStorageProvider storageProvider, IW
         }
     }
 
-    private string GetIdFromUrl(string resourceUrl)
+    private static string GetIdFromUrl(string resourceUrl)
     {
         var resourceId = resourceUrl[(resourceUrl.LastIndexOf('/') + 1)..];
         var queryIndex = resourceId.IndexOf('?');
@@ -104,7 +108,7 @@ public class WopiBootstrapperController(IWopiStorageProvider storageProvider, IW
         return resourceId;
     }
 
-    private bool ValidateAuthorizationHeader(StringValues authorizationHeader)
+    private static bool ValidateAuthorizationHeader(StringValues authorizationHeader)
     {
         //TODO: implement header validation https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getrootcontainer#sample-response
         // http://stackoverflow.com/questions/31948426/oauth-bearer-token-authentication-is-not-passing-signature-validation

@@ -1,22 +1,22 @@
 ﻿namespace WopiHost.Core.Models;
 
+/// <summary>
+/// Represents a child file of a container.
+/// </summary>
+public class ChildFile : AbstractChildBase
+{
 	/// <summary>
-	/// Represents a child file of a container.
+	/// Version of the file.
 	/// </summary>
-	public class ChildFile : AbstractChildBase
-	{
-		/// <summary>
-		/// Version of the file.
-		/// </summary>
-		public string Version { get; set; }
+	public string Version { get; set; } = string.Empty;
 
-		/// <summary>
-		/// Size of the file.
-		/// </summary>
-		public long Size { get; set; }
+	/// <summary>
+	/// Size of the file.
+	/// </summary>
+	public long Size { get; set; }
 
-		/// <summary>
-		/// Timestamp of the file's last modification.
-		/// </summary>
-		public string LastModifiedTime { get; set; }
-	}
+	/// <summary>
+	/// Timestamp of the file's last modification.
+	/// </summary>
+	public string LastModifiedTime { get; set; } = string.Empty;
+}
