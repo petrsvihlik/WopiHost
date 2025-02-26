@@ -22,10 +22,8 @@ jobs:
     - name: Extract version from tag
       id: get_version
       uses: battila7/get-version-action@v2
-    - name: Configure Nuget feed
-      run: dotnet nuget add source --name myget ${MYGET_FEED}
-      env:
-        MYGET_FEED: ${{ secrets.MYGET_FEED }}
+    - name: Set MYGET_FEED Environment Variable
+      run: echo "MYGET_FEED=${{ secrets.MYGET_FEED }}" >> $GITHUB_ENV
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
