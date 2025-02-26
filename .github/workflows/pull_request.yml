@@ -31,10 +31,12 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
-    - name: Restore dependencies
-      run: dotnet restore -s ${MYGET_FEED} -s https://api.nuget.org/v3/index.json
+    - name: Configure Nuget feed
+      run: dotnet nuget add source --name myget ${MYGET_FEED}
       env:
         MYGET_FEED: ${{ secrets.MYGET_FEED }}
+    - name: Restore dependencies
+      run: dotnet restore
     - name: Build
       run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
     - name: Test

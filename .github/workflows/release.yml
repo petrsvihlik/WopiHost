@@ -22,10 +22,12 @@ jobs:
     - name: Extract version from tag
       id: get_version
       uses: battila7/get-version-action@v2
-    - name: Restore dependencies
-      run: dotnet restore -s ${MYGET_FEED} -s https://api.nuget.org/v3/index.json
+    - name: Configure Nuget feed
+      run: dotnet nuget add source --name myget ${MYGET_FEED}
       env:
         MYGET_FEED: ${{ secrets.MYGET_FEED }}
+    - name: Restore dependencies
+      run: dotnet restore
     - name: Build
       run: dotnet build --no-restore --configuration Release /p:ContinuousIntegrationBuild=true /p:Version="${{ steps.get_version.outputs.version-without-v }}"
     - name: Test
