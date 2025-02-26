@@ -31,10 +31,10 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
+    - name: Set MYGET_FEED Environment Variable
+      run: echo "MYGET_FEED=${{ secrets.MYGET_FEED }}" >> $GITHUB_ENV
     - name: Restore dependencies
-      run: dotnet restore -s ${MYGET_FEED} -s https://api.nuget.org/v3/index.json
-      env:
-        MYGET_FEED: ${{ secrets.MYGET_FEED }}
+      run: dotnet restore
     - name: Build
       run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
     - name: Test

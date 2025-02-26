@@ -22,10 +22,10 @@ jobs:
     - name: Extract version from tag
       id: get_version
       uses: battila7/get-version-action@v2
+    - name: Set MYGET_FEED Environment Variable
+      run: echo "MYGET_FEED=${{ secrets.MYGET_FEED }}" >> $GITHUB_ENV
     - name: Restore dependencies
-      run: dotnet restore -s ${MYGET_FEED} -s https://api.nuget.org/v3/index.json
-      env:
-        MYGET_FEED: ${{ secrets.MYGET_FEED }}
+      run: dotnet restore
     - name: Build
       run: dotnet build --no-restore --configuration Release /p:ContinuousIntegrationBuild=true /p:Version="${{ steps.get_version.outputs.version-without-v }}"
     - name: Test
