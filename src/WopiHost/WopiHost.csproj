@@ -23,9 +23,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Autofac" />
 		<PackageReference Include="Serilog.AspNetCore" />
-		<PackageReference Include="Autofac.Extensions.DependencyInjection" />
+		<PackageReference Include="Scrutor" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />

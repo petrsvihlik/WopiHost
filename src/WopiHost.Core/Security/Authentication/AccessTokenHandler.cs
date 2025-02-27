@@ -3,6 +3,7 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using WopiHost.Abstractions;
 
 namespace WopiHost.Core.Security.Authentication;
 
@@ -13,9 +14,11 @@ namespace WopiHost.Core.Security.Authentication;
 /// Creates an instance of <see cref="AccessTokenHandler"/>.
 /// </remarks>
 /// <param name="options">The monitor for the options instance.</param>
+/// <param name="securityHandler">An instance of a security handler.</param>
 /// <param name="logger">The Microsoft.Extensions.Logging.ILoggerFactory.</param>
 /// <param name="encoder">The System.Text.Encodings.Web.UrlEncoder.</param>
 public class AccessTokenHandler(
+    IWopiSecurityHandler securityHandler,
     IOptionsMonitor<AccessTokenAuthenticationOptions> options, 
     ILoggerFactory logger, 
     UrlEncoder encoder) : AuthenticationHandler<AccessTokenAuthenticationOptions>(options, logger, encoder)
@@ -26,7 +29,6 @@ public class AccessTokenHandler(
     /// <returns><see cref="AuthenticateResult"/> set to <see cref="AuthenticateResult.Succeeded"/> when the token is valid and <see cref="AuthenticateResult.Failure"/> when the token is invalid or expired.</returns>
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        ArgumentNullException.ThrowIfNull(Options.SecurityHandler);
         try
         {
             //TODO: implement access_token_ttl https://msdn.microsoft.com/en-us/library/hh695362(v=office.12).aspx		
@@ -37,12 +39,12 @@ public class AccessTokenHandler(
             {
                 //TODO: Implement properly: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap
                 //Should be removed or replaced with bearer token check
-                token = Options.SecurityHandler.WriteToken(Options.SecurityHandler.GenerateAccessToken("Anonymous", Convert.ToBase64String(Encoding.UTF8.GetBytes(".\\"))));
+                token = securityHandler.WriteToken(securityHandler.GenerateAccessToken("Anonymous", Convert.ToBase64String(Encoding.UTF8.GetBytes(".\\"))));
             }
 
             if (!string.IsNullOrEmpty(token))
             {
-                var principal = Options.SecurityHandler.GetPrincipal(token);
+                var principal = securityHandler.GetPrincipal(token);
 
                 if (principal != null)
                 {
@@ -59,16 +61,14 @@ public class AccessTokenHandler(
                 }
                 else
                 {
-                    string message = "Principal not found.";
-                    Logger.LogInformation(message);
-                    return Task.FromResult(AuthenticateResult.Fail(message));
+                    Logger.LogError("Principal not found from token {Token}", token);
+                    return Task.FromResult(AuthenticateResult.Fail("Principal not found."));
                 }
             }
             else
             {
-                string message = "Token not found.";
-                Logger.LogInformation(message);
-                return Task.FromResult(AuthenticateResult.Fail(message));
+                Logger.LogError("Token not found in request");
+                return Task.FromResult(AuthenticateResult.Fail("Token not found."));
             }
         }
         catch (Exception ex)

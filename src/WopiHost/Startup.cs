@@ -1,6 +1,4 @@
-﻿using Autofac;
-using Autofac.Extensions.DependencyInjection;
-using WopiHost.Abstractions;
+﻿using WopiHost.Abstractions;
 using WopiHost.Core;
 using WopiHost.Core.Models;
 using Serilog;
@@ -9,31 +7,11 @@ namespace WopiHost;
 
 public class Startup(IConfiguration configuration)
 {
-    public IConfiguration Configuration { get; set; } = configuration;
-
-    public void ConfigureContainer(ContainerBuilder builder)
-    {
-        var config = Configuration.GetSection(WopiConfigurationSections.WOPI_ROOT).Get<WopiHostOptions>();
-        // Add file provider
-        builder.AddFileProvider(config.StorageProviderAssemblyName);
-
-        if (config.UseCobalt)
-        {
-            // Add cobalt
-            builder.AddCobalt();
-        }
-    }
-
     /// <summary>
-    /// Sets up the DI container. Loads types dynamically (http://docs.autofac.org/en/latest/register/scanning.html)
+    /// Sets up the DI container.
     /// </summary>
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddControllers(); //.AddControllersAsServices(); https://autofaccn.readthedocs.io/en/latest/integration/aspnetcore.html#controllers-as-services
-
-        // Ideally, pass a persistent dictionary implementation
-        services.AddSingleton<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
-
         services.AddLogging(loggingBuilder =>
         {
             loggingBuilder.AddConsole(); //Configuration.GetSection("Logging")
@@ -41,37 +19,43 @@ public class Startup(IConfiguration configuration)
         });
 
         // Configuration
-        services.AddOptions();
+        // this makes sure that the configuration exists and is valid
+        var wopiHostOptionsSection = configuration.GetRequiredSection(WopiConfigurationSections.WOPI_ROOT);
+        services
+            .AddOptions<WopiHostOptions>()
+            .BindConfiguration(wopiHostOptionsSection.Path) 
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
-        var config = Configuration.GetSection(WopiConfigurationSections.WOPI_ROOT);
+        var wopiHostOptions = wopiHostOptionsSection.Get<WopiHostOptions>();
+        // Add file provider
+        services.AddStorageProvider(wopiHostOptions.StorageProviderAssemblyName);
+        // Add Cobalt support
+        if (wopiHostOptions.UseCobalt)
+        {
+            // Add cobalt
+            services.AddCobalt();
+        }
 
-        services.Configure<WopiHostOptions>(config);
+        services.AddControllers();
 
-        // Add WOPI (depends on file provider)
-        services.AddWopi(GetSecurityHandler(services, config.Get<WopiHostOptions>().StorageProviderAssemblyName));
-    }
+        // Ideally, pass a persistent dictionary implementation
+        services.AddSingleton<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
 
-    private IWopiSecurityHandler GetSecurityHandler(IServiceCollection services, string storageProviderAssemblyName)
-    {
-        var providerBuilder = new ContainerBuilder();
-        // Add file provider implementation
-        providerBuilder.AddFileProvider(storageProviderAssemblyName); //TODO: why?
-        providerBuilder.Populate(services);
-        var providerContainer = providerBuilder.Build();
-        return providerContainer.Resolve<IWopiSecurityHandler>();
+        // Add WOPI
+        services.AddWopi();
     }
 
     /// <summary>
     /// Configure is called after ConfigureServices is called.
     /// </summary>
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    public static void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
         }
 
-        //app.UseHttpsRedirection();
         app.UseSerilogRequestLogging(options =>
         {
             options.EnrichDiagnosticContext = LogHelper.EnrichWithWopiDiagnostics;
@@ -86,6 +70,7 @@ public class Startup(IConfiguration configuration)
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();
+            endpoints.MapGet("/", () => "This is just a WOPI server. You need a WOPI client to access it...").ShortCircuit(404);
         });
     }
 }

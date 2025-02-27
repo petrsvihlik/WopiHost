@@ -10,13 +10,9 @@ namespace WopiHost.Core.Security.Authorization;
 /// Creates an instance of <see cref="WopiAuthorizationHandler"/>.
 /// </remarks>
 /// <param name="securityHandler">AuthNZ handler.</param>
-public class WopiAuthorizationHandler(IWopiSecurityHandler securityHandler) : AuthorizationHandler<WopiAuthorizationRequirement, FileResource>
+public class WopiAuthorizationHandler(IWopiSecurityHandler securityHandler) 
+    : AuthorizationHandler<WopiAuthorizationRequirement, FileResource>
 {
-    /// <summary>
-    /// Provides authentication and performs authorization operations for WOPI objects
-    /// </summary>
-    public IWopiSecurityHandler SecurityHandler { get; } = securityHandler;
-
     /// <summary>
     /// Performs resource-based authorization check.
     /// </summary>
@@ -25,7 +21,7 @@ public class WopiAuthorizationHandler(IWopiSecurityHandler securityHandler) : Au
     /// <param name="resource">Resource to check the security authorization requirement against.</param>
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, WopiAuthorizationRequirement requirement, FileResource resource)
     {
-        if (SecurityHandler.IsAuthorized(context.User, resource.FileId, requirement))
+        if (securityHandler.IsAuthorized(context.User, resource.FileId, requirement))
         {
             context.Succeed(requirement);
         }
