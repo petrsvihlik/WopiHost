@@ -22,10 +22,9 @@ public class Startup(IConfiguration configuration)
         // this makes sure that the configuration exists and is valid
         var wopiHostOptionsSection = configuration.GetRequiredSection(WopiConfigurationSections.WOPI_ROOT);
         services
-            .AddOptions<WopiHostOptions>()
+            .AddOptionsWithValidateOnStart<WopiHostOptions>()
             .BindConfiguration(wopiHostOptionsSection.Path) 
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .ValidateDataAnnotations();
 
         var wopiHostOptions = wopiHostOptionsSection.Get<WopiHostOptions>();
         // Add file provider
