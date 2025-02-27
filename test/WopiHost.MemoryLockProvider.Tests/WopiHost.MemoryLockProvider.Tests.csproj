@@ -3,7 +3,7 @@
 		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
 	</PropertyGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\..\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj" />
+	  <ProjectReference Include="..\..\src\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj" />
 	</ItemGroup>
 	
 </Project>
