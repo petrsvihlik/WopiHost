@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace WopiHost.Web.Controllers;
 
 public class HomeController(
-    IOptionsSnapshot<WopiOptions> wopiOptions, 
+    IOptions<WopiOptions> wopiOptions, 
     IWopiStorageProvider storageProvider, 
     IDiscoverer discoverer, 
     ILoggerFactory loggerFactory) : Controller
@@ -21,6 +21,7 @@ public class HomeController(
 
     public async Task<ActionResult> Index()
     {
+        ViewData["Title"] = "Welcome to WOPI HOST test page";
         try
         {
             var files = storageProvider.GetWopiFiles(storageProvider.RootContainerPointer.Identifier);

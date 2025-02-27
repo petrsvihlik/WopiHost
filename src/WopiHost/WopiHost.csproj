@@ -18,14 +18,14 @@
 
 	<ItemGroup>
 		<!--ProjectReference Include="..\WopiHost.Cobalt\WopiHost.Cobalt.csproj" /-->
+		<ProjectReference Include="..\..\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj" />
 		<ProjectReference Include="..\WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj" />
 		<ProjectReference Include="..\WopiHost.Core\WopiHost.Core.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Autofac" />
 		<PackageReference Include="Serilog.AspNetCore" />
-		<PackageReference Include="Autofac.Extensions.DependencyInjection" />
+		<PackageReference Include="Scrutor" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />

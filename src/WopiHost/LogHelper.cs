@@ -16,19 +16,18 @@ public static class LogHelper
     public static void EnrichWithWopiDiagnostics(IDiagnosticContext diagnosticContext, HttpContext httpContext)
     {
         ArgumentNullException.ThrowIfNull(diagnosticContext);
-
         ArgumentNullException.ThrowIfNull(httpContext);
 
         var request = httpContext.Request;
 
         if(request.Headers.TryGetValue(WopiHeaders.CORRELATION_ID, out var correlationId))
         {
-            diagnosticContext.Set(nameof(WopiHeaders.CORRELATION_ID), correlationId.First());
+            diagnosticContext.Set(nameof(WopiHeaders.CORRELATION_ID), correlationId.ToString());
         }
 
         if (request.Headers.TryGetValue(WopiHeaders.SESSION_ID, out var sessionId))
         {
-            diagnosticContext.Set(nameof(WopiHeaders.SESSION_ID), sessionId.First());
+            diagnosticContext.Set(nameof(WopiHeaders.SESSION_ID), sessionId.ToString());
         }
     }
 }

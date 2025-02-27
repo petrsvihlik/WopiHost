@@ -17,9 +17,11 @@ namespace WopiHost.Core.Controllers;
 /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
 /// <param name="wopiHostOptions">WOPI Host configuration</param>
 [Route("wopi/[controller]")]
-public class ContainersController(IOptionsSnapshot<WopiHostOptions> wopiHostOptions, IWopiStorageProvider storageProvider, IWopiSecurityHandler securityHandler) : WopiControllerBase(storageProvider, securityHandler, wopiHostOptions)
+public class ContainersController(
+    IWopiStorageProvider storageProvider, 
+    IWopiSecurityHandler securityHandler,
+    IOptions<WopiHostOptions> wopiHostOptions) : WopiControllerBase(storageProvider, securityHandler, wopiHostOptions)
 {
-
     /// <summary>
     /// Returns the metadata about a container specified by an identifier.
     /// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo

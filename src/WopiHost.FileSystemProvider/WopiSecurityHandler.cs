@@ -22,15 +22,12 @@ public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHa
     {
         get
         {
-            if (_key is null)
-            {
-                //RandomNumberGenerator rng = RandomNumberGenerator.Create();
-                //byte[] key = new byte[128];
-                //rng.GetBytes(key);
-                var key = Encoding.ASCII.GetBytes("secretKeysecretKeysecretKey123"/* + new Random(DateTime.Now.Millisecond).Next(1,999)*/);
-                _key = new SymmetricSecurityKey(key);
-            }
-
+            //RandomNumberGenerator rng = RandomNumberGenerator.Create();
+            //byte[] key = new byte[128];
+            //rng.GetBytes(key);
+            //var key = Encoding.ASCII.GetBytes("secretKeysecretKeysecretKey123"/* + new Random(DateTime.Now.Millisecond).Next(1,999)*/);
+            //_key = new SymmetricSecurityKey(key);
+            _key ??= new SymmetricSecurityKey(Encoding.ASCII.GetBytes("secret".PadRight((512 / 8), '\0')));
             return _key;
         }
     }
@@ -99,7 +96,7 @@ public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHa
     /// <inheritdoc/>
     public bool IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation) =>
         //TODO: logic
-        true;
+        principal.Identity?.IsAuthenticated == true;
 
     /// <summary>
     /// Converts the security token to a Base64 string.

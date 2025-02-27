@@ -16,8 +16,7 @@ public static class WopiCoreBuilderExtensions
     /// Adds core WOPI services and controllers to the <see cref="IServiceCollection"/>.
     /// </summary>
     /// <param name="services">Service collection to add WOPI services to.</param>
-    /// <param name="securityHandler">An instance of a security handler.</param>
-    public static void AddWopi(this IServiceCollection services, IWopiSecurityHandler securityHandler)
+    public static void AddWopi(this IServiceCollection services)
     {
         services.AddAuthorizationCore();
 
@@ -29,6 +28,9 @@ public static class WopiCoreBuilderExtensions
             .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null); // Ensure PascalCase property name-style
 
         services.AddAuthentication(o => { o.DefaultScheme = AccessTokenDefaults.AUTHENTICATION_SCHEME; })
-            .AddTokenAuthentication(AccessTokenDefaults.AUTHENTICATION_SCHEME, AccessTokenDefaults.AUTHENTICATION_SCHEME, options => { options.SecurityHandler = securityHandler; });
+            .AddTokenAuthentication(
+                AccessTokenDefaults.AUTHENTICATION_SCHEME, 
+                AccessTokenDefaults.AUTHENTICATION_SCHEME, 
+                options => { });
     }
 }

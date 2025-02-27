@@ -45,7 +45,7 @@ public static class FileExtensions
             checkFileInfo.ReadOnly = permissions.HasFlag(WopiUserPermissions.ReadOnly);
             checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiUserPermissions.RestrictedWebViewOnly);
             checkFileInfo.UserCanAttend = permissions.HasFlag(WopiUserPermissions.UserCanAttend);
-            checkFileInfo.UserCanNotWriteRelative = permissions.HasFlag(WopiUserPermissions.UserCanNotWriteRelative);
+            checkFileInfo.UserCanNotWriteRelative = !capabilities.SupportsUpdate || permissions.HasFlag(WopiUserPermissions.UserCanNotWriteRelative);
             checkFileInfo.UserCanPresent = permissions.HasFlag(WopiUserPermissions.UserCanPresent);
             checkFileInfo.UserCanRename = permissions.HasFlag(WopiUserPermissions.UserCanRename);
             checkFileInfo.UserCanWrite = permissions.HasFlag(WopiUserPermissions.UserCanWrite);

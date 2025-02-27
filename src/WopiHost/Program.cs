@@ -1,5 +1,4 @@
-﻿using Autofac.Extensions.DependencyInjection;
-using Serilog;
+﻿using Serilog;
 using Serilog.Events;
 
 namespace WopiHost;
@@ -35,7 +34,6 @@ public static class Program
 
     public static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args).UseSerilog()
-            .UseServiceProviderFactory(new AutofacServiceProviderFactory())
             .UseContentRoot(Directory.GetCurrentDirectory())
             .ConfigureWebHostDefaults(webBuilder =>
             {

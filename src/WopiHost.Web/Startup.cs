@@ -6,39 +6,39 @@ using WopiHost.Web.Models;
 
 namespace WopiHost.Web;
 
-public class Startup
+public class Startup(IConfiguration configuration)
 {
-    protected Startup()
-    {
-    }
-
     /// <summary>
     /// Sets up the DI container.
     /// </summary>
-    public static void ConfigureServices(IServiceCollection services)
+    public void ConfigureServices(IServiceCollection services)
     {
+        services.AddLogging(loggingBuilder =>
+        {
+            loggingBuilder.AddConsole(); //Configuration.GetSection("Logging")
+            loggingBuilder.AddDebug();
+        });
+
         services.AddControllersWithViews()
             .AddRazorRuntimeCompilation(); // Add browser link
 
         // Configuration
-        services.AddOptions();
-        services.AddOptions<WopiOptions>(WopiConfigurationSections.WOPI_ROOT);
+        var wopiOptionsSection = configuration.GetRequiredSection(WopiConfigurationSections.WOPI_ROOT);
+        services
+            .AddOptions<WopiOptions>()
+            .BindConfiguration(wopiOptionsSection.Path)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddOptions<DiscoveryOptions>(WopiConfigurationSections.DISCOVERY_OPTIONS);
 
         services.AddHttpClient<IDiscoveryFileProvider, HttpDiscoveryFileProvider>((sp, client) =>
         {
             var wopiOptions = sp.GetRequiredService<IOptions<WopiOptions>>();
             client.BaseAddress = wopiOptions.Value.ClientUrl;
         });
-        services.AddOptions<DiscoveryOptions>(WopiConfigurationSections.DISCOVERY_OPTIONS);
+
         services.AddSingleton<IDiscoverer, WopiDiscoverer>();
-
         services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
-
-        services.AddLogging(loggingBuilder =>
-        {
-            loggingBuilder.AddConsole();//Configuration.GetSection("Logging")
-            loggingBuilder.AddDebug();
-        });
     }
 
     /// <summary>
@@ -55,7 +55,7 @@ public class Startup
 
         app.UseRouting();
 
-        // Add MVC to the request pipeline.
+        //Add MVC to the request pipeline.
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllerRoute(
