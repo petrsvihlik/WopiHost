@@ -54,6 +54,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WopiHost.Core.Tests", "test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WopiHost.MemoryLockProvider", "src\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj", "{F49D0044-1965-4EC1-969E-E058194E81FA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WopiHost.MemoryLockProvider.Tests", "test\WopiHost.MemoryLockProvider.Tests\WopiHost.MemoryLockProvider.Tests.csproj", "{A863AD59-1075-C7DD-A3C9-B0859DF692EE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -166,6 +168,14 @@ Global
 		{F49D0044-1965-4EC1-969E-E058194E81FA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F49D0044-1965-4EC1-969E-E058194E81FA}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{F49D0044-1965-4EC1-969E-E058194E81FA}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{A863AD59-1075-C7DD-A3C9-B0859DF692EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A863AD59-1075-C7DD-A3C9-B0859DF692EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A863AD59-1075-C7DD-A3C9-B0859DF692EE}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{A863AD59-1075-C7DD-A3C9-B0859DF692EE}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{A863AD59-1075-C7DD-A3C9-B0859DF692EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A863AD59-1075-C7DD-A3C9-B0859DF692EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A863AD59-1075-C7DD-A3C9-B0859DF692EE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{A863AD59-1075-C7DD-A3C9-B0859DF692EE}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -176,6 +186,7 @@ Global
 		{4089410A-8A12-455C-862B-A4A3834C3100} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 		{9FFB3975-2DE6-4944-92C7-7062C39BB8FA} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 		{9CBB4AD4-EAE4-4D85-A70C-ECC465DA3D86} = {B692B58D-1720-49A8-9CB8-5562894618F6}
+		{A863AD59-1075-C7DD-A3C9-B0859DF692EE} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {91B6EE44-4505-4272-9D80-E4C73B09BF25}

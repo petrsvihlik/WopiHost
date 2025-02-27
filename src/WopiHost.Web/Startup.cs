@@ -23,13 +23,12 @@ public class Startup(IConfiguration configuration)
             .AddRazorRuntimeCompilation(); // Add browser link
 
         // Configuration
-        var wopiOptionsSection = configuration.GetRequiredSection(WopiConfigurationSections.WOPI_ROOT);
         services
-            .AddOptions<WopiOptions>()
-            .BindConfiguration(wopiOptionsSection.Path)
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
-        services.AddOptions<DiscoveryOptions>(WopiConfigurationSections.DISCOVERY_OPTIONS);
+            .AddOptionsWithValidateOnStart<WopiOptions>()
+            .Bind(configuration.GetRequiredSection(WopiConfigurationSections.WOPI_ROOT))
+            .ValidateDataAnnotations();
+        services.AddOptions<DiscoveryOptions>()
+            .Bind(configuration.GetSection(WopiConfigurationSections.DISCOVERY_OPTIONS));
 
         services.AddHttpClient<IDiscoveryFileProvider, HttpDiscoveryFileProvider>((sp, client) =>
         {
