@@ -20,6 +20,21 @@ public static class ServiceCollectionExtensions
             .AsImplementedInterfaces());
     }
 
+    public static void AddLockProvider(this IServiceCollection services, string lockProviderAssemblyName)
+    {
+        var assemblyPath = Path.Combine(AppContext.BaseDirectory, $"{lockProviderAssemblyName}.dll");
+        if (!File.Exists(assemblyPath))
+        {
+            throw new InvalidProgramException($"LockProvider's Assembly {assemblyPath} not found.");
+        }
+        var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+        services
+            .Scan(scan => scan.FromAssemblies(assembly)
+            .AddClasses(classes => classes
+                .AssignableTo<IWopiLockProvider>())
+            .AsImplementedInterfaces());
+    }
+
     public static void AddCobalt(this IServiceCollection services)
     {
         var assemblyPath = Path.Combine(AppContext.BaseDirectory, "WopiHost.Cobalt.dll");

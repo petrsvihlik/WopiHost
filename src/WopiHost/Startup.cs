@@ -30,6 +30,8 @@ public class Startup(IConfiguration configuration)
         var wopiHostOptions = wopiHostOptionsSection.Get<WopiHostOptions>();
         // Add file provider
         services.AddStorageProvider(wopiHostOptions.StorageProviderAssemblyName);
+        // Add lock provider
+        services.AddLockProvider(wopiHostOptions.LockProviderAssemblyName);
         // Add Cobalt support
         if (wopiHostOptions.UseCobalt)
         {
@@ -40,7 +42,7 @@ public class Startup(IConfiguration configuration)
         services.AddControllers();
 
         // Ideally, pass a persistent dictionary implementation
-        services.AddSingleton<IDictionary<string, LockInfo>>(d => new Dictionary<string, LockInfo>());
+        services.AddSingleton<IDictionary<string, WopiLockInfo>>(d => new Dictionary<string, WopiLockInfo>());
 
         // Add WOPI
         services.AddWopi();
@@ -66,6 +68,7 @@ public class Startup(IConfiguration configuration)
 
         // Automatically authenticate
         app.UseAuthentication();
+        app.UseAuthorization();
 
         app.UseEndpoints(endpoints =>
         {
