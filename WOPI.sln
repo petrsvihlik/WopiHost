@@ -52,7 +52,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Cobalt", "src\Wopi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WopiHost.Core.Tests", "test\WopiHost.Core.Tests\WopiHost.Core.Tests.csproj", "{9CBB4AD4-EAE4-4D85-A70C-ECC465DA3D86}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WopiHost.MemoryLockProvider", "WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj", "{F49D0044-1965-4EC1-969E-E058194E81FA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WopiHost.MemoryLockProvider", "src\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj", "{F49D0044-1965-4EC1-969E-E058194E81FA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

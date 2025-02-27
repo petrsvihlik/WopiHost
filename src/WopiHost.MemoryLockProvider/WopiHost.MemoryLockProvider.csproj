@@ -34,7 +34,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\src\WopiHost.Abstractions\WopiHost.Abstractions.csproj" />
+		<ProjectReference Include="..\WopiHost.Abstractions\WopiHost.Abstractions.csproj" />
 	</ItemGroup>
 
 </Project>
