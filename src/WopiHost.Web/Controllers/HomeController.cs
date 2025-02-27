@@ -21,6 +21,7 @@ public class HomeController(
 
     public async Task<ActionResult> Index()
     {
+        ViewData["Title"] = "Welcome to WOPI HOST test page";
         try
         {
             var files = storageProvider.GetWopiFiles(storageProvider.RootContainerPointer.Identifier);
