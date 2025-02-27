@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using WopiHost.Abstractions;
 
@@ -72,6 +72,4 @@ public class MemoryLockProvider : IWopiLockProvider
     {
         return locks.TryRemove(fileId, out _);
     }
-
-
 }
