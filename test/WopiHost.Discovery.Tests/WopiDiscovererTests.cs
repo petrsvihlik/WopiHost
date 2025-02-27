@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Xml.Linq;
+using Microsoft.Extensions.Options;
 using WopiHost.Discovery.Enumerations;
 
 namespace WopiHost.Discovery.Tests;
@@ -17,7 +18,8 @@ public class WopiDiscovererTests
     }
 
     [MemberNotNull(nameof(_wopiDiscoverer))]
-    private void InitDiscoverer(string fileName, NetZoneEnum netZone) => _wopiDiscoverer = new WopiDiscoverer(new FileSystemDiscoveryFileProvider(Path.Combine(AppContext.BaseDirectory, fileName)), new DiscoveryOptions { NetZone = netZone });
+    private void InitDiscoverer(string fileName, NetZoneEnum netZone) => 
+        _wopiDiscoverer = new WopiDiscoverer(new FileSystemDiscoveryFileProvider(Path.Combine(AppContext.BaseDirectory, fileName)), Options.Create(new DiscoveryOptions { NetZone = netZone }));
 
     [Theory]
     [InlineData(NetZoneEnum.ExternalHttps, "xlsm", WopiActionEnum.LegacyWebService, "https://excel.officeapps.live.com/x/_vti_bin/excelserviceinternal.asmx?<ui=UI_LLCC&><rs=DC_LLCC&><dchat=DISABLE_CHAT&><hid=HOST_SESSION_ID&><sc=SESSION_CONTEXT&><wopisrc=WOPI_SOURCE&>", XmlOo2019)]

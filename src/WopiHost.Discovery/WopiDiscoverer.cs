@@ -1,4 +1,5 @@
 ﻿using System.Xml.Linq;
+using Microsoft.Extensions.Options;
 using WopiHost.Discovery.Enumerations;
 
 namespace WopiHost.Discovery;
@@ -8,8 +9,10 @@ namespace WopiHost.Discovery;
 /// Creates a new instance of the <see cref="WopiDiscoverer"/>, a class for examining the capabilities of the WOPI client.
 /// </summary>
 /// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
-/// <param name="discoveryOptions"></param>
-public class WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, DiscoveryOptions discoveryOptions) : IDiscoverer
+/// <param name="discoveryOptions">the discovery options</param>
+public class WopiDiscoverer(
+    IDiscoveryFileProvider discoveryFileProvider, 
+    IOptions<DiscoveryOptions> discoveryOptions) : IDiscoverer
 {
     private const string ElementNetZone = "net-zone";
     private const string ElementApp = "app";
@@ -25,10 +28,6 @@ public class WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, Discov
 
     private AsyncExpiringLazy<IEnumerable<XElement>>? _apps;
 
-    private IDiscoveryFileProvider DiscoveryFileProvider { get; } = discoveryFileProvider;
-
-    private DiscoveryOptions DiscoveryOptions { get; } = discoveryOptions;
-
     private AsyncExpiringLazy<IEnumerable<XElement>> Apps
     {
         get
@@ -37,12 +36,12 @@ public class WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, Discov
             {
                 return new TemporaryValue<IEnumerable<XElement>>
                 {
-                    Result = (await DiscoveryFileProvider.GetDiscoveryXmlAsync())
+                    Result = (await discoveryFileProvider.GetDiscoveryXmlAsync())
                     .Elements(ElementNetZone)
                     .Where(ValidateNetZone)
                     .Elements(ElementApp),
 
-                    ValidUntil = DateTimeOffset.UtcNow.Add(DiscoveryOptions.RefreshInterval)
+                    ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval)
                 };
             });
         }
@@ -59,7 +58,7 @@ public class WopiDiscoverer(IDiscoveryFileProvider discoveryFileProvider, Discov
         }
         netZoneString = netZoneString.Replace("-", "", StringComparison.InvariantCulture);
         var success = Enum.TryParse(netZoneString, true, out NetZoneEnum netZone);
-        return success && (netZone == DiscoveryOptions.NetZone);
+        return success && (netZone == discoveryOptions.Value.NetZone);
     }
 
     ///<inheritdoc />

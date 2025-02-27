@@ -58,7 +58,7 @@ public class FilesController : WopiControllerBase
     public FilesController(
         IWopiStorageProvider storageProvider, 
         IWopiSecurityHandler securityHandler, 
-        IOptionsSnapshot<WopiHostOptions> wopiHostOptions, 
+        IOptions<WopiHostOptions> wopiHostOptions, 
         IAuthorizationService authorizationService, 
         IDictionary<string, LockInfo> lockStorage, 
         ICobaltProcessor? cobaltProcessor = null) : base(storageProvider, securityHandler, wopiHostOptions)

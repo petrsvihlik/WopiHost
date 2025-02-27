@@ -21,8 +21,8 @@ namespace WopiHost.Core.Controllers;
 [Route("wopibootstrapper")]
 public class WopiBootstrapperController(
     IWopiStorageProvider storageProvider, 
-    IWopiSecurityHandler securityHandler, 
-    IOptionsSnapshot<WopiHostOptions> wopiHostOptions) : WopiControllerBase(storageProvider, securityHandler, wopiHostOptions)
+    IWopiSecurityHandler securityHandler,
+    IOptions<WopiHostOptions> wopiHostOptions) : WopiControllerBase(storageProvider, securityHandler, wopiHostOptions)
 {
 
     /// <summary>
