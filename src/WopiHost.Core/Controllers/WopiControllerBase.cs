@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
@@ -16,6 +17,8 @@ namespace WopiHost.Core.Controllers;
 /// <param name="storageProvider">Object facilitating access to the storage of WOPI files.</param>
 /// <param name="securityHandler">Object facilitating security-related actions.</param>
 /// <param name="wopiHostOptions">WOPI Host configuration object</param>
+[Authorize]
+[ApiController]
 public abstract class WopiControllerBase(
     IWopiStorageProvider storageProvider, 
     IWopiSecurityHandler securityHandler, 

@@ -17,4 +17,9 @@ public class WopiHostOptions
     /// </summary>
     [Required]
     public required string StorageProviderAssemblyName { get; set; }
+
+    /// <summary>
+    /// Name of the assembly containing the implementation of the <see cref="Abstractions.IWopiLockProvider"/>
+    /// </summary>
+    public string? LockProviderAssemblyName { get; set; }
 }

@@ -5,4 +5,10 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\WopiHost.Core\WopiHost.Core.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Controllers\" />
+	</ItemGroup>
+	<ItemGroup>
+	  <PackageReference Include="Moq" />
+	</ItemGroup>
 </Project>
