@@ -37,7 +37,7 @@ public partial class WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings? url
     /// <returns></returns>
     public async Task<string?> GetFileUrlAsync(string extension, Uri wopiFileUrl, WopiActionEnum action, WopiUrlSettings? urlSettings = null)
     {
-        var combinedUrlSettings = new WopiUrlSettings(urlSettings.Merge(UrlSettings));
+        var combinedUrlSettings = new WopiUrlSettings((urlSettings ?? []).Merge(UrlSettings ?? []));
         var template = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
         if (!string.IsNullOrEmpty(template))
         {
