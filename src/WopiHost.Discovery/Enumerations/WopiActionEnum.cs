@@ -1,7 +1,7 @@
 ﻿namespace WopiHost.Discovery.Enumerations;
 
 /// <summary>
-/// All possible WOPI actions implemented with regards to the https://msdn.microsoft.com/en-us/library/hh695254.aspx
+/// All possible WOPI actions implemented with regards to the https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/429749b7-5ec3-4553-a589-0ec5240121ad
 /// </summary>
 public enum WopiActionEnum
 {

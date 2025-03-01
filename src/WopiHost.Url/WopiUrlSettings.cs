@@ -3,7 +3,7 @@
 namespace WopiHost.Url;
 
 /// <summary>
-/// Additional URL settings influencing the behavior of the WOPI client (as defined in https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/discovery#placeholder-values).
+/// Additional URL settings influencing the behavior of the WOPI client (as defined in https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/discovery#placeholder-values).
 /// Settings are used to replace the placeholders in URL templates retrieved from the WOPI discovery file.
 /// </summary>
 public class WopiUrlSettings : Dictionary<string, string>

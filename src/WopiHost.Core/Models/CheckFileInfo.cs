@@ -1,7 +1,7 @@
 ﻿namespace WopiHost.Core.Models;
 
 /// <summary>
-/// Model according to <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo">CheckFileInfo documentation</see> and <see href="https://msdn.microsoft.com/en-us/library/hh622920.aspx">Microsoft WOPI documentation</see>
+/// Model according to <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo">CheckFileInfo documentation</see> and <see href="https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/71e66fb4-144b-4369-b597-f425f0b700b9">Microsoft WOPI documentation</see>
 /// </summary>
 public class CheckFileInfo
 {
@@ -13,7 +13,7 @@ public class CheckFileInfo
     public required string BaseFileName { get; set; }
 
     /// <summary>
-    /// A string that uniquely identifies the owner of the file. In most cases, the user who uploaded or created the file should be considered the owner. This ID is subject to uniqueness and consistency requirements. See <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#requirements-for-user-identity-properties">Requirements for user identity properties</see> for more information.
+    /// A string that uniquely identifies the owner of the file. In most cases, the user who uploaded or created the file should be considered the owner. This ID is subject to uniqueness and consistency requirements. See <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#requirements-for-user-identity-properties">Requirements for user identity properties</see> for more information.
     /// </summary>
     public required string OwnerId { get; set; }
 
@@ -23,7 +23,7 @@ public class CheckFileInfo
     public long Size { get; set; }
 
     /// <summary>
-    /// A string value uniquely identifying the user currently accessing the file. This ID is subject to uniqueness and consistency requirements. See <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#requirements-for-user-identity-properties">Requirements for user identity properties</see> for more information.
+    /// A string value uniquely identifying the user currently accessing the file. This ID is subject to uniqueness and consistency requirements. See <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#requirements-for-user-identity-properties">Requirements for user identity properties</see> for more information.
     /// </summary>
     public required string UserId { get; set; }
 
@@ -158,7 +158,7 @@ public class CheckFileInfo
     public string? HostAuthenticationId { get; set; }
 
     /// <summary>
-    /// A URI to a <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/glossary#host-page">host page</see> that loads the <c>edit</c> WOPI action.
+    /// A URI to a <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/glossary#host-page">host page</see> that loads the <c>edit</c> WOPI action.
     /// </summary>
     public Uri? HostEditUrl { get; set; }
 
@@ -168,7 +168,7 @@ public class CheckFileInfo
     public Uri? HostEmbeddedEditUrl { get; set; }
 
     /// <summary>
-    /// A URI to a web page that provides access to a viewing experience for the file that can be embedded in another HTML page. This is typically a URI to a <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/glossary#host-page">host page</see> that loads the <c>embedview</c> WOPI action.
+    /// A URI to a web page that provides access to a viewing experience for the file that can be embedded in another HTML page. This is typically a URI to a <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/glossary#host-page">host page</see> that loads the <c>embedview</c> WOPI action.
     /// </summary>
     public Uri? HostEmbeddedViewUrl { get; set; }
 
@@ -188,7 +188,7 @@ public class CheckFileInfo
     public Uri? HostRestUrl { get; set; }
 
     /// <summary>
-    /// A URI to a <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/glossary#host-page">host page</see> that loads the <c>view</c> WOPI action. This URL is used by Office Online to navigate between view and edit mode.
+    /// A URI to a <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/glossary#host-page">host page</see> that loads the <c>view</c> WOPI action. This URL is used by Office Online to navigate between view and edit mode.
     /// </summary>
     public Uri? HostViewUrl { get; set; }
 
@@ -282,7 +282,7 @@ public class CheckFileInfo
     /// <description>EnumerateChildren (folders) - This operation is only used by OneNote for the web and is thus not needed to integrate with Office for the web or Office for iOS. It is included for completeness but does not need to be implemented.</description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see></description>
     /// </item>
     /// </list>
     /// </summary>   
@@ -296,34 +296,34 @@ public class CheckFileInfo
     /// A Boolean value that indicates that the host supports the following WOPI operations:
     /// <list type="bullet">
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo">CheckContainerInfo</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo">CheckContainerInfo</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/createchildcontainer">CreateChildContainer</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/createchildcontainer">CreateChildContainer</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/createchildfile">CreateChildFile</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/createchildfile">CreateChildFile</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/deletecontainer">DeleteContainer</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/deletecontainer">DeleteContainer</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/enumerateancestors">EnumerateAncestors (containers)</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/enumerateancestors">EnumerateAncestors (containers)</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/enumerateancestors">EnumerateAncestors (files)</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/enumerateancestors">EnumerateAncestors (files)</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/enumeratechildren">EnumerateChildren (containers)</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/enumeratechildren">EnumerateChildren (containers)</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/getecosystem">GetEcosystem (containers)</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/getecosystem">GetEcosystem (containers)</see></description>
     /// </item>
     ///  <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/renamecontainer">RenameContainer</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/renamecontainer">RenameContainer</see></description>
     /// </item>
     /// </list>
     /// </summary>
@@ -333,23 +333,23 @@ public class CheckFileInfo
     /// A Boolean value that indicates that the host supports the following WOPI operations:
     /// <list type="bullet">
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/lock">Lock</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock">Lock</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/unlock">Unlock</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlock">Unlock</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/refreshlock">RefreshLock</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/refreshlock">RefreshLock</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock">UnlockAndRelock</see> operations for this file.</description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock">UnlockAndRelock</see> operations for this file.</description>
     /// </item>
     /// </list>
     /// </summary>
     public bool SupportsLocks { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getlock">GetLock</see> operation.
+    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getlock">GetLock</see> operation.
     /// </summary>
     public bool SupportsGetLock { get; set; }
 
@@ -362,29 +362,29 @@ public class CheckFileInfo
     /// A Boolean value that indicates that the host supports the following WOPI operations:
     /// <list type="bullet">
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/ecosystem/checkecosystem">CheckEcosystem</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/checkecosystem">CheckEcosystem</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/getecosystem">GetEcosystem (containers)</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/getecosystem">GetEcosystem (containers)</see></description>
     /// </item>
     ///  <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getecosystem">GetEcosystem (files)</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getecosystem">GetEcosystem (files)</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getrootcontainer">GetRootContainer (ecosystem)</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getrootcontainer">GetRootContainer (ecosystem)</see></description>
     /// </item>
     /// </list>
     /// </summary>
     public bool SupportsEcosystem { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getfilewopisrc">GetFileWopiSrc (ecosystem)</see> operation.
+    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getfilewopisrc">GetFileWopiSrc (ecosystem)</see> operation.
     /// </summary>
     public bool SupportsGetFileWopiSrc { get; set; }
 
     /// <summary>
-    /// An array of strings containing the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/concepts#share-url">Share URL</see> types supported by the host.
-    /// These types can be passed in the X-WOPI-UrlType request header to signify which Share URL type to return for the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getshareurl">GetShareUrl (files)</see> operation.
+    /// An array of strings containing the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#share-url">Share URL</see> types supported by the host.
+    /// These types can be passed in the X-WOPI-UrlType request header to signify which Share URL type to return for the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getshareurl">GetShareUrl (files)</see> operation.
     /// <para> Possible Values:
     /// <list type="bullet">
     /// <item>
@@ -417,32 +417,32 @@ public class CheckFileInfo
     /// A Boolean value that indicates that the host supports the following WOPI operations:
     /// <list type="bullet">
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile">PutRelativeFile</see></description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile">PutRelativeFile</see></description>
     /// </item>
     /// </list>
     /// </summary>
     public bool SupportsUpdate { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/renamefile">RenameFile</see> operation.
+    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/renamefile">RenameFile</see> operation.
     /// </summary>
     public bool SupportsRename { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see> operation.
+    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see> operation.
     /// </summary>
     public bool SupportsDeleteFile { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo">PutUserInfo</see> operation.
+    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo">PutUserInfo</see> operation.
     /// </summary>
     public bool SupportsUserInfo { get; set; }
 
     /// <summary>
-    /// A string value containing information about the user. This string can be passed from a WOPI client to the host by means of a <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo">PutUserInfo</see> operation. If the host has a UserInfo string for the user, they must include it in this property.
+    /// A string value containing information about the user. This string can be passed from a WOPI client to the host by means of a <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo">PutUserInfo</see> operation. If the host has a UserInfo string for the user, they must include it in this property.
     /// </summary>
     public string? UserInfo { get; set; }
 
@@ -474,28 +474,28 @@ public class CheckFileInfo
     /// <summary>
     /// A Boolean value indicating whether the user is a business user or not.
     /// <para>
-    /// See also <seealso href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/scenarios/business">Supporting document editing for business users</seealso>
+    /// See also <seealso href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/business">Supporting document editing for business users</seealso>
     /// </para>
     /// </summary>
     public bool LicenseCheckForEditIsEnabled { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the user has permission to view a <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/glossary#broadcast">broadcast</see> of this file.
+    /// A Boolean value that indicates that the user has permission to view a <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/glossary#broadcast">broadcast</see> of this file.
     /// </summary>
     public bool UserCanAttend { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates the user does not have sufficient permission to create new files on the WOPI server. Setting this to <c>true</c> tells the WOPI client that calls to <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile">PutRelativeFile</see> will fail for this user on the current file.
+    /// A Boolean value that indicates the user does not have sufficient permission to create new files on the WOPI server. Setting this to <c>true</c> tells the WOPI client that calls to <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile">PutRelativeFile</see> will fail for this user on the current file.
     /// </summary>
     public bool UserCanNotWriteRelative { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the user has permission to <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/glossary#broadcast">broadcast</see> this file to a set of users who have permission to broadcast or view a broadcast of the current file.
+    /// A Boolean value that indicates that the user has permission to <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/glossary#broadcast">broadcast</see> this file to a set of users who have permission to broadcast or view a broadcast of the current file.
     /// </summary>
     public bool UserCanPresent { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the user has permission to alter the file. Setting this to <c>true</c> tells the WOPI client that it can call <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see> on behalf of the user.
+    /// A Boolean value that indicates that the user has permission to alter the file. Setting this to <c>true</c> tells the WOPI client that it can call <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see> on behalf of the user.
     /// </summary>
     public bool UserCanWrite { get; set; }
 

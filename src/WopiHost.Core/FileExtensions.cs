@@ -14,7 +14,7 @@ public static class FileExtensions
     private static readonly SHA256 Sha = SHA256.Create();
 
     /// <summary>
-    /// Returns a CheckFileInfo model according to https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo
+    /// Returns a CheckFileInfo model according to https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo
     /// </summary>
     /// <param name="file">File properties of which should be returned.</param>
     /// <param name="principal">A user object which the CheckFileInfo should be correlated with.</param>

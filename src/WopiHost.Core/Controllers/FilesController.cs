@@ -12,7 +12,7 @@ namespace WopiHost.Core.Controllers;
 
 /// <summary>
 /// Implementation of WOPI server protocol
-/// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/
+/// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/
 /// </summary>
 [Route("wopi/[controller]")]
 public class FilesController : WopiControllerBase
@@ -60,7 +60,7 @@ public class FilesController : WopiControllerBase
 
     /// <summary>
     /// Returns the metadata about a file specified by an identifier.
-    /// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
@@ -77,7 +77,7 @@ public class FilesController : WopiControllerBase
 
     /// <summary>
     /// Returns contents of a file specified by an identifier.
-    /// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getfile
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getfile
     /// Example URL path: /wopi/files/(file_id)/contents
     /// </summary>
     /// <param name="id">File identifier.</param>
@@ -109,7 +109,7 @@ public class FilesController : WopiControllerBase
 
     /// <summary>
     /// Updates a file specified by an identifier. (Only for non-cobalt files.)
-    /// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putfile
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile
     /// Example URL path: /wopi/files/(file_id)/contents
     /// </summary>
     /// <param name="id">File identifier.</param>
@@ -162,8 +162,8 @@ public class FilesController : WopiControllerBase
 
     /// <summary>
     /// Changes the contents of the file in accordance with [MS-FSSHTTP].
-    /// MS-FSSHTTP Specification: https://msdn.microsoft.com/en-us/library/dd943623.aspx
-    /// Specification: https://msdn.microsoft.com/en-us/library/hh659581.aspx
+    /// MS-FSSHTTP Specification: https://learn.microsoft.com/openspecs/sharepoint_protocols/ms-fsshttp/05fa7efd-48ed-48d5-8d85-77995e17cc81
+    /// Specification: https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/f52e753e-fa08-4ba4-a68b-2f8801992cf0
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
@@ -202,7 +202,7 @@ public class FilesController : WopiControllerBase
 
     /// <summary>
     /// Processes lock-related operations.
-    /// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/lock
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
@@ -279,7 +279,7 @@ public class FilesController : WopiControllerBase
                 }
                 else
                 {
-                    // Unlock and re-lock (https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock)
+                    // Unlock and re-lock (https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock)
                     if (lockAcquired)
                     {
                         if (existingLock is null)
