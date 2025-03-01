@@ -1,14 +1,11 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.Text.Json.Serialization;
-using WopiHost.Abstractions;
+﻿using System.Text.Json.Serialization;
 
 namespace WopiHost.Abstractions;
 
 /// <summary>
 /// Model according to <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo">CheckFileInfo documentation</see> and <see href="https://msdn.microsoft.com/en-us/library/hh622920.aspx">Microsoft WOPI documentation</see>
 /// </summary>
-public class WopiCheckFileInfo : WopiHostCapabilities
+public class WopiCheckFileInfo : IWopiHostCapabilities
 {
     #region "Required properties"
     /// <summary>
@@ -344,5 +341,58 @@ public class WopiCheckFileInfo : WopiHostCapabilities
     /// A Boolean value that indicates that the WOPI client must not allow the user to edit the file.
     /// </summary>
     public bool WebEditingDisabled { get; set; }
+    #endregion
+
+    #region "IWopiHostCapabilities"
+    /// <inheritdoc/>
+    public bool SupportsCoauth { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsCobalt { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsFolders { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsContainers { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsLocks { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsGetLock { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsExtendedLockLength { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsEcosystem { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsGetFileWopiSrc { get; set; }
+
+    /// <inheritdoc/>
+    public IEnumerable<string> SupportedShareUrlTypes { get; set; } = [];
+
+    /// <inheritdoc/>
+    public bool SupportsScenarioLinks { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsSecureStore { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsFileCreation { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsUpdate { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsRename { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsDeleteFile { get; set; }
+
+    /// <inheritdoc/>    
+    public bool SupportsUserInfo { get; set; }
     #endregion
 }
