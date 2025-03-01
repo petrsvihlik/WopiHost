@@ -168,7 +168,7 @@ public class FilesController : WopiControllerBase
         }
 
         // Acquire lock
-        var lockResult = ProcessLock(id, null, newLockIdentifier);
+        var lockResult = ProcessLock(id, wopiOverrideHeader: WopiFileOperations.Lock, newLockIdentifier: newLockIdentifier);
 
         if (lockResult is OkResult)
         {
