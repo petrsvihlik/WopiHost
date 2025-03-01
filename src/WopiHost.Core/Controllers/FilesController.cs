@@ -227,7 +227,7 @@ public class FilesController : WopiControllerBase
             syncIoFeature.AllowSynchronousIO = true;
         }
 
-        var responseAction = cobaltProcessor.ProcessCobalt(file, User, await HttpContext.Request.Body.ReadBytesAsync());
+        var responseAction = await cobaltProcessor.ProcessCobalt(file, User, await HttpContext.Request.Body.ReadBytesAsync());
         if (!string.IsNullOrEmpty(correlationId))
         {
             HttpContext.Response.Headers.Append(WopiHeaders.CORRELATION_ID, correlationId);

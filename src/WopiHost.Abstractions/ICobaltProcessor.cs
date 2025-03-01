@@ -14,5 +14,5 @@ public interface ICobaltProcessor
     /// <param name="principal">User editing the file</param>
     /// <param name="newContent">Partitions with new content (diffs)</param>
     /// <returns>An octet stream.</returns>
-    Action<Stream> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent);
+    Task<Action<Stream>> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent);
 }
