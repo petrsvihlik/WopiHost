@@ -39,12 +39,12 @@ Usage
 
 Prerequisites
 -------------
- - [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
+ - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
  - Recommended: [VS Code](https://code.visualstudio.com/) or [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)
 
 Building the app
 ----------------
-The WopiHost app targets `net9.0` exclusively.
+The WopiHost app targets both `net8.0` and `net9.0`.
 
 If you need a version that's targeting an older version of .NET, check out the releases:
 - [.NET 6](TBD)
