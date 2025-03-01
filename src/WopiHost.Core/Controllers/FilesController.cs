@@ -167,24 +167,42 @@ public class FilesController : WopiControllerBase
             return Unauthorized();
         }
 
+        // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
+        var file = StorageProvider.GetWopiFile(id);
+        // If ... missing altogether, the host should respond with a 409 Conflict
+        if (file is null)
+        {
+            return new ConflictResult();
+        }
+
+        // When a host receives a PutFile request on a file that's not locked, the host checks the current size of the file.
+        // If it's 0 bytes, the PutFile request should be considered valid and should proceed
+        if (file.Size == 0 && string.IsNullOrEmpty(newLockIdentifier))
+        {
+            // copy new contents to storage
+            await CopyToWriteStream();
+            return new OkResult();
+        }
+
         // Acquire lock
         var lockResult = ProcessLock(id, wopiOverrideHeader: WopiFileOperations.Lock, newLockIdentifier: newLockIdentifier);
 
         if (lockResult is OkResult)
         {
-            // Get file
-            var file = StorageProvider.GetWopiFile(id);
-
-            // Save file contents
-            var newContent = await HttpContext.Request.Body.ReadBytesAsync();
-            await using (var stream = await file.GetWriteStream(cancellationToken))
-            {
-                await stream.WriteAsync(newContent.AsMemory(0, newContent.Length), cancellationToken);
-            }
+            // copy new contents to storage
+            await CopyToWriteStream();
 
             return new OkResult();
         }
         return lockResult;
+
+        async Task CopyToWriteStream()
+        {
+            using var stream = await file.GetWriteStream(cancellationToken);
+            await HttpContext.Request.Body.CopyToAsync(
+                stream,
+                cancellationToken);
+        }
     }
 
     /// <summary>
