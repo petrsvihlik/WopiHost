@@ -94,14 +94,22 @@ Compatible WOPI Clients
 -------
 Running the application only makes sense with a WOPI client as its counterpart. WopiHost is compatible with the following clients:
 
- - Office Online Server 2016 ([deployment guidelines](https://docs.microsoft.com/en-us/officeonlineserver/deploy-office-online-server))
- - Office Online https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/
+ #### Office Online Server 2016 
+ 
+ [deployment guidelines](https://docs.microsoft.com/en-us/officeonlineserver/deploy-office-online-server)
 
 Note that WopiHost will always be compatible only with the latest version of OOS because Microsoft also [supports only the latest version](https://docs.microsoft.com/en-us/officeonlineserver/office-online-server-release-schedule).
 
 The deployment of OOS/OWA requires the server to be part of a domain. If your server is not part of any domain (e.g. you're running it in a VM sandbox) it can be overcome by promoting your machine to a [Domain Controller](https://social.technet.microsoft.com/wiki/contents/articles/12370.windows-server-2012-set-up-your-first-domain-controller-step-by-step.aspx).
 To test your OWA server [follow the instructions here](https://docs.microsoft.com/en-us/office/troubleshoot/administration/test-viewing-documents-by-using-office-online-server-viewer).
 To remove the OWA instance use [`Remove-OfficeWebAppsMachine`](http://sharepointjack.com/2014/fun-configuring-office-web-apps-2013-owa/).
+
+#### Microsoft 365 for the Web 
+
+You can [use WopiHost to integrate with Microsoft 365 for the web](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online) which will require:
+- onboarding - [apply for CSPP](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/apply-for-cspp-program)
+- extending the provided interfaces to support the required features by Microsoft; we provide a sample implementation of the interfaces that pass the interactive [WOPI-Validator](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/build-test-ship/validator) tests
+- [Test Microsoft 365 for the web integration](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/build-test-ship/testing)
 
 Cobalt
 ------
@@ -117,7 +125,24 @@ TODO
 
 Extending
 =========
-TODO
+
+### IWopiStorageProvider
+
+The `IWopiStorageProvider` interface is the main interface that needs to be implemented to provide access to the files. It's up to you how you implement it. One sample implementation is in the `WopiHost.FileSystemProvider` project.
+
+### IWopiSecurityHandler
+
+The `IWopiSecurityHandler` interface is used to authenticate and authorize resource requests. One sample implementation is in the `WopiHost.FileSystemProvider` project.
+
+### IWopiLockProvider
+
+The `IWopiLockProvider` interface is used to handle file locks. One sample implementation is in the `WopiHost.MemoryLockProvider` project.
+
+### CheckFileInfo
+
+The [CheckFileInfo](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo) includes not only details about the file but also some additional properties that can be used by the WOPI client. You can either completely customize the response (by adding your own / missing properties), or update any properties before returning them.
+
+TODO additional details
 
 Known issues / TODOs
 ==================
