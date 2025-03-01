@@ -43,7 +43,12 @@ public interface IWopiFile
     /// <summary>
     /// Version of the file.
     /// </summary>
-    string Version { get; }
+    string? Version { get; }
+
+    /// <summary>
+    /// SHA256 checksum
+    /// </summary>
+    byte[]? Checksum { get; }
 
     /// <summary>
     /// Size of the file.
@@ -53,10 +58,10 @@ public interface IWopiFile
     /// <summary>
     /// Gets read-only stream.
     /// </summary>
-    Stream GetReadStream();
+    Task<Stream> GetReadStream(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets r/w stream.
     /// </summary>
-    Stream GetWriteStream();
+    Task<Stream> GetWriteStream(CancellationToken cancellationToken = default);
 }

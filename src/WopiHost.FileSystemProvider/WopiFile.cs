@@ -19,21 +19,15 @@ public class WopiFile : IWopiFile
     public bool Exists => fileInfo.Exists;
 
     /// <inheritdoc/>
-    public string Extension
-    {
-        get
-        {
-            var ext = fileInfo.Extension;
-            if (ext.StartsWith('.'))
-            {
-                ext = ext[1..];
-            }
-            return ext;
-        }
-    }
+    public string Extension => fileInfo.Extension.TrimStart('.');
 
     /// <inheritdoc/>
-    public string Version => fileVersionInfo.FileVersion ?? fileInfo.LastWriteTimeUtc.ToString(CultureInfo.InvariantCulture);
+    public string? Version => fileVersionInfo.FileVersion ?? fileInfo.LastWriteTimeUtc.ToString(CultureInfo.InvariantCulture);
+
+    /// <inheritdoc/>
+#pragma warning disable CA1819 // Properties should not return arrays
+    public byte[]? Checksum { get; } = null;
+#pragma warning restore CA1819 // Properties should not return arrays
 
     /// <inheritdoc/>
     public long Size => fileInfo.Length;
@@ -42,16 +36,16 @@ public class WopiFile : IWopiFile
     public long Length => fileInfo.Length;
 
     /// <inheritdoc/>
-    public string Name => fileInfo.Name;
+    public string Name => Path.GetFileNameWithoutExtension(fileInfo.Name);
 
     /// <inheritdoc/>
     public DateTime LastWriteTimeUtc => fileInfo.LastWriteTimeUtc;
 
     /// <inheritdoc/>
-    public Stream GetReadStream() => fileInfo.OpenRead();
+    public Task<Stream> GetReadStream(CancellationToken cancellationToken = default) => Task.FromResult<Stream>(fileInfo.OpenRead());
 
     /// <inheritdoc/>
-    public Stream GetWriteStream() => fileInfo.Open(FileMode.Truncate);
+    public Task<Stream> GetWriteStream(CancellationToken cancellationToken = default) => Task.FromResult<Stream>(fileInfo.Open(FileMode.Truncate));
 
     /// <summary>
     /// Creates an instance of <see cref="WopiFile"/>.

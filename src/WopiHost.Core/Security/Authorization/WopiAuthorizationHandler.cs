@@ -19,9 +19,9 @@ public class WopiAuthorizationHandler(IWopiSecurityHandler securityHandler)
     /// <param name="context">Context of the <see cref="AuthorizationHandler{TRequirement, TResource}"/></param>
     /// <param name="requirement">Security requirement to be fulfilled (e.g. a permission).</param>
     /// <param name="resource">Resource to check the security authorization requirement against.</param>
-    protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, WopiAuthorizationRequirement requirement, FileResource resource)
+    protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, WopiAuthorizationRequirement requirement, FileResource resource)
     {
-        if (securityHandler.IsAuthorized(context.User, resource.FileId, requirement))
+        if (await securityHandler.IsAuthorized(context.User, resource.FileId, requirement))
         {
             context.Succeed(requirement);
         }
@@ -29,6 +29,5 @@ public class WopiAuthorizationHandler(IWopiSecurityHandler securityHandler)
         {
             context.Fail();
         }
-        return Task.CompletedTask;
     }
 }

@@ -1,12 +1,16 @@
-﻿namespace WopiHost.Core.Models;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Text.Json.Serialization;
+using WopiHost.Abstractions;
+
+namespace WopiHost.Abstractions;
 
 /// <summary>
 /// Model according to <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo">CheckFileInfo documentation</see> and <see href="https://msdn.microsoft.com/en-us/library/hh622920.aspx">Microsoft WOPI documentation</see>
 /// </summary>
-public class CheckFileInfo
+public class WopiCheckFileInfo : WopiHostCapabilities
 {
     #region "Required properties"
-
     /// <summary>
     /// The string name of the file, including extension, without a path. Used for display in user interface (UI), and determining the extension of the file.
     /// </summary>
@@ -53,7 +57,7 @@ public class CheckFileInfo
     public int FileNameMaxLength { get; set; }
 
     /// <summary>
-    /// A string that indicates the brand name of the host.
+    /// A string that indicates the breadcrumb name of the host.
     /// </summary>
     public string? BreadcrumbBrandName { get; set; }
 
@@ -70,6 +74,8 @@ public class CheckFileInfo
     /// <summary>
     /// MAY specifies a URI to a web page that the WOPI client navigates to when the user clicks on UI that displays <see cref="BreadcrumbDocName"/>.
     /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [Obsolete("Deprecated", false, UrlFormat = "https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#deprecated-properties</remarks>")]
     public Uri? BreadcrumbDocUrl { get; set; }
 
     /// <summary>
@@ -90,6 +96,7 @@ public class CheckFileInfo
     /// <summary>
     /// A Boolean value that indicates the WOPI client should close the window or tab when the user activates any <c>Close</c> UI in the WOPI client.
     /// </summary>
+    /// <remarks>do not enable for M365: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/faq/close-button-closes-window</remarks>
     public bool CloseButtonClosesWindow { get; set; }
 
     /// <summary>
@@ -175,12 +182,14 @@ public class CheckFileInfo
     /// <summary>
     /// A string that is the name provided by the WOPI server used to identify it for logging and other informational purposes.
     /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [Obsolete("Deprecated", false, UrlFormat = "https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#deprecated-properties</remarks>")]
     public string? HostName { get; set; }
 
     /// <summary>
     /// A string that is used by the host to pass arbitrary information to the WOPI client.
     /// </summary>
-    public string? HostNotes { get; set; }
+    public string HostNotes { get; set; } = string.Empty;
 
     /// <summary>
     /// A URI that is the base URI for REST operations for the file.
@@ -195,26 +204,28 @@ public class CheckFileInfo
     /// <summary>
     /// A string that the WOPI client should display to the user indicating the IRM policy for the file. This value should be combined with <see cref="IrmPolicyTitle"/>.
     /// </summary>
-    public string? IrmPolicyDescription { get; set; }
+    public string IrmPolicyDescription { get; set; } = string.Empty;
 
     /// <summary>
     /// A string that the WOPI client should display to the user indicating the IRM policy for the file. This value should be combined with <see cref="IrmPolicyDescription"/>.
     /// </summary>
-    public string? IrmPolicyTitle { get; set; }
+    public string IrmPolicyTitle { get; set; } = string.Empty;
 
     /// <summary>
     /// A string that identifies the provider of information that a WOPI client may use to discover information about the user’s online status (for example, whether a user is available via instant messenger).
     /// </summary>
-    public string? PresenceProvider { get; set; }
+    public string PresenceProvider { get; set; } = string.Empty;
 
     /// <summary>
     /// A string that identifies the user in the context of the <see cref="PresenceProvider"/>.
     /// </summary>
-    public string? PresenceUserId { get; set; }
+    public string PresenceUserId { get; set; } = string.Empty;
 
     /// <summary>
     /// A URI to a webpage that explains the privacy policy of the WOPI server.
     /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [Obsolete("Deprecated", false, UrlFormat = "https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#deprecated-properties</remarks>")]
     public Uri? PrivacyUrl { get; set; }
 
     /// <summary>
@@ -241,12 +252,13 @@ public class CheckFileInfo
     /// <summary>
     /// A 256 bit SHA-2-encoded [<see href="http://csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf">FIPS 180-2</see>] hash of the file contents, as a Base64-encoded string. Used for caching purposes in WOPI clients.
     /// </summary>
+    [JsonPropertyName("SHA256")]
     public string? Sha256 { get; set; }
 
     /// <summary>
     /// This string value can be provided rather than a SHA256 value if and only if the host can guarantee that two different files with the same content will have the same UniqueContentId value.
     /// </summary>
-    public string? UniqueContentId { get; set; }
+    public string UniqueContentId { get; set; } = string.Empty;
 
     /// <summary>
     /// A URI that will sign the current user out of the host’s authentication system.
@@ -254,212 +266,26 @@ public class CheckFileInfo
     public Uri? SignoutUrl { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the WOPI server supports multiple users making changes to this file simultaneously.
-    /// </summary>
-    public bool SupportsCoauth { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports the following WOPI operations:
-    /// <list type="bullet">
-    /// <item>
-    /// <description>ExecuteCellStorageRequest</description>
-    /// </item>
-    /// <item>
-    /// <description>ExecuteCellStorageRelativeRequest</description>
-    /// </item>
-    /// </list>
-    /// These operations are only used by OneNote for the web and are thus not needed to integrate with Office for the web or Office for iOS. These are included for completeness but do not need to be implemented.
-    /// </summary>
-    public bool SupportsCobalt { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports the following WOPI operations:
-    /// <list type="bullet">
-    /// <item>
-    /// <description>CheckFolderInfo - This operation is only used by OneNote for the web and is thus not needed to integrate with Office for the web or Office for iOS. It is included for completeness but does not need to be implemented.</description>
-    /// </item>
-    /// <item>
-    /// <description>EnumerateChildren (folders) - This operation is only used by OneNote for the web and is thus not needed to integrate with Office for the web or Office for iOS. It is included for completeness but does not need to be implemented.</description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see></description>
-    /// </item>
-    /// </list>
-    /// </summary>   
-    public bool SupportsFolders
-    {
-        get => SupportsContainers;
-        set => SupportsContainers = value;
-    }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports the following WOPI operations:
-    /// <list type="bullet">
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo">CheckContainerInfo</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/createchildcontainer">CreateChildContainer</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/createchildfile">CreateChildFile</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/deletecontainer">DeleteContainer</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/enumerateancestors">EnumerateAncestors (containers)</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/enumerateancestors">EnumerateAncestors (files)</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/enumeratechildren">EnumerateChildren (containers)</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/getecosystem">GetEcosystem (containers)</see></description>
-    /// </item>
-    ///  <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/renamecontainer">RenameContainer</see></description>
-    /// </item>
-    /// </list>
-    /// </summary>
-    public bool SupportsContainers { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports the following WOPI operations:
-    /// <list type="bullet">
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/lock">Lock</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/unlock">Unlock</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/refreshlock">RefreshLock</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock">UnlockAndRelock</see> operations for this file.</description>
-    /// </item>
-    /// </list>
-    /// </summary>
-    public bool SupportsLocks { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getlock">GetLock</see> operation.
-    /// </summary>
-    public bool SupportsGetLock { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports lock IDs up to 1024 ASCII characters long. If not provided, WOPI clients will assume that lock IDs are limited to 256 ASCII characters.
-    /// </summary>
-    public bool SupportsExtendedLockLength { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports the following WOPI operations:
-    /// <list type="bullet">
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/ecosystem/checkecosystem">CheckEcosystem</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/getecosystem">GetEcosystem (containers)</see></description>
-    /// </item>
-    ///  <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getecosystem">GetEcosystem (files)</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getrootcontainer">GetRootContainer (ecosystem)</see></description>
-    /// </item>
-    /// </list>
-    /// </summary>
-    public bool SupportsEcosystem { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getfilewopisrc">GetFileWopiSrc (ecosystem)</see> operation.
-    /// </summary>
-    public bool SupportsGetFileWopiSrc { get; set; }
-
-    /// <summary>
-    /// An array of strings containing the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/concepts#share-url">Share URL</see> types supported by the host.
-    /// These types can be passed in the X-WOPI-UrlType request header to signify which Share URL type to return for the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getshareurl">GetShareUrl (files)</see> operation.
-    /// <para> Possible Values:
-    /// <list type="bullet">
-    /// <item>
-    /// <description>ReadOnly - This type of Share URL allows users to view the file using the URL, but does not give them permission to edit the file.</description>
-    /// </item>
-    /// <item>
-    /// <description>ReadWrite - This type of Share URL allows users to both view and edit the file using the URL.</description>
-    /// </item>
-    /// </list>
-    /// </para>
-    /// </summary>
-    public IEnumerable<string> SupportedShareUrlTypes { get; set; } = [];
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports scenarios where users can operate on files in limited ways via restricted URLs.
-    /// </summary>
-    public bool SupportsScenarioLinks { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports calls to a secure data store utilizing credentials stored in the file.
-    /// </summary>
-    public bool SupportsSecureStore { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports creating new files using the WOPI client.
-    /// </summary>
-    public bool SupportsFileCreation { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports the following WOPI operations:
-    /// <list type="bullet">
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see></description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile">PutRelativeFile</see></description>
-    /// </item>
-    /// </list>
-    /// </summary>
-    public bool SupportsUpdate { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/renamefile">RenameFile</see> operation.
-    /// </summary>
-    public bool SupportsRename { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see> operation.
-    /// </summary>
-    public bool SupportsDeleteFile { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo">PutUserInfo</see> operation.
-    /// </summary>
-    public bool SupportsUserInfo { get; set; }
-
-    /// <summary>
     /// A string value containing information about the user. This string can be passed from a WOPI client to the host by means of a <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo">PutUserInfo</see> operation. If the host has a UserInfo string for the user, they must include it in this property.
     /// </summary>
-    public string? UserInfo { get; set; }
+    public string UserInfo { get; set; } = string.Empty;
 
     /// <summary>
     /// A string value uniquely identifying the user’s ‘tenant,’ or group/organization to which they belong.
     /// </summary>
-    public string? TenantId { get; set; }
+    public string TenantId { get; set; } = string.Empty;
 
     /// <summary>
     /// A URI to a webpage that explains the terms of use policy of the WOPI server.
     /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [Obsolete("Deprecated", false, UrlFormat = "https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#deprecated-properties</remarks>")]
     public Uri? TermsOfUseUrl { get; set; }
 
     /// <summary>
     /// A string that is used to pass time zone information to a WOPI client. The format of this value is determined by the host.
     /// </summary>
-    public string? TimeZone { get; set; }
+    public string TimeZone { get; set; } = string.Empty;
 
     /// <summary>
     /// A Boolean value indicating whether the user is authenticated with the host or not. Hosts should always set this to <c>true</c> for unauthenticated users, so that clients are aware that the user is anonymous.
@@ -512,12 +338,11 @@ public class CheckFileInfo
     /// <summary>
     /// A string value uniquely identifying the user currently accessing the file.
     /// </summary>
-    public string? UserPrincipalName { get; set; }
+    public string UserPrincipalName { get; set; } = string.Empty;
 
     /// <summary>
     /// A Boolean value that indicates that the WOPI client must not allow the user to edit the file.
     /// </summary>
     public bool WebEditingDisabled { get; set; }
-
     #endregion
 }

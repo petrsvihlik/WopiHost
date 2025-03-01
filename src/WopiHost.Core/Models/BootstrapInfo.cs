@@ -1,4 +1,6 @@
-﻿namespace WopiHost.Core.Models;
+﻿using WopiHost.Abstractions;
+
+namespace WopiHost.Core.Models;
 
 /// <summary>
 /// Implemented in accordance with: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getrootcontainer#sample-response
@@ -11,7 +13,7 @@ public class BootstrapInfo
 	public Uri? EcosystemUrl { get; set; }
 
 	/// <summary>
-	/// A string value uniquely identifying the user making the request. This value should match the UserId value provided in <see cref="CheckFileInfo"/>. 
+	/// A string value uniquely identifying the user making the request. This value should match the UserId value provided in <see cref="WopiCheckFileInfo"/>. 
 	/// This ID is expected to be unique per user and consistent over time. See Requirements for user identity properties for more information.
 	/// </summary>
 	public string? UserId { get; set; }
@@ -22,7 +24,7 @@ public class BootstrapInfo
 	public string? SignInName { get; set; }
 
 	/// <summary>
-	/// A string that is the name of the user. This value should match the <see cref="CheckFileInfo.UserFriendlyName"/> value provided in <see cref="CheckFileInfo"/>.
+	/// A string that is the name of the user. This value should match the <see cref="WopiCheckFileInfo.UserFriendlyName"/> value provided in <see cref="WopiCheckFileInfo"/>.
 	/// </summary>
 	public string? UserFriendlyName { get; set; }
 }

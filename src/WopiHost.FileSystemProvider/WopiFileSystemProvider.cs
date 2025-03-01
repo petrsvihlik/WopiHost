@@ -1,7 +1,8 @@
-﻿using System.Text;
+﻿using System.Security.Claims;
+using System.Text;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using WopiHost.Abstractions;
-using Microsoft.Extensions.Configuration;
 
 namespace WopiHost.FileSystemProvider;
 
@@ -42,30 +43,63 @@ public class WopiFileSystemProvider : IWopiStorageProvider
             .Get<WopiFileSystemProviderOptions>() ?? throw new ArgumentNullException(nameof(configuration));
     }
 
-    /// <summary>
-    /// Gets a file using an identifier.
-    /// </summary>
-    /// <param name="identifier">A base64-encoded file path.</param>
+    /// <inheritdoc/>
+    public WopiCheckFileInfo? GetWopiCheckFileInfo(
+        IWopiFile file,
+        WopiHostCapabilities hostCapabilities,
+        ClaimsPrincipal? principal,
+        WopiCheckFileInfo wopiCheckFileInfo)
+    {
+        wopiCheckFileInfo.AllowAdditionalMicrosoftServices = true;
+        wopiCheckFileInfo.AllowErrorReportPrompt = true;
+
+        // ##183 required for WOPI-Validator
+        if (wopiCheckFileInfo.BaseFileName == "test.wopitest")
+        {
+            wopiCheckFileInfo.CloseUrl = new("https://example.com/close");
+            wopiCheckFileInfo.DownloadUrl = new("https://example.com/download");
+            wopiCheckFileInfo.FileSharingUrl = new("https://example.com/share");
+            wopiCheckFileInfo.FileUrl = new("https://example.com/file");
+            wopiCheckFileInfo.FileVersionUrl = new("https://example.com/version");
+            wopiCheckFileInfo.HostEditUrl = new("https://example.com/edit");
+            wopiCheckFileInfo.HostEmbeddedViewUrl = new("https://example.com/embedded");
+            wopiCheckFileInfo.HostEmbeddedEditUrl = new("https://example.com/embeddededit");
+            wopiCheckFileInfo.HostRestUrl = new("https://example.com/rest");
+            wopiCheckFileInfo.HostViewUrl = new("https://example.com/view");
+            wopiCheckFileInfo.SignInUrl = new("https://example.com/signin");
+            wopiCheckFileInfo.SignoutUrl = new("https://example.com/signout");
+
+            wopiCheckFileInfo.ClientUrl = new("https://example.com/client");
+            wopiCheckFileInfo.FileEmbedCommandUrl = new("https://example.com/embed");
+
+            // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#breadcrumb-properties
+            wopiCheckFileInfo.BreadcrumbBrandName = "WopiHost";
+            wopiCheckFileInfo.BreadcrumbBrandUrl = new("https://example.com");
+            wopiCheckFileInfo.BreadcrumbDocName = "test";
+            wopiCheckFileInfo.BreadcrumbFolderName = "root";
+            wopiCheckFileInfo.BreadcrumbFolderUrl = new("https://example.com/folder");
+
+            return wopiCheckFileInfo;
+        }
+        // if you don't want to change anything, just return null
+        return null;
+    }
+
+    /// <inheritdoc/>
     public IWopiFile GetWopiFile(string identifier)
     {
         var filePath = DecodeIdentifier(identifier);
         return new WopiFile(Path.Combine(WopiAbsolutePath, filePath), identifier);
     }
 
-    /// <summary>
-    /// Gets a folder using an identifier.
-    /// </summary>
-    /// <param name="identifier">A base64-encoded folder path.</param>
+    /// <inheritdoc/>
     public IWopiFolder GetWopiContainer(string identifier = "")
     {
         var folderPath = DecodeIdentifier(identifier);
         return new WopiFolder(Path.Combine(WopiAbsolutePath, folderPath), identifier);
     }
 
-    /// <summary>
-    /// Gets all files in a folder.
-    /// </summary>
-    /// <param name="identifier">A base64-encoded folder path.</param>
+    /// <inheritdoc/>
     public List<IWopiFile> GetWopiFiles(string identifier = "")
     {
         var folderPath = DecodeIdentifier(identifier);
@@ -79,10 +113,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider
         return files;
     }
 
-    /// <summary>
-    /// Gets all sub-folders of a folder.
-    /// </summary>
-    /// <param name="identifier">A base64-encoded folder path.</param>
+    /// <inheritdoc/>
     public List<IWopiFolder> GetWopiContainers(string identifier = "")
     {
         var folderPath = DecodeIdentifier(identifier);

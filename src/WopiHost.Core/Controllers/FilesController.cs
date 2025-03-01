@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Net.Mime;
+using System.Security.Claims;
+using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -21,8 +24,9 @@ public class FilesController : WopiControllerBase
     /// Service that can process MS-FSSHTTP requests.
     /// </summary>
     private readonly ICobaltProcessor? cobaltProcessor;
-
-    private HostCapabilities HostCapabilities => new()
+    private readonly IWopiLockProvider? lockProvider;
+    private readonly IAuthorizationService authorizationService;
+    private WopiHostCapabilities HostCapabilities => new()
     {
         SupportsCobalt = cobaltProcessor is not null,
         SupportsGetLock = lockProvider is not null,
@@ -32,9 +36,6 @@ public class FilesController : WopiControllerBase
         SupportsCoauth = false,
         SupportsUpdate = true //TODO: PutRelativeFile
     };
-
-    private readonly IWopiLockProvider? lockProvider;
-    private readonly IAuthorizationService authorizationService;
 
     /// <summary>
     /// Creates an instance of <see cref="FilesController"/>.
@@ -64,15 +65,31 @@ public class FilesController : WopiControllerBase
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns></returns>
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetCheckFileInfo(string id)
+    public async Task<IActionResult> GetCheckFileInfo(string id, CancellationToken cancellationToken = default)
     {
         if (!(await authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Read)).Succeeded)
         {
             return Unauthorized();
         }
-        return new JsonResult(StorageProvider.GetWopiFile(id)?.GetCheckFileInfo(User, HostCapabilities), null);
+
+        // Get file
+        var file = StorageProvider.GetWopiFile(id);
+        if (file is null)
+        {
+            return NotFound();
+        }
+
+        // instead of JsonResult we must .Serialize<object>() to support properties that
+        // might be defined on custom WopiCheckFileInfo objects
+        return new ContentResult()
+        {
+            Content = JsonSerializer.Serialize<object>(await BuildCheckFileInfo(file, cancellationToken)),
+            ContentType = MediaTypeNames.Application.Json,
+            StatusCode = StatusCodes.Status200OK
+        };
     }
 
     /// <summary>
@@ -82,11 +99,13 @@ public class FilesController : WopiControllerBase
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <param name="maximumExpectedSize"></param>
-    /// <returns></returns>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>FileStreamResult</returns>
     [HttpGet("{id}/contents")]
     public async Task<IActionResult> GetFile(
         string id,
-        [FromHeader(Name = WopiHeaders.MAX_EXPECTED_SIZE)] int? maximumExpectedSize = null)
+        [FromHeader(Name = WopiHeaders.MAX_EXPECTED_SIZE)] int? maximumExpectedSize = null,
+        CancellationToken cancellationToken = default)
     {
         // Check permissions
         if (!(await authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Read)).Succeeded)
@@ -96,15 +115,30 @@ public class FilesController : WopiControllerBase
 
         // Get file
         var file = StorageProvider.GetWopiFile(id);
+        if (file is null)
+        {
+            return NotFound();
+        }
 
         // Check expected size
-        if (maximumExpectedSize is not null && file.GetCheckFileInfo(User, HostCapabilities).Size > maximumExpectedSize.Value)
+        // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getfile#request-headers
+        var size = file.Exists ? file.Length : 0;
+        if (maximumExpectedSize is not null &&
+            size > maximumExpectedSize.Value)
         {
+            // File is larger than X-WOPI-MaxExpectedSize
             return new PreconditionFailedResult();
         }
 
+        // Returns optional version
+        // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getfile#response-headers
+        if (file.Version is not null)
+        {
+            Response.Headers[WopiHeaders.WOPI_ITEM_VERSION] = file.Version;
+        }
+
         // Try to read content from a stream
-        return new FileStreamResult(file.GetReadStream(), "application/octet-stream");
+        return new FileStreamResult(await file.GetReadStream(cancellationToken), MediaTypeNames.Application.Octet);
     }
 
     /// <summary>
@@ -114,12 +148,14 @@ public class FilesController : WopiControllerBase
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <param name="newLockIdentifier">new lockId</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPut("{id}/contents")]
     [HttpPost("{id}/contents")]
     public async Task<IActionResult> PutFile(
         string id,
-        [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null)
+        [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null,
+        CancellationToken cancellationToken = default)
     {
         // Check permissions
         var authorizationResult = await authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Update);
@@ -139,9 +175,9 @@ public class FilesController : WopiControllerBase
 
             // Save file contents
             var newContent = await HttpContext.Request.Body.ReadBytesAsync();
-            await using (var stream = file.GetWriteStream())
+            await using (var stream = await file.GetWriteStream(cancellationToken))
             {
-                await stream.WriteAsync(newContent.AsMemory(0, newContent.Length));
+                await stream.WriteAsync(newContent.AsMemory(0, newContent.Length), cancellationToken);
             }
 
             return new OkResult();
@@ -195,7 +231,50 @@ public class FilesController : WopiControllerBase
             HttpContext.Response.Headers.Append(WopiHeaders.CORRELATION_ID, correlationId);
             HttpContext.Response.Headers.Append("request-id", correlationId);
         }
-        return new Results.FileResult(responseAction, "application/octet-stream");
+        return new Results.FileResult(responseAction, MediaTypeNames.Application.Octet);
+    }
+
+    /// <summary>
+    /// Returns a CheckFileInfo model according to https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo
+    /// </summary>
+    /// <param name="file">File properties of which should be returned.</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>CheckFileInfo model</returns>
+    private async Task<WopiCheckFileInfo> BuildCheckFileInfo(
+        IWopiFile file,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+
+        var checkFileInfo = file.GetWopiCheckFileInfo(HostCapabilities);
+        checkFileInfo.Sha256 = await file.GetEncodedSha256(cancellationToken);
+
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            checkFileInfo.UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value.ToSafeIdentity()
+                ?? throw new InvalidOperationException("Could not find NameIdentifier claim");
+            checkFileInfo.HostAuthenticationId = checkFileInfo.UserId;
+            checkFileInfo.UserFriendlyName = User.FindFirst(ClaimTypes.Name)?.Value;
+            checkFileInfo.UserPrincipalName = User.FindFirst(ClaimTypes.Upn)?.Value ?? string.Empty;
+
+            // try to parse permissions claims
+            var permissions = await SecurityHandler.GetUserPermissions(User, file, cancellationToken);
+            checkFileInfo.ReadOnly = permissions.HasFlag(WopiUserPermissions.ReadOnly);
+            checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiUserPermissions.RestrictedWebViewOnly);
+            checkFileInfo.UserCanAttend = permissions.HasFlag(WopiUserPermissions.UserCanAttend);
+            checkFileInfo.UserCanNotWriteRelative = !HostCapabilities.SupportsUpdate || permissions.HasFlag(WopiUserPermissions.UserCanNotWriteRelative);
+            checkFileInfo.UserCanPresent = permissions.HasFlag(WopiUserPermissions.UserCanPresent);
+            checkFileInfo.UserCanRename = permissions.HasFlag(WopiUserPermissions.UserCanRename);
+            checkFileInfo.UserCanWrite = permissions.HasFlag(WopiUserPermissions.UserCanWrite);
+            checkFileInfo.WebEditingDisabled = permissions.HasFlag(WopiUserPermissions.WebEditingDisabled);
+        }
+        else
+        {
+            checkFileInfo.IsAnonymousUser = true;
+        }
+
+        var newCheckFileInfo = StorageProvider.GetWopiCheckFileInfo(file, HostCapabilities, User, checkFileInfo);
+        return newCheckFileInfo ?? checkFileInfo;
     }
 
     #region "Locking"
@@ -226,7 +305,7 @@ public class FilesController : WopiControllerBase
         {
             return new LockMismatchResult(Response, reason: "Locking is not supported");
         }
-        
+
         var lockAcquired = lockProvider.TryGetLock(id, out var existingLock);
         switch (wopiOverrideHeader)
         {

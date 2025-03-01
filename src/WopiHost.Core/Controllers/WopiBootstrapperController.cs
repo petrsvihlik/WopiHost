@@ -31,9 +31,10 @@ public class WopiBootstrapperController(
     /// <returns></returns>
     [HttpPost]
     [Produces(MediaTypeNames.Application.Json)]
-    public IActionResult GetRootContainer(
+    public async Task<IActionResult> GetRootContainer(
         [FromHeader(Name = WopiHeaders.ECOSYSTEM_OPERATION)] string? ecosystemOperation = null,
-        [FromHeader(Name = WopiHeaders.WOPI_SRC)] string? wopiSrc = null)
+        [FromHeader(Name = WopiHeaders.WOPI_SRC)] string? wopiSrc = null,
+        CancellationToken cancellationToken = default)
         //TODO: fix the path
     {
         var authorizationHeader = HttpContext.Request.Headers.Authorization;
@@ -56,7 +57,7 @@ public class WopiBootstrapperController(
             if (ecosystemOperation == "GET_ROOT_CONTAINER")
             {
                 var resourceId = StorageProvider.RootContainerPointer.Identifier;
-                var token = SecurityHandler.GenerateAccessToken(user, resourceId);
+                var token = await SecurityHandler.GenerateAccessToken(user, resourceId, cancellationToken);
 
                 bootstrapRoot.RootContainerInfo = new RootContainerInfo
                 {
@@ -70,7 +71,7 @@ public class WopiBootstrapperController(
             else if (ecosystemOperation == "GET_NEW_ACCESS_TOKEN")
             {
                 ArgumentException.ThrowIfNullOrEmpty(wopiSrc);
-                var token = SecurityHandler.GenerateAccessToken(user, GetIdFromUrl(wopiSrc));
+                var token = await SecurityHandler.GenerateAccessToken(user, GetIdFromUrl(wopiSrc), cancellationToken);
 
                 bootstrapRoot.AccessTokenInfo = new AccessTokenInfo
                 {

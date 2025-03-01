@@ -44,15 +44,25 @@ public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHa
                 new(ClaimTypes.Name, "Anonymous"),
                 new(ClaimTypes.Email, "anonymous@domain.tld"),
 
-                //TDOO: this needs to be done per file
-                new(WopiClaimTypes.USER_PERMISSIONS, (WopiUserPermissions.UserCanWrite | WopiUserPermissions.UserCanRename | WopiUserPermissions.UserCanAttend | WopiUserPermissions.UserCanPresent).ToString())
+                ////TDOO: this needs to be done per file
+                //new(WopiClaimTypes.USER_PERMISSIONS, (WopiUserPermissions.UserCanWrite | WopiUserPermissions.UserCanRename | WopiUserPermissions.UserCanAttend | WopiUserPermissions.UserCanPresent).ToString())
             ])
         )
         }
     };
 
     /// <inheritdoc/>
-    public SecurityToken GenerateAccessToken(string userId, string resourceId)
+    public Task<WopiUserPermissions> GetUserPermissions(ClaimsPrincipal principal, IWopiFile file, CancellationToken cancellationToken = default)
+    {
+        //var permissions = Enum.Parse<WopiUserPermissions>(principal.FindFirstValue(WopiClaimTypes.USER_PERMISSIONS) ?? string.Empty);
+        return Task.FromResult(WopiUserPermissions.UserCanWrite | 
+            WopiUserPermissions.UserCanRename | 
+            WopiUserPermissions.UserCanAttend | 
+            WopiUserPermissions.UserCanPresent);
+    }
+
+    /// <inheritdoc/>
+    public Task<SecurityToken> GenerateAccessToken(string userId, string resourceId, CancellationToken cancellationToken = default)
     {
         var user = _userDatabase[userId];
 
@@ -63,11 +73,11 @@ public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHa
             SigningCredentials = new SigningCredentials(Key, SecurityAlgorithms.HmacSha256)
         };
 
-        return _tokenHandler.CreateToken(tokenDescriptor);
+        return Task.FromResult(_tokenHandler.CreateToken(tokenDescriptor));
     }
 
     /// <inheritdoc/>
-    public ClaimsPrincipal? GetPrincipal(string token)
+    public Task<ClaimsPrincipal?> GetPrincipal(string token, CancellationToken cancellationToken = default)
     {
         //TODO: https://github.com/aspnet/Security/tree/master/src/Microsoft.AspNetCore.Authentication.JwtBearer
 
@@ -84,19 +94,20 @@ public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHa
         try
         {
             // Try to validate the token
-            return _tokenHandler.ValidateToken(token, tokenValidation, out var _);
+            return Task.FromResult<ClaimsPrincipal?>(_tokenHandler.ValidateToken(token, tokenValidation, out var _));
         }
         catch (Exception ex)
         {
             _logger.LogError(new EventId(ex.HResult), ex, ex.Message);
-            return null;
+            return Task.FromResult<ClaimsPrincipal?>(null);
         }
     }
 
     /// <inheritdoc/>
-    public bool IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation) =>
-        //TODO: logic
-        principal.Identity?.IsAuthenticated == true;
+    public Task<bool> IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(principal.Identity?.IsAuthenticated == true);
+    }
 
     /// <summary>
     /// Converts the security token to a Base64 string.

@@ -74,4 +74,9 @@ public static class WopiHeaders
     /// The string GET_NEW_ACCESS_TOKEN. Required.
     /// </summary>
     public const string ECOSYSTEM_OPERATION = "X-WOPI-EcosystemOperation";
+
+    /// <summary>
+    /// An optional string value indicating the version of the file
+    /// </summary>
+    public const string WOPI_ITEM_VERSION = "X-WOPI-ItemVersion";
 }

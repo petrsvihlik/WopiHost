@@ -1,8 +1,6 @@
 ﻿using System.Globalization;
-using System.Security.Claims;
 using System.Security.Cryptography;
 using WopiHost.Abstractions;
-using WopiHost.Core.Models;
 
 namespace WopiHost.Core;
 
@@ -14,76 +12,65 @@ public static class FileExtensions
     private static readonly SHA256 Sha = SHA256.Create();
 
     /// <summary>
-    /// Returns a CheckFileInfo model according to https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo
+    /// Returns base64 encoding of checksum (or calculates it from original contents if not provided)
     /// </summary>
-    /// <param name="file">File properties of which should be returned.</param>
-    /// <param name="principal">A user object which the CheckFileInfo should be correlated with.</param>
-    /// <param name="capabilities">WOPI host capabilities</param>
-    /// <returns>CheckFileInfo model</returns>
-    public static CheckFileInfo GetCheckFileInfo(this IWopiFile file, ClaimsPrincipal principal, HostCapabilities capabilities)
+    /// <param name="file">File object.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>base64 encoded sha256 checksum</returns>
+    public static async Task<string> GetEncodedSha256(this IWopiFile file, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(file);
+        var result = file.Checksum;
+        if (result is null)
+        {
+            using var stream = await file.GetReadStream(cancellationToken);
+            result = await Sha.ComputeHashAsync(stream, cancellationToken);
+        }
+        return Convert.ToBase64String(result);
+    }
 
-        ArgumentNullException.ThrowIfNull(capabilities);
+    /// <summary>
+    /// Creates a new instance of the <see cref="WopiCheckFileInfo"/> based on the provided <see cref="IWopiFile"/> and <see cref="WopiHostCapabilities"/>.
+    /// </summary>
+    /// <param name="file"><see cref="IWopiFile"/> to return info</param>
+    /// <param name="capabilities"><see cref="WopiHostCapabilities"/> to include in result</param>
+    public static WopiCheckFileInfo GetWopiCheckFileInfo(this IWopiFile file, WopiHostCapabilities? capabilities = null)
+    {
+        // #181 make sure the BaseFileName always has an extensions
+        var baseFileName = file.Name.EndsWith(file.Extension, StringComparison.OrdinalIgnoreCase)
+            ? file.Name
+            : file.Name + "." + file.Extension.TrimStart('.');
 
-        var checkFileInfo = new CheckFileInfo
+        var result = new WopiCheckFileInfo
         {
             UserId = string.Empty,
-            BaseFileName = file.Name,
-            OwnerId = file.Owner,
-            Version = file.LastWriteTimeUtc.ToString("s", CultureInfo.InvariantCulture)
+            OwnerId = file.Owner.ToSafeIdentity(),
+            Version = file.Version ?? file.LastWriteTimeUtc.ToString("s", CultureInfo.InvariantCulture),
+            FileExtension = "." + file.Extension.TrimStart('.'),
+            BaseFileName = baseFileName,
+            LastModifiedTime = file.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
+            Size = file.Exists ? file.Length : 0,
         };
-
-        if (principal is not null)
+        if (capabilities is not null)
         {
-            checkFileInfo.UserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value.ToSafeIdentity()
-                ?? throw new ArgumentNullException(nameof(principal));
-            checkFileInfo.UserFriendlyName = principal.FindFirst(ClaimTypes.Name)?.Value;
-
-            var permissions = Enum.Parse<WopiUserPermissions>(principal.FindFirstValue(WopiClaimTypes.USER_PERMISSIONS) ?? string.Empty);
-
-            checkFileInfo.ReadOnly = permissions.HasFlag(WopiUserPermissions.ReadOnly);
-            checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiUserPermissions.RestrictedWebViewOnly);
-            checkFileInfo.UserCanAttend = permissions.HasFlag(WopiUserPermissions.UserCanAttend);
-            checkFileInfo.UserCanNotWriteRelative = !capabilities.SupportsUpdate || permissions.HasFlag(WopiUserPermissions.UserCanNotWriteRelative);
-            checkFileInfo.UserCanPresent = permissions.HasFlag(WopiUserPermissions.UserCanPresent);
-            checkFileInfo.UserCanRename = permissions.HasFlag(WopiUserPermissions.UserCanRename);
-            checkFileInfo.UserCanWrite = permissions.HasFlag(WopiUserPermissions.UserCanWrite);
-            checkFileInfo.WebEditingDisabled = permissions.HasFlag(WopiUserPermissions.WebEditingDisabled);
+            // Set host capabilities
+            result.SupportsCoauth = capabilities.SupportsCoauth;
+            result.SupportsFolders = capabilities.SupportsFolders;
+            result.SupportsLocks = capabilities.SupportsLocks;
+            result.SupportsGetLock = capabilities.SupportsGetLock;
+            result.SupportsExtendedLockLength = capabilities.SupportsExtendedLockLength;
+            result.SupportsEcosystem = capabilities.SupportsEcosystem;
+            result.SupportsGetFileWopiSrc = capabilities.SupportsGetFileWopiSrc;
+            result.SupportedShareUrlTypes = capabilities.SupportedShareUrlTypes;
+            result.SupportsScenarioLinks = capabilities.SupportsScenarioLinks;
+            result.SupportsSecureStore = capabilities.SupportsSecureStore;
+            result.SupportsUpdate = capabilities.SupportsUpdate;
+            result.SupportsCobalt = capabilities.SupportsCobalt;
+            result.SupportsRename = capabilities.SupportsRename;
+            result.SupportsDeleteFile = capabilities.SupportsDeleteFile;
+            result.SupportsUserInfo = capabilities.SupportsUserInfo;
+            result.SupportsFileCreation = capabilities.SupportsFileCreation;
         }
-        else
-        {
-            checkFileInfo.IsAnonymousUser = true;
-        }
-
-        checkFileInfo.OwnerId = file.Owner.ToSafeIdentity();
-
-        // Set host capabilities
-        checkFileInfo.SupportsCoauth = capabilities.SupportsCoauth;
-        checkFileInfo.SupportsFolders = capabilities.SupportsFolders;
-        checkFileInfo.SupportsLocks = capabilities.SupportsLocks;
-        checkFileInfo.SupportsGetLock = capabilities.SupportsGetLock;
-        checkFileInfo.SupportsExtendedLockLength = capabilities.SupportsExtendedLockLength;
-        checkFileInfo.SupportsEcosystem = capabilities.SupportsEcosystem;
-        checkFileInfo.SupportsGetFileWopiSrc = capabilities.SupportsGetFileWopiSrc;
-        checkFileInfo.SupportedShareUrlTypes = capabilities.SupportedShareUrlTypes;
-        checkFileInfo.SupportsScenarioLinks = capabilities.SupportsScenarioLinks;
-        checkFileInfo.SupportsSecureStore = capabilities.SupportsSecureStore;
-        checkFileInfo.SupportsUpdate = capabilities.SupportsUpdate;
-        checkFileInfo.SupportsCobalt = capabilities.SupportsCobalt;
-        checkFileInfo.SupportsRename = capabilities.SupportsRename;
-        checkFileInfo.SupportsDeleteFile = capabilities.SupportsDeleteFile;
-        checkFileInfo.SupportsUserInfo = capabilities.SupportsUserInfo;
-        checkFileInfo.SupportsFileCreation = capabilities.SupportsFileCreation;
-
-        using (var stream = file.GetReadStream())
-        {
-            var checksum = Sha.ComputeHash(stream);
-            checkFileInfo.Sha256 = Convert.ToBase64String(checksum);
-        }
-        checkFileInfo.FileExtension = "." + file.Extension.TrimStart('.');
-        checkFileInfo.LastModifiedTime = file.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture);
-        checkFileInfo.Size = file.Exists ? file.Length : 0;
-        return checkFileInfo;
+        return result;
     }
 }
