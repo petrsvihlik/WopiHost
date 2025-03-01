@@ -7,8 +7,8 @@ namespace WopiHost.Url;
 
 /// <summary>
 /// Generates WOPI URLs according to the specification
-/// WOPI v2 spec: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/discovery
-/// WOPI v1 spec: https://msdn.microsoft.com/en-us/library/hh695362(v=office.12).aspx
+/// WOPI v2 spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/discovery
+/// WOPI v1 spec: https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/adb48ba9-118a-43b6-82d7-9a508aad1583
 /// </summary>
 /// <remarks>
 /// Creates a new instance of WOPI URL generator class.

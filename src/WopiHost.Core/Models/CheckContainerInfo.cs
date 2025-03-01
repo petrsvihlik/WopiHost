@@ -1,8 +1,8 @@
 ﻿namespace WopiHost.Core.Models;
 
 /// <summary>
-/// Model implmented in accordance with the new specification https://docs.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo
-/// Does not implement CheckFolderInfo members from the original specification (https://msdn.microsoft.com/en-us/library/hh642596.aspx)
+/// Model implmented in accordance with the new specification https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo
+/// Does not implement CheckFolderInfo members from the original specification (https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/4b1d38ff-0d6a-42e4-8901-175b3c3c5890)
 /// </summary>
 public class CheckContainerInfo
 {
