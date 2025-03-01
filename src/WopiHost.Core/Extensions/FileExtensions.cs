@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using WopiHost.Abstractions;
 
-namespace WopiHost.Core;
+namespace WopiHost.Core.Extensions;
 
 /// <summary>
 /// Extension methods for <see cref="IWopiFile"/>.

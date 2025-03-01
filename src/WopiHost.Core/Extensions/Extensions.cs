@@ -1,4 +1,4 @@
-namespace WopiHost.Core;
+namespace WopiHost.Core.Extensions;
 
 internal static class Extensions
 {

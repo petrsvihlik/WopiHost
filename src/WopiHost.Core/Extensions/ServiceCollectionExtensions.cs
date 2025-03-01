@@ -5,12 +5,12 @@ using WopiHost.Abstractions;
 using WopiHost.Core.Security.Authentication;
 using WopiHost.Core.Security.Authorization;
 
-namespace WopiHost.Core;
+namespace WopiHost.Core.Extensions;
 
 /// <summary>
 /// Extensions for registering WOPI into the application pipeline.
 /// </summary>
-public static class WopiCoreBuilderExtensions
+public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// Adds core WOPI services and controllers to the <see cref="IServiceCollection"/>.
@@ -24,7 +24,7 @@ public static class WopiCoreBuilderExtensions
         services.AddSingleton<IAuthorizationHandler, WopiAuthorizationHandler>();
 
         services.AddControllers()
-            .AddApplicationPart(typeof(WopiCoreBuilderExtensions).GetTypeInfo().Assembly) // Add controllers from this assembly
+            .AddApplicationPart(typeof(ServiceCollectionExtensions).GetTypeInfo().Assembly) // Add controllers from this assembly
             .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null); // Ensure PascalCase property name-style
 
         services.AddAuthentication(o => { o.DefaultScheme = AccessTokenDefaults.AUTHENTICATION_SCHEME; })

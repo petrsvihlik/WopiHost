@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using WopiHost.Abstractions;
+using WopiHost.Core.Extensions;
+using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
 
@@ -20,7 +22,7 @@ namespace WopiHost.Core.Controllers;
 /// <param name="wopiHostOptions">WOPI Host configuration</param>
 [Route("wopibootstrapper")]
 public class WopiBootstrapperController(
-    IWopiStorageProvider storageProvider, 
+    IWopiStorageProvider storageProvider,
     IWopiSecurityHandler securityHandler,
     IOptions<WopiHostOptions> wopiHostOptions) : WopiControllerBase(storageProvider, securityHandler, wopiHostOptions)
 {
@@ -35,7 +37,7 @@ public class WopiBootstrapperController(
         [FromHeader(Name = WopiHeaders.ECOSYSTEM_OPERATION)] string? ecosystemOperation = null,
         [FromHeader(Name = WopiHeaders.WOPI_SRC)] string? wopiSrc = null,
         CancellationToken cancellationToken = default)
-        //TODO: fix the path
+    //TODO: fix the path
     {
         var authorizationHeader = HttpContext.Request.Headers.Authorization;
         if (ValidateAuthorizationHeader(authorizationHeader))

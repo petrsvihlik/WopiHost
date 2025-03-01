@@ -1,5 +1,5 @@
 ﻿using Serilog;
-using WopiHost.Core;
+using WopiHost.Core.Infrastructure;
 
 namespace WopiHost;
 

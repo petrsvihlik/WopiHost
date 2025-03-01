@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.ActionConstraints;
 
-namespace WopiHost.Core;
+namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
 /// A header-based constraint for HTTP actions.
@@ -18,7 +18,7 @@ public class HttpHeaderAttribute(string header, params string[] values) : Attrib
     private string[] Values { get; set; } = values;
 
     /// <inheritdoc />
-    public bool Accept(ActionConstraintContext context) => (context is not null) && context.RouteContext.HttpContext.Request.Headers.TryGetValue(Header, out var value) && Values.Contains(value[0]);
+    public bool Accept(ActionConstraintContext context) => context is not null && context.RouteContext.HttpContext.Request.Headers.TryGetValue(Header, out var value) && Values.Contains(value[0]);
 
     /// <inheritdoc />
     public int Order => 0;

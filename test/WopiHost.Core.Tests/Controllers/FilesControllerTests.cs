@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using WopiHost.Abstractions;
 using WopiHost.Core.Controllers;
+using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
 

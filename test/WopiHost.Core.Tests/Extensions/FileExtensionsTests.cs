@@ -1,8 +1,9 @@
 using System.Security.Cryptography;
 using Moq;
 using WopiHost.Abstractions;
+using WopiHost.Core.Extensions;
 
-namespace WopiHost.Core.Tests;
+namespace WopiHost.Core.Tests.Extensions;
 
 public class FileExtensionsTests
 {

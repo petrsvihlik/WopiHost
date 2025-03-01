@@ -1,4 +1,4 @@
-﻿namespace WopiHost.Core;
+﻿namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
 /// WOPI HTTP header names.
@@ -13,7 +13,7 @@ public static class WopiHeaders
     /// <summary>
     /// A string value identifying the current lock on the file. This header must always be included when responding to the request with 409 Conflict. It should not be included when responding to the request with 200 OK.
     /// </summary>
-		public const string LOCK = "X-WOPI-Lock";
+	public const string LOCK = "X-WOPI-Lock";
 
     /// <summary>
     /// A string provided by the WOPI client that is the existing lock on the file. Required. Note that if X-WOPI-OldLock is not provided, the request is identical to a Lock request.

@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
+using WopiHost.Core.Extensions;
+using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
 using WopiHost.Core.Security;
