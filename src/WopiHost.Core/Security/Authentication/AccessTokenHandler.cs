@@ -27,7 +27,7 @@ public class AccessTokenHandler(
     /// Handles authentication using the access_token query parameter.
     /// </summary>
     /// <returns><see cref="AuthenticateResult"/> set to <see cref="AuthenticateResult.Succeeded"/> when the token is valid and <see cref="AuthenticateResult.Failure"/> when the token is invalid or expired.</returns>
-    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         try
         {
@@ -39,12 +39,13 @@ public class AccessTokenHandler(
             {
                 //TODO: Implement properly: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap
                 //Should be removed or replaced with bearer token check
-                token = securityHandler.WriteToken(securityHandler.GenerateAccessToken("Anonymous", Convert.ToBase64String(Encoding.UTF8.GetBytes(".\\"))));
+                token = securityHandler.WriteToken(
+                    await securityHandler.GenerateAccessToken("Anonymous", Convert.ToBase64String(Encoding.UTF8.GetBytes(".\\"))));
             }
 
             if (!string.IsNullOrEmpty(token))
             {
-                var principal = securityHandler.GetPrincipal(token);
+                var principal = await securityHandler.GetPrincipal(token);
 
                 if (principal != null)
                 {
@@ -57,24 +58,24 @@ public class AccessTokenHandler(
                             new AuthenticationToken { Name = AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME, Value = token }
                         ]);
                     }
-                    return Task.FromResult(AuthenticateResult.Success(ticket));
+                    return AuthenticateResult.Success(ticket);
                 }
                 else
                 {
                     Logger.LogError("Principal not found from token {Token}", token);
-                    return Task.FromResult(AuthenticateResult.Fail("Principal not found."));
+                    return AuthenticateResult.Fail("Principal not found.");
                 }
             }
             else
             {
                 Logger.LogError("Token not found in request");
-                return Task.FromResult(AuthenticateResult.Fail("Token not found."));
+                return AuthenticateResult.Fail("Token not found.");
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(new EventId(ex.HResult), ex, ex.Message);
-            return Task.FromResult(AuthenticateResult.Fail(ex));
+            return AuthenticateResult.Fail(ex);
         }
     }
 }

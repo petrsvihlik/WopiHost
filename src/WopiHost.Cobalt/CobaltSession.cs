@@ -6,7 +6,7 @@ namespace WopiHost.Cobalt;
 
 public class CobaltProcessor : ICobaltProcessor
 {
-    private CobaltFile GetCobaltFile(IWopiFile file, ClaimsPrincipal principal)
+    private async Task<CobaltFile> GetCobaltFile(IWopiFile file, ClaimsPrincipal principal)
     {
         var disposal = new DisposalEscrow(file.Owner);
         var content = new CobaltFilePartitionConfig
@@ -45,7 +45,7 @@ public class CobaltProcessor : ICobaltProcessor
 
         if (file.Exists)
         {
-            using var stream = file.GetReadStream();
+            using var stream = await file.GetReadStream();
             var srcAtom = new AtomFromStream(stream);
             tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out var o1);
             tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
@@ -53,28 +53,30 @@ public class CobaltProcessor : ICobaltProcessor
         return tempCobaltFile;
     }
 
-    public Stream GetFileStream(IWopiFile file, ClaimsPrincipal principal)
-    {
-        //TODO: use in filescontroller
-        using var ms = new MemoryStream();
-        new GenericFda(GetCobaltFile(file, principal).CobaltEndpoint).GetContentStream().CopyTo(ms);
-        return ms;
-    }
+    // not used anywhere?
+    //public async Task<Stream> GetFileStream(IWopiFile file, ClaimsPrincipal principal)
+    //{
+    //    //TODO: use in filescontroller
+    //    using var ms = new MemoryStream();
+    //    var cobaltFile = await GetCobaltFile(file, principal);
+    //    new GenericFda(cobaltFile.CobaltEndpoint).GetContentStream().CopyTo(ms);
+    //    return ms;
+    //}
 
     /// <inheritdoc/>
-    public Action<Stream> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent)
+    public async Task<Action<Stream>> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent)
     {
         // Refactoring tip: there are more ways of initializing Atom
         var atomRequest = new AtomFromByteArray(newContent);
         var requestBatch = new RequestBatch();
 
         requestBatch.DeserializeInputFromProtocol(atomRequest, out var ctx, out var protocolVersion);
-        var cobaltFile = GetCobaltFile(file, principal);
+        var cobaltFile = await GetCobaltFile(file, principal);
         cobaltFile.CobaltEndpoint.ExecuteRequestBatch(requestBatch);
 
         if (requestBatch.Requests.Any(request => request is PutChangesRequest && request.PartitionId == FilePartitionId.Content))
         {
-            using var stream = file.GetWriteStream();
+            using var stream = await file.GetWriteStream();
             new GenericFda(cobaltFile.CobaltEndpoint).GetContentStream().CopyTo(stream);
         }
         return requestBatch.SerializeOutputToProtocol(protocolVersion).CopyTo;

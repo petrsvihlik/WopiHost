@@ -1,4 +1,4 @@
-﻿namespace WopiHost.Core;
+﻿namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
 /// An action constraint based on the X-WOPI-Override header.

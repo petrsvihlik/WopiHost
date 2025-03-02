@@ -1,7 +1,8 @@
-﻿using System.Text;
+﻿using System.Security.Claims;
+using System.Text;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using WopiHost.Abstractions;
-using Microsoft.Extensions.Configuration;
 
 namespace WopiHost.FileSystemProvider;
 
@@ -41,31 +42,22 @@ public class WopiFileSystemProvider : IWopiStorageProvider
         FileSystemProviderOptions = configuration.GetSection(WopiConfigurationSections.STORAGE_OPTIONS)?
             .Get<WopiFileSystemProviderOptions>() ?? throw new ArgumentNullException(nameof(configuration));
     }
-
-    /// <summary>
-    /// Gets a file using an identifier.
-    /// </summary>
-    /// <param name="identifier">A base64-encoded file path.</param>
+    
+    /// <inheritdoc/>
     public IWopiFile GetWopiFile(string identifier)
     {
         var filePath = DecodeIdentifier(identifier);
         return new WopiFile(Path.Combine(WopiAbsolutePath, filePath), identifier);
     }
 
-    /// <summary>
-    /// Gets a folder using an identifier.
-    /// </summary>
-    /// <param name="identifier">A base64-encoded folder path.</param>
+    /// <inheritdoc/>
     public IWopiFolder GetWopiContainer(string identifier = "")
     {
         var folderPath = DecodeIdentifier(identifier);
         return new WopiFolder(Path.Combine(WopiAbsolutePath, folderPath), identifier);
     }
 
-    /// <summary>
-    /// Gets all files in a folder.
-    /// </summary>
-    /// <param name="identifier">A base64-encoded folder path.</param>
+    /// <inheritdoc/>
     public List<IWopiFile> GetWopiFiles(string identifier = "")
     {
         var folderPath = DecodeIdentifier(identifier);
@@ -79,10 +71,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider
         return files;
     }
 
-    /// <summary>
-    /// Gets all sub-folders of a folder.
-    /// </summary>
-    /// <param name="identifier">A base64-encoded folder path.</param>
+    /// <inheritdoc/>
     public List<IWopiFolder> GetWopiContainers(string identifier = "")
     {
         var folderPath = DecodeIdentifier(identifier);

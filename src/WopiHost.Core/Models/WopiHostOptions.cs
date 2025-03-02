@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using WopiHost.Abstractions;
 
 namespace WopiHost.Core.Models;
 
@@ -22,4 +23,9 @@ public class WopiHostOptions
     /// Name of the assembly containing the implementation of the <see cref="Abstractions.IWopiLockProvider"/>
     /// </summary>
     public string? LockProviderAssemblyName { get; set; }
+
+    /// <summary>
+    /// Callback for the CheckFileInfo operation.
+    /// </summary>
+    public Func<WopiCheckFileInfoContext, Task<WopiCheckFileInfo>> OnCheckFileInfo { get; set; } = c => Task.FromResult(c.CheckFileInfo);
 }

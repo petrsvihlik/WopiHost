@@ -1,4 +1,6 @@
-﻿namespace WopiHost.Core.Tests;
+﻿using WopiHost.Core.Extensions;
+
+namespace WopiHost.Core.Tests.Extensions;
 
 public class ExtensionsTests
 {

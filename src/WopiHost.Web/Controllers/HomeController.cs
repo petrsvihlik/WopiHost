@@ -55,7 +55,7 @@ public class HomeController(
         var securityHandler = new WopiSecurityHandler(loggerFactory); //TODO: via DI
 
         var file = storageProvider.GetWopiFile(id);
-        var token = securityHandler.GenerateAccessToken("Anonymous", file.Identifier);
+        var token = await securityHandler.GenerateAccessToken("Anonymous", file.Identifier);
 
 
         ViewData["access_token"] = securityHandler.WriteToken(token);

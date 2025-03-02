@@ -1,3 +1,7 @@
+using System.Globalization;
+using System.Net.Mime;
+using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -5,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using WopiHost.Abstractions;
 using WopiHost.Core.Controllers;
+using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
 
@@ -12,27 +17,35 @@ namespace WopiHost.Core.Tests.Controllers;
 
 public class FilesControllerTests
 {
-    private readonly Mock<IWopiStorageProvider> _storageProviderMock;
-    private readonly Mock<IWopiSecurityHandler> _securityHandlerMock;
-    private readonly Mock<IOptions<WopiHostOptions>> _wopiHostOptionsMock;
-    private readonly Mock<IAuthorizationService> _authorizationServiceMock;
-    private readonly Mock<IWopiLockProvider> _lockProviderMock;
-    private FilesController _controller;
+    private readonly Mock<IWopiStorageProvider> storageProviderMock;
+    private readonly Mock<IWopiSecurityHandler> securityHandlerMock;
+    private readonly Mock<IOptions<WopiHostOptions>> wopiHostOptionsMock;
+    private readonly Mock<IAuthorizationService> authorizationServiceMock;
+    private readonly Mock<IWopiLockProvider> lockProviderMock;
+    private FilesController controller;
 
     public FilesControllerTests()
     {
-        _storageProviderMock = new Mock<IWopiStorageProvider>();
-        _securityHandlerMock = new Mock<IWopiSecurityHandler>();
-        _wopiHostOptionsMock = new Mock<IOptions<WopiHostOptions>>();
-        _authorizationServiceMock = new Mock<IAuthorizationService>();
-        _lockProviderMock = new Mock<IWopiLockProvider>();
+        storageProviderMock = new Mock<IWopiStorageProvider>();
+        securityHandlerMock = new Mock<IWopiSecurityHandler>();
+        wopiHostOptionsMock = new Mock<IOptions<WopiHostOptions>>();
+        wopiHostOptionsMock
+            .SetupGet(o => o.Value)
+            .Returns(new WopiHostOptions()
+            {
+                StorageProviderAssemblyName = "test",
+                LockProviderAssemblyName = "test",
+                OnCheckFileInfo = o => Task.FromResult(o.CheckFileInfo)
+            });
+        authorizationServiceMock = new Mock<IAuthorizationService>();
+        lockProviderMock = new Mock<IWopiLockProvider>();
 
-        _controller = new FilesController(
-            _storageProviderMock.Object,
-            _securityHandlerMock.Object,
-            _wopiHostOptionsMock.Object,
-            _authorizationServiceMock.Object,
-            _lockProviderMock.Object)
+        controller = new FilesController(
+            storageProviderMock.Object,
+            securityHandlerMock.Object,
+            wopiHostOptionsMock.Object,
+            authorizationServiceMock.Object,
+            lockProviderMock.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -42,14 +55,145 @@ public class FilesControllerTests
     }
 
     [Fact]
+    public async Task GetCheckFileInfo_Unauthorized_ReturnsUnauthorized()
+    {
+        // Arrange
+        var fileId = "testFileId";
+        authorizationServiceMock
+            .Setup(a => a.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object>(), It.IsAny<IEnumerable<IAuthorizationRequirement>>()))
+            .ReturnsAsync(AuthorizationResult.Failed());
+
+        // Act
+        var result = await controller.GetCheckFileInfo(fileId);
+
+        // Assert
+        Assert.IsType<UnauthorizedResult>(result);
+    }
+
+    [Fact]
+    public async Task GetCheckFileInfo_FileNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        var fileId = "testFileId";
+        authorizationServiceMock
+            .Setup(a => a.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object>(), It.IsAny<IEnumerable<IAuthorizationRequirement>>()))
+            .ReturnsAsync(AuthorizationResult.Success());
+        storageProviderMock.Setup(s => s.GetWopiFile(fileId)).Returns<IWopiFile>(null!);
+
+        // Act
+        var result = await controller.GetCheckFileInfo(fileId);
+
+        // Assert
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task GetCheckFileInfo_Success_ReturnsFileInfoForAnonymous()
+    {
+        // Arrange
+        var fileId = "testFileId";
+        var fileMock = new Mock<IWopiFile>();
+        fileMock.SetupGet(f => f.Owner).Returns("ownerId");
+        fileMock.SetupGet(f => f.Version).Returns("1.0");
+        fileMock.SetupGet(f => f.Name).Returns("test");
+        fileMock.SetupGet(f => f.Extension).Returns("txt");
+        fileMock.SetupGet(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
+        fileMock.SetupGet(f => f.Length).Returns(1024);
+        fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
+
+        authorizationServiceMock
+            .Setup(a => a.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object>(), It.IsAny<IEnumerable<IAuthorizationRequirement>>()))
+            .ReturnsAsync(AuthorizationResult.Success());
+        storageProviderMock
+            .Setup(s => s.GetWopiFile(fileId))
+            .Returns(fileMock.Object);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+
+        // Act
+        var result = await controller.GetCheckFileInfo(fileId);
+
+        // Assert
+        var contentResult = Assert.IsType<ContentResult>(result);
+        Assert.NotNull(contentResult.Content);
+        Assert.Equal(StatusCodes.Status200OK, contentResult.StatusCode);
+        Assert.Equal(MediaTypeNames.Application.Json, contentResult.ContentType);
+        var resultContent = JsonSerializer.Deserialize<WopiCheckFileInfo>(contentResult.Content);
+        Assert.NotNull(resultContent);
+        Assert.Equal(fileMock.Object.Owner, resultContent.OwnerId);
+        Assert.Equal(fileMock.Object.Version, resultContent.Version);
+        Assert.Equal("." + fileMock.Object.Extension, resultContent.FileExtension);
+        Assert.Equal(fileMock.Object.Name + "." + fileMock.Object.Extension, resultContent.BaseFileName);
+        Assert.Equal(fileMock.Object.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture), resultContent.LastModifiedTime);
+        Assert.True(resultContent.IsAnonymousUser);
+    }
+
+    [Fact]
+    public async Task GetCheckFileInfo_Success_ReturnsFileInfoWithAuthenticatedUser()
+    {
+        // Arrange
+        var fileId = "testFileId";
+        var fileMock = new Mock<IWopiFile>();
+        fileMock.SetupGet(f => f.Owner).Returns("ownerId");
+        fileMock.SetupGet(f => f.Version).Returns("1.0");
+        fileMock.SetupGet(f => f.Name).Returns("test");
+        fileMock.SetupGet(f => f.Extension).Returns("txt");
+        fileMock.SetupGet(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
+        fileMock.SetupGet(f => f.Length).Returns(1024);
+        fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
+
+        authorizationServiceMock
+            .Setup(a => a.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object>(), It.IsAny<IEnumerable<IAuthorizationRequirement>>()))
+            .ReturnsAsync(AuthorizationResult.Success());
+        storageProviderMock
+            .Setup(s => s.GetWopiFile(fileId))
+            .Returns(fileMock.Object);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                    [
+                        new Claim(ClaimTypes.NameIdentifier, "nameId"),
+                        new Claim(ClaimTypes.Name, "testUser")
+                    ], "TestAuthentication"))
+            }
+        };
+
+        // Act
+        var result = await controller.GetCheckFileInfo(fileId);
+
+        // Assert
+        var contentResult = Assert.IsType<ContentResult>(result);
+        Assert.NotNull(contentResult.Content);
+        Assert.Equal(StatusCodes.Status200OK, contentResult.StatusCode);
+        Assert.Equal(MediaTypeNames.Application.Json, contentResult.ContentType);
+        var resultContent = JsonSerializer.Deserialize<WopiCheckFileInfo>(contentResult.Content);
+        Assert.NotNull(resultContent);
+        Assert.Equal(fileMock.Object.Owner, resultContent.OwnerId);
+        Assert.Equal(fileMock.Object.Version, resultContent.Version);
+        Assert.Equal("." + fileMock.Object.Extension, resultContent.FileExtension);
+        Assert.Equal(fileMock.Object.Name + "." + fileMock.Object.Extension, resultContent.BaseFileName);
+        Assert.Equal(fileMock.Object.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture), resultContent.LastModifiedTime);
+        Assert.False(resultContent.IsAnonymousUser);
+        Assert.Equal("nameId", resultContent.UserId);
+        Assert.Equal("testUser", resultContent.UserFriendlyName);
+    }
+
+    [Fact]
     public void ProcessLock_LockingNotSupported_ReturnsLockMismatchResult()
     {
         // Arrange
-        _controller = new FilesController(
-            _storageProviderMock.Object,
-            _securityHandlerMock.Object,
-            _wopiHostOptionsMock.Object,
-            _authorizationServiceMock.Object,
+        controller = new FilesController(
+            storageProviderMock.Object,
+            securityHandlerMock.Object,
+            wopiHostOptionsMock.Object,
+            authorizationServiceMock.Object,
             null,
             null)
         {
@@ -63,7 +207,7 @@ public class FilesControllerTests
         var wopiOverrideHeader = WopiFileOperations.Lock;
 
         // Act
-        var result = _controller.ProcessLock(fileId, wopiOverrideHeader);
+        var result = controller.ProcessLock(fileId, wopiOverrideHeader);
 
         // Assert
         var lockMismatchResult = Assert.IsType<LockMismatchResult>(result);
@@ -77,14 +221,14 @@ public class FilesControllerTests
         var fileId = "test-file-id";
         var wopiOverrideHeader = WopiFileOperations.GetLock;
         var lockInfo = new WopiLockInfo { LockId = "existing-lock-id", FileId = fileId };
-        _lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
+        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
 
         // Act
-        var result = _controller.ProcessLock(fileId, wopiOverrideHeader);
+        var result = controller.ProcessLock(fileId, wopiOverrideHeader);
 
         // Assert
         Assert.IsType<OkResult>(result);
-        Assert.Equal("existing-lock-id", _controller.Response.Headers[WopiHeaders.LOCK]);
+        Assert.Equal("existing-lock-id", controller.Response.Headers[WopiHeaders.LOCK]);
     }
 
     [Fact]
@@ -94,10 +238,10 @@ public class FilesControllerTests
         var fileId = "test-file-id";
         var wopiOverrideHeader = WopiFileOperations.GetLock;
         WopiLockInfo? lockInfo = null;
-        _lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
+        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
 
         // Act
-        var result = _controller.ProcessLock(fileId, wopiOverrideHeader);
+        var result = controller.ProcessLock(fileId, wopiOverrideHeader);
 
         // Assert
         var lockMismatchResult = Assert.IsType<LockMismatchResult>(result);
@@ -111,14 +255,14 @@ public class FilesControllerTests
         var fileId = "test-file-id";
         var wopiOverrideHeader = WopiFileOperations.GetLock;
         var lockInfo = new WopiLockInfo { LockId = "existing-lock-id", FileId = fileId, DateCreated = DateTimeOffset.MinValue };
-        _lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(false);
+        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(false);
 
         // Act
-        var result = _controller.ProcessLock(fileId, wopiOverrideHeader);
+        var result = controller.ProcessLock(fileId, wopiOverrideHeader);
 
         // Assert
         Assert.IsType<OkResult>(result);
-        Assert.Equal(string.Empty, _controller.Response.Headers[WopiHeaders.LOCK]);
+        Assert.Equal(string.Empty, controller.Response.Headers[WopiHeaders.LOCK]);
     }
 
     [Fact]
@@ -128,11 +272,11 @@ public class FilesControllerTests
         var fileId = "test-file-id";
         var wopiOverrideHeader = WopiFileOperations.Lock;
         var newLockIdentifier = "new-lock-id";
-        _lockProviderMock.Setup(x => x.TryGetLock(fileId, out It.Ref<WopiLockInfo?>.IsAny)).Returns(false);
-        _lockProviderMock.Setup(x => x.AddLock(fileId, newLockIdentifier)).Returns(new WopiLockInfo { LockId = newLockIdentifier, FileId = fileId });
+        lockProviderMock.Setup(x => x.TryGetLock(fileId, out It.Ref<WopiLockInfo?>.IsAny)).Returns(false);
+        lockProviderMock.Setup(x => x.AddLock(fileId, newLockIdentifier)).Returns(new WopiLockInfo { LockId = newLockIdentifier, FileId = fileId });
 
         // Act
-        var result = _controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
+        var result = controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
 
         // Assert
         Assert.IsType<OkResult>(result);
@@ -146,11 +290,11 @@ public class FilesControllerTests
         var wopiOverrideHeader = WopiFileOperations.Unlock;
         var newLockIdentifier = "existing-lock-id";
         var lockInfo = new WopiLockInfo { LockId = newLockIdentifier, FileId = fileId };
-        _lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
-        _lockProviderMock.Setup(x => x.RemoveLock(fileId)).Returns(true);
+        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
+        lockProviderMock.Setup(x => x.RemoveLock(fileId)).Returns(true);
 
         // Act
-        var result = _controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
+        var result = controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
 
         // Assert
         Assert.IsType<OkResult>(result);
@@ -164,11 +308,11 @@ public class FilesControllerTests
         var wopiOverrideHeader = WopiFileOperations.RefreshLock;
         var newLockIdentifier = "existing-lock-id";
         var lockInfo = new WopiLockInfo { LockId = newLockIdentifier, FileId = fileId };
-        _lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
-        _lockProviderMock.Setup(x => x.RefreshLock(fileId, null)).Returns(true);
+        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
+        lockProviderMock.Setup(x => x.RefreshLock(fileId, null)).Returns(true);
 
         // Act
-        var result = _controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
+        var result = controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
 
         // Assert
         Assert.IsType<OkResult>(result);
