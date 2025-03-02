@@ -1,7 +1,7 @@
 ﻿namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Model according to <see href="https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#wopi-host-capabilities-properties">WOPI host capabilities properties</see>
+/// Model according to <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#wopi-host-capabilities-properties">WOPI host capabilities properties</see>
 /// </summary>
 public class WopiHostCapabilities : IWopiHostCapabilities
 {

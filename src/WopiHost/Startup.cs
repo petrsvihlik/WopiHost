@@ -107,7 +107,7 @@ public class Startup(IConfiguration configuration)
             wopiCheckFileInfo.ClientUrl = new("https://example.com/client");
             wopiCheckFileInfo.FileEmbedCommandUrl = new("https://example.com/embed");
 
-            // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#breadcrumb-properties
+            // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#breadcrumb-properties
             wopiCheckFileInfo.BreadcrumbBrandName = "WopiHost";
             wopiCheckFileInfo.BreadcrumbBrandUrl = new("https://example.com");
             wopiCheckFileInfo.BreadcrumbDocName = "test";

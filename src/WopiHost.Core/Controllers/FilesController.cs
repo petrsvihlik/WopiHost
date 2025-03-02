@@ -126,7 +126,7 @@ public class FilesController : WopiControllerBase
         }
 
         // Check expected size
-        // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getfile#request-headers
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getfile#request-headers
         var size = file.Exists ? file.Length : 0;
         if (maximumExpectedSize is not null &&
             size > maximumExpectedSize.Value)
@@ -136,7 +136,7 @@ public class FilesController : WopiControllerBase
         }
 
         // Returns optional version
-        // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getfile#response-headers
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getfile#response-headers
         if (file.Version is not null)
         {
             Response.Headers[WopiHeaders.WOPI_ITEM_VERSION] = file.Version;
@@ -170,7 +170,7 @@ public class FilesController : WopiControllerBase
             return Unauthorized();
         }
 
-        // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
         var file = StorageProvider.GetWopiFile(id);
         // If ... missing altogether, the host should respond with a 409 Conflict
         if (file is null)
@@ -258,7 +258,7 @@ public class FilesController : WopiControllerBase
     }
 
     /// <summary>
-    /// Returns a CheckFileInfo model according to https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo
+    /// Returns a CheckFileInfo model according to https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo
     /// </summary>
     /// <param name="file">File properties of which should be returned.</param>
     /// <param name="cancellationToken">Cancellation token</param>
