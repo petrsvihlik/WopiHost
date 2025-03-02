@@ -343,6 +343,57 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     public bool WebEditingDisabled { get; set; }
     #endregion
 
+    #region "PostMessage properties"
+    // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/customization#postmessageorigin
+
+    /// <summary>
+    /// A Boolean value that, when set to true, indicates the host outer frame supports the use of HTML5 Session History
+    /// </summary>
+    public bool AppStateHistoryPostMessage { get; set; }
+
+    /// <summary>
+    /// A Boolean value that, when set to true, indicates the host expects to receive the UI_Close PostMessage when the Close UI in Microsoft 365 for the web is activated.
+    /// </summary>
+    public bool ClosePostMessage { get; set; }
+
+    /// <summary>
+    /// A Boolean value that, when set to true, indicates the host expects to receive the UI_Edit PostMessage when the Edit UI in Microsoft 365 for the web is activated.
+    /// </summary>
+    public bool EditModePostMessage { get; set; }
+
+    /// <summary>
+    /// A Boolean value that, when set to true, indicates the host expects to receive the Edit_Notification PostMessage.
+    /// </summary>
+    public bool EditNotificationPostMessage { get; set; }
+
+    /// <summary>
+    /// A Boolean value that, when set to true, indicates the host expects to receive the UI_FileEmbed PostMessage when the Embed UI in Microsoft 365 for the web is activated.
+    /// </summary>
+    public bool FileEmbedCommandPostMessage { get; set; }
+
+    /// <summary>
+    /// A Boolean value that, when set to true, indicates the host expects to receive the UI_Sharing PostMessage when the Share UI in Microsoft 365 for the web is activated.
+    /// </summary>
+    public bool FileSharingPostMessage { get; set; }
+
+    /// <summary>
+    /// A Boolean value that, when set to true, indicates the host expects to receive the UI_FileVersions PostMessage when the Previous Versions UI (File ‣ Info ‣ Previous Versions) in Microsoft 365 for the web is activated.
+    /// </summary>
+    public bool FileVersionPostMessage { get; set; }
+
+    /// <summary>
+    /// A string value indicating the domain that the host page is sending and receiving PostMessages to and from. 
+    /// Microsoft 365 for the web only sends outgoing PostMessages to this domain, and only listens to PostMessages from this domain.
+    /// </summary>
+    public string? PostMessageOrigin { get; set; }
+
+    /// <summary>
+    /// A Boolean value that, when set to true, indicates the host expects to receive the UI_Workflow PostMessage when the Workflow UI in Microsoft 365 for the web is activated.
+    /// </summary>
+    /// <remarks>Pre-release property - not yet used by any WOPI client</remarks>
+    public bool WorkflowPostMessage { get; set; }
+    #endregion
+
     #region "IWopiHostCapabilities"
     /// <inheritdoc/>
     public bool SupportsCoauth { get; set; }
