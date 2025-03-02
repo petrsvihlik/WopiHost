@@ -276,26 +276,6 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// A Boolean value that indicates that the host supports the following WOPI operations:
     /// <list type="bullet">
     /// <item>
-    /// <description>CheckFolderInfo - This operation is only used by OneNote for the web and is thus not needed to integrate with Office for the web or Office for iOS. It is included for completeness but does not need to be implemented.</description>
-    /// </item>
-    /// <item>
-    /// <description>EnumerateChildren (folders) - This operation is only used by OneNote for the web and is thus not needed to integrate with Office for the web or Office for iOS. It is included for completeness but does not need to be implemented.</description>
-    /// </item>
-    /// <item>
-    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see></description>
-    /// </item>
-    /// </list>
-    /// </summary>   
-    public bool SupportsFolders
-    {
-        get => SupportsContainers;
-        set => SupportsContainers = value;
-    }
-
-    /// <summary>
-    /// A Boolean value that indicates that the host supports the following WOPI operations:
-    /// <list type="bullet">
-    /// <item>
     /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo">CheckContainerInfo</see></description>
     /// </item>
     /// <item>
@@ -514,26 +494,6 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <inheritdoc/>
     public bool SupportsEcosystem { get; set; }
 
-    /// <summary>
-    /// A Boolean value that indicates that the user has permission to view a <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/glossary#broadcast">broadcast</see> of this file.
-    /// </summary>
-    public bool UserCanAttend { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates the user does not have sufficient permission to create new files on the WOPI server. Setting this to <c>true</c> tells the WOPI client that calls to <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile">PutRelativeFile</see> will fail for this user on the current file.
-    /// </summary>
-    public bool UserCanNotWriteRelative { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the user has permission to <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/glossary#broadcast">broadcast</see> this file to a set of users who have permission to broadcast or view a broadcast of the current file.
-    /// </summary>
-    public bool UserCanPresent { get; set; }
-
-    /// <summary>
-    /// A Boolean value that indicates that the user has permission to alter the file. Setting this to <c>true</c> tells the WOPI client that it can call <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see> on behalf of the user.
-    /// </summary>
-    public bool UserCanWrite { get; set; }
-
     /// <inheritdoc/>
     public bool SupportsFileCreation { get; set; }
 
@@ -548,5 +508,17 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
 
     /// <inheritdoc/>    
     public bool SupportsUserInfo { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsGetFileWopiSrc { get; set; }
+
+    /// <inheritdoc/>
+    public IEnumerable<string> SupportedShareUrlTypes { get; set; } = [];
+
+    /// <inheritdoc/>
+    public bool SupportsScenarioLinks { get; set; }
+
+    /// <inheritdoc/>
+    public bool SupportsSecureStore { get; set; }
     #endregion
 }
