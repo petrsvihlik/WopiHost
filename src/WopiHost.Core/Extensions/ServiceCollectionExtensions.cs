@@ -1,7 +1,9 @@
 ﻿using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WopiHost.Abstractions;
+using WopiHost.Core.Models;
 using WopiHost.Core.Security.Authentication;
 using WopiHost.Core.Security.Authorization;
 
@@ -13,11 +15,12 @@ namespace WopiHost.Core.Extensions;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Adds core WOPI services and controllers to the <see cref="IServiceCollection"/>.
+    /// Register services required by the WOPI host server.
     /// </summary>
-    /// <param name="services">Service collection to add WOPI services to.</param>
-    public static void AddWopi(this IServiceCollection services)
+    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+    public static IServiceCollection AddWopi(this IServiceCollection services)
     {
+        ArgumentNullException.ThrowIfNull(services);
         services.AddAuthorizationCore();
 
         // Add authorization handler
@@ -29,8 +32,32 @@ public static class ServiceCollectionExtensions
 
         services.AddAuthentication(o => { o.DefaultScheme = AccessTokenDefaults.AUTHENTICATION_SCHEME; })
             .AddTokenAuthentication(
-                AccessTokenDefaults.AUTHENTICATION_SCHEME, 
-                AccessTokenDefaults.AUTHENTICATION_SCHEME, 
+                AccessTokenDefaults.AUTHENTICATION_SCHEME,
+                AccessTokenDefaults.AUTHENTICATION_SCHEME,
                 options => { });
+
+        // default options
+        services.AddOptions<WopiHostOptions>()
+            .Configure(o =>
+            {
+                o.UseCobalt = false;
+            });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Register services required by the WOPI host server.
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+    /// <param name="configureOptions">A delegate to configure <see cref="WopiHostOptions"/>.</param>
+    public static IServiceCollection AddWopi(this IServiceCollection services, Action<WopiHostOptions> configureOptions)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configureOptions);
+
+        services.AddWopi();
+        services.Configure(configureOptions);
+        return services;
     }
 }

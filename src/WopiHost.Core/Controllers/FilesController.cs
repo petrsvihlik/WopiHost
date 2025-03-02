@@ -84,11 +84,14 @@ public class FilesController : WopiControllerBase
             return NotFound();
         }
 
+        // build default checkFileInfo
+        var checkFileInfo = await BuildCheckFileInfo(file, cancellationToken);
+
         // instead of JsonResult we must .Serialize<object>() to support properties that
         // might be defined on custom WopiCheckFileInfo objects
         return new ContentResult()
         {
-            Content = JsonSerializer.Serialize<object>(await BuildCheckFileInfo(file, cancellationToken)),
+            Content = JsonSerializer.Serialize<object>(checkFileInfo),
             ContentType = MediaTypeNames.Application.Json,
             StatusCode = StatusCodes.Status200OK
         };
@@ -293,8 +296,8 @@ public class FilesController : WopiControllerBase
             checkFileInfo.IsAnonymousUser = true;
         }
 
-        var newCheckFileInfo = StorageProvider.GetWopiCheckFileInfo(file, HostCapabilities, User, checkFileInfo);
-        return newCheckFileInfo ?? checkFileInfo;
+        // allow changes and/or extensions before returning 
+        return await WopiHostOptions.Value.OnCheckFileInfo(new WopiCheckFileInfoContext(User, file, checkFileInfo));
     }
 
     #region "Locking"

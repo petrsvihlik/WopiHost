@@ -29,6 +29,14 @@ public class FilesControllerTests
         storageProviderMock = new Mock<IWopiStorageProvider>();
         securityHandlerMock = new Mock<IWopiSecurityHandler>();
         wopiHostOptionsMock = new Mock<IOptions<WopiHostOptions>>();
+        wopiHostOptionsMock
+            .SetupGet(o => o.Value)
+            .Returns(new WopiHostOptions()
+            {
+                StorageProviderAssemblyName = "test",
+                LockProviderAssemblyName = "test",
+                OnCheckFileInfo = o => Task.FromResult(o.CheckFileInfo)
+            });
         authorizationServiceMock = new Mock<IAuthorizationService>();
         lockProviderMock = new Mock<IWopiLockProvider>();
 
@@ -99,9 +107,6 @@ public class FilesControllerTests
         storageProviderMock
             .Setup(s => s.GetWopiFile(fileId))
             .Returns(fileMock.Object);
-        storageProviderMock
-            .Setup(s => s.GetWopiCheckFileInfo(It.IsAny<IWopiFile>(), It.IsAny<WopiHostCapabilities>(), It.IsAny<ClaimsPrincipal?>(), It.IsAny<WopiCheckFileInfo>()))
-            .Returns((WopiCheckFileInfo?)null);
 
         controller.ControllerContext = new ControllerContext
         {
@@ -146,9 +151,6 @@ public class FilesControllerTests
         storageProviderMock
             .Setup(s => s.GetWopiFile(fileId))
             .Returns(fileMock.Object);
-        storageProviderMock
-            .Setup(s => s.GetWopiCheckFileInfo(It.IsAny<IWopiFile>(), It.IsAny<WopiHostCapabilities>(), It.IsAny<ClaimsPrincipal?>(), It.IsAny<WopiCheckFileInfo>()))
-            .Returns((WopiCheckFileInfo?)null);
 
         controller.ControllerContext = new ControllerContext
         {
