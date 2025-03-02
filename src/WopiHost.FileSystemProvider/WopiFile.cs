@@ -62,7 +62,7 @@ public class WopiFile : IWopiFile
     /// <summary>
     /// A string that uniquely identifies the owner of the file.
     /// Supported only on Windows and Linux.
-    /// https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1416
+    /// https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416
     /// </summary>
     [SupportedOSPlatform("linux")]
     [SupportedOSPlatform("windows")]

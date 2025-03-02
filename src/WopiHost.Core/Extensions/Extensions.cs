@@ -36,7 +36,7 @@ internal static class Extensions
 
     /// <summary>
     /// Replaces forbidden characters in identity properties with an underscore.
-    /// Accordingly to: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#requirements-for-user-identity-properties
+    /// Accordingly to: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#requirements-for-user-identity-properties
     /// </summary>
     /// <param name="identity">Identity property value</param>
     /// <returns>String safe to use as an identity property</returns>

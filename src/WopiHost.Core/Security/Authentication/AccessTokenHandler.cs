@@ -31,13 +31,13 @@ public class AccessTokenHandler(
     {
         try
         {
-            //TODO: implement access_token_ttl https://msdn.microsoft.com/en-us/library/hh695362(v=office.12).aspx		
+            //TODO: implement access_token_ttl https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/adb48ba9-118a-43b6-82d7-9a508aad1583	
 
             var token = Context.Request.Query[AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME].ToString();
 
             if (Context.Request.Path.Value == "/wopibootstrapper")
             {
-                //TODO: Implement properly: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap
+                //TODO: Implement properly: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap
                 //Should be removed or replaced with bearer token check
                 token = securityHandler.WriteToken(
                     await securityHandler.GenerateAccessToken("Anonymous", Convert.ToBase64String(Encoding.UTF8.GetBytes(".\\"))));

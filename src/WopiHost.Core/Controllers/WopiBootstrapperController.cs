@@ -89,7 +89,7 @@ public class WopiBootstrapperController(
         }
         else
         {
-            //TODO: implement WWW-authentication header https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap#www-authenticate-response-header-format
+            //TODO: implement WWW-authentication header https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap#www-authenticate-response-header-format
             var authorizationUri = "https://contoso.com/api/oauth2/authorize";
             var tokenIssuanceUri = "https://contoso.com/api/oauth2/token";
             var providerId = "tp_contoso";
@@ -113,7 +113,7 @@ public class WopiBootstrapperController(
 
     private static bool ValidateAuthorizationHeader(StringValues authorizationHeader)
     {
-        //TODO: implement header validation https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getrootcontainer#sample-response
+        //TODO: implement header validation https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getrootcontainer#sample-response
         // http://stackoverflow.com/questions/31948426/oauth-bearer-token-authentication-is-not-passing-signature-validation
         return true;
     }

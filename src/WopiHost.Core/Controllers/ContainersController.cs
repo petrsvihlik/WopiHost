@@ -8,7 +8,7 @@ using WopiHost.Core.Models;
 namespace WopiHost.Core.Controllers;
 
 /// <summary>
-/// Implementation of WOPI server protocol https://msdn.microsoft.com/en-us/library/hh659001.aspx
+/// Implementation of WOPI server protocol https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/c8185d20-77dc-445c-b830-c8332a9b5fc2
 /// </summary>
 /// <remarks>
 /// Creates an instance of <see cref="ContainersController"/>.
@@ -24,7 +24,7 @@ public class ContainersController(
 {
     /// <summary>
     /// Returns the metadata about a container specified by an identifier.
-    /// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo
     /// Example URL path: /wopi/containers/(container_id)
     /// </summary>
     /// <param name="id">Container identifier.</param>
@@ -42,7 +42,7 @@ public class ContainersController(
 
     /// <summary>
     /// The EnumerateChildren method returns the contents of a container on the WOPI server.
-    /// Specification: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/enumeratechildren
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/enumeratechildren
     /// Example URL path: /wopi/containers/(container_id)/children
     /// </summary>
     /// <param name="id">Container identifier.</param>

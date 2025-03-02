@@ -1,7 +1,7 @@
 ﻿namespace WopiHost.Abstractions;
 
 /// <summary>
-/// WOPI claims  implemented in accordance with: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#user-permissions-properties
+/// WOPI claims  implemented in accordance with: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#user-permissions-properties
 /// </summary>
 [Flags]
 	public enum WopiUserPermissions
