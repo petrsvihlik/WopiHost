@@ -35,7 +35,7 @@ public class HostPageModel(
         }
 
         var file = storageProvider.GetWopiFile(FileId);
-        var token = await securityHandler.GenerateAccessToken("Anonymous", file.Identifier, cancellationToken);
+        var token = await securityHandler.GenerateAccessToken(wopiOptions.Value.UserId, file.Identifier, cancellationToken);
 
 
         AccessToken = securityHandler.WriteToken(token);
