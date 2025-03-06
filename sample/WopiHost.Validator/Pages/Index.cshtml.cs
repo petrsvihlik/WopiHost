@@ -49,7 +49,6 @@ public class IndexModel(
             var files = storageProvider.GetWopiFiles(ContainerId);
             foreach (var file in files)
             {
-                
                 Files.Add(new FileViewModel
                 {
                     FileId = file.Identifier,
