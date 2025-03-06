@@ -29,11 +29,10 @@ public interface IWopiSecurityHandler
     /// Verifies whether the given principal is authorized to perform a given operation on the given resource.
     /// </summary>
     /// <param name="principal">User principal object</param>
-    /// <param name="resourceId">Identifier of a resource</param>
-    /// <param name="operation">Type of operation to be performed</param>
+    /// <param name="requirement">Type of operation to be performed</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>TRUE if the given principal is authorized to perform a given operation on the given resource.</returns>
-    Task<bool> IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation, CancellationToken cancellationToken = default);
+    Task<bool> IsAuthorized(ClaimsPrincipal principal, IWopiAuthorizationRequirement requirement, CancellationToken cancellationToken = default);
 
 	/// <summary>
 	/// Returns a string representation of a <see cref="SecurityToken"/>

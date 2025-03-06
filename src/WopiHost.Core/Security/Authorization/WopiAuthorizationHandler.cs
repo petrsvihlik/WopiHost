@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using WopiHost.Abstractions;
 
 namespace WopiHost.Core.Security.Authorization;
@@ -10,18 +11,26 @@ namespace WopiHost.Core.Security.Authorization;
 /// Creates an instance of <see cref="WopiAuthorizationHandler"/>.
 /// </remarks>
 /// <param name="securityHandler">AuthNZ handler.</param>
-public class WopiAuthorizationHandler(IWopiSecurityHandler securityHandler) 
-    : AuthorizationHandler<WopiAuthorizationRequirement, FileResource>
+public class WopiAuthorizationHandler(IWopiSecurityHandler securityHandler)
+    : AuthorizationHandler<WopiAuthorizeAttribute, HttpContext>
 {
     /// <summary>
     /// Performs resource-based authorization check.
     /// </summary>
     /// <param name="context">Context of the <see cref="AuthorizationHandler{TRequirement, TResource}"/></param>
-    /// <param name="requirement">Security requirement to be fulfilled (e.g. a permission).</param>
-    /// <param name="resource">Resource to check the security authorization requirement against.</param>
-    protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, WopiAuthorizationRequirement requirement, FileResource resource)
+    /// <param name="requirement">Security requirement to be fulfilled (a permission on which resource).</param>
+    /// <param name="resource">httpContext resource</param>
+    protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, WopiAuthorizeAttribute requirement, HttpContext resource)
     {
-        if (await securityHandler.IsAuthorized(context.User, resource.FileId, requirement))
+        // try to retrieve resource identifier from the route
+        if (resource.Request.RouteValues.TryGetValue("id", out var fileIdRaw) &&
+            fileIdRaw is not null)
+        {
+            requirement.ResourceId = fileIdRaw.ToString();
+        }
+
+        // check if the user is authorized
+        if (await securityHandler.IsAuthorized(context.User, requirement))
         {
             context.Succeed(requirement);
         }

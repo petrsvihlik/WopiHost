@@ -1,5 +1,4 @@
-﻿using System.Security.Claims;
-using System.Text;
+﻿using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using WopiHost.Abstractions;
@@ -42,7 +41,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider
         FileSystemProviderOptions = configuration.GetSection(WopiConfigurationSections.STORAGE_OPTIONS)?
             .Get<WopiFileSystemProviderOptions>() ?? throw new ArgumentNullException(nameof(configuration));
     }
-    
+
     /// <inheritdoc/>
     public IWopiFile GetWopiFile(string identifier)
     {

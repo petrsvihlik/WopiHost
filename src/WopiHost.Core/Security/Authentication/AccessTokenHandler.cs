@@ -33,6 +33,11 @@ public class AccessTokenHandler(
         {
             //TODO: implement access_token_ttl https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/adb48ba9-118a-43b6-82d7-9a508aad1583	
 
+            if (Context.Request.Path.Value?.StartsWith("/wopi", StringComparison.OrdinalIgnoreCase) != true)
+            {
+                return AuthenticateResult.NoResult();
+            }
+
             var token = Context.Request.Query[AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME].ToString();
 
             if (Context.Request.Path.Value == "/wopibootstrapper")
@@ -42,6 +47,7 @@ public class AccessTokenHandler(
                 token = securityHandler.WriteToken(
                     await securityHandler.GenerateAccessToken("Anonymous", Convert.ToBase64String(Encoding.UTF8.GetBytes(".\\"))));
             }
+
 
             if (!string.IsNullOrEmpty(token))
             {

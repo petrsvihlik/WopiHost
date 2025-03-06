@@ -1,7 +1,6 @@
 ﻿using System.Net.Mime;
 using System.Security.Claims;
 using System.Text.Json;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +10,7 @@ using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
-using WopiHost.Core.Security;
+using WopiHost.Core.Security.Authorization;
 
 namespace WopiHost.Core.Controllers;
 
@@ -27,7 +26,6 @@ public class FilesController : WopiControllerBase
     /// </summary>
     private readonly ICobaltProcessor? cobaltProcessor;
     private readonly IWopiLockProvider? lockProvider;
-    private readonly IAuthorizationService authorizationService;
     private WopiHostCapabilities HostCapabilities => new()
     {
         SupportsCobalt = cobaltProcessor is not null,
@@ -45,18 +43,15 @@ public class FilesController : WopiControllerBase
     /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
     /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
     /// <param name="wopiHostOptions">WOPI Host configuration</param>
-    /// <param name="authorizationService">An instance of authorization service capable of resource-based authorization.</param>
     /// <param name="lockProvider">An instance of the lock provider.</param>
     /// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
     public FilesController(
         IWopiStorageProvider storageProvider,
         IWopiSecurityHandler securityHandler,
         IOptions<WopiHostOptions> wopiHostOptions,
-        IAuthorizationService authorizationService,
         IWopiLockProvider? lockProvider = null,
         ICobaltProcessor? cobaltProcessor = null) : base(storageProvider, securityHandler, wopiHostOptions)
     {
-        this.authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
         this.lockProvider = lockProvider;
         this.cobaltProcessor = cobaltProcessor;
     }
@@ -70,13 +65,9 @@ public class FilesController : WopiControllerBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns></returns>
     [HttpGet("{id}")]
+    [WopiAuthorize(Permission.Read, WopiResourceType.File)]
     public async Task<IActionResult> GetCheckFileInfo(string id, CancellationToken cancellationToken = default)
     {
-        if (!(await authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Read)).Succeeded)
-        {
-            return Unauthorized();
-        }
-
         // Get file
         var file = StorageProvider.GetWopiFile(id);
         if (file is null)
@@ -107,17 +98,12 @@ public class FilesController : WopiControllerBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>FileStreamResult</returns>
     [HttpGet("{id}/contents")]
+    [WopiAuthorize(Permission.Read, WopiResourceType.File)]
     public async Task<IActionResult> GetFile(
         string id,
         [FromHeader(Name = WopiHeaders.MAX_EXPECTED_SIZE)] int? maximumExpectedSize = null,
         CancellationToken cancellationToken = default)
     {
-        // Check permissions
-        if (!(await authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Read)).Succeeded)
-        {
-            return Unauthorized();
-        }
-
         // Get file
         var file = StorageProvider.GetWopiFile(id);
         if (file is null)
@@ -157,20 +143,13 @@ public class FilesController : WopiControllerBase
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPut("{id}/contents")]
     [HttpPost("{id}/contents")]
+    [WopiAuthorize(Permission.Update, WopiResourceType.File)]
     public async Task<IActionResult> PutFile(
         string id,
         [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null,
         CancellationToken cancellationToken = default)
     {
-        // Check permissions
-        var authorizationResult = await authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Update);
-
-        if (!authorizationResult.Succeeded)
-        {
-            return Unauthorized();
-        }
-
-        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
+        // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
         var file = StorageProvider.GetWopiFile(id);
         // If ... missing altogether, the host should respond with a 409 Conflict
         if (file is null)
@@ -217,6 +196,7 @@ public class FilesController : WopiControllerBase
     /// <param name="id">File identifier.</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPost("{id}"), WopiOverrideHeader([WopiFileOperations.PutRelativeFile])]
+    [WopiAuthorize(Permission.Update, WopiResourceType.File)]
     public Task<IActionResult> PutRelativeFile(string id) => throw new NotImplementedException($"{nameof(PutRelativeFile)} is not implemented yet.");
 
     /// <summary>
@@ -228,16 +208,12 @@ public class FilesController : WopiControllerBase
     /// <param name="id">File identifier.</param>
     /// <param name="correlationId"></param>
     [HttpPost("{id}"), WopiOverrideHeader([WopiFileOperations.Cobalt])]
+    [WopiAuthorize(Permission.Update, WopiResourceType.File)]
     public async Task<IActionResult> ProcessCobalt(
         string id,
         [FromHeader(Name = WopiHeaders.CORRELATION_ID)] string? correlationId = null)
     {
         ArgumentNullException.ThrowIfNull(cobaltProcessor);
-        // Check permissions
-        if (!(await authorizationService.AuthorizeAsync(User, new FileResource(id), WopiOperations.Update)).Succeeded)
-        {
-            return Unauthorized();
-        }
 
         var file = StorageProvider.GetWopiFile(id);
 

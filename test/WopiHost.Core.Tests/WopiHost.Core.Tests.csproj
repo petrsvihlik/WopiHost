@@ -9,6 +9,7 @@
 	  <Folder Include="Controllers\" />
 	  <Folder Include="Infrastructure\" />
 	  <Folder Include="Security\Authentication\" />
+	  <Folder Include="Security\Authorization\" />
 	</ItemGroup>
 	<ItemGroup>
 	  <PackageReference Include="Moq" />

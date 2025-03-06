@@ -457,6 +457,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// A string value indicating the domain that the host page is sending and receiving PostMessages to and from. 
     /// Microsoft 365 for the web only sends outgoing PostMessages to this domain, and only listens to PostMessages from this domain.
     /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PostMessageOrigin { get; set; }
 
     /// <summary>
