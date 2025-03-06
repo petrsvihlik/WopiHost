@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
@@ -70,5 +70,4 @@ public class HomeController(
         ViewData["favicon"] = await discoverer.GetApplicationFavIconAsync(extension);
         return View();
     }
-
 }

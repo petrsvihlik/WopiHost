@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
 using WopiHost.Abstractions;
@@ -64,5 +64,4 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDiscoverer, WopiDiscoverer>();
         return services;
     }
-
 }
