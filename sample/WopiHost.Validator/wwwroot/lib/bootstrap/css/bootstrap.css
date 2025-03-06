@@ -1876,7 +1876,7 @@ progress {
   border-color: var(--bs-table-border-color);
 }
 .table > :not(caption) > * > * {
-  padding: 0.5rem 0.5rem;
+  padding: 0.5rem;
   color: var(--bs-table-color-state, var(--bs-table-color-type, var(--bs-table-color)));
   background-color: var(--bs-table-bg);
   border-bottom-width: var(--bs-border-width);
@@ -1898,7 +1898,7 @@ progress {
 }
 
 .table-sm > :not(caption) > * > * {
-  padding: 0.25rem 0.25rem;
+  padding: 0.25rem;
 }
 
 .table-bordered > :not(caption) > * {
@@ -5367,7 +5367,7 @@ textarea.form-control-lg {
   box-sizing: content-box;
   width: 1em;
   height: 1em;
-  padding: 0.25em 0.25em;
+  padding: 0.25em;
   color: var(--bs-btn-close-color);
   background: transparent var(--bs-btn-close-bg) center/1em auto no-repeat;
   border: 0;
@@ -12053,5 +12053,3 @@ textarea.form-control-lg {
     display: none !important;
   }
 }
-
-/*# sourceMappingURL=bootstrap.css.map */

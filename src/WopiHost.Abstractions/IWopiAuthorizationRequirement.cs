@@ -1,4 +1,4 @@
-﻿namespace WopiHost.Abstractions;
+namespace WopiHost.Abstractions;
 
 /// <summary>
 /// The Wopi resource type
@@ -13,7 +13,7 @@ public enum WopiResourceType
     /// <see cref="IWopiFolder"/>
     /// </summary>
     Container
-};
+}
 
 
 /// <summary>
