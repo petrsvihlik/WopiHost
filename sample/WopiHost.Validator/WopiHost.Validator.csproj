@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageReference Include="Serilog.AspNetCore" />
+    <ProjectReference Include="..\..\src\WopiHost.Core\WopiHost.Core.csproj" />
+    <ProjectReference Include="..\..\src\WopiHost.Discovery\WopiHost.Discovery.csproj" />
+    <ProjectReference Include="..\..\src\WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj" />
+    <ProjectReference Include="..\..\src\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj" />
+    <ProjectReference Include="..\..\src\WopiHost.Url\WopiHost.Url.csproj" />
+  </ItemGroup>
+
+</Project>

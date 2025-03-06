@@ -1,0 +1,16 @@
+﻿@page
+@using WopiHost.Discovery.Enumerations
+@model IndexModel
+
+<h2>Documents: </h2>
+<ul>
+    @foreach (var file in Model.FileViewModels)
+{
+    <li style="list-style: none; display: flex; flex-direction: row; align-items: center; margin-bottom: 10px;">
+            <img src="@file.IconUri" style="height: 32px;" alt="icon" />&nbsp;
+            @file.FileName&nbsp;
+            <a title="View" asp-page="HostPage" asp-route-FileId="@file.FileId" asp-route-WopiAction="@WopiActionEnum.View" class="@(file.SupportsView ? "":"disabledIcon")">👁️</a>
+            <a title="Edit" asp-page="HostPage" asp-route-FileId="@file.FileId" asp-route-WopiAction="@WopiActionEnum.Edit" class="@(file.SupportsEdit ? "":"disabledIcon")">🖊️</a>
+        </li>
+}
+</ul>
