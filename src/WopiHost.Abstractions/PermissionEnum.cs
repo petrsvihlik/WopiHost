@@ -3,31 +3,40 @@
 /// <summary>
 /// Permissions used for authorization requirements
 /// </summary>
-[Flags]
 public enum Permission
 {
     /// <summary>
     /// User has no permissions
     /// </summary>
-    None = 0,
+    None,
 
     /// <summary>
-    /// User can create files
+    /// User can create container/file
     /// </summary>
-    Create = 1,
+    Create,
 
     /// <summary>
-    /// User can view files
+    /// User can create child file in container
     /// </summary>
-    Read = 2,
+    CreateChildFile,
 
     /// <summary>
-    /// User can modify files
+    /// User can view container/file
     /// </summary>
-    Update = 4,
+    Read,
 
     /// <summary>
-    /// User can delete files
+    /// User can modify container/file
     /// </summary>
-    Delete = 8
+    Update,
+
+    /// <summary>
+    /// User can rename container/file
+    /// </summary>
+    Rename,
+
+    /// <summary>
+    /// User can delete container/file
+    /// </summary>
+    Delete
 }

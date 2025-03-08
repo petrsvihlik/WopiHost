@@ -65,7 +65,7 @@ public class FilesController : WopiControllerBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns></returns>
     [HttpGet("{id}")]
-    [WopiAuthorize(Permission.Read, WopiResourceType.File)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Read)]
     public async Task<IActionResult> GetCheckFileInfo(string id, CancellationToken cancellationToken = default)
     {
         // Get file
@@ -98,7 +98,7 @@ public class FilesController : WopiControllerBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>FileStreamResult</returns>
     [HttpGet("{id}/contents")]
-    [WopiAuthorize(Permission.Read, WopiResourceType.File)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Read)]
     public async Task<IActionResult> GetFile(
         string id,
         [FromHeader(Name = WopiHeaders.MAX_EXPECTED_SIZE)] int? maximumExpectedSize = null,
@@ -133,6 +133,8 @@ public class FilesController : WopiControllerBase
     }
 
     /// <summary>
+    [WopiAuthorize(WopiResourceType.File, Permission.Read)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Read)]
     /// Updates a file specified by an identifier. (Only for non-cobalt files.)
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile
     /// Example URL path: /wopi/files/(file_id)/contents
@@ -143,7 +145,7 @@ public class FilesController : WopiControllerBase
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPut("{id}/contents")]
     [HttpPost("{id}/contents")]
-    [WopiAuthorize(Permission.Update, WopiResourceType.File)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public async Task<IActionResult> PutFile(
         string id,
         [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null,
@@ -196,7 +198,7 @@ public class FilesController : WopiControllerBase
     /// <param name="id">File identifier.</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPost("{id}"), WopiOverrideHeader([WopiFileOperations.PutRelativeFile])]
-    [WopiAuthorize(Permission.Update, WopiResourceType.File)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public Task<IActionResult> PutRelativeFile(string id) => throw new NotImplementedException($"{nameof(PutRelativeFile)} is not implemented yet.");
 
     /// <summary>
@@ -208,7 +210,7 @@ public class FilesController : WopiControllerBase
     /// <param name="id">File identifier.</param>
     /// <param name="correlationId"></param>
     [HttpPost("{id}"), WopiOverrideHeader([WopiFileOperations.Cobalt])]
-    [WopiAuthorize(Permission.Update, WopiResourceType.File)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public async Task<IActionResult> ProcessCobalt(
         string id,
         [FromHeader(Name = WopiHeaders.CORRELATION_ID)] string? correlationId = null)
@@ -294,6 +296,7 @@ public class FilesController : WopiControllerBase
         WopiFileOperations.Unlock,
         WopiFileOperations.RefreshLock,
         WopiFileOperations.GetLock])]
+    [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public IActionResult ProcessLock(
         string id,
         [FromHeader(Name = WopiHeaders.WOPI_OVERRIDE)] string? wopiOverrideHeader = null,

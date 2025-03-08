@@ -32,8 +32,8 @@ public class ContainersController(
     /// <returns></returns>
     [HttpGet("{id}")]
     [Produces(MediaTypeNames.Application.Json)]
-    [WopiAuthorize(Permission.Read, WopiResourceType.Container)]
-    public CheckContainerInfo GetCheckContainerInfo(string id)
+    [WopiAuthorize(WopiResourceType.Container, Permission.Read,
+        CheckPermissions = [Permission.Create, Permission.Delete, Permission.Rename, Permission.CreateChildFile])]
     {
         var container = StorageProvider.GetWopiContainer(id);
         return new CheckContainerInfo
@@ -43,6 +43,9 @@ public class ContainersController(
     }
 
     /// <summary>
+    [WopiAuthorize(WopiResourceType.Container, Permission.Create)]
+    [WopiAuthorize(WopiResourceType.Container, Permission.Delete)]
+    [WopiAuthorize(WopiResourceType.Container, Permission.Read)]
     /// The EnumerateChildren method returns the contents of a container on the WOPI server.
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/enumeratechildren
     /// Example URL path: /wopi/containers/(container_id)/children
@@ -50,7 +53,7 @@ public class ContainersController(
     /// <param name="id">Container identifier.</param>
     /// <returns></returns>
     [HttpGet("{id}/children")]
-    [WopiAuthorize(Permission.Read, WopiResourceType.Container)]
+    [WopiAuthorize(WopiResourceType.Container, Permission.Read)]
     [Produces(MediaTypeNames.Application.Json)]
     public Container EnumerateChildren(string id)
     {

@@ -9,17 +9,22 @@ namespace WopiHost.Core.Security.Authorization;
 /// <remarks>
 /// Creates an instance of <see cref="WopiAuthorizeAttribute"/> initialized with <paramref name="permission"/>.
 /// </remarks>
-/// <param name="permission">Permissions required for a given combination of resource, user, and action.</param>
 /// <param name="resourceType">type of the resource.</param>
+/// <param name="permission">Permissions required for a given combination of resource, user, and action.</param>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
 public class WopiAuthorizeAttribute(
-    Permission permission,
-    WopiResourceType resourceType) : AuthorizeAttribute, IWopiAuthorizationRequirement,  IAuthorizationRequirement, IAuthorizationRequirementData
+    WopiResourceType resourceType,
+    Permission permission) : AuthorizeAttribute, IWopiAuthorizationRequirement,  IAuthorizationRequirement, IAuthorizationRequirementData
 {
     /// <summary>
     /// Gets a permissions required for a given combination of resource, user, and action.
     /// </summary>
     public Permission Permission { get; } = permission;
+
+    /// <summary>
+    /// Permissions to check and return in HttpContext.Items collection
+    /// </summary>
+    public Permission[] CheckPermissions { get; set; } = [];
 
     /// <summary>
     /// Gets the type of the resource.
