@@ -28,18 +28,34 @@ public class ContainersController(
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo
     /// Example URL path: /wopi/containers/(container_id)
     /// </summary>
-    /// <param name="id">Container identifier.</param>
+    /// <param name="id">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
+    /// <param name="cancellationToken">cancellation token</param>
     /// <returns></returns>
     [HttpGet("{id}", Name = WopiRouteNames.CheckContainerInfo)]
     [Produces(MediaTypeNames.Application.Json)]
     [WopiAuthorize(WopiResourceType.Container, Permission.Read,
         CheckPermissions = [Permission.Create, Permission.Delete, Permission.Rename, Permission.CreateChildFile])]
+    public async Task<IActionResult> CheckContainerInfo(string id, CancellationToken cancellationToken = default)
     {
-        var container = StorageProvider.GetWopiContainer(id);
-        return new CheckContainerInfo
+        var container = storageProvider.GetWopiContainer(id);
+        if (container is null)
         {
-            Name = container.Name
+            return NotFound();
+        }
+        var checkContainerInfo = new WopiCheckContainerInfo()
+        {
+            Name = container.Name,
+            UserCanCreateChildContainer = HttpContext.IsPermitted(Permission.Create),
+            UserCanDelete = HttpContext.IsPermitted(Permission.Delete),
+            UserCanRename = HttpContext.IsPermitted(Permission.Rename),
+            UserCanCreateChildFile = HttpContext.IsPermitted(Permission.CreateChildFile),
+            IsEduUser = false,
         };
+
+        // allow changes and/or extensions before returning 
+        checkContainerInfo = await wopiHostOptions.Value.OnCheckContainerInfo(new WopiCheckContainerInfoContext(User, container, checkContainerInfo));
+
+        return new JsonResult<WopiCheckContainerInfo>(checkContainerInfo);
     }
 
     /// <summary>
