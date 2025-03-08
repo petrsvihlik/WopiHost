@@ -30,7 +30,7 @@ public class ContainersController(
     /// </summary>
     /// <param name="id">Container identifier.</param>
     /// <returns></returns>
-    [HttpGet("{id}")]
+    [HttpGet("{id}", Name = WopiRouteNames.CheckContainerInfo)]
     [Produces(MediaTypeNames.Application.Json)]
     [WopiAuthorize(WopiResourceType.Container, Permission.Read,
         CheckPermissions = [Permission.Create, Permission.Delete, Permission.Rename, Permission.CreateChildFile])]
@@ -63,7 +63,7 @@ public class ContainersController(
 
         foreach (var wopiFile in StorageProvider.GetWopiFiles(id))
         {
-            files.Add(new ChildFile
+            files.Add(new ChildFile(wopiFile.Name, Url.GetWopiUrl(WopiResourceType.File, wopiFile.Identifier))
             {
                 Name = wopiFile.Name,
                 Url = GetWopiUrl("files", wopiFile.Identifier, AccessToken),
@@ -77,9 +77,8 @@ public class ContainersController(
         {
             containers.Add(new ChildContainer
             {
-                Name = wopiContainer.Name,
-                Url = GetWopiUrl("containers", wopiContainer.Identifier, AccessToken)
-            });
+            containers.Add(
+                new ChildContainer(wopiContainer.Name, Url.GetWopiUrl(WopiResourceType.Container, wopiContainer.Identifier)));
         }
 
         container.ChildFiles = files;

@@ -63,11 +63,9 @@ public class WopiBootstrapperController(
 
                 bootstrapRoot.RootContainerInfo = new RootContainerInfo
                 {
-                    ContainerPointer = new ChildContainer
-                    {
-                        Name = StorageProvider.RootContainerPointer.Name,
-                        Url = GetWopiUrl("containers", resourceId, SecurityHandler.WriteToken(token))
-                    }
+                    ContainerPointer = new ChildContainer(
+                        storageProvider.RootContainerPointer.Name,
+                        Url.GetWopiUrl(WopiResourceType.Container, storageProvider.RootContainerPointer.Identifier, securityHandler.WriteToken(token)))
                 };
             }
             else if (ecosystemOperation == "GET_NEW_ACCESS_TOKEN")

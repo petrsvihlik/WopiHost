@@ -64,7 +64,7 @@ public class FilesController : WopiControllerBase
     /// <param name="id">File identifier.</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns></returns>
-    [HttpGet("{id}")]
+    [HttpGet("{id}", Name = WopiRouteNames.CheckFileInfo)]
     [WopiAuthorize(WopiResourceType.File, Permission.Read)]
     public async Task<IActionResult> GetCheckFileInfo(string id, CancellationToken cancellationToken = default)
     {
