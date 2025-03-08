@@ -8,6 +8,6 @@
 /// </remarks>
 /// <param name="values">Accepted header values.</param>
 [AttributeUsage(AttributeTargets.Method)]
-public class WopiOverrideHeaderAttribute(string[] values) : HttpHeaderAttribute(WopiHeaders.WOPI_OVERRIDE, values)
+public class WopiOverrideHeaderAttribute(params string[] values) : HttpHeaderAttribute(WopiHeaders.WOPI_OVERRIDE, values)
 {
 }

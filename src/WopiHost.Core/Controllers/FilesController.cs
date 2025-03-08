@@ -197,7 +197,7 @@ public class FilesController : WopiControllerBase
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
-    [HttpPost("{id}"), WopiOverrideHeader([WopiFileOperations.PutRelativeFile])]
+    [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.PutRelativeFile)]
     [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public Task<IActionResult> PutRelativeFile(string id) => throw new NotImplementedException($"{nameof(PutRelativeFile)} is not implemented yet.");
 
@@ -209,7 +209,7 @@ public class FilesController : WopiControllerBase
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <param name="correlationId"></param>
-    [HttpPost("{id}"), WopiOverrideHeader([WopiFileOperations.Cobalt])]
+    [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.Cobalt)]
     [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public async Task<IActionResult> ProcessCobalt(
         string id,
@@ -290,12 +290,12 @@ public class FilesController : WopiControllerBase
     /// <param name="oldLockIdentifier"></param>
     /// <param name="newLockIdentifier"></param>
     [HttpPost("{id}")]
-    [WopiOverrideHeader([
+    [WopiOverrideHeader(
         WopiFileOperations.Lock,
         WopiFileOperations.Put,
         WopiFileOperations.Unlock,
         WopiFileOperations.RefreshLock,
-        WopiFileOperations.GetLock])]
+        WopiFileOperations.GetLock)]
     [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public IActionResult ProcessLock(
         string id,
