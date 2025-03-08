@@ -134,7 +134,34 @@ public class FilesController : WopiControllerBase
 
     /// <summary>
     [WopiAuthorize(WopiResourceType.File, Permission.Read)]
+    /// <summary>
+    /// The EnumerateAncestors operation enumerates all the parents of a given file, up to and including the root container.
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/enumerateancestors
+    /// Example URL path: /wopi/containers/(container_id)/ancestry
+    /// </summary>
+    /// <param name="id">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns></returns>
+    [HttpGet("{id}/ancestry")]
     [WopiAuthorize(WopiResourceType.File, Permission.Read)]
+    [Produces(MediaTypeNames.Application.Json)]
+    public async Task<IActionResult> EnumerateAncestors(string id, CancellationToken cancellationToken = default)
+    {
+        // Get file
+        var file = storageProvider.GetWopiFile(id);
+        if (file is null)
+        {
+            return NotFound();
+        }
+
+        var ancestors = await storageProvider.GetAncestors(WopiResourceType.File, id, cancellationToken);
+        return new JsonResult(
+            new EnumerateAncestorsResponse(ancestors
+                .Select(a => new ChildContainer(a.Name, Url.GetWopiUrl(WopiResourceType.Container, a.Identifier)))
+            ));
+    }
+
+    /// <summary>
     /// Updates a file specified by an identifier. (Only for non-cobalt files.)
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile
     /// Example URL path: /wopi/files/(file_id)/contents

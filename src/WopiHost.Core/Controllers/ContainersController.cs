@@ -61,7 +61,31 @@ public class ContainersController(
     /// <summary>
     [WopiAuthorize(WopiResourceType.Container, Permission.Create)]
     [WopiAuthorize(WopiResourceType.Container, Permission.Delete)]
+    /// <summary>
+    /// The EnumerateAncestors operation enumerates all the parents of a given container, up to and including the root container.
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/enumerateancestors
+    /// Example URL path: /wopi/containers/(container_id)/ancestry
+    /// </summary>
+    /// <param name="id">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns></returns>
+    [HttpGet("{id}/ancestry")]
     [WopiAuthorize(WopiResourceType.Container, Permission.Read)]
+    [Produces(MediaTypeNames.Application.Json)]
+    public async Task<IActionResult> EnumerateAncestors(string id, CancellationToken cancellationToken = default)
+    {
+        var container = storageProvider.GetWopiContainer(id);
+        if (container is null)
+        {
+            return NotFound();
+        }
+
+        var ancestors = await storageProvider.GetAncestors(WopiResourceType.Container, id, cancellationToken);
+        return new JsonResult(
+            new EnumerateAncestorsResponse(ancestors
+                .Select(a => new ChildContainer(a.Name, Url.GetWopiUrl(WopiResourceType.Container, a.Identifier))
+            )));
+    }
     /// The EnumerateChildren method returns the contents of a container on the WOPI server.
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/enumeratechildren
     /// Example URL path: /wopi/containers/(container_id)/children

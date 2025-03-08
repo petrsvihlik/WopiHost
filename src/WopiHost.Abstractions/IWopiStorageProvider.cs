@@ -39,4 +39,13 @@ public interface IWopiStorageProvider
 	/// Reference to the root container.
 	/// </summary>
 	IWopiFolder RootContainerPointer { get; }
+
+    /// <summary>
+    /// Returns the ancestors of the given container or file.
+    /// </summary>
+    /// <param name="resourceType">type of resource the identifier is pointing to</param>
+    /// <param name="identifier">Container/File identifier.</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns>list of containers top-down excluding the specified identifier</returns>
+    Task<ReadOnlyCollection<IWopiFolder>> GetAncestors(WopiResourceType resourceType, string identifier, CancellationToken cancellationToken = default);
 }

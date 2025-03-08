@@ -12,16 +12,18 @@ public class WopiFileSystemProvider : IWopiStorageProvider
 {
     private WopiFileSystemProviderOptions FileSystemProviderOptions { get; }
 
-    private const string _rootPath = @".\";
+    private readonly string rootPath = @".\";
 
     private string WopiRootPath => FileSystemProviderOptions.RootPath;
 
-    private string WopiAbsolutePath => Path.IsPathRooted(WopiRootPath) ? WopiRootPath : Path.Combine(HostEnvironment.ContentRootPath, WopiRootPath);
+    private string WopiAbsolutePath => Path.IsPathRooted(WopiRootPath) 
+        ? WopiRootPath 
+        : new DirectoryInfo(Path.Combine(HostEnvironment.ContentRootPath, WopiRootPath)).FullName;
 
     /// <summary>
     /// Reference to the root container.
     /// </summary>
-    public IWopiFolder RootContainerPointer => new WopiFolder(_rootPath, EncodeIdentifier(_rootPath));
+    public IWopiFolder RootContainerPointer => new WopiFolder(WopiAbsolutePath, EncodeIdentifier(rootPath));
 
     /// <summary>
     /// Context of the hosting environment.
@@ -45,15 +47,15 @@ public class WopiFileSystemProvider : IWopiStorageProvider
     /// <inheritdoc/>
     public IWopiFile GetWopiFile(string identifier)
     {
-        var filePath = DecodeIdentifier(identifier);
-        return new WopiFile(Path.Combine(WopiAbsolutePath, filePath), identifier);
+        var fullPath = DecodeFullPath(identifier);
+        return new WopiFile(fullPath, identifier);
     }
 
     /// <inheritdoc/>
     public IWopiFolder GetWopiContainer(string identifier = "")
     {
-        var folderPath = DecodeIdentifier(identifier);
-        return new WopiFolder(Path.Combine(WopiAbsolutePath, folderPath), identifier);
+        var fullPath = DecodeFullPath(identifier);
+        return new WopiFolder(fullPath, identifier);
     }
 
     /// <inheritdoc/>
@@ -84,6 +86,34 @@ public class WopiFileSystemProvider : IWopiStorageProvider
         return folders;
     }
 
+    /// <inheritdoc/>
+    public Task<ReadOnlyCollection<IWopiFolder>> GetAncestors(WopiResourceType resourceType, string identifier, CancellationToken cancellationToken = default)
+    {
+        // convert File identifier to it's parent Container's identifier
+        var result = new List<IWopiFolder>();
+        if (resourceType == WopiResourceType.File)
+        {
+            identifier = EncodeIdentifier(GetFileParentIdentifier(identifier));
+        }
+        var container = GetWopiContainer(identifier)
+            ?? throw new DirectoryNotFoundException($"Container with identifier '{identifier}' not found.");
+        if (container.Identifier == RootContainerPointer.Identifier && resourceType == WopiResourceType.File)
+        {
+            result.Add(container);
+        }
+
+        while (container.Identifier != RootContainerPointer.Identifier)
+        {
+            var parent = GetFolderParentIdentifier(container.Identifier);
+            container = GetWopiContainer(EncodeIdentifier(parent));
+            result.Add(container);
+        }
+        //result.Add(RootContainerPointer);
+        result.Reverse();
+        return Task.FromResult(result.AsReadOnly());
+    }
+    }
+
     private static string DecodeIdentifier(string identifier)
     {
         var bytes = Convert.FromBase64String(identifier);
@@ -94,5 +124,29 @@ public class WopiFileSystemProvider : IWopiStorageProvider
     {
         var bytes = Encoding.UTF8.GetBytes(path);
         return Convert.ToBase64String(bytes);
+    }
+
+    private string GetFileParentIdentifier(string identifier)
+    {
+        var fullPath = DecodeFullPath(identifier);
+        var dirName = new FileInfo(fullPath).Directory?.FullName;
+        return dirName is null || dirName == WopiAbsolutePath
+            ? rootPath
+            : rootPath + Path.GetRelativePath(WopiAbsolutePath, dirName);
+    }
+
+    private string GetFolderParentIdentifier(string identifier)
+    {
+        var fullPath = DecodeFullPath(identifier);
+        var dirInfo = new DirectoryInfo(fullPath);
+        return dirInfo.FullName == WopiAbsolutePath
+            ? rootPath
+            : rootPath + Path.GetRelativePath(WopiAbsolutePath, dirInfo.Parent!.FullName).TrimStart('.');
+    }
+
+    private string DecodeFullPath(string identifier)
+    {
+        var folderPath = DecodeIdentifier(identifier);
+        return Path.Combine(WopiAbsolutePath, folderPath);
     }
 }
