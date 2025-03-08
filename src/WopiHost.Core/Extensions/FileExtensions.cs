@@ -55,7 +55,9 @@ public static class FileExtensions
         {
             // Set host capabilities
             result.SupportsCoauth = capabilities.SupportsCoauth;
+            result.SupportsCobalt = capabilities.SupportsCobalt;
             result.SupportsFolders = capabilities.SupportsFolders;
+            result.SupportsContainers = capabilities.SupportsContainers;
             result.SupportsLocks = capabilities.SupportsLocks;
             result.SupportsGetLock = capabilities.SupportsGetLock;
             result.SupportsExtendedLockLength = capabilities.SupportsExtendedLockLength;
@@ -64,6 +66,7 @@ public static class FileExtensions
             result.SupportedShareUrlTypes = capabilities.SupportedShareUrlTypes;
             result.SupportsScenarioLinks = capabilities.SupportsScenarioLinks;
             result.SupportsSecureStore = capabilities.SupportsSecureStore;
+            result.SupportsFileCreation = capabilities.SupportsFileCreation;
             result.SupportsUpdate = capabilities.SupportsUpdate;
             result.SupportsCobalt = capabilities.SupportsCobalt;
             result.SupportsRename = capabilities.SupportsRename;
