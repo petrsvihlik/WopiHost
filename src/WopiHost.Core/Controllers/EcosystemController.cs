@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Net.Mime;
 using WopiHost.Abstractions;
+using WopiHost.Core.Extensions;
+using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 
 namespace WopiHost.Core.Controllers;
@@ -13,15 +16,12 @@ namespace WopiHost.Core.Controllers;
 /// Creates an instance of <see cref="EcosystemController"/>.
 /// </remarks>
 /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
-/// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
-/// <param name="wopiHostOptions">WOPI Host configuration</param>
+[Authorize]
+[ApiController]
 [Route("wopi/[controller]")]
 public class EcosystemController(
-    IWopiStorageProvider storageProvider, 
-	IWopiSecurityHandler securityHandler,
-    IOptions<WopiHostOptions> wopiHostOptions) : WopiControllerBase(storageProvider, securityHandler, wopiHostOptions)
+    IWopiStorageProvider storageProvider) : ControllerBase
 {
-
 	/// <summary>
 	/// The GetRootContainer operation returns the root container. A WOPI client can use this operation to get a reference to the root container, from which the client can call EnumerateChildren (containers) to navigate a container hierarchy.
 	/// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getrootcontainer
@@ -32,15 +32,22 @@ public class EcosystemController(
 	[Produces(MediaTypeNames.Application.Json)]
 	public RootContainerInfo GetRootContainer() //TODO: fix the path
 	{
-		var root = StorageProvider.GetWopiContainer(@".\");
+		var root = storageProvider.GetWopiContainer(@".\");
 		var rc = new RootContainerInfo
 		{
 			ContainerPointer = new ChildContainer(root.Name, Url.GetWopiUrl(WopiResourceType.Container, root.Identifier))
-			{
-				Name = root.Name,
-				Url = GetWopiUrl("containers", root.Identifier, AccessToken)
-			}
 		};
 		return rc;
 	}
+
+    /// <summary>
+    /// The CheckEcosystem operation is similar to the the CheckFileInfo operation, but does not require a file or container ID.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet(Name = WopiRouteNames.CheckEcosystem)]
+    [Produces(MediaTypeNames.Application.Json)]
+    public IActionResult CheckEcosystem()
+    {
+        return new JsonResult(new { new WopiHostCapabilities().SupportsContainers });
+    }
 }

@@ -68,11 +68,9 @@ public static class FileExtensions
             result.SupportsSecureStore = capabilities.SupportsSecureStore;
             result.SupportsFileCreation = capabilities.SupportsFileCreation;
             result.SupportsUpdate = capabilities.SupportsUpdate;
-            result.SupportsCobalt = capabilities.SupportsCobalt;
             result.SupportsRename = capabilities.SupportsRename;
             result.SupportsDeleteFile = capabilities.SupportsDeleteFile;
             result.SupportsUserInfo = capabilities.SupportsUserInfo;
-            result.SupportsFileCreation = capabilities.SupportsFileCreation;
         }
         return result;
     }

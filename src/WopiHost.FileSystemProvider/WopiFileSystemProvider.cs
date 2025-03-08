@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.ObjectModel;
+using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using WopiHost.Abstractions;
@@ -8,7 +9,7 @@ namespace WopiHost.FileSystemProvider;
 /// <summary>
 /// Provides files and folders based on a base64-encoded paths.
 /// </summary>
-public class WopiFileSystemProvider : IWopiStorageProvider
+public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorageProvider
 {
     private WopiFileSystemProviderOptions FileSystemProviderOptions { get; }
 
@@ -59,31 +60,32 @@ public class WopiFileSystemProvider : IWopiStorageProvider
     }
 
     /// <inheritdoc/>
-    public List<IWopiFile> GetWopiFiles(string identifier = "")
+    public ReadOnlyCollection<IWopiFile> GetWopiFiles(string identifier = "")
     {
         var folderPath = DecodeIdentifier(identifier);
         var files = new List<IWopiFile>();
-        foreach (var path in Directory.GetFiles(Path.Combine(WopiAbsolutePath, folderPath)))  //TODO Directory.Enumerate...
+        foreach (var path in Directory.GetFiles(Path.Combine(WopiAbsolutePath, folderPath)))
         {
             var filePath = Path.Combine(folderPath, Path.GetFileName(path));
             var fileId = EncodeIdentifier(filePath);
             files.Add(GetWopiFile(fileId));
         }
-        return files;
+        return files.AsReadOnly();
     }
 
     /// <inheritdoc/>
-    public List<IWopiFolder> GetWopiContainers(string identifier = "")
+    public ReadOnlyCollection<IWopiFolder> GetWopiContainers(string identifier = "")
     {
         var folderPath = DecodeIdentifier(identifier);
         var folders = new List<IWopiFolder>();
         foreach (var directory in Directory.GetDirectories(Path.Combine(WopiAbsolutePath, folderPath)))
         {
-            var subfolderPath = "." + directory.Remove(0, directory.LastIndexOf(Path.DirectorySeparatorChar));
+            //var subfolderPath = "." + directory.Remove(0, directory.LastIndexOf(Path.DirectorySeparatorChar));
+            var subfolderPath = Path.GetRelativePath(WopiAbsolutePath, directory);
             var folderId = EncodeIdentifier(subfolderPath);
             folders.Add(GetWopiContainer(folderId));
         }
-        return folders;
+        return folders.AsReadOnly();
     }
 
     /// <inheritdoc/>
@@ -112,7 +114,58 @@ public class WopiFileSystemProvider : IWopiStorageProvider
         result.Reverse();
         return Task.FromResult(result.AsReadOnly());
     }
+
+    #region IWopiWritableStorageProvider
+
+    /// <inheritdoc/>
+    public Task<string?> CreateWopiChildContainer(
+        string identifier,
+        string name,
+        bool isExactName,
+        CancellationToken cancellationToken = default)
+    {
+        var fullPath = DecodeFullPath(identifier);
+
+        var newPath = Path.Combine(fullPath, name);
+        if (Directory.Exists(newPath))
+        {
+            if (isExactName)
+            {
+                return Task.FromResult<string?>(null);
+            }
+            else
+            {
+                var newName = name;
+                var counter = 1;
+                while (Directory.Exists(Path.Combine(fullPath, newName)))
+                {
+                    newName = $"{name} ({counter++})";
+                }
+                newPath = Path.Combine(fullPath, newName);
+            }
+        }
+        var dirInfo = Directory.CreateDirectory(newPath);
+        return Task.FromResult<string?>(
+            EncodeIdentifier(
+                Path.GetRelativePath(WopiAbsolutePath, dirInfo.FullName)));
     }
+
+    /// <inheritdoc/>
+    public Task<bool> DeleteWopiContainer(string identifier, CancellationToken cancellationToken = default)
+    {
+        var fullPath = DecodeFullPath(identifier);
+        if (!Directory.Exists(fullPath))
+        {
+            throw new DirectoryNotFoundException("Directory not found");
+        }
+        if (Directory.EnumerateFileSystemEntries(fullPath).Any())
+        {
+            throw new InvalidOperationException("Directory is not empty.");
+        }
+        Directory.Delete(fullPath, true);
+        return Task.FromResult(true);
+    }
+    #endregion
 
     private static string DecodeIdentifier(string identifier)
     {

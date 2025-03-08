@@ -79,4 +79,9 @@ public static class WopiHeaders
     /// An optional string value indicating the version of the file
     /// </summary>
     public const string WOPI_ITEM_VERSION = "X-WOPI-ItemVersion";
+
+    /// <summary>
+    /// A string describing the reason the CreateChildContainer operation could not be completed
+    /// </summary>
+    public const string WOPI_INVALID_CONTAINER_NAME = "X-WOPI-InvalidContainerNameError";
 }
