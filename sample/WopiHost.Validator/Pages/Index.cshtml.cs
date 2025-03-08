@@ -1,8 +1,10 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using WopiHost.Abstractions;
+using WopiHost.Core.Models;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 using WopiHost.Validator.Models;
@@ -18,15 +20,48 @@ public class IndexModel(
     [BindProperty(SupportsGet = true)]
     public string? ParentContainerId { get; set; }
 
+    public string ContainerName { get; set; } = string.Empty;
+    public List<ChildContainer> BreadcrumbParts { get; set; } = [];
     public List<FileViewModel> Files { get; set; } = [];
     public List<ContainerViewModel> Containers { get; set; } = [];
 
-    public async Task<ActionResult> OnGet()
+    public async Task<ActionResult> OnGet(CancellationToken cancellationToken = default)
     {
         ViewData["Title"] = "Welcome to WOPI HOST test page";
         try
         {
+            // setup title
             ContainerId ??= storageProvider.RootContainerPointer.Identifier;
+            ContainerName = storageProvider.GetWopiContainer(ContainerId).Name;
+            // calc breadcrumb
+            if (ContainerId != storageProvider.RootContainerPointer.Identifier)
+            {
+                var ancestors = await storageProvider.GetAncestors(WopiResourceType.Container, ContainerId, cancellationToken);
+                for (var i=0; i<ancestors.Count; i++)
+                {
+                    var ancestor = ancestors[i];
+                    var parentId = i > 0
+                        ? ancestors[i - 1].Identifier
+                        : null;
+                    var part = new ChildContainer(
+                        ancestor.Name,
+                        Url.Page(pageName: null, values: new 
+                        { 
+                            ContainerId = ancestor.Identifier,
+                            ParentContainerId = parentId
+                        })!
+                    );
+                    BreadcrumbParts.Add(part);
+                }
+                if (string.IsNullOrWhiteSpace(ParentContainerId))
+                {
+                    ParentContainerId = ancestors.Count > 0
+                        ? ancestors[^1].Identifier
+                        : null;
+                }
+            }
+
+            // allow to navigate to parent container
             if (!string.IsNullOrWhiteSpace(ParentContainerId))
             {
                 var parentContainer = storageProvider.GetWopiContainer(ParentContainerId);
@@ -36,6 +71,8 @@ public class IndexModel(
                     Name = ".."
                 });
             }
+
+            // get child containers
             var containers = storageProvider.GetWopiContainers(ContainerId);
             foreach (var container in containers)
             {
@@ -46,6 +83,7 @@ public class IndexModel(
                 });
             }
 
+            // get files
             var files = storageProvider.GetWopiFiles(ContainerId);
             foreach (var file in files)
             {
@@ -59,7 +97,7 @@ public class IndexModel(
                     FormattedSize = ConvertFileSize(file.Size),
                     SupportsEdit = await discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.Edit),
                     SupportsView = await discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.View),
-                    IconUri = await GetIcon(file) 
+                    IconUri = await GetFileIcon(file) 
                 });
             }
             return Page();
@@ -79,7 +117,7 @@ public class IndexModel(
         //}
     }
 
-    private async Task<Uri> GetIcon(IWopiFile file)
+    private async Task<Uri> GetFileIcon(IWopiFile file)
     {
         var icon = await discoverer.GetApplicationFavIconAsync(file.Extension)
                     ?? new Uri("file.ico", UriKind.Relative);
