@@ -32,4 +32,13 @@ public interface IWopiWritableStorageProvider
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>true for success</returns>
     Task<bool> DeleteWopiContainer(string identifier, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Renames an existing container.
+    /// </summary>
+    /// <param name="identifier">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
+    /// <param name="requestedName">A UTF-7 encoded string that is a container name. Required.</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns>true for success</returns>
+    Task<bool> RenameWopiContainer(string identifier, string requestedName, CancellationToken cancellationToken = default);
 }

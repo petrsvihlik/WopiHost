@@ -68,6 +68,8 @@ public class ContainersController(
 
     /// <summary>
     /// The CreateChildContainer operation creates a new container as a child of the specified container.
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/createchildcontainer
+    /// Example URL path: /wopi/containers/(container_id)
     /// </summary>
     /// <param name="id">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
     /// <param name="suggestedTarget">A UTF-7 encoded string that specifies a full container name. Required.</param>
@@ -75,6 +77,7 @@ public class ContainersController(
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns></returns>
     [HttpPost("{id}")]
+    [Produces(MediaTypeNames.Application.Json)]
     [WopiOverrideHeader(WopiContainerOperations.CreateChildContainer)]
     [WopiAuthorize(WopiResourceType.Container, Permission.Create)]
     public async Task<IActionResult> CreateChildContainer(
@@ -125,6 +128,8 @@ public class ContainersController(
 
     /// <summary>
     /// The DeleteContainer operation deletes a container.
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/deletecontainer
+    /// Example URL path: /wopi/containers/(container_id)
     /// </summary>
     /// <param name="id">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
     /// <param name="cancellationToken">cancellation token</param>
@@ -165,6 +170,65 @@ public class ContainersController(
     }
 
     /// <summary>
+    /// The RenameContainer operation renames a container.
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/renamecontainer
+    /// Example URL path: /wopi/containers/(container_id)
+    /// </summary>
+    /// <param name="id">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
+    /// <param name="requestedName">A UTF-7 encoded string that is a container name. Required.</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns></returns>
+    [HttpPost("{id}")]
+    [Produces(MediaTypeNames.Application.Json)]
+    [WopiOverrideHeader(WopiContainerOperations.RenameContainer)]
+    [WopiAuthorize(WopiResourceType.Container, Permission.Rename)]
+    public async Task<IActionResult> RenameContainer(
+        string id,
+        [FromHeader(Name = WopiHeaders.WOPI_REQUESTED_NAME)] string requestedName,
+        CancellationToken cancellationToken = default)
+    {
+        if (writableStorageProvider is null)
+        {
+            return new NotImplementedResult();
+        }
+        var container = storageProvider.GetWopiContainer(id);
+        if (container is null)
+        {
+            // 404 Not Found – Resource not found/user unauthorized
+            return NotFound();
+        }
+        try
+        {
+            if (await writableStorageProvider.RenameWopiContainer(id, requestedName, cancellationToken))
+            {
+                // The response to a RenameContainer call is JSON containing the following required property:
+                // Name(string) - The name of the renamed container.
+                return new JsonResult(new { container.Name });
+            }
+        }
+        catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
+        {
+            // 400 Bad Request – Specified name is illegal
+            // A string describing the reason the RenameContainer operation could not be completed.
+            // This header should only be included when the response code is 400 Bad Request.
+            // This string is only used for logging purposes.
+            Response.Headers[WopiHeaders.WOPI_INVALID_CONTAINER_NAME] = "Specified name is illegal";
+            return new BadRequestResult();
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // 404 Not Found – Resource not found/user unauthorized
+            return NotFound();
+        }
+        catch (InvalidOperationException)
+        {
+            // 409 Conflict – requestedName already exists
+            return new ConflictResult();
+        }
+        return StatusCode(StatusCodes.Status500InternalServerError);
+    }
+
+    /// <summary>
     /// The GetEcosystem operation returns the URI for the WOPI server’s Ecosystem endpoint, given a container ID.
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/getecosystem
     /// Example URL path: /wopi/containers/(container_id)/ecosystem_pointer
@@ -186,8 +250,6 @@ public class ContainersController(
         return new JsonResult<UrlResponse>(
             new(Url.GetWopiUrl(WopiRouteNames.CheckEcosystem)));
     }
-
-    
 
     /// <summary>
     /// The EnumerateAncestors operation enumerates all the parents of a given container, up to and including the root container.

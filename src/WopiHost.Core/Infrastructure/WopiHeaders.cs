@@ -84,4 +84,9 @@ public static class WopiHeaders
     /// A string describing the reason the CreateChildContainer operation could not be completed
     /// </summary>
     public const string WOPI_INVALID_CONTAINER_NAME = "X-WOPI-InvalidContainerNameError";
+
+    /// <summary>
+    /// A UTF-7 encoded string that is a container name. Required.
+    /// </summary>
+    public const string WOPI_REQUESTED_NAME = "X-WOPI-RequestedName";
 }

@@ -165,6 +165,25 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         Directory.Delete(fullPath, true);
         return Task.FromResult(true);
     }
+
+    /// <inheritdoc/>
+    public Task<bool> RenameWopiContainer(string identifier, string requestedName, CancellationToken cancellationToken = default)
+    {
+        if (requestedName.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
+        {
+            throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(requestedName));
+        }
+        var fullPath = DecodeFullPath(identifier);
+        var parentPath = (new DirectoryInfo(fullPath).Parent?.FullName) 
+            ?? throw new DirectoryNotFoundException("Directory not found");
+        var newPath = Path.Combine(parentPath, requestedName);
+        if (Directory.Exists(newPath))
+        {
+            throw new InvalidOperationException("Directory already exists.");
+        }
+        Directory.Move(fullPath, newPath);
+        return Task.FromResult(true);
+    }
     #endregion
 
     private static string DecodeIdentifier(string identifier)

@@ -14,4 +14,9 @@ public static class WopiContainerOperations
     /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/deletecontainer
     /// </summary>
     public const string DeleteContainer = "DELETE_CONTAINER";
+
+    /// <summary>
+    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/renamecontainer
+    /// </summary>
+    public const string RenameContainer = "RENAME_CONTAINER";
 }
