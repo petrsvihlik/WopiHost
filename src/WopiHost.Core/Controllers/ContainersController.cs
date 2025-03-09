@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Models;
+using WopiHost.Core.Security.Authorization;
 
 namespace WopiHost.Core.Controllers;
 
@@ -18,7 +19,7 @@ namespace WopiHost.Core.Controllers;
 /// <param name="wopiHostOptions">WOPI Host configuration</param>
 [Route("wopi/[controller]")]
 public class ContainersController(
-    IWopiStorageProvider storageProvider, 
+    IWopiStorageProvider storageProvider,
     IWopiSecurityHandler securityHandler,
     IOptions<WopiHostOptions> wopiHostOptions) : WopiControllerBase(storageProvider, securityHandler, wopiHostOptions)
 {
@@ -31,6 +32,7 @@ public class ContainersController(
     /// <returns></returns>
     [HttpGet("{id}")]
     [Produces(MediaTypeNames.Application.Json)]
+    [WopiAuthorize(Permission.Read, WopiResourceType.Container)]
     public CheckContainerInfo GetCheckContainerInfo(string id)
     {
         var container = StorageProvider.GetWopiContainer(id);
@@ -48,6 +50,7 @@ public class ContainersController(
     /// <param name="id">Container identifier.</param>
     /// <returns></returns>
     [HttpGet("{id}/children")]
+    [WopiAuthorize(Permission.Read, WopiResourceType.Container)]
     [Produces(MediaTypeNames.Application.Json)]
     public Container EnumerateChildren(string id)
     {

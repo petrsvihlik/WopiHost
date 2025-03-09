@@ -1,0 +1,56 @@
+﻿@page
+@using WopiHost.Discovery.Enumerations
+@model IndexModel
+
+
+<div class="panel">
+    <div class="panel-heading">
+        <h3 class="panel-title">Breadcrumb</h3>
+    </div>
+    <table class="table table-striped table-hover" id="Extension1">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Name</th>
+                <th>Date</th>
+                <th>Size</th>
+                <th>Edit</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var container in Model.Containers)
+            {
+                <tr class="paginate-show">
+                    <td>&#128193;</td>
+                    <td><a title="View" asp-route-ContainerId="@container.ContainerId" asp-route-ParentContainerId="@(container.Name == ".." ? "" : Model.ContainerId)">@container.Name</a></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            }
+
+            @foreach (var file in Model.Files)
+            {
+                <tr class="paginate-show">
+                    <td><img src="@file.IconUri" style="height: 32px;" alt="icon" /></td>
+                    <td>@if (file.SupportsView)
+                        {
+                            <a title="View" asp-page="HostPage" asp-route-FileId="@file.FileId" asp-route-WopiAction="@WopiActionEnum.View">@file.FileName</a>
+                        }
+                        else
+                        {
+                            @file.FileName
+                        }
+                    </td>
+                    <td>@file.LastModified</td>
+                    <td>@file.FormattedSize</td>
+                    <td>@if (file.SupportsEdit)
+                        {
+                            <a title="Edit" asp-page="HostPage" asp-route-FileId="@file.FileId" asp-route-WopiAction="@WopiActionEnum.Edit">&#128393;</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -104,7 +104,7 @@ public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHa
     }
 
     /// <inheritdoc/>
-    public Task<bool> IsAuthorized(ClaimsPrincipal principal, string resourceId, WopiAuthorizationRequirement operation, CancellationToken cancellationToken = default)
+    public Task<bool> IsAuthorized(ClaimsPrincipal principal, IWopiAuthorizationRequirement requirement, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(principal.Identity?.IsAuthenticated == true);
     }

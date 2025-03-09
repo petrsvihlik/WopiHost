@@ -44,6 +44,26 @@ public class AccessTokenHandlerTests
     }
 
     [Fact]
+    public async Task HandleAuthenticateAsync_ShouldReturnNoResult_WhenNotWopiPath()
+    {
+        // Arrange
+        var context = new DefaultHttpContext()
+        {
+            Request =
+            {
+                Path = "/whatever",
+            }
+        };
+        await _accessTokenHandler.InitializeAsync(scheme, context);
+
+        // Act
+        var result = await _accessTokenHandler.AuthenticateAsync();
+
+        // Assert
+        Assert.True(result.None);
+    }
+
+    [Fact]
     public async Task HandleAuthenticateAsync_ShouldReturnSuccess_WhenTokenIsValid()
     {
         // Arrange
@@ -56,6 +76,7 @@ public class AccessTokenHandlerTests
         {
             Request =
             {
+                Path = "/wopi",
                 Query = new QueryCollection(new Dictionary<string, StringValues>
                 {
                     { AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME, token }

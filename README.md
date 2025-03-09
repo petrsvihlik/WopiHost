@@ -54,41 +54,10 @@ If you need a version that's targeting an older version of .NET, check out the r
 
 If you get errors saying that Microsoft.CobaltCore.*.nupkg can't be found, then just remove the reference or see the chapter [Cobalt](#Cobalt) below.
  
-Configuration
+Samples
 -----------
 
-### WopiHost
-[WopiHost\appSettings.json](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost/appsettings.json)
-
-| Parameter | Sample value | Description |
-| :--- | :--- | :--- |
-|`Wopi:StorageProviderAssemblyName`| [`"WopiHost.FileSystemProvider"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost.FileSystemProvider) | Name of assembly containing implementation of `WopiHost.Abstractions` interfaces |
-|`Wopi:StorageProvider:RootPath` | [`".\\wopi-docs"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost/wwwroot/wopi-docs) | Provider-specific setting used by `WopiHost.FileSystemProvider` (which is an implementation of `IWopiStorageProvider` working with System.IO) |
-|`Wopi:UseCobalt`| `true`| Whether or not to use [MS-FSSHTTP](https://learn.microsoft.com/openspecs/sharepoint_protocols/ms-fsshttp/) for file synchronization. More details at [Cobalt](#cobalt)|
-
-### WopiHost.Web
-[WopiHost.Web\appSettings.json](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost.Web/appsettings.json)
-
-| Parameter | Sample value | Description |
-| :--- | :--- | :--- |
-| `Wopi:HostUrl` | `"http://wopihost:5000"` | URL pointing to a WopiHost instance (above). It's used by the URL generator. |
-| `Wopi:ClientUrl` | ` "http://owaserver"` | Base URL of your WOPI client - typically, [Office Online Server](#compatible-wopi-clients) - used by the discovery module to load WOPI client URL templates |
-| `Wopi:StorageProvider:RootPath` | [`"..\\..\\WopiHost\\wwwroot\\wopi-docs"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost/wwwroot/wopi-docs) | Provider-specific setting used by `WopiHost.FileSystemProvider` (which is an implementation of `IWopiStorageProvider` working with System.IO) |
-| `Wopi:Discovery:NetZone` | `"InternalHttp"` | Determines the target zone configuration of your [OOS Deployment](https://learn.microsoft.com/officeonlineserver/deploy-office-online-server). Values correspond with the [`NetZoneEnum`](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost.Discovery/NetZoneEnum.cs). |
-
-
-Additionally, you can use the [secret storage](https://learn.microsoft.com/aspnet/core/security/app-secrets?view=aspnetcore-2.2&tabs=windows) to configure both of the apps.
-
-Running the application
------------------------
-Once you've successfully built the app you can:
-
-- run it directly from the Visual Studio using [IIS Express or self-hosted](/img/debug.png?raw=true).
-  - make sure you run both `WopiHost` and `WopiHost.Web`. You can set them both as [startup projects](/img/multiple_projects.png?raw=true)
-- run it from the `cmd`
-  - navigate to the WopiHost folder and run `dotnet run`
-- run it in IIS (tested in IIS 8.5)
-  - TODO
+See [Samples](https://github.com/petrsvihlik/WopiHost/blob/master/sample/README.md) for all samples.
 
 Compatible WOPI Clients
 -------

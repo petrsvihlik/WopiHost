@@ -28,7 +28,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B692B58D
 		test\Directory.Packages.props = test\Directory.Packages.props
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost", "src\WopiHost\WopiHost.csproj", "{21B81530-CC57-46F1-9524-08F984187DE2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost", "sample\WopiHost\WopiHost.csproj", "{21B81530-CC57-46F1-9524-08F984187DE2}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Discovery", "src\WopiHost.Discovery\WopiHost.Discovery.csproj", "{84B896D2-1A87-4671-B583-92A6AF3645F0}"
 EndProject
@@ -40,7 +40,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Url", "src\WopiHos
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.FileSystemProvider.Tests", "test\WopiHost.FileSystemProvider.Tests\WopiHost.FileSystemProvider.Tests.csproj", "{650A5A85-5956-491E-9312-5E25A27D1108}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Web", "src\WopiHost.Web\WopiHost.Web.csproj", "{5C301182-6FB2-40C5-97ED-58B07A910BFF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Web", "sample\WopiHost.Web\WopiHost.Web.csproj", "{5C301182-6FB2-40C5-97ED-58B07A910BFF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WopiHost.Discovery.Tests", "test\WopiHost.Discovery.Tests\WopiHost.Discovery.Tests.csproj", "{4089410A-8A12-455C-862B-A4A3834C3100}"
 EndProject
@@ -55,6 +55,28 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WopiHost.MemoryLockProvider", "src\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj", "{F49D0044-1965-4EC1-969E-E058194E81FA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WopiHost.MemoryLockProvider.Tests", "test\WopiHost.MemoryLockProvider.Tests\WopiHost.MemoryLockProvider.Tests.csproj", "{A863AD59-1075-C7DD-A3C9-B0859DF692EE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WopiHost.Validator", "sample\WopiHost.Validator\WopiHost.Validator.csproj", "{97442113-B773-4F71-8B60-EF5599AC135D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		sample\README.md = sample\README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "wopi-docs", "wopi-docs", "{EA1A15F6-C3AF-4AAF-9A8B-4B7E053D6CEC}"
+	ProjectSection(SolutionItems) = preProject
+		sample\wopi-docs\test.docx = sample\wopi-docs\test.docx
+		sample\wopi-docs\test.html = sample\wopi-docs\test.html
+		sample\wopi-docs\test.pptx = sample\wopi-docs\test.pptx
+		sample\wopi-docs\test.wopitest = sample\wopi-docs\test.wopitest
+		sample\wopi-docs\test.xlsx = sample\wopi-docs\test.xlsx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "subfolder", "subfolder", "{1CCBC8E4-5688-4F95-ADE8-31BF49064828}"
+	ProjectSection(SolutionItems) = preProject
+		sample\wopi-docs\subfolder\test2.docx = sample\wopi-docs\subfolder\test2.docx
+		sample\wopi-docs\subfolder\TextFile.txt = sample\wopi-docs\subfolder\TextFile.txt
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -176,17 +198,30 @@ Global
 		{A863AD59-1075-C7DD-A3C9-B0859DF692EE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A863AD59-1075-C7DD-A3C9-B0859DF692EE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{A863AD59-1075-C7DD-A3C9-B0859DF692EE}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{97442113-B773-4F71-8B60-EF5599AC135D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{97442113-B773-4F71-8B60-EF5599AC135D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{97442113-B773-4F71-8B60-EF5599AC135D}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{97442113-B773-4F71-8B60-EF5599AC135D}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{97442113-B773-4F71-8B60-EF5599AC135D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{97442113-B773-4F71-8B60-EF5599AC135D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{97442113-B773-4F71-8B60-EF5599AC135D}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{97442113-B773-4F71-8B60-EF5599AC135D}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{F66706B6-D7DD-48FB-963C-870B3D611500} = {785E1533-48CE-4B5E-8C59-D6F1FDA8C45C}
+		{21B81530-CC57-46F1-9524-08F984187DE2} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{650A5A85-5956-491E-9312-5E25A27D1108} = {B692B58D-1720-49A8-9CB8-5562894618F6}
+		{5C301182-6FB2-40C5-97ED-58B07A910BFF} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{4089410A-8A12-455C-862B-A4A3834C3100} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 		{9FFB3975-2DE6-4944-92C7-7062C39BB8FA} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 		{9CBB4AD4-EAE4-4D85-A70C-ECC465DA3D86} = {B692B58D-1720-49A8-9CB8-5562894618F6}
 		{A863AD59-1075-C7DD-A3C9-B0859DF692EE} = {B692B58D-1720-49A8-9CB8-5562894618F6}
+		{97442113-B773-4F71-8B60-EF5599AC135D} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{EA1A15F6-C3AF-4AAF-9A8B-4B7E053D6CEC} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{1CCBC8E4-5688-4F95-ADE8-31BF49064828} = {EA1A15F6-C3AF-4AAF-9A8B-4B7E053D6CEC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {91B6EE44-4505-4272-9D80-E4C73B09BF25}

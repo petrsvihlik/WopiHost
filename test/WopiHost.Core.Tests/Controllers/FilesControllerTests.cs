@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Net.Mime;
 using System.Security.Claims;
 using System.Text.Json;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -20,7 +19,6 @@ public class FilesControllerTests
     private readonly Mock<IWopiStorageProvider> storageProviderMock;
     private readonly Mock<IWopiSecurityHandler> securityHandlerMock;
     private readonly Mock<IOptions<WopiHostOptions>> wopiHostOptionsMock;
-    private readonly Mock<IAuthorizationService> authorizationServiceMock;
     private readonly Mock<IWopiLockProvider> lockProviderMock;
     private FilesController controller;
 
@@ -37,14 +35,12 @@ public class FilesControllerTests
                 LockProviderAssemblyName = "test",
                 OnCheckFileInfo = o => Task.FromResult(o.CheckFileInfo)
             });
-        authorizationServiceMock = new Mock<IAuthorizationService>();
         lockProviderMock = new Mock<IWopiLockProvider>();
 
         controller = new FilesController(
             storageProviderMock.Object,
             securityHandlerMock.Object,
             wopiHostOptionsMock.Object,
-            authorizationServiceMock.Object,
             lockProviderMock.Object)
         {
             ControllerContext = new ControllerContext
@@ -55,29 +51,10 @@ public class FilesControllerTests
     }
 
     [Fact]
-    public async Task GetCheckFileInfo_Unauthorized_ReturnsUnauthorized()
-    {
-        // Arrange
-        var fileId = "testFileId";
-        authorizationServiceMock
-            .Setup(a => a.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object>(), It.IsAny<IEnumerable<IAuthorizationRequirement>>()))
-            .ReturnsAsync(AuthorizationResult.Failed());
-
-        // Act
-        var result = await controller.GetCheckFileInfo(fileId);
-
-        // Assert
-        Assert.IsType<UnauthorizedResult>(result);
-    }
-
-    [Fact]
     public async Task GetCheckFileInfo_FileNotFound_ReturnsNotFound()
     {
         // Arrange
         var fileId = "testFileId";
-        authorizationServiceMock
-            .Setup(a => a.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object>(), It.IsAny<IEnumerable<IAuthorizationRequirement>>()))
-            .ReturnsAsync(AuthorizationResult.Success());
         storageProviderMock.Setup(s => s.GetWopiFile(fileId)).Returns<IWopiFile>(null!);
 
         // Act
@@ -101,9 +78,6 @@ public class FilesControllerTests
         fileMock.SetupGet(f => f.Length).Returns(1024);
         fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
 
-        authorizationServiceMock
-            .Setup(a => a.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object>(), It.IsAny<IEnumerable<IAuthorizationRequirement>>()))
-            .ReturnsAsync(AuthorizationResult.Success());
         storageProviderMock
             .Setup(s => s.GetWopiFile(fileId))
             .Returns(fileMock.Object);
@@ -145,9 +119,6 @@ public class FilesControllerTests
         fileMock.SetupGet(f => f.Length).Returns(1024);
         fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
 
-        authorizationServiceMock
-            .Setup(a => a.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object>(), It.IsAny<IEnumerable<IAuthorizationRequirement>>()))
-            .ReturnsAsync(AuthorizationResult.Success());
         storageProviderMock
             .Setup(s => s.GetWopiFile(fileId))
             .Returns(fileMock.Object);
@@ -193,7 +164,6 @@ public class FilesControllerTests
             storageProviderMock.Object,
             securityHandlerMock.Object,
             wopiHostOptionsMock.Object,
-            authorizationServiceMock.Object,
             null,
             null)
         {
