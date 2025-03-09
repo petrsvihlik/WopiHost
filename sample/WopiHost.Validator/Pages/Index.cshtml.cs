@@ -71,7 +71,6 @@ public class IndexModel(
                     Name = ".."
                 });
             }
-
             // get child containers
             var containers = storageProvider.GetWopiContainers(ContainerId);
             foreach (var container in containers)
