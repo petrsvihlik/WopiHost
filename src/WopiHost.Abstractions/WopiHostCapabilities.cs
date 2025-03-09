@@ -9,6 +9,7 @@ public class WopiHostCapabilities : IWopiHostCapabilities
     public bool SupportsCoauth { get; set; }
 
     /// <inheritdoc/>
+    /// <remarks>set by FilesController.ctor depending on registered DI services</remarks>
     public bool SupportsCobalt { get; set; }
 
     /// <inheritdoc/>
@@ -18,9 +19,11 @@ public class WopiHostCapabilities : IWopiHostCapabilities
     public bool SupportsContainers { get; set; } = true;
 
     /// <inheritdoc/>
+    /// <remarks>set by FilesController.ctor depending on registered DI services</remarks>
     public bool SupportsLocks { get; set; }
 
     /// <inheritdoc/>
+    /// <remarks>set by FilesController.ctor depending on registered DI services</remarks>
     public bool SupportsGetLock { get; set; }
 
     /// <inheritdoc/>
@@ -54,5 +57,5 @@ public class WopiHostCapabilities : IWopiHostCapabilities
     public bool SupportsDeleteFile { get; set; }
 
     /// <inheritdoc/>    
-    public bool SupportsUserInfo { get; set; }
+    public bool SupportsUserInfo { get; set; } = true;
 }

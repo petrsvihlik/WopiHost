@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -40,6 +41,19 @@ internal static class Extensions
     {
         DateTimeOffset dto = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
         return dto.ToUnixTimeSeconds();
+    }
+
+    /// <summary>
+    /// Returns the User NameIdentifier claim value.
+    /// </summary>
+    /// <param name="principal">the current user</param>
+    /// <returns>nameIdentifier</returns>
+    /// <exception cref="InvalidOperationException">if such a claim does not exist</exception>
+    public static string GetUserId(this ClaimsPrincipal principal)
+    {
+        ArgumentNullException.ThrowIfNull(principal);
+        return principal.FindFirst(ClaimTypes.NameIdentifier)?.Value.ToSafeIdentity()
+            ?? throw new InvalidOperationException("Could not find NameIdentifier claim");
     }
 
     /// <summary>

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
@@ -22,6 +23,7 @@ namespace WopiHost.Core.Controllers;
 /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
 /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
 /// <param name="wopiHostOptions">WOPI Host configuration</param>
+/// <param name="memoryCache">An instance of the memory cache.</param>
 /// <param name="lockProvider">An instance of the lock provider.</param>
 /// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
 [Authorize]
@@ -31,6 +33,7 @@ public class FilesController(
     IWopiStorageProvider storageProvider,
     IWopiSecurityHandler securityHandler,
     IOptions<WopiHostOptions> wopiHostOptions,
+    IMemoryCache memoryCache,
     IWopiLockProvider? lockProvider = null,
     ICobaltProcessor? cobaltProcessor = null) : ControllerBase
 {
@@ -42,6 +45,7 @@ public class FilesController(
         SupportsCoauth = false,
         SupportsUpdate = true //TODO: PutRelativeFile
     };
+    private const string UserInfoCacheKey = "UserInfo-{0}";
 
     /// <summary>
     /// Returns the metadata about a file specified by an identifier.
@@ -237,6 +241,40 @@ public class FilesController(
     public Task<IActionResult> PutRelativeFile(string id) => throw new NotImplementedException($"{nameof(PutRelativeFile)} is not implemented yet.");
 
     /// <summary>
+    /// The PutUserInfo operation stores some basic user information on the host.
+    /// M365 spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo
+    /// Example URL path: /wopi/files/(file_id)
+    /// </summary>
+    /// <param name="id">A string that specifies a file ID of a file managed by host. This string must be URL safe.</param>
+    /// <param name="userInfo">A string that specifies the user information to be stored on the host. This string must be URL safe.</param>
+    /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
+    [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.PutUserInfo)]
+    public IActionResult PutUserInfo(
+        string id,
+        [FromStringBody] string userInfo)
+    {
+        // Get file
+        var file = storageProvider.GetWopiFile(id);
+        if (file is null)
+        {
+            return NotFound();
+        }
+
+        // The UserInfo string should be associated with a particular user,
+        // and should be passed back to the WOPI client in subsequent CheckFileInfo responses in the UserInfo property.
+        // we store indefinitely in memoryCache to avoid the need for a persistence model - it's called anyway by the Wopi client on every start
+        memoryCache.Set(
+            string.Format(UserInfoCacheKey, User.GetUserId()), 
+            userInfo, 
+            new MemoryCacheEntryOptions
+            {
+                Priority = CacheItemPriority.NeverRemove,
+            });
+
+        return Ok();
+    }
+
+    /// <summary>
     /// Changes the contents of the file in accordance with [MS-FSSHTTP].
     /// MS-FSSHTTP Specification: https://learn.microsoft.com/openspecs/sharepoint_protocols/ms-fsshttp/05fa7efd-48ed-48d5-8d85-77995e17cc81
     /// Specification: https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/f52e753e-fa08-4ba4-a68b-2f8801992cf0
@@ -287,8 +325,7 @@ public class FilesController(
 
         if (User?.Identity?.IsAuthenticated == true)
         {
-            checkFileInfo.UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value.ToSafeIdentity()
-                ?? throw new InvalidOperationException("Could not find NameIdentifier claim");
+            checkFileInfo.UserId = User.GetUserId();
             checkFileInfo.HostAuthenticationId = checkFileInfo.UserId;
             checkFileInfo.UserFriendlyName = User.FindFirst(ClaimTypes.Name)?.Value;
             checkFileInfo.UserPrincipalName = User.FindFirst(ClaimTypes.Upn)?.Value ?? string.Empty;
@@ -303,6 +340,13 @@ public class FilesController(
             checkFileInfo.UserCanRename = permissions.HasFlag(WopiUserPermissions.UserCanRename);
             checkFileInfo.UserCanWrite = permissions.HasFlag(WopiUserPermissions.UserCanWrite);
             checkFileInfo.WebEditingDisabled = permissions.HasFlag(WopiUserPermissions.WebEditingDisabled);
+
+            // The UserInfo ... should be passed back to the WOPI client in subsequent CheckFileInfo responses in the UserInfo property.
+            if (memoryCache.TryGetValue(string.Format(UserInfoCacheKey, checkFileInfo.UserId), out string? userInfo) &&
+                userInfo is not null)
+            {
+                checkFileInfo.UserInfo = userInfo;
+            }
         }
         else
         {
