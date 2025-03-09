@@ -22,23 +22,23 @@ namespace WopiHost.Core.Controllers;
 public class EcosystemController(
     IWopiStorageProvider storageProvider) : ControllerBase
 {
-	/// <summary>
-	/// The GetRootContainer operation returns the root container. A WOPI client can use this operation to get a reference to the root container, from which the client can call EnumerateChildren (containers) to navigate a container hierarchy.
-	/// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getrootcontainer
-	/// Example URL: GET /wopi/ecosystem/root_container_pointer
-	/// </summary>
-	/// <returns></returns>
-	[HttpGet("root_container_pointer")]
-	[Produces(MediaTypeNames.Application.Json)]
-	public RootContainerInfo GetRootContainer() //TODO: fix the path
-	{
-		var root = storageProvider.GetWopiContainer(@".\");
-		var rc = new RootContainerInfo
-		{
-			ContainerPointer = new ChildContainer(root.Name, Url.GetWopiUrl(WopiResourceType.Container, root.Identifier))
-		};
-		return rc;
-	}
+    /// <summary>
+    /// The GetRootContainer operation returns the root container. A WOPI client can use this operation to get a reference to the root container, from which the client can call EnumerateChildren (containers) to navigate a container hierarchy.
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getrootcontainer
+    /// Example URL: GET /wopi/ecosystem/root_container_pointer
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("root_container_pointer")]
+    [Produces(MediaTypeNames.Application.Json)]
+    public RootContainerInfo GetRootContainer() //TODO: fix the path
+    {
+        var root = storageProvider.GetWopiContainer(@".\");
+        var rc = new RootContainerInfo
+        {
+            ContainerPointer = new ChildContainer(root.Name, Url.GetWopiUrl(WopiResourceType.Container, root.Identifier))
+        };
+        return rc;
+    }
 
     /// <summary>
     /// The CheckEcosystem operation is similar to the the CheckFileInfo operation, but does not require a file or container ID.

@@ -61,5 +61,4 @@ public partial class WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings? url
         }
         return null;
     }
-
 }
