@@ -1,4 +1,5 @@
 ﻿using System.Net.Mime;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -19,14 +20,13 @@ namespace WopiHost.Core.Controllers;
 /// </remarks>
 /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
 /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
-/// <param name="wopiHostOptions">WOPI Host configuration</param>
+[Authorize]
+[ApiController]
 [Route("wopibootstrapper")]
 public class WopiBootstrapperController(
     IWopiStorageProvider storageProvider,
-    IWopiSecurityHandler securityHandler,
-    IOptions<WopiHostOptions> wopiHostOptions) : WopiControllerBase(storageProvider, securityHandler, wopiHostOptions)
+    IWopiSecurityHandler securityHandler) : ControllerBase
 {
-
     /// <summary>
     /// Gets information about the root container.
     /// </summary>
@@ -50,7 +50,7 @@ public class WopiBootstrapperController(
             {
                 Bootstrap = new BootstrapInfo
                 {
-                    EcosystemUrl = GetWopiUrl("ecosystem", accessToken: "TODO"),
+                    EcosystemUrl = Url.GetWopiUrl(WopiRouteNames.CheckEcosystem),
                     SignInName = "",
                     UserFriendlyName = "",
                     UserId = ""
@@ -58,26 +58,24 @@ public class WopiBootstrapperController(
             };
             if (ecosystemOperation == "GET_ROOT_CONTAINER")
             {
-                var resourceId = StorageProvider.RootContainerPointer.Identifier;
-                var token = await SecurityHandler.GenerateAccessToken(user, resourceId, cancellationToken);
+                var resourceId = storageProvider.RootContainerPointer.Identifier;
+                var token = await securityHandler.GenerateAccessToken(user, resourceId, cancellationToken);
 
                 bootstrapRoot.RootContainerInfo = new RootContainerInfo
                 {
-                    ContainerPointer = new ChildContainer
-                    {
-                        Name = StorageProvider.RootContainerPointer.Name,
-                        Url = GetWopiUrl("containers", resourceId, SecurityHandler.WriteToken(token))
-                    }
+                    ContainerPointer = new ChildContainer(
+                        storageProvider.RootContainerPointer.Name,
+                        Url.GetWopiUrl(WopiResourceType.Container, storageProvider.RootContainerPointer.Identifier, securityHandler.WriteToken(token)))
                 };
             }
             else if (ecosystemOperation == "GET_NEW_ACCESS_TOKEN")
             {
                 ArgumentException.ThrowIfNullOrEmpty(wopiSrc);
-                var token = await SecurityHandler.GenerateAccessToken(user, GetIdFromUrl(wopiSrc), cancellationToken);
+                var token = await securityHandler.GenerateAccessToken(user, GetIdFromUrl(wopiSrc), cancellationToken);
 
                 bootstrapRoot.AccessTokenInfo = new AccessTokenInfo
                 {
-                    AccessToken = SecurityHandler.WriteToken(token),
+                    AccessToken = securityHandler.WriteToken(token),
                     AccessTokenExpiry = token.ValidTo.ToUnixTimestamp()
                 };
             }

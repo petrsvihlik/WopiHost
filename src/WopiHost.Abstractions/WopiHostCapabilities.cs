@@ -12,10 +12,10 @@ public class WopiHostCapabilities : IWopiHostCapabilities
     public bool SupportsCobalt { get; set; }
 
     /// <inheritdoc/>
-    public bool SupportsFolders { get; set; }
+    public bool SupportsFolders { get; set; } = true;
 
     /// <inheritdoc/>
-    public bool SupportsContainers { get; set; }
+    public bool SupportsContainers { get; set; } = true;
 
     /// <inheritdoc/>
     public bool SupportsLocks { get; set; }
@@ -24,10 +24,10 @@ public class WopiHostCapabilities : IWopiHostCapabilities
     public bool SupportsGetLock { get; set; }
 
     /// <inheritdoc/>
-    public bool SupportsExtendedLockLength { get; set; }
+    public bool SupportsExtendedLockLength { get; set; } = true;
 
     /// <inheritdoc/>
-    public bool SupportsEcosystem { get; set; }
+    public bool SupportsEcosystem { get; set; } = true;
 
     /// <inheritdoc/>
     public bool SupportsGetFileWopiSrc { get; set; }

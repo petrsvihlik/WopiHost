@@ -5,7 +5,15 @@
 
 <div class="panel">
     <div class="panel-heading">
-        <h3 class="panel-title">Breadcrumb</h3>
+        <h3 class="panel-title">
+            <ol class="breadcrumb">
+                @foreach (var part in Model.BreadcrumbParts)
+                {
+                    <li class="breadcrumb-item"><a href="@part.Url">@part.Name</a></li>
+                }
+                <li class="breadcrumb-item active" aria-current="page">@Model.ContainerName</li>
+            </ol>
+        </h3>
     </div>
     <table class="table table-striped table-hover" id="Extension1">
         <thead>

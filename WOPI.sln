@@ -78,6 +78,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "subfolder", "subfolder", "{
 		sample\wopi-docs\subfolder\TextFile.txt = sample\wopi-docs\subfolder\TextFile.txt
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "subsubfolder", "subsubfolder", "{7EC2D8B4-42A4-40E2-AC9A-E4496DA57F4C}"
+	ProjectSection(SolutionItems) = preProject
+		sample\wopi-docs\subfolder\subsubfolder\SubSubTextFile.txt = sample\wopi-docs\subfolder\subsubfolder\SubSubTextFile.txt
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -222,6 +227,7 @@ Global
 		{97442113-B773-4F71-8B60-EF5599AC135D} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{EA1A15F6-C3AF-4AAF-9A8B-4B7E053D6CEC} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{1CCBC8E4-5688-4F95-ADE8-31BF49064828} = {EA1A15F6-C3AF-4AAF-9A8B-4B7E053D6CEC}
+		{7EC2D8B4-42A4-40E2-AC9A-E4496DA57F4C} = {1CCBC8E4-5688-4F95-ADE8-31BF49064828}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {91B6EE44-4505-4272-9D80-E4C73B09BF25}

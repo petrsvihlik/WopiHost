@@ -58,7 +58,7 @@ public class FilesControllerTests
         storageProviderMock.Setup(s => s.GetWopiFile(fileId)).Returns<IWopiFile>(null!);
 
         // Act
-        var result = await controller.GetCheckFileInfo(fileId);
+        var result = await controller.CheckFileInfo(fileId);
 
         // Assert
         Assert.IsType<NotFoundResult>(result);
@@ -88,7 +88,7 @@ public class FilesControllerTests
         };
 
         // Act
-        var result = await controller.GetCheckFileInfo(fileId);
+        var result = await controller.CheckFileInfo(fileId);
 
         // Assert
         var contentResult = Assert.IsType<ContentResult>(result);
@@ -137,7 +137,7 @@ public class FilesControllerTests
         };
 
         // Act
-        var result = await controller.GetCheckFileInfo(fileId);
+        var result = await controller.CheckFileInfo(fileId);
 
         // Assert
         var contentResult = Assert.IsType<ContentResult>(result);

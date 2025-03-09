@@ -1,6 +1,7 @@
 ﻿using System.Net.Mime;
 using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -18,43 +19,29 @@ namespace WopiHost.Core.Controllers;
 /// Implementation of WOPI server protocol
 /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/
 /// </summary>
+/// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
+/// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
+/// <param name="wopiHostOptions">WOPI Host configuration</param>
+/// <param name="lockProvider">An instance of the lock provider.</param>
+/// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
+[Authorize]
+[ApiController]
 [Route("wopi/[controller]")]
-public class FilesController : WopiControllerBase
+public class FilesController(
+    IWopiStorageProvider storageProvider,
+    IWopiSecurityHandler securityHandler,
+    IOptions<WopiHostOptions> wopiHostOptions,
+    IWopiLockProvider? lockProvider = null,
+    ICobaltProcessor? cobaltProcessor = null) : ControllerBase
 {
-    /// <summary>
-    /// Service that can process MS-FSSHTTP requests.
-    /// </summary>
-    private readonly ICobaltProcessor? cobaltProcessor;
-    private readonly IWopiLockProvider? lockProvider;
     private WopiHostCapabilities HostCapabilities => new()
     {
         SupportsCobalt = cobaltProcessor is not null,
         SupportsGetLock = lockProvider is not null,
         SupportsLocks = lockProvider is not null,
-        SupportsExtendedLockLength = true,
-        SupportsFolders = true,
         SupportsCoauth = false,
         SupportsUpdate = true //TODO: PutRelativeFile
     };
-
-    /// <summary>
-    /// Creates an instance of <see cref="FilesController"/>.
-    /// </summary>
-    /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
-    /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
-    /// <param name="wopiHostOptions">WOPI Host configuration</param>
-    /// <param name="lockProvider">An instance of the lock provider.</param>
-    /// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
-    public FilesController(
-        IWopiStorageProvider storageProvider,
-        IWopiSecurityHandler securityHandler,
-        IOptions<WopiHostOptions> wopiHostOptions,
-        IWopiLockProvider? lockProvider = null,
-        ICobaltProcessor? cobaltProcessor = null) : base(storageProvider, securityHandler, wopiHostOptions)
-    {
-        this.lockProvider = lockProvider;
-        this.cobaltProcessor = cobaltProcessor;
-    }
 
     /// <summary>
     /// Returns the metadata about a file specified by an identifier.
@@ -64,12 +51,12 @@ public class FilesController : WopiControllerBase
     /// <param name="id">File identifier.</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns></returns>
-    [HttpGet("{id}")]
-    [WopiAuthorize(Permission.Read, WopiResourceType.File)]
-    public async Task<IActionResult> GetCheckFileInfo(string id, CancellationToken cancellationToken = default)
+    [HttpGet("{id}", Name = WopiRouteNames.CheckFileInfo)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Read)]
+    public async Task<IActionResult> CheckFileInfo(string id, CancellationToken cancellationToken = default)
     {
         // Get file
-        var file = StorageProvider.GetWopiFile(id);
+        var file = storageProvider.GetWopiFile(id);
         if (file is null)
         {
             return NotFound();
@@ -98,14 +85,14 @@ public class FilesController : WopiControllerBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>FileStreamResult</returns>
     [HttpGet("{id}/contents")]
-    [WopiAuthorize(Permission.Read, WopiResourceType.File)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Read)]
     public async Task<IActionResult> GetFile(
         string id,
         [FromHeader(Name = WopiHeaders.MAX_EXPECTED_SIZE)] int? maximumExpectedSize = null,
         CancellationToken cancellationToken = default)
     {
         // Get file
-        var file = StorageProvider.GetWopiFile(id);
+        var file = storageProvider.GetWopiFile(id);
         if (file is null)
         {
             return NotFound();
@@ -133,6 +120,56 @@ public class FilesController : WopiControllerBase
     }
 
     /// <summary>
+    /// The GetEcosystem operation returns the URI for the WOPI server’s Ecosystem endpoint, given a file ID.
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getecosystem
+    /// Example URL path: /wopi/files/(container_id)/ecosystem_pointer
+    /// </summary>
+    /// <param name="id">A string that specifies a file ID of a file managed by host. This string must be URL safe.</param>
+    /// <returns>URL response pointing to <see cref="WopiRouteNames.CheckEcosystem"/></returns>
+    [HttpGet("{id}/ecosystem_pointer")]
+    [WopiAuthorize(WopiResourceType.File, Permission.Read)]
+    [Produces(MediaTypeNames.Application.Json)]
+    public IActionResult GetEcosystem(string id)
+    {
+        // Get file
+        var file = storageProvider.GetWopiFile(id);
+        if (file is null)
+        {
+            return NotFound();
+        }
+        // A URI for the WOPI server’s Ecosystem endpoint, with an access token appended. A GET request to this URL will invoke the CheckEcosystem operation.
+        return new JsonResult<UrlResponse>(
+            new(Url.GetWopiUrl(WopiRouteNames.CheckEcosystem)));
+    }
+
+    /// <summary>
+    /// The EnumerateAncestors operation enumerates all the parents of a given file, up to and including the root container.
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/enumerateancestors
+    /// Example URL path: /wopi/containers/(container_id)/ancestry
+    /// </summary>
+    /// <param name="id">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns></returns>
+    [HttpGet("{id}/ancestry")]
+    [WopiAuthorize(WopiResourceType.File, Permission.Read)]
+    [Produces(MediaTypeNames.Application.Json)]
+    public async Task<IActionResult> EnumerateAncestors(string id, CancellationToken cancellationToken = default)
+    {
+        // Get file
+        var file = storageProvider.GetWopiFile(id);
+        if (file is null)
+        {
+            return NotFound();
+        }
+
+        var ancestors = await storageProvider.GetAncestors(WopiResourceType.File, id, cancellationToken);
+        return new JsonResult(
+            new EnumerateAncestorsResponse(ancestors
+                .Select(a => new ChildContainer(a.Name, Url.GetWopiUrl(WopiResourceType.Container, a.Identifier)))
+            ));
+    }
+
+    /// <summary>
     /// Updates a file specified by an identifier. (Only for non-cobalt files.)
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile
     /// Example URL path: /wopi/files/(file_id)/contents
@@ -143,14 +180,14 @@ public class FilesController : WopiControllerBase
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPut("{id}/contents")]
     [HttpPost("{id}/contents")]
-    [WopiAuthorize(Permission.Update, WopiResourceType.File)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public async Task<IActionResult> PutFile(
         string id,
         [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null,
         CancellationToken cancellationToken = default)
     {
         // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
-        var file = StorageProvider.GetWopiFile(id);
+        var file = storageProvider.GetWopiFile(id);
         // If ... missing altogether, the host should respond with a 409 Conflict
         if (file is null)
         {
@@ -163,7 +200,7 @@ public class FilesController : WopiControllerBase
         {
             // copy new contents to storage
             await CopyToWriteStream();
-            return new OkResult();
+            return Ok();
         }
 
         // Acquire lock
@@ -174,7 +211,7 @@ public class FilesController : WopiControllerBase
             // copy new contents to storage
             await CopyToWriteStream();
 
-            return new OkResult();
+            return Ok();
         }
         return lockResult;
 
@@ -195,8 +232,8 @@ public class FilesController : WopiControllerBase
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
-    [HttpPost("{id}"), WopiOverrideHeader([WopiFileOperations.PutRelativeFile])]
-    [WopiAuthorize(Permission.Update, WopiResourceType.File)]
+    [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.PutRelativeFile)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public Task<IActionResult> PutRelativeFile(string id) => throw new NotImplementedException($"{nameof(PutRelativeFile)} is not implemented yet.");
 
     /// <summary>
@@ -207,15 +244,15 @@ public class FilesController : WopiControllerBase
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <param name="correlationId"></param>
-    [HttpPost("{id}"), WopiOverrideHeader([WopiFileOperations.Cobalt])]
-    [WopiAuthorize(Permission.Update, WopiResourceType.File)]
+    [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.Cobalt)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public async Task<IActionResult> ProcessCobalt(
         string id,
         [FromHeader(Name = WopiHeaders.CORRELATION_ID)] string? correlationId = null)
     {
         ArgumentNullException.ThrowIfNull(cobaltProcessor);
 
-        var file = StorageProvider.GetWopiFile(id);
+        var file = storageProvider.GetWopiFile(id);
 
         // TODO: remove workaround https://github.com/aspnet/Announcements/issues/342 (use FileBufferingWriteStream)
         var syncIoFeature = HttpContext.Features.Get<IHttpBodyControlFeature>();
@@ -257,7 +294,7 @@ public class FilesController : WopiControllerBase
             checkFileInfo.UserPrincipalName = User.FindFirst(ClaimTypes.Upn)?.Value ?? string.Empty;
 
             // try to parse permissions claims
-            var permissions = await SecurityHandler.GetUserPermissions(User, file, cancellationToken);
+            var permissions = await securityHandler.GetUserPermissions(User, file, cancellationToken);
             checkFileInfo.ReadOnly = permissions.HasFlag(WopiUserPermissions.ReadOnly);
             checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiUserPermissions.RestrictedWebViewOnly);
             checkFileInfo.UserCanAttend = permissions.HasFlag(WopiUserPermissions.UserCanAttend);
@@ -273,7 +310,7 @@ public class FilesController : WopiControllerBase
         }
 
         // allow changes and/or extensions before returning 
-        return await WopiHostOptions.Value.OnCheckFileInfo(new WopiCheckFileInfoContext(User, file, checkFileInfo));
+        return await wopiHostOptions.Value.OnCheckFileInfo(new WopiCheckFileInfoContext(User, file, checkFileInfo));
     }
 
     #region "Locking"
@@ -288,12 +325,13 @@ public class FilesController : WopiControllerBase
     /// <param name="oldLockIdentifier"></param>
     /// <param name="newLockIdentifier"></param>
     [HttpPost("{id}")]
-    [WopiOverrideHeader([
+    [WopiOverrideHeader(
         WopiFileOperations.Lock,
         WopiFileOperations.Put,
         WopiFileOperations.Unlock,
         WopiFileOperations.RefreshLock,
-        WopiFileOperations.GetLock])]
+        WopiFileOperations.GetLock)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public IActionResult ProcessLock(
         string id,
         [FromHeader(Name = WopiHeaders.WOPI_OVERRIDE)] string? wopiOverrideHeader = null,
@@ -322,7 +360,7 @@ public class FilesController : WopiControllerBase
                     // File is not locked (or lock expired)... return empty X-WOPI-Lock header
                     Response.Headers[WopiHeaders.LOCK] = string.Empty;
                 }
-                return new OkResult();
+                return Ok();
 
             case WopiFileOperations.Lock:
             case WopiFileOperations.Put:
@@ -347,7 +385,7 @@ public class FilesController : WopiControllerBase
                         // The file is not currently locked, create and store new lock information
                         if (lockProvider.AddLock(id, newLockIdentifier) != null)
                         {
-                            return new OkResult();
+                            return Ok();
                         }
                         else
                         {
@@ -374,7 +412,7 @@ public class FilesController : WopiControllerBase
                             // Replace the existing lock with the new one
                             if (lockProvider.RefreshLock(id, newLockIdentifier))
                             {
-                                return new OkResult();
+                                return Ok();
                             }
                             else
                             {
@@ -406,7 +444,7 @@ public class FilesController : WopiControllerBase
                         // Remove valid lock
                         if (lockProvider.RemoveLock(id))
                         {
-                            return new OkResult();
+                            return Ok();
                         }
                         else
                         {
@@ -443,9 +481,10 @@ public class FilesController : WopiControllerBase
                     // The requested lock does not exist. That's also a lock mismatch error.
                     return new LockMismatchResult(Response, reason: "File not locked");
                 }
-        }
 
-        return new OkResult();
+            default:
+                return new NotImplementedResult();
+        }
     }
 
     private IActionResult LockOrRefresh(string newLock, WopiLockInfo existingLock)
@@ -456,7 +495,7 @@ public class FilesController : WopiControllerBase
             // File is currently locked and the lock ids match, refresh lock (extend the lock timeout)
             if (lockProvider.RefreshLock(existingLock.FileId))
             {
-                return new OkResult();
+                return Ok();
             }
             else
             {

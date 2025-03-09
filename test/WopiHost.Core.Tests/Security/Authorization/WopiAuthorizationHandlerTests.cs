@@ -17,7 +17,7 @@ public class WopiAuthorizationHandlerTests
     {
         _mockSecurityHandler = new Mock<IWopiSecurityHandler>();
         _handler = new WopiAuthorizationHandler(_mockSecurityHandler.Object);
-        _requirement = new WopiAuthorizeAttribute(Permission.Read, WopiResourceType.File);
+        _requirement = new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Read);
     }
 
     [Fact]
@@ -91,5 +91,25 @@ public class WopiAuthorizationHandlerTests
 
         // Assert
         Assert.False(context.HasSucceeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_ShouldAddPermissionsToHttpContextItems()
+    {
+        // Arrange
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.RouteValues["id"] = "fileId";
+        _requirement.CheckPermissions = [Permission.Read, Permission.Update];
+        var context = new AuthorizationHandlerContext([_requirement], new ClaimsPrincipal(), httpContext);
+        _mockSecurityHandler
+            .Setup(s => s.IsAuthorized(It.IsAny<ClaimsPrincipal>(), _requirement, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        // Act
+        await _handler.HandleAsync(context);
+
+        // Assert
+        Assert.True(httpContext.Items.ContainsKey(Permission.Read));
+        Assert.True(httpContext.Items.ContainsKey(Permission.Update));
     }
 }

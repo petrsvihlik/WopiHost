@@ -28,4 +28,9 @@ public class WopiHostOptions
     /// Callback for the CheckFileInfo operation.
     /// </summary>
     public Func<WopiCheckFileInfoContext, Task<WopiCheckFileInfo>> OnCheckFileInfo { get; set; } = c => Task.FromResult(c.CheckFileInfo);
+
+    /// <summary>
+    /// Callback for the CheckContainerInfo operation.
+    /// </summary>
+    public Func<WopiCheckContainerInfoContext, Task<WopiCheckContainerInfo>> OnCheckContainerInfo { get; set; } = c => Task.FromResult(c.CheckContainerInfo);
 }

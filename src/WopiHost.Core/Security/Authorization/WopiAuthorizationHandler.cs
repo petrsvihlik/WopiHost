@@ -29,6 +29,16 @@ public class WopiAuthorizationHandler(IWopiSecurityHandler securityHandler)
             requirement.ResourceId = fileIdRaw.ToString();
         }
 
+        // check additional permissions
+        foreach (var checkPermission in requirement.CheckPermissions)
+        {
+            var checkRequirement = new WopiAuthorizeAttribute(requirement.ResourceType, checkPermission)
+            {
+                ResourceId = requirement.ResourceId
+            };
+            resource.Items.Add(checkPermission, await securityHandler.IsAuthorized(context.User, checkRequirement));
+        }
+
         // check if the user is authorized
         if (await securityHandler.IsAuthorized(context.User, requirement))
         {
