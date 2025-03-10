@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Moq;
 using WopiHost.Abstractions;
@@ -19,6 +20,7 @@ public class FilesControllerTests
     private readonly Mock<IWopiStorageProvider> storageProviderMock;
     private readonly Mock<IWopiSecurityHandler> securityHandlerMock;
     private readonly Mock<IOptions<WopiHostOptions>> wopiHostOptionsMock;
+    private readonly IMemoryCache memoryCache;
     private readonly Mock<IWopiLockProvider> lockProviderMock;
     private FilesController controller;
 
@@ -35,12 +37,14 @@ public class FilesControllerTests
                 LockProviderAssemblyName = "test",
                 OnCheckFileInfo = o => Task.FromResult(o.CheckFileInfo)
             });
+        memoryCache = new MemoryCache(new MemoryCacheOptions());
         lockProviderMock = new Mock<IWopiLockProvider>();
 
         controller = new FilesController(
             storageProviderMock.Object,
             securityHandlerMock.Object,
             wopiHostOptionsMock.Object,
+            memoryCache,
             lockProviderMock.Object)
         {
             ControllerContext = new ControllerContext
@@ -157,6 +161,110 @@ public class FilesControllerTests
     }
 
     [Fact]
+    public async Task CheckFileInfo_FileNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>())).Returns((IWopiFile)null!);
+
+        // Act
+        var result = await controller.CheckFileInfo("file_id");
+
+        // Assert
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task GetFile_FileNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>())).Returns((IWopiFile)null!);
+
+        // Act
+        var result = await controller.GetFile("file_id");
+
+        // Assert
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public void GetEcosystem_FileNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>())).Returns((IWopiFile)null!);
+
+        // Act
+        var result = controller.GetEcosystem("file_id");
+
+        // Assert
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task EnumerateAncestors_FileNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>())).Returns((IWopiFile)null!);
+
+        // Act
+        var result = await controller.EnumerateAncestors("file_id");
+
+        // Assert
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public void PutUserInfo_FileNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>())).Returns((IWopiFile)null!);
+
+        // Act
+        var result = controller.PutUserInfo("file_id", "user_info");
+
+        // Assert
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public void PutUserInfo_Success()
+    {
+        // Arrange
+        var fileId = "testFileId";
+        var fileMock = new Mock<IWopiFile>();
+        fileMock.SetupGet(f => f.Owner).Returns("ownerId");
+        fileMock.SetupGet(f => f.Version).Returns("1.0");
+        fileMock.SetupGet(f => f.Name).Returns("test");
+        fileMock.SetupGet(f => f.Extension).Returns("txt");
+        fileMock.SetupGet(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
+        fileMock.SetupGet(f => f.Length).Returns(1024);
+        fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
+
+        storageProviderMock
+            .Setup(s => s.GetWopiFile(fileId))
+            .Returns(fileMock.Object);
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                    [
+                        new Claim(ClaimTypes.NameIdentifier, "nameId"),
+                        new Claim(ClaimTypes.Name, "testUser")
+                    ], "TestAuthentication"))
+            }
+        };
+
+        // Act
+        var result = controller.PutUserInfo(fileId, "custom user info");
+
+        // Assert
+        Assert.IsType<OkResult>(result);
+        Assert.Equal("custom user info", memoryCache.Get("UserInfo-nameId"));
+    }
+
+    [Fact]
     public void ProcessLock_LockingNotSupported_ReturnsLockMismatchResult()
     {
         // Arrange
@@ -164,6 +272,7 @@ public class FilesControllerTests
             storageProviderMock.Object,
             securityHandlerMock.Object,
             wopiHostOptionsMock.Object,
+            memoryCache,
             null,
             null)
         {
