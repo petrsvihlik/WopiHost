@@ -151,7 +151,18 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     }
 
     /// <inheritdoc/>
-    public Task<bool> DeleteWopiContainer(string identifier, CancellationToken cancellationToken = default)
+    public Task<bool> DeleteWopiResource(WopiResourceType resourceType, string identifier, CancellationToken cancellationToken = default)
+    {
+        var result = resourceType switch
+        {
+            WopiResourceType.File => DeleteWopiFile(identifier),
+            WopiResourceType.Container => DeleteWopiContainer(identifier),
+            _ => throw new NotSupportedException("Unsupported resource type.")
+        };
+        return Task.FromResult<bool>(result);
+    }
+
+    private bool DeleteWopiContainer(string identifier)
     {
         var fullPath = DecodeFullPath(identifier);
         if (!Directory.Exists(fullPath))
@@ -163,12 +174,27 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
             throw new InvalidOperationException("Directory is not empty.");
         }
         Directory.Delete(fullPath, true);
-        return Task.FromResult(true);
+        return true;
+    }
+
+    private bool DeleteWopiFile(string identifier)
+    {
+        var fullPath = DecodeFullPath(identifier);
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException("File not found");
+        }
+        File.Delete(fullPath);
+        return true;
     }
 
     /// <inheritdoc/>
-    public Task<bool> RenameWopiContainer(string identifier, string requestedName, CancellationToken cancellationToken = default)
+    public Task<bool> RenameWopiResource(WopiResourceType resourceType, string identifier, string requestedName, CancellationToken cancellationToken = default)
     {
+        if (resourceType != WopiResourceType.Container)
+        {
+            throw new NotSupportedException("Only containers can be renamed.");
+        }
         if (requestedName.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(requestedName));

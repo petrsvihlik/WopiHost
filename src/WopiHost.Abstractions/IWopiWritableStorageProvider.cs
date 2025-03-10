@@ -26,19 +26,21 @@ public interface IWopiWritableStorageProvider
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Deletes the specified container.
+    /// Deletes the specified Wopi resource (container or file).
     /// </summary>
+    /// <param name="resourceType">which Wopi resource to delete</param>
     /// <param name="identifier">Generic string identifier of a container (typically some kind of a path).</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>true for success</returns>
-    Task<bool> DeleteWopiContainer(string identifier, CancellationToken cancellationToken = default);
+    Task<bool> DeleteWopiResource(WopiResourceType resourceType, string identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Renames an existing container.
+    /// Renames an existing Wopi resource (container or file).
     /// </summary>
+    /// <param name="resourceType">which Wopi resource to rename</param>
     /// <param name="identifier">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
     /// <param name="requestedName">A UTF-7 encoded string that is a container name. Required.</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>true for success</returns>
-    Task<bool> RenameWopiContainer(string identifier, string requestedName, CancellationToken cancellationToken = default);
+    Task<bool> RenameWopiResource(WopiResourceType resourceType, string identifier, string requestedName, CancellationToken cancellationToken = default);
 }
