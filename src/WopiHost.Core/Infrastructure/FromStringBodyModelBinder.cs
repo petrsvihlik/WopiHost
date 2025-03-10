@@ -21,17 +21,16 @@ public sealed class FromStringBodyModelBinder : IModelBinder
             {
                 request.EnableBuffering();
             }
-
+            string? body = null;
             if (request.ContentLength is not null && request.ContentLength > 0)
             {
                 request.Body.Position = 0;
                 using var reader = new StreamReader(request.Body);
-                var body = await reader.ReadToEndAsync();
-
-                bindingContext.Result = ModelBindingResult.Success(body ?? string.Empty);
-
+                body = await reader.ReadToEndAsync();
                 request.Body.Position = 0;
             }
+
+            bindingContext.Result = ModelBindingResult.Success(body ?? string.Empty);
         }
         catch (Exception ex)
         {
