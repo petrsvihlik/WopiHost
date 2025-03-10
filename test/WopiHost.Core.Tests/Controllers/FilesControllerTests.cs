@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Moq;
 using WopiHost.Abstractions;
@@ -19,6 +20,7 @@ public class FilesControllerTests
     private readonly Mock<IWopiStorageProvider> storageProviderMock;
     private readonly Mock<IWopiSecurityHandler> securityHandlerMock;
     private readonly Mock<IOptions<WopiHostOptions>> wopiHostOptionsMock;
+    private readonly Mock<IMemoryCache> memoryCacheMock;
     private readonly Mock<IWopiLockProvider> lockProviderMock;
     private FilesController controller;
 
@@ -35,12 +37,14 @@ public class FilesControllerTests
                 LockProviderAssemblyName = "test",
                 OnCheckFileInfo = o => Task.FromResult(o.CheckFileInfo)
             });
+        memoryCacheMock = new Mock<IMemoryCache>();
         lockProviderMock = new Mock<IWopiLockProvider>();
 
         controller = new FilesController(
             storageProviderMock.Object,
             securityHandlerMock.Object,
             wopiHostOptionsMock.Object,
+            memoryCacheMock.Object,
             lockProviderMock.Object)
         {
             ControllerContext = new ControllerContext
@@ -164,6 +168,7 @@ public class FilesControllerTests
             storageProviderMock.Object,
             securityHandlerMock.Object,
             wopiHostOptionsMock.Object,
+            memoryCacheMock.Object,
             null,
             null)
         {
