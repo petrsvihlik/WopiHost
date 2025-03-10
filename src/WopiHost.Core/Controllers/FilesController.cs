@@ -43,7 +43,7 @@ public class FilesController(
         SupportsGetLock = lockProvider is not null,
         SupportsLocks = lockProvider is not null,
         SupportsCoauth = false,
-        SupportsUpdate = true //TODO: PutRelativeFile
+        SupportsUpdate = true
     };
     private const string UserInfoCacheKey = "UserInfo-{0}";
 
@@ -358,7 +358,6 @@ public class FilesController(
     }
 
     #region "Locking"
-
     /// <summary>
     /// Processes lock-related operations.
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock
@@ -388,146 +387,148 @@ public class FilesController(
         }
 
         var lockAcquired = lockProvider.TryGetLock(id, out var existingLock);
-        switch (wopiOverrideHeader)
+        return wopiOverrideHeader switch
         {
-            case WopiFileOperations.GetLock:
-                if (lockAcquired)
+            WopiFileOperations.GetLock => HandleGetLock(lockAcquired, existingLock),
+            WopiFileOperations.Lock or WopiFileOperations.Put => HandleLockOrPut(id, oldLockIdentifier, newLockIdentifier, lockAcquired, existingLock),
+            WopiFileOperations.Unlock => HandleUnlock(id, newLockIdentifier, lockAcquired, existingLock),
+            WopiFileOperations.RefreshLock => HandleRefreshLock(newLockIdentifier, lockAcquired, existingLock),
+            _ => new NotImplementedResult(),
+        };
+    }
+
+    private IActionResult HandleGetLock(bool lockAcquired, WopiLockInfo? existingLock)
+    {
+        if (lockAcquired)
+        {
+            if (existingLock is null)
+            {
+                return new LockMismatchResult(Response, reason: "Missing existing lock");
+            }
+            Response.Headers[WopiHeaders.LOCK] = existingLock.LockId;
+        }
+        else
+        {
+            Response.Headers[WopiHeaders.LOCK] = string.Empty;
+        }
+        return Ok();
+    }
+
+    private IActionResult HandleLockOrPut(string id, string? oldLockIdentifier, string? newLockIdentifier, bool lockAcquired, WopiLockInfo? existingLock)
+    {
+        ArgumentNullException.ThrowIfNull(lockProvider);
+        if (oldLockIdentifier is null)
+        {
+            if (string.IsNullOrWhiteSpace(newLockIdentifier))
+            {
+                return new LockMismatchResult(Response, reason: "Missing new lock identifier");
+            }
+
+            if (lockAcquired)
+            {
+                if (existingLock is null)
                 {
-                    if (existingLock is null)
-                    {
-                        return new LockMismatchResult(Response, reason: "Missing existing lock");
-                    }
-                    Response.Headers[WopiHeaders.LOCK] = existingLock.LockId;
+                    return new LockMismatchResult(Response, reason: "Missing existing lock");
+                }
+                return LockOrRefresh(newLockIdentifier, existingLock);
+            }
+            else
+            {
+                if (lockProvider.AddLock(id, newLockIdentifier) != null)
+                {
+                    return Ok();
                 }
                 else
                 {
-                    // File is not locked (or lock expired)... return empty X-WOPI-Lock header
-                    Response.Headers[WopiHeaders.LOCK] = string.Empty;
+                    return new LockMismatchResult(Response, "Could not create lock");
                 }
-                return Ok();
-
-            case WopiFileOperations.Lock:
-            case WopiFileOperations.Put:
-                if (oldLockIdentifier is null)
+            }
+        }
+        else
+        {
+            if (lockAcquired)
+            {
+                if (existingLock is null)
+                {
+                    return new LockMismatchResult(Response, reason: "Missing existing lock");
+                }
+                if (existingLock.LockId == oldLockIdentifier)
                 {
                     if (string.IsNullOrWhiteSpace(newLockIdentifier))
                     {
                         return new LockMismatchResult(Response, reason: "Missing new lock identifier");
                     }
 
-                    // Lock / put
-                    if (lockAcquired)
+                    if (lockProvider.RefreshLock(id, newLockIdentifier))
                     {
-                        if (existingLock is null)
-                        {
-                            return new LockMismatchResult(Response, reason: "Missing existing lock");
-                        }
-                        return LockOrRefresh(newLockIdentifier, existingLock);
+                        return Ok();
                     }
                     else
                     {
-                        // The file is not currently locked, create and store new lock information
-                        if (lockProvider.AddLock(id, newLockIdentifier) != null)
-                        {
-                            return Ok();
-                        }
-                        else
-                        {
-                            return new LockMismatchResult(Response, "Could not create lock");
-                        }
+                        return new LockMismatchResult(Response, "Could not create lock");
                     }
                 }
                 else
                 {
-                    // Unlock and re-lock (https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock)
-                    if (lockAcquired)
-                    {
-                        if (existingLock is null)
-                        {
-                            return new LockMismatchResult(Response, reason: "Missing existing lock");
-                        }
-                        if (existingLock.LockId == oldLockIdentifier)
-                        {
-                            if (string.IsNullOrWhiteSpace(newLockIdentifier))
-                            {
-                                return new LockMismatchResult(Response, reason: "Missing new lock identifier");
-                            }
-
-                            // Replace the existing lock with the new one
-                            if (lockProvider.RefreshLock(id, newLockIdentifier))
-                            {
-                                return Ok();
-                            }
-                            else
-                            {
-                                return new LockMismatchResult(Response, "Could not create lock");
-                            }
-                        }
-                        else
-                        {
-                            // The existing lock doesn't match the requested one. Return a lock mismatch error along with the current lock
-                            return new LockMismatchResult(Response, existingLock.LockId);
-                        }
-                    }
-                    else
-                    {
-                        // The requested lock does not exist which should result in a lock mismatch error.
-                        return new LockMismatchResult(Response, reason: "File not locked");
-                    }
+                    return new LockMismatchResult(Response, existingLock.LockId);
                 }
+            }
+            else
+            {
+                return new LockMismatchResult(Response, reason: "File not locked");
+            }
+        }
+    }
 
-            case WopiFileOperations.Unlock:
-                if (lockAcquired)
+    private IActionResult HandleUnlock(string id, string? newLockIdentifier, bool lockAcquired, WopiLockInfo? existingLock)
+    {
+        ArgumentNullException.ThrowIfNull(lockProvider);
+
+        if (lockAcquired)
+        {
+            if (existingLock is null)
+            {
+                return new LockMismatchResult(Response, reason: "Missing existing lock");
+            }
+            if (existingLock.LockId == newLockIdentifier)
+            {
+                if (lockProvider.RemoveLock(id))
                 {
-                    if (existingLock is null)
-                    {
-                        return new LockMismatchResult(Response, reason: "Missing existing lock");
-                    }
-                    if (existingLock.LockId == newLockIdentifier)
-                    {
-                        // Remove valid lock
-                        if (lockProvider.RemoveLock(id))
-                        {
-                            return Ok();
-                        }
-                        else
-                        {
-                            return new LockMismatchResult(Response, "Could not remove lock");
-                        }
-                    }
-                    else
-                    {
-                        // The existing lock doesn't match the requested one. Return a lock mismatch error along with the current lock
-                        return new LockMismatchResult(Response, existingLock.LockId);
-                    }
+                    return Ok();
                 }
                 else
                 {
-                    // The requested lock does not exist.
-                    return new LockMismatchResult(Response, reason: "File not locked");
+                    return new LockMismatchResult(Response, "Could not remove lock");
                 }
+            }
+            else
+            {
+                return new LockMismatchResult(Response, existingLock.LockId);
+            }
+        }
+        else
+        {
+            return new LockMismatchResult(Response, reason: "File not locked");
+        }
+    }
 
-            case WopiFileOperations.RefreshLock:
-                if (lockAcquired)
-                {
-                    if (existingLock is null)
-                    {
-                        return new LockMismatchResult(Response, reason: "Missing existing lock");
-                    }
-                    if (string.IsNullOrWhiteSpace(newLockIdentifier))
-                    {
-                        return new LockMismatchResult(Response, reason: "Missing new lock identifier");
-                    }
-                    return LockOrRefresh(newLockIdentifier, existingLock);
-                }
-                else
-                {
-                    // The requested lock does not exist. That's also a lock mismatch error.
-                    return new LockMismatchResult(Response, reason: "File not locked");
-                }
-
-            default:
-                return new NotImplementedResult();
+    private IActionResult HandleRefreshLock(string? newLockIdentifier, bool lockAcquired, WopiLockInfo? existingLock)
+    {
+        if (lockAcquired)
+        {
+            if (existingLock is null)
+            {
+                return new LockMismatchResult(Response, reason: "Missing existing lock");
+            }
+            if (string.IsNullOrWhiteSpace(newLockIdentifier))
+            {
+                return new LockMismatchResult(Response, reason: "Missing new lock identifier");
+            }
+            return LockOrRefresh(newLockIdentifier, existingLock);
+        }
+        else
+        {
+            return new LockMismatchResult(Response, reason: "File not locked");
         }
     }
 
