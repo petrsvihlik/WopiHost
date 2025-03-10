@@ -41,6 +41,11 @@ public static class WopiFileOperations
     public const string PutUserInfo = "PUT_USER_INFO";
 
     /// <summary>
+    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile
+    /// </summary>
+    public const string DeleteFile = "DELETE";
+
+    /// <summary>
     /// Cobalt file operations
     /// </summary>
     public const string Cobalt = "COBALT";

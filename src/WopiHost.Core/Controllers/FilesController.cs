@@ -24,6 +24,7 @@ namespace WopiHost.Core.Controllers;
 /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
 /// <param name="wopiHostOptions">WOPI Host configuration</param>
 /// <param name="memoryCache">An instance of the memory cache.</param>
+/// <param name="writableStorageProvider">Storage provider instance for writing files and folders.</param>
 /// <param name="lockProvider">An instance of the lock provider.</param>
 /// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
 [Authorize]
@@ -34,6 +35,7 @@ public class FilesController(
     IWopiSecurityHandler securityHandler,
     IOptions<WopiHostOptions> wopiHostOptions,
     IMemoryCache memoryCache,
+    IWopiWritableStorageProvider? writableStorageProvider = null,
     IWopiLockProvider? lockProvider = null,
     ICobaltProcessor? cobaltProcessor = null) : ControllerBase
 {
@@ -272,6 +274,47 @@ public class FilesController(
             });
 
         return Ok();
+    }
+
+    /// <summary>
+    /// The DeleteFile operation deletes a file from a host.
+    /// M365 spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile
+    /// Example URL path: /wopi/files/(file_id)
+    /// </summary>
+    /// <param name="id">A string that specifies a file ID of a file managed by host. This string must be URL safe.</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
+    [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.DeleteFile)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Delete)]
+    public async Task<IActionResult> DeleteFile(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        if (writableStorageProvider is null)
+        {
+            return new NotImplementedResult();
+        }
+
+        // Get file
+        var file = storageProvider.GetWopiFile(id);
+        if (file is null)
+        {
+            return NotFound();
+        }
+
+        // If the file is currently locked, the host should return a 409 Conflict
+        // and include an X-WOPI-Lock response header containing the value of the current lock on the file
+        if (lockProvider?.TryGetLock(id, out var existingLock) == true)
+        {
+            return new LockMismatchResult(Response, existingLock.LockId);
+        }
+
+        if (await writableStorageProvider.DeleteWopiResource(WopiResourceType.File, id, cancellationToken))
+        {
+            return Ok();
+        }
+
+        return StatusCode(StatusCodes.Status500InternalServerError);
     }
 
     /// <summary>

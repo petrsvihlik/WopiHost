@@ -54,7 +54,7 @@ public class WopiHostCapabilities : IWopiHostCapabilities
     public bool SupportsRename { get; set; }
 
     /// <inheritdoc/>
-    public bool SupportsDeleteFile { get; set; }
+    public bool SupportsDeleteFile { get; set; } = true;
 
     /// <inheritdoc/>    
     public bool SupportsUserInfo { get; set; } = true;
