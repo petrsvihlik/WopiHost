@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace WopiHost.Abstractions;
+﻿namespace WopiHost.Abstractions;
 
 /// <summary>
 /// Details all WOPI file operation keywords
@@ -40,6 +34,11 @@ public static class WopiFileOperations
     /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile
     /// </summary>
     public const string PutRelativeFile = "PUT_RELATIVE";
+
+    /// <summary>
+    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo
+    /// </summary>
+    public const string PutUserInfo = "PUT_USER_INFO";
 
     /// <summary>
     /// Cobalt file operations
