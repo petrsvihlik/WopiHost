@@ -18,6 +18,7 @@ namespace WopiHost.Core.Tests.Controllers;
 public class FilesControllerTests
 {
     private readonly Mock<IWopiStorageProvider> storageProviderMock;
+    private readonly Mock<IWopiWritableStorageProvider> writableStorageProviderMock;
     private readonly Mock<IWopiSecurityHandler> securityHandlerMock;
     private readonly Mock<IOptions<WopiHostOptions>> wopiHostOptionsMock;
     private readonly IMemoryCache memoryCache;
@@ -27,6 +28,7 @@ public class FilesControllerTests
     public FilesControllerTests()
     {
         storageProviderMock = new Mock<IWopiStorageProvider>();
+        writableStorageProviderMock = new Mock<IWopiWritableStorageProvider>();
         securityHandlerMock = new Mock<IWopiSecurityHandler>();
         wopiHostOptionsMock = new Mock<IOptions<WopiHostOptions>>();
         wopiHostOptionsMock
@@ -45,6 +47,7 @@ public class FilesControllerTests
             securityHandlerMock.Object,
             wopiHostOptionsMock.Object,
             memoryCache,
+            writableStorageProviderMock.Object,
             lockProviderMock.Object)
         {
             ControllerContext = new ControllerContext
@@ -262,6 +265,59 @@ public class FilesControllerTests
         // Assert
         Assert.IsType<OkResult>(result);
         Assert.Equal("custom user info", memoryCache.Get("UserInfo-nameId"));
+    }
+
+    [Fact]
+    public async Task DeleteFile_NoWritableStorageProvider()
+    {
+        // Arrange
+        controller = new FilesController(
+                    storageProviderMock.Object,
+                    securityHandlerMock.Object,
+                    wopiHostOptionsMock.Object,
+                    memoryCache);
+        // Act
+        var result = await controller.DeleteFile("file_id");
+        // Assert
+        Assert.IsType<NotImplementedResult>(result);
+    }
+
+    [Fact]
+    public async Task DeleteFile_FileNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>())).Returns((IWopiFile)null!);
+        // Act
+        var result = await controller.DeleteFile("file_id");
+        // Assert
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task DeleteFile_FileIsLocked_ReturnsConflict()
+    {
+        // Arrange
+        var fileId = "testFileId";
+        var fileMock = new Mock<IWopiFile>();
+        fileMock.SetupGet(f => f.Owner).Returns("ownerId");
+        fileMock.SetupGet(f => f.Version).Returns("1.0");
+        fileMock.SetupGet(f => f.Name).Returns("test");
+        fileMock.SetupGet(f => f.Extension).Returns("txt");
+        fileMock.SetupGet(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
+        fileMock.SetupGet(f => f.Length).Returns(1024);
+        fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
+
+        storageProviderMock
+            .Setup(s => s.GetWopiFile(fileId))
+            .Returns(fileMock.Object);
+        var wopiLockInfo = new WopiLockInfo() { LockId = "lockId", FileId = fileId };
+        lockProviderMock.Setup(x => x.TryGetLock(fileId, out wopiLockInfo)).Returns(true);
+
+        // Act
+        var result = await controller.DeleteFile(fileId);
+
+        // Assert
+        Assert.IsType<LockMismatchResult>(result);
     }
 
     [Fact]

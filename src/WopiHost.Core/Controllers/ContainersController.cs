@@ -151,7 +151,7 @@ public class ContainersController(
         }
         try
         {
-            if (await writableStorageProvider.DeleteWopiContainer(id, cancellationToken))
+            if (await writableStorageProvider.DeleteWopiResource(WopiResourceType.Container, id, cancellationToken))
             {
                 return Ok();
             }
@@ -199,7 +199,7 @@ public class ContainersController(
         }
         try
         {
-            if (await writableStorageProvider.RenameWopiContainer(id, requestedName, cancellationToken))
+            if (await writableStorageProvider.RenameWopiResource(WopiResourceType.Container, id, requestedName, cancellationToken))
             {
                 // The response to a RenameContainer call is JSON containing the following required property:
                 // Name(string) - The name of the renamed container.
