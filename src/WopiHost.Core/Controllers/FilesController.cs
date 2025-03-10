@@ -197,16 +197,23 @@ public class FilesController(
         // If ... missing altogether, the host should respond with a 409 Conflict
         if (file is null)
         {
-            return new ConflictResult();
+            return NotFound();
         }
 
         // When a host receives a PutFile request on a file that's not locked, the host checks the current size of the file.
+        if (string.IsNullOrEmpty(newLockIdentifier))
+        {
         // If it's 0 bytes, the PutFile request should be considered valid and should proceed
-        if (file.Size == 0 && string.IsNullOrEmpty(newLockIdentifier))
+            if (file.Size == 0)
         {
             // copy new contents to storage
             await CopyToWriteStream();
             return Ok();
+        }
+            else // If ... missing altogether, the host should respond with a 409 Conflict
+            {
+                return new ConflictResult();
+            }
         }
 
         // Acquire lock
