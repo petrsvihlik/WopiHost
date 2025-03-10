@@ -46,7 +46,7 @@ Building the app
 ----------------
 The WopiHost app targets both `net8.0` and `net9.0`.
 
-If you need a version that's targeting an older version of .NET, check out the releases:
+If you need a version that targets an older version of .NET, check out the releases:
 - [.NET 6](TBD)
 - [.NET 5](https://github.com/petrsvihlik/WopiHost/releases/tag/3.0.0)
 - [.NET Core 2.1 + .NET Framewokr 4.6](https://github.com/petrsvihlik/WopiHost/releases/tag/1.0.0)
@@ -82,10 +82,10 @@ You can [use WopiHost to integrate with Microsoft 365 for the web](https://learn
 
 Cobalt
 ------
-In the past (in Office Web Apps 2013), some HTTP actions required support of MS-FSSHTTP protocol (also known as "cobalt"). This is no longer true with Office Online Server 2016.
+In the past (in Office Web Apps 2013), some HTTP actions required the support of MS-FSSHTTP protocol (also known as "cobalt"). This is no longer true with Office Online Server 2016.
 However, if the WOPI client discovers (via [SupportsCobalt](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo#supportscobalt) property) that the WOPI host supports cobalt, it'll take advantage of it as it's more efficient.
 
-If you need or want your project to use Cobalt, you'll need to [create a NuGet package called Microsoft.CobaltCore.nupkg](https://github.com/petrsvihlik/WopiHost/wiki/Craft-your-own-Microsoft.CobaltCore-NuGet-package) containing Microsoft.CobaltCore.dll. This DLL is part of Office Web Apps 2013 / Office Online Server 2016 and its license doesn't allow public distribution and therefore it's not part of this repository. Please always make sure your OWA/OOS server and user connecting to it have valid licenses before you start using it.
+If you need or want your project to use Cobalt, you'll need to [create a NuGet package called Microsoft.CobaltCore.nupkg](https://github.com/petrsvihlik/WopiHost/wiki/Craft-your-own-Microsoft.CobaltCore-NuGet-package) containing Microsoft.CobaltCore.dll. This DLL is part of Office Web Apps 2013 / Office Online Server 2016, and its license doesn't allow public distribution and therefore, it's not part of this repository. Please always make sure your OWA/OOS server and the user connecting to it have valid licenses before you start using it.
 
 
 Using in your web project
@@ -120,7 +120,7 @@ TODO additional details
 
 Known issues / TODOs
 ==================
-There is plenty of space for improvements in the overall architecture, implementation of the [MS-*] protocols or just finishing the TODOs in the code. Lot of refactoring still needs to be done and also the code style has to be unified. So please feel free to help me out with it :)
+There is plenty of space for improvements in the overall architecture, implementation of the [MS-*] protocols, or just finishing the TODOs in the code. A lot of refactoring still needs to be done and also the code style has to be unified. So please feel free to help me out with it :)
 
  - Check out [open issues](https://github.com/petrsvihlik/WopiHost/issues?q=is%3Aopen)
 
