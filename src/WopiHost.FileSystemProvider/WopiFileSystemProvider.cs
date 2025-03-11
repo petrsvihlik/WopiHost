@@ -148,6 +148,9 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     #region IWopiWritableStorageProvider
 
     /// <inheritdoc/>
+    public int FileNameMaxLength { get; } = 250; // Windows limit
+
+    /// <inheritdoc/>
     public Task<bool> CheckValidName(
         WopiResourceType resourceType,
         string name,
@@ -155,7 +158,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     {
         return resourceType switch
         {
-            WopiResourceType.File => Task.FromResult(name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0),
+            WopiResourceType.File => Task.FromResult(name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && name.Length < FileNameMaxLength),
             WopiResourceType.Container => Task.FromResult(name.IndexOfAny(Path.GetInvalidPathChars()) < 0),
             _ => throw new NotSupportedException("Unsupported resource type.")
         };

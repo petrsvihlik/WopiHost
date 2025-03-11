@@ -6,6 +6,12 @@
 public interface IWopiWritableStorageProvider
 {
     /// <summary>
+    /// An integer value that indicates the maximum length for file names that the WOPI host supports, excluding the file extension. 
+    /// The default value is 250. Note that WOPI clients will use this default value if the property is omitted or if it is explicitly set to <c>0</c>.
+    /// </summary>
+    int FileNameMaxLength { get; }
+
+    /// <summary>
     /// Creates a new Wopi resource (Container or File) in the specified container.
     /// </summary>
     /// <param name="resourceType">which kind Wopi resource type do we want name</param>
