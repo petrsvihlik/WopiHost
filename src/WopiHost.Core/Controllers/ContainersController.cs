@@ -97,33 +97,62 @@ public class ContainersController(
             return NotFound();
         }
 
-        // the two headers are mutually exclusive. If both headers are present, the host should respond with a 501 Not Implemented status code.
-        if (!string.IsNullOrWhiteSpace(suggestedTarget) &&
-            !string.IsNullOrWhiteSpace(relativeTarget))
+        // the two headers are mutually exclusive. If both headers are present (or missing), the host should respond with a 501 Not Implemented status code.
+        if ((!string.IsNullOrWhiteSpace(suggestedTarget) && !string.IsNullOrWhiteSpace(relativeTarget)) ||
+            (string.IsNullOrWhiteSpace(suggestedTarget) && string.IsNullOrWhiteSpace(relativeTarget)))
         {
             return new NotImplementedResult();
         }
-        if (string.IsNullOrWhiteSpace(suggestedTarget) &&
-            string.IsNullOrWhiteSpace(relativeTarget))
+        // If the specified name is illegal, the host must respond with a 400 Bad Request.
+        if (!await writableStorageProvider.CheckValidName(WopiResourceType.Container, (suggestedTarget ?? relativeTarget)!, cancellationToken))
         {
             return new BadRequestResult();
         }
 
-        var newIdentifier = await writableStorageProvider.CreateWopiChildContainer(id, (suggestedTarget ?? relativeTarget)!, relativeTarget is not null, cancellationToken);
-        if (string.IsNullOrWhiteSpace(newIdentifier))
+        IWopiResource? newFolder;
+
+        // "specific mode" - The host must not modify the name to fulfill the request.
+        if (!string.IsNullOrWhiteSpace(relativeTarget))
         {
-            return new ConflictResult();
+            newFolder = await storageProvider.GetWopiResourceByName(WopiResourceType.Container, id, relativeTarget, cancellationToken);
+            // If a container with the specified name already exists
+            if (newFolder is not null)
+            {
+                // the host may include an X-WOPI-ValidRelativeTarget specifying a container name that is valid
+                Response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = await writableStorageProvider.GetSuggestedName(WopiResourceType.Container, id, relativeTarget, cancellationToken);
+                // the host must respond with a 409 Conflict
+                return new ConflictResult();
+            }
+            else 
+            {
+                newFolder = await writableStorageProvider.CreateWopiChildResource(WopiResourceType.Container, id, relativeTarget, cancellationToken);
+            }
         }
-        var checkContainerInfo = await CheckContainerInfo(newIdentifier, cancellationToken);
-        if (checkContainerInfo is not JsonResult<WopiCheckContainerInfo> jsonResult ||
-            jsonResult.Data is null)
+        else if (!string.IsNullOrWhiteSpace(suggestedTarget))
         {
-            return new InternalServerErrorResult();
+            var newName = await writableStorageProvider.GetSuggestedName(WopiResourceType.Container, id, suggestedTarget, cancellationToken);
+            newFolder = await writableStorageProvider.CreateWopiChildResource(WopiResourceType.Container, id, newName, cancellationToken);
         }
-        return new JsonResult(
-            new CreateChildContainerResponse(
-                new(jsonResult.Data.Name, Url.GetWopiUrl(WopiResourceType.Container, newIdentifier)),
-                jsonResult.Data));
+        else
+        {
+            return new BadRequestResult();
+        }
+
+        if (newFolder is not null)
+        {
+            var checkContainerInfo = await CheckContainerInfo(newFolder.Identifier, cancellationToken);
+            if (checkContainerInfo is not JsonResult<WopiCheckContainerInfo> jsonResult ||
+                jsonResult.Data is null)
+            {
+                return new InternalServerErrorResult();
+            }
+            return new JsonResult(
+                new CreateChildContainerResponse(
+                    new(jsonResult.Data.Name, Url.GetWopiUrl(WopiResourceType.Container, newFolder.Identifier)),
+                    jsonResult.Data));
+        }
+
+        return new InternalServerErrorResult();
     }
 
     /// <summary>
