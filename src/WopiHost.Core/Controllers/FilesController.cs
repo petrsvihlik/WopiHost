@@ -321,7 +321,7 @@ public class FilesController(
             return Ok();
         }
 
-        return StatusCode(StatusCodes.Status500InternalServerError);
+        return new InternalServerErrorResult();
     }
 
     /// <summary>

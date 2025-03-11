@@ -118,7 +118,7 @@ public class ContainersController(
         if (checkContainerInfo is not JsonResult<WopiCheckContainerInfo> jsonResult ||
             jsonResult.Data is null)
         {
-            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+            return new InternalServerErrorResult();
         }
         return new JsonResult(
             new CreateChildContainerResponse(
@@ -166,7 +166,7 @@ public class ContainersController(
             // 409 Conflict – Container has child files/containers
             return new ConflictResult();
         }
-        return StatusCode(StatusCodes.Status500InternalServerError);
+        return new InternalServerErrorResult();
     }
 
     /// <summary>
@@ -225,7 +225,7 @@ public class ContainersController(
             // 409 Conflict – requestedName already exists
             return new ConflictResult();
         }
-        return StatusCode(StatusCodes.Status500InternalServerError);
+        return new InternalServerErrorResult();
     }
 
     /// <summary>

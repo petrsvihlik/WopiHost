@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace WopiHost.Core.Results;
 
@@ -10,7 +11,7 @@ public class NotImplementedResult : StatusCodeResult
     /// <summary>
     /// Creates an instance of <see cref="NotImplementedResult"/>
     /// </summary>
-    public NotImplementedResult() : base(501)
+    public NotImplementedResult() : base(StatusCodes.Status501NotImplemented)
     {
     }
 }
