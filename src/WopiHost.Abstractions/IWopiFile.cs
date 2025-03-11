@@ -3,18 +3,8 @@
 /// <summary>
 /// Representation of a file.
 /// </summary>
-public interface IWopiFile
+public interface IWopiFile : IWopiResource
 {
-    /// <summary>
-    /// Name of the file (for conclusive identification see the <see cref="Identifier"/>)
-    /// </summary>
-    string Name { get; }
-
-    /// <summary>
-    /// Unique identifier of the file.
-    /// </summary>
-    string Identifier { get; }
-
     /// <summary>
     /// A string that uniquely identifies the owner of the file.
     /// </summary>
