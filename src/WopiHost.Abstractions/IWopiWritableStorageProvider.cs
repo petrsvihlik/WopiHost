@@ -39,7 +39,7 @@ public interface IWopiWritableStorageProvider
     /// </summary>
     /// <param name="resourceType">which Wopi resource to rename</param>
     /// <param name="identifier">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
-    /// <param name="requestedName">A UTF-7 encoded string that is a container name. Required.</param>
+    /// <param name="requestedName">A string that is a container name. Required.</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>true for success</returns>
     Task<bool> RenameWopiResource(WopiResourceType resourceType, string identifier, string requestedName, CancellationToken cancellationToken = default);

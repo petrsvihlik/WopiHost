@@ -245,8 +245,8 @@ public class FilesController(
     [WopiAuthorize(WopiResourceType.File, Permission.Create)]
     public async Task<IActionResult> PutRelativeFile(
         string id,
-        [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] string? suggestedTarget = null,
-        [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] string? relativeTarget = null,
+        [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget = null,
+        [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? relativeTarget = null,
         [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null,
         [FromHeader(Name = WopiHeaders.OVERWRITE_RELATIVE_TARGET)] bool? overwriteRelativeTarget = false,
         CancellationToken cancellationToken = default)
@@ -294,7 +294,8 @@ public class FilesController(
                 if (overwriteRelativeTarget == false)
                 {
                     // the host might include an X-WOPI-ValidRelativeTarget specifying a file name that's valid
-                    Response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = await writableStorageProvider.GetSuggestedName(WopiResourceType.File, id, relativeTarget, cancellationToken);
+                    var suggestedName = await writableStorageProvider.GetSuggestedName(WopiResourceType.File, id, relativeTarget, cancellationToken);
+                    Response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(suggestedName).ToString(true);
                     // the host must respond with a 409 Conflict
                     return new ConflictResult();
                 }
@@ -319,18 +320,19 @@ public class FilesController(
         }
         else if (!string.IsNullOrWhiteSpace(suggestedTarget))
         {
+            var suggestedTargetString = suggestedTarget.ToString()!;
             // If only the extension is provided, the name of the initial file without extension should be combined with the extension to create the proposed name
-            if (suggestedTarget.StartsWith(".", StringComparison.OrdinalIgnoreCase))
+            if (suggestedTargetString.StartsWith(".", StringComparison.OrdinalIgnoreCase))
             {
-                suggestedTarget = file.Name + suggestedTarget;
+                suggestedTargetString = file.Name + suggestedTargetString;
             }
             // If the specified name is illegal, the host must respond with a 400 Bad Request.
-            else if (!await writableStorageProvider.CheckValidName(WopiResourceType.File, suggestedTarget, cancellationToken))
+            else if (!await writableStorageProvider.CheckValidName(WopiResourceType.File, suggestedTargetString, cancellationToken))
             {
                 return new BadRequestResult();
             }
 
-            var newName = await writableStorageProvider.GetSuggestedName(WopiResourceType.File, parentContainer.Identifier, suggestedTarget, cancellationToken);
+            var newName = await writableStorageProvider.GetSuggestedName(WopiResourceType.File, parentContainer.Identifier, suggestedTargetString, cancellationToken);
             newFile = await writableStorageProvider.CreateWopiChildResource(
                 WopiResourceType.File,
                 parentContainer.Identifier,

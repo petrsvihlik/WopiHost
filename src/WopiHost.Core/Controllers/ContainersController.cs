@@ -82,8 +82,8 @@ public class ContainersController(
     [WopiAuthorize(WopiResourceType.Container, Permission.Create)]
     public async Task<IActionResult> CreateChildContainer(
         string id,
-        [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] string? suggestedTarget = null,
-        [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] string? relativeTarget = null,
+        [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget = null,
+        [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? relativeTarget = null,
         CancellationToken cancellationToken = default)
     {
         if (writableStorageProvider is null)
@@ -119,7 +119,8 @@ public class ContainersController(
             if (newFolder is not null)
             {
                 // the host may include an X-WOPI-ValidRelativeTarget specifying a container name that is valid
-                Response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = await writableStorageProvider.GetSuggestedName(WopiResourceType.Container, id, relativeTarget, cancellationToken);
+                var suggestedName = await writableStorageProvider.GetSuggestedName(WopiResourceType.Container, id, relativeTarget, cancellationToken);
+                Response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(suggestedName).ToString(true);
                 // the host must respond with a 409 Conflict
                 return new ConflictResult();
             }
@@ -213,7 +214,7 @@ public class ContainersController(
     [WopiAuthorize(WopiResourceType.Container, Permission.Rename)]
     public async Task<IActionResult> RenameContainer(
         string id,
-        [FromHeader(Name = WopiHeaders.WOPI_REQUESTED_NAME)] string requestedName,
+        [FromHeader(Name = WopiHeaders.WOPI_REQUESTED_NAME)] UtfString requestedName,
         CancellationToken cancellationToken = default)
     {
         if (writableStorageProvider is null)
