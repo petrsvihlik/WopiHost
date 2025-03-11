@@ -48,7 +48,7 @@ public class WopiHostCapabilities : IWopiHostCapabilities
     public bool SupportsFileCreation { get; set; }
 
     /// <inheritdoc/>
-    public bool SupportsUpdate { get; set; }
+    public bool SupportsUpdate { get; set; } = true;
 
     /// <inheritdoc/>
     public bool SupportsRename { get; set; }

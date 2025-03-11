@@ -346,10 +346,15 @@ public class FilesController(
         {
             // copy new contents to storage
             await HttpContext.CopyToWriteStream(newFile, cancellationToken);
+            var checkFileInfo = await BuildCheckFileInfo(newFile, cancellationToken);
             return new JsonResult(
                 new ChildFile(
                     newFile.Name + '.' + newFile.Extension,
-                    Url.GetWopiUrl(WopiResourceType.File, newFile.Identifier)));
+                    Url.GetWopiUrl(WopiResourceType.File, newFile.Identifier))
+                {
+                    HostEditUrl = checkFileInfo.HostEditUrl?.ToString(),
+                    HostViewUrl = checkFileInfo.HostViewUrl?.ToString() 
+                });
         }
 
         return new InternalServerErrorResult();        
