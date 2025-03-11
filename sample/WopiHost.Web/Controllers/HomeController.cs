@@ -24,9 +24,8 @@ public class HomeController(
         ViewData["Title"] = "Welcome to WOPI HOST test page";
         try
         {
-            var files = storageProvider.GetWopiFiles(storageProvider.RootContainerPointer.Identifier);
             var fileViewModels = new List<FileViewModel>();
-            foreach (var file in files)
+            await foreach (var file in storageProvider.GetWopiFiles(storageProvider.RootContainerPointer.Identifier))
             {
                 fileViewModels.Add(new FileViewModel
                 {

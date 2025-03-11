@@ -23,17 +23,18 @@ public interface IWopiStorageProvider
 
     /// <summary>
     /// Returns all files from the given source.
-    /// This method is very likely to change in the future.
     /// </summary>
     /// <param name="identifier">Container identifier (use null for root)</param>
-    ReadOnlyCollection<IWopiFile> GetWopiFiles(string identifier = "");
+    /// <param name="searchPattern">search pattern for files</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    IAsyncEnumerable<IWopiFile> GetWopiFiles(string? identifier = null, string? searchPattern = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns all containers from the given source.
-    /// This method is very likely to change in the future.
     /// </summary>
     /// <param name="identifier">Container identifier (use null for root)</param>
-    ReadOnlyCollection<IWopiFolder> GetWopiContainers(string identifier = "");
+    /// <param name="cancellationToken">cancellation token</param>
+    IAsyncEnumerable<IWopiFolder> GetWopiContainers(string? identifier = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Reference to the root container.

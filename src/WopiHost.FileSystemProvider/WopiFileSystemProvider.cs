@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -60,32 +61,35 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     }
 
     /// <inheritdoc/>
-    public ReadOnlyCollection<IWopiFile> GetWopiFiles(string identifier = "")
+    public async IAsyncEnumerable<IWopiFile> GetWopiFiles(
+        string? identifier = null, 
+        string? searchPattern = null, 
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var folderPath = DecodeIdentifier(identifier);
-        var files = new List<IWopiFile>();
-        foreach (var path in Directory.GetFiles(Path.Combine(WopiAbsolutePath, folderPath)))
+        var folderPath = DecodeIdentifier(identifier ?? string.Empty);
+        foreach (var path in Directory.GetFiles(Path.Combine(WopiAbsolutePath, folderPath), searchPattern ?? "*.*"))
         {
             var filePath = Path.Combine(folderPath, Path.GetFileName(path));
             var fileId = EncodeIdentifier(filePath);
-            files.Add(GetWopiFile(fileId));
+            yield return GetWopiFile(fileId);
         }
-        return files.AsReadOnly();
+        await Task.CompletedTask;
     }
 
     /// <inheritdoc/>
-    public ReadOnlyCollection<IWopiFolder> GetWopiContainers(string identifier = "")
+    public async IAsyncEnumerable<IWopiFolder> GetWopiContainers(
+        string? identifier = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var folderPath = DecodeIdentifier(identifier);
-        var folders = new List<IWopiFolder>();
+        var folderPath = DecodeIdentifier(identifier ?? string.Empty);
         foreach (var directory in Directory.GetDirectories(Path.Combine(WopiAbsolutePath, folderPath)))
         {
             //var subfolderPath = "." + directory.Remove(0, directory.LastIndexOf(Path.DirectorySeparatorChar));
             var subfolderPath = Path.GetRelativePath(WopiAbsolutePath, directory);
             var folderId = EncodeIdentifier(subfolderPath);
-            folders.Add(GetWopiContainer(folderId));
+            yield return GetWopiContainer(folderId);
         }
-        return folders.AsReadOnly();
+        await Task.CompletedTask;
     }
 
     /// <inheritdoc/>

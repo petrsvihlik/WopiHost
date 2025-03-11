@@ -72,8 +72,7 @@ public class IndexModel(
                 });
             }
             // get child containers
-            var containers = storageProvider.GetWopiContainers(ContainerId);
-            foreach (var container in containers)
+            await foreach (var container in storageProvider.GetWopiContainers(ContainerId, cancellationToken))
             {
                 Containers.Add(new ContainerViewModel
                 {
@@ -83,8 +82,7 @@ public class IndexModel(
             }
 
             // get files
-            var files = storageProvider.GetWopiFiles(ContainerId);
-            foreach (var file in files)
+            await foreach (var file in storageProvider.GetWopiFiles(ContainerId, cancellationToken: cancellationToken))
             {
                 Files.Add(new FileViewModel
                 {

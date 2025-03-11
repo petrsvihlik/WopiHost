@@ -283,17 +283,25 @@ public class ContainersController(
     /// Example URL path: /wopi/containers/(container_id)/children
     /// </summary>
     /// <param name="id">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
+    /// <param name="cancellationToken">cancellation token</param>
     /// <returns></returns>
     [HttpGet("{id}/children")]
     [WopiAuthorize(WopiResourceType.Container, Permission.Read)]
     [Produces(MediaTypeNames.Application.Json)]
-    public Container EnumerateChildren(string id)
+    public async Task<IActionResult> EnumerateChildren(
+        string id,
+        CancellationToken cancellationToken = default)
     {
+        if (storageProvider.GetWopiContainer(id) is null)
+        {
+            return NotFound();
+        }
+
         var container = new Container();
         var files = new List<ChildFile>();
         var containers = new List<ChildContainer>();
 
-        foreach (var wopiFile in storageProvider.GetWopiFiles(id))
+        await foreach (var wopiFile in storageProvider.GetWopiFiles(id, cancellationToken: cancellationToken))
         {
             files.Add(new ChildFile(wopiFile.Name, Url.GetWopiUrl(WopiResourceType.File, wopiFile.Identifier))
             {
@@ -303,7 +311,7 @@ public class ContainersController(
             });
         }
 
-        foreach (var wopiContainer in storageProvider.GetWopiContainers(id))
+        await foreach (var wopiContainer in storageProvider.GetWopiContainers(id, cancellationToken))
         {
             containers.Add(
                 new ChildContainer(wopiContainer.Name, Url.GetWopiUrl(WopiResourceType.Container, wopiContainer.Identifier)));
@@ -312,6 +320,6 @@ public class ContainersController(
         container.ChildFiles = files;
         container.ChildContainers = containers;
 
-        return container;
+        return new JsonResult(container);
     }
 }
