@@ -120,11 +120,26 @@ internal static class Extensions
     /// <summary>
     /// Checks if the resource has a specific permission as setup by <see cref="WopiAuthorizationHandler"/>
     /// </summary>
-    /// <param name="httpContext"></param>
+    /// <param name="httpContext">HTTP context</param>
     /// <param name="permission"></param>
     /// <returns></returns>
     public static bool IsPermitted(this HttpContext httpContext, Permission permission)
     {
         return httpContext.Items.TryGetValue(permission, out var value) && value is bool boolValue && boolValue;
+    }
+
+    /// <summary>
+    /// Copies the request body to the write stream of the file.
+    /// </summary>
+    /// <param name="httpContext">HTTP context</param>
+    /// <param name="file">the existing WopiFile</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns></returns>
+    public static async Task CopyToWriteStream(this HttpContext httpContext, IWopiFile file, CancellationToken cancellationToken = default)
+    {
+        using var stream = await file.GetWriteStream(cancellationToken);
+        await httpContext.Request.Body.CopyToAsync(
+            stream,
+            cancellationToken);
     }
 }
