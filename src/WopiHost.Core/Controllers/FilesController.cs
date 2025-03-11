@@ -431,6 +431,81 @@ public class FilesController(
     }
 
     /// <summary>
+    /// The PutUserInfo operation stores some basic user information on the host.
+    /// M365 spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo
+    /// Example URL path: /wopi/files/(file_id)
+    /// </summary>
+    /// <param name="id">A string that specifies a file ID of a file managed by host. This string must be URL safe.</param>
+    /// <param name="userInfo">A string that specifies the user information to be stored on the host. This string must be URL safe.</param>
+    /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
+    [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.PutUserInfo)]
+    public IActionResult PutUserInfo(
+        string id,
+        [FromStringBody] string userInfo)
+    {
+        // Get file
+        var file = storageProvider.GetWopiFile(id);
+        if (file is null)
+        {
+            return NotFound();
+        }
+
+        // The UserInfo string should be associated with a particular user,
+        // and should be passed back to the WOPI client in subsequent CheckFileInfo responses in the UserInfo property.
+        // we store indefinitely in memoryCache to avoid the need for a persistence model - it's called anyway by the Wopi client on every start
+        memoryCache.Set(
+            string.Format(UserInfoCacheKey, User.GetUserId()), 
+            userInfo, 
+            new MemoryCacheEntryOptions
+            {
+                Priority = CacheItemPriority.NeverRemove,
+            });
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// The DeleteFile operation deletes a file from a host.
+    /// M365 spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile
+    /// Example URL path: /wopi/files/(file_id)
+    /// </summary>
+    /// <param name="id">A string that specifies a file ID of a file managed by host. This string must be URL safe.</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
+    [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.DeleteFile)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Delete)]
+    public async Task<IActionResult> DeleteFile(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        if (writableStorageProvider is null)
+        {
+            return new NotImplementedResult();
+        }
+
+        // Get file
+        var file = storageProvider.GetWopiFile(id);
+        if (file is null)
+        {
+            return NotFound();
+        }
+
+        // If the file is currently locked, the host should return a 409 Conflict
+        // and include an X-WOPI-Lock response header containing the value of the current lock on the file
+        if (lockProvider?.TryGetLock(id, out var existingLock) == true)
+        {
+            return new LockMismatchResult(Response, existingLock.LockId);
+        }
+
+        if (await writableStorageProvider.DeleteWopiResource(WopiResourceType.File, id, cancellationToken))
+        {
+            return Ok();
+        }
+
+        return StatusCode(StatusCodes.Status500InternalServerError);
+    }
+
+    /// <summary>
     /// Changes the contents of the file in accordance with [MS-FSSHTTP].
     /// MS-FSSHTTP Specification: https://learn.microsoft.com/openspecs/sharepoint_protocols/ms-fsshttp/05fa7efd-48ed-48d5-8d85-77995e17cc81
     /// Specification: https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/f52e753e-fa08-4ba4-a68b-2f8801992cf0
