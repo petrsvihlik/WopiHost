@@ -119,6 +119,33 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         return Task.FromResult(result.AsReadOnly());
     }
 
+    /// <inheritdoc/>
+    public Task<IWopiResource?> GetWopiResourceByName(
+        WopiResourceType resourceType, 
+        string containerId, 
+        string name, 
+        CancellationToken cancellationToken = default)
+    {
+        var fullPath = DecodeFullPath(containerId);
+        var namePath = Path.Combine(fullPath, name);
+        var newId = Path.GetRelativePath(WopiAbsolutePath, namePath);
+        if (resourceType == WopiResourceType.File && !newId.StartsWith(rootPath))
+        {
+            newId = rootPath + newId;
+        }
+        IWopiResource? result = resourceType switch
+        {
+            WopiResourceType.File => File.Exists(namePath)
+                ? GetWopiFile(EncodeIdentifier(newId))
+                : null,
+            WopiResourceType.Container => Directory.Exists(namePath)
+                ? GetWopiContainer(EncodeIdentifier(newId))
+                : null,
+            _ => throw new NotSupportedException("Unsupported resource type.")
+        };
+        return Task.FromResult(result);
+    }
+
     #region IWopiWritableStorageProvider
 
     /// <inheritdoc/>
