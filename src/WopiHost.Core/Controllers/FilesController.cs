@@ -24,6 +24,7 @@ namespace WopiHost.Core.Controllers;
 /// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
 /// <param name="wopiHostOptions">WOPI Host configuration</param>
 /// <param name="memoryCache">An instance of the memory cache.</param>
+/// <param name="writableStorageProvider">Storage provider instance for writing files and folders.</param>
 /// <param name="lockProvider">An instance of the lock provider.</param>
 /// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
 [Authorize]
@@ -34,6 +35,7 @@ public class FilesController(
     IWopiSecurityHandler securityHandler,
     IOptions<WopiHostOptions> wopiHostOptions,
     IMemoryCache memoryCache,
+    IWopiWritableStorageProvider? writableStorageProvider = null,
     IWopiLockProvider? lockProvider = null,
     ICobaltProcessor? cobaltProcessor = null) : ControllerBase
 {
@@ -192,19 +194,25 @@ public class FilesController(
     {
         // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
         var file = storageProvider.GetWopiFile(id);
-        // If ... missing altogether, the host should respond with a 409 Conflict
         if (file is null)
         {
-            return new ConflictResult();
+            return NotFound();
         }
-
+        
         // When a host receives a PutFile request on a file that's not locked, the host checks the current size of the file.
-        // If it's 0 bytes, the PutFile request should be considered valid and should proceed
-        if (file.Size == 0 && string.IsNullOrEmpty(newLockIdentifier))
+        if (string.IsNullOrEmpty(newLockIdentifier))
         {
-            // copy new contents to storage
-            await CopyToWriteStream();
-            return Ok();
+            // If it's 0 bytes, the PutFile request should be considered valid and should proceed
+            if (file.Size == 0)
+            {
+                // copy new contents to storage
+                await HttpContext.CopyToWriteStream(file, cancellationToken);
+                return Ok();
+            }
+            else // If ... missing altogether, the host should respond with a 409 Conflict
+            {
+                return new ConflictResult();
+            }
         }
 
         // Acquire lock
@@ -213,19 +221,11 @@ public class FilesController(
         if (lockResult is OkResult)
         {
             // copy new contents to storage
-            await CopyToWriteStream();
+            await HttpContext.CopyToWriteStream(file, cancellationToken);
 
             return Ok();
         }
         return lockResult;
-
-        async Task CopyToWriteStream()
-        {
-            using var stream = await file.GetWriteStream(cancellationToken);
-            await HttpContext.Request.Body.CopyToAsync(
-                stream,
-                cancellationToken);
-        }
     }
 
     /// <summary>
@@ -235,10 +235,132 @@ public class FilesController(
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
+    /// <param name="suggestedTarget">A UTF-7 encoded string specifying either a file extension or a full file name, including the file extension</param>
+    /// <param name="relativeTarget">A UTF-7 encoded string that specifies a full file name including the file extension. The host must not modify the name to fulfill the request.</param>
+    /// <param name="newLockIdentifier">new lockId</param>
+    /// <param name="overwriteRelativeTarget">A Boolean value that specifies whether the host must overwrite the file name if it exists. The default value is false.</param>
+    /// <param name="cancellationToken">cancellation token</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.PutRelativeFile)]
-    [WopiAuthorize(WopiResourceType.File, Permission.Update)]
-    public Task<IActionResult> PutRelativeFile(string id) => throw new NotImplementedException($"{nameof(PutRelativeFile)} is not implemented yet.");
+    [WopiAuthorize(WopiResourceType.File, Permission.Create)]
+    public async Task<IActionResult> PutRelativeFile(
+        string id,
+        [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget = null,
+        [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? relativeTarget = null,
+        [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null,
+        [FromHeader(Name = WopiHeaders.OVERWRITE_RELATIVE_TARGET)] bool? overwriteRelativeTarget = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (writableStorageProvider is null)
+        {
+            return new NotImplementedResult();
+        }
+
+        var file = storageProvider.GetWopiFile(id);
+        if (file is null)
+        {
+            return NotFound();
+        }
+
+        // the two headers are mutually exclusive. If both headers are present, the host should respond with a 501 Not Implemented status code.
+        if (!string.IsNullOrWhiteSpace(suggestedTarget) &&
+            !string.IsNullOrWhiteSpace(relativeTarget))
+        {
+            return new NotImplementedResult();
+        }
+
+        // find target container id based on the relative file specified by id
+        var ancestors = await storageProvider.GetAncestors(WopiResourceType.File, id, cancellationToken);
+        var parentContainer = ancestors.LastOrDefault()
+            ?? throw new ArgumentException("Cannot find parent container", nameof(id));
+
+        IWopiFile? newFile;
+
+        // "specific mode" - The host must not modify the name to fulfill the request.
+        if (!string.IsNullOrWhiteSpace(relativeTarget))
+        {
+            // If the specified name is illegal, the host must respond with a 400 Bad Request.
+            if (!await writableStorageProvider.CheckValidName(WopiResourceType.File, relativeTarget, cancellationToken))
+            {
+                return new BadRequestResult();
+            }
+
+            newFile = await storageProvider.GetWopiResourceByName(WopiResourceType.File, parentContainer.Identifier, relativeTarget, cancellationToken) as IWopiFile;
+
+            // If a file with the specified name already exists
+            if (newFile is not null)
+            {
+                // unless the X-WOPI-OverwriteRelativeTarget request header is set to true...
+                if (overwriteRelativeTarget == false)
+                {
+                    // the host might include an X-WOPI-ValidRelativeTarget specifying a file name that's valid
+                    var suggestedName = await writableStorageProvider.GetSuggestedName(WopiResourceType.File, id, relativeTarget, cancellationToken);
+                    Response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(suggestedName).ToString(true);
+                    // the host must respond with a 409 Conflict
+                    return new ConflictResult();
+                }
+                else
+                {
+                    // a file matching the target name might be locked
+                    if (lockProvider?.TryGetLock(newFile.Identifier, out var existingLock) == true)
+                    {
+                        // the host must respond with a 409 Conflict and include a X-WOPI-Lock response header
+                        return new LockMismatchResult(Response, existingLock.LockId, reason: "File already exists and is currently locked");
+                    }
+                }
+            }
+            else
+            {
+                newFile = await writableStorageProvider.CreateWopiChildResource(
+                    WopiResourceType.File,
+                    parentContainer.Identifier,
+                    relativeTarget,
+                    cancellationToken) as IWopiFile;
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(suggestedTarget))
+        {
+            var suggestedTargetString = suggestedTarget.ToString()!;
+            // If only the extension is provided, the name of the initial file without extension should be combined with the extension to create the proposed name
+            if (suggestedTargetString.StartsWith(".", StringComparison.OrdinalIgnoreCase))
+            {
+                suggestedTargetString = file.Name + suggestedTargetString;
+            }
+            // If the specified name is illegal, the host must respond with a 400 Bad Request.
+            else if (!await writableStorageProvider.CheckValidName(WopiResourceType.File, suggestedTargetString, cancellationToken))
+            {
+                return new BadRequestResult();
+            }
+
+            var newName = await writableStorageProvider.GetSuggestedName(WopiResourceType.File, parentContainer.Identifier, suggestedTargetString, cancellationToken);
+            newFile = await writableStorageProvider.CreateWopiChildResource(
+                WopiResourceType.File,
+                parentContainer.Identifier,
+                newName,
+                cancellationToken) as IWopiFile;
+        }
+        else
+        {
+            return new BadRequestResult();
+        }
+
+        if (newFile is not null)
+        {
+            // copy new contents to storage
+            await HttpContext.CopyToWriteStream(newFile, cancellationToken);
+            var checkFileInfo = await BuildCheckFileInfo(newFile, cancellationToken);
+            return new JsonResult(
+                new ChildFile(
+                    newFile.Name + '.' + newFile.Extension,
+                    Url.GetWopiUrl(WopiResourceType.File, newFile.Identifier))
+                {
+                    HostEditUrl = checkFileInfo.HostEditUrl?.ToString(),
+                    HostViewUrl = checkFileInfo.HostViewUrl?.ToString() 
+                });
+        }
+
+        return new InternalServerErrorResult();        
+    }
 
     /// <summary>
     /// The PutUserInfo operation stores some basic user information on the host.
@@ -272,6 +394,47 @@ public class FilesController(
             });
 
         return Ok();
+    }
+
+    /// <summary>
+    /// The DeleteFile operation deletes a file from a host.
+    /// M365 spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile
+    /// Example URL path: /wopi/files/(file_id)
+    /// </summary>
+    /// <param name="id">A string that specifies a file ID of a file managed by host. This string must be URL safe.</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
+    [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.DeleteFile)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Delete)]
+    public async Task<IActionResult> DeleteFile(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        if (writableStorageProvider is null)
+        {
+            return new NotImplementedResult();
+        }
+
+        // Get file
+        var file = storageProvider.GetWopiFile(id);
+        if (file is null)
+        {
+            return NotFound();
+        }
+
+        // If the file is currently locked, the host should return a 409 Conflict
+        // and include an X-WOPI-Lock response header containing the value of the current lock on the file
+        if (lockProvider?.TryGetLock(id, out var existingLock) == true)
+        {
+            return new LockMismatchResult(Response, existingLock.LockId);
+        }
+
+        if (await writableStorageProvider.DeleteWopiResource(WopiResourceType.File, id, cancellationToken))
+        {
+            return Ok();
+        }
+
+        return new InternalServerErrorResult();
     }
 
     /// <summary>
@@ -321,6 +484,7 @@ public class FilesController(
         ArgumentNullException.ThrowIfNull(file);
 
         var checkFileInfo = file.GetWopiCheckFileInfo(HostCapabilities);
+        checkFileInfo.FileNameMaxLength = writableStorageProvider?.FileNameMaxLength ?? 0;
         checkFileInfo.Sha256 = await file.GetEncodedSha256(cancellationToken);
 
         if (User?.Identity?.IsAuthenticated == true)

@@ -3,15 +3,6 @@
 /// <summary>
 /// Object that represents a container with files.
 /// </summary>
-public interface IWopiFolder
+public interface IWopiFolder : IWopiResource
 {
-	/// <summary>
-	/// Name of the folder (for conclusive identification see the <see cref="Identifier"/>)
-	/// </summary>
-	string Name { get; }
-
-	/// <summary>
-	/// Unique identifier of the folder.
-	/// </summary>
-	string Identifier { get; }
 }

@@ -17,7 +17,7 @@ public static class WopiEvents
         wopiCheckFileInfo.AllowErrorReportPrompt = true;
 
         // ##183 required for WOPI-Validator
-        if (wopiCheckFileInfo.BaseFileName == "test.wopitest")
+        if (wopiCheckFileInfo.BaseFileName.EndsWith(".wopitest", StringComparison.OrdinalIgnoreCase))
         {
             wopiCheckFileInfo.CloseUrl = new("https://example.com/close");
             wopiCheckFileInfo.DownloadUrl = new("https://example.com/download");

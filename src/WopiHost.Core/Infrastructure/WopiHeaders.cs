@@ -50,6 +50,11 @@ public static class WopiHeaders
     public const string OVERWRITE_RELATIVE_TARGET = "X-WOPI-OverwriteRelativeTarget";
 
     /// <summary>
+    /// The host may include an X-WOPI-ValidRelativeTarget specifying a container/file name that is valid when creating using RelativeTarget that already exists
+    /// </summary>
+    public const string VALID_RELATIVE_TARGET = "X-WOPI-ValidRelativeTarget";
+
+    /// <summary>
     /// Every WOPI request Office for the web makes to a host will have an ID called the correlation ID. This ID will be included in the WOPI request using the X-WOPI-CorrelationId request header.
     /// </summary>
     public const string CORRELATION_ID = "X-WOPI-CorrelationID";

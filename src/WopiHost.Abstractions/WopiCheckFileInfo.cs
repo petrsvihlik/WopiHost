@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace WopiHost.Abstractions;
 
@@ -49,9 +50,11 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     public string? FileExtension { get; set; }
 
     /// <summary>
-    /// An integer value that indicates the maximum length for file names that the WOPI host supports, excluding the file extension. The default value is 250. Note that WOPI clients will use this default value if the property is omitted or if it is explicitly set to <c>0</c>.
+    /// An integer value that indicates the maximum length for file names that the WOPI host supports, excluding the file extension. 
+    /// The default value is 250. Note that WOPI clients will use this default value if the property is omitted or if it is explicitly set to <c>0</c>.
     /// </summary>
-    public int FileNameMaxLength { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), DefaultValue(250)]
+    public int FileNameMaxLength { get; set; } = 250;
 
     /// <summary>
     /// A string that indicates the breadcrumb name of the host.

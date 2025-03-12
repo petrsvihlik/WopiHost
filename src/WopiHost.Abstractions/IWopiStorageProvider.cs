@@ -23,17 +23,18 @@ public interface IWopiStorageProvider
 
     /// <summary>
     /// Returns all files from the given source.
-    /// This method is very likely to change in the future.
     /// </summary>
     /// <param name="identifier">Container identifier (use null for root)</param>
-    ReadOnlyCollection<IWopiFile> GetWopiFiles(string identifier = "");
+    /// <param name="searchPattern">search pattern for files</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    IAsyncEnumerable<IWopiFile> GetWopiFiles(string? identifier = null, string? searchPattern = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns all containers from the given source.
-    /// This method is very likely to change in the future.
     /// </summary>
     /// <param name="identifier">Container identifier (use null for root)</param>
-    ReadOnlyCollection<IWopiFolder> GetWopiContainers(string identifier = "");
+    /// <param name="cancellationToken">cancellation token</param>
+    IAsyncEnumerable<IWopiFolder> GetWopiContainers(string? identifier = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Reference to the root container.
@@ -48,4 +49,14 @@ public interface IWopiStorageProvider
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>list of containers top-down excluding the specified identifier</returns>
     Task<ReadOnlyCollection<IWopiFolder>> GetAncestors(WopiResourceType resourceType, string identifier, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns a WOPI resource by its name.
+    /// </summary>
+    /// <param name="resourceType">what kind of Wopi resource are we looking for (Container or File)</param>
+    /// <param name="containerId">parent containerId to search within</param>
+    /// <param name="name">the exact name to look for</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns></returns>
+    Task<IWopiResource?> GetWopiResourceByName(WopiResourceType resourceType, string containerId, string name, CancellationToken cancellationToken = default);
 }
