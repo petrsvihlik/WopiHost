@@ -118,7 +118,7 @@ public class FilesController(
         // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getfile#response-headers
         if (file.Version is not null)
         {
-            Response.Headers[WopiHeaders.WOPI_ITEM_VERSION] = file.Version;
+            Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
         }
 
         // Try to read content from a stream
@@ -145,7 +145,7 @@ public class FilesController(
         }
         // A URI for the WOPI server’s Ecosystem endpoint, with an access token appended. A GET request to this URL will invoke the CheckEcosystem operation.
         return new JsonResult<UrlResponse>(
-            new(Url.GetWopiUrl(WopiRouteNames.CheckEcosystem)));
+            new(Url.GetWopiSrc(WopiRouteNames.CheckEcosystem)));
     }
 
     /// <summary>
@@ -171,7 +171,7 @@ public class FilesController(
         var ancestors = await storageProvider.GetAncestors(WopiResourceType.File, id, cancellationToken);
         return new JsonResult(
             new EnumerateAncestorsResponse(ancestors
-                .Select(a => new ChildContainer(a.Name, Url.GetWopiUrl(WopiResourceType.Container, a.Identifier)))
+                .Select(a => new ChildContainer(a.Name, Url.GetWopiSrc(WopiResourceType.Container, a.Identifier)))
             ));
     }
 
@@ -352,7 +352,7 @@ public class FilesController(
             return new JsonResult(
                 new ChildFile(
                     newFile.Name + '.' + newFile.Extension,
-                    Url.GetWopiUrl(WopiResourceType.File, newFile.Identifier))
+                    Url.GetWopiSrc(WopiResourceType.File, newFile.Identifier))
                 {
                     HostEditUrl = checkFileInfo.HostEditUrl?.ToString(),
                     HostViewUrl = checkFileInfo.HostViewUrl?.ToString() 

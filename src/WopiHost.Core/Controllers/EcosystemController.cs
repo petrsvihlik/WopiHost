@@ -35,7 +35,7 @@ public class EcosystemController(
         var root = storageProvider.GetWopiContainer(@".\");
         var rc = new RootContainerInfo
         {
-            ContainerPointer = new ChildContainer(root.Name, Url.GetWopiUrl(WopiResourceType.Container, root.Identifier))
+            ContainerPointer = new ChildContainer(root.Name, Url.GetWopiSrc(WopiResourceType.Container, root.Identifier))
         };
         return rc;
     }

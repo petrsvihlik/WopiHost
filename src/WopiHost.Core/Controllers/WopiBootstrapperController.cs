@@ -50,7 +50,7 @@ public class WopiBootstrapperController(
             {
                 Bootstrap = new BootstrapInfo
                 {
-                    EcosystemUrl = Url.GetWopiUrl(WopiRouteNames.CheckEcosystem),
+                    EcosystemUrl = Url.GetWopiSrc(WopiRouteNames.CheckEcosystem),
                     SignInName = "",
                     UserFriendlyName = "",
                     UserId = ""
@@ -65,7 +65,7 @@ public class WopiBootstrapperController(
                 {
                     ContainerPointer = new ChildContainer(
                         storageProvider.RootContainerPointer.Name,
-                        Url.GetWopiUrl(WopiResourceType.Container, storageProvider.RootContainerPointer.Identifier, securityHandler.WriteToken(token)))
+                        Url.GetWopiSrc(WopiResourceType.Container, storageProvider.RootContainerPointer.Identifier, securityHandler.WriteToken(token)))
                 };
             }
             else if (ecosystemOperation == "GET_NEW_ACCESS_TOKEN")

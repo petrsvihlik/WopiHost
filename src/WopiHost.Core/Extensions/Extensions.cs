@@ -86,8 +86,8 @@ internal static class Extensions
     /// <param name="routeName">Name of the route to be called from <see cref="WopiRouteNames"/>.</param>
     /// <param name="identifier">Identifier of an object associated to the controller.</param>
     /// <param name="accessToken">Access token to use for authentication for the given controller.</param>
-    /// <returns>url to requested route with template parameters</returns>
-    public static string GetWopiUrl(this IUrlHelper url, string routeName, string? identifier = null, string? accessToken = null)
+    /// <returns>https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#wopisrc</returns>
+    public static string GetWopiSrc(this IUrlHelper url, string routeName, string? identifier = null, string? accessToken = null)
     {
         ArgumentNullException.ThrowIfNull(url);
         ArgumentException.ThrowIfNullOrWhiteSpace(routeName);
@@ -105,10 +105,11 @@ internal static class Extensions
     /// <param name="resourceType">which Wopi resource to access</param>
     /// <param name="identifier">resource unique identifier</param>
     /// <param name="accessToken">Access token to use for authentication for the given controller.</param>
-    public static string GetWopiUrl(this IUrlHelper url, WopiResourceType resourceType, string? identifier = null, string? accessToken = null)
+    /// <returns>https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#wopisrc</returns>
+    public static string GetWopiSrc(this IUrlHelper url, WopiResourceType resourceType, string? identifier = null, string? accessToken = null)
     {
         ArgumentNullException.ThrowIfNull(url);
-        return url.GetWopiUrl(
+        return url.GetWopiSrc(
             resourceType switch
             {
                 WopiResourceType.File => WopiRouteNames.CheckFileInfo,
@@ -121,8 +122,8 @@ internal static class Extensions
     /// Checks if the resource has a specific permission as setup by <see cref="WopiAuthorizationHandler"/>
     /// </summary>
     /// <param name="httpContext">HTTP context</param>
-    /// <param name="permission"></param>
-    /// <returns></returns>
+    /// <param name="permission">type of permission</param>
+    /// <returns>true if permission found and allowed, false otherwise</returns>
     public static bool IsPermitted(this HttpContext httpContext, Permission permission)
     {
         return httpContext.Items.TryGetValue(permission, out var value) && value is bool boolValue && boolValue;

@@ -28,7 +28,7 @@ namespace WopiHost.Core.Controllers;
 public class ContainersController(
     IWopiStorageProvider storageProvider,
     IOptions<WopiHostOptions> wopiHostOptions,
-    IWopiWritableStorageProvider? writableStorageProvider = null) 
+    IWopiWritableStorageProvider? writableStorageProvider = null)
     : ControllerBase
 {
     /// <summary>
@@ -91,8 +91,7 @@ public class ContainersController(
             return new NotImplementedResult();
         }
 
-        var container = storageProvider.GetWopiContainer(id);
-        if (container is null)
+        if (storageProvider.GetWopiContainer(id) is null)
         {
             return NotFound();
         }
@@ -124,7 +123,7 @@ public class ContainersController(
                 // the host must respond with a 409 Conflict
                 return new ConflictResult();
             }
-            else 
+            else
             {
                 newFolder = await writableStorageProvider.CreateWopiChildResource(WopiResourceType.Container, id, relativeTarget, cancellationToken);
             }
@@ -149,7 +148,7 @@ public class ContainersController(
             }
             return new JsonResult(
                 new CreateChildContainerResponse(
-                    new(jsonResult.Data.Name, Url.GetWopiUrl(WopiResourceType.Container, newFolder.Identifier)),
+                    new(jsonResult.Data.Name, Url.GetWopiSrc(WopiResourceType.Container, newFolder.Identifier)),
                     jsonResult.Data));
         }
 
@@ -173,10 +172,8 @@ public class ContainersController(
         {
             return new NotImplementedResult();
         }
-        var container = storageProvider.GetWopiContainer(id);
-        if (container is null)
+        if (storageProvider.GetWopiContainer(id) is null)
         {
-            // 404 Not Found – Resource not found/user unauthorized
             return NotFound();
         }
         try
@@ -214,7 +211,7 @@ public class ContainersController(
     [WopiAuthorize(WopiResourceType.Container, Permission.Rename)]
     public async Task<IActionResult> RenameContainer(
         string id,
-        [FromHeader(Name = WopiHeaders.WOPI_REQUESTED_NAME)] UtfString requestedName,
+        [FromHeader(Name = WopiHeaders.REQUESTED_NAME)] UtfString requestedName,
         CancellationToken cancellationToken = default)
     {
         if (writableStorageProvider is null)
@@ -242,7 +239,7 @@ public class ContainersController(
             // A string describing the reason the RenameContainer operation could not be completed.
             // This header should only be included when the response code is 400 Bad Request.
             // This string is only used for logging purposes.
-            Response.Headers[WopiHeaders.WOPI_INVALID_CONTAINER_NAME] = "Specified name is illegal";
+            Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
             return new BadRequestResult();
         }
         catch (DirectoryNotFoundException)
@@ -270,15 +267,13 @@ public class ContainersController(
     [Produces(MediaTypeNames.Application.Json)]
     public IActionResult GetEcosystem(string id)
     {
-        var container = storageProvider.GetWopiContainer(id);
-        if (container is null)
+        if (storageProvider.GetWopiContainer(id) is null)
         {
-            // 404 Not Found – Resource not found/user unauthorized
             return NotFound();
         }
         // A URI for the WOPI server’s Ecosystem endpoint, with an access token appended. A GET request to this URL will invoke the CheckEcosystem operation.
         return new JsonResult<UrlResponse>(
-            new(Url.GetWopiUrl(WopiRouteNames.CheckEcosystem)));
+            new(Url.GetWopiSrc(WopiRouteNames.CheckEcosystem)));
     }
 
     /// <summary>
@@ -294,8 +289,7 @@ public class ContainersController(
     [Produces(MediaTypeNames.Application.Json)]
     public async Task<IActionResult> EnumerateAncestors(string id, CancellationToken cancellationToken = default)
     {
-        var container = storageProvider.GetWopiContainer(id);
-        if (container is null)
+        if (storageProvider.GetWopiContainer(id) is null)
         {
             return NotFound();
         }
@@ -303,7 +297,7 @@ public class ContainersController(
         var ancestors = await storageProvider.GetAncestors(WopiResourceType.Container, id, cancellationToken);
         return new JsonResult(
             new EnumerateAncestorsResponse(ancestors
-                .Select(a => new ChildContainer(a.Name, Url.GetWopiUrl(WopiResourceType.Container, a.Identifier))
+                .Select(a => new ChildContainer(a.Name, Url.GetWopiSrc(WopiResourceType.Container, a.Identifier))
             )));
     }
 
@@ -313,13 +307,18 @@ public class ContainersController(
     /// Example URL path: /wopi/containers/(container_id)/children
     /// </summary>
     /// <param name="id">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
+    /// <param name="fileExtensionFilterList">A string value that the host must use to filter the returned child files. 
+    /// This header must be a list of comma-separated file extensions with a leading dot (.). 
+    /// There must be no whitespace and no trailing comma in the string. 
+    /// Wildcard characters are not permitted.</param>
     /// <param name="cancellationToken">cancellation token</param>
-    /// <returns></returns>
+    /// <returns>https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/enumeratechildren#required-response-properties</returns>
     [HttpGet("{id}/children")]
     [WopiAuthorize(WopiResourceType.Container, Permission.Read)]
     [Produces(MediaTypeNames.Application.Json)]
     public async Task<IActionResult> EnumerateChildren(
         string id,
+        [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? fileExtensionFilterList = null,
         CancellationToken cancellationToken = default)
     {
         if (storageProvider.GetWopiContainer(id) is null)
@@ -327,13 +326,17 @@ public class ContainersController(
             return NotFound();
         }
 
-        var container = new Container();
         var files = new List<ChildFile>();
         var containers = new List<ChildContainer>();
-
+        var fileExtensions = fileExtensionFilterList?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         await foreach (var wopiFile in storageProvider.GetWopiFiles(id, cancellationToken: cancellationToken))
         {
-            files.Add(new ChildFile(wopiFile.Name, Url.GetWopiUrl(WopiResourceType.File, wopiFile.Identifier))
+            // If included, the host must only return child files whose file extensions match the filter list, based on a case-insensitive match.
+            if (fileExtensions?.Length > 0 && !fileExtensions.Contains('.' + wopiFile.Extension, StringComparer.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, Url.GetWopiSrc(WopiResourceType.File, wopiFile.Identifier))
             {
                 LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
                 Size = wopiFile.Size,
@@ -344,12 +347,14 @@ public class ContainersController(
         await foreach (var wopiContainer in storageProvider.GetWopiContainers(id, cancellationToken))
         {
             containers.Add(
-                new ChildContainer(wopiContainer.Name, Url.GetWopiUrl(WopiResourceType.Container, wopiContainer.Identifier)));
+                new ChildContainer(wopiContainer.Name, Url.GetWopiSrc(WopiResourceType.Container, wopiContainer.Identifier)));
         }
 
-        container.ChildFiles = files;
-        container.ChildContainers = containers;
-
+        var container = new Container
+        {
+            ChildFiles = files,
+            ChildContainers = containers
+        };
         return new JsonResult(container);
     }
 }
