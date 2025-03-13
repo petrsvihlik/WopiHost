@@ -44,8 +44,6 @@ public class FilesControllerTests
 
         controller = new FilesController(
             storageProviderMock.Object,
-            securityHandlerMock.Object,
-            wopiHostOptionsMock.Object,
             memoryCache,
             writableStorageProviderMock.Object,
             lockProviderMock.Object)
@@ -84,7 +82,6 @@ public class FilesControllerTests
         fileMock.SetupGet(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
         fileMock.SetupGet(f => f.Length).Returns(1024);
         fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
-
         storageProviderMock
             .Setup(s => s.GetWopiFile(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => fileMock.Object);
@@ -92,6 +89,15 @@ public class FilesControllerTests
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope(securityHandlerMock.Object),
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                    [
+                        new(ClaimTypes.NameIdentifier, "userId"),
+                        new(ClaimTypes.Name, "test")
+                    ])),
+            }
         };
 
         // Act
@@ -134,6 +140,7 @@ public class FilesControllerTests
         {
             HttpContext = new DefaultHttpContext()
             {
+                ServiceScopeFactory = TestUtils.CreateServiceScope(securityHandlerMock.Object),
                 User = new ClaimsPrincipal(
                     new ClaimsIdentity(
                     [
@@ -273,8 +280,6 @@ public class FilesControllerTests
         // Arrange
         controller = new FilesController(
                     storageProviderMock.Object,
-                    securityHandlerMock.Object,
-                    wopiHostOptionsMock.Object,
                     memoryCache);
         // Act
         var result = await controller.DeleteFile("file_id");
@@ -326,11 +331,7 @@ public class FilesControllerTests
         // Arrange
         controller = new FilesController(
             storageProviderMock.Object,
-            securityHandlerMock.Object,
-            wopiHostOptionsMock.Object,
-            memoryCache,
-            null,
-            null)
+            memoryCache)
         {
             ControllerContext = new ControllerContext
             {

@@ -187,11 +187,11 @@ public class WopiExtensionsTests
         {
             ServiceScopeFactory = TestUtils.CreateServiceScope(mockSecurityHandler.Object),
             User = new ClaimsPrincipal(
-                new ClaimsIdentity(new Claim[] 
-                { 
-                    new Claim(ClaimTypes.NameIdentifier, "userId"), 
-                    new Claim(ClaimTypes.Name, "test") 
-                }, "test auth scheme")),
+                new ClaimsIdentity(
+                [
+                    new(ClaimTypes.NameIdentifier, "userId"),
+                    new(ClaimTypes.Name, "test")
+                ], "test auth scheme")),
         };
 
         // Act

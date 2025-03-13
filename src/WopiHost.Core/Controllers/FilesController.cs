@@ -21,8 +21,6 @@ namespace WopiHost.Core.Controllers;
 /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/
 /// </summary>
 /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
-/// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
-/// <param name="wopiHostOptions">WOPI Host configuration</param>
 /// <param name="memoryCache">An instance of the memory cache.</param>
 /// <param name="writableStorageProvider">Storage provider instance for writing files and folders.</param>
 /// <param name="lockProvider">An instance of the lock provider.</param>
@@ -32,8 +30,6 @@ namespace WopiHost.Core.Controllers;
 [Route("wopi/[controller]")]
 public class FilesController(
     IWopiStorageProvider storageProvider,
-    IWopiSecurityHandler securityHandler,
-    IOptions<WopiHostOptions> wopiHostOptions,
     IMemoryCache memoryCache,
     IWopiWritableStorageProvider? writableStorageProvider = null,
     IWopiLockProvider? lockProvider = null,
@@ -68,8 +64,11 @@ public class FilesController(
             return NotFound();
         }
 
+        // The UserInfo ... should be passed back to the WOPI client in subsequent CheckFileInfo responses in the UserInfo property.
+        _ = memoryCache.TryGetValue(string.Format(UserInfoCacheKey, User.GetUserId()), out string? userInfo);
+
         // build default checkFileInfo
-        var checkFileInfo = await BuildCheckFileInfo(file, cancellationToken);
+        var checkFileInfo = await file.GetWopiCheckFileInfo(HttpContext, HostCapabilities, userInfo, cancellationToken);
 
         // instead of JsonResult we must .Serialize<object>() to support properties that
         // might be defined on custom WopiCheckFileInfo objects
@@ -180,11 +179,11 @@ public class FilesController(
             // If the host can't rename the file because the name requested is invalid or conflicts with an existing file,
             // the host should try to generate a different name based on the requested name that meets the file name requirements
             var newName = await writableStorageProvider.GetSuggestedName(WopiResourceType.File, id, requestedName + '.' + file.Extension, cancellationToken);
-            if (await writableStorageProvider.RenameWopiResource(WopiResourceType.File, id, newName + '.' + file.Extension, cancellationToken))
+            if (await writableStorageProvider.RenameWopiResource(WopiResourceType.File, id, newName, cancellationToken))
             {
                 // The response to a RenameFile call is JSON containing a single required property
                 // Name (string) - The name of the renamed file without a path or file extension.
-                return new JsonResult(new { file.Name });
+                return new JsonResult(new { Name = Path.GetFileNameWithoutExtension(newName) });
             }
         }
         catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
@@ -351,9 +350,9 @@ public class FilesController(
             return NotFound();
         }
 
-        // the two headers are mutually exclusive. If both headers are present, the host should respond with a 501 Not Implemented status code.
-        if (!string.IsNullOrWhiteSpace(suggestedTarget) &&
-            !string.IsNullOrWhiteSpace(relativeTarget))
+        // the two headers are mutually exclusive. If both headers are present (or missing), the host should respond with a 501 Not Implemented status code.
+        if ((!string.IsNullOrWhiteSpace(suggestedTarget) && !string.IsNullOrWhiteSpace(relativeTarget)) ||
+            (string.IsNullOrWhiteSpace(suggestedTarget) && string.IsNullOrWhiteSpace(relativeTarget)))
         {
             return new NotImplementedResult();
         }
@@ -374,6 +373,7 @@ public class FilesController(
                 return new BadRequestResult();
             }
 
+            // check if such file already exists
             newFile = await storageProvider.GetWopiResourceByName(WopiResourceType.File, parentContainer.Identifier, relativeTarget, cancellationToken) as IWopiFile;
 
             // If a file with the specified name already exists
@@ -430,6 +430,8 @@ public class FilesController(
         }
         else
         {
+            // the two headers are mutually exclusive.
+            // If neither header is present, we return BadRequest
             return new BadRequestResult();
         }
 
@@ -437,7 +439,7 @@ public class FilesController(
         {
             // copy new contents to storage
             await HttpContext.CopyToWriteStream(newFile, cancellationToken);
-            var checkFileInfo = await BuildCheckFileInfo(newFile, cancellationToken);
+            var checkFileInfo = await newFile.GetWopiCheckFileInfo(HttpContext, HostCapabilities, cancellationToken: cancellationToken);
             return new JsonResult(
                 new ChildFile(
                     newFile.Name + '.' + newFile.Extension,
@@ -565,55 +567,55 @@ public class FilesController(
         return new Results.FileResult(responseAction, MediaTypeNames.Application.Octet);
     }
 
-    /// <summary>
-    /// Returns a CheckFileInfo model according to https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo
-    /// </summary>
-    /// <param name="file">File properties of which should be returned.</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>CheckFileInfo model</returns>
-    private async Task<WopiCheckFileInfo> BuildCheckFileInfo(
-        IWopiFile file,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(file);
+    ///// <summary>
+    ///// Returns a CheckFileInfo model according to https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo
+    ///// </summary>
+    ///// <param name="file">File properties of which should be returned.</param>
+    ///// <param name="cancellationToken">Cancellation token</param>
+    ///// <returns>CheckFileInfo model</returns>
+    //private async Task<WopiCheckFileInfo> BuildCheckFileInfo(
+    //    IWopiFile file,
+    //    CancellationToken cancellationToken = default)
+    //{
+    //    ArgumentNullException.ThrowIfNull(file);
 
-        var checkFileInfo = file.GetWopiCheckFileInfo(HostCapabilities);
-        checkFileInfo.FileNameMaxLength = writableStorageProvider?.FileNameMaxLength ?? 0;
-        checkFileInfo.Sha256 = await file.GetEncodedSha256(cancellationToken);
+    //    var checkFileInfo = file.GetWopiCheckFileInfo(HostCapabilities);
+    //    checkFileInfo.FileNameMaxLength = writableStorageProvider?.FileNameMaxLength ?? 0;
+    //    checkFileInfo.Sha256 = await file.GetEncodedSha256(cancellationToken);
 
-        if (User?.Identity?.IsAuthenticated == true)
-        {
-            checkFileInfo.UserId = User.GetUserId();
-            checkFileInfo.HostAuthenticationId = checkFileInfo.UserId;
-            checkFileInfo.UserFriendlyName = User.FindFirst(ClaimTypes.Name)?.Value;
-            checkFileInfo.UserPrincipalName = User.FindFirst(ClaimTypes.Upn)?.Value ?? string.Empty;
+    //    if (User?.Identity?.IsAuthenticated == true)
+    //    {
+    //        checkFileInfo.UserId = User.GetUserId();
+    //        checkFileInfo.HostAuthenticationId = checkFileInfo.UserId;
+    //        checkFileInfo.UserFriendlyName = User.FindFirst(ClaimTypes.Name)?.Value;
+    //        checkFileInfo.UserPrincipalName = User.FindFirst(ClaimTypes.Upn)?.Value ?? string.Empty;
 
-            // try to parse permissions claims
-            var permissions = await securityHandler.GetUserPermissions(User, file, cancellationToken);
-            checkFileInfo.ReadOnly = permissions.HasFlag(WopiUserPermissions.ReadOnly);
-            checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiUserPermissions.RestrictedWebViewOnly);
-            checkFileInfo.UserCanAttend = permissions.HasFlag(WopiUserPermissions.UserCanAttend);
-            checkFileInfo.UserCanNotWriteRelative = !HostCapabilities.SupportsUpdate || permissions.HasFlag(WopiUserPermissions.UserCanNotWriteRelative);
-            checkFileInfo.UserCanPresent = permissions.HasFlag(WopiUserPermissions.UserCanPresent);
-            checkFileInfo.UserCanRename = permissions.HasFlag(WopiUserPermissions.UserCanRename);
-            checkFileInfo.UserCanWrite = permissions.HasFlag(WopiUserPermissions.UserCanWrite);
-            checkFileInfo.WebEditingDisabled = permissions.HasFlag(WopiUserPermissions.WebEditingDisabled);
+    //        // try to parse permissions claims
+    //        var permissions = await securityHandler.GetUserPermissions(User, file, cancellationToken);
+    //        checkFileInfo.ReadOnly = permissions.HasFlag(WopiUserPermissions.ReadOnly);
+    //        checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiUserPermissions.RestrictedWebViewOnly);
+    //        checkFileInfo.UserCanAttend = permissions.HasFlag(WopiUserPermissions.UserCanAttend);
+    //        checkFileInfo.UserCanNotWriteRelative = !HostCapabilities.SupportsUpdate || permissions.HasFlag(WopiUserPermissions.UserCanNotWriteRelative);
+    //        checkFileInfo.UserCanPresent = permissions.HasFlag(WopiUserPermissions.UserCanPresent);
+    //        checkFileInfo.UserCanRename = permissions.HasFlag(WopiUserPermissions.UserCanRename);
+    //        checkFileInfo.UserCanWrite = permissions.HasFlag(WopiUserPermissions.UserCanWrite);
+    //        checkFileInfo.WebEditingDisabled = permissions.HasFlag(WopiUserPermissions.WebEditingDisabled);
 
-            // The UserInfo ... should be passed back to the WOPI client in subsequent CheckFileInfo responses in the UserInfo property.
-            if (memoryCache.TryGetValue(string.Format(UserInfoCacheKey, checkFileInfo.UserId), out string? userInfo) &&
-                userInfo is not null)
-            {
-                checkFileInfo.UserInfo = userInfo;
-            }
-        }
-        else
-        {
-            checkFileInfo.IsAnonymousUser = true;
-        }
+    //        // The UserInfo ... should be passed back to the WOPI client in subsequent CheckFileInfo responses in the UserInfo property.
+    //        if (memoryCache.TryGetValue(string.Format(UserInfoCacheKey, checkFileInfo.UserId), out string? userInfo) &&
+    //            userInfo is not null)
+    //        {
+    //            checkFileInfo.UserInfo = userInfo;
+    //        }
+    //    }
+    //    else
+    //    {
+    //        checkFileInfo.IsAnonymousUser = true;
+    //    }
 
-        // allow changes and/or extensions before returning 
-        return await wopiHostOptions.Value.OnCheckFileInfo(new WopiCheckFileInfoContext(User, file, checkFileInfo));
-    }
+    //    // allow changes and/or extensions before returning 
+    //    return await wopiHostOptions.Value.OnCheckFileInfo(new WopiCheckFileInfoContext(User, file, checkFileInfo));
+    //}
 
     #region "Locking"
     /// <summary>
