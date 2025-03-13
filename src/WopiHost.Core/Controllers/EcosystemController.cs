@@ -30,9 +30,9 @@ public class EcosystemController(
     /// <returns></returns>
     [HttpGet("root_container_pointer")]
     [Produces(MediaTypeNames.Application.Json)]
-    public RootContainerInfo GetRootContainer() //TODO: fix the path
+    public RootContainerInfo GetRootContainer()
     {
-        var root = storageProvider.GetWopiContainer(@".\");
+        var root = storageProvider.GetWopiContainer(storageProvider.RootContainerPointer.Identifier);
         var rc = new RootContainerInfo
         {
             ContainerPointer = new ChildContainer(root.Name, Url.GetWopiSrc(WopiResourceType.Container, root.Identifier))

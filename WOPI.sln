@@ -57,10 +57,24 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "wopi-docs", "wopi-docs", "{EA1A15F6-C3AF-4AAF-9A8B-4B7E053D6CEC}"
+	ProjectSection(SolutionItems) = preProject
+		sample\wopi-docs\test.docx = sample\wopi-docs\test.docx
+		sample\wopi-docs\test.html = sample\wopi-docs\test.html
+		sample\wopi-docs\test.pptx = sample\wopi-docs\test.pptx
+		sample\wopi-docs\test.wopitest = sample\wopi-docs\test.wopitest
+		sample\wopi-docs\test.xlsx = sample\wopi-docs\test.xlsx
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "subfolder", "subfolder", "{1CCBC8E4-5688-4F95-ADE8-31BF49064828}"
+	ProjectSection(SolutionItems) = preProject
+		sample\wopi-docs\subfolder\test2.docx = sample\wopi-docs\subfolder\test2.docx
+		sample\wopi-docs\subfolder\TextFile.txt = sample\wopi-docs\subfolder\TextFile.txt
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "subsubfolder", "subsubfolder", "{7EC2D8B4-42A4-40E2-AC9A-E4496DA57F4C}"
+	ProjectSection(SolutionItems) = preProject
+		sample\wopi-docs\subfolder\subsubfolder\SubSubTextFile.txt = sample\wopi-docs\subfolder\subsubfolder\SubSubTextFile.txt
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WopiHost", "sample\WopiHost\WopiHost.csproj", "{A0D7E71F-8940-4D2E-5BDE-E82A8DEAE605}"
 EndProject

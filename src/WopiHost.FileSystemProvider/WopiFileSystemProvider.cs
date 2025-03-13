@@ -12,51 +12,64 @@ namespace WopiHost.FileSystemProvider;
 /// </summary>
 public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorageProvider
 {
-    private WopiFileSystemProviderOptions FileSystemProviderOptions { get; }
-
-    private readonly string rootPath = @".\";
-
-    private string WopiRootPath => FileSystemProviderOptions.RootPath;
-
-    private string WopiAbsolutePath => Path.IsPathRooted(WopiRootPath) 
-        ? WopiRootPath 
-        : new DirectoryInfo(Path.Combine(HostEnvironment.ContentRootPath, WopiRootPath)).FullName;
+    private readonly InMemoryFileIds fileIds;
+    private readonly string wopiAbsolutePath;
 
     /// <summary>
     /// Reference to the root container.
     /// </summary>
-    public IWopiFolder RootContainerPointer => new WopiFolder(WopiAbsolutePath, EncodeIdentifier(rootPath));
-
-    /// <summary>
-    /// Context of the hosting environment.
-    /// </summary>
-    protected IHostEnvironment HostEnvironment { get; set; }
+    public IWopiFolder RootContainerPointer { get; }
 
     /// <summary>
     /// Creates a new instance of the <see cref="WopiFileSystemProvider"/> based on the provided hosting environment and configuration.
     /// </summary>
+    /// <param name="fileIds">In-memory storage for file identifiers.</param>
     /// <param name="env">Provides information about the hosting environment an application is running in.</param>
     /// <param name="configuration">Application configuration.</param>
-    public WopiFileSystemProvider(IHostEnvironment env, IConfiguration configuration)
+    public WopiFileSystemProvider(
+        InMemoryFileIds fileIds,
+        IHostEnvironment env, 
+        IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
-
-        HostEnvironment = env ?? throw new ArgumentNullException(nameof(env));
-        FileSystemProviderOptions = configuration.GetSection(WopiConfigurationSections.STORAGE_OPTIONS)?
+        this.fileIds = fileIds ?? throw new ArgumentNullException(nameof(fileIds));
+        var fileSystemProviderOptions = configuration.GetSection(WopiConfigurationSections.STORAGE_OPTIONS)?
             .Get<WopiFileSystemProviderOptions>() ?? throw new ArgumentNullException(nameof(configuration));
+
+        var wopiRootPath = fileSystemProviderOptions.RootPath;
+        wopiAbsolutePath = Path.IsPathRooted(wopiRootPath)
+            ? wopiRootPath
+            : new DirectoryInfo(Path.Combine(env.ContentRootPath, wopiRootPath)).FullName;
+
+        if (!fileIds.WasScanned)
+        {
+            fileIds.ScanAll(wopiAbsolutePath);
+        }
+        if (!fileIds.TryGetFileId(wopiAbsolutePath, out var rootId))
+        {
+            throw new InvalidOperationException("Root directory not found.");
+        }
+        RootContainerPointer = new WopiFolder(wopiAbsolutePath, rootId);
     }
 
     /// <inheritdoc/>
     public IWopiFile GetWopiFile(string identifier)
     {
-        var fullPath = DecodeFullPath(identifier);
+        if (!fileIds.TryGetPath(identifier, out var fullPath))
+        {
+            throw new FileNotFoundException($"File '{identifier}' not found");
+        }
+
         return new WopiFile(fullPath, identifier);
     }
 
     /// <inheritdoc/>
     public IWopiFolder GetWopiContainer(string identifier = "")
     {
-        var fullPath = DecodeFullPath(identifier);
+        if (!fileIds.TryGetPath(identifier, out var fullPath))
+        {
+            throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
+        }
         return new WopiFolder(fullPath, identifier);
     }
 
@@ -66,12 +79,17 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         string? searchPattern = null, 
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var folderPath = DecodeIdentifier(identifier ?? string.Empty);
-        foreach (var path in Directory.GetFiles(Path.Combine(WopiAbsolutePath, folderPath), searchPattern ?? "*.*"))
+        var folderPath = string.IsNullOrWhiteSpace(identifier)
+            ? wopiAbsolutePath
+            : fileIds.GetPath(identifier) ?? throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
+
+        foreach (var path in Directory.GetFiles(Path.Combine(wopiAbsolutePath, folderPath), searchPattern ?? "*.*"))
         {
             var filePath = Path.Combine(folderPath, Path.GetFileName(path));
-            var fileId = EncodeIdentifier(filePath);
-            yield return GetWopiFile(fileId);
+            if (fileIds.TryGetFileId(filePath, out var fileId))
+            {
+                yield return GetWopiFile(fileId);
+            }
         }
         await Task.CompletedTask;
     }
@@ -81,12 +99,16 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         string? identifier = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var folderPath = DecodeIdentifier(identifier ?? string.Empty);
-        foreach (var directory in Directory.GetDirectories(Path.Combine(WopiAbsolutePath, folderPath)))
+        var folderPath = string.IsNullOrWhiteSpace(identifier)
+            ? wopiAbsolutePath
+            : fileIds.GetPath(identifier) ?? throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
+
+        foreach (var directory in Directory.GetDirectories(Path.Combine(wopiAbsolutePath, folderPath)))
         {
-            var subfolderPath = Path.GetRelativePath(WopiAbsolutePath, directory);
-            var folderId = EncodeIdentifier(subfolderPath);
-            yield return GetWopiContainer(folderId);
+            if (fileIds.TryGetFileId(directory, out var folderId))
+            {
+                yield return GetWopiContainer(folderId);
+            }
         }
         await Task.CompletedTask;
     }
@@ -98,10 +120,10 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         var result = new List<IWopiFolder>();
         if (resourceType == WopiResourceType.File)
         {
-            identifier = EncodeIdentifier(GetFileParentIdentifier(identifier));
+            identifier = GetFileParentIdentifier(identifier);
         }
         var container = GetWopiContainer(identifier)
-            ?? throw new DirectoryNotFoundException($"Container with identifier '{identifier}' not found.");
+            ?? throw new DirectoryNotFoundException($"Directory '{identifier}' not found.");
         if (container.Identifier == RootContainerPointer.Identifier && resourceType == WopiResourceType.File)
         {
             result.Add(container);
@@ -110,10 +132,9 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         while (container.Identifier != RootContainerPointer.Identifier)
         {
             var parent = GetFolderParentIdentifier(container.Identifier);
-            container = GetWopiContainer(EncodeIdentifier(parent));
+            container = GetWopiContainer(parent);
             result.Add(container);
         }
-        //result.Add(RootContainerPointer);
         result.Reverse();
         return Task.FromResult(result.AsReadOnly());
     }
@@ -125,24 +146,22 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         string name, 
         CancellationToken cancellationToken = default)
     {
-        var fullPath = DecodeFullPath(containerId);
-        var namePath = Path.Combine(fullPath, name);
-        var newId = Path.GetRelativePath(WopiAbsolutePath, namePath);
-        if (resourceType == WopiResourceType.File && !newId.StartsWith(rootPath))
+        if (!fileIds.TryGetPath(containerId, out var dirPath))
         {
-            newId = rootPath + newId;
+            throw new DirectoryNotFoundException($"Directory '{containerId}' not found.");
         }
-        IWopiResource? result = resourceType switch
+        if (!fileIds.TryGetFileId(Path.Combine(dirPath, name), out var nameId))
         {
-            WopiResourceType.File => File.Exists(namePath)
-                ? GetWopiFile(EncodeIdentifier(newId))
-                : null,
-            WopiResourceType.Container => Directory.Exists(namePath)
-                ? GetWopiContainer(EncodeIdentifier(newId))
-                : null,
+            return Task.FromResult<IWopiResource?>(null);
+        }
+
+        IWopiResource result = resourceType switch
+        {
+            WopiResourceType.File => GetWopiFile(nameId),
+            WopiResourceType.Container => GetWopiContainer(nameId),
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
-        return Task.FromResult(result);
+        return Task.FromResult<IWopiResource?>(result);
     }
 
     #region IWopiWritableStorageProvider
@@ -175,7 +194,10 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(name));
         }
-        var fullPath = DecodeFullPath(containerId);
+        if (!fileIds.TryGetPath(containerId, out var fullPath))
+        {
+            throw new DirectoryNotFoundException($"Directory '{containerId}' not found.");
+        }
         var newPath = Path.Combine(fullPath, name);
 
         // are we trying to create a container?
@@ -228,8 +250,8 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     {
         return resourceType switch
         {
-            WopiResourceType.File => await CreateWopiFile(containerId ?? rootPath, name),
-            WopiResourceType.Container => await CreateWopiChildContainer(containerId ?? rootPath, name),
+            WopiResourceType.File => await CreateWopiFile(containerId ?? RootContainerPointer.Identifier, name),
+            WopiResourceType.Container => await CreateWopiChildContainer(containerId ?? RootContainerPointer.Identifier, name),
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
     }
@@ -238,11 +260,14 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         string containerId,
         string name)
     {
-        var fullPath = DecodeFullPath(containerId);
+        if (!fileIds.TryGetPath(containerId, out var fullPath))
+        {
+            throw new DirectoryNotFoundException($"Directory '{containerId}' found.");
+        }
         var newPath = Path.Combine(fullPath, name);
         if (File.Exists(newPath))
         {
-            throw new ArgumentException("File already exists.", nameof(name));
+            throw new ArgumentException($"File '{newPath}' already exists.", nameof(name));
         }
 
         // Create an empty file
@@ -251,31 +276,33 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
             // Create a 0-byte file
         }
 
-        var newFileId = new DirectoryInfo(fullPath).FullName == WopiRootPath
-            ? Path.Combine(rootPath, name)
-            : rootPath + Path.GetRelativePath(WopiAbsolutePath, newPath).TrimStart('.');
+        var newFileId = fileIds.AddFile(newPath);
         return await Task.FromResult(
-            GetWopiFile(EncodeIdentifier(newFileId)));
+            GetWopiFile(newFileId));
     }
 
     private Task<IWopiFolder> CreateWopiChildContainer(
         string containerId,
         string name)
     {
-        var fullPath = DecodeFullPath(containerId);
+        if (!fileIds.TryGetPath(containerId, out var fullPath))
+        {
+            throw new DirectoryNotFoundException($"Directory '{containerId}' not found.");
+        }
 
         var newPath = Path.Combine(fullPath, name);
         var dirInfo = new DirectoryInfo(newPath);
         if (dirInfo.Exists)
         {
-            throw new ArgumentException("Directory already exists.", nameof(name));
+            throw new ArgumentException($"Directory '{newPath}' already exists.", nameof(name));
         }
         else
         {
             dirInfo.Create();
         }
+        var newId = fileIds.AddFile(dirInfo.FullName);
         return Task.FromResult(
-            GetWopiContainer(EncodeIdentifier(Path.GetRelativePath(WopiAbsolutePath, dirInfo.FullName))));
+            GetWopiContainer(newId));
     }
 
     /// <inheritdoc/>
@@ -292,87 +319,119 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
 
     private bool DeleteWopiContainer(string identifier)
     {
-        var fullPath = DecodeFullPath(identifier);
+        if (!fileIds.TryGetPath(identifier, out var fullPath))
+        {
+            throw new DirectoryNotFoundException($"Directory '{identifier}' not found.");
+        }
         if (!Directory.Exists(fullPath))
         {
-            throw new DirectoryNotFoundException("Directory not found");
+            throw new DirectoryNotFoundException($"Directory '{fullPath}' not found");
         }
         if (Directory.EnumerateFileSystemEntries(fullPath).Any())
         {
-            throw new InvalidOperationException("Directory is not empty.");
+            throw new InvalidOperationException($"Directory '{fullPath}' is not empty.");
         }
         Directory.Delete(fullPath, true);
+        fileIds.RemoveId(identifier);
         return true;
     }
 
     private bool DeleteWopiFile(string identifier)
     {
-        var fullPath = DecodeFullPath(identifier);
+        if (!fileIds.TryGetPath(identifier, out var fullPath))
+        {
+            throw new FileNotFoundException($"File '{identifier}' not found.");
+        }
         if (!File.Exists(fullPath))
         {
-            throw new FileNotFoundException("File not found");
+            throw new FileNotFoundException($"File '{fullPath}' not found");
         }
         File.Delete(fullPath);
+        fileIds.RemoveId(identifier);
         return true;
     }
 
     /// <inheritdoc/>
-    public Task<bool> RenameWopiResource(WopiResourceType resourceType, string identifier, string requestedName, CancellationToken cancellationToken = default)
+    public async Task<bool> RenameWopiResource(WopiResourceType resourceType, string identifier, string requestedName, CancellationToken cancellationToken = default)
     {
         if (resourceType != WopiResourceType.Container)
         {
             throw new NotSupportedException("Only containers can be renamed.");
         }
-        if (requestedName.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
+        if (!await CheckValidName(resourceType, requestedName, cancellationToken))
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(requestedName));
         }
-        var fullPath = DecodeFullPath(identifier);
-        var parentPath = (new DirectoryInfo(fullPath).Parent?.FullName) 
-            ?? throw new DirectoryNotFoundException("Directory not found");
-        var newPath = Path.Combine(parentPath, requestedName);
-        if (Directory.Exists(newPath))
+
+        if (resourceType == WopiResourceType.File)
         {
-            throw new InvalidOperationException("Directory already exists.");
+            if (!fileIds.TryGetPath(identifier, out var fullPath))
+            {
+                throw new FileNotFoundException($"File '{identifier}' not found.");
+            }
+            var parentPath = Path.GetDirectoryName(fullPath)
+                ?? throw new DirectoryNotFoundException("Parent directory not found");
+            var newPath = Path.Combine(parentPath, requestedName);
+            if (File.Exists(newPath))
+            {
+                throw new InvalidOperationException($"Target File '{newPath}' already exists.");
+            }
+            File.Move(fullPath, newPath);
+            fileIds.UpdateFile(identifier, newPath);
         }
-        Directory.Move(fullPath, newPath);
-        return Task.FromResult(true);
+        else if (resourceType == WopiResourceType.Container)
+        {
+            if (!fileIds.TryGetPath(identifier, out var fullPath))
+            {
+                throw new FileNotFoundException($"Directory '{identifier}'not found.");
+            }
+            var parentPath = Path.GetDirectoryName(fullPath)
+                ?? throw new DirectoryNotFoundException("Parent directory not found");
+            var newPath = Path.Combine(parentPath, requestedName);
+            if (Directory.Exists(newPath))
+            {
+                throw new InvalidOperationException($"Target Directory '{newPath}' already exists.");
+            }
+            Directory.Move(fullPath, newPath);
+            fileIds.UpdateFile(identifier, newPath);
+        }
+        else
+        {
+            throw new NotSupportedException("Unsupported resource type.");
+        }
+
+        return true;
     }
     #endregion
 
-    private static string DecodeIdentifier(string identifier)
-    {
-        var bytes = Convert.FromBase64String(identifier);
-        return Encoding.UTF8.GetString(bytes);
-    }
-
-    private static string EncodeIdentifier(string path)
-    {
-        var bytes = Encoding.UTF8.GetBytes(path);
-        return Convert.ToBase64String(bytes);
-    }
-
     private string GetFileParentIdentifier(string identifier)
     {
-        var fullPath = DecodeFullPath(identifier);
-        var dirName = new FileInfo(fullPath).Directory?.FullName;
-        return dirName is null || dirName == WopiAbsolutePath
-            ? rootPath
-            : rootPath + Path.GetRelativePath(WopiAbsolutePath, dirName);
+        if (!fileIds.TryGetPath(identifier, out var filePath))
+        {
+            throw new FileNotFoundException($"File '{identifier}' not found");
+        }
+        var parentPath = Path.GetDirectoryName(filePath)
+            ?? throw new DirectoryNotFoundException("Parent directory not found");
+        if (!fileIds.TryGetFileId(parentPath, out var parentFolderId))
+        {
+            throw new DirectoryNotFoundException("Parent directory not found");
+        }
+        return parentFolderId;
     }
 
     private string GetFolderParentIdentifier(string identifier)
     {
-        var fullPath = DecodeFullPath(identifier);
-        var dirInfo = new DirectoryInfo(fullPath);
-        return dirInfo.FullName == WopiAbsolutePath
-            ? rootPath
-            : rootPath + Path.GetRelativePath(WopiAbsolutePath, dirInfo.Parent!.FullName).TrimStart('.');
-    }
+        if (!fileIds.TryGetPath(identifier, out var folderPath))
+        {
+            throw new DirectoryNotFoundException($"File '{identifier}' not found");
+        }
+        var parentPath = Path.GetDirectoryName(folderPath)
+            ?? throw new DirectoryNotFoundException("Parent directory not found");
 
-    private string DecodeFullPath(string identifier)
-    {
-        var folderPath = DecodeIdentifier(identifier);
-        return Path.Combine(WopiAbsolutePath, folderPath);
+        if (!fileIds.TryGetFileId(parentPath, out var parentFolderId))
+        {
+            throw new DirectoryNotFoundException("Parent directory not found");
+        }
+        return parentFolderId;
     }
 }
