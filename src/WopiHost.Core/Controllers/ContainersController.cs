@@ -224,6 +224,14 @@ public class ContainersController(
             // 404 Not Found – Resource not found/user unauthorized
             return NotFound();
         }
+        if (!await writableStorageProvider.CheckValidName(WopiResourceType.Container, requestedName, cancellationToken))
+        {
+            // 400 Bad Request – Specified name is illegal
+            // A string describing the reason the rename operation couldn't be completed.
+            // This header should only be included when the response code is 400 Bad Request
+            Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
+            return new BadRequestResult();
+        }
         try
         {
             if (await writableStorageProvider.RenameWopiResource(WopiResourceType.Container, id, requestedName, cancellationToken))

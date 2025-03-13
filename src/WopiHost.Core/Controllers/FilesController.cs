@@ -126,6 +126,94 @@ public class FilesController(
     }
 
     /// <summary>
+    /// The RenameFile operation renames a file.
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/renamefile
+    /// Example URL path: /wopi/files/(file_id)
+    /// </summary>
+    /// <param name="id">A string that specifies a file ID of a file managed by host. This string must be URL safe.</param>
+    /// <param name="requestedName">A UTF-7 encoded string that's a file name, not including the file extension.</param>
+    /// <param name="lockIdentifier">optional current lockId</param>
+    /// /// <param name="cancellationToken">cancellation token</param>
+    /// <returns></returns>
+    [HttpPost("{id}")]
+    [Produces(MediaTypeNames.Application.Json)]
+    [WopiOverrideHeader(WopiFileOperations.RenameFile)]
+    [WopiAuthorize(WopiResourceType.File, Permission.Rename)]
+    public async Task<IActionResult> RenameFile(
+        string id,
+        [FromHeader(Name = WopiHeaders.REQUESTED_NAME)] UtfString requestedName,
+        [FromHeader(Name = WopiHeaders.LOCK)] string? lockIdentifier = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (writableStorageProvider is null)
+        {
+            return new NotImplementedResult();
+        }
+        var file = await storageProvider.GetWopiFile(id, cancellationToken);
+        if (file is null)
+        {
+            // 404 Not Found – Resource not found/user unauthorized
+            return NotFound();
+        }
+
+        // If the file is currently locked, the host should return a 409 Conflict
+        // and include an X-WOPI-Lock response header containing the value of the current lock on the file
+        if (lockProvider?.TryGetLock(id, out var existingLock) == true && 
+            existingLock.LockId != lockIdentifier)
+        {
+            return new LockMismatchResult(Response, existingLock.LockId);
+        }
+
+        // If the host can't rename the file because the name requested is invalid ... it should return an HTTP status code 400 Bad Request.
+        // The response must include an X-WOPI-InvalidFileNameError header that describes why the file name was invalid
+        if (!await writableStorageProvider.CheckValidName(WopiResourceType.File, requestedName, cancellationToken))
+        {
+            // 400 Bad Request – Specified name is illegal
+            // A string describing the reason the rename operation couldn't be completed.
+            // This header should only be included when the response code is 400 Bad Request
+            Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
+            return new BadRequestResult();
+        }
+
+        try
+        {
+            // If the host can't rename the file because the name requested is invalid or conflicts with an existing file,
+            // the host should try to generate a different name based on the requested name that meets the file name requirements
+            var newName = await writableStorageProvider.GetSuggestedName(WopiResourceType.File, id, requestedName + '.' + file.Extension, cancellationToken);
+            if (await writableStorageProvider.RenameWopiResource(WopiResourceType.File, id, newName + '.' + file.Extension, cancellationToken))
+            {
+                // The response to a RenameFile call is JSON containing a single required property
+                // Name (string) - The name of the renamed file without a path or file extension.
+                return new JsonResult(new { file.Name });
+            }
+        }
+        catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
+        {
+            // 400 Bad Request – Specified name is illegal
+            // A string describing the reason the RenameContainer operation could not be completed.
+            // This header should only be included when the response code is 400 Bad Request.
+            // This string is only used for logging purposes.
+            Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
+            return new BadRequestResult();
+        }
+        catch (FileNotFoundException)
+        {
+            // 404 Not Found – Resource not found/user unauthorized
+            return NotFound();
+        }
+        catch (InvalidOperationException)
+        {
+            // 409 Conflict – requestedName already exists
+            return new ConflictResult();
+        }
+        catch (Exception)
+        {
+            return new InternalServerErrorResult();
+        }
+        return new InternalServerErrorResult();
+    }
+
+    /// <summary>
     /// The GetEcosystem operation returns the URI for the WOPI server’s Ecosystem endpoint, given a file ID.
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getecosystem
     /// Example URL path: /wopi/files/(container_id)/ecosystem_pointer

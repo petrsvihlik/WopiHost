@@ -110,6 +110,11 @@ public static class WopiHeaders
     public const string INVALID_CONTAINER_NAME = "X-WOPI-InvalidContainerNameError";
 
     /// <summary>
+    /// A string describing the reason the rename operation couldn't be completed.
+    /// </summary>
+    public const string INVALID_FILE_NAME = "X-WOPI-InvalidFileNameError ";
+
+    /// <summary>
     /// A UTF-7 encoded string that is a container name. Required.
     /// </summary>
     public const string REQUESTED_NAME = "X-WOPI-RequestedName";

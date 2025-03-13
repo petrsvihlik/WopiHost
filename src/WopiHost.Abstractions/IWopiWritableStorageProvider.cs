@@ -63,7 +63,7 @@ public interface IWopiWritableStorageProvider
     /// <param name="containerId">parent container id</param>
     /// <param name="name">suggested name</param>
     /// <param name="cancellationToken">cancellation token</param>
-    /// <returns></returns>
+    /// <returns>if the proposed resource name does not exist yet it will return name, otherwise will suggest a new name</returns>
     Task<string> GetSuggestedName(
         WopiResourceType resourceType,
         string containerId,
