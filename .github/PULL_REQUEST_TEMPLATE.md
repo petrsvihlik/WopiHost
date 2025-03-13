@@ -11,7 +11,7 @@ If no issue exists, what is the fix or new feature? Were there any reasons to fi
 - [ ] Tests are passing
 - [ ] Docs have been updated (if applicable)
 - [ ] Temporary settings (e.g. variables used during development and testing) have been reverted to defaults
-- [ ] Adheres to [.NET Design Guidelines](https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/)
+- [ ] Adheres to [.NET Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/)
 
 ### How to test
 

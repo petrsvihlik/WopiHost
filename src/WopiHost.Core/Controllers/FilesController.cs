@@ -280,7 +280,7 @@ public class FilesController(
         [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null,
         CancellationToken cancellationToken = default)
     {
-        // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
         var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken);
         if (file is null)
         {

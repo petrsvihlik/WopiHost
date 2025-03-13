@@ -14,4 +14,4 @@ All contributions are welcome:
 - [Request a feature](https://github.com/petrsvihlik/WopiHost/issues/new/choose)
 
 ## Pull requests
-- Feel free to submit a PR, just make sure your code adheres the existing codestyle, and to [.NET's Design Guidelines](https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/)
+- Feel free to submit a PR, just make sure your code adheres the existing codestyle, and to [.NET's Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/)
