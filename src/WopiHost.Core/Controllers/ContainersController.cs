@@ -99,7 +99,7 @@ public class ContainersController(
         // "specific mode" - The host must not modify the name to fulfill the request.
         if (!string.IsNullOrWhiteSpace(relativeTarget))
         {
-            newFolder = await storageProvider.GetWopiResourceByName<IWopiFolder>(id, relativeTarget, cancellationToken) as IWopiFolder;
+            newFolder = await storageProvider.GetWopiResourceByName<IWopiFolder>(id, relativeTarget, cancellationToken);
             // If a container with the specified name already exists
             if (newFolder is not null)
             {
@@ -111,13 +111,13 @@ public class ContainersController(
             }
             else
             {
-                newFolder = await writableStorageProvider.CreateWopiChildResource<IWopiFolder>(id, relativeTarget, cancellationToken) as IWopiFolder;
+                newFolder = await writableStorageProvider.CreateWopiChildResource<IWopiFolder>(id, relativeTarget, cancellationToken);
             }
         }
         else if (!string.IsNullOrWhiteSpace(suggestedTarget))
         {
             var newName = await writableStorageProvider.GetSuggestedName<IWopiFolder>(id, suggestedTarget, cancellationToken);
-            newFolder = await writableStorageProvider.CreateWopiChildResource<IWopiFolder>(id, newName, cancellationToken) as IWopiFolder;
+            newFolder = await writableStorageProvider.CreateWopiChildResource<IWopiFolder>(id, newName, cancellationToken);
         }
         else
         {
@@ -217,7 +217,7 @@ public class ContainersController(
                 newFile = await writableStorageProvider.CreateWopiChildResource<IWopiFile>(
                     container.Identifier,
                     relativeTarget,
-                    cancellationToken) as IWopiFile;
+                    cancellationToken);
             }
         }
         else if (!string.IsNullOrWhiteSpace(suggestedTarget))
@@ -238,7 +238,7 @@ public class ContainersController(
             newFile = await writableStorageProvider.CreateWopiChildResource<IWopiFile>(
                 container.Identifier,
                 newName,
-                cancellationToken) as IWopiFile;
+                cancellationToken);
         }
         else
         {

@@ -374,7 +374,7 @@ public class FilesController(
             }
 
             // check if such file already exists
-            newFile = await storageProvider.GetWopiResourceByName<IWopiFile>(parentContainer.Identifier, relativeTarget, cancellationToken) as IWopiFile;
+            newFile = await storageProvider.GetWopiResourceByName<IWopiFile>(parentContainer.Identifier, relativeTarget, cancellationToken);
 
             // If a file with the specified name already exists
             if (newFile is not null)
@@ -403,7 +403,7 @@ public class FilesController(
                 newFile = await writableStorageProvider.CreateWopiChildResource<IWopiFile>(
                     parentContainer.Identifier,
                     relativeTarget,
-                    cancellationToken) as IWopiFile;
+                    cancellationToken);
             }
         }
         else if (!string.IsNullOrWhiteSpace(suggestedTarget))
@@ -424,7 +424,7 @@ public class FilesController(
             newFile = await writableStorageProvider.CreateWopiChildResource<IWopiFile>(
                 parentContainer.Identifier,
                 newName,
-                cancellationToken) as IWopiFile;
+                cancellationToken);
         }
         else
         {
