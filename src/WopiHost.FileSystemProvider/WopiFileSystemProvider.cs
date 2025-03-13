@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using WopiHost.Abstractions;
@@ -53,24 +54,25 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     }
 
     /// <inheritdoc/>
-    public IWopiFile GetWopiFile(string identifier)
+    public Task<IWopiFile?> GetWopiFile(string identifier, CancellationToken cancellationToken = default)
     {
         if (!fileIds.TryGetPath(identifier, out var fullPath))
         {
             throw new FileNotFoundException($"File '{identifier}' not found");
         }
 
-        return new WopiFile(fullPath, identifier);
+        return Task.FromResult<IWopiFile?>(new WopiFile(fullPath, identifier));
     }
 
     /// <inheritdoc/>
-    public IWopiFolder GetWopiContainer(string identifier = "")
+    public Task<IWopiFolder?> GetWopiContainer(string? identifier = null, CancellationToken cancellationToken = default)
     {
+        identifier ??= RootContainerPointer.Identifier;
         if (!fileIds.TryGetPath(identifier, out var fullPath))
         {
             throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
         }
-        return new WopiFolder(fullPath, identifier);
+        return Task.FromResult<IWopiFolder?>(new WopiFolder(fullPath, identifier));
     }
 
     /// <inheritdoc/>
@@ -88,10 +90,11 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
             var filePath = Path.Combine(folderPath, Path.GetFileName(path));
             if (fileIds.TryGetFileId(filePath, out var fileId))
             {
-                yield return GetWopiFile(fileId);
+                var result = await GetWopiFile(fileId, cancellationToken)
+                    ?? throw new FileNotFoundException($"File '{fileId}' not found");
+                yield return result;
             }
         }
-        await Task.CompletedTask;
     }
 
     /// <inheritdoc/>
@@ -107,14 +110,16 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         {
             if (fileIds.TryGetFileId(directory, out var folderId))
             {
-                yield return GetWopiContainer(folderId);
+                var result = await GetWopiContainer(folderId, cancellationToken)
+                    ?? throw new DirectoryNotFoundException($"Directory '{folderId}' not found");
+                yield return result;
             }
         }
         await Task.CompletedTask;
     }
 
     /// <inheritdoc/>
-    public Task<ReadOnlyCollection<IWopiFolder>> GetAncestors(WopiResourceType resourceType, string identifier, CancellationToken cancellationToken = default)
+    public async Task<ReadOnlyCollection<IWopiFolder>> GetAncestors(WopiResourceType resourceType, string identifier, CancellationToken cancellationToken = default)
     {
         // convert File identifier to it's parent Container's identifier
         var result = new List<IWopiFolder>();
@@ -122,7 +127,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         {
             identifier = GetFileParentIdentifier(identifier);
         }
-        var container = GetWopiContainer(identifier)
+        var container = await GetWopiContainer(identifier, cancellationToken)
             ?? throw new DirectoryNotFoundException($"Directory '{identifier}' not found.");
         if (container.Identifier == RootContainerPointer.Identifier && resourceType == WopiResourceType.File)
         {
@@ -131,16 +136,17 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
 
         while (container.Identifier != RootContainerPointer.Identifier)
         {
-            var parent = GetFolderParentIdentifier(container.Identifier);
-            container = GetWopiContainer(parent);
+            var parentId = GetFolderParentIdentifier(container.Identifier);
+            container = await GetWopiContainer(parentId, cancellationToken)
+                ?? throw new DirectoryNotFoundException($"Directory '{parentId}' not found.");
             result.Add(container);
         }
         result.Reverse();
-        return Task.FromResult(result.AsReadOnly());
+        return result.AsReadOnly();
     }
 
     /// <inheritdoc/>
-    public Task<IWopiResource?> GetWopiResourceByName(
+    public async Task<IWopiResource?> GetWopiResourceByName(
         WopiResourceType resourceType, 
         string containerId, 
         string name, 
@@ -152,16 +158,16 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         }
         if (!fileIds.TryGetFileId(Path.Combine(dirPath, name), out var nameId))
         {
-            return Task.FromResult<IWopiResource?>(null);
+            return null;
         }
 
-        IWopiResource result = resourceType switch
+        IWopiResource? result = resourceType switch
         {
-            WopiResourceType.File => GetWopiFile(nameId),
-            WopiResourceType.Container => GetWopiContainer(nameId),
+            WopiResourceType.File => await GetWopiFile(nameId, cancellationToken),
+            WopiResourceType.Container => await GetWopiContainer(nameId, cancellationToken),
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
-        return Task.FromResult<IWopiResource?>(result);
+        return result;
     }
 
     #region IWopiWritableStorageProvider
@@ -250,15 +256,16 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     {
         return resourceType switch
         {
-            WopiResourceType.File => await CreateWopiFile(containerId ?? RootContainerPointer.Identifier, name),
-            WopiResourceType.Container => await CreateWopiChildContainer(containerId ?? RootContainerPointer.Identifier, name),
+            WopiResourceType.File => await CreateWopiFile(containerId ?? RootContainerPointer.Identifier, name, cancellationToken),
+            WopiResourceType.Container => await CreateWopiChildContainer(containerId ?? RootContainerPointer.Identifier, name, cancellationToken),
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
     }
 
-    private async Task<IWopiFile> CreateWopiFile(
+    private Task<IWopiFile?> CreateWopiFile(
         string containerId,
-        string name)
+        string name,
+        CancellationToken cancellationToken)
     {
         if (!fileIds.TryGetPath(containerId, out var fullPath))
         {
@@ -277,13 +284,13 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         }
 
         var newFileId = fileIds.AddFile(newPath);
-        return await Task.FromResult(
-            GetWopiFile(newFileId));
+        return GetWopiFile(newFileId, cancellationToken);
     }
 
-    private Task<IWopiFolder> CreateWopiChildContainer(
+    private Task<IWopiFolder?> CreateWopiChildContainer(
         string containerId,
-        string name)
+        string name,
+        CancellationToken cancellationToken)
     {
         if (!fileIds.TryGetPath(containerId, out var fullPath))
         {
@@ -301,8 +308,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
             dirInfo.Create();
         }
         var newId = fileIds.AddFile(dirInfo.FullName);
-        return Task.FromResult(
-            GetWopiContainer(newId));
+        return GetWopiContainer(newId, cancellationToken);
     }
 
     /// <inheritdoc/>

@@ -45,7 +45,7 @@ public class ContainersController(
         CheckPermissions = [Permission.Create, Permission.Delete, Permission.Rename, Permission.CreateChildFile])]
     public async Task<IActionResult> CheckContainerInfo(string id, CancellationToken cancellationToken = default)
     {
-        var container = storageProvider.GetWopiContainer(id);
+        var container = await storageProvider.GetWopiContainer(id, cancellationToken);
         if (container is null)
         {
             return NotFound();
@@ -91,7 +91,7 @@ public class ContainersController(
             return new NotImplementedResult();
         }
 
-        if (storageProvider.GetWopiContainer(id) is null)
+        if (await storageProvider.GetWopiContainer(id, cancellationToken) is null)
         {
             return NotFound();
         }
@@ -172,7 +172,7 @@ public class ContainersController(
         {
             return new NotImplementedResult();
         }
-        if (storageProvider.GetWopiContainer(id) is null)
+        if (await storageProvider.GetWopiContainer(id, cancellationToken) is null)
         {
             return NotFound();
         }
@@ -218,7 +218,7 @@ public class ContainersController(
         {
             return new NotImplementedResult();
         }
-        var container = storageProvider.GetWopiContainer(id);
+        var container = await storageProvider.GetWopiContainer(id, cancellationToken);
         if (container is null)
         {
             // 404 Not Found – Resource not found/user unauthorized
@@ -265,13 +265,14 @@ public class ContainersController(
     /// Example URL path: /wopi/containers/(container_id)/ecosystem_pointer
     /// </summary>
     /// <param name="id">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
+    /// <param name="cancellationToken">cancellation token</param>
     /// <returns>URL response pointing to <see cref="WopiRouteNames.CheckEcosystem"/></returns>
     [HttpGet("{id}/ecosystem_pointer")]
     [WopiAuthorize(WopiResourceType.Container, Permission.Read)]
     [Produces(MediaTypeNames.Application.Json)]
-    public IActionResult GetEcosystem(string id)
+    public async Task<IActionResult> GetEcosystem(string id, CancellationToken cancellationToken = default)
     {
-        if (storageProvider.GetWopiContainer(id) is null)
+        if (await storageProvider.GetWopiContainer(id, cancellationToken) is null)
         {
             return NotFound();
         }
@@ -293,7 +294,7 @@ public class ContainersController(
     [Produces(MediaTypeNames.Application.Json)]
     public async Task<IActionResult> EnumerateAncestors(string id, CancellationToken cancellationToken = default)
     {
-        if (storageProvider.GetWopiContainer(id) is null)
+        if (await storageProvider.GetWopiContainer(id, cancellationToken) is null)
         {
             return NotFound();
         }
@@ -325,7 +326,7 @@ public class ContainersController(
         [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? fileExtensionFilterList = null,
         CancellationToken cancellationToken = default)
     {
-        if (storageProvider.GetWopiContainer(id) is null)
+        if (await storageProvider.GetWopiContainer(id, cancellationToken) is null)
         {
             return NotFound();
         }

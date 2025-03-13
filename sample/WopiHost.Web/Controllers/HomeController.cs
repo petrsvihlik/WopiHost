@@ -53,7 +53,8 @@ public class HomeController(
         var actionEnum = Enum.Parse<WopiActionEnum>(wopiAction);
         var securityHandler = new WopiSecurityHandler(loggerFactory); //TODO: via DI
 
-        var file = storageProvider.GetWopiFile(id);
+        var file = await storageProvider.GetWopiFile(id)
+            ?? throw new FileNotFoundException($"File with ID '{id}' not found.");
         var token = await securityHandler.GenerateAccessToken("Anonymous", file.Identifier);
 
 

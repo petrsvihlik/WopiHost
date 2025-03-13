@@ -62,7 +62,7 @@ public class FilesController(
     public async Task<IActionResult> CheckFileInfo(string id, CancellationToken cancellationToken = default)
     {
         // Get file
-        var file = storageProvider.GetWopiFile(id);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken);
         if (file is null)
         {
             return NotFound();
@@ -98,7 +98,7 @@ public class FilesController(
         CancellationToken cancellationToken = default)
     {
         // Get file
-        var file = storageProvider.GetWopiFile(id);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken);
         if (file is null)
         {
             return NotFound();
@@ -131,14 +131,15 @@ public class FilesController(
     /// Example URL path: /wopi/files/(container_id)/ecosystem_pointer
     /// </summary>
     /// <param name="id">A string that specifies a file ID of a file managed by host. This string must be URL safe.</param>
+    /// <param name="cancellationToken">cancellation token</param>
     /// <returns>URL response pointing to <see cref="WopiRouteNames.CheckEcosystem"/></returns>
     [HttpGet("{id}/ecosystem_pointer")]
     [WopiAuthorize(WopiResourceType.File, Permission.Read)]
     [Produces(MediaTypeNames.Application.Json)]
-    public IActionResult GetEcosystem(string id)
+    public async Task<IActionResult> GetEcosystem(string id, CancellationToken cancellationToken = default)
     {
         // Get file
-        var file = storageProvider.GetWopiFile(id);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken);
         if (file is null)
         {
             return NotFound();
@@ -162,7 +163,7 @@ public class FilesController(
     public async Task<IActionResult> EnumerateAncestors(string id, CancellationToken cancellationToken = default)
     {
         // Get file
-        var file = storageProvider.GetWopiFile(id);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken);
         if (file is null)
         {
             return NotFound();
@@ -193,7 +194,7 @@ public class FilesController(
         CancellationToken cancellationToken = default)
     {
         // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
-        var file = storageProvider.GetWopiFile(id);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken);
         if (file is null)
         {
             return NotFound();
@@ -256,7 +257,7 @@ public class FilesController(
             return new NotImplementedResult();
         }
 
-        var file = storageProvider.GetWopiFile(id);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken);
         if (file is null)
         {
             return NotFound();
@@ -369,14 +370,16 @@ public class FilesController(
     /// </summary>
     /// <param name="id">A string that specifies a file ID of a file managed by host. This string must be URL safe.</param>
     /// <param name="userInfo">A string that specifies the user information to be stored on the host. This string must be URL safe.</param>
+    /// <param name="cancellationToken">cancellation token</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.PutUserInfo)]
-    public IActionResult PutUserInfo(
+    public async Task<IActionResult> PutUserInfo(
         string id,
-        [FromStringBody] string userInfo)
+        [FromStringBody] string userInfo,
+        CancellationToken cancellationToken = default)
     {
         // Get file
-        var file = storageProvider.GetWopiFile(id);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken);
         if (file is null)
         {
             return NotFound();
@@ -416,7 +419,7 @@ public class FilesController(
         }
 
         // Get file
-        var file = storageProvider.GetWopiFile(id);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken);
         if (file is null)
         {
             return NotFound();
@@ -445,15 +448,18 @@ public class FilesController(
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <param name="correlationId"></param>
+    /// <param name="cancellationToken">cancellation token</param>
     [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.Cobalt)]
     [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public async Task<IActionResult> ProcessCobalt(
         string id,
-        [FromHeader(Name = WopiHeaders.CORRELATION_ID)] string? correlationId = null)
+        [FromHeader(Name = WopiHeaders.CORRELATION_ID)] string? correlationId = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(cobaltProcessor);
 
-        var file = storageProvider.GetWopiFile(id);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken)
+            ?? throw new InvalidOperationException("File not found");
 
         // TODO: remove workaround https://github.com/aspnet/Announcements/issues/342 (use FileBufferingWriteStream)
         var syncIoFeature = HttpContext.Features.Get<IHttpBodyControlFeature>();

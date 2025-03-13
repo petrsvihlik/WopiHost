@@ -11,15 +11,17 @@ public interface IWopiStorageProvider
     /// Returns a concrete instance of an implementation of the <see cref="IWopiFile"/>.
     /// </summary>
     /// <param name="identifier">Generic string identifier of a file (typically some kind of a path).</param>
+    /// <param name="cancellationToken">cancellation token</param>
     /// <returns>Instance of a file.</returns>
-    IWopiFile GetWopiFile(string identifier);
+    Task<IWopiFile?> GetWopiFile(string identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns a concrete instance of an implementation of the <see cref="IWopiFolder"/>.
     /// </summary>
     /// <param name="identifier">Generic string identifier of a container (typically some kind of a path).</param>
+    /// <param name="cancellationToken">cancellation token</param>
     /// <returns>Instance of a container.</returns>
-    IWopiFolder GetWopiContainer(string identifier = "");
+    Task<IWopiFolder?> GetWopiContainer(string? identifier = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns all files from the given source.
