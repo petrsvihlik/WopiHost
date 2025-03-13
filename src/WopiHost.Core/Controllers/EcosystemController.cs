@@ -27,17 +27,19 @@ public class EcosystemController(
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getrootcontainer
     /// Example URL: GET /wopi/ecosystem/root_container_pointer
     /// </summary>
+    /// <param name="cancellationToken">cancellation token</param>
     /// <returns></returns>
     [HttpGet("root_container_pointer")]
     [Produces(MediaTypeNames.Application.Json)]
-    public RootContainerInfo GetRootContainer() //TODO: fix the path
+    public async Task<IActionResult> GetRootContainer(CancellationToken cancellationToken = default)
     {
-        var root = storageProvider.GetWopiContainer(@".\");
+        var root = await storageProvider.GetWopiResource<IWopiFolder>(storageProvider.RootContainerPointer.Identifier, cancellationToken)
+            ?? throw new InvalidOperationException("Root container not found");
         var rc = new RootContainerInfo
         {
-            ContainerPointer = new ChildContainer(root.Name, Url.GetWopiUrl(WopiResourceType.Container, root.Identifier))
+            ContainerPointer = new ChildContainer(root.Name, Url.GetWopiSrc(WopiResourceType.Container, root.Identifier))
         };
-        return rc;
+        return new JsonResult(rc);
     }
 
     /// <summary>

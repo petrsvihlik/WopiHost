@@ -37,6 +37,7 @@ public static class ServiceCollectionExtensions
         // Configuration
         services.Configure<WopiHostOptions>(configuration.GetSection(WopiConfigurationSections.WOPI_ROOT));
         // Add file provider
+        services.AddSingleton<InMemoryFileIds>();
         services.AddSingleton<IWopiStorageProvider, WopiFileSystemProvider>();
         services.AddSingleton<IWopiWritableStorageProvider, WopiFileSystemProvider>();
         // Add lock provider

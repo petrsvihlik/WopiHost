@@ -46,6 +46,11 @@ public static class WopiFileOperations
     public const string DeleteFile = "DELETE";
 
     /// <summary>
+    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/renamefile
+    /// </summary>
+    public const string RenameFile = "RENAME_FILE";
+
+    /// <summary>
     /// Cobalt file operations
     /// </summary>
     public const string Cobalt = "COBALT";

@@ -44,8 +44,6 @@ public class FilesControllerTests
 
         controller = new FilesController(
             storageProviderMock.Object,
-            securityHandlerMock.Object,
-            wopiHostOptionsMock.Object,
             memoryCache,
             writableStorageProviderMock.Object,
             lockProviderMock.Object)
@@ -62,7 +60,7 @@ public class FilesControllerTests
     {
         // Arrange
         var fileId = "testFileId";
-        storageProviderMock.Setup(s => s.GetWopiFile(fileId)).Returns<IWopiFile>(null!);
+        storageProviderMock.Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         // Act
         var result = await controller.CheckFileInfo(fileId);
@@ -84,14 +82,22 @@ public class FilesControllerTests
         fileMock.SetupGet(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
         fileMock.SetupGet(f => f.Length).Returns(1024);
         fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
-
         storageProviderMock
-            .Setup(s => s.GetWopiFile(fileId))
-            .Returns(fileMock.Object);
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => fileMock.Object);
 
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope(securityHandlerMock.Object),
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                    [
+                        new(ClaimTypes.NameIdentifier, "userId"),
+                        new(ClaimTypes.Name, "test")
+                    ])),
+            }
         };
 
         // Act
@@ -127,13 +133,14 @@ public class FilesControllerTests
         fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
 
         storageProviderMock
-            .Setup(s => s.GetWopiFile(fileId))
-            .Returns(fileMock.Object);
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => fileMock.Object);
 
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
             {
+                ServiceScopeFactory = TestUtils.CreateServiceScope(securityHandlerMock.Object),
                 User = new ClaimsPrincipal(
                     new ClaimsIdentity(
                     [
@@ -167,7 +174,7 @@ public class FilesControllerTests
     public async Task CheckFileInfo_FileNotFound_ReturnsNotFound()
     {
         // Arrange
-        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>())).Returns((IWopiFile)null!);
+        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         // Act
         var result = await controller.CheckFileInfo("file_id");
@@ -180,7 +187,7 @@ public class FilesControllerTests
     public async Task GetFile_FileNotFound_ReturnsNotFound()
     {
         // Arrange
-        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>())).Returns((IWopiFile)null!);
+        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         // Act
         var result = await controller.GetFile("file_id");
@@ -190,13 +197,13 @@ public class FilesControllerTests
     }
 
     [Fact]
-    public void GetEcosystem_FileNotFound_ReturnsNotFound()
+    public async Task GetEcosystem_FileNotFound_ReturnsNotFound()
     {
         // Arrange
-        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>())).Returns((IWopiFile)null!);
+        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         // Act
-        var result = controller.GetEcosystem("file_id");
+        var result = await controller.GetEcosystem("file_id");
 
         // Assert
         Assert.IsType<NotFoundResult>(result);
@@ -206,7 +213,7 @@ public class FilesControllerTests
     public async Task EnumerateAncestors_FileNotFound_ReturnsNotFound()
     {
         // Arrange
-        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>())).Returns((IWopiFile)null!);
+        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         // Act
         var result = await controller.EnumerateAncestors("file_id");
@@ -216,20 +223,20 @@ public class FilesControllerTests
     }
 
     [Fact]
-    public void PutUserInfo_FileNotFound_ReturnsNotFound()
+    public async Task PutUserInfo_FileNotFound_ReturnsNotFound()
     {
         // Arrange
-        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>())).Returns((IWopiFile)null!);
+        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         // Act
-        var result = controller.PutUserInfo("file_id", "user_info");
+        var result = await controller.PutUserInfo("file_id", "user_info");
 
         // Assert
         Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]
-    public void PutUserInfo_Success()
+    public async Task PutUserInfo_Success()
     {
         // Arrange
         var fileId = "testFileId";
@@ -243,8 +250,8 @@ public class FilesControllerTests
         fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
 
         storageProviderMock
-            .Setup(s => s.GetWopiFile(fileId))
-            .Returns(fileMock.Object);
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => fileMock.Object);
 
         controller.ControllerContext = new ControllerContext
         {
@@ -260,7 +267,7 @@ public class FilesControllerTests
         };
 
         // Act
-        var result = controller.PutUserInfo(fileId, "custom user info");
+        var result = await controller.PutUserInfo(fileId, "custom user info");
 
         // Assert
         Assert.IsType<OkResult>(result);
@@ -273,8 +280,6 @@ public class FilesControllerTests
         // Arrange
         controller = new FilesController(
                     storageProviderMock.Object,
-                    securityHandlerMock.Object,
-                    wopiHostOptionsMock.Object,
                     memoryCache);
         // Act
         var result = await controller.DeleteFile("file_id");
@@ -286,7 +291,7 @@ public class FilesControllerTests
     public async Task DeleteFile_FileNotFound_ReturnsNotFound()
     {
         // Arrange
-        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>())).Returns((IWopiFile)null!);
+        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
         // Act
         var result = await controller.DeleteFile("file_id");
         // Assert
@@ -308,8 +313,8 @@ public class FilesControllerTests
         fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
 
         storageProviderMock
-            .Setup(s => s.GetWopiFile(fileId))
-            .Returns(fileMock.Object);
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => fileMock.Object);
         var wopiLockInfo = new WopiLockInfo() { LockId = "lockId", FileId = fileId };
         lockProviderMock.Setup(x => x.TryGetLock(fileId, out wopiLockInfo)).Returns(true);
 
@@ -326,11 +331,7 @@ public class FilesControllerTests
         // Arrange
         controller = new FilesController(
             storageProviderMock.Object,
-            securityHandlerMock.Object,
-            wopiHostOptionsMock.Object,
-            memoryCache,
-            null,
-            null)
+            memoryCache)
         {
             ControllerContext = new ControllerContext
             {

@@ -8,18 +8,13 @@ namespace WopiHost.Abstractions;
 public interface IWopiStorageProvider
 {
     /// <summary>
-    /// Returns a concrete instance of an implementation of the <see cref="IWopiFile"/>.
+    /// Returns a concrete instance of <see cref="IWopiFile"/> or <see cref="IWopiFolder"/>
     /// </summary>
-    /// <param name="identifier">Generic string identifier of a file (typically some kind of a path).</param>
+    /// <param name="identifier">Generic string identifier of the Wopi resource.</param>
+    /// <param name="cancellationToken">cancellation token</param>
     /// <returns>Instance of a file.</returns>
-    IWopiFile GetWopiFile(string identifier);
-
-    /// <summary>
-    /// Returns a concrete instance of an implementation of the <see cref="IWopiFolder"/>.
-    /// </summary>
-    /// <param name="identifier">Generic string identifier of a container (typically some kind of a path).</param>
-    /// <returns>Instance of a container.</returns>
-    IWopiFolder GetWopiContainer(string identifier = "");
+    Task<T?> GetWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
+        where T : class, IWopiResource;
 
     /// <summary>
     /// Returns all files from the given source.
@@ -44,19 +39,19 @@ public interface IWopiStorageProvider
     /// <summary>
     /// Returns the ancestors of the given container or file.
     /// </summary>
-    /// <param name="resourceType">type of resource the identifier is pointing to</param>
     /// <param name="identifier">Container/File identifier.</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>list of containers top-down excluding the specified identifier</returns>
-    Task<ReadOnlyCollection<IWopiFolder>> GetAncestors(WopiResourceType resourceType, string identifier, CancellationToken cancellationToken = default);
+    Task<ReadOnlyCollection<IWopiFolder>> GetAncestors<T>(string identifier, CancellationToken cancellationToken = default)
+        where T : class, IWopiResource;
 
     /// <summary>
-    /// Returns a WOPI resource by its name.
+    /// Returns a Wopi resource by its name.
     /// </summary>
-    /// <param name="resourceType">what kind of Wopi resource are we looking for (Container or File)</param>
     /// <param name="containerId">parent containerId to search within</param>
     /// <param name="name">the exact name to look for</param>
     /// <param name="cancellationToken">cancellation token</param>
-    /// <returns></returns>
-    Task<IWopiResource?> GetWopiResourceByName(WopiResourceType resourceType, string containerId, string name, CancellationToken cancellationToken = default);
+    /// <returns>either <see cref="IWopiFile"/> or <see cref="IWopiFolder"/>, null if not found</returns>
+    Task<T?> GetWopiResourceByName<T>(string containerId, string name, CancellationToken cancellationToken = default)
+        where T : class, IWopiResource;
 }

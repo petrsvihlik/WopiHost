@@ -32,11 +32,12 @@ public class IndexModel(
         {
             // setup title
             ContainerId ??= storageProvider.RootContainerPointer.Identifier;
-            ContainerName = storageProvider.GetWopiContainer(ContainerId).Name;
+            ContainerName = (await storageProvider.GetWopiResource<IWopiFolder>(ContainerId, cancellationToken))?.Name
+                ?? throw new InvalidOperationException("Container not found");
             // calc breadcrumb
             if (ContainerId != storageProvider.RootContainerPointer.Identifier)
             {
-                var ancestors = await storageProvider.GetAncestors(WopiResourceType.Container, ContainerId, cancellationToken);
+                var ancestors = await storageProvider.GetAncestors<IWopiFolder>(ContainerId, cancellationToken);
                 for (var i=0; i<ancestors.Count; i++)
                 {
                     var ancestor = ancestors[i];
@@ -64,7 +65,8 @@ public class IndexModel(
             // allow to navigate to parent container
             if (!string.IsNullOrWhiteSpace(ParentContainerId))
             {
-                var parentContainer = storageProvider.GetWopiContainer(ParentContainerId);
+                var parentContainer = await storageProvider.GetWopiResource<IWopiFolder>(ParentContainerId, cancellationToken)
+                    ?? throw new InvalidOperationException("Parent container not found");
                 Containers.Add(new ContainerViewModel
                 {
                     ContainerId = parentContainer.Identifier,

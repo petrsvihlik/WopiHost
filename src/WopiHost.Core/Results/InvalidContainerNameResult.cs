@@ -24,7 +24,7 @@ public class InvalidContainerNameResult : ConflictResult
         if (!string.IsNullOrEmpty(reason))
         {
             Reason = reason;
-            response.Headers[WopiHeaders.WOPI_INVALID_CONTAINER_NAME] = reason;
+            response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = reason;
         }
     }
 }
