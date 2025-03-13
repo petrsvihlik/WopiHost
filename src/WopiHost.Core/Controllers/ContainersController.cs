@@ -252,6 +252,10 @@ public class ContainersController(
             // 409 Conflict – requestedName already exists
             return new ConflictResult();
         }
+        catch (Exception)
+        {
+            return new InternalServerErrorResult();
+        }
         return new InternalServerErrorResult();
     }
 

@@ -13,5 +13,6 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <PackageReference Include="Moq" />
+	  <PackageReference Include="System.Linq.Async" />
 	</ItemGroup>
 </Project>
