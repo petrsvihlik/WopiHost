@@ -33,7 +33,7 @@ public class EcosystemController(
     [Produces(MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetRootContainer(CancellationToken cancellationToken = default)
     {
-        var root = await storageProvider.GetWopiContainer(storageProvider.RootContainerPointer.Identifier, cancellationToken)
+        var root = await storageProvider.GetWopiResource<IWopiFolder>(storageProvider.RootContainerPointer.Identifier, cancellationToken)
             ?? throw new InvalidOperationException("Root container not found");
         var rc = new RootContainerInfo
         {

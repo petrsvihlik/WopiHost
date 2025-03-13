@@ -60,7 +60,7 @@ public class FilesControllerTests
     {
         // Arrange
         var fileId = "testFileId";
-        storageProviderMock.Setup(s => s.GetWopiFile(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        storageProviderMock.Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         // Act
         var result = await controller.CheckFileInfo(fileId);
@@ -83,7 +83,7 @@ public class FilesControllerTests
         fileMock.SetupGet(f => f.Length).Returns(1024);
         fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
         storageProviderMock
-            .Setup(s => s.GetWopiFile(fileId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => fileMock.Object);
 
         controller.ControllerContext = new ControllerContext
@@ -133,7 +133,7 @@ public class FilesControllerTests
         fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
 
         storageProviderMock
-            .Setup(s => s.GetWopiFile(fileId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => fileMock.Object);
 
         controller.ControllerContext = new ControllerContext
@@ -174,7 +174,7 @@ public class FilesControllerTests
     public async Task CheckFileInfo_FileNotFound_ReturnsNotFound()
     {
         // Arrange
-        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         // Act
         var result = await controller.CheckFileInfo("file_id");
@@ -187,7 +187,7 @@ public class FilesControllerTests
     public async Task GetFile_FileNotFound_ReturnsNotFound()
     {
         // Arrange
-        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         // Act
         var result = await controller.GetFile("file_id");
@@ -200,7 +200,7 @@ public class FilesControllerTests
     public async Task GetEcosystem_FileNotFound_ReturnsNotFound()
     {
         // Arrange
-        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         // Act
         var result = await controller.GetEcosystem("file_id");
@@ -213,7 +213,7 @@ public class FilesControllerTests
     public async Task EnumerateAncestors_FileNotFound_ReturnsNotFound()
     {
         // Arrange
-        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         // Act
         var result = await controller.EnumerateAncestors("file_id");
@@ -226,7 +226,7 @@ public class FilesControllerTests
     public async Task PutUserInfo_FileNotFound_ReturnsNotFound()
     {
         // Arrange
-        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         // Act
         var result = await controller.PutUserInfo("file_id", "user_info");
@@ -250,7 +250,7 @@ public class FilesControllerTests
         fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
 
         storageProviderMock
-            .Setup(s => s.GetWopiFile(fileId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => fileMock.Object);
 
         controller.ControllerContext = new ControllerContext
@@ -291,7 +291,7 @@ public class FilesControllerTests
     public async Task DeleteFile_FileNotFound_ReturnsNotFound()
     {
         // Arrange
-        storageProviderMock.Setup(sp => sp.GetWopiFile(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
         // Act
         var result = await controller.DeleteFile("file_id");
         // Assert
@@ -313,7 +313,7 @@ public class FilesControllerTests
         fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
 
         storageProviderMock
-            .Setup(s => s.GetWopiFile(fileId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => fileMock.Object);
         var wopiLockInfo = new WopiLockInfo() { LockId = "lockId", FileId = fileId };
         lockProviderMock.Setup(x => x.TryGetLock(fileId, out wopiLockInfo)).Returns(true);

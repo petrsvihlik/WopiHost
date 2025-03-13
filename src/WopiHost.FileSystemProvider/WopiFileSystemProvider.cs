@@ -54,13 +54,19 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     }
 
     /// <inheritdoc/>
-    public Task<IWopiFile?> GetWopiFile(string identifier, CancellationToken cancellationToken = default)
+    public Task<T?> GetWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
+        where T : class, IWopiResource
     {
         if (fileIds.TryGetPath(identifier, out var fullPath))
         {
-            return Task.FromResult<IWopiFile?>(new WopiFile(fullPath, identifier));
+            return typeof(T) switch
+            {
+                IWopiFile => Task.FromResult(new WopiFile(fullPath, identifier) as T),
+                IWopiFolder => Task.FromResult(new WopiFolder(fullPath, identifier) as T),
+                _ => throw new NotSupportedException($"Unsupported resource type: {typeof(T).Name}"),
+            };
         }
-        return Task.FromResult<IWopiFile?>(null);
+        return Task.FromResult<T?>(null);
     }
 
     /// <inheritdoc/>
@@ -89,7 +95,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
             var filePath = Path.Combine(folderPath, Path.GetFileName(path));
             if (fileIds.TryGetFileId(filePath, out var fileId))
             {
-                var result = await GetWopiFile(fileId, cancellationToken)
+                var result = await GetWopiResource<IWopiFile>(fileId, cancellationToken)
                     ?? throw new FileNotFoundException($"File '{fileId}' not found");
                 yield return result;
             }
@@ -118,17 +124,18 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     }
 
     /// <inheritdoc/>
-    public async Task<ReadOnlyCollection<IWopiFolder>> GetAncestors(WopiResourceType resourceType, string identifier, CancellationToken cancellationToken = default)
+    public async Task<ReadOnlyCollection<IWopiFolder>> GetAncestors<T>(string identifier, CancellationToken cancellationToken = default)
+        where T : class, IWopiResource
     {
         // convert File identifier to it's parent Container's identifier
         var result = new List<IWopiFolder>();
-        if (resourceType == WopiResourceType.File)
+        if (typeof(T) == typeof(IWopiFile))
         {
             identifier = GetFileParentIdentifier(identifier);
         }
         var container = await GetWopiContainer(identifier, cancellationToken)
             ?? throw new DirectoryNotFoundException($"Directory '{identifier}' not found.");
-        if (container.Identifier == RootContainerPointer.Identifier && resourceType == WopiResourceType.File)
+        if (container.Identifier == RootContainerPointer.Identifier && typeof(T) == typeof(IWopiFile))
         {
             result.Add(container);
         }
@@ -145,11 +152,10 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     }
 
     /// <inheritdoc/>
-    public async Task<IWopiResource?> GetWopiResourceByName(
-        WopiResourceType resourceType, 
+    public async Task<T?> GetWopiResourceByName<T>(
         string containerId, 
         string name, 
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) where T : class, IWopiResource
     {
         if (!fileIds.TryGetPath(containerId, out var dirPath))
         {
@@ -157,13 +163,13 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         }
         if (!fileIds.TryGetFileId(Path.Combine(dirPath, name), out var nameId))
         {
-            return null;
+            return default;
         }
 
-        IWopiResource? result = resourceType switch
+        T? result = typeof(T) switch
         {
-            WopiResourceType.File => await GetWopiFile(nameId, cancellationToken),
-            WopiResourceType.Container => await GetWopiContainer(nameId, cancellationToken),
+            IWopiFile => await GetWopiResource<IWopiFile>(nameId, cancellationToken) as T,
+            IWopiFolder => await GetWopiContainer(nameId, cancellationToken) as T,
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
         return result;
@@ -175,27 +181,27 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     public int FileNameMaxLength { get; } = 250; // Windows limit
 
     /// <inheritdoc/>
-    public Task<bool> CheckValidName(
-        WopiResourceType resourceType,
+    public Task<bool> CheckValidName<T>(
         string name,
         CancellationToken cancellationToken = default)
+        where T : class, IWopiResource
     {
-        return resourceType switch
+        return typeof(T) switch
         {
-            WopiResourceType.File => Task.FromResult(name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && name.Length < FileNameMaxLength),
-            WopiResourceType.Container => Task.FromResult(name.IndexOfAny(Path.GetInvalidPathChars()) < 0),
+            IWopiFile => Task.FromResult(name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && name.Length < FileNameMaxLength),
+            IWopiFolder => Task.FromResult(name.IndexOfAny(Path.GetInvalidPathChars()) < 0),
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
     }
 
     /// <inheritdoc/>
-    public async Task<string> GetSuggestedName(
-        WopiResourceType resourceType,
+    public async Task<string> GetSuggestedName<T>(
         string containerId,
         string name,
         CancellationToken cancellationToken = default)
+        where T : class, IWopiResource
     {
-        if (!await CheckValidName(resourceType, name, cancellationToken))
+        if (!await CheckValidName<T>(name, cancellationToken))
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(name));
         }
@@ -206,7 +212,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         var newPath = Path.Combine(fullPath, name);
 
         // are we trying to create a container?
-        if (resourceType == WopiResourceType.Container)
+        if (typeof(T) == typeof(IWopiFolder))
         {
             if (Directory.Exists(newPath))
             {
@@ -223,7 +229,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
                 return name;
             }
         }
-        else if (resourceType == WopiResourceType.File)
+        else if (typeof(T) == typeof(IWopiFile))
         {
             if (File.Exists(newPath))
             {
@@ -247,16 +253,16 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     }
 
     /// <inheritdoc/>
-    public async Task<IWopiResource?> CreateWopiChildResource(
-        WopiResourceType resourceType,
+    public async Task<T?> CreateWopiChildResource<T>(
         string? containerId,
         string name,
         CancellationToken cancellationToken = default)
+        where T : class, IWopiResource
     {
-        return resourceType switch
+        return typeof(T) switch
         {
-            WopiResourceType.File => await CreateWopiFile(containerId ?? RootContainerPointer.Identifier, name, cancellationToken),
-            WopiResourceType.Container => await CreateWopiChildContainer(containerId ?? RootContainerPointer.Identifier, name, cancellationToken),
+            IWopiFile => await CreateWopiFile(containerId ?? RootContainerPointer.Identifier, name, cancellationToken) as T,
+            IWopiFolder => await CreateWopiChildContainer(containerId ?? RootContainerPointer.Identifier, name, cancellationToken) as T,
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
     }
@@ -283,7 +289,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         }
 
         var newFileId = fileIds.AddFile(newPath);
-        return GetWopiFile(newFileId, cancellationToken);
+        return GetWopiResource<IWopiFile>(newFileId, cancellationToken);
     }
 
     private Task<IWopiFolder?> CreateWopiChildContainer(
@@ -311,12 +317,13 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     }
 
     /// <inheritdoc/>
-    public Task<bool> DeleteWopiResource(WopiResourceType resourceType, string identifier, CancellationToken cancellationToken = default)
+    public Task<bool> DeleteWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
+        where T : class, IWopiResource
     {
-        var result = resourceType switch
+        var result = typeof(T) switch
         {
-            WopiResourceType.File => DeleteWopiFile(identifier),
-            WopiResourceType.Container => DeleteWopiContainer(identifier),
+            IWopiFile => DeleteWopiFile(identifier),
+            IWopiFolder => DeleteWopiContainer(identifier),
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
         return Task.FromResult<bool>(result);
@@ -357,14 +364,15 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     }
 
     /// <inheritdoc/>
-    public async Task<bool> RenameWopiResource(WopiResourceType resourceType, string identifier, string requestedName, CancellationToken cancellationToken = default)
+    public async Task<bool> RenameWopiResource<T>(string identifier, string requestedName, CancellationToken cancellationToken = default)
+        where T : class, IWopiResource
     {
-        if (!await CheckValidName(resourceType, requestedName, cancellationToken))
+        if (!await CheckValidName<T>(requestedName, cancellationToken))
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(requestedName));
         }
 
-        if (resourceType == WopiResourceType.File)
+        if (typeof(T) == typeof(IWopiFile))
         {
             if (!fileIds.TryGetPath(identifier, out var fullPath))
             {
@@ -380,7 +388,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
             File.Move(fullPath, newPath);
             fileIds.UpdateFile(identifier, newPath);
         }
-        else if (resourceType == WopiResourceType.Container)
+        else if (typeof(T) == typeof(IWopiFolder))
         {
             if (!fileIds.TryGetPath(identifier, out var fullPath))
             {

@@ -34,7 +34,7 @@ public class HostPageModel(
             return BadRequest(ModelState);
         }
 
-        var file = await storageProvider.GetWopiFile(FileId, cancellationToken)
+        var file = await storageProvider.GetWopiResource<IWopiFile>(FileId, cancellationToken)
             ?? throw new FileNotFoundException($"File with ID '{FileId}' not found.");
         var token = await securityHandler.GenerateAccessToken(wopiOptions.Value.UserId, file.Identifier, cancellationToken);
 
