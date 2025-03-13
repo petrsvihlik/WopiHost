@@ -56,23 +56,22 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     /// <inheritdoc/>
     public Task<IWopiFile?> GetWopiFile(string identifier, CancellationToken cancellationToken = default)
     {
-        if (!fileIds.TryGetPath(identifier, out var fullPath))
+        if (fileIds.TryGetPath(identifier, out var fullPath))
         {
-            throw new FileNotFoundException($"File '{identifier}' not found");
+            return Task.FromResult<IWopiFile?>(new WopiFile(fullPath, identifier));
         }
-
-        return Task.FromResult<IWopiFile?>(new WopiFile(fullPath, identifier));
+        return Task.FromResult<IWopiFile?>(null);
     }
 
     /// <inheritdoc/>
     public Task<IWopiFolder?> GetWopiContainer(string? identifier = null, CancellationToken cancellationToken = default)
     {
         identifier ??= RootContainerPointer.Identifier;
-        if (!fileIds.TryGetPath(identifier, out var fullPath))
+        if (fileIds.TryGetPath(identifier, out var fullPath))
         {
-            throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
+            return Task.FromResult<IWopiFolder?>(new WopiFolder(fullPath, identifier));
         }
-        return Task.FromResult<IWopiFolder?>(new WopiFolder(fullPath, identifier));
+        return Task.FromResult<IWopiFolder?>(null);
     }
 
     /// <inheritdoc/>
@@ -360,10 +359,6 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     /// <inheritdoc/>
     public async Task<bool> RenameWopiResource(WopiResourceType resourceType, string identifier, string requestedName, CancellationToken cancellationToken = default)
     {
-        if (resourceType != WopiResourceType.Container)
-        {
-            throw new NotSupportedException("Only containers can be renamed.");
-        }
         if (!await CheckValidName(resourceType, requestedName, cancellationToken))
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(requestedName));
