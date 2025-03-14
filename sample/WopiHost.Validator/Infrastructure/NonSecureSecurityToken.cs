@@ -2,18 +2,11 @@
 
 namespace WopiHost.Validator.Infrastructure;
 
-public class NonSecureSecurityToken : SecurityToken
+public class NonSecureSecurityToken(string userName) : SecurityToken
 {
-    private readonly string _id;
-    private readonly string _userName;
-    private readonly DateTime _effectiveTime;
-
-    public NonSecureSecurityToken(string userName)
-    {
-        _userName = userName;
-        _id = userName;// Guid.NewGuid().ToString("N");
-        _effectiveTime = DateTime.UtcNow;
-    }
+    private readonly string _id = userName;
+    private readonly string _userName = userName;
+    private readonly DateTime _effectiveTime = DateTime.UtcNow;
 
     public override string Id
     {

@@ -25,7 +25,7 @@ public class HostPageModel(
     public string AccessTokenTtl { get; set; } = string.Empty;
     public string UrlSrc { get; set; } = string.Empty;
 
-    private readonly WopiUrlBuilder urlGenerator = new WopiUrlBuilder(discoverer, new WopiUrlSettings { UiLlcc = CultureInfo.CurrentUICulture });
+    private readonly WopiUrlBuilder urlGenerator = new(discoverer, new WopiUrlSettings { UiLlcc = CultureInfo.CurrentUICulture });
 
     public async Task<IActionResult> OnGet(CancellationToken cancellationToken = default)
     {
