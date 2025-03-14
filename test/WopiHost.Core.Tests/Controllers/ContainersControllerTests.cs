@@ -624,11 +624,11 @@ public class ContainersControllerTests
     {
         // Arrange
         var containerId = "existing-container";
-        var ancestors = new ReadOnlyCollection<IWopiFolder>(new List<IWopiFolder>
-        {
+        var ancestors = new ReadOnlyCollection<IWopiFolder>(
+        [
             new Mock<IWopiFolder>().Object,
             new Mock<IWopiFolder>().Object
-        });
+        ]);
         storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
         storageProviderMock.Setup(sp => sp.GetAncestors<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(ancestors);
 

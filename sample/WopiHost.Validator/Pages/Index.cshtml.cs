@@ -128,7 +128,7 @@ public class IndexModel(
 
     private static string ConvertFileSize(long fileSize)
     {
-        string[] units = { "B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
+        string[] units = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
         double size = System.Convert.ToDouble(fileSize, CultureInfo.CurrentCulture);
         int unit = 0;
 

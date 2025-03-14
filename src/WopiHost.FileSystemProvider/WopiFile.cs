@@ -7,13 +7,18 @@ using WopiHost.Abstractions;
 namespace WopiHost.FileSystemProvider;
 
 /// <inheritdoc/>
-public class WopiFile : IWopiFile
+/// <summary>
+/// Creates an instance of <see cref="WopiFile"/>.
+/// </summary>
+/// <param name="filePath">Path on the file system the file is located in.</param>
+/// <param name="fileIdentifier">Identifier of a file.</param>
+public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
 {
-    private readonly FileInfo fileInfo;
-    private readonly FileVersionInfo fileVersionInfo;
+    private readonly FileInfo fileInfo = new(filePath);
+    private readonly FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(filePath);
 
     /// <inheritdoc/>
-    public string Identifier { get; }
+    public string Identifier { get; } = fileIdentifier;
 
     /// <inheritdoc />
     public bool Exists => fileInfo.Exists;
@@ -46,18 +51,6 @@ public class WopiFile : IWopiFile
 
     /// <inheritdoc/>
     public Task<Stream> GetWriteStream(CancellationToken cancellationToken = default) => Task.FromResult<Stream>(fileInfo.Open(FileMode.Truncate));
-
-    /// <summary>
-    /// Creates an instance of <see cref="WopiFile"/>.
-    /// </summary>
-    /// <param name="filePath">Path on the file system the file is located in.</param>
-    /// <param name="fileIdentifier">Identifier of a file.</param>
-    public WopiFile(string filePath, string fileIdentifier)
-    {
-        fileInfo = new FileInfo(filePath);
-        fileVersionInfo = FileVersionInfo.GetVersionInfo(filePath);
-        Identifier = fileIdentifier;
-    }
 
     /// <summary>
     /// A string that uniquely identifies the owner of the file.

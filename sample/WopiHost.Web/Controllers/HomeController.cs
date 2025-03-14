@@ -17,7 +17,7 @@ public class HomeController(
     ILoggerFactory loggerFactory) : Controller
 {
     //TODO: remove test culture value and load it from configuration SECTION
-    private readonly WopiUrlBuilder urlGenerator = new WopiUrlBuilder(discoverer, new WopiUrlSettings { UiLlcc = new CultureInfo("en-US") });
+    private readonly WopiUrlBuilder urlGenerator = new(discoverer, new WopiUrlSettings { UiLlcc = new CultureInfo("en-US") });
 
     public async Task<ActionResult> Index()
     {
