@@ -48,7 +48,7 @@ public class WopiDiscovererTests
         var result = await _wopiDiscoverer.GetAppsAsync();
 
         // Assert
-        Assert.Empty(result.Elements());
+        Assert.Empty(result.Apps);
     }
 
     [Theory]

@@ -1,4 +1,5 @@
 using WopiHost.Discovery.Enumerations;
+using WopiHost.Discovery.Models;
 
 namespace WopiHost.Discovery;
 
@@ -59,4 +60,10 @@ public interface IDiscoverer
 		/// <param name="extension">File extension to get the icon for (without the leading dot).</param>
 		/// <returns>Icon of the app.</returns>
 		Task<Uri?> GetApplicationFavIconAsync(string extension);
+
+		/// <summary>
+		/// Gets all apps from the discovery XML.
+		/// </summary>
+		/// <returns>The collection of WOPI applications.</returns>
+		Task<WopiApps> GetAppsAsync();
 }
