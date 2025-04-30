@@ -61,8 +61,8 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         {
             return typeof(T) switch
             {
-                IWopiFile => Task.FromResult(new WopiFile(fullPath, identifier) as T),
-                IWopiFolder => Task.FromResult(new WopiFolder(fullPath, identifier) as T),
+                { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => Task.FromResult(new WopiFile(fullPath, identifier) as T),
+                { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => Task.FromResult(new WopiFolder(fullPath, identifier) as T),
                 _ => throw new NotSupportedException($"Unsupported resource type: {typeof(T).Name}"),
             };
         }
