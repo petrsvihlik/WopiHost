@@ -38,6 +38,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\WopiHost.Abstractions\WopiHost.Abstractions.csproj" />
+		<ProjectReference Include="..\WopiHost.Discovery\WopiHost.Discovery.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
