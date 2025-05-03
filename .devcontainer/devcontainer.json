@@ -1,0 +1,12 @@
+{
+  "name": "C# (.NET 9)",
+  "build": {
+    "dockerfile": "./Dockerfile",
+    "context": "."
+  },
+  "features": {},
+  "postCreateCommand": "dotnet --list-sdks",
+  "containerEnv": {
+    "MYGET_FEED": "${{ secrets.MYGET_FEED }}"
+  }
+}
