@@ -29,7 +29,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     /// <param name="configuration">Application configuration.</param>
     public WopiFileSystemProvider(
         InMemoryFileIds fileIds,
-        IHostEnvironment env, 
+        IHostEnvironment env,
         IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
@@ -71,8 +71,8 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
 
     /// <inheritdoc/>
     public async IAsyncEnumerable<IWopiFile> GetWopiFiles(
-        string? identifier = null, 
-        string? searchPattern = null, 
+        string? identifier = null,
+        string? searchPattern = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var folderPath = fileIds.GetPath(identifier ?? RootContainerPointer.Identifier)
@@ -140,8 +140,8 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
 
     /// <inheritdoc/>
     public async Task<T?> GetWopiResourceByName<T>(
-        string containerId, 
-        string name, 
+        string containerId,
+        string name,
         CancellationToken cancellationToken = default) where T : class, IWopiResource
     {
         if (!fileIds.TryGetPath(containerId, out var dirPath))
