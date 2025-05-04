@@ -31,13 +31,18 @@ public class WopiProofValidatorTests
     {
         private readonly Mock<IDiscoverer> _mockDiscoverer;
         private readonly Mock<ILogger<WopiProofValidator>> _mockLogger;
+        private readonly FakeTimeProvider _timeProvider;
         private readonly WopiProofValidator _validator;
+        
+        // Fixed reference time for consistent testing
+        private readonly DateTimeOffset _referenceTime = new DateTimeOffset(2023, 6, 15, 12, 0, 0, TimeSpan.Zero);
 
         public TimestampValidationTests()
         {
             _mockDiscoverer = new Mock<IDiscoverer>();
             _mockLogger = new Mock<ILogger<WopiProofValidator>>();
-            _validator = new WopiProofValidator(_mockDiscoverer.Object, _mockLogger.Object);
+            _timeProvider = new FakeTimeProvider(_referenceTime);
+            _validator = new WopiProofValidator(_mockDiscoverer.Object, _mockLogger.Object, _timeProvider);
             
             // Setup discoverer to return empty proof keys
             _mockDiscoverer.Setup(d => d.GetProofKeysAsync())
@@ -48,9 +53,8 @@ public class WopiProofValidatorTests
         public void ValidateTimestamp_WithExactly20MinutesOld_ShouldReturnTrue()
         {
             // Arrange
-            // Adding a small buffer (200ms) to ensure we're just slightly under 20 minutes
-            // to account for execution time between timestamp creation and validation
-            string timestamp = DateTimeOffset.UtcNow.AddMinutes(-20).AddMilliseconds(200).ToUnixTimeMilliseconds().ToString();
+            // Exactly 20 minutes old
+            var timestamp = _referenceTime.AddMinutes(-20).ToUnixTimeMilliseconds().ToString();
 
             // Act
             bool result = _validator.ValidateTimestamp(timestamp);
@@ -63,7 +67,7 @@ public class WopiProofValidatorTests
         public void ValidateTimestamp_With19MinutesOld_ShouldReturnTrue()
         {
             // Arrange
-            string timestamp = DateTimeOffset.UtcNow.AddMinutes(-19).ToUnixTimeMilliseconds().ToString();
+            var timestamp = _referenceTime.AddMinutes(-19).ToUnixTimeMilliseconds().ToString();
 
             // Act
             bool result = _validator.ValidateTimestamp(timestamp);
@@ -76,7 +80,7 @@ public class WopiProofValidatorTests
         public void ValidateTimestamp_WithAlmost20MinutesOld_ShouldReturnTrue()
         {
             // Arrange - 19 minutes and 59 seconds old
-            string timestamp = DateTimeOffset.UtcNow.AddMinutes(-19).AddSeconds(-59).ToUnixTimeMilliseconds().ToString();
+            var timestamp = _referenceTime.AddMinutes(-19).AddSeconds(-59).ToUnixTimeMilliseconds().ToString();
 
             // Act
             bool result = _validator.ValidateTimestamp(timestamp);
@@ -89,7 +93,7 @@ public class WopiProofValidatorTests
         public void ValidateTimestamp_With21MinutesOld_ShouldReturnFalse()
         {
             // Arrange
-            string timestamp = DateTimeOffset.UtcNow.AddMinutes(-21).ToUnixTimeMilliseconds().ToString();
+            var timestamp = _referenceTime.AddMinutes(-21).ToUnixTimeMilliseconds().ToString();
 
             // Act
             bool result = _validator.ValidateTimestamp(timestamp);
@@ -102,7 +106,7 @@ public class WopiProofValidatorTests
         public void ValidateTimestamp_With20MinutesAnd1SecondOld_ShouldReturnFalse()
         {
             // Arrange - Just over 20 minutes old
-            string timestamp = DateTimeOffset.UtcNow.AddMinutes(-20).AddSeconds(-1).ToUnixTimeMilliseconds().ToString();
+            var timestamp = _referenceTime.AddMinutes(-20).AddSeconds(-1).ToUnixTimeMilliseconds().ToString();
 
             // Act
             bool result = _validator.ValidateTimestamp(timestamp);
@@ -115,7 +119,7 @@ public class WopiProofValidatorTests
         public void ValidateTimestamp_WithFutureTimestamp_ShouldReturnTrue()
         {
             // Arrange - 1 minute in the future
-            string timestamp = DateTimeOffset.UtcNow.AddMinutes(1).ToUnixTimeMilliseconds().ToString();
+            var timestamp = _referenceTime.AddMinutes(1).ToUnixTimeMilliseconds().ToString();
 
             // Act
             bool result = _validator.ValidateTimestamp(timestamp);
@@ -158,13 +162,18 @@ public class WopiProofValidatorTests
     {
         private readonly Mock<IDiscoverer> _mockDiscoverer;
         private readonly Mock<ILogger<WopiProofValidator>> _mockLogger;
+        private readonly FakeTimeProvider _timeProvider;
         private readonly WopiProofValidator _validator;
+        
+        // Fixed reference time for consistent testing
+        private readonly DateTimeOffset _referenceTime = new DateTimeOffset(2023, 6, 15, 12, 0, 0, TimeSpan.Zero);
         
         public ProofValidationTests()
         {
             _mockDiscoverer = new Mock<IDiscoverer>();
             _mockLogger = new Mock<ILogger<WopiProofValidator>>();
-            _validator = new WopiProofValidator(_mockDiscoverer.Object, _mockLogger.Object);
+            _timeProvider = new FakeTimeProvider(_referenceTime);
+            _validator = new WopiProofValidator(_mockDiscoverer.Object, _mockLogger.Object, _timeProvider);
             
             // Setup discoverer to return empty proof keys by default
             _mockDiscoverer.Setup(d => d.GetProofKeysAsync())
@@ -179,7 +188,7 @@ public class WopiProofValidatorTests
             const string accessToken = "test-access-token";
             
             // Add only timestamp, missing proof header
-            request.Headers[WopiHeaders.TIMESTAMP] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+            request.Headers[WopiHeaders.TIMESTAMP] = _referenceTime.AddMinutes(-10).ToUnixTimeMilliseconds().ToString();
             
             // Act
             bool result = await _validator.ValidateProofAsync(request, accessToken);
@@ -214,7 +223,7 @@ public class WopiProofValidatorTests
             
             // Add headers with old timestamp (21 minutes)
             request.Headers[WopiHeaders.PROOF] = "valid-proof";
-            request.Headers[WopiHeaders.TIMESTAMP] = DateTimeOffset.UtcNow.AddMinutes(-21).ToUnixTimeMilliseconds().ToString();
+            request.Headers[WopiHeaders.TIMESTAMP] = _referenceTime.AddMinutes(-21).ToUnixTimeMilliseconds().ToString();
             
             // Act
             bool result = await _validator.ValidateProofAsync(request, accessToken);
@@ -222,5 +231,20 @@ public class WopiProofValidatorTests
             // Assert
             Assert.False(result, "Validation should fail with timestamp older than 20 minutes");
         }
+    }
+    
+    /// <summary>
+    /// A simple implementation of TimeProvider for use in testing.
+    /// </summary>
+    private class FakeTimeProvider : TimeProvider
+    {
+        private readonly DateTimeOffset _utcNow;
+
+        public FakeTimeProvider(DateTimeOffset utcNow)
+        {
+            _utcNow = utcNow;
+        }
+
+        public override DateTimeOffset GetUtcNow() => _utcNow;
     }
 } 

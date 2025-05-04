@@ -15,16 +15,19 @@ public class WopiProofValidator : IWopiProofValidator
 {
     private readonly IDiscoverer _discoverer;
     private readonly ILogger<WopiProofValidator> _logger;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Creates a new instance of the <see cref="WopiProofValidator"/> class.
     /// </summary>
     /// <param name="discoverer">Service for retrieving WOPI discovery information, including proof keys.</param>
     /// <param name="logger">Logger instance.</param>
-    public WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidator> logger)
+    /// <param name="timeProvider">Provider for time operations (defaults to system time if not provided).</param>
+    public WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidator> logger, TimeProvider? timeProvider = null)
     {
         _discoverer = discoverer;
         _logger = logger;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     /// <summary>
@@ -100,8 +103,11 @@ public class WopiProofValidator : IWopiProofValidator
         // Convert timestamp to DateTimeOffset (WOPI timestamp is in ticks)
         var timestampDate = DateTimeOffset.FromUnixTimeMilliseconds(timestampValue);
         
+        // Use the time provider to get the current time
+        var now = _timeProvider.GetUtcNow();
+        
         // Check if timestamp is no more than 20 minutes old (inclusive)
-        return DateTimeOffset.UtcNow.Subtract(timestampDate).TotalMinutes <= 20;
+        return now.Subtract(timestampDate).TotalMinutes <= 20;
     }
 
     private byte[] BuildExpectedProof(HttpRequest request, string accessToken, string timestamp)
