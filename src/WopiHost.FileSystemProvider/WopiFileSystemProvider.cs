@@ -29,7 +29,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     /// <param name="configuration">Application configuration.</param>
     public WopiFileSystemProvider(
         InMemoryFileIds fileIds,
-        IHostEnvironment env, 
+        IHostEnvironment env,
         IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
@@ -61,8 +61,8 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         {
             return typeof(T) switch
             {
-                IWopiFile => Task.FromResult(new WopiFile(fullPath, identifier) as T),
-                IWopiFolder => Task.FromResult(new WopiFolder(fullPath, identifier) as T),
+                { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => Task.FromResult(new WopiFile(fullPath, identifier) as T),
+                { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => Task.FromResult(new WopiFolder(fullPath, identifier) as T),
                 _ => throw new NotSupportedException($"Unsupported resource type: {typeof(T).Name}"),
             };
         }
@@ -71,8 +71,8 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
 
     /// <inheritdoc/>
     public async IAsyncEnumerable<IWopiFile> GetWopiFiles(
-        string? identifier = null, 
-        string? searchPattern = null, 
+        string? identifier = null,
+        string? searchPattern = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var folderPath = fileIds.GetPath(identifier ?? RootContainerPointer.Identifier)
@@ -140,8 +140,8 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
 
     /// <inheritdoc/>
     public async Task<T?> GetWopiResourceByName<T>(
-        string containerId, 
-        string name, 
+        string containerId,
+        string name,
         CancellationToken cancellationToken = default) where T : class, IWopiResource
     {
         if (!fileIds.TryGetPath(containerId, out var dirPath))

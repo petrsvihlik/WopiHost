@@ -37,6 +37,7 @@ public class Startup(IConfiguration configuration)
         });
 
         services.AddSingleton<IDiscoverer, WopiDiscoverer>();
+        services.AddSingleton<InMemoryFileIds>();
         services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
     }
 
