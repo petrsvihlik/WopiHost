@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
-		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+		<TargetFramework>net9.0</TargetFramework>
 		<IncludeOpenAPIAnalyzers>true</IncludeOpenAPIAnalyzers>
 		<PreserveCompilationContext>true</PreserveCompilationContext>
 		<AssemblyName>WopiHost.Web</AssemblyName>
@@ -15,6 +15,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" />
+		<PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -26,6 +27,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.Url\WopiHost.Url.csproj" />
+		<ProjectReference Include="..\..\infra\WopiHost.ServiceDefaults\WopiHost.ServiceDefaults.csproj" />
 	</ItemGroup>
 
 	<Target Name="PrepublishScript" BeforeTargets="PrepareForPublish">
