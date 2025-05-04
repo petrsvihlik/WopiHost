@@ -11,7 +11,7 @@ namespace WopiHost.Core.Security.Authentication;
 /// <summary>
 /// Service for validating WOPI proof headers to ensure requests come from a trusted WOPI client.
 /// </summary>
-public class WopiProofValidator
+public class WopiProofValidator : IWopiProofValidator
 {
     private readonly IDiscoverer _discoverer;
     private readonly ILogger<WopiProofValidator> _logger;
@@ -90,7 +90,7 @@ public class WopiProofValidator
         }
     }
 
-    private bool ValidateTimestamp(string timestamp)
+    internal bool ValidateTimestamp(string timestamp)
     {
         if (!long.TryParse(timestamp, out var timestampValue))
         {
@@ -100,7 +100,7 @@ public class WopiProofValidator
         // Convert timestamp to DateTimeOffset (WOPI timestamp is in ticks)
         var timestampDate = DateTimeOffset.FromUnixTimeMilliseconds(timestampValue);
         
-        // Check if timestamp is not older than 20 minutes
+        // Check if timestamp is no more than 20 minutes old (inclusive)
         return DateTimeOffset.UtcNow.Subtract(timestampDate).TotalMinutes <= 20;
     }
 

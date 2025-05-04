@@ -15,7 +15,7 @@ public static class WopiProofValidationExtensions
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddWopiProofValidation(this IServiceCollection services)
     {
-        services.AddScoped<WopiProofValidator>();
+        services.AddScoped<IWopiProofValidator, WopiProofValidator>();
         services.AddScoped<WopiOriginValidationMiddleware>();
         
         return services;

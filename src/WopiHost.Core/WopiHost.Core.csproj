@@ -16,6 +16,7 @@
 		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
 		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
 		<DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+		<InternalsVisibleTo>WopiHost.Core.Tests</InternalsVisibleTo>
 	</PropertyGroup>
 
 	<ItemGroup>

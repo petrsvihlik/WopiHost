@@ -11,7 +11,7 @@ namespace WopiHost.Core.Security.Authentication;
 /// </summary>
 public class WopiOriginValidationMiddleware : IMiddleware
 {
-    private readonly WopiProofValidator _proofValidator;
+    private readonly IWopiProofValidator _proofValidator;
     private readonly ILogger<WopiOriginValidationMiddleware> _logger;
 
     /// <summary>
@@ -19,7 +19,7 @@ public class WopiOriginValidationMiddleware : IMiddleware
     /// </summary>
     /// <param name="proofValidator">The service used to validate WOPI proof keys.</param>
     /// <param name="logger">Logger instance.</param>
-    public WopiOriginValidationMiddleware(WopiProofValidator proofValidator, ILogger<WopiOriginValidationMiddleware> logger)
+    public WopiOriginValidationMiddleware(IWopiProofValidator proofValidator, ILogger<WopiOriginValidationMiddleware> logger)
     {
         _proofValidator = proofValidator;
         _logger = logger;
