@@ -4,6 +4,7 @@ using WopiHost.Abstractions;
 using WopiHost.Core.Models;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
+using WopiHost.FileSystemProvider;
 
 namespace WopiHost;
 
@@ -47,6 +48,10 @@ public static class Program
                 .ValidateDataAnnotations();
             
             var wopiHostOptions = wopiHostOptionsSection.Get<WopiHostOptions>();
+            
+            // Register InMemoryFileIds - needed by WopiFileSystemProvider
+            builder.Services.AddSingleton<InMemoryFileIds>();
+            
             // Add file provider
             builder.Services.AddStorageProvider(wopiHostOptions.StorageProviderAssemblyName);
             // Add lock provider
