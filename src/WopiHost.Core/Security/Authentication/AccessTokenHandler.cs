@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
+using WopiHost.Core.Extensions;
 
 namespace WopiHost.Core.Security.Authentication;
 
@@ -38,7 +39,7 @@ public class AccessTokenHandler(
                 return AuthenticateResult.NoResult();
             }
 
-            var token = Context.Request.Query[AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME].ToString();
+            var token = Context.Request.GetAccessToken();
 
             if (Context.Request.Path.Value == "/wopibootstrapper")
             {

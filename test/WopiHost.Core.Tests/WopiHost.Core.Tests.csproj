@@ -4,6 +4,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\WopiHost.Core\WopiHost.Core.csproj" />
+		<ProjectReference Include="..\..\src\WopiHost.Discovery\WopiHost.Discovery.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Folder Include="Controllers\" />

@@ -16,6 +16,7 @@
 		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
 		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
 		<DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+		<InternalsVisibleTo>WopiHost.Core.Tests</InternalsVisibleTo>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -38,6 +39,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\WopiHost.Abstractions\WopiHost.Abstractions.csproj" />
+		<ProjectReference Include="..\WopiHost.Discovery\WopiHost.Discovery.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

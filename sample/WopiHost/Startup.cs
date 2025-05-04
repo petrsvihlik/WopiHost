@@ -3,6 +3,7 @@ using WopiHost.Core.Models;
 using Serilog;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
+using WopiHost.Core.Security.Authentication;
 
 namespace WopiHost;
 
@@ -66,6 +67,9 @@ public class Startup(IConfiguration configuration)
         // Automatically authenticate
         app.UseAuthentication();
         app.UseAuthorization();
+
+        // Validate WOPI requests using proof validation
+        app.UseWopiProofValidation();
 
         app.UseEndpoints(endpoints =>
         {
