@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http;
-using System.Threading.Tasks;
 
 namespace WopiHost.Core.Security.Authentication;
 

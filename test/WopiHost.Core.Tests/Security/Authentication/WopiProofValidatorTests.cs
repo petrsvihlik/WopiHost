@@ -1,21 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Net.Http;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Primitives;
 using Moq;
-using WopiHost.Abstractions;
 using WopiHost.Core.Infrastructure;
-using WopiHost.Core.Models;
 using WopiHost.Core.Security.Authentication;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Models;
-using Xunit;
 
 namespace WopiHost.Core.Tests.Security.Authentication;
 

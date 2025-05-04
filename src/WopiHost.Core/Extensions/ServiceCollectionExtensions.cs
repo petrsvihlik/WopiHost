@@ -1,8 +1,6 @@
 ﻿using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using WopiHost.Abstractions;
 using WopiHost.Core.Models;
 using WopiHost.Core.Security.Authentication;
 using WopiHost.Core.Security.Authorization;
@@ -25,6 +23,9 @@ public static class ServiceCollectionExtensions
 
         // Add authorization handler
         services.AddSingleton<IAuthorizationHandler, WopiAuthorizationHandler>();
+
+        // Add WOPI proof validation
+        services.AddWopiProofValidation();
 
         services.AddControllers()
             .AddApplicationPart(typeof(ServiceCollectionExtensions).GetTypeInfo().Assembly) // Add controllers from this assembly
