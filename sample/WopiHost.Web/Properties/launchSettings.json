@@ -15,9 +15,10 @@
 				"ASPNETCORE_ENVIRONMENT": "Development"
 			}
 		},
-		"WopiHost": {
+		"WopiHost.Web": {
 			"commandName": "Project",
 			"launchBrowser": true,
+			"applicationUrl": "https://localhost:6001;http://localhost:6000",
 			"environmentVariables": {
 				"ASPNETCORE_ENVIRONMENT": "Development"
 			}
