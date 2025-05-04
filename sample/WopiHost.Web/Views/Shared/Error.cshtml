@@ -1,0 +1,29 @@
+@model WopiHost.Web.Models.ErrorViewModel
+@{
+    ViewData["Title"] = "Error";
+}
+
+<h1 class="text-danger">Error</h1>
+<h2 class="text-danger">An error occurred while processing your request.</h2>
+
+@if (Model?.Exception != null && Model.ShowExceptionDetails)
+{
+    <div class="alert alert-danger">
+        <h3>Exception details:</h3>
+        <p>@Model.Exception.Message</p>
+        @if (!string.IsNullOrEmpty(Model.Exception.StackTrace))
+        {
+            <pre>@Model.Exception.StackTrace</pre>
+        }
+    </div>
+}
+else
+{
+    <p>
+        Please try again or contact the system administrator if the problem persists.
+    </p>
+}
+
+<div>
+    <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Return to Home</a>
+</div> 

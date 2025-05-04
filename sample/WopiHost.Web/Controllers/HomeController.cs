@@ -30,7 +30,7 @@ public class HomeController(
                 fileViewModels.Add(new FileViewModel
                 {
                     FileId = file.Identifier,
-                    FileName = file.Name,
+                    FileName = file.Name + "." + file.Extension,
                     SupportsEdit = await discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.Edit),
                     SupportsView = await discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.View),
                     IconUri = (await discoverer.GetApplicationFavIconAsync(file.Extension)) ?? new Uri("file.ico", UriKind.Relative)
@@ -40,11 +40,11 @@ public class HomeController(
         }
         catch (DiscoveryException ex)
         {
-            return View("Error", ex);
+            return View("Error", new ErrorViewModel { Exception = ex, ShowExceptionDetails = true });
         }
         catch (HttpRequestException ex)
         {
-            return View("Error", ex);
+            return View("Error", new ErrorViewModel { Exception = ex, ShowExceptionDetails = true });
         }
     }
 
@@ -69,5 +69,16 @@ public class HomeController(
         ViewData["urlsrc"] = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiOptions.Value.HostUrl, $"/wopi/files/{id}"), actionEnum); //TODO: add a test for the URL not to contain double slashes between host and path
         ViewData["favicon"] = await discoverer.GetApplicationFavIconAsync(extension);
         return View();
+    }
+
+    [Route("Error")]
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult Error()
+    {
+        return View(new ErrorViewModel 
+        { 
+            Exception = HttpContext.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error,
+            ShowExceptionDetails = true // Set to false in production
+        });
     }
 }

@@ -48,6 +48,9 @@ public class Startup(IConfiguration configuration)
     {
         app.UseDeveloperExceptionPage();
 
+        // Configure exception handler as a fallback for production
+        app.UseExceptionHandler("/Error");
+
         //app.UseHttpsRedirection();
 
         // Add static files to the request pipeline.
