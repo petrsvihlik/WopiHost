@@ -68,7 +68,7 @@ public class AccessTokenHandler(
                 }
                 else
                 {
-                    Logger.LogError("Principal not found from token {Token}", token);
+                    Logger.LogError("Principal not found from token");
                     return AuthenticateResult.Fail("Principal not found.");
                 }
             }
