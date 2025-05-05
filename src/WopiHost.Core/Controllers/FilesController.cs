@@ -295,6 +295,10 @@ public class FilesController(
             {
                 // copy new contents to storage
                 await HttpContext.CopyToWriteStream(file, cancellationToken);
+                if (file.Version is not null)
+                {
+                    Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
+                }
                 return Ok();
             }
             else // If ... missing altogether, the host should respond with a 409 Conflict
@@ -303,19 +307,17 @@ public class FilesController(
             }
         }
         
-        if (file.Version is not null)
-        {
-            Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
-        }
-        
         // Acquire lock
-        var lockResult = ProcessLock(id, wopiOverrideHeader: WopiFileOperations.Lock, newLockIdentifier: newLockIdentifier);
+        var lockResult = await ProcessLock(id, wopiOverrideHeader: WopiFileOperations.Lock, newLockIdentifier: newLockIdentifier, cancellationToken: cancellationToken);
 
         if (lockResult is OkResult)
         {
             // copy new contents to storage
             await HttpContext.CopyToWriteStream(file, cancellationToken);
-
+            if (file.Version is not null)
+            {
+                Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
+            }
             return Ok();
         }
         return lockResult;
@@ -581,6 +583,7 @@ public class FilesController(
     /// <param name="wopiOverrideHeader">A string specifying the requested operation from the WOPI server</param>
     /// <param name="oldLockIdentifier"></param>
     /// <param name="newLockIdentifier"></param>
+    /// <param name="cancellationToken">cancellation token</param>
     [HttpPost("{id}")]
     [WopiOverrideHeader(
         WopiFileOperations.Lock,
@@ -589,19 +592,21 @@ public class FilesController(
         WopiFileOperations.RefreshLock,
         WopiFileOperations.GetLock)]
     [WopiAuthorize(WopiResourceType.File, Permission.Update)]
-    public IActionResult ProcessLock(
+    public async Task<IActionResult> ProcessLock(
         string id,
         [FromHeader(Name = WopiHeaders.WOPI_OVERRIDE)] string? wopiOverrideHeader = null,
         [FromHeader(Name = WopiHeaders.OLD_LOCK)] string? oldLockIdentifier = null,
-        [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null)
+        [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null,
+        CancellationToken cancellationToken = default)
     {
         if (lockProvider is null)
         {
             return new LockMismatchResult(Response, reason: "Locking is not supported");
         }
 
-        //TODO Need to have Item Version header on this
-        Response.Headers[WopiHeaders.ITEM_VERSION] = "1";
+        var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken)
+                   ?? throw new InvalidOperationException("File not found");
+        Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
         
         var lockAcquired = lockProvider.TryGetLock(id, out var existingLock);
         return wopiOverrideHeader switch
