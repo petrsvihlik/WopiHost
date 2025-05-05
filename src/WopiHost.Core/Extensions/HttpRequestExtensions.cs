@@ -51,4 +51,38 @@ public static class HttpRequestExtensions
         
         return string.Empty;
     }
+    
+    /// <summary>
+    /// Proxy-aware construction of URL request.
+    /// </summary>
+    public static string GetProxyAwareRequestUrl(this HttpRequest request)
+    {
+        var urlPart = request.GetProxyAwareUrlParts();
+        
+        return $"{urlPart.scheme}://{urlPart.host}{urlPart.pathBase}{urlPart.path}{urlPart.queryString}";
+    }
+
+    /// <summary>
+    /// Get's the Uri parts to construct URL's.
+    /// </summary>
+    public static (string? scheme, string? host, string? pathBase, string? path, string? queryString)
+        GetProxyAwareUrlParts(this HttpRequest request)
+    {
+        var scheme = request.Headers.ContainsKey("X-Forwarded-Proto") 
+            ? request.Headers["X-Forwarded-Proto"].ToString() 
+            : request.Scheme;
+        
+        var host = request.Headers.ContainsKey("X-Forwarded-Host") 
+            ? request.Headers["X-Forwarded-Host"].ToString() 
+            : request.Host.Value;
+        
+        var pathBase = request.Headers.ContainsKey("X-Forwarded-PathBase") 
+            ? request.Headers["X-Forwarded-PathBase"].ToString() 
+            : request.PathBase.Value;
+        
+        var path = request.Path.Value;
+        var queryString = request.QueryString.Value;
+        
+        return (scheme, host, pathBase, path, queryString);
+    }
 } 

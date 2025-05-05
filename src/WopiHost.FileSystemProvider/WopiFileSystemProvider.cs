@@ -155,8 +155,8 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
 
         T? result = typeof(T) switch
         {
-            IWopiFile => await GetWopiResource<IWopiFile>(nameId, cancellationToken) as T,
-            IWopiFolder => await GetWopiResource<IWopiFolder>(nameId, cancellationToken) as T,
+            { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => await GetWopiResource<IWopiFile>(nameId, cancellationToken) as T,
+            { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => await GetWopiResource<IWopiFolder>(nameId, cancellationToken) as T,
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
         return result;
@@ -175,8 +175,8 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     {
         return typeof(T) switch
         {
-            IWopiFile => Task.FromResult(name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && name.Length < FileNameMaxLength),
-            IWopiFolder => Task.FromResult(name.IndexOfAny(Path.GetInvalidPathChars()) < 0),
+            { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => Task.FromResult(name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && name.Length < FileNameMaxLength),
+            { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => Task.FromResult(name.IndexOfAny(Path.GetInvalidPathChars()) < 0),
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
     }
@@ -248,8 +248,8 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     {
         return typeof(T) switch
         {
-            IWopiFile => await CreateWopiFile(containerId ?? RootContainerPointer.Identifier, name, cancellationToken) as T,
-            IWopiFolder => await CreateWopiChildContainer(containerId ?? RootContainerPointer.Identifier, name, cancellationToken) as T,
+            { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => await CreateWopiFile(containerId ?? RootContainerPointer.Identifier, name, cancellationToken) as T,
+            { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => await CreateWopiChildContainer(containerId ?? RootContainerPointer.Identifier, name, cancellationToken) as T,
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
     }
@@ -309,8 +309,8 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     {
         var result = typeof(T) switch
         {
-            IWopiFile => DeleteWopiFile(identifier),
-            IWopiFolder => DeleteWopiContainer(identifier),
+            { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => DeleteWopiFile(identifier),
+            { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => DeleteWopiContainer(identifier),
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
         return Task.FromResult<bool>(result);

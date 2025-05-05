@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Discovery;
 
@@ -61,7 +62,7 @@ public class WopiProofValidator : IWopiProofValidator
                 return false;
             }
 
-            var hostUrl = GetRequestUrl(request).ToUpperInvariant();
+            var hostUrl = request.GetProxyAwareRequestUrl().ToUpperInvariant();
             
             var hostUrlBytes = Encoding.UTF8.GetBytes(hostUrl.ToUpperInvariant());
             var accessTokenBytes = Encoding.UTF8.GetBytes(receivedAccessToken);
@@ -89,26 +90,6 @@ public class WopiProofValidator : IWopiProofValidator
             _logger.LogError(ex, "Error validating WOPI proof");
             return false;
         }
-    }
-
-    private string GetRequestUrl(HttpRequest request)
-    {
-        var scheme = request.Headers.ContainsKey("X-Forwarded-Proto") 
-            ? request.Headers["X-Forwarded-Proto"].ToString() 
-            : request.Scheme;
-        
-        var host = request.Headers.ContainsKey("X-Forwarded-Host") 
-            ? request.Headers["X-Forwarded-Host"].ToString() 
-            : request.Host.Value;
-        
-        var pathBase = request.Headers.ContainsKey("X-Forwarded-PathBase") 
-            ? request.Headers["X-Forwarded-PathBase"].ToString() 
-            : request.PathBase.Value;
-        
-        var path = request.Path.Value;
-        var queryString = request.QueryString.Value;
-        
-        return $"{scheme}://{host}{pathBase}{path}{queryString}";
     }
     
     private static bool VerifyProof(byte[] expectedProof, string proofFromRequest, string proofFromDiscovery)
