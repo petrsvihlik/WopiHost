@@ -525,7 +525,10 @@ public class FilesController(
 
         if (await writableStorageProvider.CheckValidName<IWopiFile>(id, cancellationToken))
         {
-            return Ok();
+            if (await writableStorageProvider.DeleteWopiResource<IWopiFile>(id, cancellationToken))
+            {
+                return Ok();
+            }
         }
 
         return new InternalServerErrorResult();
