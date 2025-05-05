@@ -126,4 +126,22 @@ public static class WopiHeaders
     /// Wildcard characters are not permitted.
     /// </summary>
     public const string FILE_EXTENSION_FILTER_LIST = "X-WOPI-FileExtensionFilterList";
+    
+    /// <summary>
+    /// A Base64-encoded string indicating a cryptographic signature of the request.
+    /// Used to validate that the request originated from Office Online Server.
+    /// </summary>
+    public const string PROOF = "X-WOPI-Proof";
+
+    /// <summary>
+    /// A Base64-encoded string indicating a cryptographic signature of the request
+    /// using the old public key. Used when proof keys are being rotated.
+    /// </summary>
+    public const string PROOF_OLD = "X-WOPI-ProofOld";
+
+    /// <summary>
+    /// A 64-bit integer (expressed as a string) that represents the time that the request was signed.
+    /// Should not be more than 20 minutes old.
+    /// </summary>
+    public const string TIMESTAMP = "X-WOPI-TimeStamp";
 }
