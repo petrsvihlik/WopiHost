@@ -20,7 +20,7 @@ public class LockMismatchResult : ConflictResult
     /// </summary>
     public LockMismatchResult(HttpResponse response, string? existingLock = null, string? reason = null) : base()
     {
-        response.Headers[WopiHeaders.LOCK] = existingLock ?? string.Empty;
+        response.Headers[WopiHeaders.LOCK] = existingLock ?? " ";
         if (!string.IsNullOrEmpty(reason))
         {
             Reason = reason;

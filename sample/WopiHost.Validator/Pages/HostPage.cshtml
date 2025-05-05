@@ -5,7 +5,7 @@
 }
 <form id="office_form" name="office_form" target="office_frame" action="@Model.UrlSrc" method="post">
     <input name="access_token" value="@Model.AccessToken" type="hidden" />
-    <input name="access_token_ttl" value="Model.AccessTokenTtl" type="hidden" />
+    <input name="access_token_ttl" value="@Model.AccessTokenTtl" type="hidden" />
 </form>
 
 <span id="frameholder"></span>

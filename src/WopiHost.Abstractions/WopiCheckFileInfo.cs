@@ -91,12 +91,14 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A user-accessible URI directly to the file intended for opening the file through a client.
     /// </summary>
+    [JsonIgnore]
     public Uri? ClientUrl { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates the WOPI client should close the window or tab when the user activates any <c>Close</c> UI in the WOPI client.
     /// </summary>
     /// <remarks>do not enable for M365: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/faq/close-button-closes-window</remarks>
+    [JsonIgnore]
     public bool CloseButtonClosesWindow { get; set; }
 
     /// <summary>
@@ -107,6 +109,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A Boolean value that indicates that the WOPI client should disable caching of file contents in the browser cache. Note that this has important performance implications for web browser-based WOPI clients.
     /// </summary>
+    [JsonIgnore]
     public bool DisableBrowserCachingOfUserContent { get; set; }
 
     /// <summary>
@@ -117,6 +120,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A Boolean value that indicates that in the event of an error, the WOPI client is permitted to prompt the user for permission to collect a detailed report about their specific error. The information gathered could include the user’s file and other session-specific state.
     /// </summary>
+    [JsonIgnore]
     public bool AllowErrorReportPrompt { get; set; }
 
     /// <summary>
@@ -142,6 +146,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A URI to a location that allows the user to create an embeddable URI to the file.
     /// </summary>
+    [JsonIgnore]
     public Uri? FileEmbedCommandUrl { get; set; }
 
     /// <summary>
@@ -162,6 +167,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A string value uniquely identifying the user currently accessing the file.
     /// </summary>
+    [JsonIgnore]
     public string? HostAuthenticationId { get; set; }
 
     /// <summary>
@@ -172,6 +178,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A URI to a web page that provides access to an editing experience for the file that can be embedded in another HTML page.
     /// </summary>
+    [JsonIgnore]
     public Uri? HostEmbeddedEditUrl { get; set; }
 
     /// <summary>
@@ -189,11 +196,13 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A string that is used by the host to pass arbitrary information to the WOPI client.
     /// </summary>
+    [JsonIgnore]
     public string HostNotes { get; set; } = string.Empty;
 
     /// <summary>
     /// A URI that is the base URI for REST operations for the file.
     /// </summary>
+    [JsonIgnore]
     public Uri? HostRestUrl { get; set; }
 
     /// <summary>
@@ -204,21 +213,25 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A string that the WOPI client should display to the user indicating the IRM policy for the file. This value should be combined with <see cref="IrmPolicyTitle"/>.
     /// </summary>
+    [JsonIgnore]
     public string IrmPolicyDescription { get; set; } = string.Empty;
 
     /// <summary>
     /// A string that the WOPI client should display to the user indicating the IRM policy for the file. This value should be combined with <see cref="IrmPolicyDescription"/>.
     /// </summary>
+    [JsonIgnore]
     public string IrmPolicyTitle { get; set; } = string.Empty;
 
     /// <summary>
     /// A string that identifies the provider of information that a WOPI client may use to discover information about the user’s online status (for example, whether a user is available via instant messenger).
     /// </summary>
+    [JsonIgnore]
     public string PresenceProvider { get; set; } = string.Empty;
 
     /// <summary>
     /// A string that identifies the user in the context of the <see cref="PresenceProvider"/>.
     /// </summary>
+    [JsonIgnore]
     public string PresenceUserId { get; set; } = string.Empty;
 
     /// <summary>
@@ -231,6 +244,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A Boolean value that indicates that the WOPI client should take measures to prevent copying and printing of the file. 
     /// </summary>
+    [JsonIgnore]
     public bool ProtectInClient { get; set; }
 
     /// <summary>
@@ -273,6 +287,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A string value uniquely identifying the user’s ‘tenant,’ or group/organization to which they belong.
     /// </summary>
+    [JsonIgnore]
     public string TenantId { get; set; } = string.Empty;
 
     /// <summary>
@@ -310,6 +325,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// </item>
     /// </list>
     /// </summary>
+    [JsonIgnore]
     public string TimeZone { get; set; } = string.Empty;
 
     /// <summary>
@@ -410,11 +426,13 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// </item>
     /// </list>
     /// </summary>
+    [JsonIgnore]
     public string UserPrincipalName { get; set; } = string.Empty;
 
     /// <summary>
     /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/renamefile">RenameFile</see> operation.
     /// </summary>
+    [JsonIgnore]
     public bool WebEditingDisabled { get; set; }
     #endregion
 
@@ -444,6 +462,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A Boolean value that, when set to true, indicates the host expects to receive the UI_FileEmbed PostMessage when the Embed UI in Microsoft 365 for the web is activated.
     /// </summary>
+    [JsonIgnore]
     public bool FileEmbedCommandPostMessage { get; set; }
 
     /// <summary>
@@ -475,6 +494,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
 
     #region "IWopiHostCapabilities"
     /// <inheritdoc/>
+    [JsonIgnore]
     public bool SupportsCoauth { get; set; }
 
     /// <inheritdoc/>
@@ -499,6 +519,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     public bool SupportsEcosystem { get; set; }
 
     /// <inheritdoc/>
+    [JsonIgnore]
     public bool SupportsFileCreation { get; set; }
 
     /// <inheritdoc/>
@@ -514,15 +535,18 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     public bool SupportsUserInfo { get; set; }
 
     /// <inheritdoc/>
+    [JsonIgnore]
     public bool SupportsGetFileWopiSrc { get; set; }
 
     /// <inheritdoc/>
     public IEnumerable<string> SupportedShareUrlTypes { get; set; } = [];
 
     /// <inheritdoc/>
+    [JsonIgnore]
     public bool SupportsScenarioLinks { get; set; }
 
     /// <inheritdoc/>
+    [JsonIgnore]
     public bool SupportsSecureStore { get; set; }
     #endregion
 }

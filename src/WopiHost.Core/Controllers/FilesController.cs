@@ -302,7 +302,12 @@ public class FilesController(
                 return new ConflictResult();
             }
         }
-
+        
+        if (file.Version is not null)
+        {
+            Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
+        }
+        
         // Acquire lock
         var lockResult = ProcessLock(id, wopiOverrideHeader: WopiFileOperations.Lock, newLockIdentifier: newLockIdentifier);
 
@@ -592,6 +597,9 @@ public class FilesController(
             return new LockMismatchResult(Response, reason: "Locking is not supported");
         }
 
+        //TODO Need to have Item Version header on this
+        Response.Headers[WopiHeaders.ITEM_VERSION] = "1";
+        
         var lockAcquired = lockProvider.TryGetLock(id, out var existingLock);
         return wopiOverrideHeader switch
         {
@@ -615,7 +623,7 @@ public class FilesController(
         }
         else
         {
-            Response.Headers[WopiHeaders.LOCK] = string.Empty;
+            Response.Headers[WopiHeaders.LOCK] = " ";
         }
         return Ok();
     }
