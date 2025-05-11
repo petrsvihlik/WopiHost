@@ -40,7 +40,8 @@ public class HostPageModel(
 
 
         AccessToken = securityHandler.WriteToken(token);
-        AccessTokenTtl = "0";
+        var tokenDateOffset = new DateTimeOffset(token.ValidTo);
+        AccessTokenTtl = (tokenDateOffset - DateTimeOffset.UnixEpoch).TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
         //TODO: fix
         //ViewData["access_token_ttl"] = //token.ValidTo
 

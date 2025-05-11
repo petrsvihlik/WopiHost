@@ -25,8 +25,13 @@ public static class ServiceCollectionExtensions
 
         // Add authorization handler
         services.AddSingleton<IAuthorizationHandler, WopiAuthorizationHandler>();
+        
+        services.AddScoped<IWopiProofValidator, WopiProofValidator>();
 
-        services.AddControllers()
+        services.AddControllers(options =>
+            {
+                options.Filters.Add<WopiOriginValidationActionFilter>();
+            })
             .AddApplicationPart(typeof(ServiceCollectionExtensions).GetTypeInfo().Assembly) // Add controllers from this assembly
             .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null); // Ensure PascalCase property name-style
 

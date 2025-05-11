@@ -27,7 +27,7 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
     public string Extension => fileInfo.Extension.TrimStart('.');
 
     /// <inheritdoc/>
-    public string? Version => fileVersionInfo.FileVersion ?? fileInfo.LastWriteTimeUtc.ToString(CultureInfo.InvariantCulture);
+    public string? Version => fileVersionInfo.FileVersion ?? fileInfo.LastWriteTimeUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
 #pragma warning disable CA1819 // Properties should not return arrays
