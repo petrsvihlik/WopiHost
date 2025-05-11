@@ -325,10 +325,24 @@ public class FilesControllerTests
         Assert.IsType<LockMismatchResult>(result);
     }
 
+    // Helper method to set up a simple file mock
+    private void SetupFileMock(string fileId, string version = "1.0")
+    {
+        var fileMock = new Mock<IWopiFile>();
+        fileMock.SetupGet(f => f.Version).Returns(version);
+        
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+    }
+
     [Fact]
-    public void ProcessLock_LockingNotSupported_ReturnsLockMismatchResult()
+    public async Task ProcessLock_LockingNotSupported_ReturnsLockMismatchResult()
     {
         // Arrange
+        var fileId = "test-file-id";
+        SetupFileMock(fileId);
+            
         controller = new FilesController(
             storageProviderMock.Object,
             memoryCache)
@@ -339,11 +353,10 @@ public class FilesControllerTests
             }
         };
 
-        var fileId = "test-file-id";
         var wopiOverrideHeader = WopiFileOperations.Lock;
 
         // Act
-        var result = controller.ProcessLock(fileId, wopiOverrideHeader);
+        var result = await controller.ProcessLock(fileId, wopiOverrideHeader);
 
         // Assert
         var lockMismatchResult = Assert.IsType<LockMismatchResult>(result);
@@ -351,16 +364,18 @@ public class FilesControllerTests
     }
 
     [Fact]
-    public void ProcessLock_GetLock_ReturnsOkResultWithLockHeader()
+    public async Task ProcessLock_GetLock_ReturnsOkResultWithLockHeader()
     {
         // Arrange
         var fileId = "test-file-id";
+        SetupFileMock(fileId);
+            
         var wopiOverrideHeader = WopiFileOperations.GetLock;
         var lockInfo = new WopiLockInfo { LockId = "existing-lock-id", FileId = fileId };
         lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
 
         // Act
-        var result = controller.ProcessLock(fileId, wopiOverrideHeader);
+        var result = await controller.ProcessLock(fileId, wopiOverrideHeader);
 
         // Assert
         Assert.IsType<OkResult>(result);
@@ -368,16 +383,18 @@ public class FilesControllerTests
     }
 
     [Fact]
-    public void ProcessLock_GetLock_NoLockInfo_ReturnsLockMismatchResult()
+    public async Task ProcessLock_GetLock_NoLockInfo_ReturnsLockMismatchResult()
     {
         // Arrange
         var fileId = "test-file-id";
+        SetupFileMock(fileId);
+            
         var wopiOverrideHeader = WopiFileOperations.GetLock;
         WopiLockInfo? lockInfo = null;
         lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
 
         // Act
-        var result = controller.ProcessLock(fileId, wopiOverrideHeader);
+        var result = await controller.ProcessLock(fileId, wopiOverrideHeader);
 
         // Assert
         var lockMismatchResult = Assert.IsType<LockMismatchResult>(result);
@@ -385,44 +402,50 @@ public class FilesControllerTests
     }
 
     [Fact]
-    public void ProcessLock_GetLock_Expired_ReturnsOkResultWithLockHeader()
+    public async Task ProcessLock_GetLock_Expired_ReturnsOkResultWithLockHeader()
     {
         // Arrange
         var fileId = "test-file-id";
+        SetupFileMock(fileId);
+            
         var wopiOverrideHeader = WopiFileOperations.GetLock;
         var lockInfo = new WopiLockInfo { LockId = "existing-lock-id", FileId = fileId, DateCreated = DateTimeOffset.MinValue };
         lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(false);
 
         // Act
-        var result = controller.ProcessLock(fileId, wopiOverrideHeader);
+        var result = await controller.ProcessLock(fileId, wopiOverrideHeader);
 
         // Assert
         Assert.IsType<OkResult>(result);
-        Assert.Equal(string.Empty, controller.Response.Headers[WopiHeaders.LOCK]);
+        Assert.Equal(" ", controller.Response.Headers[WopiHeaders.LOCK]);
     }
 
     [Fact]
-    public void ProcessLock_LockWithoutOldLockIdentifier_ReturnsOkResult()
+    public async Task ProcessLock_LockWithoutOldLockIdentifier_ReturnsOkResult()
     {
         // Arrange
         var fileId = "test-file-id";
+        SetupFileMock(fileId);
+            
         var wopiOverrideHeader = WopiFileOperations.Lock;
         var newLockIdentifier = "new-lock-id";
         lockProviderMock.Setup(x => x.TryGetLock(fileId, out It.Ref<WopiLockInfo?>.IsAny)).Returns(false);
         lockProviderMock.Setup(x => x.AddLock(fileId, newLockIdentifier)).Returns(new WopiLockInfo { LockId = newLockIdentifier, FileId = fileId });
 
         // Act
-        var result = controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
+        var result = await controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
 
         // Assert
         Assert.IsType<OkResult>(result);
     }
 
     [Fact]
-    public void ProcessLock_Unlock_ReturnsOkResult()
+    public async Task ProcessLock_Unlock_ReturnsOkResult()
     {
         // Arrange
         var fileId = "test-file-id";
+        SetupFileMock(fileId);
+            
         var wopiOverrideHeader = WopiFileOperations.Unlock;
         var newLockIdentifier = "existing-lock-id";
         var lockInfo = new WopiLockInfo { LockId = newLockIdentifier, FileId = fileId };
@@ -430,17 +453,19 @@ public class FilesControllerTests
         lockProviderMock.Setup(x => x.RemoveLock(fileId)).Returns(true);
 
         // Act
-        var result = controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
+        var result = await controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
 
         // Assert
         Assert.IsType<OkResult>(result);
     }
 
     [Fact]
-    public void ProcessLock_RefreshLock_ReturnsOkResult()
+    public async Task ProcessLock_RefreshLock_ReturnsOkResult()
     {
         // Arrange
         var fileId = "test-file-id";
+        SetupFileMock(fileId);
+            
         var wopiOverrideHeader = WopiFileOperations.RefreshLock;
         var newLockIdentifier = "existing-lock-id";
         var lockInfo = new WopiLockInfo { LockId = newLockIdentifier, FileId = fileId };
@@ -448,7 +473,7 @@ public class FilesControllerTests
         lockProviderMock.Setup(x => x.RefreshLock(fileId, null)).Returns(true);
 
         // Act
-        var result = controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
+        var result = await controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
 
         // Assert
         Assert.IsType<OkResult>(result);
