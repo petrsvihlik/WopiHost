@@ -417,7 +417,7 @@ public class FilesControllerTests
 
         // Assert
         Assert.IsType<OkResult>(result);
-        Assert.Equal(" ", controller.Response.Headers[WopiHeaders.LOCK]);
+        Assert.Equal(WopiHeaders.EMPTY_LOCK_VALUE, controller.Response.Headers[WopiHeaders.LOCK]);
     }
 
     [Fact]

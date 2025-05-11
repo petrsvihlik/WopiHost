@@ -213,7 +213,7 @@ public class FilesController(
     }
 
     /// <summary>
-    /// The GetEcosystem operation returns the URI for the WOPI server’s Ecosystem endpoint, given a file ID.
+    /// The GetEcosystem operation returns the URI for the WOPI server's Ecosystem endpoint, given a file ID.
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getecosystem
     /// Example URL path: /wopi/files/(container_id)/ecosystem_pointer
     /// </summary>
@@ -231,7 +231,7 @@ public class FilesController(
         {
             return NotFound();
         }
-        // A URI for the WOPI server’s Ecosystem endpoint, with an access token appended. A GET request to this URL will invoke the CheckEcosystem operation.
+        // A URI for the WOPI server's Ecosystem endpoint, with an access token appended. A GET request to this URL will invoke the CheckEcosystem operation.
         return new JsonResult<UrlResponse>(
             new(Url.GetWopiSrc(WopiRouteNames.CheckEcosystem)));
     }
@@ -631,7 +631,7 @@ public class FilesController(
         }
         else
         {
-            Response.Headers[WopiHeaders.LOCK] = " ";
+            Response.Headers[WopiHeaders.LOCK] = WopiHeaders.EMPTY_LOCK_VALUE;
         }
         return Ok();
     }

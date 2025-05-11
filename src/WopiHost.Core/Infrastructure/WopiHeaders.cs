@@ -18,6 +18,14 @@ public static class WopiHeaders
 	public const string LOCK = "X-WOPI-Lock";
 
     /// <summary>
+    /// Value to use when no lock exists but header must be included.
+    /// This is a workaround for IIS/Azure Web App behavior that removes headers with empty values.
+    /// See: https://github.com/petrsvihlik/WopiHost/issues/208
+    /// Reference: https://github.com/dotnet/aspnetcore/blob/df0c4597422b0e7592118cb9c7e40fa820d2ce0a/src/Servers/IIS/IIS/src/Core/IISHttpContext.cs#L608
+    /// </summary>
+    public const string EMPTY_LOCK_VALUE = " ";
+
+    /// <summary>
     /// A string provided by the WOPI client that is the existing lock on the file. 
     /// Required. Note that if X-WOPI-OldLock is not provided, the request is identical to a Lock request.
     /// </summary>
