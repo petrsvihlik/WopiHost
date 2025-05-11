@@ -1,6 +1,7 @@
 ﻿using System.Xml.Linq;
 using Microsoft.Extensions.Options;
 using WopiHost.Discovery.Enumerations;
+using WopiHost.Discovery.Models;
 
 namespace WopiHost.Discovery;
 
@@ -17,6 +18,7 @@ public class WopiDiscoverer(
     private const string ElementNetZone = "net-zone";
     private const string ElementApp = "app";
     private const string ElementAction = "action";
+    private const string ElementProofKey = "proof-key";
     private const string AttrNetZoneName = "name";
     private const string AttrActionExtension = "ext";
     private const string AttrActionName = "name";
@@ -25,8 +27,15 @@ public class WopiDiscoverer(
     private const string AttrAppName = "name";
     private const string AttrAppFavicon = "favIconUrl";
     private const string AttrValCobalt = "cobalt";
+    private const string AttrProofKeyValue = "value";
+    private const string AttrProofKeyOldValue = "oldvalue";
+    private const string AttrProofKeyModulus = "modulus";
+    private const string AttrProofKeyExponent = "exponent";
+    private const string AttrProofKeyOldModulus = "oldmodulus";
+    private const string AttrProofKeyOldExponent = "oldexponent";
 
     private AsyncExpiringLazy<IEnumerable<XElement>>? _apps;
+    private AsyncExpiringLazy<XElement>? _proofKey;
 
     private AsyncExpiringLazy<IEnumerable<XElement>> Apps
     {
@@ -46,8 +55,28 @@ public class WopiDiscoverer(
             });
         }
     }
+    
+    private AsyncExpiringLazy<XElement> ProofKey
+    {
+        get
+        {
+            return _proofKey ??= new AsyncExpiringLazy<XElement>(async metadata =>
+            {
+                return new TemporaryValue<XElement>
+                {
+                    Result = (await discoveryFileProvider.GetDiscoveryXmlAsync())
+                        .Elements(ElementProofKey)
+                        .FirstOrDefault() ?? new XElement(ElementProofKey),
+
+                    ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval)
+                };
+            });
+        }
+    }
 
     internal async Task<IEnumerable<XElement>> GetAppsAsync() => await Apps.Value();
+    
+    internal async Task<XElement> GetProofKeyAsync() => await ProofKey.Value();
 
     private bool ValidateNetZone(XElement e)
     {
@@ -130,5 +159,21 @@ public class WopiDiscoverer(
             .Select(e => e.Attribute(AttrAppFavicon)?.Value);
         var result = query.FirstOrDefault();
         return result is not null ? new Uri(result) : null;
+    }
+    
+    ///<inheritdoc />
+    public async Task<WopiProofKeys> GetProofKeysAsync()
+    {
+        var proofKey = await GetProofKeyAsync();
+        
+        return new WopiProofKeys
+        {
+            Value = proofKey.Attribute(AttrProofKeyValue)?.Value,
+            OldValue = proofKey.Attribute(AttrProofKeyOldValue)?.Value,
+            Modulus = proofKey.Attribute(AttrProofKeyModulus)?.Value,
+            Exponent = proofKey.Attribute(AttrProofKeyExponent)?.Value,
+            OldModulus = proofKey.Attribute(AttrProofKeyOldModulus)?.Value,
+            OldExponent = proofKey.Attribute(AttrProofKeyOldExponent)?.Value
+        };
     }
 }

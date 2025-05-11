@@ -72,7 +72,7 @@ internal static class Extensions
     /// Get WOPI authentication token
     /// </summary>
     /// <param name="httpContext">HTTP context</param>
-    public static string? GetAccessToken(this HttpContext httpContext)
+    private static string? GetAccessToken(this HttpContext httpContext)
     {
         //TODO: an alternative would be HttpContext.GetTokenAsync(AccessTokenDefaults.AuthenticationScheme, AccessTokenDefaults.AccessTokenQueryName).Result (if the code below doesn't work)
         var authenticateInfo = httpContext.AuthenticateAsync(AccessTokenDefaults.AUTHENTICATION_SCHEME).Result;
@@ -93,9 +93,9 @@ internal static class Extensions
         ArgumentException.ThrowIfNullOrWhiteSpace(routeName);
 
         accessToken ??= url.ActionContext.HttpContext.GetAccessToken();
-        var protocol = url.ActionContext.HttpContext.Request.Scheme;
-        return url.RouteUrl(routeName, new { id = identifier ?? string.Empty, access_token = accessToken }, protocol)
-            ?? throw new InvalidOperationException(routeName + " route not found");
+        
+        return url.ProxyAwareRouteUrl(routeName, new { id = identifier ?? string.Empty, access_token = accessToken })
+               ?? throw new InvalidOperationException(routeName + " route not found");
     }
 
     /// <summary>
@@ -142,5 +142,21 @@ internal static class Extensions
         await httpContext.Request.Body.CopyToAsync(
             stream,
             cancellationToken);
+    }
+
+    private static string? ProxyAwareRouteUrl(this IUrlHelper helper,
+        string? routeName,
+        object? values)
+    {
+        var urlPart = helper.ActionContext.HttpContext.Request.GetProxyAwareUrlParts();
+        var routeUrl = helper.RouteUrl(routeName, values, urlPart.scheme);
+        
+        var uri = new Uri(routeUrl!);
+        var pathBase = uri.AbsolutePath.EndsWith('/') && uri.AbsolutePath.Length > 1
+            ? uri.AbsolutePath.Substring(0, uri.AbsolutePath.Length - 1)
+            : uri.AbsolutePath;
+        var queryString = uri.Query;
+
+        return $"{urlPart.scheme}://{urlPart.host}{pathBase}{queryString}";
     }
 }

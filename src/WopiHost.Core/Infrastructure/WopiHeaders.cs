@@ -18,6 +18,14 @@ public static class WopiHeaders
 	public const string LOCK = "X-WOPI-Lock";
 
     /// <summary>
+    /// Value to use when no lock exists but header must be included.
+    /// This is a workaround for IIS/Azure Web App behavior that removes headers with empty values.
+    /// See: https://github.com/petrsvihlik/WopiHost/issues/208
+    /// Reference: https://github.com/dotnet/aspnetcore/blob/df0c4597422b0e7592118cb9c7e40fa820d2ce0a/src/Servers/IIS/IIS/src/Core/IISHttpContext.cs#L608
+    /// </summary>
+    public const string EMPTY_LOCK_VALUE = " ";
+
+    /// <summary>
     /// A string provided by the WOPI client that is the existing lock on the file. 
     /// Required. Note that if X-WOPI-OldLock is not provided, the request is identical to a Lock request.
     /// </summary>
@@ -126,4 +134,22 @@ public static class WopiHeaders
     /// Wildcard characters are not permitted.
     /// </summary>
     public const string FILE_EXTENSION_FILTER_LIST = "X-WOPI-FileExtensionFilterList";
+    
+    /// <summary>
+    /// A Base64-encoded string indicating a cryptographic signature of the request.
+    /// Used to validate that the request originated from Office Online Server.
+    /// </summary>
+    public const string PROOF = "X-WOPI-Proof";
+
+    /// <summary>
+    /// A Base64-encoded string indicating a cryptographic signature of the request
+    /// using the old public key. Used when proof keys are being rotated.
+    /// </summary>
+    public const string PROOF_OLD = "X-WOPI-ProofOld";
+
+    /// <summary>
+    /// A 64-bit integer (expressed as a string) that represents the time that the request was signed.
+    /// Should not be more than 20 minutes old.
+    /// </summary>
+    public const string TIMESTAMP = "X-WOPI-TimeStamp";
 }
