@@ -10,7 +10,7 @@ namespace WopiHost.Core.Security.Authentication;
 /// <summary>
 /// Action Filter running on Core /wopi Controllers, that validates the origin of WOPI requests by checking proof keys.
 /// </summary>
-public class WopiOriginValidationActionFilter : IAsyncActionFilter
+public class WopiOriginValidationActionFilter : Attribute, IAsyncActionFilter
 {
     private readonly IWopiProofValidator _proofValidator;
     private readonly ILogger<WopiOriginValidationActionFilter> _logger;

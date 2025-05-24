@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using System.Net.Mime;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
+using WopiHost.Core.Security.Authentication;
 
 namespace WopiHost.Core.Controllers;
 
@@ -19,6 +19,7 @@ namespace WopiHost.Core.Controllers;
 [Authorize]
 [ApiController]
 [Route("wopi/[controller]")]
+[ServiceFilter(typeof(WopiOriginValidationActionFilter))]
 public class EcosystemController(
     IWopiStorageProvider storageProvider) : ControllerBase
 {

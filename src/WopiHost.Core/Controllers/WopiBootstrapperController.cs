@@ -2,13 +2,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
+using WopiHost.Core.Security.Authentication;
 
 namespace WopiHost.Core.Controllers;
 
@@ -23,6 +23,7 @@ namespace WopiHost.Core.Controllers;
 [Authorize]
 [ApiController]
 [Route("wopibootstrapper")]
+[ServiceFilter(typeof(WopiOriginValidationActionFilter))]
 public class WopiBootstrapperController(
     IWopiStorageProvider storageProvider,
     IWopiSecurityHandler securityHandler) : ControllerBase

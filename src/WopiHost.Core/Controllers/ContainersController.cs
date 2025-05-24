@@ -7,6 +7,7 @@ using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
+using WopiHost.Core.Security.Authentication;
 using WopiHost.Core.Security.Authorization;
 
 namespace WopiHost.Core.Controllers;
@@ -23,6 +24,7 @@ namespace WopiHost.Core.Controllers;
 [Authorize]
 [ApiController]
 [Route("wopi/[controller]")]
+[ServiceFilter(typeof(WopiOriginValidationActionFilter))]
 public class ContainersController(
     IWopiStorageProvider storageProvider,
     IWopiLockProvider? lockProvider = null,
