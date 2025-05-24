@@ -55,6 +55,82 @@ If you need a version that targets an older version of .NET, check out the relea
 - [.NET Core 3.1 + .NET Standard 2.1](https://github.com/petrsvihlik/WopiHost/releases/tag/2.0.0)
 
 If you get errors saying that Microsoft.CobaltCore.*.nupkg can't be found, then just remove the reference or see the chapter [Cobalt](#Cobalt) below.
+
+Running with .NET Aspire
+------------------------
+This project includes a .NET Aspire orchestration for easy development and deployment. .NET Aspire provides a comprehensive developer experience for building cloud-native applications with .NET.
+
+### Prerequisites for .NET Aspire
+- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) (required for the AppHost project)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) (for containerization support)
+- Recommended: [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) with the .NET Aspire workload, or [VS Code](https://code.visualstudio.com/) with the C# Dev Kit extension
+
+### Running the application with .NET Aspire
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/petrsvihlik/WopiHost.git
+   cd WopiHost
+   ```
+
+2. **Run the Aspire AppHost:**
+   ```bash
+   dotnet run --project infra/WopiHost.AppHost
+   ```
+
+   This will start all three components of the application:
+   - **WopiHost** (Backend service) - `http://localhost:5000`
+     - API endpoints for WOPI operations
+     - Swagger UI available at `/scalar`
+   - **WopiHost.Web** (Frontend) - `http://localhost:6000` (HTTP) / `https://localhost:6001` (HTTPS)
+     - Web interface for file management and WOPI client integration
+   - **WopiHost.Validator** (Testing tool) - `http://localhost:7000`
+     - WOPI protocol validation and testing interface
+
+3. **Access the Aspire Dashboard:**
+   When you run the AppHost, .NET Aspire will automatically open the Aspire dashboard in your browser. The dashboard provides:
+   - Real-time application status and health monitoring
+   - Structured logging and trace visualization
+   - Resource management and configuration
+   - Inter-service communication monitoring
+
+### Aspire Benefits
+
+Using .NET Aspire with WopiHost provides several advantages:
+
+- **Service Orchestration**: Automatically manages dependencies between WopiHost, Web frontend, and Validator
+- **Configuration Management**: Centralized configuration through the AppHost
+- **Observability**: Built-in logging, metrics, and distributed tracing
+- **Development Experience**: Simplified local development with automatic service discovery
+- **Production Ready**: Easy deployment to cloud environments with container support
+
+### Configuration
+
+The Aspire configuration can be customized in `infra/WopiHost.AppHost/Program.cs`. The current setup includes:
+
+- Service references and dependencies
+- Port assignments for each service
+- External endpoint configuration for web access
+- Health monitoring and readiness checks
+
+You can also customize application settings through:
+- `infra/WopiHost.AppHost/appsettings.json`
+- `infra/WopiHost.AppHost/appsettings.Development.json`
+
+### Alternative: Running individual projects
+
+If you prefer to run the projects individually without Aspire:
+
+```bash
+# Terminal 1 - Backend
+dotnet run --project sample/WopiHost
+
+# Terminal 2 - Frontend  
+dotnet run --project sample/WopiHost.Web
+
+# Terminal 3 - Validator (optional)
+dotnet run --project sample/WopiHost.Validator
+```
  
 Samples
 -----------
