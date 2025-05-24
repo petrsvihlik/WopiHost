@@ -150,11 +150,8 @@ public class WopiExtensionsTests
         var wopiHostOptions = Options.Create(new WopiHostOptions
         {
             StorageProviderAssemblyName = "test",
-            OnCheckFileInfo = context =>
-            {
-                eventFired = true;
-                return Task.FromResult(context.CheckFileInfo);
-            }
+            ClientUrl = new Uri("http://localhost:5000"),
+            OnCheckFileInfo = context => { eventFired = true; return Task.FromResult(context.CheckFileInfo); }
         });
         var httpContext = new DefaultHttpContext()
         {
@@ -219,15 +216,11 @@ public class WopiExtensionsTests
         // Arrange
         var mockFolder = new Mock<IWopiFolder>();
         mockFolder.Setup(f => f.Name).Returns("test");
-        var eventFired = false;
-        var wopiHostOptions = Options.Create(new WopiHostOptions
+        var eventFired = false; var wopiHostOptions = Options.Create(new WopiHostOptions
         {
             StorageProviderAssemblyName = "test",
-            OnCheckContainerInfo = context =>
-            {
-                eventFired = true;
-                return Task.FromResult(context.CheckContainerInfo);
-            }
+            ClientUrl = new Uri("http://localhost:5000"),
+            OnCheckContainerInfo = context => { eventFired = true; return Task.FromResult(context.CheckContainerInfo); }
         });
         var httpContext = new DefaultHttpContext()
         {
