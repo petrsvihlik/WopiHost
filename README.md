@@ -94,6 +94,8 @@ This project includes a .NET Aspire orchestration for easy development and deplo
    - Resource management and configuration
    - Inter-service communication monitoring
 
+![image](https://github.com/user-attachments/assets/438cf17b-36f2-4d5f-adb5-6003314d17c3)
+
 ### Aspire Benefits
 
 Using .NET Aspire with WopiHost provides several advantages:
