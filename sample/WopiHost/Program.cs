@@ -5,6 +5,8 @@ using WopiHost.Core.Models;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.FileSystemProvider;
+using Microsoft.Extensions.Options;
+using WopiHost.Discovery;
 
 namespace WopiHost;
 
@@ -56,6 +58,16 @@ public static class Program
             builder.Services.AddStorageProvider(wopiHostOptions.StorageProviderAssemblyName);
             // Add lock provider
             builder.Services.AddLockProvider(wopiHostOptions.LockProviderAssemblyName);
+            
+            // Add Discovery services
+            builder.Services.Configure<DiscoveryOptions>(builder.Configuration.GetSection(WopiConfigurationSections.DISCOVERY_OPTIONS));
+            builder.Services.AddHttpClient<IDiscoveryFileProvider, HttpDiscoveryFileProvider>((sp, client) =>
+            {
+                var wopiOptions = sp.GetRequiredService<IOptions<WopiHostOptions>>();
+                client.BaseAddress = wopiOptions.Value.ClientUrl;
+            });
+            builder.Services.AddSingleton<IDiscoverer, WopiDiscoverer>();
+            
             // Add Cobalt support
             if (wopiHostOptions.UseCobalt)
             {

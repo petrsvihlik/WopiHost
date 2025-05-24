@@ -21,6 +21,7 @@
 		<ProjectReference Include="..\..\src\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.Core\WopiHost.Core.csproj" />
+		<ProjectReference Include="..\..\src\WopiHost.Discovery\WopiHost.Discovery.csproj" />
 		<ProjectReference Include="..\..\infra\WopiHost.ServiceDefaults\WopiHost.ServiceDefaults.csproj" />
 	</ItemGroup>
 

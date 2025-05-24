@@ -33,4 +33,10 @@ public class WopiHostOptions
     /// Callback for the CheckContainerInfo operation.
     /// </summary>
     public Func<WopiCheckContainerInfoContext, Task<WopiCheckContainerInfo>> OnCheckContainerInfo { get; set; } = c => Task.FromResult(c.CheckContainerInfo);
+
+    /// <summary>
+    /// Base URI of the WOPI Client server (Office Online Server / Office Web Apps).
+    /// </summary>
+    [Required]
+    public required Uri ClientUrl { get; set; }
 }
