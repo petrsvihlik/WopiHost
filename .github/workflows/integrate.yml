@@ -4,6 +4,10 @@ on:
   push:
     branches: [ master ]
 
+permissions:
+  contents: read
+  id-token: write # Required for OIDC
+
 jobs:
   build:
 
@@ -26,7 +30,12 @@ jobs:
     - name: Build
       run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
     - name: Test
-      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=lcov
+    - name: Upload coverage to Qlty
+      uses: qltysh/qlty-action/coverage@v1
+      with:
+        oidc: true
+        files: "**/coverage.*.info"
     - name: Codecov
       uses: codecov/codecov-action@v3
       with:

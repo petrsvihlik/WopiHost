@@ -1,0 +1,14 @@
+config_version = "0"
+
+exclude_patterns = [
+  "**/node_modules/**",
+  "**/wwwroot/**"
+]
+
+test_patterns = [
+  "**/test/**"
+]
+
+[[source]]
+name = "default"
+default = true
