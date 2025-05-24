@@ -2,7 +2,12 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // Add WopiHost as the backend service
 var wopiHost = builder.AddProject<Projects.WopiHost>("wopihost")
-                      .WithEndpoint(name: "wopihost-http", port: 5000, scheme: "http");
+                      .WithEndpoint(name: "wopihost-http", port: 5000, scheme: "http")
+                      .WithUrlForEndpoint("wopihost-http", url =>
+                      {
+                          url.DisplayText = "Scalar (HTTP)";
+                          url.Url = "/scalar";
+                      });
 
 // Add WopiHost.Web frontend that depends on WopiHost
 builder.AddProject<Projects.WopiHost_Web>("wopihost-web")
