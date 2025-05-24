@@ -5,7 +5,6 @@ using WopiHost.Core.Models;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.FileSystemProvider;
-using Microsoft.Extensions.Options;
 using WopiHost.Discovery;
 
 namespace WopiHost;

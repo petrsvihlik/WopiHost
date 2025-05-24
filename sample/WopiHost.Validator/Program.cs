@@ -1,4 +1,3 @@
-using Microsoft.Extensions.ServiceDiscovery;
 using WopiHost.Validator.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);

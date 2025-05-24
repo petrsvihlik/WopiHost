@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authentication;
-using WopiHost.Abstractions;
 
 namespace WopiHost.Core.Security.Authentication;
 

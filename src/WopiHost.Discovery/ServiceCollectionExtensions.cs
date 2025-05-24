@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using WopiHost.Abstractions;
 
 namespace WopiHost.Discovery;
 

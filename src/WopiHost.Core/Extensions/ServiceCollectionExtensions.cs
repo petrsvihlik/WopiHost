@@ -1,8 +1,6 @@
 ﻿using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using WopiHost.Abstractions;
 using WopiHost.Core.Models;
 using WopiHost.Core.Security.Authentication;
 using WopiHost.Core.Security.Authorization;

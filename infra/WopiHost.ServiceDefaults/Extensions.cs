@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.ServiceDiscovery;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
@@ -54,14 +53,65 @@ public static class Extensions
             {
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
+                    .AddRuntimeInstrumentation()
+                    .AddMeter("WopiHost.Core")
+                    .AddMeter("WopiHost.Web")
+                    .AddMeter("WopiHost.Discovery");
             })
             .WithTracing(tracing =>
             {
-                tracing.AddAspNetCoreInstrumentation()
-                    // Uncomment the following line to enable gRPC instrumentation (requires the OpenTelemetry.Instrumentation.GrpcNetClient package)
-                    //.AddGrpcClientInstrumentation()
-                    .AddHttpClientInstrumentation();
+                tracing.AddAspNetCoreInstrumentation(options =>
+                    {
+                        // Enrich spans with additional HTTP request information
+                        options.EnrichWithHttpRequest = (activity, request) =>
+                        {
+                            activity.SetTag("http.request.header.user_agent", request.Headers.UserAgent.ToString());
+                            
+                            if (request.Headers.TryGetValue("X-WOPI-Override", out var wopiOverride))
+                                activity.SetTag("http.request.header.wopi_override", wopiOverride.ToString());
+                                
+                            if (request.Headers.TryGetValue("X-WOPI-CorrelationID", out var wopiCorrelationId))
+                                activity.SetTag("http.request.header.wopi_correlationid", wopiCorrelationId.ToString());
+                        };
+                        
+                        // Enrich spans with HTTP response information
+                        options.EnrichWithHttpResponse = (activity, response) =>
+                        {
+                            if (response.Headers.TryGetValue("X-WOPI-CorrelationID", out var wopiCorrelationId))
+                                activity.SetTag("http.response.header.wopi_correlationid", wopiCorrelationId.ToString());
+                        };
+                        
+                        // Filter out health check requests from traces
+                        options.Filter = httpContext =>
+                        {
+                            return !httpContext.Request.Path.StartsWithSegments("/health") &&
+                                   !httpContext.Request.Path.StartsWithSegments("/alive");
+                        };
+                    })
+                    .AddHttpClientInstrumentation(options =>
+                    {
+                        // Enrich HTTP client spans with WOPI-specific information
+                        options.EnrichWithHttpRequestMessage = (activity, request) =>
+                        {
+                            if (request.Headers.Contains("X-WOPI-Override"))
+                            {
+                                activity.SetTag("wopi.operation", request.Headers.GetValues("X-WOPI-Override").FirstOrDefault());
+                            }
+                        };
+                        
+                        options.EnrichWithHttpResponseMessage = (activity, response) =>
+                        {
+                            if (response.Headers.Contains("X-WOPI-CorrelationID"))
+                            {
+                                activity.SetTag("wopi.correlation_id", response.Headers.GetValues("X-WOPI-CorrelationID").FirstOrDefault());
+                            }
+                        };
+                    })
+                    // Add custom activity sources for WOPI operations
+                    .AddSource("WopiHost.Core")
+                    .AddSource("WopiHost.Web")
+                    .AddSource("WopiHost.Discovery")
+                    .AddSource("WopiHost.FileSystem");
             });
 
         builder.AddOpenTelemetryExporters();
