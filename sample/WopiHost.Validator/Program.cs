@@ -2,6 +2,12 @@ using WopiHost.Validator.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add health checks
+builder.Services.AddHealthChecks();
+
+// Add service discovery
+builder.Services.AddServiceDiscovery();
+
 // standard 
 builder.Services.AddControllers();
 if (builder.Environment.IsDevelopment())
@@ -31,5 +37,7 @@ app.UseAuthorization();
 app.MapRazorPages();
 // WopiServer Controllers
 app.MapControllers();
+// Map health checks
+app.MapHealthChecks("/health");
 
 await app.RunAsync();

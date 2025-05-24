@@ -37,7 +37,8 @@ public class FilesControllerTests
             {
                 StorageProviderAssemblyName = "test",
                 LockProviderAssemblyName = "test",
-                OnCheckFileInfo = o => Task.FromResult(o.CheckFileInfo)
+                OnCheckFileInfo = o => Task.FromResult(o.CheckFileInfo),
+                ClientUrl = new Uri("http://localhost:5000"),
             });
         memoryCache = new MemoryCache(new MemoryCacheOptions());
         lockProviderMock = new Mock<IWopiLockProvider>();

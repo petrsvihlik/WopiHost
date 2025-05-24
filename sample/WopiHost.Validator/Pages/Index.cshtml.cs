@@ -1,6 +1,4 @@
-using System.Collections.ObjectModel;
 using System.Globalization;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using WopiHost.Abstractions;

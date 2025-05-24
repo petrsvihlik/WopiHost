@@ -1,12 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using WopiHost.Abstractions;
+using WopiHost.Discovery;
 
 namespace WopiHost.Core.Models;
 
 /// <summary>
 /// Configuration class for WopiHost.Core
 /// </summary>
-public class WopiHostOptions
+public class WopiHostOptions : IDiscoveryOptions
 {
     /// <summary>
     /// Determines whether the MS-FSSHTTP should be enabled or not.
@@ -33,4 +34,10 @@ public class WopiHostOptions
     /// Callback for the CheckContainerInfo operation.
     /// </summary>
     public Func<WopiCheckContainerInfoContext, Task<WopiCheckContainerInfo>> OnCheckContainerInfo { get; set; } = c => Task.FromResult(c.CheckContainerInfo);
+
+    /// <summary>
+    /// Base URI of the WOPI Client server (Office Online Server / Office Web Apps).
+    /// </summary>
+    [Required]
+    public required Uri ClientUrl { get; set; }
 }
