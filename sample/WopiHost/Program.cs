@@ -60,13 +60,8 @@ public static class Program
             builder.Services.AddLockProvider(wopiHostOptions.LockProviderAssemblyName);
             
             // Add Discovery services
-            builder.Services.Configure<DiscoveryOptions>(builder.Configuration.GetSection(WopiConfigurationSections.DISCOVERY_OPTIONS));
-            builder.Services.AddHttpClient<IDiscoveryFileProvider, HttpDiscoveryFileProvider>((sp, client) =>
-            {
-                var wopiOptions = sp.GetRequiredService<IOptions<WopiHostOptions>>();
-                client.BaseAddress = wopiOptions.Value.ClientUrl;
-            });
-            builder.Services.AddSingleton<IDiscoverer, WopiDiscoverer>();
+            builder.Services.AddWopiDiscovery<WopiHostOptions>(
+                options => builder.Configuration.GetSection(WopiConfigurationSections.DISCOVERY_OPTIONS).Bind(options));
             
             // Add Cobalt support
             if (wopiHostOptions.UseCobalt)

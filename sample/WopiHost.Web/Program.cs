@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
@@ -22,16 +23,10 @@ builder.Services
     .AddOptionsWithValidateOnStart<WopiOptions>()
     .Bind(builder.Configuration.GetRequiredSection(WopiConfigurationSections.WOPI_ROOT))
     .ValidateDataAnnotations();
-builder.Services.AddOptions<DiscoveryOptions>()
-    .Bind(builder.Configuration.GetSection(WopiConfigurationSections.DISCOVERY_OPTIONS));
 
-builder.Services.AddHttpClient<IDiscoveryFileProvider, HttpDiscoveryFileProvider>((sp, client) =>
-{
-    var wopiOptions = sp.GetRequiredService<IOptions<WopiOptions>>();
-    client.BaseAddress = wopiOptions.Value.ClientUrl;
-});
+builder.Services.AddWopiDiscovery<WopiOptions>(
+    options => builder.Configuration.GetSection(WopiConfigurationSections.DISCOVERY_OPTIONS).Bind(options));
 
-builder.Services.AddSingleton<IDiscoverer, WopiDiscoverer>();
 builder.Services.AddSingleton<InMemoryFileIds>();
 builder.Services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
 

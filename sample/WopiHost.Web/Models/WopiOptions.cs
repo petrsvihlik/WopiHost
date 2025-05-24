@@ -1,11 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using WopiHost.Discovery;
 
 namespace WopiHost.Web.Models;
 
 /// <summary>
 /// Configuration object for the the WopiHost.Web application.
 /// </summary>
-public class WopiOptions
+public class WopiOptions : IDiscoveryOptions
 {
     /// <summary>
     /// Base URI of the WOPI Host server.

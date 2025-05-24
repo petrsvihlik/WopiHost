@@ -1,12 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using WopiHost.Abstractions;
+using WopiHost.Discovery;
 
 namespace WopiHost.Core.Models;
 
 /// <summary>
 /// Configuration class for WopiHost.Core
 /// </summary>
-public class WopiHostOptions
+public class WopiHostOptions : IDiscoveryOptions
 {
     /// <summary>
     /// Determines whether the MS-FSSHTTP should be enabled or not.
