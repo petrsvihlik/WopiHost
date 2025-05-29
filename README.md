@@ -51,7 +51,7 @@ The WopiHost app targets both `net8.0` and `net9.0`.
 If you need a version that targets an older version of .NET, check out the releases:
 - [.NET 6](TBD)
 - [.NET 5](https://github.com/petrsvihlik/WopiHost/releases/tag/3.0.0)
-- [.NET Core 2.1 + .NET Framewokr 4.6](https://github.com/petrsvihlik/WopiHost/releases/tag/1.0.0)
+- [.NET Core 2.1 + .NET Framework 4.6](https://github.com/petrsvihlik/WopiHost/releases/tag/1.0.0)
 - [.NET Core 3.1 + .NET Standard 2.1](https://github.com/petrsvihlik/WopiHost/releases/tag/2.0.0)
 
 If you get errors saying that Microsoft.CobaltCore.*.nupkg can't be found, then just remove the reference or see the chapter [Cobalt](#Cobalt) below.
