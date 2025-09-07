@@ -23,6 +23,10 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
+    - name: Setup .NET 10.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
     - name: Extract version from tag
       id: get_version
       uses: battila7/get-version-action@v2
