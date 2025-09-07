@@ -38,7 +38,8 @@ graph TB
     end
     
     subgraph "WopiHost Backend API"
-        Core["**WopiHost.Core**<br/>WOPI Server Backend"]
+        WopiHost["**WopiHost**<br/>Host Application"]
+        Core["**WopiHost.Core**<br/>Controllers & Implementation"]
         
         subgraph "Core Libraries"
             Abstractions["**WopiHost.Abstractions**<br/>Core Interfaces"]
@@ -58,7 +59,10 @@ graph TB
     SampleApps --> OOS
     
     %% WOPI client depends on WopiHost backend
-    OOS --> Core
+    OOS --> WopiHost
+    
+    %% WopiHost host app uses Core implementation
+    WopiHost --> Core
     
     %% Core dependencies
     Core --> Abstractions
@@ -84,12 +88,14 @@ graph TB
     %% Styling
     classDef sampleApp fill:#e1f5fe,stroke:#01579b,stroke-width:2px
     classDef wopiClient fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef coreModule fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef hostApp fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef coreModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
     classDef libraryModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
     classDef providerModule fill:#fce4ec,stroke:#880e4f,stroke-width:2px
     
     class SampleApps sampleApp
     class OOS wopiClient
+    class WopiHost hostApp
     class Core coreModule
     class Abstractions,Discovery,Url libraryModule
     class FileSystem,MemoryLock,CustomStorage,CustomLock providerModule
