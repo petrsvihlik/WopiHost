@@ -15,6 +15,7 @@
 | `WopiHost.Core` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Core.svg)](https://www.nuget.org/packages/WopiHost.Core) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Core.svg)](https://www.nuget.org/packages/WopiHost.Core) |
 | `WopiHost.Discovery` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Discovery.svg)](https://www.nuget.org/packages/WopiHost.Discovery) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Discovery.svg)](https://www.nuget.org/packages/WopiHost.Discovery) |
 | `WopiHost.FileSystemProvider` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.FileSystemProvider.svg)](https://www.nuget.org/packages/WopiHost.FileSystemProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.FileSystemProvider.svg)](https://www.nuget.org/packages/WopiHost.FileSystemProvider) |
+| `WopiHost.MemoryLockProvider` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.MemoryLockProvider.svg)](https://www.nuget.org/packages/WopiHost.MemoryLockProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.MemoryLockProvider.svg)](https://www.nuget.org/packages/WopiHost.MemoryLockProvider) |
 | `WopiHost.Url` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Url.svg)](https://www.nuget.org/packages/WopiHost.Url) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Url.svg)](https://www.nuget.org/packages/WopiHost.Url) |
 
 
@@ -22,19 +23,123 @@ Introduction
 ==========
 This project is a sample implementation of a WOPI host. Basically, it allows developers to integrate custom datasources with Office Online Server (formerly Office Web Apps) or any other WOPI client by implementing a bunch of interfaces.
 
-Features / improvements compared to existing samples on the web
------------------------
- - clean WebAPI built with ASP.NET Core MVC (no references to System.Web)
- - uses new ASP.NET Core features (configuration, etc.)
- - can be self-hosted or run under IIS
- - file manipulation is extracted to own layer of abstraction (there is no dependency on System.IO)
-   - example implementation included (provider for Windows file system)
-   - file identifiers can be anything (doesn't have to correspond with the file's name in the file system)
- - custom token authentication middleware
- - DI used everywhere
- - URL generator
-   - based on a WOPI discovery module
- - all references are NuGets
+## Architecture
+
+The WopiHost project is built using a modular architecture that separates concerns and allows for flexible implementations. Here's how the modules work together:
+
+```mermaid
+graph TB
+    subgraph "Sample Applications"
+        SampleApps["**Sample Applications**<br/>🌐 **WopiHost.Web**<br/>🧪 **WopiHost.Validator**<br/>📝 **WopiHost Sample**"]
+    end
+    
+    subgraph "WOPI Client"
+        OOS["**Office Online Server**<br/>Microsoft 365 for the Web"]
+    end
+    
+    subgraph "WopiHost Backend API"
+        WopiHost["**WopiHost**<br/>Host Application"]
+        Core["**WopiHost.Core**<br/>Controllers & Implementation"]
+        
+        subgraph "Core Libraries"
+            Abstractions["**WopiHost.Abstractions**<br/>Core Interfaces"]
+            Discovery["**WopiHost.Discovery**<br/>Client Capabilities"]
+            Url["**WopiHost.Url**<br/>URL Generation"]
+        end
+        
+        subgraph "Providers"
+            FileSystem["**WopiHost.FileSystemProvider**<br/>File System Storage"]
+            MemoryLock["**WopiHost.MemoryLockProvider**<br/>In-Memory Locking"]
+            CustomStorage["**Custom Storage**<br/>Cloud, Database, etc."]
+            CustomLock["**Custom Locking**<br/>Distributed Locking"]
+        end
+    end
+    
+    %% Sample apps embed WOPI client
+    SampleApps --> OOS
+    
+    %% WOPI client depends on WopiHost backend
+    OOS --> WopiHost
+    
+    %% WopiHost host app uses Core implementation
+    WopiHost --> Core
+    
+    %% Core dependencies
+    Core --> Abstractions
+    Core --> Discovery
+    
+    %% Library dependencies
+    Discovery --> Abstractions
+    Url --> Discovery
+    Url --> Abstractions
+    
+    %% Provider implementations
+    FileSystem --> Abstractions
+    MemoryLock --> Abstractions
+    CustomStorage --> Abstractions
+    CustomLock --> Abstractions
+    
+    %% Core uses providers
+    Core --> FileSystem
+    Core --> MemoryLock
+    Core --> CustomStorage
+    Core --> CustomLock
+    
+    %% Styling
+    classDef sampleApp fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef wopiClient fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef hostApp fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef coreModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef libraryModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef providerModule fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    
+    class SampleApps sampleApp
+    class OOS wopiClient
+    class WopiHost hostApp
+    class Core coreModule
+    class Abstractions,Discovery,Url libraryModule
+    class FileSystem,MemoryLock,CustomStorage,CustomLock providerModule
+```
+
+### How It Works
+
+1. **Sample Applications**: The `/sample` folder contains complete applications that embed the WOPI client:
+   - **WopiHost.Web**: A web application with file management UI that embeds Office Online Server
+   - **WopiHost.Validator**: A testing tool for WOPI protocol validation
+   - **WopiHost Sample**: A basic WOPI host implementation
+
+2. **WOPI Client Integration**: The sample applications embed Office Online Server or Microsoft 365 for the Web as a WOPI client component.
+
+3. **WopiHost Backend API**: The WOPI client depends on the WopiHost backend API (NuGet packages) to serve files:
+   - **WopiHost.Core**: Implements the WOPI REST API endpoints, handles authentication, authorization, and orchestrates all operations
+   - **WopiHost.Abstractions**: Defines the core interfaces for storage, security, and locking functionality
+   - **WopiHost.Discovery**: Queries the WOPI client to understand its capabilities
+   - **WopiHost.Url**: Generates proper WOPI URLs based on discovered capabilities
+
+4. **Storage & Lock Providers**: The WOPI client uses these providers to access and manage files:
+   - **WopiHost.FileSystemProvider**: File system storage implementation
+   - **WopiHost.MemoryLockProvider**: In-memory locking implementation
+   - **Custom Providers**: You can implement your own storage and locking providers
+
+5. **Your Own Applications**: You can create your own applications by embedding the WOPI client and referencing the WopiHost NuGet packages.
+
+This modular design allows you to:
+- **Use the sample applications** as starting points for your own WOPI-enabled applications
+- **Embed the WOPI client** in your own applications
+- **Reference individual WopiHost packages** to customize the backend API
+- **Implement custom providers** for your specific storage or infrastructure needs
+- **Test easily** with the included validator and sample implementations
+
+Key Differentiators
+-------------------
+ - **Modular Architecture**: Complete separation of concerns with 6 dedicated NuGet packages (Abstractions, Core, Discovery, Url, FileSystemProvider, MemoryLockProvider) allowing selective integration
+ - **WOPI Discovery Integration**: Dynamic capability detection that queries Office Online Server to determine supported file types and actions, with intelligent URL template resolution and caching
+ - **Advanced Cobalt Support**: Optional MS-FSSHTTP protocol integration for enhanced performance and compatibility with Office Web Apps 2013+ features
+ - **Flexible Storage Abstraction**: Complete decoupling from file system with clean interfaces supporting any storage backend (cloud, database, custom APIs) through `IWopiStorageProvider`
+ - **.NET Aspire Integration**: Modern cloud-native development experience with service orchestration, OpenTelemetry observability, and containerization support
+ - **Comprehensive WOPI Compliance**: Full implementation of the current WOPI specification including file operations, container operations (basic), and ecosystem support (basic)
+ - **Enterprise-Ready Security**: Built-in WOPI proof validation, origin checking, and extensible authentication/authorization with JWT token support
+ - **Production-Ready Features**: Health checks, in-memory caching, and sample applications for testing and validation
  
 Usage
 =====
@@ -172,31 +277,129 @@ Using in your web project
 -------------------------
 TODO
 
-Extending
-=========
+Extending WopiHost
+==================
 
-### IWopiStorageProvider
+WopiHost is designed with extensibility in mind. Each NuGet package provides specific interfaces and implementations that you can extend or replace to meet your requirements.
 
-The `IWopiStorageProvider` interface is the main interface that needs to be implemented to provide access to the files. It's up to you how you implement it. One sample implementation is in the `WopiHost.FileSystemProvider` project.
+## Core Extension Points
 
-### IWopiSecurityHandler
+### Storage Providers
+- **[WopiHost.Abstractions](src/WopiHost.Abstractions/README.md)** - Core interfaces for storage, security, and locking
+- **[WopiHost.FileSystemProvider](src/WopiHost.FileSystemProvider/README.md)** - File system-based storage implementation with examples for cloud storage, database integration, and document management systems
 
-The `IWopiSecurityHandler` interface is used to authenticate and authorize resource requests. One sample implementation is in the `WopiHost.FileSystemProvider` project.
+### Lock Management
+- **[WopiHost.MemoryLockProvider](src/WopiHost.MemoryLockProvider/README.md)** - In-memory locking for single-instance deployments
+- **[WopiHost.Abstractions](src/WopiHost.Abstractions/README.md)** - `IWopiLockProvider` interface for custom distributed locking implementations
 
-### IWopiLockProvider
+### Core Functionality
+- **[WopiHost.Core](src/WopiHost.Core/README.md)** - WOPI server implementation with extensible controllers, middleware, and security handlers
+- **[WopiHost.Discovery](src/WopiHost.Discovery/README.md)** - WOPI client capability discovery with custom provider support
+- **[WopiHost.Url](src/WopiHost.Url/README.md)** - URL generation and template resolution
 
-The `IWopiLockProvider` interface is used to handle file locks. One sample implementation is in the `WopiHost.MemoryLockProvider` project.
+## Quick Start Examples
 
-### CheckFileInfo
+### Custom Cloud Storage
+```csharp
+// Implement IWopiStorageProvider for your cloud storage
+public class AzureBlobStorageProvider : IWopiStorageProvider, IWopiWritableStorageProvider
+{
+    // See WopiHost.Abstractions README for complete implementation
+}
+```
 
-The [CheckFileInfo](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo) includes not only details about the file but also some additional properties that can be used by the WOPI client. You can either completely customize the response (by adding your own / missing properties), or update any properties before returning them by registering for the OnCheckFileInfo event.
+### Custom Security Handler
+```csharp
+// Implement IWopiSecurityHandler for your authentication system
+public class CustomSecurityHandler : IWopiSecurityHandler
+{
+    // See WopiHost.Abstractions README for complete implementation
+}
+```
 
-### CheckContainerInfo
+### Custom Lock Provider
+```csharp
+// Implement IWopiLockProvider for distributed locking
+public class RedisLockProvider : IWopiLockProvider
+{
+    // See WopiHost.Abstractions README for complete implementation
+}
+```
 
-The [CheckContainerInfo](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo) includes also some security related properties (that are checked by IWopiSecurityHandler), but you can still customize the response using the OnCheckContainerInfo event.
+## Advanced Customization
 
+### CheckFileInfo & CheckContainerInfo Events
+Customize WOPI responses by registering for events in your `WopiHostOptions`:
 
-TODO additional details
+```csharp
+builder.Services.Configure<WopiHostOptions>(options =>
+{
+    options.OnCheckFileInfo = async context =>
+    {
+        var fileInfo = await GetDefaultFileInfo(context);
+        // Add custom properties
+        fileInfo.CustomProperty = "CustomValue";
+        return fileInfo;
+    };
+    
+    options.OnCheckContainerInfo = async context =>
+    {
+        var containerInfo = await GetDefaultContainerInfo(context);
+        // Add custom security properties
+        containerInfo.CustomSecurityProperty = "CustomSecurityValue";
+        return containerInfo;
+    };
+});
+```
+
+## Package-Specific Documentation
+
+Each WopiHost package includes comprehensive documentation with:
+- **Hero scenarios** showing real-world usage patterns
+- **API reference** with complete interface documentation
+- **Configuration examples** for various deployment scenarios
+- **Integration patterns** for enterprise systems
+- **Performance considerations** and best practices
+
+**📚 [View all package documentation →](src/)**
+
+## Extending Documentation Index
+
+### By Extension Type
+
+| Extension Type | Package | Documentation | Key Interfaces |
+|----------------|---------|---------------|----------------|
+| **Storage** | [WopiHost.Abstractions](src/WopiHost.Abstractions/README.md) | Core storage interfaces | `IWopiStorageProvider`, `IWopiWritableStorageProvider` |
+| **File System** | [WopiHost.FileSystemProvider](src/WopiHost.FileSystemProvider/README.md) | File system implementation | `WopiFileSystemProvider`, `WopiSecurityHandler` |
+| **Locking** | [WopiHost.MemoryLockProvider](src/WopiHost.MemoryLockProvider/README.md) | In-memory locking | `IWopiLockProvider`, `MemoryLockProvider` |
+| **Core Server** | [WopiHost.Core](src/WopiHost.Core/README.md) | WOPI server implementation | Controllers, middleware, security |
+| **Discovery** | [WopiHost.Discovery](src/WopiHost.Discovery/README.md) | Client capability discovery | `IDiscoverer`, `IDiscoveryFileProvider` |
+| **URL Generation** | [WopiHost.Url](src/WopiHost.Url/README.md) | WOPI URL generation | `WopiUrlBuilder`, `WopiUrlSettings` |
+| **Cobalt Protocol** | [WopiHost.Cobalt](src/WopiHost.Cobalt/README.md) | MS-FSSHTTP support | `ICobaltSessionManager`, `CobaltSession` |
+
+### By Use Case
+
+| Use Case | Recommended Packages | Documentation |
+|----------|---------------------|---------------|
+| **Cloud Storage Integration** | Abstractions + Custom Implementation | [Storage Examples](src/WopiHost.Abstractions/README.md#hero-scenarios) |
+| **Database-Backed Documents** | Abstractions + Custom Implementation | [Database Examples](src/WopiHost.Abstractions/README.md#hero-scenarios) |
+| **Enterprise Security** | Core + Custom Security Handler | [Security Examples](src/WopiHost.Core/README.md#security) |
+| **Distributed Locking** | Abstractions + Custom Lock Provider | [Lock Examples](src/WopiHost.Abstractions/README.md#hero-scenarios) |
+| **Multi-Tenant Host** | Core + Custom Providers | [Multi-Tenant Examples](src/WopiHost.Core/README.md#hero-scenarios) |
+| **High-Performance Editing** | Cobalt + Core | [Cobalt Examples](src/WopiHost.Cobalt/README.md#hero-scenarios) |
+| **Local Development** | FileSystemProvider + MemoryLockProvider | [Quick Start](src/WopiHost.FileSystemProvider/README.md#quick-start) |
+
+### By Integration Pattern
+
+| Pattern | Description | Packages | Examples |
+|---------|-------------|----------|----------|
+| **Custom Storage** | Implement your own storage backend | Abstractions | [Cloud Storage](src/WopiHost.Abstractions/README.md#hero-scenarios), [Database Storage](src/WopiHost.Abstractions/README.md#hero-scenarios) |
+| **Custom Security** | Implement your own authentication/authorization | Abstractions, Core | [Security Handler](src/WopiHost.Abstractions/README.md#hero-scenarios), [Authorization](src/WopiHost.Core/README.md#authorization) |
+| **Custom Locking** | Implement distributed or custom locking | Abstractions | [Distributed Locking](src/WopiHost.Abstractions/README.md#hero-scenarios) |
+| **Custom Discovery** | Implement custom WOPI discovery | Discovery | [Custom Provider](src/WopiHost.Discovery/README.md#examples) |
+| **Custom URL Generation** | Implement custom URL templates | Url | [URL Builder](src/WopiHost.Url/README.md#hero-scenarios) |
+| **Custom Controllers** | Extend or replace WOPI controllers | Core | [Custom Controllers](src/WopiHost.Core/README.md#examples) |
+| **Custom Middleware** | Add custom middleware to WOPI pipeline | Core | [Custom Middleware](src/WopiHost.Core/README.md#examples) |
 
 Known issues / TODOs
 ==================
