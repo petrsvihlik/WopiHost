@@ -29,17 +29,15 @@ The WopiHost project is built using a modular architecture that separates concer
 
 ```mermaid
 graph TB
-    subgraph "Sample Applications (Top Level)"
-        Web[WopiHost.Web<br/>🌐 Web Application<br/>File Management UI]
-        Validator[WopiHost.Validator<br/>🧪 Testing Tool<br/>WOPI Protocol Validation]
-        Sample[WopiHost Sample<br/>📝 Basic WOPI Host<br/>Example Implementation]
+    subgraph "Sample Applications"
+        SampleApps[Sample Applications<br/>🌐 WopiHost.Web - Web Application with File Management UI<br/>🧪 WopiHost.Validator - Testing Tool for WOPI Protocol Validation<br/>📝 WopiHost Sample - Basic WOPI Host Example Implementation]
     end
     
-    subgraph "Office Online Server"
-        OOS[Office Online Server<br/>Microsoft 365 for the Web<br/>WOPI Client]
+    subgraph "WOPI Client (Embedded in Sample Apps)"
+        OOS[Office Online Server<br/>Microsoft 365 for the Web<br/>WOPI Client Component]
     end
     
-    subgraph "WopiHost Backend (NuGet Packages)"
+    subgraph "WopiHost Backend API (NuGet Packages)"
         Core[WopiHost.Core<br/>🎯 WOPI Server Backend<br/>Controllers, Middleware, Security]
         
         subgraph "Core Libraries"
@@ -56,30 +54,11 @@ graph TB
         end
     end
     
-    %% Sample apps use WopiHost packages
-    Web --> Core
-    Web --> Abstractions
-    Web --> Discovery
-    Web --> Url
-    Web --> FileSystem
-    Web --> MemoryLock
+    %% Sample apps embed WOPI client
+    SampleApps --> OOS
     
-    Validator --> Core
-    Validator --> Abstractions
-    Validator --> Discovery
-    Validator --> Url
-    
-    Sample --> Core
-    Sample --> Abstractions
-    Sample --> Discovery
-    Sample --> Url
-    Sample --> FileSystem
-    Sample --> MemoryLock
-    
-    %% WOPI Client communicates with sample apps
-    OOS --> Web
-    OOS --> Validator
-    OOS --> Sample
+    %% WOPI client depends on WopiHost backend
+    OOS --> Core
     
     %% Core dependencies
     Core --> Abstractions
@@ -109,7 +88,7 @@ graph TB
     classDef libraryModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
     classDef providerModule fill:#fce4ec,stroke:#880e4f,stroke-width:2px
     
-    class Web,Validator,Sample sampleApp
+    class SampleApps sampleApp
     class OOS wopiClient
     class Core coreModule
     class Abstractions,Discovery,Url libraryModule
@@ -118,31 +97,31 @@ graph TB
 
 ### How It Works
 
-1. **Sample Applications**: The `/sample` folder contains complete applications that demonstrate how to use the WopiHost packages:
-   - **WopiHost.Web**: A web application with file management UI
+1. **Sample Applications**: The `/sample` folder contains complete applications that embed the WOPI client:
+   - **WopiHost.Web**: A web application with file management UI that embeds Office Online Server
    - **WopiHost.Validator**: A testing tool for WOPI protocol validation
    - **WopiHost Sample**: A basic WOPI host implementation
 
-2. **WOPI Client Communication**: Office Online Server or Microsoft 365 for the Web communicates with your sample applications through the WOPI protocol.
+2. **WOPI Client Integration**: The sample applications embed Office Online Server or Microsoft 365 for the Web as a WOPI client component.
 
-3. **WopiHost Backend Packages**: The sample applications use the WopiHost NuGet packages to implement the WOPI server functionality:
+3. **WopiHost Backend API**: The WOPI client depends on the WopiHost backend API (NuGet packages) to serve files:
    - **WopiHost.Core**: Implements the WOPI REST API endpoints, handles authentication, authorization, and orchestrates all operations
    - **WopiHost.Abstractions**: Defines the core interfaces for storage, security, and locking functionality
    - **WopiHost.Discovery**: Queries the WOPI client to understand its capabilities
    - **WopiHost.Url**: Generates proper WOPI URLs based on discovered capabilities
 
-4. **Storage & Lock Providers**: Pluggable implementations that the sample applications can use:
+4. **Storage & Lock Providers**: The WOPI client uses these providers to access and manage files:
    - **WopiHost.FileSystemProvider**: File system storage implementation
    - **WopiHost.MemoryLockProvider**: In-memory locking implementation
    - **Custom Providers**: You can implement your own storage and locking providers
 
-5. **Your Own Applications**: You can create your own applications by referencing the WopiHost NuGet packages and implementing the required interfaces.
+5. **Your Own Applications**: You can create your own applications by embedding the WOPI client and referencing the WopiHost NuGet packages.
 
 This modular design allows you to:
-- **Use the sample applications** as starting points for your own WOPI host
-- **Reference individual packages** in your own applications
+- **Use the sample applications** as starting points for your own WOPI-enabled applications
+- **Embed the WOPI client** in your own applications
+- **Reference individual WopiHost packages** to customize the backend API
 - **Implement custom providers** for your specific storage or infrastructure needs
-- **Mix and match** components based on your requirements
 - **Test easily** with the included validator and sample implementations
 
 Features / improvements compared to existing samples on the web
