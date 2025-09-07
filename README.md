@@ -277,31 +277,129 @@ Using in your web project
 -------------------------
 TODO
 
-Extending
-=========
+Extending WopiHost
+==================
 
-### IWopiStorageProvider
+WopiHost is designed with extensibility in mind. Each NuGet package provides specific interfaces and implementations that you can extend or replace to meet your requirements.
 
-The `IWopiStorageProvider` interface is the main interface that needs to be implemented to provide access to the files. It's up to you how you implement it. One sample implementation is in the `WopiHost.FileSystemProvider` project.
+## Core Extension Points
 
-### IWopiSecurityHandler
+### Storage Providers
+- **[WopiHost.Abstractions](src/WopiHost.Abstractions/README.md)** - Core interfaces for storage, security, and locking
+- **[WopiHost.FileSystemProvider](src/WopiHost.FileSystemProvider/README.md)** - File system-based storage implementation with examples for cloud storage, database integration, and document management systems
 
-The `IWopiSecurityHandler` interface is used to authenticate and authorize resource requests. One sample implementation is in the `WopiHost.FileSystemProvider` project.
+### Lock Management
+- **[WopiHost.MemoryLockProvider](src/WopiHost.MemoryLockProvider/README.md)** - In-memory locking for single-instance deployments
+- **[WopiHost.Abstractions](src/WopiHost.Abstractions/README.md)** - `IWopiLockProvider` interface for custom distributed locking implementations
 
-### IWopiLockProvider
+### Core Functionality
+- **[WopiHost.Core](src/WopiHost.Core/README.md)** - WOPI server implementation with extensible controllers, middleware, and security handlers
+- **[WopiHost.Discovery](src/WopiHost.Discovery/README.md)** - WOPI client capability discovery with custom provider support
+- **[WopiHost.Url](src/WopiHost.Url/README.md)** - URL generation and template resolution
 
-The `IWopiLockProvider` interface is used to handle file locks. One sample implementation is in the `WopiHost.MemoryLockProvider` project.
+## Quick Start Examples
 
-### CheckFileInfo
+### Custom Cloud Storage
+```csharp
+// Implement IWopiStorageProvider for your cloud storage
+public class AzureBlobStorageProvider : IWopiStorageProvider, IWopiWritableStorageProvider
+{
+    // See WopiHost.Abstractions README for complete implementation
+}
+```
 
-The [CheckFileInfo](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo) includes not only details about the file but also some additional properties that can be used by the WOPI client. You can either completely customize the response (by adding your own / missing properties), or update any properties before returning them by registering for the OnCheckFileInfo event.
+### Custom Security Handler
+```csharp
+// Implement IWopiSecurityHandler for your authentication system
+public class CustomSecurityHandler : IWopiSecurityHandler
+{
+    // See WopiHost.Abstractions README for complete implementation
+}
+```
 
-### CheckContainerInfo
+### Custom Lock Provider
+```csharp
+// Implement IWopiLockProvider for distributed locking
+public class RedisLockProvider : IWopiLockProvider
+{
+    // See WopiHost.Abstractions README for complete implementation
+}
+```
 
-The [CheckContainerInfo](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo) includes also some security related properties (that are checked by IWopiSecurityHandler), but you can still customize the response using the OnCheckContainerInfo event.
+## Advanced Customization
 
+### CheckFileInfo & CheckContainerInfo Events
+Customize WOPI responses by registering for events in your `WopiHostOptions`:
 
-TODO additional details
+```csharp
+builder.Services.Configure<WopiHostOptions>(options =>
+{
+    options.OnCheckFileInfo = async context =>
+    {
+        var fileInfo = await GetDefaultFileInfo(context);
+        // Add custom properties
+        fileInfo.CustomProperty = "CustomValue";
+        return fileInfo;
+    };
+    
+    options.OnCheckContainerInfo = async context =>
+    {
+        var containerInfo = await GetDefaultContainerInfo(context);
+        // Add custom security properties
+        containerInfo.CustomSecurityProperty = "CustomSecurityValue";
+        return containerInfo;
+    };
+});
+```
+
+## Package-Specific Documentation
+
+Each WopiHost package includes comprehensive documentation with:
+- **Hero scenarios** showing real-world usage patterns
+- **API reference** with complete interface documentation
+- **Configuration examples** for various deployment scenarios
+- **Integration patterns** for enterprise systems
+- **Performance considerations** and best practices
+
+**📚 [View all package documentation →](src/)**
+
+## Extending Documentation Index
+
+### By Extension Type
+
+| Extension Type | Package | Documentation | Key Interfaces |
+|----------------|---------|---------------|----------------|
+| **Storage** | [WopiHost.Abstractions](src/WopiHost.Abstractions/README.md) | Core storage interfaces | `IWopiStorageProvider`, `IWopiWritableStorageProvider` |
+| **File System** | [WopiHost.FileSystemProvider](src/WopiHost.FileSystemProvider/README.md) | File system implementation | `WopiFileSystemProvider`, `WopiSecurityHandler` |
+| **Locking** | [WopiHost.MemoryLockProvider](src/WopiHost.MemoryLockProvider/README.md) | In-memory locking | `IWopiLockProvider`, `MemoryLockProvider` |
+| **Core Server** | [WopiHost.Core](src/WopiHost.Core/README.md) | WOPI server implementation | Controllers, middleware, security |
+| **Discovery** | [WopiHost.Discovery](src/WopiHost.Discovery/README.md) | Client capability discovery | `IDiscoverer`, `IDiscoveryFileProvider` |
+| **URL Generation** | [WopiHost.Url](src/WopiHost.Url/README.md) | WOPI URL generation | `WopiUrlBuilder`, `WopiUrlSettings` |
+| **Cobalt Protocol** | [WopiHost.Cobalt](src/WopiHost.Cobalt/README.md) | MS-FSSHTTP support | `ICobaltSessionManager`, `CobaltSession` |
+
+### By Use Case
+
+| Use Case | Recommended Packages | Documentation |
+|----------|---------------------|---------------|
+| **Cloud Storage Integration** | Abstractions + Custom Implementation | [Storage Examples](src/WopiHost.Abstractions/README.md#hero-scenarios) |
+| **Database-Backed Documents** | Abstractions + Custom Implementation | [Database Examples](src/WopiHost.Abstractions/README.md#hero-scenarios) |
+| **Enterprise Security** | Core + Custom Security Handler | [Security Examples](src/WopiHost.Core/README.md#security) |
+| **Distributed Locking** | Abstractions + Custom Lock Provider | [Lock Examples](src/WopiHost.Abstractions/README.md#hero-scenarios) |
+| **Multi-Tenant Host** | Core + Custom Providers | [Multi-Tenant Examples](src/WopiHost.Core/README.md#hero-scenarios) |
+| **High-Performance Editing** | Cobalt + Core | [Cobalt Examples](src/WopiHost.Cobalt/README.md#hero-scenarios) |
+| **Local Development** | FileSystemProvider + MemoryLockProvider | [Quick Start](src/WopiHost.FileSystemProvider/README.md#quick-start) |
+
+### By Integration Pattern
+
+| Pattern | Description | Packages | Examples |
+|---------|-------------|----------|----------|
+| **Custom Storage** | Implement your own storage backend | Abstractions | [Cloud Storage](src/WopiHost.Abstractions/README.md#hero-scenarios), [Database Storage](src/WopiHost.Abstractions/README.md#hero-scenarios) |
+| **Custom Security** | Implement your own authentication/authorization | Abstractions, Core | [Security Handler](src/WopiHost.Abstractions/README.md#hero-scenarios), [Authorization](src/WopiHost.Core/README.md#authorization) |
+| **Custom Locking** | Implement distributed or custom locking | Abstractions | [Distributed Locking](src/WopiHost.Abstractions/README.md#hero-scenarios) |
+| **Custom Discovery** | Implement custom WOPI discovery | Discovery | [Custom Provider](src/WopiHost.Discovery/README.md#examples) |
+| **Custom URL Generation** | Implement custom URL templates | Url | [URL Builder](src/WopiHost.Url/README.md#hero-scenarios) |
+| **Custom Controllers** | Extend or replace WOPI controllers | Core | [Custom Controllers](src/WopiHost.Core/README.md#examples) |
+| **Custom Middleware** | Add custom middleware to WOPI pipeline | Core | [Custom Middleware](src/WopiHost.Core/README.md#examples) |
 
 Known issues / TODOs
 ==================
