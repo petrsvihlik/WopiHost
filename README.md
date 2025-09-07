@@ -30,27 +30,27 @@ The WopiHost project is built using a modular architecture that separates concer
 ```mermaid
 graph TB
     subgraph "Sample Applications"
-        SampleApps["**Sample Applications**<br/>🌐 **WopiHost.Web** - Web UI<br/>🧪 **WopiHost.Validator** - Testing Tool<br/>📝 **WopiHost Sample** - Basic Example"]
+        SampleApps["**Sample Applications**<br/>🌐 **WopiHost.Web**<br/>🧪 **WopiHost.Validator**<br/>📝 **WopiHost Sample**"]
     end
     
     subgraph "WOPI Client"
-        OOS["**Office Online Server**<br/>Microsoft 365 for the Web<br/>WOPI Client Component"]
+        OOS["**Office Online Server**<br/>Microsoft 365 for the Web"]
     end
     
     subgraph "WopiHost Backend API"
-        Core["**WopiHost.Core**<br/>🎯 WOPI Server Backend<br/>Controllers, Middleware, Security"]
+        Core["**WopiHost.Core**<br/>WOPI Server Backend"]
         
         subgraph "Core Libraries"
-            Abstractions["**WopiHost.Abstractions**<br/>📋 Core Interfaces<br/>Storage, Security, Locking"]
-            Discovery["**WopiHost.Discovery**<br/>🔍 Client Capabilities<br/>WOPI Discovery"]
-            Url["**WopiHost.Url**<br/>🔗 URL Generation<br/>WOPI URL Builder"]
+            Abstractions["**WopiHost.Abstractions**<br/>Core Interfaces"]
+            Discovery["**WopiHost.Discovery**<br/>Client Capabilities"]
+            Url["**WopiHost.Url**<br/>URL Generation"]
         end
         
         subgraph "Providers"
-            FileSystem["**WopiHost.FileSystemProvider**<br/>📁 File System Storage<br/>Local/Network Drive"]
-            MemoryLock["**WopiHost.MemoryLockProvider**<br/>🔒 In-Memory Locking<br/>Single-Instance"]
-            CustomStorage["**Custom Storage**<br/>☁️ Cloud, Database, etc.<br/>Implement IWopiStorageProvider"]
-            CustomLock["**Custom Locking**<br/>🔐 Distributed Locking<br/>Redis, Database, etc."]
+            FileSystem["**WopiHost.FileSystemProvider**<br/>File System Storage"]
+            MemoryLock["**WopiHost.MemoryLockProvider**<br/>In-Memory Locking"]
+            CustomStorage["**Custom Storage**<br/>Cloud, Database, etc."]
+            CustomLock["**Custom Locking**<br/>Distributed Locking"]
         end
     end
     
