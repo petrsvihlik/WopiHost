@@ -130,19 +130,16 @@ This modular design allows you to:
 - **Implement custom providers** for your specific storage or infrastructure needs
 - **Test easily** with the included validator and sample implementations
 
-Features / improvements compared to existing samples on the web
------------------------
- - clean WebAPI built with ASP.NET Core MVC (no references to System.Web)
- - uses new ASP.NET Core features (configuration, etc.)
- - can be self-hosted or run under IIS
- - file manipulation is extracted to own layer of abstraction (there is no dependency on System.IO)
-   - example implementation included (provider for Windows file system)
-   - file identifiers can be anything (doesn't have to correspond with the file's name in the file system)
- - custom token authentication middleware
- - DI used everywhere
- - URL generator
-   - based on a WOPI discovery module
- - all references are NuGets
+Key Differentiators
+-------------------
+ - **Modular Architecture**: Complete separation of concerns with 6 dedicated NuGet packages (Abstractions, Core, Discovery, Url, FileSystemProvider, MemoryLockProvider) allowing selective integration
+ - **WOPI Discovery Integration**: Dynamic capability detection that queries Office Online Server to determine supported file types and actions, with intelligent URL template resolution and caching
+ - **Advanced Cobalt Support**: Optional MS-FSSHTTP protocol integration for enhanced performance and compatibility with Office Web Apps 2013+ features
+ - **Flexible Storage Abstraction**: Complete decoupling from file system with clean interfaces supporting any storage backend (cloud, database, custom APIs) through `IWopiStorageProvider`
+ - **.NET Aspire Integration**: Modern cloud-native development experience with service orchestration, OpenTelemetry observability, and containerization support
+ - **Comprehensive WOPI Compliance**: Full implementation of the current WOPI specification including file operations, container operations (basic), and ecosystem support (basic)
+ - **Enterprise-Ready Security**: Built-in WOPI proof validation, origin checking, and extensible authentication/authorization with JWT token support
+ - **Production-Ready Features**: Health checks, in-memory caching, and sample applications for testing and validation
  
 Usage
 =====
