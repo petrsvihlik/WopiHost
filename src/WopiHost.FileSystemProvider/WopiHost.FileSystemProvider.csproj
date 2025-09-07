@@ -4,7 +4,7 @@
 		<Nullable>enable</Nullable>
 		<Description>WopiHost.FileSystemProvider Class Library</Description>
 		<Authors>Petr Svihlik</Authors>
-		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 		<AssemblyName>WopiHost.FileSystemProvider</AssemblyName>
 		<PackageId>WopiHost.FileSystemProvider</PackageId>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
@@ -35,10 +35,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-		<PackageReference Include="System.Diagnostics.FileVersionInfo" />
 		<PackageReference Include="System.IO.FileSystem.AccessControl" />
-		<PackageReference Include="System.Security.Claims" />
-		<PackageReference Include="System.Security.Principal.Windows" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
 		<PackageReference Include="Microsoft.AspNetCore.Authorization" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
