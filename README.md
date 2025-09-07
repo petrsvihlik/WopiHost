@@ -15,12 +15,119 @@
 | `WopiHost.Core` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Core.svg)](https://www.nuget.org/packages/WopiHost.Core) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Core.svg)](https://www.nuget.org/packages/WopiHost.Core) |
 | `WopiHost.Discovery` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Discovery.svg)](https://www.nuget.org/packages/WopiHost.Discovery) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Discovery.svg)](https://www.nuget.org/packages/WopiHost.Discovery) |
 | `WopiHost.FileSystemProvider` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.FileSystemProvider.svg)](https://www.nuget.org/packages/WopiHost.FileSystemProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.FileSystemProvider.svg)](https://www.nuget.org/packages/WopiHost.FileSystemProvider) |
+| `WopiHost.MemoryLockProvider` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.MemoryLockProvider.svg)](https://www.nuget.org/packages/WopiHost.MemoryLockProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.MemoryLockProvider.svg)](https://www.nuget.org/packages/WopiHost.MemoryLockProvider) |
 | `WopiHost.Url` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Url.svg)](https://www.nuget.org/packages/WopiHost.Url) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Url.svg)](https://www.nuget.org/packages/WopiHost.Url) |
 
 
 Introduction
 ==========
 This project is a sample implementation of a WOPI host. Basically, it allows developers to integrate custom datasources with Office Online Server (formerly Office Web Apps) or any other WOPI client by implementing a bunch of interfaces.
+
+## Architecture
+
+The WopiHost project is built using a modular architecture that separates concerns and allows for flexible implementations. Here's how the modules work together:
+
+```mermaid
+graph TB
+    subgraph "WOPI Client Layer"
+        OOS[Office Online Server<br/>Microsoft 365 for the Web]
+    end
+    
+    subgraph "WopiHost Application Layer"
+        Core[WopiHost.Core<br/>🎯 Main WOPI Server<br/>Controllers, Middleware, Security]
+        Web[WopiHost.Web<br/>🌐 Web Interface<br/>File Management UI]
+        Validator[WopiHost.Validator<br/>🧪 Testing Tool<br/>WOPI Protocol Validation]
+    end
+    
+    subgraph "WopiHost Core Libraries"
+        Abstractions[WopiHost.Abstractions<br/>📋 Core Interfaces<br/>IWopiStorageProvider, IWopiSecurityHandler, etc.]
+        Discovery[WopiHost.Discovery<br/>🔍 WOPI Discovery<br/>Client Capability Detection]
+        Url[WopiHost.Url<br/>🔗 URL Generation<br/>WOPI URL Builder]
+    end
+    
+    subgraph "Storage & Lock Providers"
+        FileSystem[WopiHost.FileSystemProvider<br/>📁 File System Storage<br/>Local/Network Drive Support]
+        MemoryLock[WopiHost.MemoryLockProvider<br/>🔒 In-Memory Locking<br/>Single-Instance Lock Management]
+        CustomStorage[Custom Storage Providers<br/>☁️ Cloud Storage, Database, etc.<br/>Implement IWopiStorageProvider]
+        CustomLock[Custom Lock Providers<br/>🔐 Distributed Locking<br/>Redis, Database, etc.]
+    end
+    
+    subgraph "External Dependencies"
+        AspNetCore[ASP.NET Core<br/>Web Framework]
+        JWT[System.IdentityModel.Tokens.Jwt<br/>JWT Authentication]
+        Options[Microsoft.Extensions.Options<br/>Configuration]
+    end
+    
+    %% Client connections
+    OOS --> Core
+    OOS --> Web
+    OOS --> Validator
+    
+    %% Core dependencies
+    Core --> Abstractions
+    Core --> Discovery
+    Core --> AspNetCore
+    Core --> JWT
+    Core --> Options
+    
+    %% Web and Validator dependencies
+    Web --> Core
+    Validator --> Core
+    
+    %% Library dependencies
+    Discovery --> Abstractions
+    Url --> Discovery
+    Url --> Abstractions
+    
+    %% Provider implementations
+    FileSystem --> Abstractions
+    MemoryLock --> Abstractions
+    CustomStorage --> Abstractions
+    CustomLock --> Abstractions
+    
+    %% Core uses providers
+    Core --> FileSystem
+    Core --> MemoryLock
+    Core --> CustomStorage
+    Core --> CustomLock
+    
+    %% Styling
+    classDef coreModule fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef libraryModule fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef providerModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef clientModule fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef externalModule fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    
+    class Core,Web,Validator coreModule
+    class Abstractions,Discovery,Url libraryModule
+    class FileSystem,MemoryLock,CustomStorage,CustomLock providerModule
+    class OOS clientModule
+    class AspNetCore,JWT,Options externalModule
+```
+
+### How It Works
+
+1. **WOPI Client Integration**: Office Online Server or Microsoft 365 for the Web communicates with your WopiHost application through the WOPI protocol.
+
+2. **Core Server (WopiHost.Core)**: The main server that implements the WOPI REST API endpoints, handles authentication, authorization, and orchestrates all operations.
+
+3. **Abstractions Layer (WopiHost.Abstractions)**: Defines the core interfaces that you must implement to provide storage, security, and locking functionality.
+
+4. **Discovery & URL Generation**: 
+   - `WopiHost.Discovery` queries the WOPI client to understand its capabilities
+   - `WopiHost.Url` generates proper WOPI URLs based on discovered capabilities
+
+5. **Storage & Lock Providers**: Pluggable implementations for:
+   - **Storage**: File system, cloud storage, databases, etc.
+   - **Locking**: In-memory, distributed (Redis), database-based, etc.
+
+6. **Web Interface & Testing**: Optional components for file management and protocol validation.
+
+This modular design allows you to:
+- **Mix and match** components based on your needs
+- **Implement custom providers** for your specific storage or infrastructure
+- **Scale independently** by replacing providers (e.g., move from in-memory to distributed locking)
+- **Test easily** with the included validator and sample implementations
 
 Features / improvements compared to existing samples on the web
 -----------------------
