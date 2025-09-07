@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageVersion Include="Microsoft.DotNet.PackageValidation" Version="1.0.0-preview.7.21379.12" PrivateAssets="All" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.4.3" />
     <PackageVersion Include="Scrutor" Version="6.0.1" />
     <PackageVersion Include="System.Linq" Version="4.3.0" />

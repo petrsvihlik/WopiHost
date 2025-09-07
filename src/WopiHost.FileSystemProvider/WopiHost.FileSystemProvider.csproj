@@ -41,6 +41,7 @@
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+		<PackageReference Include="Microsoft.DotNet.PackageValidation" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>

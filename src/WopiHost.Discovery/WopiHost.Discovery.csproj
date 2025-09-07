@@ -35,6 +35,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+		<PackageReference Include="Microsoft.DotNet.PackageValidation" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>

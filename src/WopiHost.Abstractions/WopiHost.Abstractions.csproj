@@ -37,6 +37,7 @@
 		<PackageReference Include="Microsoft.SourceLink.GitHub" />
 		<PackageReference Include="Microsoft.AspNetCore.Authorization" />
 		<PackageReference Include="Microsoft.IdentityModel.Tokens" />
+		<PackageReference Include="Microsoft.DotNet.PackageValidation" PrivateAssets="All" />
 	</ItemGroup>
 
 </Project>
