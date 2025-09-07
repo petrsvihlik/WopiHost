@@ -29,50 +29,61 @@ The WopiHost project is built using a modular architecture that separates concer
 
 ```mermaid
 graph TB
-    subgraph "WOPI Client Layer"
-        OOS[Office Online Server<br/>Microsoft 365 for the Web]
-    end
-    
-    subgraph "WopiHost Application Layer"
-        Core[WopiHost.Core<br/>🎯 Main WOPI Server<br/>Controllers, Middleware, Security]
-        Web[WopiHost.Web<br/>🌐 Web Interface<br/>File Management UI]
+    subgraph "Sample Applications (Top Level)"
+        Web[WopiHost.Web<br/>🌐 Web Application<br/>File Management UI]
         Validator[WopiHost.Validator<br/>🧪 Testing Tool<br/>WOPI Protocol Validation]
+        Sample[WopiHost Sample<br/>📝 Basic WOPI Host<br/>Example Implementation]
     end
     
-    subgraph "WopiHost Core Libraries"
-        Abstractions[WopiHost.Abstractions<br/>📋 Core Interfaces<br/>IWopiStorageProvider, IWopiSecurityHandler, etc.]
-        Discovery[WopiHost.Discovery<br/>🔍 WOPI Discovery<br/>Client Capability Detection]
-        Url[WopiHost.Url<br/>🔗 URL Generation<br/>WOPI URL Builder]
+    subgraph "Office Online Server"
+        OOS[Office Online Server<br/>Microsoft 365 for the Web<br/>WOPI Client]
     end
     
-    subgraph "Storage & Lock Providers"
-        FileSystem[WopiHost.FileSystemProvider<br/>📁 File System Storage<br/>Local/Network Drive Support]
-        MemoryLock[WopiHost.MemoryLockProvider<br/>🔒 In-Memory Locking<br/>Single-Instance Lock Management]
-        CustomStorage[Custom Storage Providers<br/>☁️ Cloud Storage, Database, etc.<br/>Implement IWopiStorageProvider]
-        CustomLock[Custom Lock Providers<br/>🔐 Distributed Locking<br/>Redis, Database, etc.]
+    subgraph "WopiHost Backend (NuGet Packages)"
+        Core[WopiHost.Core<br/>🎯 WOPI Server Backend<br/>Controllers, Middleware, Security]
+        
+        subgraph "Core Libraries"
+            Abstractions[WopiHost.Abstractions<br/>📋 Core Interfaces<br/>IWopiStorageProvider, IWopiSecurityHandler, etc.]
+            Discovery[WopiHost.Discovery<br/>🔍 WOPI Discovery<br/>Client Capability Detection]
+            Url[WopiHost.Url<br/>🔗 URL Generation<br/>WOPI URL Builder]
+        end
+        
+        subgraph "Storage & Lock Providers"
+            FileSystem[WopiHost.FileSystemProvider<br/>📁 File System Storage<br/>Local/Network Drive Support]
+            MemoryLock[WopiHost.MemoryLockProvider<br/>🔒 In-Memory Locking<br/>Single-Instance Lock Management]
+            CustomStorage[Custom Storage Providers<br/>☁️ Cloud Storage, Database, etc.<br/>Implement IWopiStorageProvider]
+            CustomLock[Custom Lock Providers<br/>🔐 Distributed Locking<br/>Redis, Database, etc.]
+        end
     end
     
-    subgraph "External Dependencies"
-        AspNetCore[ASP.NET Core<br/>Web Framework]
-        JWT[System.IdentityModel.Tokens.Jwt<br/>JWT Authentication]
-        Options[Microsoft.Extensions.Options<br/>Configuration]
-    end
+    %% Sample apps use WopiHost packages
+    Web --> Core
+    Web --> Abstractions
+    Web --> Discovery
+    Web --> Url
+    Web --> FileSystem
+    Web --> MemoryLock
     
-    %% Client connections
-    OOS --> Core
+    Validator --> Core
+    Validator --> Abstractions
+    Validator --> Discovery
+    Validator --> Url
+    
+    Sample --> Core
+    Sample --> Abstractions
+    Sample --> Discovery
+    Sample --> Url
+    Sample --> FileSystem
+    Sample --> MemoryLock
+    
+    %% WOPI Client communicates with sample apps
     OOS --> Web
     OOS --> Validator
+    OOS --> Sample
     
     %% Core dependencies
     Core --> Abstractions
     Core --> Discovery
-    Core --> AspNetCore
-    Core --> JWT
-    Core --> Options
-    
-    %% Web and Validator dependencies
-    Web --> Core
-    Validator --> Core
     
     %% Library dependencies
     Discovery --> Abstractions
@@ -92,41 +103,46 @@ graph TB
     Core --> CustomLock
     
     %% Styling
-    classDef coreModule fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef libraryModule fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef providerModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef clientModule fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef externalModule fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef sampleApp fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef wopiClient fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef coreModule fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef libraryModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef providerModule fill:#fce4ec,stroke:#880e4f,stroke-width:2px
     
-    class Core,Web,Validator coreModule
+    class Web,Validator,Sample sampleApp
+    class OOS wopiClient
+    class Core coreModule
     class Abstractions,Discovery,Url libraryModule
     class FileSystem,MemoryLock,CustomStorage,CustomLock providerModule
-    class OOS clientModule
-    class AspNetCore,JWT,Options externalModule
 ```
 
 ### How It Works
 
-1. **WOPI Client Integration**: Office Online Server or Microsoft 365 for the Web communicates with your WopiHost application through the WOPI protocol.
+1. **Sample Applications**: The `/sample` folder contains complete applications that demonstrate how to use the WopiHost packages:
+   - **WopiHost.Web**: A web application with file management UI
+   - **WopiHost.Validator**: A testing tool for WOPI protocol validation
+   - **WopiHost Sample**: A basic WOPI host implementation
 
-2. **Core Server (WopiHost.Core)**: The main server that implements the WOPI REST API endpoints, handles authentication, authorization, and orchestrates all operations.
+2. **WOPI Client Communication**: Office Online Server or Microsoft 365 for the Web communicates with your sample applications through the WOPI protocol.
 
-3. **Abstractions Layer (WopiHost.Abstractions)**: Defines the core interfaces that you must implement to provide storage, security, and locking functionality.
+3. **WopiHost Backend Packages**: The sample applications use the WopiHost NuGet packages to implement the WOPI server functionality:
+   - **WopiHost.Core**: Implements the WOPI REST API endpoints, handles authentication, authorization, and orchestrates all operations
+   - **WopiHost.Abstractions**: Defines the core interfaces for storage, security, and locking functionality
+   - **WopiHost.Discovery**: Queries the WOPI client to understand its capabilities
+   - **WopiHost.Url**: Generates proper WOPI URLs based on discovered capabilities
 
-4. **Discovery & URL Generation**: 
-   - `WopiHost.Discovery` queries the WOPI client to understand its capabilities
-   - `WopiHost.Url` generates proper WOPI URLs based on discovered capabilities
+4. **Storage & Lock Providers**: Pluggable implementations that the sample applications can use:
+   - **WopiHost.FileSystemProvider**: File system storage implementation
+   - **WopiHost.MemoryLockProvider**: In-memory locking implementation
+   - **Custom Providers**: You can implement your own storage and locking providers
 
-5. **Storage & Lock Providers**: Pluggable implementations for:
-   - **Storage**: File system, cloud storage, databases, etc.
-   - **Locking**: In-memory, distributed (Redis), database-based, etc.
-
-6. **Web Interface & Testing**: Optional components for file management and protocol validation.
+5. **Your Own Applications**: You can create your own applications by referencing the WopiHost NuGet packages and implementing the required interfaces.
 
 This modular design allows you to:
-- **Mix and match** components based on your needs
-- **Implement custom providers** for your specific storage or infrastructure
-- **Scale independently** by replacing providers (e.g., move from in-memory to distributed locking)
+- **Use the sample applications** as starting points for your own WOPI host
+- **Reference individual packages** in your own applications
+- **Implement custom providers** for your specific storage or infrastructure needs
+- **Mix and match** components based on your requirements
 - **Test easily** with the included validator and sample implementations
 
 Features / improvements compared to existing samples on the web
