@@ -126,25 +126,12 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
 
         await foreach (var blobItem in _containerClient.GetBlobsAsync(prefix: prefix, cancellationToken: cancellationToken))
         {
-            if (blobItem.Properties.BlobType == Azure.Storage.Blobs.Models.BlobType.Block)
+            if (IsValidBlobForContainer(blobItem))
             {
-                var relativePath = blobItem.Name;
-                if (!string.IsNullOrEmpty(prefix))
+                var container = TryCreateContainerFromBlob(blobItem, folderPath, prefix, folders);
+                if (container != null)
                 {
-                    relativePath = blobItem.Name.Substring(prefix.Length);
-                }
-
-                var pathParts = relativePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-                if (pathParts.Length > 1)
-                {
-                    var folderName = pathParts[0];
-                    var fullFolderPath = string.IsNullOrEmpty(folderPath) ? folderName : $"{folderPath.TrimEnd('/')}/{folderName}";
-                    
-                    if (folders.Add(fullFolderPath))
-                    {
-                        var folderId = _fileIds.TryGetFileId(fullFolderPath, out var id) ? id : _fileIds.AddFile(fullFolderPath);
-                        yield return new WopiAzureFolder(_options.ContainerName, folderId, fullFolderPath);
-                    }
+                    yield return container;
                 }
             }
         }
@@ -240,7 +227,7 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(name));
         }
-
+        
         if (!_fileIds.TryGetPath(containerId, out var fullPath))
         {
             throw new DirectoryNotFoundException($"Directory '{containerId}' not found.");
@@ -248,46 +235,19 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
 
         var newPath = string.IsNullOrEmpty(fullPath) ? name : $"{fullPath.TrimEnd('/')}/{name}";
 
-        if (typeof(T) == typeof(IWopiFolder))
+        if (!await BlobExistsAsync(newPath))
         {
-            if (await BlobExistsAsync(newPath))
-            {
-                var newName = name;
-                var counter = 1;
-                while (await BlobExistsAsync($"{fullPath.TrimEnd('/')}/{newName}"))
-                {
-                    newName = $"{name} ({counter++})";
-                }
-                return newName;
-            }
-            else
-            {
-                return name;
-            }
+            return name;
         }
-        else if (typeof(T) == typeof(IWopiFile))
+
+        return typeof(T) switch
         {
-            if (await BlobExistsAsync(newPath))
-            {
-                var newName = name;
-                var counter = 1;
-                var extension = Path.GetExtension(name);
-                var nameWithoutExt = Path.GetFileNameWithoutExtension(name);
-                while (await BlobExistsAsync($"{fullPath.TrimEnd('/')}/{newName}"))
-                {
-                    newName = $"{nameWithoutExt} ({counter++}){extension}";
-                }
-                return newName;
-            }
-            else
-            {
-                return name;
-            }
-        }
-        else
-        {
-            throw new NotSupportedException("Unsupported resource type.");
-        }
+            { } when typeof(IWopiFolder).IsAssignableFrom(typeof(T)) => 
+                await GenerateUniqueFolderName(name, fullPath),
+            { } when typeof(IWopiFile).IsAssignableFrom(typeof(T)) => 
+                await GenerateUniqueFileName(name, fullPath),
+            _ => throw new NotSupportedException("Unsupported resource type.")
+        };
     }
 
     /// <inheritdoc/>
@@ -571,12 +531,29 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
 
     private string GetFileParentIdentifier(string identifier)
     {
-        if (!_fileIds.TryGetPath(identifier, out var filePath))
+        return GetParentIdentifier(identifier, "File");
+    }
+
+    private string GetFolderParentIdentifier(string identifier)
+    {
+        return GetParentIdentifier(identifier, "Folder");
+    }
+
+    private string GetParentIdentifier(string identifier, string resourceType)
+    {
+        if (!_fileIds.TryGetPath(identifier, out var resourcePath))
         {
-            throw new FileNotFoundException($"File '{identifier}' not found");
+            if (resourceType == "File")
+            {
+                throw new FileNotFoundException($"File '{identifier}' not found");
+            }
+            else
+            {
+                throw new DirectoryNotFoundException($"Folder '{identifier}' not found");
+            }
         }
         
-        var parentPath = Path.GetDirectoryName(filePath)?.Replace('\\', '/') ?? "";
+        var parentPath = Path.GetDirectoryName(resourcePath)?.Replace('\\', '/') ?? "";
         if (!_fileIds.TryGetFileId(parentPath, out var parentFolderId))
         {
             throw new DirectoryNotFoundException("Parent directory not found");
@@ -584,19 +561,66 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
         return parentFolderId;
     }
 
-    private string GetFolderParentIdentifier(string identifier)
+    private static bool IsValidBlobForContainer(BlobItem blobItem)
     {
-        if (!_fileIds.TryGetPath(identifier, out var folderPath))
+        return blobItem.Properties.BlobType == Azure.Storage.Blobs.Models.BlobType.Block;
+    }
+
+    private IWopiFolder? TryCreateContainerFromBlob(BlobItem blobItem, string folderPath, string? prefix, HashSet<string> folders)
+    {
+        var relativePath = GetRelativePath(blobItem.Name, prefix);
+        var pathParts = relativePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        
+        if (pathParts.Length <= 1)
         {
-            throw new DirectoryNotFoundException($"Folder '{identifier}' not found");
+            return null;
+        }
+
+        var folderName = pathParts[0];
+        var fullFolderPath = string.IsNullOrEmpty(folderPath) ? folderName : $"{folderPath.TrimEnd('/')}/{folderName}";
+        
+        if (!folders.Add(fullFolderPath))
+        {
+            return null;
+        }
+
+        var folderId = _fileIds.TryGetFileId(fullFolderPath, out var id) ? id : _fileIds.AddFile(fullFolderPath);
+        return new WopiAzureFolder(_options.ContainerName, folderId, fullFolderPath);
+    }
+
+    private static string GetRelativePath(string blobName, string? prefix)
+    {
+        return string.IsNullOrEmpty(prefix) ? blobName : blobName.Substring(prefix.Length);
+    }
+
+    private async Task<string> GenerateUniqueFolderName(string name, string fullPath)
+    {
+        var newName = name;
+        var counter = 1;
+        var basePath = fullPath.TrimEnd('/');
+        
+        while (await BlobExistsAsync($"{basePath}/{newName}"))
+        {
+            newName = $"{name} ({counter++})";
         }
         
-        var parentPath = Path.GetDirectoryName(folderPath)?.Replace('\\', '/') ?? "";
-        if (!_fileIds.TryGetFileId(parentPath, out var parentFolderId))
+        return newName;
+    }
+
+    private async Task<string> GenerateUniqueFileName(string name, string fullPath)
+    {
+        var extension = Path.GetExtension(name);
+        var nameWithoutExt = Path.GetFileNameWithoutExtension(name);
+        var newName = name;
+        var counter = 1;
+        var basePath = fullPath.TrimEnd('/');
+        
+        while (await BlobExistsAsync($"{basePath}/{newName}"))
         {
-            throw new DirectoryNotFoundException("Parent directory not found");
+            newName = $"{nameWithoutExt} ({counter++}){extension}";
         }
-        return parentFolderId;
+        
+        return newName;
     }
 
     #endregion
