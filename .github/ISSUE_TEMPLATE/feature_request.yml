@@ -1,0 +1,167 @@
+name: ✨ Feature Request
+description: Suggest an idea for WopiHost
+title: "[Feature]: "
+labels: ["enhancement"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible to help us understand your request.
+
+  - type: dropdown
+    id: product
+    attributes:
+      label: Product
+      description: Which Office product would this feature benefit?
+      options:
+        - Office Web Apps
+        - Office Online Server
+        - Office Online
+        - All Products
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Type
+      description: What type of feature is this?
+      options:
+        - New functionality
+        - Performance improvement
+        - User experience enhancement
+        - Developer experience improvement
+        - Security enhancement
+        - Documentation improvement
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why is this feature required? Is your feature request related to a problem?
+      placeholder: |
+        - Why is this feature required?
+        - Is your feature request related to a problem? What problem?
+        - A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the Solution
+      description: A clear and concise description of what you want to happen
+      placeholder: "Describe your proposed solution in detail..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: A clear and concise description of any alternative solutions or features you've considered
+      placeholder: "What other approaches have you considered?"
+    validations:
+      required: false
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Describe specific use cases where this feature would be helpful
+      placeholder: "Provide concrete examples of when this feature would be used"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact
+      description: What would be the impact of this feature?
+      options:
+        - label: This would improve performance
+        - label: This would improve security
+        - label: This would improve user experience
+        - label: This would improve developer experience
+        - label: This would add new functionality
+        - label: This would fix a limitation
+        - label: This would improve compatibility
+        - label: Other (please specify in additional context)
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would be helpful
+        - High - Important for my use case
+        - Critical - Blocking my adoption
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Contribution & Ownership
+
+  - type: textarea
+    id: attempted-implementation
+    attributes:
+      label: What I Tried
+      description: Have you tried to implement this feature or work around the limitation?
+      placeholder: |
+        - I tried [specific approach]
+        - I looked into [alternative solution]
+        - I searched for existing solutions
+        - I checked if this exists in other projects
+    validations:
+      required: false
+
+  - type: dropdown
+    id: contribution-intent
+    attributes:
+      label: Contribution Intent
+      description: How would you like to contribute to implementing this feature?
+      options:
+        - I'd like to contribute with a PR to implement this
+        - I'd like this to be implemented for me by someone else
+        - I can help with testing once it's implemented
+        - I can help with documentation or examples
+        - I can provide more detailed requirements if needed
+        - I'm just suggesting the idea
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribution-areas
+    attributes:
+      label: Areas I Can Help With
+      description: If you're willing to contribute, which areas can you help with?
+      options:
+        - label: Code implementation
+        - label: Testing
+        - label: Documentation
+        - label: Code review
+        - label: Design/UX
+        - label: Performance optimization
+        - label: Security review
+        - label: Examples and samples
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context or screenshots about the feature request here
+      placeholder: "Any other information that might be helpful, including mockups, diagrams, or examples"
+    validations:
+      required: false
