@@ -10,7 +10,7 @@
 		<PackageReference Include="Moq" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Memory" />
+		<!-- Memory provider is included in Microsoft.Extensions.Configuration -->
 	</ItemGroup>
 	<ItemGroup>
 	  <PackageReference Update="coverlet.collector">
