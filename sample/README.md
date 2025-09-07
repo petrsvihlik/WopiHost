@@ -66,4 +66,4 @@ Once you've successfully built the app you can:
 - run it from the `cmd`
   - navigate to the WopiHost folder and run `dotnet run`
 - run it in IIS (tested in IIS 8.5)
-  - TODO
+  - See [Hosting Options](https://github.com/petrsvihlik/WopiHost/blob/master/README.md#hosting-options) in the main README for detailed IIS setup instructions

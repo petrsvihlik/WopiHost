@@ -238,6 +238,144 @@ dotnet run --project sample/WopiHost.Web
 # Terminal 3 - Validator (optional)
 dotnet run --project sample/WopiHost.Validator
 ```
+
+## Hosting Options
+
+### .NET Aspire (Recommended)
+The .NET Aspire orchestration (described above) is the recommended approach for development and modern cloud-native deployments. It provides the best developer experience with automatic service discovery, configuration management, and observability.
+
+### Alternative Hosting Methods
+
+#### IIS Hosting
+For production deployments on Windows Server with IIS:
+
+1. **Publish the application:**
+   ```bash
+   dotnet publish sample/WopiHost -c Release -o ./publish
+   ```
+
+2. **Create web.config for IIS:**
+   ```xml
+   <?xml version="1.0" encoding="utf-8"?>
+   <configuration>
+     <location path="." inheritInChildApplications="false">
+       <system.webServer>
+         <handlers>
+           <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
+         </handlers>
+         <aspNetCore processPath="dotnet" arguments=".\WopiHost.dll" stdoutLogEnabled="false" stdoutLogFile=".\logs\stdout" hostingModel="inprocess" />
+       </system.webServer>
+     </location>
+   </configuration>
+   ```
+
+3. **Configure IIS:**
+   - Create a new Application Pool targeting .NET CLR Version "No Managed Code"
+   - Create a new website pointing to the published folder
+   - Ensure the Application Pool identity has read/execute permissions
+   - Install the [ASP.NET Core Hosting Bundle](https://dotnet.microsoft.com/download/dotnet-core) on the server
+
+4. **Configure WOPI settings** in `appsettings.json` for your production environment:
+   ```json
+   {
+     "Wopi": {
+       "ClientUrl": "https://your-office-online-server.com",
+       "StorageProviderAssemblyName": "WopiHost.FileSystemProvider",
+       "StorageProvider": {
+         "RootPath": "C:\\WopiHost\\Documents"
+       },
+       "LockProviderAssemblyName": "WopiHost.MemoryLockProvider"
+     }
+   }
+   ```
+
+#### HTTPS Configuration
+To enable HTTPS for production deployments:
+
+1. **Configure SSL certificates** in your hosting environment
+
+2. **Update appsettings.json:**
+   ```json
+   {
+     "Kestrel": {
+       "Endpoints": {
+         "Https": {
+           "Url": "https://localhost:5001",
+           "Certificate": {
+             "Path": "path/to/certificate.pfx",
+             "Password": "certificate-password"
+           }
+         }
+       }
+     }
+   }
+   ```
+
+3. **Enable HTTPS redirection** in Program.cs:
+   ```csharp
+   // Uncomment this line in your Program.cs
+   app.UseHttpsRedirection();
+   ```
+
+4. **For IIS with HTTPS:**
+   - Configure SSL binding in IIS Manager
+   - Ensure the certificate is properly installed and trusted
+   - Update WOPI client URLs to use HTTPS
+
+#### Command Line (dotnet run)
+For development and testing:
+
+```bash
+# Set environment variables
+export ASPNETCORE_ENVIRONMENT=Development
+export ASPNETCORE_URLS=http://localhost:5000
+
+# Run the application
+dotnet run --project sample/WopiHost
+```
+
+**Troubleshooting dotnet run:**
+- Ensure all configuration files are present in the project directory
+- Check that `appsettings.json` contains valid WOPI configuration
+- Use `--verbosity detailed` for detailed error information:
+  ```bash
+  dotnet run --project sample/WopiHost --verbosity detailed
+  ```
+- Verify the WOPI client URL is accessible and properly configured
+- Check that the storage provider path exists and is accessible
+
+#### Docker Hosting
+For containerized deployments:
+
+1. **Create a Dockerfile:**
+   ```dockerfile
+   FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+   WORKDIR /app
+   EXPOSE 80
+   EXPOSE 443
+
+   FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+   WORKDIR /src
+   COPY ["sample/WopiHost/WopiHost.csproj", "sample/WopiHost/"]
+   RUN dotnet restore "sample/WopiHost/WopiHost.csproj"
+   COPY . .
+   WORKDIR "/src/sample/WopiHost"
+   RUN dotnet build "WopiHost.csproj" -c Release -o /app/build
+
+   FROM build AS publish
+   RUN dotnet publish "WopiHost.csproj" -c Release -o /app/publish
+
+   FROM base AS final
+   WORKDIR /app
+   COPY --from=publish /app/publish .
+   ENTRYPOINT ["dotnet", "WopiHost.dll"]
+   ```
+
+2. **Build and run:**
+   ```bash
+   docker build -t wopihost .
+   docker run -p 5000:80 wopihost
+   ```
  
 Samples
 -----------
