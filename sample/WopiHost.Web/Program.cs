@@ -13,8 +13,7 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 // Add services to the container
-builder.Services.AddControllersWithViews()
-    .AddRazorRuntimeCompilation();
+builder.Services.AddControllersWithViews();
 
 // Configuration
 builder.Services
