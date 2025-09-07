@@ -30,27 +30,27 @@ The WopiHost project is built using a modular architecture that separates concer
 ```mermaid
 graph TB
     subgraph "Sample Applications"
-        SampleApps["**Sample Applications**<br/>🌐 **WopiHost.Web** - Web Application with File Management UI<br/>🧪 **WopiHost.Validator** - Testing Tool for WOPI Protocol Validation<br/>📝 **WopiHost Sample** - Basic WOPI Host Example Implementation"]
+        SampleApps["**Sample Applications**<br/>🌐 **WopiHost.Web** - Web UI<br/>🧪 **WopiHost.Validator** - Testing Tool<br/>📝 **WopiHost Sample** - Basic Example"]
     end
     
-    subgraph "WOPI Client (Embedded in Sample Apps)"
+    subgraph "WOPI Client"
         OOS["**Office Online Server**<br/>Microsoft 365 for the Web<br/>WOPI Client Component"]
     end
     
-    subgraph "WopiHost Backend API (NuGet Packages)"
+    subgraph "WopiHost Backend API"
         Core["**WopiHost.Core**<br/>🎯 WOPI Server Backend<br/>Controllers, Middleware, Security"]
         
         subgraph "Core Libraries"
-            Abstractions["**WopiHost.Abstractions**<br/>📋 Core Interfaces<br/>IWopiStorageProvider, IWopiSecurityHandler"]
-            Discovery["**WopiHost.Discovery**<br/>🔍 WOPI Discovery<br/>Client Capability Detection"]
+            Abstractions["**WopiHost.Abstractions**<br/>📋 Core Interfaces<br/>Storage, Security, Locking"]
+            Discovery["**WopiHost.Discovery**<br/>🔍 Client Capabilities<br/>WOPI Discovery"]
             Url["**WopiHost.Url**<br/>🔗 URL Generation<br/>WOPI URL Builder"]
         end
         
-        subgraph "Storage & Lock Providers"
-            FileSystem["**WopiHost.FileSystemProvider**<br/>📁 File System Storage<br/>Local/Network Drive Support"]
-            MemoryLock["**WopiHost.MemoryLockProvider**<br/>🔒 In-Memory Locking<br/>Single-Instance Lock Management"]
-            CustomStorage["**Custom Storage Providers**<br/>☁️ Cloud Storage, Database, etc.<br/>Implement IWopiStorageProvider"]
-            CustomLock["**Custom Lock Providers**<br/>🔐 Distributed Locking<br/>Redis, Database, etc."]
+        subgraph "Providers"
+            FileSystem["**WopiHost.FileSystemProvider**<br/>📁 File System Storage<br/>Local/Network Drive"]
+            MemoryLock["**WopiHost.MemoryLockProvider**<br/>🔒 In-Memory Locking<br/>Single-Instance"]
+            CustomStorage["**Custom Storage**<br/>☁️ Cloud, Database, etc.<br/>Implement IWopiStorageProvider"]
+            CustomLock["**Custom Locking**<br/>🔐 Distributed Locking<br/>Redis, Database, etc."]
         end
     end
     
@@ -82,11 +82,11 @@ graph TB
     Core --> CustomLock
     
     %% Styling
-    classDef sampleApp fill:#e1f5fe,stroke:#01579b,stroke-width:2px,font-weight:bold
-    classDef wopiClient fill:#fff3e0,stroke:#e65100,stroke-width:2px,font-weight:bold
-    classDef coreModule fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,font-weight:bold
-    classDef libraryModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,font-weight:bold
-    classDef providerModule fill:#fce4ec,stroke:#880e4f,stroke-width:2px,font-weight:bold
+    classDef sampleApp fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef wopiClient fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef coreModule fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef libraryModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef providerModule fill:#fce4ec,stroke:#880e4f,stroke-width:2px
     
     class SampleApps sampleApp
     class OOS wopiClient
