@@ -4,7 +4,7 @@
 		<Nullable>enable</Nullable>
 		<Description>WopiHost.MemoryLockProvider Class Library</Description>
 		<Authors>Leon Segal</Authors>
-		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 		<AssemblyName>WopiHost.MemoryLockProvider</AssemblyName>
 		<PackageId>WopiHost.MemoryLockProvider</PackageId>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>

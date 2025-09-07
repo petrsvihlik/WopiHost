@@ -7,7 +7,7 @@
 [![Maintainability](https://qlty.sh/badges/43534b35-fa0c-4a2d-bd02-17802842b9c5/maintainability.svg)](https://qlty.sh/gh/petrsvihlik/projects/WopiHost)
 [![CodeFactor](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/badge/master)](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/overview/master)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_shield)
-[![.NET Core](https://img.shields.io/badge/net-9-692079.svg)](https://dotnet.microsoft.com/download/dotnet/9.0)
+[![.NET Core](https://img.shields.io/badge/net-10-692079.svg)](https://dotnet.microsoft.com/download/dotnet/10.0)
 
 | Package | Version | Downloads |
 | ------------- | :-------------: | :-------------: | 
@@ -41,12 +41,12 @@ Usage
 
 Prerequisites
 -------------
- - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
+ - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0), [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0), or [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
  - Recommended: [VS Code](https://code.visualstudio.com/) or [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)
 
 Building the app
 ----------------
-The WopiHost app targets both `net8.0` and `net9.0`.
+The WopiHost app targets `net8.0`, `net9.0`, and `net10.0`.
 
 If you need a version that targets an older version of .NET, check out the releases:
 - [.NET 6](TBD)
@@ -61,7 +61,7 @@ Running with .NET Aspire
 This project includes a .NET Aspire orchestration for easy development and deployment. .NET Aspire provides a comprehensive developer experience for building cloud-native applications with .NET.
 
 ### Prerequisites for .NET Aspire
-- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) (required for the AppHost project)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (required for the AppHost project)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop) (for containerization support)
 - Recommended: [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) with the .NET Aspire workload, or [VS Code](https://code.visualstudio.com/) with the C# Dev Kit extension
 

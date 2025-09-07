@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\WopiHost.Core\WopiHost.Core.csproj" />
@@ -13,6 +13,9 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <PackageReference Include="Moq" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' != 'net10.0'">
 	  <PackageReference Include="System.Linq.Async" />
 	</ItemGroup>
 	<ItemGroup>

@@ -53,7 +53,7 @@ This is a combination of the WopiHost and WopiHost.Web configurations, with the 
 After cloning and building the [WOPI-Validator repository](https://github.com/Microsoft/wopi-validator-core) use the following command to run the `Office Online` suite of validations:
 
 ```
-dotnet run --project src\WopiValidator\WopiValidator.csproj --framework net8.0 -s -e OfficeOnline -w http://localhost:28752/wopi/files/Llx0ZXN0LndvcGl0ZXN0 -t Anonymous -l 0
+dotnet run --project src\WopiValidator\WopiValidator.csproj --framework net10.0 -s -e OfficeOnline -w http://localhost:28752/wopi/files/Llx0ZXN0LndvcGl0ZXN0 -t Anonymous -l 0
 ```
 
 

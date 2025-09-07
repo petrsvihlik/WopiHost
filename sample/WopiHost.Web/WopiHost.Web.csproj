@@ -2,8 +2,7 @@
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
-		<TargetFramework>net9.0</TargetFramework>
-		<IncludeOpenAPIAnalyzers>true</IncludeOpenAPIAnalyzers>
+		<TargetFramework>net10.0</TargetFramework>
 		<PreserveCompilationContext>true</PreserveCompilationContext>
 		<AssemblyName>WopiHost.Web</AssemblyName>
 		<OutputType>Exe</OutputType>

@@ -4,7 +4,7 @@
 		<Nullable>enable</Nullable>
 		<Description>WopiHost.Core Class Library</Description>
 		<Authors>Petr Svihlik</Authors>
-		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 		<AssemblyName>WopiHost.Core</AssemblyName>
 		<PackageId>WopiHost.Core</PackageId>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
