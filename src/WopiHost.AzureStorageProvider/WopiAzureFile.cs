@@ -1,6 +1,7 @@
 using System.Globalization;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Microsoft.Extensions.Logging;
 using WopiHost.Abstractions;
 
 namespace WopiHost.AzureStorageProvider;
@@ -10,12 +11,38 @@ namespace WopiHost.AzureStorageProvider;
 /// </summary>
 /// <param name="blobClient">Azure Blob client for the file</param>
 /// <param name="fileIdentifier">Unique identifier of the file</param>
-public class WopiAzureFile(BlobClient blobClient, string fileIdentifier) : IWopiFile
+/// <param name="logger">Optional logger for diagnostics</param>
+public class WopiAzureFile(BlobClient blobClient, string fileIdentifier, ILogger<WopiAzureFile>? logger = null) : IWopiFile
 {
     private readonly BlobClient _blobClient = blobClient ?? throw new ArgumentNullException(nameof(blobClient));
+    private readonly ILogger<WopiAzureFile>? _logger = logger;
+    private BlobProperties? _cachedProperties;
+    private DateTimeOffset _cacheTime;
+    private readonly TimeSpan _cacheLifetime = TimeSpan.FromSeconds(30);
 
     /// <inheritdoc/>
     public string Identifier { get; } = fileIdentifier ?? throw new ArgumentNullException(nameof(fileIdentifier));
+
+    /// <summary>
+    /// Gets cached blob properties or fetches them if not cached or expired.
+    /// </summary>
+    private BlobProperties? GetCachedProperties()
+    {
+        if (_cachedProperties == null || DateTimeOffset.UtcNow - _cacheTime > _cacheLifetime)
+        {
+            try
+            {
+                _cachedProperties = _blobClient.GetProperties().Value;
+                _cacheTime = DateTimeOffset.UtcNow;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to get blob properties for {BlobName}", _blobClient.Name);
+                _cachedProperties = null;
+            }
+        }
+        return _cachedProperties;
+    }
 
     /// <inheritdoc/>
     public string Name => Path.GetFileNameWithoutExtension(blobClient.Name);
@@ -29,8 +56,9 @@ public class WopiAzureFile(BlobClient blobClient, string fileIdentifier) : IWopi
             {
                 return _blobClient.Exists().Value;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger?.LogWarning(ex, "Failed to check if blob exists: {BlobName}", _blobClient.Name);
                 return false;
             }
         }
@@ -44,15 +72,12 @@ public class WopiAzureFile(BlobClient blobClient, string fileIdentifier) : IWopi
     {
         get
         {
-            try
+            var properties = GetCachedProperties();
+            if (properties != null)
             {
-                var properties = _blobClient.GetProperties();
-                return properties.Value.ETag.ToString();
+                return properties.ETag.ToString();
             }
-            catch
-            {
-                return DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
-            }
+            return DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
         }
     }
 
@@ -62,15 +87,8 @@ public class WopiAzureFile(BlobClient blobClient, string fileIdentifier) : IWopi
     {
         get
         {
-            try
-            {
-                var properties = _blobClient.GetProperties();
-                return properties.Value.ContentHash;
-            }
-            catch
-            {
-                return null;
-            }
+            var properties = GetCachedProperties();
+            return properties?.ContentHash;
         }
     }
 #pragma warning restore CA1819 // Properties should not return arrays
@@ -80,15 +98,8 @@ public class WopiAzureFile(BlobClient blobClient, string fileIdentifier) : IWopi
     {
         get
         {
-            try
-            {
-                var properties = _blobClient.GetProperties();
-                return properties.Value.ContentLength;
-            }
-            catch
-            {
-                return 0;
-            }
+            var properties = GetCachedProperties();
+            return properties?.ContentLength ?? 0;
         }
     }
 
@@ -100,15 +111,8 @@ public class WopiAzureFile(BlobClient blobClient, string fileIdentifier) : IWopi
     {
         get
         {
-            try
-            {
-                var properties = _blobClient.GetProperties();
-                return properties.Value.LastModified.UtcDateTime;
-            }
-            catch
-            {
-                return DateTime.UtcNow;
-            }
+            var properties = GetCachedProperties();
+            return properties?.LastModified.UtcDateTime ?? DateTime.UtcNow;
         }
     }
 
@@ -117,15 +121,12 @@ public class WopiAzureFile(BlobClient blobClient, string fileIdentifier) : IWopi
     {
         get
         {
-            try
+            var properties = GetCachedProperties();
+            if (properties?.Metadata.TryGetValue("Owner", out var owner) == true)
             {
-                var properties = _blobClient.GetProperties();
-                return properties.Value.Metadata.TryGetValue("Owner", out var owner) ? owner : "Unknown";
+                return owner;
             }
-            catch
-            {
-                return "Unknown";
-            }
+            return "Unknown";
         }
     }
 

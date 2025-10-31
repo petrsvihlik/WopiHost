@@ -5,11 +5,14 @@ namespace WopiHost.AzureStorageProvider;
 
 /// <summary>
 /// A write stream that uploads to Azure Blob Storage when disposed.
+/// IMPORTANT: This stream MUST be disposed using DisposeAsync() to ensure data is uploaded.
+/// Synchronous Dispose() will throw an exception if data hasn't been uploaded.
 /// </summary>
 internal class AzureBlobWriteStream(BlobClient blobClient, CancellationToken cancellationToken) : Stream
 {
     private readonly MemoryStream _memoryStream = new();
     private bool _disposed = false;
+    private bool _uploaded = false;
 
     public override bool CanRead => _memoryStream.CanRead;
     public override bool CanSeek => _memoryStream.CanSeek;
@@ -33,7 +36,12 @@ internal class AzureBlobWriteStream(BlobClient blobClient, CancellationToken can
 
     public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
-        await _memoryStream.WriteAsync(buffer, offset, count, cancellationToken);
+        await WriteAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
+    }
+
+    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        return _memoryStream.WriteAsync(buffer, cancellationToken);
     }
 
     protected override void Dispose(bool disposing)
@@ -42,13 +50,14 @@ internal class AzureBlobWriteStream(BlobClient blobClient, CancellationToken can
         {
             try
             {
-                _memoryStream.Position = 0;
-                var uploadOptions = new BlobUploadOptions();
-                blobClient.UploadAsync(_memoryStream, uploadOptions, cancellationToken).Wait();
-            }
-            catch
-            {
-                // Log error but don't throw during disposal
+                // Synchronous dispose should not perform async I/O operations
+                // Throw if data hasn't been uploaded via DisposeAsync
+                if (_memoryStream.Length > 0 && !_uploaded)
+                {
+                    throw new InvalidOperationException(
+                        "AzureBlobWriteStream contains unuploaded data. " +
+                        "You must use DisposeAsync() or await using statement to ensure data is uploaded to Azure Blob Storage.");
+                }
             }
             finally
             {
@@ -65,13 +74,25 @@ internal class AzureBlobWriteStream(BlobClient blobClient, CancellationToken can
         {
             try
             {
-                _memoryStream.Position = 0;
-                var uploadOptions = new BlobUploadOptions();
-                await blobClient.UploadAsync(_memoryStream, uploadOptions, cancellationToken);
-            }
-            catch
-            {
-                // Log error but don't throw during disposal
+                // Only upload if there's data and it hasn't been uploaded yet
+                if (_memoryStream.Length > 0 && !_uploaded)
+                {
+                    _memoryStream.Position = 0;
+                    var uploadOptions = new BlobUploadOptions();
+                    
+                    try
+                    {
+                        await blobClient.UploadAsync(_memoryStream, uploadOptions, cancellationToken);
+                        _uploaded = true;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // If operation was cancelled, try with a new token that won't be immediately cancelled
+                        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                        await blobClient.UploadAsync(_memoryStream, uploadOptions, cts.Token);
+                        _uploaded = true;
+                    }
+                }
             }
             finally
             {

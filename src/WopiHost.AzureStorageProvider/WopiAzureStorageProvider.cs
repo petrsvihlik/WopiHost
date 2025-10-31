@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using WopiHost.Abstractions;
 
@@ -18,6 +17,7 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
     private readonly BlobContainerClient _containerClient;
     private readonly WopiAzureStorageProviderOptions _options;
     private readonly ILogger<WopiAzureStorageProvider> _logger;
+    private readonly Lazy<Task> _initialization;
 
     /// <summary>
     /// Reference to the root container.
@@ -46,37 +46,64 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
 
         _containerClient = CreateBlobServiceClient();
 
-        // Ensure container exists
-        if (_options.CreateContainerIfNotExists)
-        {
-            _containerClient.CreateIfNotExistsAsync(_options.ContainerPublicAccess).Wait();
-        }
-
-        // Scan existing blobs
-        if (!_fileIds.WasScanned)
-        {
-            _fileIds.ScanAllAsync(_containerClient, _options.RootPath).Wait();
-        }
-
-        // Set up root container
+        // Set up root container (ID will be established during initialization)
         var rootId = _fileIds.GetPath(_options.RootPath ?? string.Empty) ?? 
                     _fileIds.AddFile(_options.RootPath ?? string.Empty);
         RootContainerPointer = new WopiAzureFolder(_options.ContainerName, rootId, _options.RootPath);
+
+        // Initialize asynchronously to avoid deadlocks
+        _initialization = new Lazy<Task>(InitializeAsync);
+    }
+
+    /// <summary>
+    /// Performs async initialization of the provider.
+    /// </summary>
+    private async Task InitializeAsync()
+    {
+        try
+        {
+            // Ensure container exists
+            if (_options.CreateContainerIfNotExists)
+            {
+                await _containerClient.CreateIfNotExistsAsync(_options.ContainerPublicAccess);
+            }
+
+            // Scan existing blobs
+            if (!_fileIds.WasScanned)
+            {
+                await _fileIds.ScanAllAsync(_containerClient, _options.RootPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to initialize Azure Storage Provider");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Ensures the provider is initialized before performing operations.
+    /// </summary>
+    private async Task EnsureInitializedAsync()
+    {
+        await _initialization.Value;
     }
 
     /// <inheritdoc/>
-    public Task<T?> GetWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
+    public async Task<T?> GetWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
+        await EnsureInitializedAsync();
+
         if (!_fileIds.TryGetPath(identifier, out var blobPath))
         {
-            return Task.FromResult<T?>(null);
+            return null;
         }
 
         return typeof(T) switch
         {
-            { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => GetWopiFile(blobPath, identifier, cancellationToken).ContinueWith(t => t.Result as T),
-            { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => GetWopiFolder(blobPath, identifier, cancellationToken).ContinueWith(t => t.Result as T),
+            { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => await GetWopiFile(blobPath, identifier, cancellationToken) as T,
+            { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => await GetWopiFolder(blobPath, identifier, cancellationToken) as T,
             _ => throw new NotSupportedException($"Unsupported resource type: {typeof(T).Name}"),
         };
     }
@@ -87,22 +114,27 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
         string? searchPattern = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        await EnsureInitializedAsync();
+
         var folderPath = _fileIds.GetPath(identifier ?? RootContainerPointer.Identifier) ?? 
                         throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
 
         var prefix = string.IsNullOrEmpty(folderPath) ? null : folderPath.TrimEnd('/') + "/";
-        
-        if (!string.IsNullOrEmpty(searchPattern))
-        {
-            // Convert search pattern to Azure blob pattern
-            var pattern = searchPattern.Replace("*", "").Replace("?", "");
-            prefix = prefix + pattern;
-        }
 
         await foreach (var blobItem in _containerClient.GetBlobsAsync(prefix: prefix, cancellationToken: cancellationToken))
         {
             if (blobItem.Properties.BlobType == Azure.Storage.Blobs.Models.BlobType.Block)
             {
+                // Apply search pattern filtering if provided
+                if (!string.IsNullOrEmpty(searchPattern))
+                {
+                    var fileName = Path.GetFileName(blobItem.Name);
+                    if (!IsMatchingPattern(fileName, searchPattern))
+                    {
+                        continue;
+                    }
+                }
+
                 var fileId = _fileIds.TryGetFileId(blobItem.Name, out var id) ? id : _fileIds.AddFile(blobItem.Name);
                 var result = await GetWopiFile(blobItem.Name, fileId, cancellationToken);
                 if (result != null)
@@ -118,6 +150,8 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
         string? identifier = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        await EnsureInitializedAsync();
+
         var folderPath = _fileIds.GetPath(identifier ?? RootContainerPointer.Identifier) ?? 
                         throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
 
@@ -141,6 +175,8 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
     public async Task<ReadOnlyCollection<IWopiFolder>> GetAncestors<T>(string identifier, CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
+        await EnsureInitializedAsync();
+
         var result = new List<IWopiFolder>();
         
         if (typeof(T) == typeof(IWopiFile))
@@ -174,6 +210,8 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
         string name,
         CancellationToken cancellationToken = default) where T : class, IWopiResource
     {
+        await EnsureInitializedAsync();
+
         if (!_fileIds.TryGetPath(containerId, out var dirPath))
         {
             throw new DirectoryNotFoundException($"Directory '{containerId}' not found.");
@@ -201,17 +239,19 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
     public int FileNameMaxLength => _options.FileNameMaxLength;
 
     /// <inheritdoc/>
-    public Task<bool> CheckValidName<T>(
+    public async Task<bool> CheckValidName<T>(
         string name,
         CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
+        await EnsureInitializedAsync();
+
         return typeof(T) switch
         {
             { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => 
-                Task.FromResult(name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && name.Length < FileNameMaxLength),
+                name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && name.Length < FileNameMaxLength,
             { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => 
-                Task.FromResult(name.IndexOfAny(Path.GetInvalidPathChars()) < 0),
+                name.IndexOfAny(Path.GetInvalidPathChars()) < 0,
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
     }
@@ -223,6 +263,8 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
         CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
+        await EnsureInitializedAsync();
+
         if (!await CheckValidName<T>(name, cancellationToken))
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(name));
@@ -240,7 +282,7 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
             return name;
         }
 
-        return typeof(T) switch
+        var suggestedName = typeof(T) switch
         {
             { } when typeof(IWopiFolder).IsAssignableFrom(typeof(T)) => 
                 await GenerateUniqueFolderName(name, fullPath),
@@ -248,6 +290,18 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
                 await GenerateUniqueFileName(name, fullPath),
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
+
+        // Validate length for files
+        if (typeof(IWopiFile).IsAssignableFrom(typeof(T)))
+        {
+            var nameWithoutExtension = Path.GetFileNameWithoutExtension(suggestedName);
+            if (nameWithoutExtension.Length > FileNameMaxLength)
+            {
+                throw new InvalidOperationException($"Generated name exceeds maximum length of {FileNameMaxLength} characters.");
+            }
+        }
+
+        return suggestedName;
     }
 
     /// <inheritdoc/>
@@ -257,6 +311,8 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
         CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
+        await EnsureInitializedAsync();
+
         return typeof(T) switch
         {
             { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => 
@@ -271,6 +327,8 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
     public async Task<bool> DeleteWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
+        await EnsureInitializedAsync();
+
         return typeof(T) switch
         {
             { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => 
@@ -285,6 +343,8 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
     public async Task<bool> RenameWopiResource<T>(string identifier, string requestedName, CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
+        await EnsureInitializedAsync();
+
         if (!await CheckValidName<T>(requestedName, cancellationToken))
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(requestedName));
@@ -308,9 +368,22 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
             var sourceBlob = _containerClient.GetBlobClient(fullPath);
             var destBlob = _containerClient.GetBlobClient(newPath);
             
-            await destBlob.StartCopyFromUriAsync(sourceBlob.Uri, cancellationToken: cancellationToken);
-            await sourceBlob.DeleteIfExistsAsync(cancellationToken: cancellationToken);
+            // Start the copy operation
+            Azure.Storage.Blobs.Models.CopyFromUriOperation copyOperation = await destBlob.StartCopyFromUriAsync(sourceBlob.Uri, cancellationToken: cancellationToken);
+
+            // Wait for copy to complete
+            await copyOperation.WaitForCompletionAsync(cancellationToken);
+
+            // Verify copy succeeded
+            var destProperties = await destBlob.GetPropertiesAsync(cancellationToken: cancellationToken);
+            if (destProperties.Value.CopyStatus is not Azure.Storage.Blobs.Models.CopyStatus.Success)
+            {
+                var statusDescription = destProperties.Value.CopyStatusDescription ?? "Unknown";
+                throw new InvalidOperationException($"Failed to copy blob {fullPath}. Status: {destProperties.Value.CopyStatus} ({statusDescription})");
+            }
             
+            // Delete source after successful copy
+            await sourceBlob.DeleteIfExistsAsync(cancellationToken: cancellationToken);
             _fileIds.UpdateFile(identifier, newPath);
         }
         else if (typeof(T) == typeof(IWopiFolder))
@@ -326,13 +399,28 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
 
             await foreach (var blobItem in _containerClient.GetBlobsAsync(prefix: prefix, cancellationToken: cancellationToken))
             {
-                var relativePath = blobItem.Name.Substring(prefix.Length);
+                var relativePath = blobItem.Name[prefix.Length..];
                 var newBlobPath = newPrefix + relativePath;
                 
                 var sourceBlob = _containerClient.GetBlobClient(blobItem.Name);
                 var destBlob = _containerClient.GetBlobClient(newBlobPath);
                 
-                await destBlob.StartCopyFromUriAsync(sourceBlob.Uri, cancellationToken: cancellationToken);
+                // Start the copy operation
+                Azure.Storage.Blobs.Models.CopyFromUriOperation copyOperation = await destBlob.StartCopyFromUriAsync(sourceBlob.Uri, cancellationToken: cancellationToken);
+
+                // Wait for copy to complete
+                await copyOperation.WaitForCompletionAsync(cancellationToken);
+
+                // Verify copy succeeded
+                var destProperties = await destBlob.GetPropertiesAsync(cancellationToken: cancellationToken);
+                if (destProperties.Value.CopyStatus is not Azure.Storage.Blobs.Models.CopyStatus.Success)
+                {
+                    var statusDescription = destProperties.Value.CopyStatusDescription ?? "Unknown";
+                    _logger.LogError("Failed to copy blob {BlobName}. Status: {CopyStatus} ({Description})", blobItem.Name, destProperties.Value.CopyStatus, statusDescription);
+                    throw new InvalidOperationException($"Failed to copy blob {blobItem.Name}. Status: {destProperties.Value.CopyStatus} ({statusDescription})");
+                }
+                
+                // Delete source after successful copy
                 await sourceBlob.DeleteIfExistsAsync(cancellationToken: cancellationToken);
             }
 
@@ -397,17 +485,26 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
         }
     }
 
-    private Task<IWopiFile?> GetWopiFile(string blobPath, string fileId, CancellationToken cancellationToken)
+    private async Task<IWopiFile?> GetWopiFile(string blobPath, string fileId, CancellationToken cancellationToken)
     {
         try
         {
             var blobClient = _containerClient.GetBlobClient(blobPath);
-            return Task.FromResult<IWopiFile?>(new WopiAzureFile(blobClient, fileId));
+            
+            // Verify blob exists before creating WopiAzureFile
+            var exists = await blobClient.ExistsAsync(cancellationToken);
+            if (!exists.Value)
+            {
+                _logger.LogWarning("Blob {BlobPath} does not exist", blobPath);
+                return null;
+            }
+            
+            return new WopiAzureFile(blobClient, fileId);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting file {BlobPath}", blobPath);
-            return Task.FromResult<IWopiFile?>(null);
+            return null;
         }
     }
 
@@ -415,6 +512,7 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
     {
         try
         {
+            // Folders in Azure Blob Storage are virtual, so we just create the wrapper
             return Task.FromResult<IWopiFolder?>(new WopiAzureFolder(_options.ContainerName, folderId, blobPath));
         }
         catch (Exception ex)
@@ -424,16 +522,36 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
         }
     }
 
-    private async Task<bool> BlobExistsAsync(string blobPath)
+    private async Task<bool> BlobExistsAsync(string blobPath, bool isFolder = false)
     {
         try
         {
-            var blobClient = _containerClient.GetBlobClient(blobPath);
-            var response = await blobClient.ExistsAsync();
-            return response.Value;
+            if (isFolder)
+            {
+                // For folders, check if any blobs with the folder prefix exist
+                var prefix = blobPath.TrimEnd('/') + "/";
+                await foreach (var _ in _containerClient.GetBlobsAsync(prefix: prefix).ConfigureAwait(false))
+                {
+                    return true; // If at least one blob exists with this prefix, folder exists
+                }
+                
+                // Also check for the .folder marker
+                var folderMarkerPath = prefix + ".folder";
+                var markerClient = _containerClient.GetBlobClient(folderMarkerPath);
+                var markerExists = await markerClient.ExistsAsync();
+                return markerExists.Value;
+            }
+            else
+            {
+                // For files, check if the specific blob exists
+                var blobClient = _containerClient.GetBlobClient(blobPath);
+                var response = await blobClient.ExistsAsync();
+                return response.Value;
+            }
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Error checking if blob exists: {BlobPath}", blobPath);
             return false;
         }
     }
@@ -566,7 +684,7 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
         return blobItem.Properties.BlobType == Azure.Storage.Blobs.Models.BlobType.Block;
     }
 
-    private IWopiFolder? TryCreateContainerFromBlob(BlobItem blobItem, string folderPath, string? prefix, HashSet<string> folders)
+    private WopiAzureFolder? TryCreateContainerFromBlob(BlobItem blobItem, string folderPath, string? prefix, HashSet<string> folders)
     {
         var relativePath = GetRelativePath(blobItem.Name, prefix);
         var pathParts = relativePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
@@ -590,7 +708,16 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
 
     private static string GetRelativePath(string blobName, string? prefix)
     {
-        return string.IsNullOrEmpty(prefix) ? blobName : blobName.Substring(prefix.Length);
+        return string.IsNullOrEmpty(prefix) ? blobName : blobName[prefix.Length..];
+    }
+
+    private static bool IsMatchingPattern(string fileName, string pattern)
+    {
+        // Convert DOS wildcard pattern to regex
+        var regexPattern = "^" + System.Text.RegularExpressions.Regex.Escape(pattern)
+            .Replace("\\*", ".*")
+            .Replace("\\?", ".") + "$";
+        return System.Text.RegularExpressions.Regex.IsMatch(fileName, regexPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     }
 
     private async Task<string> GenerateUniqueFolderName(string name, string fullPath)

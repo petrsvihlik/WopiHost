@@ -9,18 +9,13 @@ namespace WopiHost.AzureStorageProvider;
 /// <summary>
 /// Security handler for Azure Storage Provider.
 /// </summary>
-public class WopiAzureSecurityHandler : IWopiSecurityHandler
+/// <remarks>
+/// Initializes a new instance of the <see cref="WopiAzureSecurityHandler"/> class.
+/// </remarks>
+/// <param name="logger">Logger instance</param>
+public class WopiAzureSecurityHandler(ILogger<WopiAzureSecurityHandler> logger) : IWopiSecurityHandler
 {
-    private readonly ILogger<WopiAzureSecurityHandler> _logger;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="WopiAzureSecurityHandler"/> class.
-    /// </summary>
-    /// <param name="logger">Logger instance</param>
-    public WopiAzureSecurityHandler(ILogger<WopiAzureSecurityHandler> logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly ILogger<WopiAzureSecurityHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <inheritdoc/>
     public Task<SecurityToken> GenerateAccessToken(string userId, string resourceId, CancellationToken cancellationToken = default)
@@ -34,13 +29,13 @@ public class WopiAzureSecurityHandler : IWopiSecurityHandler
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[]
-                {
+                Subject = new ClaimsIdentity(
+                [
                     new Claim(ClaimTypes.Name, userId),
                     new Claim("resource_id", resourceId),
                     new Claim(ClaimTypes.Role, "Reader"),
                     new Claim(ClaimTypes.Role, "Editor")
-                }),
+                ]),
                 Expires = DateTime.UtcNow.AddHours(1),
                 SigningCredentials = credentials
             };

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 
@@ -5,16 +6,17 @@ namespace WopiHost.AzureStorageProvider;
 
 /// <summary>
 /// Provides unique file identifiers for Azure Blob Storage files.
+/// Thread-safe implementation using ConcurrentDictionary.
 /// </summary>
 public class AzureFileIds(ILogger<AzureFileIds> logger)
 {
-    private readonly Dictionary<string, string> fileIds = [];
-    private readonly Dictionary<string, string> pathToId = [];
+    private readonly ConcurrentDictionary<string, string> fileIds = new();
+    private readonly ConcurrentDictionary<string, string> pathToId = new();
 
     /// <summary>
     /// Gets a value indicating whether any files have been scanned.
     /// </summary>
-    public bool WasScanned => fileIds.Count > 0;
+    public bool WasScanned => !fileIds.IsEmpty;
 
     /// <summary>
     /// Gets the file identifier for the specified blob path.
@@ -73,10 +75,9 @@ public class AzureFileIds(ILogger<AzureFileIds> logger)
     /// <param name="fileId">The file identifier to remove</param>
     public void RemoveId(string fileId)
     {
-        if (fileIds.TryGetValue(fileId, out var blobPath))
+        if (fileIds.TryRemove(fileId, out var blobPath))
         {
-            fileIds.Remove(fileId);
-            pathToId.Remove(blobPath);
+            pathToId.TryRemove(blobPath, out _);
         }
     }
 
@@ -87,10 +88,13 @@ public class AzureFileIds(ILogger<AzureFileIds> logger)
     /// <param name="newBlobPath">The new blob path</param>
     public void UpdateFile(string id, string newBlobPath)
     {
+        // Remove old path mapping if exists
         if (fileIds.TryGetValue(id, out var oldBlobPath))
         {
-            pathToId.Remove(oldBlobPath);
+            pathToId.TryRemove(oldBlobPath, out _);
         }
+        
+        // Update to new path
         fileIds[id] = newBlobPath;
         pathToId[newBlobPath] = id;
     }
@@ -114,7 +118,7 @@ public class AzureFileIds(ILogger<AzureFileIds> logger)
 
         try
         {
-            var prefix = rootPath?.TrimEnd('/') + "/";
+            var prefix = string.IsNullOrEmpty(rootPath) ? null : rootPath.TrimEnd('/') + "/";
             await foreach (var blobItem in containerClient.GetBlobsAsync(prefix: prefix, cancellationToken: cancellationToken))
             {
                 var blobPath = blobItem.Name;
