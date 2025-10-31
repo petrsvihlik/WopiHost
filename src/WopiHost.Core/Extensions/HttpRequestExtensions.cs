@@ -57,9 +57,9 @@ public static class HttpRequestExtensions
     /// </summary>
     public static string GetProxyAwareRequestUrl(this HttpRequest request)
     {
-        var urlPart = request.GetProxyAwareUrlParts();
+        var (scheme, host, pathBase, path, queryString) = request.GetProxyAwareUrlParts();
         
-        return $"{urlPart.scheme}://{urlPart.host}{urlPart.pathBase}{urlPart.path}{urlPart.queryString}";
+        return $"{scheme}://{host}{pathBase}{path}{queryString}";
     }
 
     /// <summary>

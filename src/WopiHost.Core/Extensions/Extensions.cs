@@ -153,7 +153,7 @@ internal static class Extensions
         
         var uri = new Uri(routeUrl!);
         var pathBase = uri.AbsolutePath.EndsWith('/') && uri.AbsolutePath.Length > 1
-            ? uri.AbsolutePath.Substring(0, uri.AbsolutePath.Length - 1)
+            ? uri.AbsolutePath[..^1]
             : uri.AbsolutePath;
         var queryString = uri.Query;
 

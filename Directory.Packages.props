@@ -67,21 +67,21 @@
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-	<PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="9.0.10" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="9.0.10" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.5" />
-	<PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.10" />
-	<PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.10" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.5" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.5" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5" />
-	<PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.10" />
-	<PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.10" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="9.0.5" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="9.0.5" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.10" />
-    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.10" />
+	<PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="10.0.0-rc.2.25502.107" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.0-rc.2.25502.107" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0-rc.2.25502.107" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.0-rc.2.25502.107" />
+	<PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0-rc.2.25502.107" />
+	<PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0-rc.2.25502.107" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="10.0.0-rc.2.25502.107" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.0-rc.2.25502.107" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0-rc.2.25502.107" />
+	<PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-rc.2.25502.107" />
+	<PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0-rc.2.25502.107" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.0-rc.2.25502.107" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0-rc.2.25502.107" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.0-rc.2.25502.107" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0-rc.2.25502.107" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.10.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.5.2" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.13.1" />
