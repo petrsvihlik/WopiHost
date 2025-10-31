@@ -41,12 +41,18 @@ public class WopiAzureSecurityHandler(ILogger<WopiAzureSecurityHandler> logger) 
             };
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
-            _logger.LogDebug("Generated access token for user {UserId} and resource {ResourceId}", userId, resourceId);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("Generated access token for user {UserId} and resource {ResourceId}", userId, resourceId);
+            }
             return Task.FromResult<SecurityToken>(token);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating access token for user {UserId} and resource {ResourceId}", userId, resourceId);
+            if (_logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, "Error generating access token for user {UserId} and resource {ResourceId}", userId, resourceId);
+            }
             throw;
         }
     }
@@ -58,7 +64,10 @@ public class WopiAzureSecurityHandler(ILogger<WopiAzureSecurityHandler> logger) 
         {
             if (string.IsNullOrEmpty(token))
             {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
                 _logger.LogWarning("Token is null or empty");
+            }
                 return Task.FromResult<ClaimsPrincipal?>(null);
             }
 
@@ -66,7 +75,10 @@ public class WopiAzureSecurityHandler(ILogger<WopiAzureSecurityHandler> logger) 
             
             if (!tokenHandler.CanReadToken(token))
             {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
                 _logger.LogWarning("Cannot read token");
+            }
                 return Task.FromResult<ClaimsPrincipal?>(null);
             }
 
@@ -80,12 +92,18 @@ public class WopiAzureSecurityHandler(ILogger<WopiAzureSecurityHandler> logger) 
             var identity = new ClaimsIdentity(claims, "JWT");
             var principal = new ClaimsPrincipal(identity);
 
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
             _logger.LogDebug("Successfully created principal for user {UserId}", jwtToken.Subject);
+        }
             return Task.FromResult<ClaimsPrincipal?>(principal);
         }
         catch (Exception ex)
         {
+        if (_logger.IsEnabled(LogLevel.Error))
+        {
             _logger.LogError(ex, "Error creating principal from token");
+        }
             return Task.FromResult<ClaimsPrincipal?>(null);
         }
     }
@@ -98,7 +116,10 @@ public class WopiAzureSecurityHandler(ILogger<WopiAzureSecurityHandler> logger) 
             // Basic authorization - can be extended based on requirements
             if (principal?.Identity?.IsAuthenticated != true)
             {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
                 _logger.LogWarning("Principal is not authenticated");
+            }
                 return Task.FromResult(false);
             }
 
@@ -107,16 +128,26 @@ public class WopiAzureSecurityHandler(ILogger<WopiAzureSecurityHandler> logger) 
             
             if (!hasPermission)
             {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                var userName = principal.Identity?.Name;
+                var requirementName = requirement.GetType().Name;
                 _logger.LogWarning("User {UserId} does not have required permissions for requirement {Requirement}", 
-                    principal.Identity.Name, requirement.GetType().Name);
+                    userName, requirementName);
+            }
             }
 
             return Task.FromResult(hasPermission);
         }
         catch (Exception ex)
         {
+        if (_logger.IsEnabled(LogLevel.Error))
+        {
+            var userName = principal?.Identity?.Name;
+            var requirementName = requirement?.GetType().Name;
             _logger.LogError(ex, "Error checking authorization for user {UserId} and requirement {Requirement}", 
-                principal?.Identity?.Name, requirement?.GetType().Name);
+                userName, requirementName);
+        }
             return Task.FromResult(false);
         }
     }
@@ -143,7 +174,10 @@ public class WopiAzureSecurityHandler(ILogger<WopiAzureSecurityHandler> logger) 
         {
             if (principal?.Identity?.IsAuthenticated != true)
             {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
                 _logger.LogWarning("Principal is not authenticated");
+            }
                 return Task.FromResult(WopiUserPermissions.None);
             }
 
@@ -171,14 +205,23 @@ public class WopiAzureSecurityHandler(ILogger<WopiAzureSecurityHandler> logger) 
                 permissions |= WopiUserPermissions.UserCanRename;
             }
 
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            var userName = principal.Identity?.Name;
             _logger.LogDebug("Retrieved permissions {Permissions} for user {UserId} on file {FileId}", 
-                permissions, principal.Identity.Name, file.Identifier);
+                permissions, userName, file.Identifier);
+        }
             return Task.FromResult(permissions);
         }
         catch (Exception ex)
         {
+        if (_logger.IsEnabled(LogLevel.Error))
+        {
+            var userName = principal?.Identity?.Name;
+            var fileIdentifier = file?.Identifier;
             _logger.LogError(ex, "Error getting user permissions for user {UserId} on file {FileId}", 
-                principal?.Identity?.Name, file?.Identifier);
+                userName, fileIdentifier);
+        }
             return Task.FromResult(WopiUserPermissions.None);
         }
     }

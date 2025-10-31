@@ -416,7 +416,10 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
                 if (destProperties.Value.CopyStatus is not Azure.Storage.Blobs.Models.CopyStatus.Success)
                 {
                     var statusDescription = destProperties.Value.CopyStatusDescription ?? "Unknown";
-                    _logger.LogError("Failed to copy blob {BlobName}. Status: {CopyStatus} ({Description})", blobItem.Name, destProperties.Value.CopyStatus, statusDescription);
+                    if (_logger.IsEnabled(LogLevel.Error))
+                    {
+                        _logger.LogError("Failed to copy blob {BlobName}. Status: {CopyStatus} ({Description})", blobItem.Name, destProperties.Value.CopyStatus, statusDescription);
+                    }
                     throw new InvalidOperationException($"Failed to copy blob {blobItem.Name}. Status: {destProperties.Value.CopyStatus} ({statusDescription})");
                 }
                 
@@ -495,7 +498,10 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
             var exists = await blobClient.ExistsAsync(cancellationToken);
             if (!exists.Value)
             {
-                _logger.LogWarning("Blob {BlobPath} does not exist", blobPath);
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning("Blob {BlobPath} does not exist", blobPath);
+                }
                 return null;
             }
             
@@ -503,7 +509,10 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting file {BlobPath}", blobPath);
+            if (_logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, "Error getting file {BlobPath}", blobPath);
+            }
             return null;
         }
     }
@@ -517,7 +526,10 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting folder {BlobPath}", blobPath);
+            if (_logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, "Error getting folder {BlobPath}", blobPath);
+            }
             return Task.FromResult<IWopiFolder?>(null);
         }
     }
@@ -551,7 +563,10 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error checking if blob exists: {BlobPath}", blobPath);
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning(ex, "Error checking if blob exists: {BlobPath}", blobPath);
+            }
             return false;
         }
     }

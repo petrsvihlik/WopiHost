@@ -129,11 +129,17 @@ public class AzureFileIds(ILogger<AzureFileIds> logger)
                 pathToId[blobPath] = newId;
             }
 
-            logger.LogInformation("Scanned {total} items from Azure Blob Storage", fileIds.Count);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Scanned {total} items from Azure Blob Storage", fileIds.Count);
+            }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error scanning Azure Blob Storage container");
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Error scanning Azure Blob Storage container");
+            }
             throw;
         }
     }

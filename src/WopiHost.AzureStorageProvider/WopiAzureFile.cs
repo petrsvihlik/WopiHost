@@ -37,7 +37,10 @@ public class WopiAzureFile(BlobClient blobClient, string fileIdentifier, ILogger
             }
             catch (Exception ex)
             {
-                _logger?.LogWarning(ex, "Failed to get blob properties for {BlobName}", _blobClient.Name);
+                if (_logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    _logger.LogWarning(ex, "Failed to get blob properties for {BlobName}", _blobClient.Name);
+                }
                 _cachedProperties = null;
             }
         }
@@ -58,7 +61,10 @@ public class WopiAzureFile(BlobClient blobClient, string fileIdentifier, ILogger
             }
             catch (Exception ex)
             {
-                _logger?.LogWarning(ex, "Failed to check if blob exists: {BlobName}", _blobClient.Name);
+                if (_logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    _logger.LogWarning(ex, "Failed to check if blob exists: {BlobName}", _blobClient.Name);
+                }
                 return false;
             }
         }
