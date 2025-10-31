@@ -68,16 +68,16 @@ public static class HttpRequestExtensions
     public static (string? scheme, string? host, string? pathBase, string? path, string? queryString)
         GetProxyAwareUrlParts(this HttpRequest request)
     {
-        var scheme = request.Headers.ContainsKey("X-Forwarded-Proto") 
-            ? request.Headers["X-Forwarded-Proto"].ToString() 
+        var scheme = request.Headers.TryGetValue("X-Forwarded-Proto", out StringValues schemeValue) 
+            ? schemeValue.ToString() 
             : request.Scheme;
         
-        var host = request.Headers.ContainsKey("X-Forwarded-Host") 
-            ? request.Headers["X-Forwarded-Host"].ToString() 
+        var host = request.Headers.TryGetValue("X-Forwarded-Host", out StringValues hostValue) 
+            ? hostValue.ToString() 
             : request.Host.Value;
         
-        var pathBase = request.Headers.ContainsKey("X-Forwarded-PathBase") 
-            ? request.Headers["X-Forwarded-PathBase"].ToString() 
+        var pathBase = request.Headers.TryGetValue("X-Forwarded-PathBase", out StringValues pathBaseValue) 
+            ? pathBaseValue.ToString() 
             : request.PathBase.Value;
         
         var path = request.Path.Value;

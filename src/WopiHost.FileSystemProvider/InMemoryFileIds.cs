@@ -108,7 +108,10 @@ public class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
             fileIds[newId] = file;
         }
 
-        logger.LogInformation("Scanned {total} items", fileIds.Count);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Scanned {total} items", fileIds.Count);
+        }
     }
 
     /// <summary>
