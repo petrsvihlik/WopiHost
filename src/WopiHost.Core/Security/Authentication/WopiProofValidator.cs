@@ -11,24 +11,15 @@ namespace WopiHost.Core.Security.Authentication;
 /// <summary>
 /// Service for validating WOPI proof headers to ensure requests come from a trusted WOPI client.
 /// </summary>
-public class WopiProofValidator : IWopiProofValidator
+/// <remarks>
+/// Creates a new instance of the <see cref="WopiProofValidator"/> class.
+/// </remarks>
+/// <param name="discoverer">Service for retrieving WOPI discovery information, including proof keys.</param>
+/// <param name="logger">Logger instance.</param>
+/// <param name="timeProvider">Provider for time operations (defaults to system time if not provided).</param>
+public class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidator> logger, TimeProvider? timeProvider = null) : IWopiProofValidator
 {
-    private readonly IDiscoverer _discoverer;
-    private readonly ILogger<WopiProofValidator> _logger;
-    private readonly TimeProvider _timeProvider;
-
-    /// <summary>
-    /// Creates a new instance of the <see cref="WopiProofValidator"/> class.
-    /// </summary>
-    /// <param name="discoverer">Service for retrieving WOPI discovery information, including proof keys.</param>
-    /// <param name="logger">Logger instance.</param>
-    /// <param name="timeProvider">Provider for time operations (defaults to system time if not provided).</param>
-    public WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidator> logger, TimeProvider? timeProvider = null)
-    {
-        _discoverer = discoverer;
-        _logger = logger;
-        _timeProvider = timeProvider ?? TimeProvider.System;
-    }
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
     /// <summary>
     /// Validates the WOPI proof headers on the given request.
@@ -44,11 +35,11 @@ public class WopiProofValidator : IWopiProofValidator
             if (!request.Headers.TryGetValue(WopiHeaders.PROOF, out var receivedProof) ||
                 !request.Headers.TryGetValue(WopiHeaders.TIMESTAMP, out var receivedTimeStamp))
             {
-                _logger.LogWarning("Missing required proof headers");
+                logger.LogWarning("Missing required proof headers");
                 return false;
             }
             
-            var sourceProofKeys = await _discoverer.GetProofKeysAsync();
+            var sourceProofKeys = await discoverer.GetProofKeysAsync();
             if (sourceProofKeys.Value is null || sourceProofKeys.OldValue is null)
             {
                 return false;
@@ -87,7 +78,7 @@ public class WopiProofValidator : IWopiProofValidator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating WOPI proof");
+            logger.LogError(ex, "Error validating WOPI proof");
             return false;
         }
     }

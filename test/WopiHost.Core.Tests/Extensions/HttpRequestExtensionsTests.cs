@@ -184,8 +184,10 @@ public class HttpRequestExtensionsTests
             queryString: "?test=1"
         );
 
-        var headers = new HeaderDictionary();
-        headers[headerName] = headerValue;
+        var headers = new HeaderDictionary
+        {
+            [headerName] = headerValue
+        };
         Mock.Get(request).Setup(r => r.Headers).Returns(headers);
 
         // Act
