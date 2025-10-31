@@ -183,24 +183,24 @@ public class WopiAzureSecurityHandler(ILogger<WopiAzureSecurityHandler> logger) 
 
             var permissions = WopiUserPermissions.None;
 
-            // Check for read permissions
-            if (principal.HasClaim(ClaimTypes.Role, "Reader") || 
-                principal.HasClaim(ClaimTypes.Role, "Editor") ||
-                principal.HasClaim(ClaimTypes.Role, "Admin"))
+            var isReader = principal.HasClaim(ClaimTypes.Role, "Reader");
+            var isEditor = principal.HasClaim(ClaimTypes.Role, "Editor");
+            var isAdmin = principal.HasClaim(ClaimTypes.Role, "Admin");
+
+            // Check for read permissions (read-only access)
+            if (isReader && !isEditor && !isAdmin)
             {
-                permissions |= WopiUserPermissions.UserCanWrite;
+                permissions |= WopiUserPermissions.ReadOnly;
             }
 
             // Check for write permissions
-            if (principal.HasClaim(ClaimTypes.Role, "Editor") ||
-                principal.HasClaim(ClaimTypes.Role, "Admin"))
+            if (isEditor || isAdmin)
             {
                 permissions |= WopiUserPermissions.UserCanWrite;
             }
 
             // Check for rename permissions
-            if (principal.HasClaim(ClaimTypes.Role, "Editor") ||
-                principal.HasClaim(ClaimTypes.Role, "Admin"))
+            if (isEditor || isAdmin)
             {
                 permissions |= WopiUserPermissions.UserCanRename;
             }
