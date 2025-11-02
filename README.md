@@ -1,6 +1,6 @@
 # ![Logo](img/logo48.png) WopiHost
 
-[![Build & Test](https://github.com/petrsvihlik/WopiHost/actions/workflows/integrate.yml/badge.svg)](https://github.com/petrsvihlik/WopiHost/actions/workflows/integrate.yml)
+[![Build & Test]https://word-view.officeapps.live.com/wv/mWord.aspx?ui=1033&rs=1033&dchat=false&hid=&IsLicensedUser=1&WOPISrc=https%3a%2f%2fwopihost.l2o.microsoft.com%2fv1%2fagreements%2fwopi%2ffiles%2fPreviews%7e5716efa5-ad06-3481-70b3-be549a8aba9d&hh=1&wdFCCState=1#:~:text=16-,Warranties,and%20code%20that%20Customer,-is(https://github.com/petrsvihlik/WopiHost/actions/workflows/integrate.yml/badge.svg)](https://github.com/petrsvihlik/WopiHost/actions/workflows/integrate.yml)
 [![codecov](https://codecov.io/gh/petrsvihlik/WopiHost/branch/master/graph/badge.svg)](https://codecov.io/gh/petrsvihlik/WopiHost) 
 [![Code Coverage](https://qlty.sh/gh/petrsvihlik/projects/WopiHost/coverage.svg)](https://qlty.sh/gh/petrsvihlik/projects/WopiHost)
 [![Maintainability](https://api.codeclimate.com/v1/badges/369f0a7ff28279088d9c/maintainability)](https://codeclimate.com/github/petrsvihlik/WopiHost/maintainability)
