@@ -67,6 +67,22 @@ public class WopiDiscovererTests
     }
 
     [Theory]
+    [InlineData(NetZoneEnum.InternalHttp, "XLSX", XmlOos2016)]
+    [InlineData(NetZoneEnum.InternalHttp, "DOCX", XmlOos2016)]
+    [InlineData(NetZoneEnum.InternalHttp, "XlSx", XmlOos2016)]
+    public async Task CaseInsensitiveSupportedExtension(NetZoneEnum netZone, string extension, string fileName)
+    {
+        // Arrange
+        InitDiscoverer(fileName, netZone);
+
+        // Act
+        var result = await _wopiDiscoverer.SupportsExtensionAsync(extension);
+
+        // Assert
+        Assert.True(result, $"{extension} should be supported!");
+    }
+
+    [Theory]
     [InlineData(NetZoneEnum.InternalHttp, "html", XmlOos2016)]
     [InlineData(NetZoneEnum.InternalHttp, "txt", XmlOos2016)]
     public async Task NonSupportedExtension(NetZoneEnum netZone, string extension, string fileName)
@@ -100,6 +116,22 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "pptx", XmlOos2016)]
     [InlineData(NetZoneEnum.InternalHttp, "docx", XmlOos2016)]
     public async Task SupportedExtensionWithAction(NetZoneEnum netZone, string extension, string fileName)
+    {
+        // Arrange
+        InitDiscoverer(fileName, netZone);
+
+        // Act
+        var result = await _wopiDiscoverer.SupportsActionAsync(extension, WopiActionEnum.Edit);
+
+        // Assert
+        Assert.True(result, $"{extension} should be supported!");
+    }
+
+    [Theory]
+    [InlineData(NetZoneEnum.InternalHttp, "PPTX", XmlOos2016)]
+    [InlineData(NetZoneEnum.InternalHttp, "DOCX", XmlOos2016)]
+    [InlineData(NetZoneEnum.InternalHttp, "PpTx", XmlOos2016)]
+    public async Task CaseInsensitiveSupportedExtensionWithAction(NetZoneEnum netZone, string extension, string fileName)
     {
         // Arrange
         InitDiscoverer(fileName, netZone);
@@ -159,11 +191,43 @@ public class WopiDiscovererTests
     }
 
     [Theory]
+    [InlineData(NetZoneEnum.InternalHttp, "XLSX", WopiActionEnum.Edit, "http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&<ui=UI_LLCC&><rs=DC_LLCC&>", XmlOwa2013)]
+    [InlineData(NetZoneEnum.InternalHttp, "DOCX", WopiActionEnum.Edit, "http://owaserver/we/wordeditorframe.aspx?<ui=UI_LLCC&><rs=DC_LLCC&><showpagestats=PERFSTATS&>", XmlOwa2013)]
+    [InlineData(NetZoneEnum.InternalHttp, "XlSx", WopiActionEnum.Edit, "http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&<ui=UI_LLCC&><rs=DC_LLCC&>", XmlOwa2013)]
+    public async Task CaseInsensitiveExtensionTests(NetZoneEnum netZone, string extension, WopiActionEnum action, string? expectedValue, string fileName)
+    {
+        // Arrange
+        InitDiscoverer(fileName, netZone);
+
+        // Act
+        var result = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
+
+        // Assert
+        Assert.Equal(expectedValue, result);
+    }
+
+    [Theory]
     [InlineData(NetZoneEnum.InternalHttp, "xlsx", "Excel", XmlOos2016)]
     [InlineData(NetZoneEnum.InternalHttp, "docx", "Word", XmlOos2016)]
     [InlineData(NetZoneEnum.InternalHttp, "html", null, XmlOos2016)]
     [InlineData(NetZoneEnum.InternalHttp, "txt", null, XmlOos2016)]
     public async Task AppNameTests(NetZoneEnum netZone, string extension, string? expectedValue, string fileName)
+    {
+        // Arrange
+        InitDiscoverer(fileName, netZone);
+
+        // Act
+        var result = await _wopiDiscoverer.GetApplicationNameAsync(extension);
+
+        // Assert
+        Assert.Equal(expectedValue, result);
+    }
+
+    [Theory]
+    [InlineData(NetZoneEnum.InternalHttp, "XLSX", "Excel", XmlOos2016)]
+    [InlineData(NetZoneEnum.InternalHttp, "DOCX", "Word", XmlOos2016)]
+    [InlineData(NetZoneEnum.InternalHttp, "XlSx", "Excel", XmlOos2016)]
+    public async Task CaseInsensitiveAppNameTests(NetZoneEnum netZone, string extension, string? expectedValue, string fileName)
     {
         // Arrange
         InitDiscoverer(fileName, netZone);

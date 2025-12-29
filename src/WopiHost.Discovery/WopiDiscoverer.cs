@@ -94,7 +94,7 @@ public class WopiDiscoverer(
     public async Task<bool> SupportsExtensionAsync(string extension)
     {
         var query = (await GetAppsAsync()).Elements()
-            .FirstOrDefault(e => e.Attribute(AttrActionExtension)?.Value == extension);
+            .FirstOrDefault(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase));
         return query is not null;
     }
 
@@ -104,7 +104,7 @@ public class WopiDiscoverer(
         var actionString = action.ToString().ToUpperInvariant();
 
         var query = (await GetAppsAsync()).Elements()
-            .Where(e => e.Attribute(AttrActionExtension)?.Value == extension && 
+            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) && 
                 e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true);
 
         return query.Any();
@@ -116,7 +116,7 @@ public class WopiDiscoverer(
         var actionString = action.ToString().ToUpperInvariant();
 
         var query = (await GetAppsAsync()).Elements()
-            .Where(e => e.Attribute(AttrActionExtension)?.Value == extension && 
+            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) && 
                 e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true)
             .Select(e => e.Attribute(AttrActionRequires)?.Value.Split(','));
 
@@ -135,7 +135,7 @@ public class WopiDiscoverer(
     {
         var actionString = action.ToString().ToUpperInvariant();
         var query = (await GetAppsAsync()).Elements()
-            .Where(e => e.Attribute(AttrActionExtension)?.Value == extension && 
+            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) && 
                 e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true)
             .Select(e => e.Attribute(AttrActionUrl)?.Value);
         return query.FirstOrDefault();
@@ -145,7 +145,7 @@ public class WopiDiscoverer(
     public async Task<string?> GetApplicationNameAsync(string extension)
     {
         var query = (await GetAppsAsync())
-            .Where(e => e.Descendants(ElementAction).Any(d => d.Attribute(AttrActionExtension)?.Value == extension))
+            .Where(e => e.Descendants(ElementAction).Any(d => string.Equals(d.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase)))
             .Select(e => e.Attribute(AttrAppName)?.Value);
 
         return query.FirstOrDefault();
@@ -155,7 +155,7 @@ public class WopiDiscoverer(
     public async Task<Uri?> GetApplicationFavIconAsync(string extension)
     {
         var query = (await GetAppsAsync())
-            .Where(e => e.Descendants(ElementAction).Any(d => d.Attribute(AttrActionExtension)?.Value == extension))
+            .Where(e => e.Descendants(ElementAction).Any(d => string.Equals(d.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase)))
             .Select(e => e.Attribute(AttrAppFavicon)?.Value);
         var result = query.FirstOrDefault();
         return result is not null ? new Uri(result) : null;
