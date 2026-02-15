@@ -1,0 +1,22 @@
+<Solution>
+  <Project Path="src/WopiHost.Abstractions/WopiHost.Abstractions.csproj" />
+  <Project Path="src/WopiHost.Cobalt/WopiHost.Cobalt.csproj" />
+  <Project Path="src/WopiHost.Core/WopiHost.Core.csproj" />
+  <Project Path="src/WopiHost.Discovery/WopiHost.Discovery.csproj" />
+  <Project Path="src/WopiHost.FileSystemProvider/WopiHost.FileSystemProvider.csproj" />
+  <Project Path="src/WopiHost.MemoryLockProvider/WopiHost.MemoryLockProvider.csproj" />
+  <Project Path="src/WopiHost.Url/WopiHost.Url.csproj" />
+
+  <Project Path="infra/WopiHost.AppHost/WopiHost.AppHost.csproj" />
+  <Project Path="infra/WopiHost.ServiceDefaults/WopiHost.ServiceDefaults.csproj" />
+
+  <Project Path="sample/WopiHost/WopiHost.csproj" />
+  <Project Path="sample/WopiHost.Validator/WopiHost.Validator.csproj" />
+  <Project Path="sample/WopiHost.Web/WopiHost.Web.csproj" />
+
+  <Project Path="test/WopiHost.Core.Tests/WopiHost.Core.Tests.csproj" />
+  <Project Path="test/WopiHost.Discovery.Tests/WopiHost.Discovery.Tests.csproj" />
+  <Project Path="test/WopiHost.FileSystemProvider.Tests/WopiHost.FileSystemProvider.Tests.csproj" />
+  <Project Path="test/WopiHost.MemoryLockProvider.Tests/WopiHost.MemoryLockProvider.Tests.csproj" />
+  <Project Path="test/WopiHost.Url.Tests/WopiHost.Url.Tests.csproj" />
+</Solution>
