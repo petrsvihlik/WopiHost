@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace WopiHost.FileSystemProvider;
@@ -61,7 +63,7 @@ public class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// <returns></returns>
     public string AddFile(string path)
     {
-        var id = NewId();
+        var id = IdFromPath(path);
         fileIds[id] = path;
         return id;
     }
@@ -93,18 +95,18 @@ public class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     {
         fileIds.Clear();
 
-        fileIds[NewId()] = rootPath;
+        fileIds[IdFromPath(rootPath)] = rootPath;
 
         foreach (var directory in Directory.EnumerateDirectories(rootPath, "*", SearchOption.AllDirectories))
         {
-            fileIds[NewId()] = directory;
+            fileIds[IdFromPath(directory)] = directory;
         }
 
         foreach (var file in Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories))
         {
             var newId = file.EndsWith("test.wopitest", StringComparison.OrdinalIgnoreCase)
                 ? "WOPITEST"
-                : NewId();
+                : IdFromPath(file);
             fileIds[newId] = file;
         }
 
@@ -112,8 +114,10 @@ public class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     }
 
     /// <summary>
-    /// Creates a unique identifier.
+    /// Creates a deterministic identifier from a file path so that the same path always
+    /// produces the same identifier, even across process restarts or separate services.
     /// </summary>
-    /// <returns></returns>
-    private static string NewId() => Guid.NewGuid().ToString("N");
+    private static string IdFromPath(string path) =>
+        Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(
+            Path.GetFullPath(path).ToUpperInvariant()))).ToLowerInvariant();
 }
