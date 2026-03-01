@@ -21,4 +21,9 @@ public static class WopiRouteNames
     /// Endpoint name for <see cref="ContainersController.CheckContainerInfo(string, CancellationToken)"/>
     /// </summary>
     public const string CheckContainerInfo = nameof(CheckContainerInfo);
+
+    /// <summary>
+    /// Endpoint name for <see cref="FoldersController.CheckFolderInfo(string, CancellationToken)"/>
+    /// </summary>
+    public const string CheckFolderInfo = nameof(CheckFolderInfo);
 }

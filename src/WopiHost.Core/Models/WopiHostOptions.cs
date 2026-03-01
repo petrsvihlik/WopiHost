@@ -36,6 +36,11 @@ public class WopiHostOptions : IDiscoveryOptions
     public Func<WopiCheckContainerInfoContext, Task<WopiCheckContainerInfo>> OnCheckContainerInfo { get; set; } = c => Task.FromResult(c.CheckContainerInfo);
 
     /// <summary>
+    /// Callback for the CheckFolderInfo operation.
+    /// </summary>
+    public Func<WopiCheckFolderInfoContext, Task<WopiCheckFolderInfo>> OnCheckFolderInfo { get; set; } = c => Task.FromResult(c.CheckFolderInfo);
+
+    /// <summary>
     /// Base URI of the WOPI Client server (Office Online Server / Office Web Apps).
     /// </summary>
     [Required]
