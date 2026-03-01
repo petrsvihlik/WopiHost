@@ -41,7 +41,7 @@ jobs:
         oidc: true
         files: "**/coverage.*.info"
     - name: Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
     #- name: Run FOSSA scan
