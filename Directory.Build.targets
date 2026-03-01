@@ -1,0 +1,8 @@
+<Project>
+  <!-- PackageReadmeFile must be set in a .targets file (not .props) because
+       Directory.Build.props is imported before the project file is processed,
+       so $(PackageId) is not yet available there. -->
+  <PropertyGroup Condition="'$(PackageId)' != ''">
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+</Project>
