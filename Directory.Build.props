@@ -13,6 +13,7 @@
 		<!-- Set baseline version to a reasonable previous version for breaking change detection -->
 		<!-- This should be updated to the actual previous stable version before release -->
 		<PackageValidationBaselineVersion>4.0.0</PackageValidationBaselineVersion>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 	
 	<ItemGroup Condition="!$(MSBuildProjectName.EndsWith('Tests'))">
