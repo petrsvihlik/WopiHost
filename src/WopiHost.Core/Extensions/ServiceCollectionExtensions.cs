@@ -19,6 +19,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddWopi(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+        services.AddMemoryCache();
         services.AddAuthorizationCore();
 
         // Add authorization handler
