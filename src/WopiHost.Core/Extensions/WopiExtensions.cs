@@ -155,13 +155,52 @@ public static class WopiExtensions
             IsEduUser = false,
         };
 
-        // allow changes and/or extensions before returning 
+        // allow changes and/or extensions before returning
         var wopiHostOptions = httpContext.RequestServices.GetService<IOptions<WopiHostOptions>>();
         if (wopiHostOptions is not null)
         {
             checkContainerInfo = await wopiHostOptions.Value.OnCheckContainerInfo(new WopiCheckContainerInfoContext(httpContext.User, container, checkContainerInfo));
         }
-        
+
         return checkContainerInfo;
+    }
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="WopiCheckFolderInfo"/> based on the provided <see cref="IWopiFolder"/>.
+    /// This is used by the OneNote for the web Folders endpoint.
+    /// </summary>
+    /// <param name="folder"><see cref="IWopiFolder"/> to return info</param>
+    /// <param name="httpContext">current HttpContext</param>
+    /// <returns>WopiCheckFolderInfo</returns>
+    public static async Task<WopiCheckFolderInfo> GetWopiCheckFolderInfo(
+        this IWopiFolder folder,
+        HttpContext httpContext)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        var checkFolderInfo = new WopiCheckFolderInfo
+        {
+            FolderName = folder.Name,
+        };
+
+        if (httpContext.User?.Identity?.IsAuthenticated == true)
+        {
+            checkFolderInfo.UserId = httpContext.User.GetUserId();
+            checkFolderInfo.UserFriendlyName = httpContext.User.FindFirst(ClaimTypes.Name)?.Value;
+        }
+        else
+        {
+            checkFolderInfo.IsAnonymousUser = true;
+        }
+
+        // allow changes and/or extensions before returning
+        var wopiHostOptions = httpContext.RequestServices.GetService<IOptions<WopiHostOptions>>();
+        if (wopiHostOptions is not null)
+        {
+            checkFolderInfo = await wopiHostOptions.Value.OnCheckFolderInfo(new WopiCheckFolderInfoContext(httpContext.User, folder, checkFolderInfo));
+        }
+
+        return checkFolderInfo;
     }
 }
