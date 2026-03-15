@@ -82,15 +82,15 @@ public class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidat
             logger.LogError(ex, "Error validating WOPI proof");
             return false;
         }
-
-        static byte[] ToBigEndian(int value)
-        {
-            var bytes = BitConverter.GetBytes(value);
-            Array.Reverse(bytes);
-            return bytes;
-        }
     }
-    
+
+    private static byte[] ToBigEndian(int value)
+    {
+        var bytes = BitConverter.GetBytes(value);
+        Array.Reverse(bytes);
+        return bytes;
+    }
+
     private static bool VerifyProof(byte[] expectedProof, string proofFromRequest, string proofFromDiscovery)
     {
         using var rsaProvider = new RSACryptoServiceProvider();
