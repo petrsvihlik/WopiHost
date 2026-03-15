@@ -5,6 +5,8 @@
 		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 	</PropertyGroup>
 
 	<!-- Package Validation Configuration for NuGet packages -->

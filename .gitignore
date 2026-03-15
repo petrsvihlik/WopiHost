@@ -205,3 +205,6 @@ FakesAssemblies/
 coverage.*.info
 coverage.xml
 coverage.json
+
+# Claude Code worktrees
+.claude/worktrees/
