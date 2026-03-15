@@ -23,20 +23,20 @@ jobs:
     environment:
       name: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'Integrate Pull Request' || '' }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 2
     - name: Setup .NET 8.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '8.0.x'
     - name: Setup .NET 9.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '9.0.x'
     - name: Setup .NET 10.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '10.0.x'
     - name: Set MYGET_FEED Environment Variable
@@ -48,7 +48,7 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=lcov
     - name: Upload coverage to Qlty
-      uses: qltysh/qlty-action/coverage@v1
+      uses: qltysh/qlty-action/coverage@v2
       with:
         oidc: true
         files: "**/coverage.*.info"
