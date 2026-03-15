@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <IsAspireSharedProject>true</IsAspireSharedProject>
     <IsAspireProjectResource>false</IsAspireProjectResource>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
