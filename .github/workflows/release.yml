@@ -14,17 +14,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Setup .NET 8.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '8.0.x'
     - name: Setup .NET 9.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '9.0.x'
     - name: Setup .NET 10.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '10.0.x'
     - name: Extract version from tag
@@ -41,7 +41,7 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal --configuration Release /p:CollectCoverage=true /p:CoverletOutputFormat=lcov
     - name: Upload coverage to Qlty
-      uses: qltysh/qlty-action/coverage@v1
+      uses: qltysh/qlty-action/coverage@v2
       with:
         oidc: true
         files: "**/coverage.*.info"
@@ -52,7 +52,7 @@ jobs:
     - name: Pack
       run: dotnet pack --no-build --include-symbols --verbosity normal --configuration Release --output ./artifacts /p:PackageVersion="${{ steps.get_version.outputs.version-without-v }}"
     - name: Upload artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: "NuGet packages"
         path: ./artifacts
