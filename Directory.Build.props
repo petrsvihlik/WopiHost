@@ -7,6 +7,7 @@
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+		<LangVersion>latest</LangVersion>
 	</PropertyGroup>
 
 	<!-- Package Validation Configuration for NuGet packages -->
