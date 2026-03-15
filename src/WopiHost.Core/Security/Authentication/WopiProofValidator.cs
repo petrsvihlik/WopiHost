@@ -54,21 +54,22 @@ public class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidat
             }
 
             var hostUrl = request.GetProxyAwareRequestUrl().ToUpperInvariant();
-            
+
             var hostUrlBytes = Encoding.UTF8.GetBytes(hostUrl.ToUpperInvariant());
             var accessTokenBytes = Encoding.UTF8.GetBytes(receivedAccessToken);
-            var timeStampBytes = BitConverter.GetBytes(Convert.ToInt64(receivedTimeStamp)).Reverse().ToArray();
-            
+            var timeStampBytes = BitConverter.GetBytes(Convert.ToInt64(receivedTimeStamp));
+            Array.Reverse(timeStampBytes);
+
             var expectedProof = new List<byte>(
                 4 + accessTokenBytes.Length +
                 4 + hostUrlBytes.Length +
                 4 + timeStampBytes.Length);
-            
-            expectedProof.AddRange([.. BitConverter.GetBytes(accessTokenBytes.Length).Reverse()]);
+
+            expectedProof.AddRange(ToBigEndian(accessTokenBytes.Length));
             expectedProof.AddRange(accessTokenBytes);
-            expectedProof.AddRange([.. BitConverter.GetBytes(hostUrlBytes.Length).Reverse()]);
+            expectedProof.AddRange(ToBigEndian(hostUrlBytes.Length));
             expectedProof.AddRange(hostUrlBytes);
-            expectedProof.AddRange([.. BitConverter.GetBytes(timeStampBytes.Length).Reverse()]);
+            expectedProof.AddRange(ToBigEndian(timeStampBytes.Length));
             expectedProof.AddRange(timeStampBytes);
             byte[] expectedBytes = [.. expectedProof];
             
@@ -82,7 +83,14 @@ public class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidat
             return false;
         }
     }
-    
+
+    private static byte[] ToBigEndian(int value)
+    {
+        var bytes = BitConverter.GetBytes(value);
+        Array.Reverse(bytes);
+        return bytes;
+    }
+
     private static bool VerifyProof(byte[] expectedProof, string proofFromRequest, string proofFromDiscovery)
     {
         using var rsaProvider = new RSACryptoServiceProvider();

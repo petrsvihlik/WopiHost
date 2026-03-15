@@ -16,7 +16,6 @@ public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHa
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger<WopiSecurityHandler>();
     private readonly JwtSecurityTokenHandler _tokenHandler = new();
-    private SymmetricSecurityKey? _key = null;
 
     private SymmetricSecurityKey Key
     {
@@ -26,9 +25,9 @@ public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHa
             //byte[] key = new byte[128];
             //rng.GetBytes(key);
             //var key = Encoding.ASCII.GetBytes("secretKeysecretKeysecretKey123"/* + new Random(DateTime.Now.Millisecond).Next(1,999)*/);
-            //_key = new SymmetricSecurityKey(key);
-            _key ??= new SymmetricSecurityKey(Encoding.ASCII.GetBytes("secret".PadRight((512 / 8), '\0')));
-            return _key;
+            //field = new SymmetricSecurityKey(key);
+            field ??= new SymmetricSecurityKey(Encoding.ASCII.GetBytes("secret".PadRight((512 / 8), '\0')));
+            return field;
         }
     }
 

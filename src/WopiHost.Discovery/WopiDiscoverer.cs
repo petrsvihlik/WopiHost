@@ -34,44 +34,35 @@ public class WopiDiscoverer(
     private const string AttrProofKeyOldModulus = "oldmodulus";
     private const string AttrProofKeyOldExponent = "oldexponent";
 
-    private AsyncExpiringLazy<IEnumerable<XElement>>? _apps;
-    private AsyncExpiringLazy<XElement>? _proofKey;
-
     private AsyncExpiringLazy<IEnumerable<XElement>> Apps
     {
-        get
+        get => field ??= new AsyncExpiringLazy<IEnumerable<XElement>>(async metadata =>
         {
-            return _apps ??= new AsyncExpiringLazy<IEnumerable<XElement>>(async metadata =>
+            return new TemporaryValue<IEnumerable<XElement>>
             {
-                return new TemporaryValue<IEnumerable<XElement>>
-                {
-                    Result = (await discoveryFileProvider.GetDiscoveryXmlAsync())
-                    .Elements(ElementNetZone)
-                    .Where(ValidateNetZone)
-                    .Elements(ElementApp),
+                Result = (await discoveryFileProvider.GetDiscoveryXmlAsync())
+                .Elements(ElementNetZone)
+                .Where(ValidateNetZone)
+                .Elements(ElementApp),
 
-                    ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval)
-                };
-            });
-        }
+                ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval)
+            };
+        });
     }
-    
+
     private AsyncExpiringLazy<XElement> ProofKey
     {
-        get
+        get => field ??= new AsyncExpiringLazy<XElement>(async metadata =>
         {
-            return _proofKey ??= new AsyncExpiringLazy<XElement>(async metadata =>
+            return new TemporaryValue<XElement>
             {
-                return new TemporaryValue<XElement>
-                {
-                    Result = (await discoveryFileProvider.GetDiscoveryXmlAsync())
-                        .Elements(ElementProofKey)
-                        .FirstOrDefault() ?? new XElement(ElementProofKey),
+                Result = (await discoveryFileProvider.GetDiscoveryXmlAsync())
+                    .Elements(ElementProofKey)
+                    .FirstOrDefault() ?? new XElement(ElementProofKey),
 
-                    ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval)
-                };
-            });
-        }
+                ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval)
+            };
+        });
     }
 
     internal async Task<IEnumerable<XElement>> GetAppsAsync() => await Apps.Value();

@@ -43,7 +43,7 @@ public class FilesController(
         SupportsCoauth = false,
         SupportsUpdate = true
     };
-    private const string UserInfoCacheKey = "UserInfo-{0}";
+    private const string UserInfoCacheKeyPrefix = "UserInfo-";
 
     /// <summary>
     /// Returns the metadata about a file specified by an identifier.
@@ -65,7 +65,7 @@ public class FilesController(
         }
 
         // The UserInfo ... should be passed back to the WOPI client in subsequent CheckFileInfo responses in the UserInfo property.
-        _ = memoryCache.TryGetValue(string.Format(UserInfoCacheKey, User.GetUserId()), out string? userInfo);
+        _ = memoryCache.TryGetValue($"{UserInfoCacheKeyPrefix}{User.GetUserId()}", out string? userInfo);
 
         // build default checkFileInfo
         var checkFileInfo = await file.GetWopiCheckFileInfo(HttpContext, HostCapabilities, userInfo, cancellationToken);
@@ -482,7 +482,7 @@ public class FilesController(
         // and should be passed back to the WOPI client in subsequent CheckFileInfo responses in the UserInfo property.
         // we store indefinitely in memoryCache to avoid the need for a persistence model - it's called anyway by the Wopi client on every start
         memoryCache.Set(
-            string.Format(UserInfoCacheKey, User.GetUserId()), 
+            $"{UserInfoCacheKeyPrefix}{User.GetUserId()}", 
             userInfo, 
             new MemoryCacheEntryOptions
             {
