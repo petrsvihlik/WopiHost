@@ -1,8 +1,10 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
+using WopiHost.Core.Infrastructure;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 using WopiHost.Url;
@@ -14,7 +16,8 @@ public class HostPageModel(
     IOptions<WopiOptions> wopiOptions,
     IWopiStorageProvider storageProvider,
     IWopiSecurityHandler securityHandler,
-    IDiscoverer discoverer) : PageModel
+    IDiscoverer discoverer,
+    LinkGenerator linkGenerator) : PageModel
 {
     [BindProperty(SupportsGet = true)]
     public required string FileId { get; set; }
@@ -49,9 +52,11 @@ public class HostPageModel(
 
 
         var extension = file.Extension.TrimStart('.');
-        // Url.ValidatorTestCategory
-        //TODO: add a test for the URL not to contain double slashes between host and path
-        UrlSrc = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiOptions.Value.HostUrl, $"/wopi/files/{FileId}"), WopiAction)
+        var wopiFileUrl = new Uri(
+            wopiOptions.Value.HostUrl,
+            linkGenerator.GetPathByRouteValues(WopiRouteNames.CheckFileInfo, new { id = FileId })
+            ?? throw new InvalidOperationException($"Could not generate route for '{WopiRouteNames.CheckFileInfo}'"));
+        UrlSrc = await urlGenerator.GetFileUrlAsync(extension, wopiFileUrl, WopiAction)
             ?? throw new InvalidOperationException($"Could not retrieve WopiUrl for extension '{extension}'");
         ViewData["favicon"] = await discoverer.GetApplicationFavIconAsync(extension);
         return Page();
