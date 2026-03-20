@@ -43,6 +43,12 @@ public static class ServiceCollectionExtensions
             throw new InvalidProgramException($"Cobalt Assembly {assemblyPath} not found.");
         }
         var cobaltAssembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+
+        // Register CoauthoringSessionTracker as singleton for shared state across Cobalt requests
+        var trackerType = cobaltAssembly.GetType("WopiHost.Cobalt.CoauthoringSessionTracker")
+            ?? throw new InvalidProgramException("CoauthoringSessionTracker type not found in Cobalt assembly.");
+        services.AddSingleton(trackerType);
+
         services
             .Scan(scan => scan.FromAssemblies(cobaltAssembly)
             .AddClasses(classes => classes

@@ -4,7 +4,7 @@ using WopiHost.Abstractions;
 
 namespace WopiHost.Cobalt;
 
-public class CobaltProcessor : ICobaltProcessor
+public class CobaltProcessor(CoauthoringSessionTracker sessionTracker) : ICobaltProcessor
 {
     private async Task<CobaltFile> GetCobaltFile(IWopiFile file, ClaimsPrincipal principal)
     {
@@ -41,7 +41,7 @@ public class CobaltProcessor : ICobaltProcessor
 
         var partitionConfigs = new Dictionary<FilePartitionId, CobaltFilePartitionConfig> { { FilePartitionId.Content, content }, { FilePartitionId.WordWacUpdate, wacupdate }, { FilePartitionId.CoauthMetadata, coauth } };
 
-        var tempCobaltFile = new CobaltFile(disposal, partitionConfigs, new CobaltHostLockingStore(principal), null);
+        var tempCobaltFile = new CobaltFile(disposal, partitionConfigs, new CobaltHostLockingStore(principal, file.Identifier, sessionTracker), null);
 
         if (file.Exists)
         {
