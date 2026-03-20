@@ -41,6 +41,15 @@ public static class WopiEvents
             wopiCheckFileInfo.BreadcrumbDocName = "test";
             wopiCheckFileInfo.BreadcrumbFolderName = "root";
             wopiCheckFileInfo.BreadcrumbFolderUrl = new("https://example.com/folder");
+
+            // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#unused-and-future-properties
+            wopiCheckFileInfo.HostNotes = string.Empty;
+            wopiCheckFileInfo.IrmPolicyDescription = string.Empty;
+            wopiCheckFileInfo.IrmPolicyTitle = string.Empty;
+            wopiCheckFileInfo.PresenceProvider = string.Empty;
+            wopiCheckFileInfo.PresenceUserId = string.Empty;
+            wopiCheckFileInfo.TenantId = string.Empty;
+            wopiCheckFileInfo.TimeZone = string.Empty;
         }
         return Task.FromResult(wopiCheckFileInfo);
     }
