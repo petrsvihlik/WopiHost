@@ -350,10 +350,10 @@ WOPI uses token-based authentication. Implement `IWopiSecurityHandler` to provid
 ```csharp
 public class CustomSecurityHandler : IWopiSecurityHandler
 {
-    public async Task<WopiUserPermissions> GetUserPermissionsAsync(string userId, string resourceId)
+    public async Task<WopiFilePermissions> GetFilePermissionsAsync(string userId, string resourceId)
     {
         // Implement permission logic
-        return WopiUserPermissions.Read | WopiUserPermissions.Write;
+        return WopiFilePermissions.Read | WopiFilePermissions.Write;
     }
     
     public async Task<bool> ValidateTokenAsync(string token, string resourceId)
@@ -379,9 +379,9 @@ public class CustomAuthorizationRequirement : IWopiAuthorizationRequirement
 {
     public string RequiredPermission { get; set; }
     
-    public bool IsSatisfiedBy(WopiUserPermissions permissions)
+    public bool IsSatisfiedBy(WopiFilePermissions permissions)
     {
-        return permissions.HasFlag(WopiUserPermissions.Write);
+        return permissions.HasFlag(WopiFilePermissions.Write);
     }
 }
 ```
