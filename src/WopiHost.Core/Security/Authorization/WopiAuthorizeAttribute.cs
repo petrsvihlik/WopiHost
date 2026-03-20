@@ -22,11 +22,6 @@ public class WopiAuthorizeAttribute(
     public Permission Permission { get; } = permission;
 
     /// <summary>
-    /// Permissions to check and return in HttpContext.Items collection
-    /// </summary>
-    public Permission[] CheckPermissions { get; set; } = [];
-
-    /// <summary>
     /// Gets the type of the resource.
     /// </summary>
     public WopiResourceType ResourceType { get; } = resourceType;
