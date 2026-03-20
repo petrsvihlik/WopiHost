@@ -198,7 +198,7 @@ public class WopiExtensionsTests
         Assert.Equal("userId", result.UserId);
         Assert.Equal("userId", result.HostAuthenticationId);
         Assert.Equal("test", result.UserFriendlyName);
-        Assert.Empty(result.UserPrincipalName);
+        Assert.Null(result.UserPrincipalName);
         Assert.False(result.ReadOnly);
         Assert.False(result.RestrictedWebViewOnly);
         Assert.False(result.UserCanAttend);

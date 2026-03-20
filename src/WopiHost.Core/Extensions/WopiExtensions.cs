@@ -98,7 +98,7 @@ public static class WopiExtensions
             checkFileInfo.UserId = httpContext.User.GetUserId();
             checkFileInfo.HostAuthenticationId = checkFileInfo.UserId;
             checkFileInfo.UserFriendlyName = httpContext.User.FindFirst(ClaimTypes.Name)?.Value;
-            checkFileInfo.UserPrincipalName = httpContext.User.FindFirst(ClaimTypes.Upn)?.Value ?? string.Empty;
+            checkFileInfo.UserPrincipalName = httpContext.User.FindFirst(ClaimTypes.Upn)?.Value;
 
             // try to parse permissions claims
             var securityHandler = httpContext.RequestServices.GetRequiredService<IWopiSecurityHandler>();

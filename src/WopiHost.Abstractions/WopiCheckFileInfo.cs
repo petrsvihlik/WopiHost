@@ -74,7 +74,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// MAY specifies a URI to a web page that the WOPI client navigates to when the user clicks on UI that displays <see cref="BreadcrumbDocName"/>.
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore]
     [Obsolete("Deprecated", false, UrlFormat = "https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#deprecated-properties</remarks>")]
     public Uri? BreadcrumbDocUrl { get; set; }
 
@@ -104,7 +104,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A user-accessible URI directly to the file intended for opening the file through a client.
     /// </summary>
-    [JsonIgnore]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Uri? ClientUrl { get; set; }
 
     /// <summary>
@@ -166,7 +166,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A URI to a location that allows the user to create an embeddable URI to the file.
     /// </summary>
-    [JsonIgnore]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Uri? FileEmbedCommandUrl { get; set; }
 
     /// <summary>
@@ -187,7 +187,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A string value uniquely identifying the user currently accessing the file.
     /// </summary>
-    [JsonIgnore]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? HostAuthenticationId { get; set; }
 
     /// <summary>
@@ -198,7 +198,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A URI to a web page that provides access to an editing experience for the file that can be embedded in another HTML page.
     /// </summary>
-    [JsonIgnore]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Uri? HostEmbeddedEditUrl { get; set; }
 
     /// <summary>
@@ -209,20 +209,20 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A string that is the name provided by the WOPI server used to identify it for logging and other informational purposes.
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore]
     [Obsolete("Deprecated", false, UrlFormat = "https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#deprecated-properties</remarks>")]
     public string? HostName { get; set; }
 
     /// <summary>
     /// A string that is used by the host to pass arbitrary information to the WOPI client.
     /// </summary>
-    [JsonIgnore]
-    public string HostNotes { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? HostNotes { get; set; }
 
     /// <summary>
     /// A URI that is the base URI for REST operations for the file.
     /// </summary>
-    [JsonIgnore]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Uri? HostRestUrl { get; set; }
 
     /// <summary>
@@ -233,31 +233,31 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A string that the WOPI client should display to the user indicating the IRM policy for the file. This value should be combined with <see cref="IrmPolicyTitle"/>.
     /// </summary>
-    [JsonIgnore]
-    public string IrmPolicyDescription { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IrmPolicyDescription { get; set; }
 
     /// <summary>
     /// A string that the WOPI client should display to the user indicating the IRM policy for the file. This value should be combined with <see cref="IrmPolicyDescription"/>.
     /// </summary>
-    [JsonIgnore]
-    public string IrmPolicyTitle { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IrmPolicyTitle { get; set; }
 
     /// <summary>
     /// A string that identifies the provider of information that a WOPI client may use to discover information about the user’s online status (for example, whether a user is available via instant messenger).
     /// </summary>
-    [JsonIgnore]
-    public string PresenceProvider { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PresenceProvider { get; set; }
 
     /// <summary>
     /// A string that identifies the user in the context of the <see cref="PresenceProvider"/>.
     /// </summary>
-    [JsonIgnore]
-    public string PresenceUserId { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PresenceUserId { get; set; }
 
     /// <summary>
     /// A URI to a webpage that explains the privacy policy of the WOPI server.
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore]
     [Obsolete("Deprecated", false, UrlFormat = "https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#deprecated-properties</remarks>")]
     public Uri? PrivacyUrl { get; set; }
 
@@ -322,8 +322,8 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// <summary>
     /// A string value uniquely identifying the user’s ‘tenant,’ or group/organization to which they belong.
     /// </summary>
-    [JsonIgnore]
-    public string TenantId { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TenantId { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates that the host supports the following WOPI operations:
@@ -360,8 +360,8 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// </item>
     /// </list>
     /// </summary>
-    [JsonIgnore]
-    public string TimeZone { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TimeZone { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates that the host supports the following WOPI operations:
@@ -461,8 +461,8 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// </item>
     /// </list>
     /// </summary>
-    [JsonIgnore]
-    public string UserPrincipalName { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? UserPrincipalName { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/renamefile">RenameFile</see> operation.
