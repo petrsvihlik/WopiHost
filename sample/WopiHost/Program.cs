@@ -76,7 +76,10 @@ public partial class Program
             builder.Services.AddControllers();
 
             // Add OpenAPI
-            builder.Services.AddOpenApi();
+            builder.Services.AddOpenApi(options =>
+            {
+                options.AddOperationTransformer<WopiOverrideOpenApiTransformer>();
+            });
 
             // Add WOPI
             builder.Services.AddWopi();
