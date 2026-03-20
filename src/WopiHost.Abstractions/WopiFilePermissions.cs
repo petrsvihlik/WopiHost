@@ -1,10 +1,10 @@
-﻿namespace WopiHost.Abstractions;
+namespace WopiHost.Abstractions;
 
 /// <summary>
-/// WOPI claims  implemented in accordance with: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#user-permissions-properties
+/// WOPI file permission flags implemented in accordance with: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#user-permissions-properties
 /// </summary>
 [Flags]
-	public enum WopiUserPermissions
+	public enum WopiFilePermissions
 	{
 		/// <summary>
 		/// Default value - user has no permissions.
@@ -47,7 +47,7 @@
 		UserCanWrite = 64,
 
 		/// <summary>
-		/// A Boolean value that indicates that the WOPI client must not allow the user to edit the file. This does not mean that the user doesn’t have rights to edit the file. Hosts should use the UserCanWrite property for that purpose.
+		/// A Boolean value that indicates that the WOPI client must not allow the user to edit the file. This does not mean that the user doesn't have rights to edit the file. Hosts should use the UserCanWrite property for that purpose.
 		/// </summary>
 		WebEditingDisabled = 128
 	}

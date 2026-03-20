@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using WopiHost.Abstractions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Security.Authentication;
-using WopiHost.Core.Security.Authorization;
 
 namespace WopiHost.Core.Extensions;
 
@@ -116,17 +115,6 @@ internal static class Extensions
                 WopiResourceType.Container => WopiRouteNames.CheckContainerInfo,
                 _ => throw new ArgumentOutOfRangeException(nameof(resourceType), resourceType, null)
             }, identifier, accessToken);
-    }
-
-    /// <summary>
-    /// Checks if the resource has a specific permission as setup by <see cref="WopiAuthorizationHandler"/>
-    /// </summary>
-    /// <param name="httpContext">HTTP context</param>
-    /// <param name="permission">type of permission</param>
-    /// <returns>true if permission found and allowed, false otherwise</returns>
-    public static bool IsPermitted(this HttpContext httpContext, Permission permission)
-    {
-        return httpContext.Items.TryGetValue(permission, out var value) && value is bool boolValue && boolValue;
     }
 
     /// <summary>

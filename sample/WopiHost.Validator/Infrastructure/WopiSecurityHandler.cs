@@ -15,12 +15,22 @@ namespace WopiHost.Validator.Infrastructure;
 public class WopiSecurityHandler(IOptions<WopiOptions> options) : IWopiSecurityHandler
 {
     /// <inheritdoc/>
-    public Task<WopiUserPermissions> GetUserPermissions(ClaimsPrincipal principal, IWopiFile file, CancellationToken cancellationToken = default)
+    public Task<WopiFilePermissions> GetFilePermissions(ClaimsPrincipal principal, IWopiFile file, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(WopiUserPermissions.UserCanWrite |
-            WopiUserPermissions.UserCanRename |
-            WopiUserPermissions.UserCanAttend |
-            WopiUserPermissions.UserCanPresent);
+        return Task.FromResult(WopiFilePermissions.UserCanWrite |
+            WopiFilePermissions.UserCanRename |
+            WopiFilePermissions.UserCanAttend |
+            WopiFilePermissions.UserCanPresent);
+    }
+
+    /// <inheritdoc/>
+    public Task<WopiContainerPermissions> GetContainerPermissions(ClaimsPrincipal principal, IWopiFolder container, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(
+            WopiContainerPermissions.UserCanCreateChildContainer |
+            WopiContainerPermissions.UserCanCreateChildFile |
+            WopiContainerPermissions.UserCanDelete |
+            WopiContainerPermissions.UserCanRename);
     }
 
     /// <inheritdoc/>
