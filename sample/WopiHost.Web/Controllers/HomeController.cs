@@ -57,13 +57,11 @@ public class HomeController(
             ?? throw new FileNotFoundException($"File with ID '{id}' not found.");
         var token = await securityHandler.GenerateAccessToken("Anonymous", file.Identifier);
 
-
         ViewData["access_token"] = securityHandler.WriteToken(token);
         //TODO: fix
         //ViewData["access_token_ttl"] = //token.ValidTo
 
         //http://dotnet-stuff.com/tutorials/aspnet-mvc/how-to-render-different-layout-in-asp-net-mvc
-
 
         var extension = file.Extension.TrimStart('.');
         ViewData["urlsrc"] = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiOptions.Value.HostUrl, $"/wopi/files/{id}"), actionEnum); //TODO: add a test for the URL not to contain double slashes between host and path
