@@ -72,6 +72,7 @@ public class HomeController(
         Response.Headers.CacheControl = "no-cache, no-store";
         Response.Headers.Expires = "-1";
         Response.Headers.Pragma = "no-cache";
+        Response.Headers.Vary = "*";
 
         return View();
     }
