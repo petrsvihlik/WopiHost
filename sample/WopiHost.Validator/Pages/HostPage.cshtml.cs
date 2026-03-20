@@ -41,7 +41,6 @@ public class HostPageModel(
             ?? throw new FileNotFoundException($"File with ID '{FileId}' not found.");
         var token = await securityHandler.GenerateAccessToken(wopiOptions.Value.UserId, file.Identifier, cancellationToken);
 
-
         AccessToken = securityHandler.WriteToken(token);
         var tokenDateOffset = new DateTimeOffset(token.ValidTo);
         AccessTokenTtl = (tokenDateOffset - DateTimeOffset.UnixEpoch).TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
@@ -49,7 +48,6 @@ public class HostPageModel(
         //ViewData["access_token_ttl"] = //token.ValidTo
 
         //http://dotnet-stuff.com/tutorials/aspnet-mvc/how-to-render-different-layout-in-asp-net-mvc
-
 
         var extension = file.Extension.TrimStart('.');
         var wopiFileUrl = new Uri(
