@@ -68,6 +68,13 @@ public class HomeController(
         var extension = file.Extension.TrimStart('.');
         ViewData["urlsrc"] = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiOptions.Value.HostUrl, $"/wopi/files/{id}"), actionEnum); //TODO: add a test for the URL not to contain double slashes between host and path
         ViewData["favicon"] = await discoverer.GetApplicationFavIconAsync(extension);
+
+        // Host page headers as per WOPI spec to prevent browser caching
+        // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/hostpage#host-page-headers
+        Response.Headers.CacheControl = "no-cache, no-store";
+        Response.Headers.Expires = "-1";
+        Response.Headers.Pragma = "no-cache";
+
         return View();
     }
 
