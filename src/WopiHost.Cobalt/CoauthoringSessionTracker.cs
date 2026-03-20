@@ -25,8 +25,8 @@ public class CoauthoringSessionTracker
 
     private static readonly TimeSpan SessionTimeout = TimeSpan.FromMinutes(30);
 
-    // fileId → (userId → session)
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, EditorSession>> _sessions = new();
+    // fileId → (userId → session) — static so state is shared across all CobaltHostLockingStore instances
+    private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, EditorSession>> Sessions = new();
 
     /// <summary>
     /// Registers or refreshes a user's editing session for the given file.
@@ -34,7 +34,7 @@ public class CoauthoringSessionTracker
     /// </summary>
     public void AddOrRefreshSession(string fileId, string userId, string userName)
     {
-        var fileSessions = _sessions.GetOrAdd(fileId, _ => new ConcurrentDictionary<string, EditorSession>());
+        var fileSessions = Sessions.GetOrAdd(fileId, _ => new ConcurrentDictionary<string, EditorSession>());
         fileSessions[userId] = new EditorSession(userId, userName, DateTimeOffset.UtcNow);
     }
 
@@ -43,13 +43,13 @@ public class CoauthoringSessionTracker
     /// </summary>
     public void RemoveSession(string fileId, string userId)
     {
-        if (_sessions.TryGetValue(fileId, out var fileSessions))
+        if (Sessions.TryGetValue(fileId, out var fileSessions))
         {
             fileSessions.TryRemove(userId, out _);
             // Clean up empty file entries
             if (fileSessions.IsEmpty)
             {
-                _sessions.TryRemove(fileId, out _);
+                Sessions.TryRemove(fileId, out _);
             }
         }
     }
@@ -59,7 +59,7 @@ public class CoauthoringSessionTracker
     /// </summary>
     public int GetActiveEditorCount(string fileId)
     {
-        if (!_sessions.TryGetValue(fileId, out var fileSessions))
+        if (!Sessions.TryGetValue(fileId, out var fileSessions))
         {
             return 0;
         }
@@ -73,7 +73,7 @@ public class CoauthoringSessionTracker
     /// </summary>
     public bool IsAlone(string fileId, string userId)
     {
-        if (!_sessions.TryGetValue(fileId, out var fileSessions))
+        if (!Sessions.TryGetValue(fileId, out var fileSessions))
         {
             return true;
         }
@@ -92,7 +92,7 @@ public class CoauthoringSessionTracker
     public Dictionary<string, EditorsTableEntry> GetEditorsTable(string fileId)
     {
         var result = new Dictionary<string, EditorsTableEntry>();
-        if (!_sessions.TryGetValue(fileId, out var fileSessions))
+        if (!Sessions.TryGetValue(fileId, out var fileSessions))
         {
             return result;
         }
