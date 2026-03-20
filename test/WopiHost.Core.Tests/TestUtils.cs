@@ -20,7 +20,6 @@ public static class TestUtils
         return serviceScopeFactory.Object;
     }
 
-
     public static IServiceScopeFactory CreateServiceScope<T1>(T1 instance1)
     {
         var serviceProvider = new Mock<IServiceProvider>();

@@ -58,7 +58,6 @@ public class ContainersControllerTests
         };
     }
 
-
     [Fact]
     public async Task CheckContainerInfo_ReturnsNotFound_WhenContainerDoesNotExist()
     {
@@ -79,7 +78,6 @@ public class ContainersControllerTests
         var container = new Mock<IWopiFolder>();
         container.Setup(c => c.Name).Returns("TestContainer");
         storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => container.Object);
-
 
         // Act
         var result = await _controller.CheckContainerInfo("existing");
