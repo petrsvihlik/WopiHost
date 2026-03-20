@@ -57,17 +57,23 @@ public class HomeController(
             ?? throw new FileNotFoundException($"File with ID '{id}' not found.");
         var token = await securityHandler.GenerateAccessToken("Anonymous", file.Identifier);
 
-
         ViewData["access_token"] = securityHandler.WriteToken(token);
         //TODO: fix
         //ViewData["access_token_ttl"] = //token.ValidTo
 
         //http://dotnet-stuff.com/tutorials/aspnet-mvc/how-to-render-different-layout-in-asp-net-mvc
 
-
         var extension = file.Extension.TrimStart('.');
         ViewData["urlsrc"] = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiOptions.Value.HostUrl, $"/wopi/files/{id}"), actionEnum); //TODO: add a test for the URL not to contain double slashes between host and path
         ViewData["favicon"] = await discoverer.GetApplicationFavIconAsync(extension);
+
+        // Host page headers as per WOPI spec to prevent browser caching
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/hostpage#host-page-headers
+        Response.Headers.CacheControl = "no-cache, no-store";
+        Response.Headers.Expires = "-1";
+        Response.Headers.Pragma = "no-cache";
+        Response.Headers.Vary = "*";
+
         return View();
     }
 
