@@ -15,7 +15,10 @@ public class HttpHeaderAttribute(string header, params string[] values) : Attrib
 {
     private string Header { get; set; } = header;
 
-    private string[] Values { get; set; } = values;
+    /// <summary>
+    /// Gets the accepted header values for this constraint.
+    /// </summary>
+    public string[] Values { get; } = values;
 
     /// <inheritdoc />
     public bool Accept(ActionConstraintContext context) => context is not null && context.RouteContext.HttpContext.Request.Headers.TryGetValue(Header, out var value) && Values.Contains(value[0]);

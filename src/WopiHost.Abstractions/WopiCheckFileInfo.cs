@@ -89,6 +89,19 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     public Uri? BreadcrumbFolderUrl { get; set; }
 
     /// <summary>
+    /// An array of strings that contains the Cobalt capabilities supported by the host.
+    /// If <see cref="SupportsCobalt"/> is set to <c>false</c>, this property must be ignored by the WOPI client.
+    /// <para>Possible Values:
+    /// <list type="bullet">
+    /// <item><description>DownloadStreaming - The host supports Cobalt streaming for download.</description></item>
+    /// </list>
+    /// </para>
+    /// </summary>
+    /// <remarks>Unused/future property</remarks>
+    [JsonIgnore]
+    public IEnumerable<string>? CobaltCapabilities { get; set; }
+
+    /// <summary>
     /// A user-accessible URI directly to the file intended for opening the file through a client.
     /// </summary>
     [JsonIgnore]
@@ -142,6 +155,13 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// A user-accessible URI to the file intended to allow the user to download a copy of the file. This URI should directly download the file and it should always provide the most recent version of the file.
     /// </summary>
     public Uri? DownloadUrl { get; set; }
+
+    /// <summary>
+    /// Not yet documented.
+    /// </summary>
+    /// <remarks>Unused/future property - not yet documented by Microsoft</remarks>
+    [JsonIgnore]
+    public Uri? EditAndReplyUrl { get; set; }
 
     /// <summary>
     /// A URI to a location that allows the user to create an embeddable URI to the file.
@@ -262,6 +282,21 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// A Boolean value that indicates that the WOPI client should restrict what actions the user can perform on the file. The behavior of this property is dependent on the WOPI client.
     /// </summary>
     public bool RestrictedWebViewOnly { get; set; }
+
+    /// <summary>
+    /// A string value indicating whether the WOPI host is experiencing capacity problems and would like to reduce the frequency at which the WOPI clients make calls to the host.
+    /// <para>Possible Values:
+    /// <list type="bullet">
+    /// <item><description>Normal - The WOPI host is healthy and does not want any additional request throttling.</description></item>
+    /// <item><description>Minor - The WOPI host is requesting a small amount of throttling from the WOPI client.</description></item>
+    /// <item><description>Medium - The WOPI host is requesting a medium amount of throttling from the WOPI client.</description></item>
+    /// <item><description>Major - The WOPI host is requesting a large amount of throttling from the WOPI client.</description></item>
+    /// <item><description>Critical - The WOPI host is requesting the WOPI client to apply the largest amount of throttling possible.</description></item>
+    /// </list>
+    /// </para>
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? RequestedCallThrottling { get; set; }
 
     /// <summary>
     /// A 256 bit SHA-2-encoded [<see href="http://csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf">FIPS 180-2</see>] hash of the file contents, as a Base64-encoded string. Used for caching purposes in WOPI clients.
