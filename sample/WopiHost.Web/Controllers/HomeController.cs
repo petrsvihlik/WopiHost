@@ -68,7 +68,7 @@ public class HomeController(
         ViewData["favicon"] = await discoverer.GetApplicationFavIconAsync(extension);
 
         // Host page headers as per WOPI spec to prevent browser caching
-        // https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/online/hostpage#host-page-headers
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/hostpage#host-page-headers
         Response.Headers.CacheControl = "no-cache, no-store";
         Response.Headers.Expires = "-1";
         Response.Headers.Pragma = "no-cache";
