@@ -6,6 +6,9 @@
 		<ProjectReference Include="..\..\src\WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+		<PackageReference Include="Moq" />
+	</ItemGroup>
+	<ItemGroup>
 	  <PackageReference Update="coverlet.collector">
 	    <PrivateAssets>all</PrivateAssets>
 	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

@@ -8,11 +8,6 @@ namespace WopiHost.Core.Results;
 public class FileResult : ActionResult
 {
     /// <summary>
-    /// An action that returns a stream with data to be written to the response body.
-    /// </summary>
-    private Action<Stream>? CopyStream { get; }
-
-    /// <summary>
     /// Byte array with the content to be written to the response body.
     /// </summary>
     private byte[]? Content { get; set; }
@@ -52,30 +47,13 @@ public class FileResult : ActionResult
         Content = content;
     }
 
-    /// <summary>
-    /// Creates a new instance of <see cref="FileResult"/> that initializes the response body with a stream retrieved from the delegate.
-    /// </summary>
-    /// <param name="copyStream">An action that returns a stream with data to be written to the response body.</param>
-    /// <param name="contentType">Response content type header value.</param>
-    public FileResult(Action<Stream> copyStream, string contentType) : this(contentType)
-    {
-        CopyStream = copyStream;
-    }
-
     /// <inheritdoc/>
     public override async Task ExecuteResultAsync(ActionContext context)
     {
         var response = context.HttpContext.Response;
         response.ContentType = ContentType;
         var targetStream = response.Body;
-        if (CopyStream is not null)
-        {
-            await Task.Factory.StartNew(() =>
-            {
-                CopyStream(targetStream);
-            });
-        }
-        else if (Content is not null)
+        if (Content is not null)
         {
             await targetStream.WriteAsync(Content.AsMemory(0, Content.Length));
         }

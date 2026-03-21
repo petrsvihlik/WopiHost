@@ -178,8 +178,8 @@ public class WopiExtensionsTests
         mockFile.Setup(f => f.Length).Returns(12345);
         var mockSecurityHandler = new Mock<IWopiSecurityHandler>();
         mockSecurityHandler
-            .Setup(_ => _.GetUserPermissions(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFile>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(WopiUserPermissions.None);
+            .Setup(_ => _.GetFilePermissions(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiFilePermissions.None);
         var httpContext = new DefaultHttpContext()
         {
             ServiceScopeFactory = TestUtils.CreateServiceScope(mockSecurityHandler.Object),
@@ -326,7 +326,12 @@ public class WopiExtensionsTests
         // Arrange
         var mockFolder = new Mock<IWopiFolder>();
         mockFolder.Setup(f => f.Name).Returns("test");
-        var eventFired = false; var wopiHostOptions = Options.Create(new WopiHostOptions
+        var mockSecurityHandler = new Mock<IWopiSecurityHandler>();
+        mockSecurityHandler
+            .Setup(_ => _.GetContainerPermissions(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiContainerPermissions.None);
+        var eventFired = false;
+        var wopiHostOptions = Options.Create(new WopiHostOptions
         {
             StorageProviderAssemblyName = "test",
             ClientUrl = new Uri("http://localhost:5000"),
@@ -334,7 +339,7 @@ public class WopiExtensionsTests
         });
         var httpContext = new DefaultHttpContext()
         {
-            ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(wopiHostOptions),
+            ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>, IWopiSecurityHandler>(wopiHostOptions, mockSecurityHandler.Object),
         };
 
         // Act
@@ -343,5 +348,156 @@ public class WopiExtensionsTests
         // Assert
         Assert.Equal("test", result.Name);
         Assert.True(eventFired);
+    }
+
+    [Fact]
+    public async Task GetWopiCheckContainerInfo_WithAllPermissions_ReturnsAllTrue()
+    {
+        // Arrange
+        var mockFolder = new Mock<IWopiFolder>();
+        mockFolder.Setup(f => f.Name).Returns("MyContainer");
+        var mockSecurityHandler = new Mock<IWopiSecurityHandler>();
+        mockSecurityHandler
+            .Setup(_ => _.GetContainerPermissions(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                WopiContainerPermissions.UserCanCreateChildContainer |
+                WopiContainerPermissions.UserCanCreateChildFile |
+                WopiContainerPermissions.UserCanDelete |
+                WopiContainerPermissions.UserCanRename);
+        var httpContext = new DefaultHttpContext()
+        {
+            ServiceScopeFactory = TestUtils.CreateServiceScope(mockSecurityHandler.Object),
+        };
+
+        // Act
+        var result = await mockFolder.Object.GetWopiCheckContainerInfo(httpContext);
+
+        // Assert
+        Assert.Equal("MyContainer", result.Name);
+        Assert.True(result.UserCanCreateChildContainer);
+        Assert.True(result.UserCanCreateChildFile);
+        Assert.True(result.UserCanDelete);
+        Assert.True(result.UserCanRename);
+        Assert.False(result.IsEduUser);
+    }
+
+    [Fact]
+    public async Task GetWopiCheckContainerInfo_WithNoPermissions_ReturnsAllFalse()
+    {
+        // Arrange
+        var mockFolder = new Mock<IWopiFolder>();
+        mockFolder.Setup(f => f.Name).Returns("RestrictedContainer");
+        var mockSecurityHandler = new Mock<IWopiSecurityHandler>();
+        mockSecurityHandler
+            .Setup(_ => _.GetContainerPermissions(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiContainerPermissions.None);
+        var httpContext = new DefaultHttpContext()
+        {
+            ServiceScopeFactory = TestUtils.CreateServiceScope(mockSecurityHandler.Object),
+        };
+
+        // Act
+        var result = await mockFolder.Object.GetWopiCheckContainerInfo(httpContext);
+
+        // Assert
+        Assert.Equal("RestrictedContainer", result.Name);
+        Assert.False(result.UserCanCreateChildContainer);
+        Assert.False(result.UserCanCreateChildFile);
+        Assert.False(result.UserCanDelete);
+        Assert.False(result.UserCanRename);
+    }
+
+    [Fact]
+    public async Task GetWopiCheckContainerInfo_WithPartialPermissions_ReturnsCorrectFlags()
+    {
+        // Arrange
+        var mockFolder = new Mock<IWopiFolder>();
+        mockFolder.Setup(f => f.Name).Returns("PartialContainer");
+        var mockSecurityHandler = new Mock<IWopiSecurityHandler>();
+        mockSecurityHandler
+            .Setup(_ => _.GetContainerPermissions(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiContainerPermissions.UserCanCreateChildFile | WopiContainerPermissions.UserCanRename);
+        var httpContext = new DefaultHttpContext()
+        {
+            ServiceScopeFactory = TestUtils.CreateServiceScope(mockSecurityHandler.Object),
+        };
+
+        // Act
+        var result = await mockFolder.Object.GetWopiCheckContainerInfo(httpContext);
+
+        // Assert
+        Assert.False(result.UserCanCreateChildContainer);
+        Assert.True(result.UserCanCreateChildFile);
+        Assert.False(result.UserCanDelete);
+        Assert.True(result.UserCanRename);
+    }
+
+    [Fact]
+    public async Task GetWopiCheckFileInfo_WithAllPermissions_ReturnsAllTrue()
+    {
+        // Arrange
+        var mockFile = new Mock<IWopiFile>();
+        mockFile.Setup(f => f.Name).Returns("test");
+        mockFile.Setup(f => f.Owner).Returns("owner");
+        mockFile.Setup(f => f.Extension).Returns("txt");
+        mockFile.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
+        mockFile.Setup(f => f.Exists).Returns(true);
+        mockFile.Setup(f => f.Length).Returns(100);
+        var mockSecurityHandler = new Mock<IWopiSecurityHandler>();
+        mockSecurityHandler
+            .Setup(_ => _.GetFilePermissions(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                WopiFilePermissions.ReadOnly |
+                WopiFilePermissions.RestrictedWebViewOnly |
+                WopiFilePermissions.UserCanAttend |
+                WopiFilePermissions.UserCanNotWriteRelative |
+                WopiFilePermissions.UserCanPresent |
+                WopiFilePermissions.UserCanRename |
+                WopiFilePermissions.UserCanWrite |
+                WopiFilePermissions.WebEditingDisabled);
+        var httpContext = new DefaultHttpContext()
+        {
+            ServiceScopeFactory = TestUtils.CreateServiceScope(mockSecurityHandler.Object),
+            User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                [
+                    new(ClaimTypes.NameIdentifier, "userId"),
+                    new(ClaimTypes.Name, "test")
+                ], "test auth scheme")),
+        };
+
+        // Act
+        var result = await mockFile.Object.GetWopiCheckFileInfo(httpContext);
+
+        // Assert
+        Assert.True(result.ReadOnly);
+        Assert.True(result.RestrictedWebViewOnly);
+        Assert.True(result.UserCanAttend);
+        Assert.True(result.UserCanNotWriteRelative);
+        Assert.True(result.UserCanPresent);
+        Assert.True(result.UserCanRename);
+        Assert.True(result.UserCanWrite);
+        Assert.True(result.WebEditingDisabled);
+    }
+
+    [Fact]
+    public async Task GetWopiCheckContainerInfo_ThrowsOnNullContainer()
+    {
+        // Arrange
+        IWopiFolder? container = null;
+        var httpContext = new DefaultHttpContext();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(() => container!.GetWopiCheckContainerInfo(httpContext));
+    }
+
+    [Fact]
+    public async Task GetWopiCheckContainerInfo_ThrowsOnNullHttpContext()
+    {
+        // Arrange
+        var mockFolder = new Mock<IWopiFolder>();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(() => mockFolder.Object.GetWopiCheckContainerInfo(null!));
     }
 }
