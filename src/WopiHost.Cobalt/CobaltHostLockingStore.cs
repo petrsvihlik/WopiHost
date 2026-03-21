@@ -3,9 +3,17 @@ using Cobalt;
 
 namespace WopiHost.Cobalt;
 
-public class CobaltHostLockingStore(ClaimsPrincipal principal) : HostLockingStore
+public class CobaltHostLockingStore(
+    ClaimsPrincipal principal,
+    string fileId,
+    CoauthoringSessionTracker sessionTracker) : HostLockingStore
 {
     private readonly ClaimsPrincipal _principal = principal;
+    private readonly string _fileId = fileId;
+    private readonly CoauthoringSessionTracker _sessionTracker = sessionTracker;
+
+    private string UserId => _principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+    private string UserName => _principal?.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
 
     public override WhoAmIRequest.OutputType HandleWhoAmI(WhoAmIRequest.InputType input)
     {
@@ -117,10 +125,11 @@ public class CobaltHostLockingStore(ClaimsPrincipal principal) : HostLockingStor
 
     public override JoinCoauthoringRequest.OutputType HandleJoinCoauthoring(JoinCoauthoringRequest.InputType input, int protocolMajorVersion, int protocolMinorVersion)
     {
+        _sessionTracker.AddOrRefreshSession(_fileId, UserId, UserName);
         var result = new JoinCoauthoringRequest.OutputType
         {
             Lock = LockType.SchemaLock,
-            CoauthStatus = CoauthStatusType.Alone,
+            CoauthStatus = _sessionTracker.GetCoauthStatus(_fileId, UserId),
             TransitionId = Guid.NewGuid()
         };
         return result;
@@ -128,6 +137,7 @@ public class CobaltHostLockingStore(ClaimsPrincipal principal) : HostLockingStor
 
     public override ExitCoauthoringRequest.OutputType HandleExitCoauthoring(ExitCoauthoringRequest.InputType input, int protocolMajorVersion, int protocolMinorVersion)
     {
+        _sessionTracker.RemoveSession(_fileId, UserId);
         var result = new ExitCoauthoringRequest.OutputType();
 
         return result;
@@ -135,10 +145,11 @@ public class CobaltHostLockingStore(ClaimsPrincipal principal) : HostLockingStor
 
     public override RefreshCoauthoringSessionRequest.OutputType HandleRefreshCoauthoring(RefreshCoauthoringSessionRequest.InputType input, int protocolMajorVersion, int protocolMinorVersion)
     {
+        _sessionTracker.AddOrRefreshSession(_fileId, UserId, UserName);
         var result = new RefreshCoauthoringSessionRequest.OutputType
         {
             Lock = LockType.SchemaLock,
-            CoauthStatus = CoauthStatusType.Alone
+            CoauthStatus = _sessionTracker.GetCoauthStatus(_fileId, UserId)
         };
 
         return result;
@@ -169,16 +180,18 @@ public class CobaltHostLockingStore(ClaimsPrincipal principal) : HostLockingStor
     {
         var result = new GetCoauthoringStatusRequest.OutputType
         {
-            CoauthStatus = CoauthStatusType.Alone
+            CoauthStatus = _sessionTracker.GetCoauthStatus(_fileId, UserId)
         };
 
         return result;
     }
 
-    public override Dictionary<string, EditorsTableEntry> QueryEditorsTable() => [];
+    public override Dictionary<string, EditorsTableEntry> QueryEditorsTable() =>
+        _sessionTracker.GetEditorsTable(_fileId);
 
     public override JoinEditingSessionRequest.OutputType HandleJoinEditingSession(JoinEditingSessionRequest.InputType input)
     {
+        _sessionTracker.AddOrRefreshSession(_fileId, UserId, UserName);
         var result = new JoinEditingSessionRequest.OutputType();
 
         return result;
@@ -186,6 +199,7 @@ public class CobaltHostLockingStore(ClaimsPrincipal principal) : HostLockingStor
 
     public override RefreshEditingSessionRequest.OutputType HandleRefreshEditingSession(RefreshEditingSessionRequest.InputType input)
     {
+        _sessionTracker.AddOrRefreshSession(_fileId, UserId, UserName);
         var result = new RefreshEditingSessionRequest.OutputType();
 
         return result;
@@ -193,6 +207,7 @@ public class CobaltHostLockingStore(ClaimsPrincipal principal) : HostLockingStor
 
     public override LeaveEditingSessionRequest.OutputType HandleLeaveEditingSession(LeaveEditingSessionRequest.InputType input)
     {
+        _sessionTracker.RemoveSession(_fileId, UserId);
         var result = new LeaveEditingSessionRequest.OutputType();
 
         return result;
@@ -216,7 +231,7 @@ public class CobaltHostLockingStore(ClaimsPrincipal principal) : HostLockingStor
 
     public override AmIAloneRequest.OutputType HandleAmIAlone(AmIAloneRequest.InputType input)
     {
-        var result = new AmIAloneRequest.OutputType { AmIAlone = true };
+        var result = new AmIAloneRequest.OutputType { AmIAlone = _sessionTracker.IsAlone(_fileId, UserId) };
 
         return result;
     }

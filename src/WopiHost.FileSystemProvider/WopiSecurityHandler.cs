@@ -44,20 +44,30 @@ public class WopiSecurityHandler(ILoggerFactory loggerFactory) : IWopiSecurityHa
                 new(ClaimTypes.Email, "anonymous@domain.tld"),
 
                 ////TDOO: this needs to be done per file
-                //new(WopiClaimTypes.USER_PERMISSIONS, (WopiUserPermissions.UserCanWrite | WopiUserPermissions.UserCanRename | WopiUserPermissions.UserCanAttend | WopiUserPermissions.UserCanPresent).ToString())
+                //new(WopiClaimTypes.USER_PERMISSIONS, (WopiFilePermissions.UserCanWrite | WopiFilePermissions.UserCanRename | WopiFilePermissions.UserCanAttend | WopiFilePermissions.UserCanPresent).ToString())
             ])
         )
         }
     };
 
     /// <inheritdoc/>
-    public Task<WopiUserPermissions> GetUserPermissions(ClaimsPrincipal principal, IWopiFile file, CancellationToken cancellationToken = default)
+    public Task<WopiFilePermissions> GetFilePermissions(ClaimsPrincipal principal, IWopiFile file, CancellationToken cancellationToken = default)
     {
-        //var permissions = Enum.Parse<WopiUserPermissions>(principal.FindFirstValue(WopiClaimTypes.USER_PERMISSIONS) ?? string.Empty);
-        return Task.FromResult(WopiUserPermissions.UserCanWrite | 
-            WopiUserPermissions.UserCanRename | 
-            WopiUserPermissions.UserCanAttend | 
-            WopiUserPermissions.UserCanPresent);
+        //var permissions = Enum.Parse<WopiFilePermissions>(principal.FindFirstValue(WopiClaimTypes.USER_PERMISSIONS) ?? string.Empty);
+        return Task.FromResult(WopiFilePermissions.UserCanWrite |
+            WopiFilePermissions.UserCanRename |
+            WopiFilePermissions.UserCanAttend |
+            WopiFilePermissions.UserCanPresent);
+    }
+
+    /// <inheritdoc/>
+    public Task<WopiContainerPermissions> GetContainerPermissions(ClaimsPrincipal principal, IWopiFolder container, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(
+            WopiContainerPermissions.UserCanCreateChildContainer |
+            WopiContainerPermissions.UserCanCreateChildFile |
+            WopiContainerPermissions.UserCanDelete |
+            WopiContainerPermissions.UserCanRename);
     }
 
     /// <inheritdoc/>

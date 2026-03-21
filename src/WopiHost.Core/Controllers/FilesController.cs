@@ -557,20 +557,13 @@ public class FilesController(
         var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken)
             ?? throw new InvalidOperationException("File not found");
 
-        // TODO: remove workaround https://github.com/aspnet/Announcements/issues/342 (use FileBufferingWriteStream)
-        var syncIoFeature = HttpContext.Features.Get<IHttpBodyControlFeature>();
-        if (syncIoFeature is not null)
-        {
-            syncIoFeature.AllowSynchronousIO = true;
-        }
-
-        var responseAction = await cobaltProcessor.ProcessCobalt(file, User, await HttpContext.Request.Body.ReadBytesAsync());
+        var responseBytes = await cobaltProcessor.ProcessCobalt(file, User, await HttpContext.Request.Body.ReadBytesAsync());
         if (!string.IsNullOrEmpty(correlationId))
         {
             HttpContext.Response.Headers.Append(WopiHeaders.CORRELATION_ID, correlationId);
             HttpContext.Response.Headers.Append("request-id", correlationId);
         }
-        return new Results.FileResult(responseAction, MediaTypeNames.Application.Octet);
+        return new Results.FileResult(responseBytes, MediaTypeNames.Application.Octet);
     }
 
     #region "Locking"
