@@ -244,26 +244,26 @@ public class CustomSecurityHandler : IWopiSecurityHandler
     private readonly IUserService _userService;
     private readonly ITokenService _tokenService;
     
-    public async Task<WopiUserPermissions> GetUserPermissionsAsync(string userId, string resourceId)
+    public async Task<WopiFilePermissions> GetFilePermissionsAsync(string userId, string resourceId)
     {
         var user = await _userService.GetUserAsync(userId);
         var resource = await GetResourceAsync(resourceId);
         
-        var permissions = WopiUserPermissions.None;
+        var permissions = WopiFilePermissions.None;
         
         if (user.CanRead(resource))
         {
-            permissions |= WopiUserPermissions.Read;
+            permissions |= WopiFilePermissions.Read;
         }
         
         if (user.CanWrite(resource))
         {
-            permissions |= WopiUserPermissions.Write;
+            permissions |= WopiFilePermissions.Write;
         }
         
         if (user.CanDelete(resource))
         {
-            permissions |= WopiUserPermissions.Delete;
+            permissions |= WopiFilePermissions.Delete;
         }
         
         return permissions;
@@ -281,8 +281,8 @@ public class CustomSecurityHandler : IWopiSecurityHandler
                 return false;
             }
             
-            var permissions = await GetUserPermissionsAsync(userId, resourceId);
-            return permissions != WopiUserPermissions.None;
+            var permissions = await GetFilePermissionsAsync(userId, resourceId);
+            return permissions != WopiFilePermissions.None;
         }
         catch
         {
@@ -432,7 +432,7 @@ Handles authentication and authorization.
 ```csharp
 public interface IWopiSecurityHandler
 {
-    Task<WopiUserPermissions> GetUserPermissionsAsync(string userId, string resourceId);
+    Task<WopiFilePermissions> GetFilePermissionsAsync(string userId, string resourceId);
     Task<bool> ValidateTokenAsync(string token, string resourceId);
     Task<string> GetUserIdAsync(string token);
 }

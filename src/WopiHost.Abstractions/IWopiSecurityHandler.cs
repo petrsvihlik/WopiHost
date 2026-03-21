@@ -42,9 +42,18 @@ public interface IWopiSecurityHandler
     /// <summary>
     /// Retrieves permissions for the given user on the given file.
     /// </summary>
-    /// <param name="file">the file in question</param>
     /// <param name="principal">User principal object</param>
+    /// <param name="file">the file in question</param>
 	/// <param name="cancellationToken">Cancellation token</param>
     /// <returns></returns>
-    Task<WopiUserPermissions> GetUserPermissions(ClaimsPrincipal principal, IWopiFile file, CancellationToken cancellationToken = default);
+    Task<WopiFilePermissions> GetFilePermissions(ClaimsPrincipal principal, IWopiFile file, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves permissions for the given user on the given container.
+    /// </summary>
+    /// <param name="principal">User principal object</param>
+    /// <param name="container">the container in question</param>
+	/// <param name="cancellationToken">Cancellation token</param>
+    /// <returns></returns>
+    Task<WopiContainerPermissions> GetContainerPermissions(ClaimsPrincipal principal, IWopiFolder container, CancellationToken cancellationToken = default);
 }

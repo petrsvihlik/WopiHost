@@ -102,15 +102,15 @@ public static class WopiExtensions
 
             // try to parse permissions claims
             var securityHandler = httpContext.RequestServices.GetRequiredService<IWopiSecurityHandler>();
-            var permissions = await securityHandler.GetUserPermissions(httpContext.User, file, cancellationToken);
-            checkFileInfo.ReadOnly = permissions.HasFlag(WopiUserPermissions.ReadOnly);
-            checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiUserPermissions.RestrictedWebViewOnly);
-            checkFileInfo.UserCanAttend = permissions.HasFlag(WopiUserPermissions.UserCanAttend);
-            checkFileInfo.UserCanNotWriteRelative = capabilities?.SupportsUpdate == false || permissions.HasFlag(WopiUserPermissions.UserCanNotWriteRelative);
-            checkFileInfo.UserCanPresent = permissions.HasFlag(WopiUserPermissions.UserCanPresent);
-            checkFileInfo.UserCanRename = permissions.HasFlag(WopiUserPermissions.UserCanRename);
-            checkFileInfo.UserCanWrite = permissions.HasFlag(WopiUserPermissions.UserCanWrite);
-            checkFileInfo.WebEditingDisabled = permissions.HasFlag(WopiUserPermissions.WebEditingDisabled);
+            var permissions = await securityHandler.GetFilePermissions(httpContext.User, file, cancellationToken);
+            checkFileInfo.ReadOnly = permissions.HasFlag(WopiFilePermissions.ReadOnly);
+            checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiFilePermissions.RestrictedWebViewOnly);
+            checkFileInfo.UserCanAttend = permissions.HasFlag(WopiFilePermissions.UserCanAttend);
+            checkFileInfo.UserCanNotWriteRelative = capabilities?.SupportsUpdate == false || permissions.HasFlag(WopiFilePermissions.UserCanNotWriteRelative);
+            checkFileInfo.UserCanPresent = permissions.HasFlag(WopiFilePermissions.UserCanPresent);
+            checkFileInfo.UserCanRename = permissions.HasFlag(WopiFilePermissions.UserCanRename);
+            checkFileInfo.UserCanWrite = permissions.HasFlag(WopiFilePermissions.UserCanWrite);
+            checkFileInfo.WebEditingDisabled = permissions.HasFlag(WopiFilePermissions.WebEditingDisabled);
         }
         else
         {
@@ -138,20 +138,26 @@ public static class WopiExtensions
     /// </summary>
     /// <param name="container"><see cref="IWopiFolder"/> to return info</param>
     /// <param name="httpContext">current HttpContext</param>
+    /// <param name="cancellationToken">cancellation token</param>
     /// <returns>WopiCheckContainerInfo</returns>
     public static async Task<WopiCheckContainerInfo> GetWopiCheckContainerInfo(
-        this IWopiFolder container, 
-        HttpContext httpContext)
+        this IWopiFolder container,
+        HttpContext httpContext,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(container);
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        var securityHandler = httpContext.RequestServices.GetRequiredService<IWopiSecurityHandler>();
+        var permissions = await securityHandler.GetContainerPermissions(httpContext.User, container, cancellationToken);
 
         var checkContainerInfo = new WopiCheckContainerInfo()
         {
             Name = container.Name,
-            UserCanCreateChildContainer = httpContext.IsPermitted(Permission.Create),
-            UserCanDelete = httpContext.IsPermitted(Permission.Delete),
-            UserCanRename = httpContext.IsPermitted(Permission.Rename),
-            UserCanCreateChildFile = httpContext.IsPermitted(Permission.CreateChildFile),
+            UserCanCreateChildContainer = permissions.HasFlag(WopiContainerPermissions.UserCanCreateChildContainer),
+            UserCanCreateChildFile = permissions.HasFlag(WopiContainerPermissions.UserCanCreateChildFile),
+            UserCanDelete = permissions.HasFlag(WopiContainerPermissions.UserCanDelete),
+            UserCanRename = permissions.HasFlag(WopiContainerPermissions.UserCanRename),
             IsEduUser = false,
         };
 

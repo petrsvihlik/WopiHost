@@ -151,7 +151,7 @@ public class NetworkDriveSecurityHandler : IWopiSecurityHandler
 {
     private readonly IUserService _userService;
     
-    public async Task<WopiUserPermissions> GetUserPermissionsAsync(string userId, string resourceId)
+    public async Task<WopiFilePermissions> GetFilePermissionsAsync(string userId, string resourceId)
     {
         var user = await _userService.GetUserAsync(userId);
         var filePath = DecodeFilePath(resourceId);
@@ -160,9 +160,9 @@ public class NetworkDriveSecurityHandler : IWopiSecurityHandler
         var hasReadAccess = await CheckNetworkFileAccess(filePath, user, FileAccess.Read);
         var hasWriteAccess = await CheckNetworkFileAccess(filePath, user, FileAccess.Write);
         
-        var permissions = WopiUserPermissions.None;
-        if (hasReadAccess) permissions |= WopiUserPermissions.Read;
-        if (hasWriteAccess) permissions |= WopiUserPermissions.Write;
+        var permissions = WopiFilePermissions.None;
+        if (hasReadAccess) permissions |= WopiFilePermissions.Read;
+        if (hasWriteAccess) permissions |= WopiFilePermissions.Write;
         
         return permissions;
     }
@@ -400,10 +400,10 @@ File system-based security handler.
 
 #### Methods
 
-##### GetUserPermissionsAsync
+##### GetFilePermissionsAsync
 
 ```csharp
-public Task<WopiUserPermissions> GetUserPermissionsAsync(string userId, string resourceId)
+public Task<WopiFilePermissions> GetFilePermissionsAsync(string userId, string resourceId)
 ```
 
 Gets user permissions for a resource based on file system ACLs.
