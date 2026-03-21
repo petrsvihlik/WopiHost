@@ -544,45 +544,18 @@ public class FilesController(
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <param name="correlationId"></param>
-    /// <param name="lockIdentifier">Lock identifier from the X-WOPI-Lock header, used to manage WOPI-level locks for Cobalt sessions.</param>
     /// <param name="cancellationToken">cancellation token</param>
     [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.Cobalt)]
     [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public async Task<IActionResult> ProcessCobalt(
         string id,
         [FromHeader(Name = WopiHeaders.CORRELATION_ID)] string? correlationId = null,
-        [FromHeader(Name = WopiHeaders.LOCK)] string? lockIdentifier = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(cobaltProcessor);
 
         var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken)
             ?? throw new InvalidOperationException("File not found");
-
-        // Acquire or refresh a WOPI lock for the Cobalt session.
-        // Excel Online uses the Cobalt protocol (MS-FSSHTTP) which has its own internal locking,
-        // but without a corresponding WOPI lock, other WOPI clients may see the file as unlocked
-        // or attempt conflicting operations, leading to "locked by another user" errors.
-        if (lockProvider is not null && !string.IsNullOrEmpty(lockIdentifier))
-        {
-            if (lockProvider.TryGetLock(id, out var existingLock))
-            {
-                // Refresh the existing lock if it matches, otherwise report a conflict
-                if (existingLock.LockId == lockIdentifier)
-                {
-                    lockProvider.RefreshLock(id);
-                }
-                else
-                {
-                    return new LockMismatchResult(Response, existingLock.LockId, reason: "Lock mismatch during Cobalt request");
-                }
-            }
-            else
-            {
-                // No existing lock — acquire one for this Cobalt session
-                lockProvider.AddLock(id, lockIdentifier);
-            }
-        }
 
         // TODO: remove workaround https://github.com/aspnet/Announcements/issues/342 (use FileBufferingWriteStream)
         var syncIoFeature = HttpContext.Features.Get<IHttpBodyControlFeature>();
