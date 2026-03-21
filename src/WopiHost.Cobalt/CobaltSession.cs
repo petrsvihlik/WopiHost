@@ -64,7 +64,7 @@ public class CobaltProcessor : ICobaltProcessor
     //}
 
     /// <inheritdoc/>
-    public async Task<Action<Stream>> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent)
+    public async Task<byte[]> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent)
     {
         // Refactoring tip: there are more ways of initializing Atom
         var atomRequest = new AtomFromByteArray(newContent);
@@ -79,6 +79,9 @@ public class CobaltProcessor : ICobaltProcessor
             using var stream = await file.GetWriteStream();
             new GenericFda(cobaltFile.CobaltEndpoint).GetContentStream().CopyTo(stream);
         }
-        return requestBatch.SerializeOutputToProtocol(protocolVersion).CopyTo;
+
+        using var ms = new MemoryStream();
+        requestBatch.SerializeOutputToProtocol(protocolVersion).CopyTo(ms);
+        return ms.ToArray();
     }
 }
