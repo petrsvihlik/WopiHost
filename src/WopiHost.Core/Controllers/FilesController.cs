@@ -568,14 +568,17 @@ public class FilesController(
 
     #region "Locking"
     /// <summary>
-    /// Processes lock-related operations.
+    /// Processes lock-related operations (Lock, GetLock, Unlock, RefreshLock, UnlockAndRelock).
+    /// The UnlockAndRelock operation shares the same X-WOPI-Override value ("LOCK") as Lock.
+    /// Hosts differentiate the two based on the presence of the X-WOPI-OldLock request header.
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock
+    /// UnlockAndRelock: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <param name="wopiOverrideHeader">A string specifying the requested operation from the WOPI server</param>
-    /// <param name="oldLockIdentifier"></param>
-    /// <param name="newLockIdentifier"></param>
+    /// <param name="oldLockIdentifier">The existing lock ID, used by UnlockAndRelock to identify the lock to release.</param>
+    /// <param name="newLockIdentifier">The new lock ID to apply (Lock, RefreshLock, UnlockAndRelock) or the lock to release (Unlock).</param>
     /// <param name="cancellationToken">cancellation token</param>
     [HttpPost("{id}")]
     [WopiOverrideHeader(
@@ -629,6 +632,13 @@ public class FilesController(
         return Ok();
     }
 
+    /// <summary>
+    /// Handles Lock and UnlockAndRelock operations.
+    /// When <paramref name="oldLockIdentifier"/> is null, this is a Lock request.
+    /// When <paramref name="oldLockIdentifier"/> is present, this is an UnlockAndRelock request:
+    /// the existing lock matching oldLockIdentifier is atomically replaced with a new lock using newLockIdentifier.
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock
+    /// </summary>
     private IActionResult HandleLockOrPut(string id, string? oldLockIdentifier, string? newLockIdentifier, bool lockAcquired, WopiLockInfo? existingLock)
     {
         ArgumentNullException.ThrowIfNull(lockProvider);
