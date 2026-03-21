@@ -544,18 +544,45 @@ public class FilesController(
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <param name="correlationId"></param>
+    /// <param name="lockIdentifier">Lock identifier from the X-WOPI-Lock header, used to manage WOPI-level locks for Cobalt sessions.</param>
     /// <param name="cancellationToken">cancellation token</param>
     [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.Cobalt)]
     [WopiAuthorize(WopiResourceType.File, Permission.Update)]
     public async Task<IActionResult> ProcessCobalt(
         string id,
         [FromHeader(Name = WopiHeaders.CORRELATION_ID)] string? correlationId = null,
+        [FromHeader(Name = WopiHeaders.LOCK)] string? lockIdentifier = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(cobaltProcessor);
 
         var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken)
             ?? throw new InvalidOperationException("File not found");
+
+        // Acquire or refresh a WOPI lock for the Cobalt session.
+        // Excel Online uses the Cobalt protocol (MS-FSSHTTP) which has its own internal locking,
+        // but without a corresponding WOPI lock, other WOPI clients may see the file as unlocked
+        // or attempt conflicting operations, leading to "locked by another user" errors.
+        if (lockProvider is not null && !string.IsNullOrEmpty(lockIdentifier))
+        {
+            if (lockProvider.TryGetLock(id, out var existingLock))
+            {
+                // Refresh the existing lock if it matches, otherwise report a conflict
+                if (existingLock.LockId == lockIdentifier)
+                {
+                    lockProvider.RefreshLock(id);
+                }
+                else
+                {
+                    return new LockMismatchResult(Response, existingLock.LockId, reason: "Lock mismatch during Cobalt request");
+                }
+            }
+            else
+            {
+                // No existing lock — acquire one for this Cobalt session
+                lockProvider.AddLock(id, lockIdentifier);
+            }
+        }
 
         // TODO: remove workaround https://github.com/aspnet/Announcements/issues/342 (use FileBufferingWriteStream)
         var syncIoFeature = HttpContext.Features.Get<IHttpBodyControlFeature>();
@@ -575,14 +602,17 @@ public class FilesController(
 
     #region "Locking"
     /// <summary>
-    /// Processes lock-related operations.
+    /// Processes lock-related operations (Lock, GetLock, Unlock, RefreshLock, UnlockAndRelock).
+    /// The UnlockAndRelock operation shares the same X-WOPI-Override value ("LOCK") as Lock.
+    /// Hosts differentiate the two based on the presence of the X-WOPI-OldLock request header.
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock
+    /// UnlockAndRelock: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock
     /// Example URL path: /wopi/files/(file_id)
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <param name="wopiOverrideHeader">A string specifying the requested operation from the WOPI server</param>
-    /// <param name="oldLockIdentifier"></param>
-    /// <param name="newLockIdentifier"></param>
+    /// <param name="oldLockIdentifier">The existing lock ID, used by UnlockAndRelock to identify the lock to release.</param>
+    /// <param name="newLockIdentifier">The new lock ID to apply (Lock, RefreshLock, UnlockAndRelock) or the lock to release (Unlock).</param>
     /// <param name="cancellationToken">cancellation token</param>
     [HttpPost("{id}")]
     [WopiOverrideHeader(
@@ -636,6 +666,13 @@ public class FilesController(
         return Ok();
     }
 
+    /// <summary>
+    /// Handles Lock and UnlockAndRelock operations.
+    /// When <paramref name="oldLockIdentifier"/> is null, this is a Lock request.
+    /// When <paramref name="oldLockIdentifier"/> is present, this is an UnlockAndRelock request:
+    /// the existing lock matching oldLockIdentifier is atomically replaced with a new lock using newLockIdentifier.
+    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock
+    /// </summary>
     private IActionResult HandleLockOrPut(string id, string? oldLockIdentifier, string? newLockIdentifier, bool lockAcquired, WopiLockInfo? existingLock)
     {
         ArgumentNullException.ThrowIfNull(lockProvider);
