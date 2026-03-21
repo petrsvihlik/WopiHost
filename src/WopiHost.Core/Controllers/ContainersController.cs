@@ -41,8 +41,7 @@ public class ContainersController(
     /// <returns></returns>
     [HttpGet("{id}", Name = WopiRouteNames.CheckContainerInfo)]
     [Produces(MediaTypeNames.Application.Json)]
-    [WopiAuthorize(WopiResourceType.Container, Permission.Read,
-        CheckPermissions = [Permission.Create, Permission.Delete, Permission.Rename, Permission.CreateChildFile])]
+    [WopiAuthorize(WopiResourceType.Container, Permission.Read)]
     public async Task<IActionResult> CheckContainerInfo(string id, CancellationToken cancellationToken = default)
     {
         var container = await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken);
@@ -50,7 +49,7 @@ public class ContainersController(
         {
             return NotFound();
         }
-        var checkContainerInfo = await container.GetWopiCheckContainerInfo(HttpContext);
+        var checkContainerInfo = await container.GetWopiCheckContainerInfo(HttpContext, cancellationToken);
         return new JsonResult<WopiCheckContainerInfo>(checkContainerInfo);
     }
 
@@ -128,7 +127,7 @@ public class ContainersController(
 
         if (newFolder is not null)
         {
-            var checkContainerInfo = await newFolder.GetWopiCheckContainerInfo(HttpContext);
+            var checkContainerInfo = await newFolder.GetWopiCheckContainerInfo(HttpContext, cancellationToken);
             return new JsonResult(
                 new CreateChildContainerResponse(
                     new(newFolder.Name, Url.GetWopiSrc(WopiResourceType.Container, newFolder.Identifier)),

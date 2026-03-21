@@ -6,6 +6,7 @@ namespace WopiHost.Cobalt;
 
 public class CobaltProcessor : ICobaltProcessor
 {
+    private readonly CoauthoringSessionTracker _sessionTracker = new();
     private async Task<CobaltFile> GetCobaltFile(IWopiFile file, ClaimsPrincipal principal)
     {
         var disposal = new DisposalEscrow(file.Owner);
@@ -41,7 +42,7 @@ public class CobaltProcessor : ICobaltProcessor
 
         var partitionConfigs = new Dictionary<FilePartitionId, CobaltFilePartitionConfig> { { FilePartitionId.Content, content }, { FilePartitionId.WordWacUpdate, wacupdate }, { FilePartitionId.CoauthMetadata, coauth } };
 
-        var tempCobaltFile = new CobaltFile(disposal, partitionConfigs, new CobaltHostLockingStore(principal), null);
+        var tempCobaltFile = new CobaltFile(disposal, partitionConfigs, new CobaltHostLockingStore(principal, file.Identifier, _sessionTracker), null);
 
         if (file.Exists)
         {

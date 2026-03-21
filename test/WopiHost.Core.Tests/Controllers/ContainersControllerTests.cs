@@ -17,6 +17,7 @@ public class ContainersControllerTests
     private readonly Mock<IWopiStorageProvider> storageProviderMock;
     private readonly Mock<IWopiLockProvider> lockProviderMock;
     private readonly Mock<IWopiWritableStorageProvider> writableStorageProviderMock;
+    private readonly Mock<IWopiSecurityHandler> securityHandlerMock;
     private readonly ContainersController _controller;
 
     public ContainersControllerTests()
@@ -24,6 +25,10 @@ public class ContainersControllerTests
         storageProviderMock = new Mock<IWopiStorageProvider>();
         lockProviderMock = new Mock<IWopiLockProvider>();
         writableStorageProviderMock = new Mock<IWopiWritableStorageProvider>();
+        securityHandlerMock = new Mock<IWopiSecurityHandler>();
+        securityHandlerMock
+            .Setup(_ => _.GetContainerPermissions(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiContainerPermissions.UserCanCreateChildContainer | WopiContainerPermissions.UserCanCreateChildFile | WopiContainerPermissions.UserCanDelete | WopiContainerPermissions.UserCanRename);
         var url = new Mock<IUrlHelper>();
         url
             .Setup(_ => _.RouteUrl(It.IsAny<UrlRouteContext>()))
@@ -47,12 +52,11 @@ public class ContainersControllerTests
             {
                 HttpContext = new DefaultHttpContext()
                 {
-                    ServiceScopeFactory = TestUtils.CreateServiceScope()
+                    ServiceScopeFactory = TestUtils.CreateServiceScope(securityHandlerMock.Object)
                 }
             }
         };
     }
-
 
     [Fact]
     public async Task CheckContainerInfo_ReturnsNotFound_WhenContainerDoesNotExist()
@@ -74,7 +78,6 @@ public class ContainersControllerTests
         var container = new Mock<IWopiFolder>();
         container.Setup(c => c.Name).Returns("TestContainer");
         storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => container.Object);
-
 
         // Act
         var result = await _controller.CheckContainerInfo("existing");

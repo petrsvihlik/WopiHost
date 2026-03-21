@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddMemoryCache();
+        services.AddRouting(options => options.LowercaseUrls = true);
         services.AddAuthorizationCore();
 
         // Add authorization handler
