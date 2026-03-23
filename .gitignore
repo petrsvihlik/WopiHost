@@ -206,5 +206,6 @@ coverage.*.info
 coverage.xml
 coverage.json
 
-# Claude Code worktrees
+# Claude Code
 .claude/worktrees/
+.claude/settings.local.json
