@@ -3,6 +3,12 @@ name: Build & Test
 on:
   push:
     branches: [ master ]
+    paths-ignore:
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - 'LICENSE'
+      - '.claude/**'
 
 permissions:
   contents: read

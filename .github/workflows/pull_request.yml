@@ -3,6 +3,12 @@ name: Pull Request
 on:
   pull_request_target:
     branches: [ master ]
+    paths-ignore:
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - 'LICENSE'
+      - '.claude/**'
 
 permissions:
   contents: read
