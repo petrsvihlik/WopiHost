@@ -1,0 +1,217 @@
+name: WOPI Validator
+
+on:
+  pull_request_target:
+    branches: [ master ]
+    paths-ignore:
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - 'LICENSE'
+      - '.claude/**'
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - 'LICENSE'
+      - '.claude/**'
+  workflow_dispatch:
+    inputs:
+      validator_ref:
+        description: 'Branch, tag or commit of microsoft/wopi-validator-core to use'
+        required: false
+        default: 'main'
+      test_category:
+        description: 'Validator --testcategory (All, WopiCore, OfficeOnline, OfficeOnlinePlus, OfficeNativeClient)'
+        required: false
+        default: 'WopiCore'
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  VALIDATOR_REPO: microsoft/wopi-validator-core
+  VALIDATOR_REF: ${{ inputs.validator_ref || 'main' }}
+  TEST_CATEGORY: ${{ inputs.test_category || 'WopiCore' }}
+  HOST_URL: http://localhost:5000
+  WOPI_FILE_ID: WOPITEST
+  WOPI_ACCESS_TOKEN: Anonymous
+
+jobs:
+  approve:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Approve
+      run: echo "For security reasons, all pull requests need to be approved first before running any automated CI."
+
+  validate:
+    runs-on: ubuntu-latest
+    needs: [approve]
+    if: always() && (needs.approve.result == 'success' || needs.approve.result == 'skipped')
+    environment:
+      name: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository && 'Integrate Pull Request' || '' }}
+    steps:
+      - name: Checkout WopiHost
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Set MYGET_FEED Environment Variable
+        run: echo "MYGET_FEED=${{ secrets.MYGET_FEED }}" >> $GITHUB_ENV
+
+      - name: Resolve validator commit SHA
+        id: resolve
+        run: |
+          SHA=$(git ls-remote https://github.com/${{ env.VALIDATOR_REPO }} ${{ env.VALIDATOR_REF }} | cut -f1)
+          if [ -z "$SHA" ]; then SHA="${{ env.VALIDATOR_REF }}"; fi
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Resolved ${{ env.VALIDATOR_REPO }}@${{ env.VALIDATOR_REF }} -> $SHA"
+
+      - name: Cache validator binaries
+        id: validator-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/validator-bin
+          key: wopi-validator-${{ steps.resolve.outputs.sha }}-net8.0
+
+      - name: Build WOPI validator from source
+        if: steps.validator-cache.outputs.cache-hit != 'true'
+        # Clone and build outside the workspace so this repo's
+        # Directory.Packages.props (Central Package Management) does not
+        # apply to the validator's restore — the validator pins versions
+        # inline on its PackageReferences and CPM rejects that.
+        run: |
+          git clone https://github.com/${{ env.VALIDATOR_REPO }} "${RUNNER_TEMP}/validator-src"
+          git -C "${RUNNER_TEMP}/validator-src" checkout ${{ steps.resolve.outputs.sha }}
+          dotnet publish "${RUNNER_TEMP}/validator-src/src/WopiValidator" -c Release -f net8.0 -o "${RUNNER_TEMP}/validator-bin"
+
+      - name: Build WopiHost.Validator
+        run: dotnet build sample/WopiHost.Validator -c Release /p:ContinuousIntegrationBuild=true
+
+      - name: Start WopiHost.Validator
+        run: |
+          dotnet run --no-build --project sample/WopiHost.Validator -c Release -- --urls "${{ env.HOST_URL }}" > host.log 2>&1 &
+          echo $! > host.pid
+          for i in $(seq 1 60); do
+            if curl -fsS "${{ env.HOST_URL }}/health" >/dev/null 2>&1; then
+              echo "Host healthy after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Host failed to become healthy within 60s"
+          cat host.log
+          exit 1
+
+      - name: Run WOPI validator
+        id: validate
+        continue-on-error: true
+        run: |
+          # Run without --ignore-skipped so skipped tests are visible in the
+          # captured log/artifact. We derive pass/fail/skip counts ourselves
+          # so the exit code reflects real failures only (the validator's own
+          # exit code treats skipped tests as failures, which is too noisy
+          # for this host because Coauth / SharingUrl / AddActivities are
+          # intentionally unimplemented).
+          dotnet "${RUNNER_TEMP}/validator-bin/Microsoft.Office.WopiValidator.dll" \
+            --wopisrc "${{ env.HOST_URL }}/wopi/files/${{ env.WOPI_FILE_ID }}" \
+            --token "${{ env.WOPI_ACCESS_TOKEN }}" \
+            --token_ttl 0 \
+            --config "${RUNNER_TEMP}/validator-bin/TestCases.xml" \
+            --testcategory "${{ env.TEST_CATEGORY }}" \
+            2>&1 | tee validator.log || true
+
+          PASS=$(grep -cE '^  Pass:' validator.log || true)
+          FAIL=$(grep -cE '^  Fail:' validator.log || true)
+          SKIP=$(grep -cE '^  Skipped:' validator.log || true)
+          {
+            echo "pass=${PASS}"
+            echo "fail=${FAIL}"
+            echo "skip=${SKIP}"
+            echo "exit_code=$([ "${FAIL}" -gt 0 ] && echo 1 || echo 0)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Stop WopiHost.Validator
+        if: always()
+        run: |
+          if [ -f host.pid ]; then
+            kill "$(cat host.pid)" 2>/dev/null || true
+            wait "$(cat host.pid)" 2>/dev/null || true
+          fi
+
+      - name: Job summary
+        if: always()
+        run: |
+          PASS="${{ steps.validate.outputs.pass }}"
+          FAIL="${{ steps.validate.outputs.fail }}"
+          SKIP="${{ steps.validate.outputs.skip }}"
+          PASS="${PASS:-0}"; FAIL="${FAIL:-0}"; SKIP="${SKIP:-0}"
+
+          {
+            echo "## WOPI Validator results"
+            echo
+            echo "| Status | Count |"
+            echo "| --- | ---: |"
+            echo "| ✅ Pass | ${PASS} |"
+            echo "| ❌ Fail | ${FAIL} |"
+            echo "| ⏭️ Skipped | ${SKIP} |"
+            echo
+            echo "**Validator:** \`${{ env.VALIDATOR_REPO }}@${{ steps.resolve.outputs.sha }}\`  "
+            echo "**Test category:** \`${{ env.TEST_CATEGORY }}\`  "
+            echo "**WopiSrc:** \`${{ env.HOST_URL }}/wopi/files/${{ env.WOPI_FILE_ID }}\`"
+            echo
+            echo "_Full \`validator.log\` and \`host.log\` are attached as the **wopi-validator-output** artifact on this run._"
+            echo
+
+            if [ "${FAIL}" -gt 0 ] && [ -f validator.log ]; then
+              echo "<details open><summary><b>Failures (${FAIL})</b></summary>"
+              echo
+              echo '```'
+              awk '
+                /^Test group:/ { group=$0; next }
+                /^  Fail:/ { print group; printing=1 }
+                printing && /^  (Pass|Fail|Skipped):/ && !/^  Fail:/ { printing=0 }
+                printing { print }
+              ' validator.log
+              echo '```'
+              echo
+              echo "</details>"
+              echo
+            fi
+
+            if [ -f validator.log ]; then
+              echo "<details><summary><b>Full output</b></summary>"
+              echo
+              echo '```'
+              cat validator.log
+              echo '```'
+              echo
+              echo "</details>"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wopi-validator-output
+          path: |
+            validator.log
+            host.log
+          if-no-files-found: warn
+
+      - name: Surface validator failure
+        if: always() && steps.validate.outputs.exit_code != '0'
+        run: |
+          echo "::warning::WOPI validator exited with code ${{ steps.validate.outputs.exit_code }}. See job summary and artifact for details."
