@@ -82,15 +82,19 @@ jobs:
         id: validator-cache
         uses: actions/cache@v4
         with:
-          path: validator-bin
+          path: ${{ runner.temp }}/validator-bin
           key: wopi-validator-${{ steps.resolve.outputs.sha }}-net8.0
 
       - name: Build WOPI validator from source
         if: steps.validator-cache.outputs.cache-hit != 'true'
+        # Clone and build outside the workspace so this repo's
+        # Directory.Packages.props (Central Package Management) does not
+        # apply to the validator's restore — the validator pins versions
+        # inline on its PackageReferences and CPM rejects that.
         run: |
-          git clone https://github.com/${{ env.VALIDATOR_REPO }} validator-src
-          git -C validator-src checkout ${{ steps.resolve.outputs.sha }}
-          dotnet publish validator-src/src/WopiValidator -c Release -f net8.0 -o validator-bin
+          git clone https://github.com/${{ env.VALIDATOR_REPO }} "${RUNNER_TEMP}/validator-src"
+          git -C "${RUNNER_TEMP}/validator-src" checkout ${{ steps.resolve.outputs.sha }}
+          dotnet publish "${RUNNER_TEMP}/validator-src/src/WopiValidator" -c Release -f net8.0 -o "${RUNNER_TEMP}/validator-bin"
 
       - name: Build WopiHost.Validator
         run: dotnet build sample/WopiHost.Validator -c Release /p:ContinuousIntegrationBuild=true
@@ -115,7 +119,7 @@ jobs:
         continue-on-error: true
         run: |
           set -o pipefail
-          dotnet validator-bin/Microsoft.Office.WopiValidator.dll \
+          dotnet "${RUNNER_TEMP}/validator-bin/Microsoft.Office.WopiValidator.dll" \
             --wopisrc "${{ env.HOST_URL }}/wopi/files/${{ env.WOPI_FILE_ID }}" \
             --token "${{ env.WOPI_ACCESS_TOKEN }}" \
             --token_ttl 0 \
