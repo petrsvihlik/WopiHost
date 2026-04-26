@@ -88,6 +88,7 @@ dotnet "${VALIDATOR_BIN}/Microsoft.Office.WopiValidator.dll" \
   --wopisrc "${HOST_URL}/wopi/files/${WOPI_FILE_ID}" \
   --token "${WOPI_ACCESS_TOKEN}" \
   --token_ttl 0 \
+  --config "${VALIDATOR_BIN}/TestCases.xml" \
   --testcategory "${TEST_CATEGORY}" \
   --ignore-skipped \
   2>&1 | tee "${VALIDATOR_LOG}"

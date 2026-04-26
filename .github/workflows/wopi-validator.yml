@@ -123,6 +123,7 @@ jobs:
             --wopisrc "${{ env.HOST_URL }}/wopi/files/${{ env.WOPI_FILE_ID }}" \
             --token "${{ env.WOPI_ACCESS_TOKEN }}" \
             --token_ttl 0 \
+            --config "${RUNNER_TEMP}/validator-bin/TestCases.xml" \
             --testcategory "${{ env.TEST_CATEGORY }}" \
             --ignore-skipped \
             2>&1 | tee validator.log
