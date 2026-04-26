@@ -27,6 +27,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  pull-requests: write
 
 env:
   TEST_CATEGORY: ${{ inputs.test_category || 'All' }}
@@ -200,6 +201,25 @@ jobs:
             validator.log
             host.log
           if-no-files-found: warn
+
+      - name: Post results to PR
+        if: always() && github.event_name == 'pull_request_target'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: wopi-validator
+          message: |
+            ## WOPI Validator results
+
+            | Status | Count |
+            | --- | ---: |
+            | ✅ Pass | ${{ steps.validate.outputs.pass || 0 }} |
+            | ❌ Fail | ${{ steps.validate.outputs.fail || 0 }} |
+            | ⏭️ Skipped | ${{ steps.validate.outputs.skip || 0 }} |
+
+            **Validator:** `WopiValidator ${{ steps.publish-validator.outputs.version }}` (from nuget.org)
+            **Test category:** `${{ env.TEST_CATEGORY }}`
+
+            📋 [Full report and `wopi-validator-output` artifact ↗](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
       - name: Surface validator failure
         if: always() && steps.validate.outputs.exit_code != '0'
