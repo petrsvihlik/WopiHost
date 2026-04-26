@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Helper project to fetch the Microsoft WOPI validator from NuGet
+    (https://www.nuget.org/packages/WopiValidator) so Dependabot can manage
+    version bumps. `dotnet publish` of this project produces a directory
+    with the validator's binaries plus its third-party deps.
+
+    The package's TestCases.xml / FeatureTestCases.xml (under content/)
+    and Microsoft.Office.WopiValidator.runtimeconfig.json (under lib/) are
+    NOT pulled in by PackageReference, so the workflow and
+    scripts/run-validator.sh copy them from the NuGet cache after publish.
+
+    Not included in WOPI.slnx — nothing references this project.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <IsPackable>false</IsPackable>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <NoWarn>$(NoWarn);NU1701</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WopiValidator" Version="2.0.5" />
+  </ItemGroup>
+
+</Project>
