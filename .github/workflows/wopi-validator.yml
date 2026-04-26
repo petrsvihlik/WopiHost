@@ -118,16 +118,29 @@ jobs:
         id: validate
         continue-on-error: true
         run: |
-          set -o pipefail
+          # Run without --ignore-skipped so skipped tests are visible in the
+          # captured log/artifact. We derive pass/fail/skip counts ourselves
+          # so the exit code reflects real failures only (the validator's own
+          # exit code treats skipped tests as failures, which is too noisy
+          # for this host because Coauth / SharingUrl / AddActivities are
+          # intentionally unimplemented).
           dotnet "${RUNNER_TEMP}/validator-bin/Microsoft.Office.WopiValidator.dll" \
             --wopisrc "${{ env.HOST_URL }}/wopi/files/${{ env.WOPI_FILE_ID }}" \
             --token "${{ env.WOPI_ACCESS_TOKEN }}" \
             --token_ttl 0 \
             --config "${RUNNER_TEMP}/validator-bin/TestCases.xml" \
             --testcategory "${{ env.TEST_CATEGORY }}" \
-            --ignore-skipped \
-            2>&1 | tee validator.log
-          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+            2>&1 | tee validator.log || true
+
+          PASS=$(grep -cE '^  Pass:' validator.log || true)
+          FAIL=$(grep -cE '^  Fail:' validator.log || true)
+          SKIP=$(grep -cE '^  Skipped:' validator.log || true)
+          {
+            echo "pass=${PASS}"
+            echo "fail=${FAIL}"
+            echo "skip=${SKIP}"
+            echo "exit_code=$([ "${FAIL}" -gt 0 ] && echo 1 || echo 0)"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Stop WopiHost.Validator
         if: always()
@@ -140,19 +153,52 @@ jobs:
       - name: Job summary
         if: always()
         run: |
+          PASS="${{ steps.validate.outputs.pass }}"
+          FAIL="${{ steps.validate.outputs.fail }}"
+          SKIP="${{ steps.validate.outputs.skip }}"
+          PASS="${PASS:-0}"; FAIL="${FAIL:-0}"; SKIP="${SKIP:-0}"
+
           {
             echo "## WOPI Validator results"
             echo
-            echo "- Validator: \`${{ env.VALIDATOR_REPO }}@${{ steps.resolve.outputs.sha }}\`"
-            echo "- Test category: \`${{ env.TEST_CATEGORY }}\`"
-            echo "- WopiSrc: \`${{ env.HOST_URL }}/wopi/files/${{ env.WOPI_FILE_ID }}\`"
-            echo "- Exit code: \`${{ steps.validate.outputs.exit_code }}\`"
+            echo "| Status | Count |"
+            echo "| --- | ---: |"
+            echo "| ✅ Pass | ${PASS} |"
+            echo "| ❌ Fail | ${FAIL} |"
+            echo "| ⏭️ Skipped | ${SKIP} |"
             echo
-            echo "### Output (last 200 lines)"
+            echo "**Validator:** \`${{ env.VALIDATOR_REPO }}@${{ steps.resolve.outputs.sha }}\`  "
+            echo "**Test category:** \`${{ env.TEST_CATEGORY }}\`  "
+            echo "**WopiSrc:** \`${{ env.HOST_URL }}/wopi/files/${{ env.WOPI_FILE_ID }}\`"
             echo
-            echo '```'
-            tail -n 200 validator.log 2>/dev/null || echo "(no validator output)"
-            echo '```'
+            echo "_Full \`validator.log\` and \`host.log\` are attached as the **wopi-validator-output** artifact on this run._"
+            echo
+
+            if [ "${FAIL}" -gt 0 ] && [ -f validator.log ]; then
+              echo "<details open><summary><b>Failures (${FAIL})</b></summary>"
+              echo
+              echo '```'
+              awk '
+                /^Test group:/ { group=$0; next }
+                /^  Fail:/ { print group; printing=1 }
+                printing && /^  (Pass|Fail|Skipped):/ && !/^  Fail:/ { printing=0 }
+                printing { print }
+              ' validator.log
+              echo '```'
+              echo
+              echo "</details>"
+              echo
+            fi
+
+            if [ -f validator.log ]; then
+              echo "<details><summary><b>Full output</b></summary>"
+              echo
+              echo '```'
+              cat validator.log
+              echo '```'
+              echo
+              echo "</details>"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload artifacts

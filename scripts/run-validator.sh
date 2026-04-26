@@ -90,12 +90,14 @@ dotnet "${VALIDATOR_BIN}/Microsoft.Office.WopiValidator.dll" \
   --token_ttl 0 \
   --config "${VALIDATOR_BIN}/TestCases.xml" \
   --testcategory "${TEST_CATEGORY}" \
-  --ignore-skipped \
   2>&1 | tee "${VALIDATOR_LOG}"
-EXIT_CODE=${PIPESTATUS[0]}
 set -e
 
+PASS=$(grep -cE '^  Pass:' "${VALIDATOR_LOG}" || true)
+FAIL=$(grep -cE '^  Fail:' "${VALIDATOR_LOG}" || true)
+SKIP=$(grep -cE '^  Skipped:' "${VALIDATOR_LOG}" || true)
+
 echo
-echo "==> Validator exit code: ${EXIT_CODE}"
+echo "==> Results: ${PASS} pass / ${FAIL} fail / ${SKIP} skipped"
 echo "==> Logs: ${VALIDATOR_LOG}, ${HOST_LOG}"
-exit "${EXIT_CODE}"
+[ "${FAIL}" -eq 0 ]
