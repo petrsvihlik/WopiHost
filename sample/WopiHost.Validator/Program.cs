@@ -1,3 +1,4 @@
+using WopiHost.Core.Security.Authentication;
 using WopiHost.Validator.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,7 +9,7 @@ builder.Services.AddHealthChecks();
 // Add service discovery
 builder.Services.AddServiceDiscovery();
 
-// standard 
+// standard
 builder.Services.AddControllers();
 if (builder.Environment.IsDevelopment())
 {
@@ -20,6 +21,10 @@ builder.Services.AddRazorPages();
 builder.Services.AddWopiLogging();
 builder.Services.AddWopiServer(builder.Configuration);
 builder.Services.AddWopiHostPages(builder.Configuration);
+
+// Replace the proof validator: the Microsoft WOPI validator does not sign
+// requests, so the default WopiProofValidator would reject every call.
+builder.Services.AddScoped<IWopiProofValidator, NoOpProofValidator>();
 
 // ---------
 var app = builder.Build();
