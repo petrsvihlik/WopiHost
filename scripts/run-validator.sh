@@ -3,27 +3,24 @@
 # Mirrors what .github/workflows/wopi-validator.yml does, for local iteration.
 #
 # Usage:
-#   scripts/run-validator.sh                         # WopiCore tests, validator main branch
-#   scripts/run-validator.sh OfficeOnline            # different test category
-#   VALIDATOR_REF=v2.0.5 scripts/run-validator.sh    # pin validator version
+#   scripts/run-validator.sh                 # All categories (default)
+#   scripts/run-validator.sh OfficeOnline    # different test category
 #
-# Requirements: bash, curl, git, dotnet (8.0 + 10.0 SDKs).
+# The validator version is pinned in tools/wopi-validator/wopi-validator.csproj
+# and bumped automatically by Dependabot.
+#
+# Requirements: bash, curl, dotnet (8.0 + 10.0 SDKs).
 
 set -euo pipefail
 
-TEST_CATEGORY="${1:-WopiCore}"
-VALIDATOR_REPO="${VALIDATOR_REPO:-microsoft/wopi-validator-core}"
-VALIDATOR_REF="${VALIDATOR_REF:-main}"
+TEST_CATEGORY="${1:-All}"
 HOST_URL="${HOST_URL:-http://localhost:5000}"
 WOPI_FILE_ID="${WOPI_FILE_ID:-WOPITEST}"
 WOPI_ACCESS_TOKEN="${WOPI_ACCESS_TOKEN:-Anonymous}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# Cache and validator source live outside the repo so the host's
-# Directory.Packages.props (Central Package Management) doesn't apply
-# to the validator's restore.
+VALIDATOR_PROJECT="${REPO_ROOT}/tools/wopi-validator/wopi-validator.csproj"
 CACHE_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/wopi-validator-cache"
-VALIDATOR_SRC="${CACHE_ROOT}/wopi-validator-core"
 VALIDATOR_BIN="${CACHE_ROOT}/bin"
 HOST_LOG="${REPO_ROOT}/host.log"
 VALIDATOR_LOG="${REPO_ROOT}/validator.log"
@@ -40,21 +37,17 @@ trap cleanup EXIT
 
 mkdir -p "${CACHE_ROOT}"
 
-echo "==> Resolving ${VALIDATOR_REPO}@${VALIDATOR_REF}"
-RESOLVED_SHA="$(git ls-remote "https://github.com/${VALIDATOR_REPO}" "${VALIDATOR_REF}" | cut -f1)"
-RESOLVED_SHA="${RESOLVED_SHA:-${VALIDATOR_REF}}"
-SHA_FILE="${VALIDATOR_BIN}/.sha"
+echo "==> Publishing WopiValidator from NuGet (per ${VALIDATOR_PROJECT##${REPO_ROOT}/})"
+dotnet publish "${VALIDATOR_PROJECT}" -c Release -o "${VALIDATOR_BIN}"
 
-if [[ -f "${SHA_FILE}" ]] && [[ "$(cat "${SHA_FILE}")" == "${RESOLVED_SHA}" ]] && [[ -f "${VALIDATOR_BIN}/Microsoft.Office.WopiValidator.dll" ]]; then
-  echo "==> Using cached validator at ${VALIDATOR_BIN} (sha ${RESOLVED_SHA})"
-else
-  echo "==> Building validator from source (sha ${RESOLVED_SHA})"
-  rm -rf "${VALIDATOR_SRC}" "${VALIDATOR_BIN}"
-  git clone "https://github.com/${VALIDATOR_REPO}" "${VALIDATOR_SRC}"
-  git -C "${VALIDATOR_SRC}" checkout "${RESOLVED_SHA}"
-  dotnet publish "${VALIDATOR_SRC}/src/WopiValidator" -c Release -f net8.0 -o "${VALIDATOR_BIN}"
-  echo "${RESOLVED_SHA}" > "${SHA_FILE}"
-fi
+# PackageReference doesn't auto-copy the package's content/*.xml or
+# runtimeconfig.json, so pull them straight from the NuGet cache.
+NUGET_PACKAGES="${NUGET_PACKAGES:-${HOME}/.nuget/packages}"
+VALIDATOR_PKG="$(ls -d "${NUGET_PACKAGES}/wopivalidator/"*/ | sort -V | tail -1)"
+cp "${VALIDATOR_PKG}content/"*.xml "${VALIDATOR_BIN}/"
+cp "${VALIDATOR_PKG}lib/net8.0/Microsoft.Office.WopiValidator.runtimeconfig.json" "${VALIDATOR_BIN}/"
+VALIDATOR_VERSION="$(basename "${VALIDATOR_PKG%/}")"
+echo "==> Using WopiValidator ${VALIDATOR_VERSION}"
 
 echo "==> Building WopiHost.Validator"
 dotnet build "${REPO_ROOT}/sample/WopiHost.Validator" -c Release

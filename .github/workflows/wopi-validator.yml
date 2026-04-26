@@ -19,10 +19,6 @@ on:
       - '.claude/**'
   workflow_dispatch:
     inputs:
-      validator_ref:
-        description: 'Branch, tag or commit of microsoft/wopi-validator-core to use'
-        required: false
-        default: 'main'
       test_category:
         description: 'Validator --testcategory (All, WopiCore, OfficeOnline, OfficeOnlinePlus, OfficeNativeClient)'
         required: false
@@ -33,8 +29,6 @@ permissions:
   id-token: write
 
 env:
-  VALIDATOR_REPO: microsoft/wopi-validator-core
-  VALIDATOR_REF: ${{ inputs.validator_ref || 'main' }}
   TEST_CATEGORY: ${{ inputs.test_category || 'All' }}
   HOST_URL: http://localhost:5000
   WOPI_FILE_ID: WOPITEST
@@ -70,31 +64,27 @@ jobs:
       - name: Set MYGET_FEED Environment Variable
         run: echo "MYGET_FEED=${{ secrets.MYGET_FEED }}" >> $GITHUB_ENV
 
-      - name: Resolve validator commit SHA
-        id: resolve
-        run: |
-          SHA=$(git ls-remote https://github.com/${{ env.VALIDATOR_REPO }} ${{ env.VALIDATOR_REF }} | cut -f1)
-          if [ -z "$SHA" ]; then SHA="${{ env.VALIDATOR_REF }}"; fi
-          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-          echo "Resolved ${{ env.VALIDATOR_REPO }}@${{ env.VALIDATOR_REF }} -> $SHA"
-
-      - name: Cache validator binaries
-        id: validator-cache
+      - name: Cache validator package
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/validator-bin
-          key: wopi-validator-${{ steps.resolve.outputs.sha }}-net8.0
+          path: ~/.nuget/packages/wopivalidator
+          key: wopivalidator-${{ hashFiles('tools/wopi-validator/wopi-validator.csproj') }}
 
-      - name: Build WOPI validator from source
-        if: steps.validator-cache.outputs.cache-hit != 'true'
-        # Clone and build outside the workspace so this repo's
-        # Directory.Packages.props (Central Package Management) does not
-        # apply to the validator's restore — the validator pins versions
-        # inline on its PackageReferences and CPM rejects that.
+      - name: Publish WOPI validator from NuGet
+        id: publish-validator
+        # The validator is fetched from nuget.org via tools/wopi-validator/wopi-validator.csproj
+        # so Dependabot can manage version bumps. PackageReference doesn't auto-copy the
+        # package's content/*.xml or runtimeconfig.json, so we copy them after publish.
         run: |
-          git clone https://github.com/${{ env.VALIDATOR_REPO }} "${RUNNER_TEMP}/validator-src"
-          git -C "${RUNNER_TEMP}/validator-src" checkout ${{ steps.resolve.outputs.sha }}
-          dotnet publish "${RUNNER_TEMP}/validator-src/src/WopiValidator" -c Release -f net8.0 -o "${RUNNER_TEMP}/validator-bin"
+          VALIDATOR_BIN="${RUNNER_TEMP}/validator-bin"
+          dotnet publish tools/wopi-validator/wopi-validator.csproj -c Release -o "${VALIDATOR_BIN}"
+          VALIDATOR_PKG=$(ls -d "${HOME}/.nuget/packages/wopivalidator/"*/ | sort -V | tail -1)
+          cp "${VALIDATOR_PKG}content/"*.xml "${VALIDATOR_BIN}/"
+          cp "${VALIDATOR_PKG}lib/net8.0/Microsoft.Office.WopiValidator.runtimeconfig.json" "${VALIDATOR_BIN}/"
+          VALIDATOR_VERSION=$(basename "${VALIDATOR_PKG%/}")
+          echo "bin=${VALIDATOR_BIN}" >> "$GITHUB_OUTPUT"
+          echo "version=${VALIDATOR_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved WopiValidator -> ${VALIDATOR_VERSION}"
 
       - name: Build WopiHost.Validator
         run: dotnet build sample/WopiHost.Validator -c Release /p:ContinuousIntegrationBuild=true
@@ -124,11 +114,11 @@ jobs:
           # exit code treats skipped tests as failures, which is too noisy
           # for this host because Coauth / SharingUrl / AddActivities are
           # intentionally unimplemented).
-          dotnet "${RUNNER_TEMP}/validator-bin/Microsoft.Office.WopiValidator.dll" \
+          dotnet "${{ steps.publish-validator.outputs.bin }}/Microsoft.Office.WopiValidator.dll" \
             --wopisrc "${{ env.HOST_URL }}/wopi/files/${{ env.WOPI_FILE_ID }}" \
             --token "${{ env.WOPI_ACCESS_TOKEN }}" \
             --token_ttl 0 \
-            --config "${RUNNER_TEMP}/validator-bin/TestCases.xml" \
+            --config "${{ steps.publish-validator.outputs.bin }}/TestCases.xml" \
             --testcategory "${{ env.TEST_CATEGORY }}" \
             2>&1 | tee validator.log || true
 
@@ -167,7 +157,7 @@ jobs:
             echo "| ❌ Fail | ${FAIL} |"
             echo "| ⏭️ Skipped | ${SKIP} |"
             echo
-            echo "**Validator:** \`${{ env.VALIDATOR_REPO }}@${{ steps.resolve.outputs.sha }}\`  "
+            echo "**Validator:** \`WopiValidator ${{ steps.publish-validator.outputs.version }}\` (from nuget.org)  "
             echo "**Test category:** \`${{ env.TEST_CATEGORY }}\`  "
             echo "**WopiSrc:** \`${{ env.HOST_URL }}/wopi/files/${{ env.WOPI_FILE_ID }}\`"
             echo
