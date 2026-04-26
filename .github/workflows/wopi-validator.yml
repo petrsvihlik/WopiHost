@@ -26,7 +26,7 @@ on:
       test_category:
         description: 'Validator --testcategory (All, WopiCore, OfficeOnline, OfficeOnlinePlus, OfficeNativeClient)'
         required: false
-        default: 'WopiCore'
+        default: 'All'
 
 permissions:
   contents: read
@@ -35,7 +35,7 @@ permissions:
 env:
   VALIDATOR_REPO: microsoft/wopi-validator-core
   VALIDATOR_REF: ${{ inputs.validator_ref || 'main' }}
-  TEST_CATEGORY: ${{ inputs.test_category || 'WopiCore' }}
+  TEST_CATEGORY: ${{ inputs.test_category || 'All' }}
   HOST_URL: http://localhost:5000
   WOPI_FILE_ID: WOPITEST
   WOPI_ACCESS_TOKEN: Anonymous
