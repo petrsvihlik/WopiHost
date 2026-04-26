@@ -209,3 +209,7 @@ coverage.json
 # Claude Code
 .claude/worktrees/
 .claude/settings.local.json
+
+# WOPI validator local logs (see scripts/run-validator.sh)
+/host.log
+/validator.log
