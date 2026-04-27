@@ -53,6 +53,10 @@ public static class ServiceCollectionExtensions
         {
             o.SigningKey = JwtAccessTokenService.DeriveHmacKey("wopi-validator-dev-key");
         });
+        // Wrap the default JwtAccessTokenService so the Microsoft WOPI validator's literal-string
+        // token (configured in the GitHub workflow on master) is accepted alongside real JWTs.
+        services.AddSingleton<JwtAccessTokenService>();
+        services.AddSingleton<IWopiAccessTokenService, SentinelOrJwtAccessTokenService>();
         return services;
     }
 
