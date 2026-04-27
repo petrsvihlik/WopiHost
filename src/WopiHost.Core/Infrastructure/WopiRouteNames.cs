@@ -18,6 +18,11 @@ public static class WopiRouteNames
     public const string CheckFileInfo = nameof(CheckFileInfo);
 
     /// <summary>
+    /// Endpoint name for <see cref="FilesController.GetFile(string, int?, CancellationToken)"/>
+    /// </summary>
+    public const string GetFile = nameof(GetFile);
+
+    /// <summary>
     /// Endpoint name for <see cref="ContainersController.CheckContainerInfo(string, CancellationToken)"/>
     /// </summary>
     public const string CheckContainerInfo = nameof(CheckContainerInfo);

@@ -2,9 +2,11 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
+using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 
 namespace WopiHost.Core.Extensions;
@@ -123,7 +125,40 @@ public static class WopiExtensions
             checkFileInfo.UserInfo = userInfo;
         }
 
-        // allow changes and/or extensions before returning 
+        // Populate a sensible default FileUrl pointing at this host's GetFile endpoint
+        // with the request's access token in the query string. Per WOPI spec, FileUrl
+        // must be a token-bearing URL that lets the client GET file content without
+        // sending WOPI-specific headers. Hosts can override in OnCheckFileInfo (e.g.,
+        // to point at a CDN).
+        var linkGenerator = httpContext.RequestServices.GetService<LinkGenerator>();
+        if (linkGenerator is not null)
+        {
+            var (scheme, host, _, _, _) = httpContext.Request.GetProxyAwareUrlParts();
+            if (!string.IsNullOrEmpty(scheme) && !string.IsNullOrEmpty(host))
+            {
+                // Preserve the file identifier's casing — the storage provider's lookup
+                // is case-sensitive and the global LowercaseUrls=true would otherwise
+                // mangle ids like "WOPITEST".
+                var url = linkGenerator.GetUriByName(
+                    WopiRouteNames.GetFile,
+                    new
+                    {
+                        id = file.Identifier,
+                        access_token = httpContext.Request.GetAccessToken(),
+                    },
+                    scheme,
+                    new HostString(host),
+                    pathBase: default,
+                    fragment: default,
+                    options: new LinkOptions { LowercaseUrls = false });
+                if (url is not null)
+                {
+                    checkFileInfo.FileUrl = new Uri(url);
+                }
+            }
+        }
+
+        // allow changes and/or extensions before returning
         var wopiHostOptions = httpContext.RequestServices.GetService<IOptions<WopiHostOptions>>();
         if (wopiHostOptions is not null)
         {
