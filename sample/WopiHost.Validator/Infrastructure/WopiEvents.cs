@@ -22,7 +22,7 @@ public static class WopiEvents
             wopiCheckFileInfo.CloseUrl = new("https://example.com/close");
             wopiCheckFileInfo.DownloadUrl = new("https://example.com/download");
             wopiCheckFileInfo.FileSharingUrl = new("https://example.com/share");
-            wopiCheckFileInfo.FileUrl = new("https://example.com/file");
+            // FileUrl is populated by the framework with a self-pointing GetFile URL.
             wopiCheckFileInfo.FileVersionUrl = new("https://example.com/version");
             wopiCheckFileInfo.HostEditUrl = new("https://example.com/edit");
             wopiCheckFileInfo.HostEmbeddedViewUrl = new("https://example.com/embedded");

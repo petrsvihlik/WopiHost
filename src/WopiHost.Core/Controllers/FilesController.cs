@@ -89,7 +89,7 @@ public class FilesController(
     /// <param name="maximumExpectedSize"></param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>FileStreamResult</returns>
-    [HttpGet("{id}/contents")]
+    [HttpGet("{id}/contents", Name = WopiRouteNames.GetFile)]
     [WopiAuthorize(WopiResourceType.File, Permission.Read)]
     public async Task<IActionResult> GetFile(
         string id,
