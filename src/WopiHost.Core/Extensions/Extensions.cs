@@ -136,15 +136,23 @@ internal static class Extensions
         string? routeName,
         object? values)
     {
-        var urlPart = helper.ActionContext.HttpContext.Request.GetProxyAwareUrlParts();
-        var routeUrl = helper.RouteUrl(routeName, values, urlPart.scheme);
-        
-        var uri = new Uri(routeUrl!);
-        var pathBase = uri.AbsolutePath.EndsWith('/') && uri.AbsolutePath.Length > 1
-            ? uri.AbsolutePath[..^1]
-            : uri.AbsolutePath;
-        var queryString = uri.Query;
+        var request = helper.ActionContext.HttpContext.Request;
+        var (scheme, host, forwardedPathBase, _, _) = request.GetProxyAwareUrlParts();
 
-        return $"{urlPart.scheme}://{urlPart.host}{pathBase}{queryString}";
+        var routePath = helper.RouteUrl(routeName, values);
+        if (routePath is null)
+        {
+            return null;
+        }
+
+        // helper.RouteUrl already includes Request.PathBase. Only prepend the
+        // forwarded path-base when it differs (e.g. proxy strips a prefix the
+        // app itself doesn't know about).
+        var requestPathBase = request.PathBase.Value ?? string.Empty;
+        var prefix = !string.IsNullOrEmpty(forwardedPathBase) && forwardedPathBase != requestPathBase
+            ? forwardedPathBase
+            : string.Empty;
+
+        return $"{scheme}://{host}{prefix}{routePath}";
     }
 }
