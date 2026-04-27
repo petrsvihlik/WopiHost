@@ -445,14 +445,36 @@ public class AzureBlobStorageProvider : IWopiStorageProvider, IWopiWritableStora
 }
 ```
 
-### Custom Security Handler
+### Authentication & Authorization
+
+WopiHost ships with a complete WOPI access-token pipeline. There are two extension points; the
+common case is implementing only the first.
+
+| Interface | What you implement | When |
+|---|---|---|
+| `IWopiPermissionProvider` | What permissions a user has on a file/container | Whenever you have a real ACL model. The default returns the flags configured on `WopiHostOptions`. |
+| `IWopiAccessTokenService` | How tokens are issued and validated | Only if you need a non-JWT format (e.g. opaque reference tokens with a backing store). The default issues signed JWTs. |
+
 ```csharp
-// Implement IWopiSecurityHandler for your authentication system
-public class CustomSecurityHandler : IWopiSecurityHandler
+// Plug in your ACL store. Called both at token issuance (to bake permissions into the
+// token) and at CheckFileInfo time (to populate the UserCan* response flags).
+public class MyAclPermissionProvider : IWopiPermissionProvider
 {
-    // See WopiHost.Abstractions README for complete implementation
+    public Task<WopiFilePermissions> GetFilePermissionsAsync(
+        ClaimsPrincipal user, IWopiFile file, CancellationToken ct = default) { ... }
+
+    public Task<WopiContainerPermissions> GetContainerPermissionsAsync(
+        ClaimsPrincipal user, IWopiFolder container, CancellationToken ct = default) { ... }
 }
+
+services.AddWopi();
+services.AddSingleton<IWopiPermissionProvider, MyAclPermissionProvider>(); // overrides default
+services.ConfigureWopiSecurity(o => o.SigningKey = LoadSigningKeyFromKeyVault());
 ```
+
+See the [WopiHost.Core README](src/WopiHost.Core/README.md#security) for the full token pipeline,
+the claim layout (`wopi:rid`, `wopi:fperms`, `wopi:cperms`), key rotation, and the bootstrapper
+authentication scheme.
 
 ### Custom Lock Provider
 ```csharp

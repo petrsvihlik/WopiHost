@@ -45,4 +45,30 @@ public class WopiHostOptions : IDiscoveryOptions
     /// </summary>
     [Required]
     public required Uri ClientUrl { get; set; }
+
+    /// <summary>
+    /// Default file permissions used by <see cref="Security.Authorization.DefaultWopiPermissionProvider"/>
+    /// when no <see cref="Abstractions.WopiClaimTypes.FilePermissions"/> claim is present on the
+    /// principal (typically pre-issuance, when a host is computing what to bake into a token).
+    /// </summary>
+    /// <remarks>
+    /// Replace <see cref="Abstractions.IWopiPermissionProvider"/> in DI to compute permissions
+    /// from your own ACL store instead of using these defaults.
+    /// </remarks>
+    public WopiFilePermissions DefaultFilePermissions { get; set; } =
+        WopiFilePermissions.UserCanWrite |
+        WopiFilePermissions.UserCanRename |
+        WopiFilePermissions.UserCanAttend |
+        WopiFilePermissions.UserCanPresent;
+
+    /// <summary>
+    /// Default container permissions used by <see cref="Security.Authorization.DefaultWopiPermissionProvider"/>
+    /// when no <see cref="Abstractions.WopiClaimTypes.ContainerPermissions"/> claim is present on
+    /// the principal.
+    /// </summary>
+    public WopiContainerPermissions DefaultContainerPermissions { get; set; } =
+        WopiContainerPermissions.UserCanCreateChildContainer |
+        WopiContainerPermissions.UserCanCreateChildFile |
+        WopiContainerPermissions.UserCanDelete |
+        WopiContainerPermissions.UserCanRename;
 }

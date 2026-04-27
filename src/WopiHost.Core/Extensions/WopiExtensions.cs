@@ -102,9 +102,8 @@ public static class WopiExtensions
             checkFileInfo.UserFriendlyName = httpContext.User.FindFirst(ClaimTypes.Name)?.Value;
             checkFileInfo.UserPrincipalName = httpContext.User.FindFirst(ClaimTypes.Upn)?.Value;
 
-            // try to parse permissions claims
-            var securityHandler = httpContext.RequestServices.GetRequiredService<IWopiSecurityHandler>();
-            var permissions = await securityHandler.GetFilePermissions(httpContext.User, file, cancellationToken);
+            var permissionProvider = httpContext.RequestServices.GetRequiredService<IWopiPermissionProvider>();
+            var permissions = await permissionProvider.GetFilePermissionsAsync(httpContext.User, file, cancellationToken);
             checkFileInfo.ReadOnly = permissions.HasFlag(WopiFilePermissions.ReadOnly);
             checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiFilePermissions.RestrictedWebViewOnly);
             checkFileInfo.UserCanAttend = permissions.HasFlag(WopiFilePermissions.UserCanAttend);
@@ -183,8 +182,8 @@ public static class WopiExtensions
         ArgumentNullException.ThrowIfNull(container);
         ArgumentNullException.ThrowIfNull(httpContext);
 
-        var securityHandler = httpContext.RequestServices.GetRequiredService<IWopiSecurityHandler>();
-        var permissions = await securityHandler.GetContainerPermissions(httpContext.User, container, cancellationToken);
+        var permissionProvider = httpContext.RequestServices.GetRequiredService<IWopiPermissionProvider>();
+        var permissions = await permissionProvider.GetContainerPermissionsAsync(httpContext.User, container, cancellationToken);
 
         var checkContainerInfo = new WopiCheckContainerInfo()
         {

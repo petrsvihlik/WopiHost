@@ -9,11 +9,14 @@ A .NET library providing a file system-based implementation of WOPI (Web Applica
 
 - **File System Storage**: Complete file system-based WOPI storage implementation
 - **Read/Write Operations**: Full support for both read and write operations
-- **File Locking**: Built-in file locking using Windows file system access control
-- **Security Integration**: JWT-based authentication and authorization
 - **Base64 Encoding**: Secure file identifier encoding for file paths
 - **In-Memory Caching**: Efficient file ID to path mapping
-- **Windows ACL Support**: Integration with Windows Access Control Lists
+
+> **Note on security:** This package provides storage only. Token issuance and per-resource
+> permissions live in `WopiHost.Core` (`IWopiAccessTokenService`, `IWopiPermissionProvider`).
+> The defaults wired up by `services.AddWopi()` work out of the box; override
+> `IWopiPermissionProvider` to plug in your own ACL model.
+> See the [WopiHost.Core README](../WopiHost.Core/README.md#security) for details.
 
 ## Installation
 
@@ -42,7 +45,7 @@ builder.Services.Configure<WopiFileSystemProviderOptions>(options =>
 builder.Services.AddSingleton<InMemoryFileIds>();
 builder.Services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
 builder.Services.AddScoped<IWopiWritableStorageProvider, WopiFileSystemProvider>();
-builder.Services.AddScoped<IWopiSecurityHandler, WopiSecurityHandler>();
+// Token issuance and permissions are wired by AddWopi() in WopiHost.Core; nothing to register here.
 
 // Add WOPI
 builder.Services.AddWopi();
@@ -86,7 +89,7 @@ public class Program
         builder.Services.AddSingleton<InMemoryFileIds>();
         builder.Services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
         builder.Services.AddScoped<IWopiWritableStorageProvider, WopiFileSystemProvider>();
-        builder.Services.AddScoped<IWopiSecurityHandler, WopiSecurityHandler>();
+        // Token issuance and permissions are wired by AddWopi() in WopiHost.Core; nothing to register here.
         builder.Services.AddScoped<IWopiLockProvider, MemoryLockProvider>();
         
         // Add WOPI
@@ -131,8 +134,8 @@ public class NetworkDriveWopiHost
             options.RootPath = @"\\fileserver\shared\documents";
         });
         
-        // Add custom security handler for network authentication
-        builder.Services.AddScoped<IWopiSecurityHandler, NetworkDriveSecurityHandler>();
+        // Override the permission provider to consult Active Directory / network ACLs.
+        builder.Services.AddSingleton<IWopiPermissionProvider, NetworkDrivePermissionProvider>();
         
         // Register services
         builder.Services.AddSingleton<InMemoryFileIds>();
@@ -147,34 +150,22 @@ public class NetworkDriveWopiHost
     }
 }
 
-public class NetworkDriveSecurityHandler : IWopiSecurityHandler
+public class NetworkDrivePermissionProvider(IUserDirectory users) : IWopiPermissionProvider
 {
-    private readonly IUserService _userService;
-    
-    public async Task<WopiFilePermissions> GetFilePermissionsAsync(string userId, string resourceId)
+    public async Task<WopiFilePermissions> GetFilePermissionsAsync(
+        ClaimsPrincipal principal, IWopiFile file, CancellationToken ct = default)
     {
-        var user = await _userService.GetUserAsync(userId);
-        var filePath = DecodeFilePath(resourceId);
-        
-        // Check network permissions
-        var hasReadAccess = await CheckNetworkFileAccess(filePath, user, FileAccess.Read);
-        var hasWriteAccess = await CheckNetworkFileAccess(filePath, user, FileAccess.Write);
-        
-        var permissions = WopiFilePermissions.None;
-        if (hasReadAccess) permissions |= WopiFilePermissions.Read;
-        if (hasWriteAccess) permissions |= WopiFilePermissions.Write;
-        
-        return permissions;
+        var userSid = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        var canWrite = await users.HasNtfsAccessAsync(userSid, file.Identifier, FileAccess.Write, ct);
+
+        var perms = WopiFilePermissions.UserCanAttend | WopiFilePermissions.UserCanPresent;
+        if (canWrite) perms |= WopiFilePermissions.UserCanWrite | WopiFilePermissions.UserCanRename;
+        else          perms |= WopiFilePermissions.ReadOnly;
+        return perms;
     }
-    
-    private async Task<bool> CheckNetworkFileAccess(string filePath, User user, FileAccess access)
-    {
-        // Implement network file access checking
-        // This could check Active Directory permissions, file system ACLs, etc.
-        return true; // Simplified for example
-    }
-    
-    // Implement other required methods...
+
+    public Task<WopiContainerPermissions> GetContainerPermissionsAsync(
+        ClaimsPrincipal principal, IWopiFolder container, CancellationToken ct = default) => /* ... */;
 }
 ```
 
@@ -204,7 +195,8 @@ public class DocumentManagementWopiHost
         builder.Services.AddSingleton<InMemoryFileIds>();
         builder.Services.AddScoped<IWopiStorageProvider, DocumentManagementStorageProvider>();
         builder.Services.AddScoped<IWopiWritableStorageProvider, DocumentManagementStorageProvider>();
-        builder.Services.AddScoped<IWopiSecurityHandler, DocumentManagementSecurityHandler>();
+        // Replace the permission provider with one that consults the document management ACLs.
+        builder.Services.AddSingleton<IWopiPermissionProvider, DocumentManagementPermissionProvider>();
         
         // Add WOPI
         builder.Services.AddWopi();
@@ -394,36 +386,6 @@ File system implementation of `IWopiFolder`.
 | `Identifier` | `string` | Base64-encoded folder path |
 | `Name` | `string` | Folder name |
 
-### WopiSecurityHandler
-
-File system-based security handler.
-
-#### Methods
-
-##### GetFilePermissionsAsync
-
-```csharp
-public Task<WopiFilePermissions> GetFilePermissionsAsync(string userId, string resourceId)
-```
-
-Gets user permissions for a resource based on file system ACLs.
-
-##### ValidateTokenAsync
-
-```csharp
-public Task<bool> ValidateTokenAsync(string token, string resourceId)
-```
-
-Validates JWT token for resource access.
-
-##### GetUserIdAsync
-
-```csharp
-public Task<string> GetUserIdAsync(string token)
-```
-
-Extracts user ID from JWT token.
-
 ## Configuration
 
 ### appsettings.json
@@ -477,25 +439,11 @@ accessControl.SetAccessRule(accessRule);
 fileInfo.SetAccessControl(accessControl);
 ```
 
-### JWT Token Validation
+### Access tokens
 
-Configure JWT token validation:
-
-```csharp
-builder.Services.Configure<JwtBearerOptions>(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = "your-issuer",
-        ValidAudience = "your-audience",
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("your-secret-key"))
-    };
-});
-```
+Token issuance/validation is not part of this package — see
+[WopiHost.Core's security pipeline](../WopiHost.Core/README.md#security). Configure the
+signing key via `services.ConfigureWopiSecurity(o => o.SigningKey = ...)`.
 
 ## File ID Management
 
@@ -606,10 +554,8 @@ public class FileMonitorService : BackgroundService
 - `WopiHost.Abstractions`: Core WOPI interfaces
 - `System.IO.FileSystem.AccessControl`: Windows ACL support
 - `Microsoft.Extensions.Hosting.Abstractions`: Hosting environment
-- `Microsoft.AspNetCore.Authorization`: Authorization support
 - `Microsoft.Extensions.Configuration.Abstractions`: Configuration support
 - `Microsoft.Extensions.Configuration.Binder`: Configuration binding
-- `System.IdentityModel.Tokens.Jwt`: JWT token handling
 
 ## Performance Considerations
 

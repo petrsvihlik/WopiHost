@@ -4,6 +4,7 @@ using WopiHost.Abstractions;
 using WopiHost.Core.Models;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
+using WopiHost.Core.Security.Authentication;
 using WopiHost.FileSystemProvider;
 using WopiHost.Discovery;
 using Scalar.AspNetCore;
@@ -77,6 +78,17 @@ public static class Program
 
             // Add WOPI
             builder.Services.AddWopi();
+
+            // Signing key for WOPI access tokens. MUST match whatever the URL-generating
+            // frontend (sample/WopiHost.Web) uses or every token will fail validation.
+            // In production: load from a managed secret store, never hard-code.
+            builder.Services.ConfigureWopiSecurity(o =>
+            {
+                var configured = builder.Configuration["Wopi:Security:SigningKey"];
+                o.SigningKey = string.IsNullOrEmpty(configured)
+                    ? JwtAccessTokenService.DeriveHmacKey("wopi-sample-shared-dev-key")
+                    : Convert.FromBase64String(configured);
+            });
 
             var app = builder.Build();
 

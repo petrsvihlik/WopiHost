@@ -16,7 +16,7 @@ public static class ServiceCollectionExtensions
         services
             .Scan(scan => scan.FromAssemblies(assembly)
             .AddClasses(classes => classes
-                .AssignableToAny(typeof(IWopiSecurityHandler), typeof(IWopiStorageProvider)))
+                .AssignableTo<IWopiStorageProvider>())
             .AsImplementedInterfaces());
     }
 

@@ -1,4 +1,4 @@
-﻿using WopiHost.Abstractions;
+using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.Web.Models;

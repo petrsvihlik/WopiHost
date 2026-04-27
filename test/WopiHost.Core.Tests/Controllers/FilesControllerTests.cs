@@ -22,7 +22,7 @@ public class FilesControllerTests
 {
     private readonly Mock<IWopiStorageProvider> storageProviderMock;
     private readonly Mock<IWopiWritableStorageProvider> writableStorageProviderMock;
-    private readonly Mock<IWopiSecurityHandler> securityHandlerMock;
+    private readonly Mock<IWopiPermissionProvider> permissionProviderMock;
     private readonly Mock<IOptions<WopiHostOptions>> wopiHostOptionsMock;
     private readonly IMemoryCache memoryCache;
     private readonly Mock<IWopiLockProvider> lockProviderMock;
@@ -33,7 +33,10 @@ public class FilesControllerTests
     {
         storageProviderMock = new Mock<IWopiStorageProvider>();
         writableStorageProviderMock = new Mock<IWopiWritableStorageProvider>();
-        securityHandlerMock = new Mock<IWopiSecurityHandler>();
+        permissionProviderMock = new Mock<IWopiPermissionProvider>();
+        permissionProviderMock
+            .Setup(_ => _.GetFilePermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiFilePermissions.UserCanWrite | WopiFilePermissions.UserCanRename | WopiFilePermissions.UserCanAttend | WopiFilePermissions.UserCanPresent);
         wopiHostOptionsMock = new Mock<IOptions<WopiHostOptions>>();
         wopiHostOptionsMock
             .SetupGet(o => o.Value)
@@ -132,7 +135,7 @@ public class FilesControllerTests
         {
             HttpContext = new DefaultHttpContext()
             {
-                ServiceScopeFactory = TestUtils.CreateServiceScope(securityHandlerMock.Object),
+                ServiceScopeFactory = TestUtils.CreateServiceScope(permissionProviderMock.Object),
                 User = new ClaimsPrincipal(
                     new ClaimsIdentity(
                     [
@@ -182,7 +185,7 @@ public class FilesControllerTests
         {
             HttpContext = new DefaultHttpContext()
             {
-                ServiceScopeFactory = TestUtils.CreateServiceScope(securityHandlerMock.Object),
+                ServiceScopeFactory = TestUtils.CreateServiceScope(permissionProviderMock.Object),
                 User = new ClaimsPrincipal(
                     new ClaimsIdentity(
                     [
