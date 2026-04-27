@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using WopiHost.Abstractions;
 using WopiHost.Core.Security;
 using WopiHost.Core.Security.Authentication;
@@ -144,6 +145,150 @@ public class JwtAccessTokenServiceTests
         });
         var rejected = await stricterSvc.ValidateAsync(token.Token);
         Assert.False(rejected.IsValid);
+    }
+
+    [Fact]
+    public async Task Container_Token_Carries_Container_Permission_Claim_Not_File()
+    {
+        var svc = BuildService();
+        var perms = WopiContainerPermissions.UserCanCreateChildFile | WopiContainerPermissions.UserCanRename;
+
+        var token = await svc.IssueAsync(new WopiAccessTokenRequest
+        {
+            UserId = "u",
+            ResourceId = "container-1",
+            ResourceType = WopiResourceType.Container,
+            ContainerPermissions = perms,
+            FilePermissions = WopiFilePermissions.UserCanWrite, // should be ignored
+        });
+
+        var validation = await svc.ValidateAsync(token.Token);
+
+        Assert.True(validation.IsValid);
+        var principal = validation.Principal!;
+        Assert.Equal(perms.ToString(), principal.FindFirstValue(WopiClaimTypes.ContainerPermissions));
+        Assert.Null(principal.FindFirst(WopiClaimTypes.FilePermissions));
+    }
+
+    [Fact]
+    public async Task AdditionalClaims_Are_Embedded_In_Token()
+    {
+        var svc = BuildService();
+
+        var token = await svc.IssueAsync(new WopiAccessTokenRequest
+        {
+            UserId = "u",
+            ResourceId = "r",
+            ResourceType = WopiResourceType.File,
+            AdditionalClaims = new Dictionary<string, string>
+            {
+                ["tenant_id"] = "tenant-42",
+                ["session_id"] = "abc",
+            },
+        });
+
+        var validation = await svc.ValidateAsync(token.Token);
+        var principal = validation.Principal!;
+
+        Assert.Equal("tenant-42", principal.FindFirstValue("tenant_id"));
+        Assert.Equal("abc", principal.FindFirstValue("session_id"));
+    }
+
+    [Fact]
+    public async Task Empty_Token_String_Is_Rejected_Without_Throwing()
+    {
+        var svc = BuildService();
+
+        var result = await svc.ValidateAsync("");
+
+        Assert.False(result.IsValid);
+        Assert.Equal("Token is empty.", result.FailureReason);
+    }
+
+    [Fact]
+    public async Task Asymmetric_SecurityKey_Takes_Precedence_Over_SigningKey_Bytes()
+    {
+        // Asymmetric pair (RSA). When SecurityKey is set, SigningKey bytes should be ignored.
+        using var rsa = System.Security.Cryptography.RSA.Create(2048);
+        var rsaKey = new RsaSecurityKey(rsa);
+        var svc = BuildService(new WopiSecurityOptions
+        {
+            SigningKey = JwtAccessTokenService.DeriveHmacKey("ignored-because-of-securitykey"),
+            SecurityKey = rsaKey,
+            SigningAlgorithm = SecurityAlgorithms.RsaSha256,
+        });
+
+        var token = await svc.IssueAsync(new WopiAccessTokenRequest
+        {
+            UserId = "u",
+            ResourceId = "r",
+            ResourceType = WopiResourceType.File,
+        });
+        var result = await svc.ValidateAsync(token.Token);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task DeriveHmacKey_PadsShortSecret_AndPassesThrough_LongSecret()
+    {
+        var shortKey = JwtAccessTokenService.DeriveHmacKey("short");
+        var longKey = JwtAccessTokenService.DeriveHmacKey(new string('x', 64));
+
+        Assert.Equal(32, shortKey.Length);
+        Assert.Equal(64, longKey.Length);
+
+        // Both should actually work to sign and validate.
+        foreach (var keyBytes in new[] { shortKey, longKey })
+        {
+            var svc = BuildService(new WopiSecurityOptions { SigningKey = keyBytes });
+            var token = await svc.IssueAsync(new WopiAccessTokenRequest
+            {
+                UserId = "u",
+                ResourceId = "r",
+                ResourceType = WopiResourceType.File,
+            });
+            Assert.True((await svc.ValidateAsync(token.Token)).IsValid);
+        }
+    }
+
+    [Fact]
+    public void DeriveHmacKey_Throws_For_Empty_Secret()
+    {
+        Assert.Throws<ArgumentException>(() => JwtAccessTokenService.DeriveHmacKey(""));
+    }
+
+    [Fact]
+    public async Task Ephemeral_DevKey_Is_Reused_Across_Calls_When_No_Key_Configured()
+    {
+        // No SigningKey, no SecurityKey — service generates a random per-process key on
+        // first use and reuses it. Issuance + validation should round-trip on the SAME instance.
+        var svc = BuildService(new WopiSecurityOptions());
+
+        var t1 = await svc.IssueAsync(new WopiAccessTokenRequest
+        {
+            UserId = "u",
+            ResourceId = "r",
+            ResourceType = WopiResourceType.File,
+        });
+        var v1 = await svc.ValidateAsync(t1.Token);
+        Assert.True(v1.IsValid);
+
+        // A second token from the same instance should also validate (same ephemeral key).
+        var t2 = await svc.IssueAsync(new WopiAccessTokenRequest
+        {
+            UserId = "u",
+            ResourceId = "r2",
+            ResourceType = WopiResourceType.File,
+        });
+        Assert.True((await svc.ValidateAsync(t2.Token)).IsValid);
+    }
+
+    [Fact]
+    public async Task IssueAsync_Throws_For_Null_Request()
+    {
+        var svc = BuildService();
+        await Assert.ThrowsAsync<ArgumentNullException>(() => svc.IssueAsync(null!));
     }
 
     private sealed class TestOptionsMonitor<T>(T value) : IOptionsMonitor<T>

@@ -62,7 +62,7 @@ public class WopiBootstrapperController(
         if (ecosystemOperation == "GET_ROOT_CONTAINER")
         {
             var rootContainer = storageProvider.RootContainerPointer;
-            var token = await IssueAsync(userId, rootContainer.Identifier, WopiResourceType.Container, file: null, container: rootContainer, cancellationToken);
+            var token = await IssueContainerTokenAsync(userId, rootContainer, cancellationToken);
             bootstrapRoot.RootContainerInfo = new RootContainerInfo
             {
                 ContainerPointer = new ChildContainer(
@@ -75,7 +75,7 @@ public class WopiBootstrapperController(
             ArgumentException.ThrowIfNullOrEmpty(wopiSrc);
             var resourceId = GetIdFromUrl(wopiSrc);
             var file = await storageProvider.GetWopiResource<IWopiFile>(resourceId, cancellationToken);
-            var token = await IssueAsync(userId, resourceId, WopiResourceType.File, file, container: null, cancellationToken);
+            var token = await IssueFileTokenAsync(userId, resourceId, file, cancellationToken);
             bootstrapRoot.AccessTokenInfo = new AccessTokenInfo
             {
                 AccessToken = token.Token,
@@ -89,27 +89,26 @@ public class WopiBootstrapperController(
         return new JsonResult(bootstrapRoot);
     }
 
-    private async Task<WopiAccessToken> IssueAsync(
-        string userId,
-        string resourceId,
-        WopiResourceType resourceType,
-        IWopiFile? file,
-        IWopiFolder? container,
-        CancellationToken cancellationToken)
+    private async Task<WopiAccessToken> IssueFileTokenAsync(string userId, string resourceId, IWopiFile? file, CancellationToken cancellationToken)
     {
-        var filePerms = file is null ? WopiFilePermissions.None : await permissionProvider.GetFilePermissionsAsync(User, file, cancellationToken);
-        var containerPerms = container is null ? WopiContainerPermissions.None : await permissionProvider.GetContainerPermissionsAsync(User, container, cancellationToken);
-        return await accessTokenService.IssueAsync(new WopiAccessTokenRequest
-        {
-            UserId = userId,
-            UserDisplayName = User.FindFirstValue(ClaimTypes.Name),
-            UserEmail = User.FindFirstValue(ClaimTypes.Email),
-            ResourceId = resourceId,
-            ResourceType = resourceType,
-            FilePermissions = filePerms,
-            ContainerPermissions = containerPerms,
-        }, cancellationToken);
+        var perms = file is null ? WopiFilePermissions.None : await permissionProvider.GetFilePermissionsAsync(User, file, cancellationToken);
+        return await accessTokenService.IssueAsync(BuildRequest(userId, resourceId, WopiResourceType.File) with { FilePermissions = perms }, cancellationToken);
     }
+
+    private async Task<WopiAccessToken> IssueContainerTokenAsync(string userId, IWopiFolder container, CancellationToken cancellationToken)
+    {
+        var perms = await permissionProvider.GetContainerPermissionsAsync(User, container, cancellationToken);
+        return await accessTokenService.IssueAsync(BuildRequest(userId, container.Identifier, WopiResourceType.Container) with { ContainerPermissions = perms }, cancellationToken);
+    }
+
+    private WopiAccessTokenRequest BuildRequest(string userId, string resourceId, WopiResourceType resourceType) => new()
+    {
+        UserId = userId,
+        UserDisplayName = User.FindFirstValue(ClaimTypes.Name),
+        UserEmail = User.FindFirstValue(ClaimTypes.Email),
+        ResourceId = resourceId,
+        ResourceType = resourceType,
+    };
 
     private static string GetIdFromUrl(string resourceUrl)
     {

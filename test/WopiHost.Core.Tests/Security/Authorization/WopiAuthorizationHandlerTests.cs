@@ -129,4 +129,114 @@ public class WopiAuthorizationHandlerTests
 
         Assert.True(ctx.HasSucceeded);
     }
+
+    [Fact]
+    public async Task File_Rename_Requires_UserCanRename_Claim()
+    {
+        var requirement = new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Rename);
+        var ctx = BuildContext(requirement, "fileId",
+            Authenticated(
+                new Claim(WopiClaimTypes.ResourceId, "fileId"),
+                new Claim(WopiClaimTypes.FilePermissions, WopiFilePermissions.UserCanRename.ToString())));
+
+        await _handler.HandleAsync(ctx);
+
+        Assert.True(ctx.HasSucceeded);
+    }
+
+    [Fact]
+    public async Task File_Delete_Is_Gated_By_UserCanWrite()
+    {
+        var requirement = new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Delete);
+        var without = BuildContext(requirement, "fileId",
+            Authenticated(
+                new Claim(WopiClaimTypes.ResourceId, "fileId"),
+                new Claim(WopiClaimTypes.FilePermissions, WopiFilePermissions.UserCanRename.ToString())));
+        await _handler.HandleAsync(without);
+        Assert.False(without.HasSucceeded);
+
+        var withWrite = BuildContext(new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Delete), "fileId",
+            Authenticated(
+                new Claim(WopiClaimTypes.ResourceId, "fileId"),
+                new Claim(WopiClaimTypes.FilePermissions, WopiFilePermissions.UserCanWrite.ToString())));
+        await _handler.HandleAsync(withWrite);
+        Assert.True(withWrite.HasSucceeded);
+    }
+
+    [Fact]
+    public async Task File_Create_Is_Blocked_When_UserCanNotWriteRelative_Set()
+    {
+        var requirement = new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Create);
+        var perms = WopiFilePermissions.UserCanWrite | WopiFilePermissions.UserCanNotWriteRelative;
+        var ctx = BuildContext(requirement, "fileId",
+            Authenticated(
+                new Claim(WopiClaimTypes.ResourceId, "fileId"),
+                new Claim(WopiClaimTypes.FilePermissions, perms.ToString())));
+
+        await _handler.HandleAsync(ctx);
+
+        Assert.False(ctx.HasSucceeded);
+    }
+
+    [Fact]
+    public async Task File_Create_Allowed_When_UserCanNotWriteRelative_Not_Set()
+    {
+        var requirement = new WopiAuthorizeAttribute(WopiResourceType.File, Permission.CreateChildFile);
+        var ctx = BuildContext(requirement, "fileId",
+            Authenticated(
+                new Claim(WopiClaimTypes.ResourceId, "fileId"),
+                new Claim(WopiClaimTypes.FilePermissions, WopiFilePermissions.UserCanWrite.ToString())));
+
+        await _handler.HandleAsync(ctx);
+
+        Assert.True(ctx.HasSucceeded);
+    }
+
+    [Fact]
+    public async Task Container_Create_And_Rename_Map_To_Specific_Flags()
+    {
+        // CreateChildContainer
+        var ctx1 = BuildContext(
+            new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.Create),
+            "c",
+            Authenticated(
+                new Claim(WopiClaimTypes.ResourceId, "c"),
+                new Claim(WopiClaimTypes.ContainerPermissions, WopiContainerPermissions.UserCanCreateChildContainer.ToString())));
+        await _handler.HandleAsync(ctx1);
+        Assert.True(ctx1.HasSucceeded);
+
+        // CreateChildFile
+        var ctx2 = BuildContext(
+            new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.CreateChildFile),
+            "c",
+            Authenticated(
+                new Claim(WopiClaimTypes.ResourceId, "c"),
+                new Claim(WopiClaimTypes.ContainerPermissions, WopiContainerPermissions.UserCanCreateChildFile.ToString())));
+        await _handler.HandleAsync(ctx2);
+        Assert.True(ctx2.HasSucceeded);
+
+        // Rename
+        var ctx3 = BuildContext(
+            new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.Rename),
+            "c",
+            Authenticated(
+                new Claim(WopiClaimTypes.ResourceId, "c"),
+                new Claim(WopiClaimTypes.ContainerPermissions, WopiContainerPermissions.UserCanRename.ToString())));
+        await _handler.HandleAsync(ctx3);
+        Assert.True(ctx3.HasSucceeded);
+    }
+
+    [Fact]
+    public async Task No_Route_Id_Means_No_Binding_Check_So_Read_Succeeds()
+    {
+        // Endpoints without an {id} route value (e.g. ecosystem-style) should not
+        // be rejected just because the principal has no resource id claim.
+        var requirement = new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Read);
+        var httpContext = new DefaultHttpContext(); // no RouteValues["id"]
+        var ctx = new AuthorizationHandlerContext([requirement], Authenticated(), httpContext);
+
+        await _handler.HandleAsync(ctx);
+
+        Assert.True(ctx.HasSucceeded);
+    }
 }

@@ -97,4 +97,26 @@ public class AccessTokenHandlerTests
         Assert.False(result.Succeeded);
         Assert.Equal("expired", result.Failure?.Message);
     }
+
+    [Fact]
+    public async Task Stores_Token_In_AuthenticationProperties_When_SaveToken_True()
+    {
+        // SaveToken defaults to true (see AccessTokenAuthenticationOptions); the existing
+        // _handler uses that default. After a successful authentication the raw token
+        // string should be retrievable via GetTokenAsync(...) on the principal's properties.
+        const string token = "valid-token";
+        var principal = new ClaimsPrincipal(new ClaimsIdentity("test"));
+        _accessTokenServiceMock
+            .Setup(x => x.ValidateAsync(token, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiAccessTokenValidationResult.Success(principal));
+
+        var context = BuildContext("/wopi/files/abc", token);
+        await _handler.InitializeAsync(_scheme, context);
+
+        var result = await _handler.AuthenticateAsync();
+
+        Assert.True(result.Succeeded);
+        var saved = result.Properties?.GetTokenValue(AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME);
+        Assert.Equal(token, saved);
+    }
 }

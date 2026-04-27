@@ -9,7 +9,7 @@ namespace WopiHost.Abstractions;
 /// and bakes them into the token at issuance. The WOPI client treats the token as opaque bytes
 /// and replays it on every <c>/wopi/*</c> call.
 /// </remarks>
-public class WopiAccessTokenRequest
+public record WopiAccessTokenRequest
 {
     /// <summary>
     /// Stable identifier of the user the token is issued to.
