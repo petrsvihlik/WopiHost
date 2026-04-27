@@ -36,15 +36,19 @@ public class WopiAuthorizationHandlerTests
     }
 
     [Fact]
-    public async Task Fails_When_Token_Bound_To_Different_Resource()
+    public async Task Token_Bound_To_Different_Resource_Is_Permitted_By_Default_For_Cross_Resource_Navigation()
     {
+        // The default handler logs the mismatch (audit) but allows the call. This matches
+        // how Office for the web and the Microsoft WOPI validator use a single token to
+        // navigate file → ancestor container → siblings. Hosts that want strict per-resource
+        // binding can layer a custom IAuthorizationHandler.
         var requirement = new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Read);
         var ctx = BuildContext(requirement, "fileId",
             Authenticated(new Claim(WopiClaimTypes.ResourceId, "other-file")));
 
         await _handler.HandleAsync(ctx);
 
-        Assert.False(ctx.HasSucceeded);
+        Assert.True(ctx.HasSucceeded);
     }
 
     [Fact]

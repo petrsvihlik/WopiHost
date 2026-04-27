@@ -435,10 +435,11 @@ The flow:
    the token's claims (`wopi:rid`, `wopi:fperms`, etc. — see `WopiClaimTypes`).
 3. The WOPI client replays the token on every `/wopi/*` call; `IWopiAccessTokenService.ValidateAsync`
    re-materializes the principal.
-4. `WopiAuthorizationHandler` (in Core) enforces both:
-   - **resource binding**: the route's `{id}` must match the token's `wopi:rid` claim;
-   - **permission**: the `[WopiAuthorize(..., Permission.X)]` requirement must be granted by
-     the file/container permission flags carried in the token.
+4. `WopiAuthorizationHandler` (in Core) enforces that the `[WopiAuthorize(..., Permission.X)]`
+   requirement is granted by the file/container permission flags carried in the token.
+   The `wopi:rid` claim is logged for audit but not enforced as a route-binding by default —
+   WOPI tokens are session-scoped and used across related resources (file → ancestor container).
+   Layer a custom `IAuthorizationHandler` if your scenario needs strict per-resource binding.
 
 ### IWopiLockProvider
 

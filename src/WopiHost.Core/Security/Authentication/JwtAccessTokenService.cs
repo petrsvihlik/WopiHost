@@ -62,11 +62,14 @@ public class JwtAccessTokenService : IWopiAccessTokenService
             claims.Add(new Claim(ClaimTypes.Email, request.UserEmail));
         }
 
-        if (request.ResourceType == WopiResourceType.File && request.FilePermissions != WopiFilePermissions.None)
+        // A token can carry both file and container permission claims independently.
+        // Office (and the WOPI validator) reuse a single token to navigate file → ancestor
+        // container → child operations, so callers can pre-authorize both surfaces in one shot.
+        if (request.FilePermissions != WopiFilePermissions.None)
         {
             claims.Add(new Claim(WopiClaimTypes.FilePermissions, request.FilePermissions.ToString()));
         }
-        else if (request.ResourceType == WopiResourceType.Container && request.ContainerPermissions != WopiContainerPermissions.None)
+        if (request.ContainerPermissions != WopiContainerPermissions.None)
         {
             claims.Add(new Claim(WopiClaimTypes.ContainerPermissions, request.ContainerPermissions.ToString()));
         }
@@ -128,8 +131,12 @@ public class JwtAccessTokenService : IWopiAccessTokenService
             var principal = _handler.ValidateToken(token, parameters, out _);
             return Task.FromResult(WopiAccessTokenValidationResult.Success(principal));
         }
-        catch (SecurityTokenException ex)
+        catch (Exception ex) when (ex is SecurityTokenException or ArgumentException or System.Text.Json.JsonException or FormatException)
         {
+            // Catch the full surface of "this isn't a valid token" exceptions JwtSecurityTokenHandler can throw
+            // so the auth pipeline returns 401, not 500. SecurityTokenException covers most cases (expiry,
+            // signature, audience). Malformed inputs throw ArgumentException, base64 decode errors throw
+            // FormatException, and structurally-broken JWT JSON throws JsonException.
             _logger.LogDebug(ex, "Access token rejected: {Reason}", ex.Message);
             return Task.FromResult(WopiAccessTokenValidationResult.Failure(ex.Message));
         }

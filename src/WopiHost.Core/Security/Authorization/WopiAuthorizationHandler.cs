@@ -7,20 +7,25 @@ using WopiHost.Abstractions;
 namespace WopiHost.Core.Security.Authorization;
 
 /// <summary>
-/// Authorization handler for <see cref="WopiAuthorizeAttribute"/>. Performs two checks:
-/// <list type="number">
-///   <item><description>
-///     <strong>Resource binding</strong>: the route's <c>{id}</c> must match the
-///     <see cref="WopiClaimTypes.ResourceId"/> claim on the access token. This is what
-///     stops a token issued for file A being replayed against file B.
-///   </description></item>
-///   <item><description>
-///     <strong>Permission</strong>: the <see cref="WopiAuthorizeAttribute.Permission"/> required
-///     by the endpoint must be granted by the file/container permission flags baked into the
-///     access token at issuance time.
-///   </description></item>
-/// </list>
+/// Authorization handler for <see cref="WopiAuthorizeAttribute"/>. Enforces that the access
+/// token grants the <see cref="WopiAuthorizeAttribute.Permission"/> required by the endpoint
+/// (mapped to the file/container permission flags the token carries).
 /// </summary>
+/// <remarks>
+/// <para>
+/// We intentionally do not enforce a strict route-id ↔ <see cref="WopiClaimTypes.ResourceId"/>
+/// match. WOPI clients (including Office for the web) and the Microsoft WOPI validator use a
+/// single token to navigate from a file to its ancestor container, list siblings, etc. — so a
+/// strict per-resource binding would break the protocol's assumed cross-resource access.
+/// The <see cref="WopiClaimTypes.ResourceId"/> claim is still written into the token for
+/// audit/logging and is logged on mismatch so hosts can trace unexpected reuse.
+/// </para>
+/// <para>
+/// If you need stricter per-resource enforcement (e.g. compliance), register an additional
+/// <see cref="IAuthorizationHandler"/> that compares the route id with the claim and fails
+/// the requirement on mismatch.
+/// </para>
+/// </remarks>
 public class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)
     : AuthorizationHandler<WopiAuthorizeAttribute, HttpContext>
 {
@@ -39,13 +44,7 @@ public class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)
             return Task.CompletedTask;
         }
 
-        if (!IsTokenBoundToRequestedResource(user, requirement))
-        {
-            logger.LogWarning("Token resource binding mismatch (route id '{RouteId}' vs token rid '{TokenRid}').",
-                requirement.ResourceId, user.FindFirstValue(WopiClaimTypes.ResourceId));
-            context.Fail(new AuthorizationFailureReason(this, "Access token is not bound to the requested resource."));
-            return Task.CompletedTask;
-        }
+        LogResourceBindingMismatch(user, requirement);
 
         if (!HasRequiredPermission(user, requirement))
         {
@@ -57,16 +56,16 @@ public class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)
         return Task.CompletedTask;
     }
 
-    private static bool IsTokenBoundToRequestedResource(ClaimsPrincipal user, WopiAuthorizeAttribute requirement)
+    private void LogResourceBindingMismatch(ClaimsPrincipal user, WopiAuthorizeAttribute requirement)
     {
-        // No id on the route (e.g. ecosystem/bootstrap-style endpoints) — nothing to bind to.
-        if (string.IsNullOrEmpty(requirement.ResourceId))
-        {
-            return true;
-        }
-
+        if (string.IsNullOrEmpty(requirement.ResourceId)) return;
         var ridClaim = user.FindFirstValue(WopiClaimTypes.ResourceId);
-        return string.Equals(ridClaim, requirement.ResourceId, StringComparison.Ordinal);
+        if (!string.IsNullOrEmpty(ridClaim) && !string.Equals(ridClaim, requirement.ResourceId, StringComparison.Ordinal))
+        {
+            logger.LogDebug("Token bound to resource '{TokenRid}' is being used against route id '{RouteId}'. " +
+                "This is allowed by default (WOPI tokens are session-scoped); register a stricter IAuthorizationHandler if you need to block cross-resource reuse.",
+                ridClaim, requirement.ResourceId);
+        }
     }
 
     private static bool HasRequiredPermission(ClaimsPrincipal user, WopiAuthorizeAttribute requirement)

@@ -148,26 +148,47 @@ public class JwtAccessTokenServiceTests
     }
 
     [Fact]
-    public async Task Container_Token_Carries_Container_Permission_Claim_Not_File()
+    public async Task Token_Can_Carry_Both_File_And_Container_Permission_Claims()
     {
+        // Office uses one token for file + ancestor-container navigation, so both perm
+        // surfaces are written when supplied (see ServiceCollectionExtensions/sample wiring).
         var svc = BuildService();
-        var perms = WopiContainerPermissions.UserCanCreateChildFile | WopiContainerPermissions.UserCanRename;
+        var fperms = WopiFilePermissions.UserCanWrite;
+        var cperms = WopiContainerPermissions.UserCanCreateChildFile | WopiContainerPermissions.UserCanRename;
 
         var token = await svc.IssueAsync(new WopiAccessTokenRequest
         {
             UserId = "u",
-            ResourceId = "container-1",
-            ResourceType = WopiResourceType.Container,
-            ContainerPermissions = perms,
-            FilePermissions = WopiFilePermissions.UserCanWrite, // should be ignored
+            ResourceId = "file-1",
+            ResourceType = WopiResourceType.File,
+            FilePermissions = fperms,
+            ContainerPermissions = cperms,
         });
 
         var validation = await svc.ValidateAsync(token.Token);
 
         Assert.True(validation.IsValid);
         var principal = validation.Principal!;
-        Assert.Equal(perms.ToString(), principal.FindFirstValue(WopiClaimTypes.ContainerPermissions));
-        Assert.Null(principal.FindFirst(WopiClaimTypes.FilePermissions));
+        Assert.Equal(fperms.ToString(), principal.FindFirstValue(WopiClaimTypes.FilePermissions));
+        Assert.Equal(cperms.ToString(), principal.FindFirstValue(WopiClaimTypes.ContainerPermissions));
+    }
+
+    [Fact]
+    public async Task Token_Omits_Permission_Claims_When_None()
+    {
+        var svc = BuildService();
+
+        var token = await svc.IssueAsync(new WopiAccessTokenRequest
+        {
+            UserId = "u",
+            ResourceId = "r",
+            ResourceType = WopiResourceType.File,
+            // No FilePermissions, no ContainerPermissions.
+        });
+        var validation = await svc.ValidateAsync(token.Token);
+
+        Assert.Null(validation.Principal!.FindFirst(WopiClaimTypes.FilePermissions));
+        Assert.Null(validation.Principal!.FindFirst(WopiClaimTypes.ContainerPermissions));
     }
 
     [Fact]

@@ -370,8 +370,10 @@ public static class ServiceCollectionExtensions
 │  WopiProofValidator → verifies X-WOPI-Proof against discovery keys     │
 │                                                                        │
 │  WopiAuthorizationHandler                                              │
-│      ├ binding check: route {id} == principal's wopi:rid claim?        │
 │      └ permission check: token's wopi:fperms grants required Permission│
+│        (route {id} vs token wopi:rid is logged on mismatch but not     │
+│         enforced — WOPI tokens are session-scoped; layer a custom      │
+│         IAuthorizationHandler if you need strict per-resource binding) │
 │                                                                        │
 │  Controller runs (IWopiPermissionProvider also called for CheckFileInfo│
 │      to populate UserCan* response flags)                              │
@@ -456,7 +458,7 @@ by `WopiAuthorizationHandler` and `DefaultWopiPermissionProvider`:
 
 | Claim | Meaning |
 |---|---|
-| `wopi:rid` | Resource id the token is bound to. The auth pipeline rejects mismatches between this and the route's `{id}`. |
+| `wopi:rid` | Resource id the token was issued for. Used for audit/logging; the default authorization handler does **not** reject mismatches because Office uses a single token to navigate file → container. |
 | `wopi:rtype` | `"File"` or `"Container"`. |
 | `wopi:fperms` | Comma-separated `WopiFilePermissions` flags (when `wopi:rtype` is `File`). |
 | `wopi:cperms` | Comma-separated `WopiContainerPermissions` flags (when `wopi:rtype` is `Container`). |

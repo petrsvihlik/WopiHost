@@ -33,7 +33,6 @@ env:
   TEST_CATEGORY: ${{ inputs.test_category || 'All' }}
   HOST_URL: http://localhost:5000
   WOPI_FILE_ID: WOPITEST
-  WOPI_ACCESS_TOKEN: Anonymous
 
 jobs:
   approve:
@@ -105,6 +104,18 @@ jobs:
           cat host.log
           exit 1
 
+      - name: Mint WOPI access token
+        id: token
+        run: |
+          TOKEN=$(curl -fsS "${{ env.HOST_URL }}/_test/issue-token/${{ env.WOPI_FILE_ID }}")
+          if [ -z "${TOKEN}" ]; then
+            echo "Failed to mint access token from host. Tail of host.log:"
+            tail -n 50 host.log
+            exit 1
+          fi
+          echo "::add-mask::${TOKEN}"
+          echo "token=${TOKEN}" >> "$GITHUB_OUTPUT"
+
       - name: Run WOPI validator
         id: validate
         continue-on-error: true
@@ -117,7 +128,7 @@ jobs:
           # intentionally unimplemented).
           dotnet "${{ steps.publish-validator.outputs.bin }}/Microsoft.Office.WopiValidator.dll" \
             --wopisrc "${{ env.HOST_URL }}/wopi/files/${{ env.WOPI_FILE_ID }}" \
-            --token "${{ env.WOPI_ACCESS_TOKEN }}" \
+            --token "${{ steps.token.outputs.token }}" \
             --token_ttl 0 \
             --config "${{ steps.publish-validator.outputs.bin }}/TestCases.xml" \
             --testcategory "${{ env.TEST_CATEGORY }}" \

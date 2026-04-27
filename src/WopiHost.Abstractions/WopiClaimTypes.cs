@@ -12,9 +12,12 @@ namespace WopiHost.Abstractions;
 public static class WopiClaimTypes
 {
     /// <summary>
-    /// Identifier of the resource the access token is bound to.
-    /// The authorization pipeline rejects requests where the route's resource id does
-    /// not match this claim, preventing token reuse across resources.
+    /// Identifier of the resource the access token was issued for. Used for audit/logging;
+    /// the default authorization pipeline does not enforce a strict binding between this
+    /// claim and the route's resource id, because WOPI clients use a single token across
+    /// related resources (file → ancestor container → siblings). Layer a custom
+    /// <see cref="Microsoft.AspNetCore.Authorization.IAuthorizationHandler"/> if your scenario
+    /// requires strict per-resource binding.
     /// </summary>
     public const string ResourceId = "wopi:rid";
 
