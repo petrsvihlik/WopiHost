@@ -175,5 +175,4 @@ public class JwtAccessTokenService : IWopiAccessTokenService
         Array.Copy(raw, padded, raw.Length);
         return padded;
     }
-
 }

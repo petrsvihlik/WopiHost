@@ -83,5 +83,4 @@ public static class ServiceCollectionExtensions
         services.Configure(configure);
         return services;
     }
-
 }
