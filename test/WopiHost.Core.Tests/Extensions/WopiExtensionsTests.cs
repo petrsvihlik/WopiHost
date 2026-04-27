@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
 using Moq;
 using WopiHost.Abstractions;
@@ -133,6 +134,101 @@ public class WopiExtensionsTests
 
         // Assert
         Assert.Equal(13, result.FileNameMaxLength);
+    }
+
+    private sealed class StubLinkGenerator(string returnValue) : LinkGenerator
+    {
+        public override string? GetPathByAddress<TAddress>(HttpContext httpContext, TAddress address, RouteValueDictionary values, RouteValueDictionary? ambientValues = null, PathString? pathBase = null, FragmentString fragment = default, LinkOptions? options = null) => returnValue;
+        public override string? GetPathByAddress<TAddress>(TAddress address, RouteValueDictionary values, PathString pathBase = default, FragmentString fragment = default, LinkOptions? options = null) => returnValue;
+        public override string? GetUriByAddress<TAddress>(HttpContext httpContext, TAddress address, RouteValueDictionary values, RouteValueDictionary? ambientValues = null, string? scheme = null, HostString? host = null, PathString? pathBase = null, FragmentString fragment = default, LinkOptions? options = null) => returnValue;
+        public override string? GetUriByAddress<TAddress>(TAddress address, RouteValueDictionary values, string? scheme, HostString host, PathString pathBase = default, FragmentString fragment = default, LinkOptions? options = null) => returnValue;
+    }
+
+    [Fact]
+    public async Task GetWopiCheckFileInfo_PopulatesFileUrl_WhenLinkGeneratorRegistered()
+    {
+        // Arrange
+        var mockFile = new Mock<IWopiFile>();
+        mockFile.Setup(f => f.Name).Returns("test");
+        mockFile.Setup(f => f.Owner).Returns("owner");
+        mockFile.Setup(f => f.Extension).Returns("txt");
+        mockFile.Setup(f => f.Identifier).Returns("WOPITEST");
+        mockFile.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
+
+        const string expected = "https://localhost/wopi/files/WOPITEST/contents?access_token=tok";
+        var linkGenerator = new StubLinkGenerator(expected);
+
+        var httpContext = new DefaultHttpContext()
+        {
+            ServiceScopeFactory = TestUtils.CreateServiceScope<LinkGenerator>(linkGenerator),
+        };
+        httpContext.Request.Scheme = "https";
+        httpContext.Request.Host = new HostString("localhost");
+
+        // Act
+        var result = await mockFile.Object.GetWopiCheckFileInfo(httpContext);
+
+        // Assert
+        Assert.NotNull(result.FileUrl);
+        Assert.Equal(expected, result.FileUrl.ToString());
+    }
+
+    [Fact]
+    public async Task GetWopiCheckFileInfo_OnCheckFileInfo_CanOverrideFileUrl()
+    {
+        // Arrange
+        var mockFile = new Mock<IWopiFile>();
+        mockFile.Setup(f => f.Name).Returns("test");
+        mockFile.Setup(f => f.Owner).Returns("owner");
+        mockFile.Setup(f => f.Extension).Returns("txt");
+        mockFile.Setup(f => f.Identifier).Returns("WOPITEST");
+        mockFile.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
+
+        var linkGenerator = new StubLinkGenerator("https://localhost/wopi/files/WOPITEST/contents?access_token=tok");
+
+        var cdnUrl = new Uri("https://cdn.example.com/file");
+        var wopiHostOptions = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            OnCheckFileInfo = context => { context.CheckFileInfo.FileUrl = cdnUrl; return Task.FromResult(context.CheckFileInfo); },
+        });
+
+        var httpContext = new DefaultHttpContext()
+        {
+            ServiceScopeFactory = TestUtils.CreateServiceScope<LinkGenerator, IOptions<WopiHostOptions>>(linkGenerator, wopiHostOptions),
+        };
+        httpContext.Request.Scheme = "https";
+        httpContext.Request.Host = new HostString("localhost");
+
+        // Act
+        var result = await mockFile.Object.GetWopiCheckFileInfo(httpContext);
+
+        // Assert: host's override wins over framework default.
+        Assert.Equal(cdnUrl, result.FileUrl);
+    }
+
+    [Fact]
+    public async Task GetWopiCheckFileInfo_FileUrl_StaysNull_WhenLinkGeneratorMissing()
+    {
+        // Arrange
+        var mockFile = new Mock<IWopiFile>();
+        mockFile.Setup(f => f.Name).Returns("test");
+        mockFile.Setup(f => f.Owner).Returns("owner");
+        mockFile.Setup(f => f.Extension).Returns("txt");
+        mockFile.Setup(f => f.Identifier).Returns("WOPITEST");
+        mockFile.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
+
+        var httpContext = new DefaultHttpContext()
+        {
+            ServiceScopeFactory = TestUtils.CreateServiceScope(),
+        };
+
+        // Act
+        var result = await mockFile.Object.GetWopiCheckFileInfo(httpContext);
+
+        // Assert
+        Assert.Null(result.FileUrl);
     }
 
     [Fact]
