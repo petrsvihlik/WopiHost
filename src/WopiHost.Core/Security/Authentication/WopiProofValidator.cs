@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Http;
@@ -33,31 +34,30 @@ public class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidat
         {
             var request = httpContext.Request;
             if (!request.Headers.TryGetValue(WopiHeaders.PROOF, out var receivedProof) ||
-                !request.Headers.TryGetValue(WopiHeaders.TIMESTAMP, out var receivedTimeStamp))
+                !request.Headers.TryGetValue(WopiHeaders.TIMESTAMP, out var receivedTimeStamp) ||
+                !long.TryParse(receivedTimeStamp.ToString(), CultureInfo.InvariantCulture, out var ticks))
             {
-                logger.LogWarning("Missing required proof headers");
+                logger.LogWarning("Missing or invalid proof/timestamp headers");
                 return false;
             }
-            
+
             var sourceProofKeys = await discoverer.GetProofKeysAsync();
-            if (sourceProofKeys.Value is null || sourceProofKeys.OldValue is null)
-            {
-                return false;
-            }
-            
-            var receivedProofOld = request.Headers[WopiHeaders.PROOF_OLD].FirstOrDefault() ?? String.Empty;
-            var receivedAccessToken = accessToken;
-            
-            if (DateTime.UtcNow - new DateTime(Convert.ToInt64(receivedTimeStamp)) > TimeSpan.FromMinutes(20))
+
+            // Per WOPI spec: X-WOPI-TimeStamp is .NET DateTime.Ticks (UTC).
+            // Reject timestamps older than 20 minutes; allow a small future skew.
+            var age = _timeProvider.GetUtcNow().UtcDateTime - new DateTime(ticks, DateTimeKind.Utc);
+            if (sourceProofKeys.Value is null
+                || sourceProofKeys.OldValue is null
+                || age > TimeSpan.FromMinutes(20)
+                || age < TimeSpan.FromMinutes(-5))
             {
                 return false;
             }
 
             var hostUrl = request.GetProxyAwareRequestUrl().ToUpperInvariant();
-
-            var hostUrlBytes = Encoding.UTF8.GetBytes(hostUrl.ToUpperInvariant());
-            var accessTokenBytes = Encoding.UTF8.GetBytes(receivedAccessToken);
-            var timeStampBytes = BitConverter.GetBytes(Convert.ToInt64(receivedTimeStamp));
+            var hostUrlBytes = Encoding.UTF8.GetBytes(hostUrl);
+            var accessTokenBytes = Encoding.UTF8.GetBytes(accessToken);
+            var timeStampBytes = BitConverter.GetBytes(ticks);
             Array.Reverse(timeStampBytes);
 
             var expectedProof = new List<byte>(
@@ -72,10 +72,11 @@ public class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidat
             expectedProof.AddRange(ToBigEndian(timeStampBytes.Length));
             expectedProof.AddRange(timeStampBytes);
             byte[] expectedBytes = [.. expectedProof];
-            
-            return (VerifyProof(expectedBytes, receivedProof.ToString(), sourceProofKeys.Value) ||
-                    VerifyProof(expectedBytes, receivedProof.ToString(), sourceProofKeys.OldValue) ||
-                    VerifyProof(expectedBytes, receivedProofOld, sourceProofKeys.Value));
+
+            var receivedProofOld = request.Headers[WopiHeaders.PROOF_OLD].FirstOrDefault() ?? string.Empty;
+            return VerifyProof(expectedBytes, receivedProof.ToString(), sourceProofKeys.Value)
+                || VerifyProof(expectedBytes, receivedProof.ToString(), sourceProofKeys.OldValue)
+                || VerifyProof(expectedBytes, receivedProofOld, sourceProofKeys.Value);
         }
         catch (Exception ex)
         {
