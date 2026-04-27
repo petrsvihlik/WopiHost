@@ -204,7 +204,7 @@ jobs:
 
       - name: Post results to PR
         if: always() && github.event_name == 'pull_request_target'
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: wopi-validator
           message: |
