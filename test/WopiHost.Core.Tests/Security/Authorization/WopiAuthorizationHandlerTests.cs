@@ -243,4 +243,59 @@ public class WopiAuthorizationHandlerTests
 
         Assert.True(ctx.HasSucceeded);
     }
+
+    [Fact]
+    public async Task Permission_None_Always_Succeeds_For_File_Or_Container()
+    {
+        foreach (var resourceType in new[] { WopiResourceType.File, WopiResourceType.Container })
+        {
+            var ctx = BuildContext(
+                new WopiAuthorizeAttribute(resourceType, Permission.None),
+                "id",
+                Authenticated(new Claim(WopiClaimTypes.ResourceId, "id")));
+
+            await _handler.HandleAsync(ctx);
+
+            Assert.True(ctx.HasSucceeded);
+        }
+    }
+
+    [Fact]
+    public async Task Container_Update_Has_No_Mapping_So_Fails()
+    {
+        // Permission.Update doesn't map onto any WopiContainerPermissions flag (containers
+        // don't expose a generic "update" surface — only Create/Delete/Rename), so the
+        // switch falls through to the `_ => false` default arm.
+        var ctx = BuildContext(
+            new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.Update),
+            "c",
+            Authenticated(
+                new Claim(WopiClaimTypes.ResourceId, "c"),
+                new Claim(WopiClaimTypes.ContainerPermissions,
+                    (WopiContainerPermissions.UserCanCreateChildContainer |
+                     WopiContainerPermissions.UserCanCreateChildFile |
+                     WopiContainerPermissions.UserCanDelete |
+                     WopiContainerPermissions.UserCanRename).ToString())));
+
+        await _handler.HandleAsync(ctx);
+
+        Assert.False(ctx.HasSucceeded);
+    }
+
+    [Fact]
+    public async Task File_Permissions_Claim_With_Garbage_Value_Falls_Back_To_Default_Flags()
+    {
+        // ReadFlags<T> returns default when Enum.TryParse fails, so a garbage claim is
+        // equivalent to having no permissions — Update is rejected.
+        var ctx = BuildContext(
+            new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Update),
+            "fileId",
+            Authenticated(
+                new Claim(WopiClaimTypes.ResourceId, "fileId"),
+                new Claim(WopiClaimTypes.FilePermissions, "not-a-real-flag-value")));
+
+        await _handler.HandleAsync(ctx);
+
+        Assert.False(ctx.HasSucceeded);
+    }
 }

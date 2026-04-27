@@ -176,4 +176,29 @@ public class WopiBootstrapperControllerTests
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             BuildController(user).GetRootContainer(ecosystemOperation: "GET_ROOT_CONTAINER"));
     }
+
+    [Fact]
+    public async Task GetNewAccessToken_With_Unknown_File_Issues_Token_Without_Permissions()
+    {
+        // Storage returns null when the wopiSrc resource doesn't exist; the helper still
+        // issues a token (with WopiFilePermissions.None) so the WOPI client can call back
+        // through the regular endpoints and get a proper 404.
+        _storage
+            .Setup(s => s.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IWopiFile?)null);
+        _tokens
+            .Setup(t => t.IssueAsync(It.IsAny<WopiAccessTokenRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new WopiAccessToken("T", DateTimeOffset.UtcNow));
+
+        var result = await BuildController().GetRootContainer(
+            ecosystemOperation: "GET_NEW_ACCESS_TOKEN",
+            wopiSrc: "https://wopi.example.com/wopi/files/missing");
+
+        Assert.IsType<JsonResult>(result);
+        _tokens.Verify(t => t.IssueAsync(
+            It.Is<WopiAccessTokenRequest>(r =>
+                r.ResourceId == "missing" &&
+                r.FilePermissions == WopiFilePermissions.None),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

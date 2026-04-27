@@ -119,4 +119,49 @@ public class AccessTokenHandlerTests
         var saved = result.Properties?.GetTokenValue(AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME);
         Assert.Equal(token, saved);
     }
+
+    [Fact]
+    public async Task Does_Not_Store_Token_When_SaveToken_False()
+    {
+        const string token = "valid-token";
+        var principal = new ClaimsPrincipal(new ClaimsIdentity("test"));
+        _accessTokenServiceMock
+            .Setup(x => x.ValidateAsync(token, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiAccessTokenValidationResult.Success(principal));
+
+        // Build a fresh handler whose options say SaveToken = false.
+        var optionsMonitor = new Mock<IOptionsMonitor<AccessTokenAuthenticationOptions>>();
+        optionsMonitor.Setup(x => x.Get(It.IsAny<string>())).Returns(new AccessTokenAuthenticationOptions { SaveToken = false });
+        var loggerFactory = new Mock<ILoggerFactory>();
+        loggerFactory.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(new Mock<ILogger<AccessTokenHandler>>().Object);
+        var handler = new AccessTokenHandler(_accessTokenServiceMock.Object, optionsMonitor.Object, loggerFactory.Object, new Mock<UrlEncoder>().Object);
+
+        var context = BuildContext("/wopi/files/abc", token);
+        await handler.InitializeAsync(_scheme, context);
+
+        var result = await handler.AuthenticateAsync();
+
+        Assert.True(result.Succeeded);
+        var saved = result.Properties?.GetTokenValue(AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME);
+        Assert.Null(saved);
+    }
+
+    [Fact]
+    public async Task Falls_Back_To_Generic_Failure_Message_When_Validator_Returns_Null_Reason()
+    {
+        const string token = "bad-token";
+        // Construct a Failure result manually with FailureReason=null to exercise the
+        // null-coalescing path in AccessTokenHandler.
+        _accessTokenServiceMock
+            .Setup(x => x.ValidateAsync(token, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new WopiAccessTokenValidationResult(false, null, null));
+
+        var context = BuildContext("/wopi/files/abc", token);
+        await _handler.InitializeAsync(_scheme, context);
+
+        var result = await _handler.AuthenticateAsync();
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Invalid access token.", result.Failure?.Message);
+    }
 }
