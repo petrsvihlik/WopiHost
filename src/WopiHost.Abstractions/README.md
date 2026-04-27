@@ -236,62 +236,37 @@ public class DatabaseFile : IWopiFile
 
 ### 3. Custom Security Implementation
 
-Implement custom authentication and authorization:
+The typical extension is a single class — your ACL provider:
 
 ```csharp
-public class CustomSecurityHandler : IWopiSecurityHandler
+public class MyAclPermissionProvider(IUserDirectory users, IAclStore acls) : IWopiPermissionProvider
 {
-    private readonly IUserService _userService;
-    private readonly ITokenService _tokenService;
-    
-    public async Task<WopiFilePermissions> GetFilePermissionsAsync(string userId, string resourceId)
+    public async Task<WopiFilePermissions> GetFilePermissionsAsync(
+        ClaimsPrincipal user, IWopiFile file, CancellationToken ct)
     {
-        var user = await _userService.GetUserAsync(userId);
-        var resource = await GetResourceAsync(resourceId);
-        
-        var permissions = WopiFilePermissions.None;
-        
-        if (user.CanRead(resource))
-        {
-            permissions |= WopiFilePermissions.Read;
-        }
-        
-        if (user.CanWrite(resource))
-        {
-            permissions |= WopiFilePermissions.Write;
-        }
-        
-        if (user.CanDelete(resource))
-        {
-            permissions |= WopiFilePermissions.Delete;
-        }
-        
-        return permissions;
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        var entries = await acls.GetEntriesAsync(userId, file.Identifier, ct);
+
+        var perms = WopiFilePermissions.None;
+        if (!entries.CanWrite)  perms |= WopiFilePermissions.ReadOnly;
+        if (entries.CanWrite)   perms |= WopiFilePermissions.UserCanWrite;
+        if (entries.CanRename)  perms |= WopiFilePermissions.UserCanRename;
+        if (!entries.CanCreate) perms |= WopiFilePermissions.UserCanNotWriteRelative;
+        return perms;
     }
-    
-    public async Task<bool> ValidateTokenAsync(string token, string resourceId)
-    {
-        try
-        {
-            var claims = _tokenService.ValidateToken(token);
-            var userId = claims.FindFirst("user_id")?.Value;
-            
-            if (string.IsNullOrEmpty(userId))
-            {
-                return false;
-            }
-            
-            var permissions = await GetFilePermissionsAsync(userId, resourceId);
-            return permissions != WopiFilePermissions.None;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-    
-    // Implement other required methods...
+
+    public async Task<WopiContainerPermissions> GetContainerPermissionsAsync(
+        ClaimsPrincipal user, IWopiFolder container, CancellationToken ct) => /* ... */;
 }
+
+// Registered AFTER AddWopi(), this overrides the default DefaultWopiPermissionProvider.
+services.AddWopi();
+services.AddSingleton<IWopiPermissionProvider, MyAclPermissionProvider>();
+```
+
+Token issuance / validation almost never needs replacing — `WopiHost.Core`'s
+`JwtAccessTokenService` handles signing, expiry, claim layout, and key rotation. Configure
+it via `services.ConfigureWopiSecurity(o => { o.SigningKey = ...; o.Issuer = ...; })`.
 
 public class CustomLockProvider : IWopiLockProvider
 {
@@ -425,18 +400,45 @@ public interface IWopiFolder : IWopiResource
 }
 ```
 
-### IWopiSecurityHandler
+### Security: `IWopiAccessTokenService` and `IWopiPermissionProvider`
 
-Handles authentication and authorization.
+WOPI security is split into two orthogonal abstractions. **Most consumers only implement
+`IWopiPermissionProvider`** — the access-token plumbing has a usable default in `WopiHost.Core`.
 
 ```csharp
-public interface IWopiSecurityHandler
+// 1. Issues and validates the per-(user, resource, window) WOPI access token.
+//    Default implementation in WopiHost.Core (JwtAccessTokenService) signs JWTs;
+//    replace only if you need opaque reference tokens or an external token service.
+public interface IWopiAccessTokenService
 {
-    Task<WopiFilePermissions> GetFilePermissionsAsync(string userId, string resourceId);
-    Task<bool> ValidateTokenAsync(string token, string resourceId);
-    Task<string> GetUserIdAsync(string token);
+    Task<WopiAccessToken> IssueAsync(WopiAccessTokenRequest request, CancellationToken ct = default);
+    Task<WopiAccessTokenValidationResult> ValidateAsync(string token, CancellationToken ct = default);
+}
+
+// 2. Computes what a user is allowed to do with a file or container.
+//    THIS is where you plug in your ACL model. Default reads from token claims,
+//    falling back to WopiHostOptions.DefaultFilePermissions / DefaultContainerPermissions.
+public interface IWopiPermissionProvider
+{
+    Task<WopiFilePermissions> GetFilePermissionsAsync(
+        ClaimsPrincipal user, IWopiFile file, CancellationToken ct = default);
+    Task<WopiContainerPermissions> GetContainerPermissionsAsync(
+        ClaimsPrincipal user, IWopiFolder container, CancellationToken ct = default);
 }
 ```
+
+The flow:
+
+1. The host's URL-generating code calls `IWopiPermissionProvider.GetFilePermissionsAsync` to
+   decide what permissions to grant the user for this session.
+2. It calls `IWopiAccessTokenService.IssueAsync` with those permissions; they get baked into
+   the token's claims (`wopi:rid`, `wopi:fperms`, etc. — see `WopiClaimTypes`).
+3. The WOPI client replays the token on every `/wopi/*` call; `IWopiAccessTokenService.ValidateAsync`
+   re-materializes the principal.
+4. `WopiAuthorizationHandler` (in Core) enforces both:
+   - **resource binding**: the route's `{id}` must match the token's `wopi:rid` claim;
+   - **permission**: the `[WopiAuthorize(..., Permission.X)]` requirement must be granted by
+     the file/container permission flags carried in the token.
 
 ### IWopiLockProvider
 

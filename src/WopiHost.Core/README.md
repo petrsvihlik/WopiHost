@@ -103,7 +103,7 @@ public class Program
         builder.Services.AddScoped<IWopiStorageProvider, MyStorageProvider>();
         builder.Services.AddScoped<IWopiWritableStorageProvider, MyStorageProvider>();
         builder.Services.AddScoped<IWopiLockProvider, MyLockProvider>();
-        builder.Services.AddScoped<IWopiSecurityHandler, MySecurityHandler>();
+        builder.Services.AddSingleton<IWopiPermissionProvider, MyAclPermissionProvider>();
         
         // Add discovery services
         builder.Services.AddWopiDiscovery<WopiHostOptions>(options =>
@@ -233,7 +233,7 @@ public class MultiTenantWopiHost
         });
         
         // Add tenant-aware security handler
-        builder.Services.AddScoped<IWopiSecurityHandler, TenantAwareSecurityHandler>();
+        builder.Services.AddScoped<IWopiPermissionProvider, TenantAwarePermissionProvider>();
         
         var app = builder.Build();
         
@@ -343,48 +343,155 @@ public static class ServiceCollectionExtensions
 
 ## Security
 
-### Authentication
+### The pipeline
 
-WOPI uses token-based authentication. Implement `IWopiSecurityHandler` to provide custom authentication:
+```
+┌─────────────┐    1. who is the user?       ┌──────────────────────────┐
+│ Frontend    │  ─────────────────────────►  │ Your ACL store           │
+│ (mints      │  2. perms?                   │ (IWopiPermissionProvider)│
+│  WOPI URL)  │  ◄─────────────────────────  └──────────────────────────┘
+│             │  3. issue token              ┌──────────────────────────┐
+│             │  ─────────────────────────►  │ IWopiAccessTokenService  │
+│             │  ◄ JWT (signed, perms baked) │ (default: JWT-based)     │
+└──────┬──────┘                              └──────────────────────────┘
+       │ 4. URL?WOPISrc=...&access_token=<JWT>
+       ▼
+┌─────────────┐
+│ Office      │ 5. GET /wopi/files/{id}?access_token=<JWT> + X-WOPI-Proof
+│ Online      │
+└──────┬──────┘
+       ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│  WopiHost.Core pipeline                                                │
+│                                                                        │
+│  AccessTokenHandler  → IWopiAccessTokenService.ValidateAsync(token)    │
+│                       (re-materializes ClaimsPrincipal from JWT)       │
+│                                                                        │
+│  WopiProofValidator → verifies X-WOPI-Proof against discovery keys     │
+│                                                                        │
+│  WopiAuthorizationHandler                                              │
+│      ├ binding check: route {id} == principal's wopi:rid claim?        │
+│      └ permission check: token's wopi:fperms grants required Permission│
+│                                                                        │
+│  Controller runs (IWopiPermissionProvider also called for CheckFileInfo│
+│      to populate UserCan* response flags)                              │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### What you implement (the common case)
+
+In almost all cases the only thing you need to write is an `IWopiPermissionProvider` against
+your ACL store. Everything else has working defaults.
 
 ```csharp
-public class CustomSecurityHandler : IWopiSecurityHandler
+public class MyAclPermissionProvider : IWopiPermissionProvider
 {
-    public async Task<WopiFilePermissions> GetFilePermissionsAsync(string userId, string resourceId)
-    {
-        // Implement permission logic
-        return WopiFilePermissions.Read | WopiFilePermissions.Write;
-    }
-    
-    public async Task<bool> ValidateTokenAsync(string token, string resourceId)
-    {
-        // Implement token validation
-        return true;
-    }
-    
-    public async Task<string> GetUserIdAsync(string token)
-    {
-        // Extract user ID from token
-        return "user123";
-    }
+    public Task<WopiFilePermissions> GetFilePermissionsAsync(
+        ClaimsPrincipal user, IWopiFile file, CancellationToken ct = default) { /* your ACL lookup */ }
+
+    public Task<WopiContainerPermissions> GetContainerPermissionsAsync(
+        ClaimsPrincipal user, IWopiFolder container, CancellationToken ct = default) { /* ... */ }
 }
 ```
 
-### Authorization
-
-WOPI includes built-in authorization policies. Customize by implementing `IWopiAuthorizationRequirement`:
+Wire it up:
 
 ```csharp
-public class CustomAuthorizationRequirement : IWopiAuthorizationRequirement
+services.AddWopi(o =>
 {
-    public string RequiredPermission { get; set; }
-    
-    public bool IsSatisfiedBy(WopiFilePermissions permissions)
+    o.ClientUrl = new Uri("https://office.example.com");
+    o.StorageProviderAssemblyName = "MyStorageProvider";
+});
+
+// REQUIRED in production: configure the access-token signing key.
+// Without this, the host generates a per-process random key on first use and logs a warning.
+services.ConfigureWopiSecurity(o =>
+{
+    o.SigningKey = Convert.FromBase64String(Configuration["Wopi:Security:SigningKey"]!);
+    o.DefaultTokenLifetime = TimeSpan.FromMinutes(10);
+    // o.Issuer / o.Audience  — optional, enforced when set
+});
+
+// Override the default permission provider with your ACL implementation.
+services.AddSingleton<IWopiPermissionProvider, MyAclPermissionProvider>();
+```
+
+### What you can override (rare)
+
+| Service | Default | Override when |
+|---|---|---|
+| `IWopiPermissionProvider` | `DefaultWopiPermissionProvider` (reads from token claims, falls back to `WopiHostOptions.DefaultFilePermissions`) | You have a real ACL model — almost always. |
+| `IWopiAccessTokenService` | `JwtAccessTokenService` (signed JWT with HMAC-SHA256, configurable issuer/audience/lifetime/key rotation) | You need opaque reference tokens (revocable), or are integrating an external token service. |
+
+### Issuing a WOPI URL from the frontend
+
+The host's frontend (typically a separate process / page) is responsible for handing the user
+a URL that embeds an `access_token`. With Core registered:
+
+```csharp
+public async Task<IActionResult> Open(string fileId)
+{
+    var file = await _storage.GetWopiResource<IWopiFile>(fileId);
+    var perms = await _permissions.GetFilePermissionsAsync(User, file);
+    var token = await _tokens.IssueAsync(new WopiAccessTokenRequest
     {
-        return permissions.HasFlag(WopiFilePermissions.Write);
-    }
+        UserId           = User.FindFirstValue(ClaimTypes.NameIdentifier)!,
+        UserDisplayName  = User.FindFirstValue(ClaimTypes.Name),
+        UserEmail        = User.FindFirstValue(ClaimTypes.Email),
+        ResourceId       = file.Identifier,
+        ResourceType     = WopiResourceType.File,
+        FilePermissions  = perms,
+    });
+    return Redirect($"{wopiSrcUrl}?access_token={Uri.EscapeDataString(token.Token)}&access_token_ttl={token.ExpiresAt.ToUnixTimeMilliseconds()}");
 }
 ```
+
+If the frontend is a separate process from the WOPI server, both must be configured with the
+**same `WopiSecurityOptions.SigningKey`** so the server can validate tokens the frontend issues.
+
+### Claim layout (`WopiClaimTypes`)
+
+Tokens issued by the default `JwtAccessTokenService` carry these custom claims, read back out
+by `WopiAuthorizationHandler` and `DefaultWopiPermissionProvider`:
+
+| Claim | Meaning |
+|---|---|
+| `wopi:rid` | Resource id the token is bound to. The auth pipeline rejects mismatches between this and the route's `{id}`. |
+| `wopi:rtype` | `"File"` or `"Container"`. |
+| `wopi:fperms` | Comma-separated `WopiFilePermissions` flags (when `wopi:rtype` is `File`). |
+| `wopi:cperms` | Comma-separated `WopiContainerPermissions` flags (when `wopi:rtype` is `Container`). |
+| `wopi:uname` | Friendly display name (mirrors `ClaimTypes.Name`). |
+
+### Key rotation
+
+To rotate without invalidating outstanding tokens:
+
+```csharp
+services.ConfigureWopiSecurity(o =>
+{
+    o.SigningKey = newKey;                   // used for signing AND validation
+    o.AdditionalValidationKeys.Add(oldKey);  // accepted for validation only
+});
+```
+
+Leave the old key in `AdditionalValidationKeys` for at least the longest token TTL, then remove it.
+
+### Bootstrapper
+
+The `/wopibootstrapper` endpoint (used by Office mobile clients) is a separate authentication
+scheme — OAuth2 Bearer from your IdP, not the `access_token` query parameter. Register it under
+`WopiAuthenticationSchemes.Bootstrap`:
+
+```csharp
+services.AddAuthentication()
+    .AddJwtBearer(WopiAuthenticationSchemes.Bootstrap, o =>
+    {
+        o.Authority = "https://login.example.com/";
+        o.Audience  = "wopi-bootstrap";
+    });
+```
+
+If you don't expose the bootstrapper, no extra scheme registration is needed.
 
 ## Configuration
 

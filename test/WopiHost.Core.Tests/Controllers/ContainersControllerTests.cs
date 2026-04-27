@@ -17,7 +17,7 @@ public class ContainersControllerTests
     private readonly Mock<IWopiStorageProvider> storageProviderMock;
     private readonly Mock<IWopiLockProvider> lockProviderMock;
     private readonly Mock<IWopiWritableStorageProvider> writableStorageProviderMock;
-    private readonly Mock<IWopiSecurityHandler> securityHandlerMock;
+    private readonly Mock<IWopiPermissionProvider> permissionProviderMock;
     private readonly ContainersController _controller;
 
     public ContainersControllerTests()
@@ -25,9 +25,9 @@ public class ContainersControllerTests
         storageProviderMock = new Mock<IWopiStorageProvider>();
         lockProviderMock = new Mock<IWopiLockProvider>();
         writableStorageProviderMock = new Mock<IWopiWritableStorageProvider>();
-        securityHandlerMock = new Mock<IWopiSecurityHandler>();
-        securityHandlerMock
-            .Setup(_ => _.GetContainerPermissions(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+        permissionProviderMock = new Mock<IWopiPermissionProvider>();
+        permissionProviderMock
+            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WopiContainerPermissions.UserCanCreateChildContainer | WopiContainerPermissions.UserCanCreateChildFile | WopiContainerPermissions.UserCanDelete | WopiContainerPermissions.UserCanRename);
         var url = new Mock<IUrlHelper>();
         url
@@ -52,7 +52,7 @@ public class ContainersControllerTests
             {
                 HttpContext = new DefaultHttpContext()
                 {
-                    ServiceScopeFactory = TestUtils.CreateServiceScope(securityHandlerMock.Object)
+                    ServiceScopeFactory = TestUtils.CreateServiceScope(permissionProviderMock.Object)
                 }
             }
         };

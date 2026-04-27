@@ -4,6 +4,7 @@ using Serilog.Events;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Models;
+using WopiHost.Core.Security.Authentication;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.Validator.Models;
@@ -42,11 +43,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IWopiWritableStorageProvider, WopiFileSystemProvider>();
         // Add lock provider
         services.AddSingleton<IWopiLockProvider, MemoryLockProvider.MemoryLockProvider>();
-        services.AddSingleton<IWopiSecurityHandler, WopiSecurityHandler>();
         // Add WOPI
         services.AddWopi(o =>
         {
             o.OnCheckFileInfo = WopiEvents.OnGetWopiCheckFileInfo;
+        });
+        // Validator runs against a known fixed signing key so tests are reproducible across restarts.
+        services.ConfigureWopiSecurity(o =>
+        {
+            o.SigningKey = JwtAccessTokenService.DeriveHmacKey("wopi-validator-dev-key");
         });
         return services;
     }

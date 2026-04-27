@@ -1,7 +1,10 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using WopiHost.Abstractions;
 using WopiHost.Core.Models;
+using WopiHost.Core.Security;
 using WopiHost.Core.Security.Authentication;
 using WopiHost.Core.Security.Authorization;
 
@@ -13,9 +16,10 @@ namespace WopiHost.Core.Extensions;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Register services required by the WOPI host server.
+    /// Registers the WOPI host services. Defaults are wired with <see cref="ServiceCollectionDescriptorExtensions.TryAddSingleton{TService,TImplementation}(IServiceCollection)"/>
+    /// so consumers can override individual services (notably <see cref="IWopiPermissionProvider"/>
+    /// and <see cref="IWopiAccessTokenService"/>) before or after this call.
     /// </summary>
-    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
     public static IServiceCollection AddWopi(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -23,22 +27,25 @@ public static class ServiceCollectionExtensions
         services.AddRouting(options => options.LowercaseUrls = true);
         services.AddAuthorizationCore();
 
-        // Add authorization handler
         services.AddSingleton<IAuthorizationHandler, WopiAuthorizationHandler>();
-        
+
         services.AddScoped<IWopiProofValidator, WopiProofValidator>();
         services.AddScoped<WopiOriginValidationActionFilter>();
         services.AddControllers()
-            .AddApplicationPart(typeof(ServiceCollectionExtensions).GetTypeInfo().Assembly) // Add controllers from this assembly
-            .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null); // Ensure PascalCase property name-style
+            .AddApplicationPart(typeof(ServiceCollectionExtensions).GetTypeInfo().Assembly)
+            .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null);
 
-        services.AddAuthentication(o => { o.DefaultScheme = AccessTokenDefaults.AUTHENTICATION_SCHEME; })
+        services.AddAuthentication(o => { o.DefaultScheme = WopiAuthenticationSchemes.AccessToken; })
             .AddTokenAuthentication(
-                AccessTokenDefaults.AUTHENTICATION_SCHEME,
-                AccessTokenDefaults.AUTHENTICATION_SCHEME,
-                options => { });
+                WopiAuthenticationSchemes.AccessToken,
+                WopiAuthenticationSchemes.AccessToken,
+                _ => { });
 
-        // default options
+        // Security pipeline defaults — overridable via DI.
+        services.AddOptions<WopiSecurityOptions>();
+        services.TryAddSingleton<IWopiAccessTokenService, JwtAccessTokenService>();
+        services.TryAddSingleton<IWopiPermissionProvider, DefaultWopiPermissionProvider>();
+
         services.AddOptions<WopiHostOptions>()
             .Configure(o =>
             {
@@ -49,10 +56,9 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Register services required by the WOPI host server.
+    /// Registers the WOPI host services and applies the supplied <see cref="WopiHostOptions"/>
+    /// configuration delegate.
     /// </summary>
-    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-    /// <param name="configureOptions">A delegate to configure <see cref="WopiHostOptions"/>.</param>
     public static IServiceCollection AddWopi(this IServiceCollection services, Action<WopiHostOptions> configureOptions)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -62,4 +68,20 @@ public static class ServiceCollectionExtensions
         services.Configure(configureOptions);
         return services;
     }
+
+    /// <summary>
+    /// Configures the WOPI access-token signing pipeline.
+    /// </summary>
+    /// <remarks>
+    /// Equivalent to <c>services.Configure&lt;WopiSecurityOptions&gt;(...)</c> but available
+    /// as a one-line option alongside <see cref="AddWopi(IServiceCollection)"/>.
+    /// </remarks>
+    public static IServiceCollection ConfigureWopiSecurity(this IServiceCollection services, Action<WopiSecurityOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configure);
+        services.Configure(configure);
+        return services;
+    }
+
 }

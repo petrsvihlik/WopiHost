@@ -13,150 +13,88 @@ namespace WopiHost.Core.Tests.Security.Authentication;
 
 public class AccessTokenHandlerTests
 {
-    private readonly Mock<IWopiSecurityHandler> _securityHandlerMock;
-    private readonly Mock<UrlEncoder> _urlEncoderMock;
-    private readonly AccessTokenHandler _accessTokenHandler;
-    private readonly AuthenticationScheme scheme;
+    private readonly Mock<IWopiAccessTokenService> _accessTokenServiceMock = new();
+    private readonly AccessTokenHandler _handler;
+    private readonly AuthenticationScheme _scheme;
 
     public AccessTokenHandlerTests()
     {
-        _securityHandlerMock = new Mock<IWopiSecurityHandler>();
         var options = new Mock<IOptionsMonitor<AccessTokenAuthenticationOptions>>();
-        options
-            .Setup(x => x.Get(It.IsAny<string>()))
-            .Returns(new AccessTokenAuthenticationOptions());
-        var logger = new Mock<ILogger<AccessTokenHandler>>();
+        options.Setup(x => x.Get(It.IsAny<string>())).Returns(new AccessTokenAuthenticationOptions());
         var loggerFactory = new Mock<ILoggerFactory>();
-        loggerFactory.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(logger.Object);
-        _urlEncoderMock = new Mock<UrlEncoder>();
+        loggerFactory.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(new Mock<ILogger<AccessTokenHandler>>().Object);
 
-        scheme = new AuthenticationScheme(
-            AccessTokenDefaults.AUTHENTICATION_SCHEME,
-            null,
-            typeof(AccessTokenHandler));
+        _scheme = new AuthenticationScheme(WopiAuthenticationSchemes.AccessToken, null, typeof(AccessTokenHandler));
+        _handler = new AccessTokenHandler(_accessTokenServiceMock.Object, options.Object, loggerFactory.Object, new Mock<UrlEncoder>().Object);
+    }
 
-        _accessTokenHandler = new AccessTokenHandler(
-            _securityHandlerMock.Object,
-            options.Object,
-            loggerFactory.Object,
-            _urlEncoderMock.Object
-        );
+    private static DefaultHttpContext BuildContext(string path, string? token)
+    {
+        var ctx = new DefaultHttpContext { Request = { Path = path } };
+        if (token is not null)
+        {
+            ctx.Request.Query = new QueryCollection(new Dictionary<string, StringValues>
+            {
+                { AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME, token }
+            });
+        }
+        return ctx;
     }
 
     [Fact]
-    public async Task HandleAuthenticateAsync_ShouldReturnNoResult_WhenNotWopiPath()
+    public async Task Returns_NoResult_When_Path_Is_Not_Wopi()
     {
-        // Arrange
-        var context = new DefaultHttpContext()
-        {
-            Request =
-            {
-                Path = "/whatever",
-            }
-        };
-        await _accessTokenHandler.InitializeAsync(scheme, context);
+        var context = BuildContext("/whatever", token: null);
+        await _handler.InitializeAsync(_scheme, context);
 
-        // Act
-        var result = await _accessTokenHandler.AuthenticateAsync();
+        var result = await _handler.AuthenticateAsync();
 
-        // Assert
         Assert.True(result.None);
     }
 
     [Fact]
-    public async Task HandleAuthenticateAsync_ShouldReturnSuccess_WhenTokenIsValid()
+    public async Task Fails_When_Token_Is_Missing()
     {
-        // Arrange
-        var token = "valid_token";
+        var context = BuildContext("/wopi/files/abc", token: null);
+        await _handler.InitializeAsync(_scheme, context);
+
+        var result = await _handler.AuthenticateAsync();
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task Succeeds_When_AccessTokenService_Validates()
+    {
+        const string token = "valid-token";
         var principal = new ClaimsPrincipal(new ClaimsIdentity("test"));
-        _securityHandlerMock
-            .Setup(x => x.GetPrincipal(token, default))
-            .ReturnsAsync(principal);
-        var context = new DefaultHttpContext()
-        {
-            Request =
-            {
-                Path = "/wopi",
-                Query = new QueryCollection(new Dictionary<string, StringValues>
-                {
-                    { AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME, token }
-                })
-            }
-        };
-        await _accessTokenHandler.InitializeAsync(scheme, context);
+        _accessTokenServiceMock
+            .Setup(x => x.ValidateAsync(token, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiAccessTokenValidationResult.Success(principal));
 
-        // Act
-        var result = await _accessTokenHandler.AuthenticateAsync();
+        var context = BuildContext("/wopi/files/abc", token);
+        await _handler.InitializeAsync(_scheme, context);
 
-        // Assert
+        var result = await _handler.AuthenticateAsync();
+
         Assert.True(result.Succeeded);
+        Assert.Same(principal, result.Principal);
     }
 
     [Fact]
-    public async Task HandleAuthenticateAsync_ShouldReturnFailure_WhenTokenIsInvalid()
+    public async Task Fails_When_AccessTokenService_Returns_Failure()
     {
-        // Arrange
-        var token = "invalid_token";
-        _securityHandlerMock
-            .Setup(x => x.GetPrincipal(token, default))
-            .ReturnsAsync((ClaimsPrincipal?)null);
-        var context = new DefaultHttpContext()
-        {
-            Request =
-            {
-                Query = new QueryCollection(new Dictionary<string, StringValues>
-                {
-                    { AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME, token }
-                })
-            }
-        };
-        await _accessTokenHandler.InitializeAsync(scheme, context);
+        const string token = "expired-token";
+        _accessTokenServiceMock
+            .Setup(x => x.ValidateAsync(token, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiAccessTokenValidationResult.Failure("expired"));
 
-        // Act
-        var result = await _accessTokenHandler.AuthenticateAsync();
+        var context = BuildContext("/wopi/files/abc", token);
+        await _handler.InitializeAsync(_scheme, context);
 
-        // Assert
+        var result = await _handler.AuthenticateAsync();
+
         Assert.False(result.Succeeded);
-    }
-
-    [Fact]
-    public async Task HandleAuthenticateAsync_ShouldReturnFailure_WhenTokenIsMissing()
-    {
-        // Arrange
-        var context = new DefaultHttpContext();
-        await _accessTokenHandler.InitializeAsync(scheme, context);
-
-        // Act
-        var result = await _accessTokenHandler.AuthenticateAsync();
-
-        // Assert
-        Assert.False(result.Succeeded);
-    }
-
-    [Fact]
-    public async Task HandleAuthenticateAsync_ShouldReturnFailure_WhenExceptionIsThrown()
-    {
-        // Arrange
-        var token = "valid_token";
-        _securityHandlerMock
-            .Setup(x => x.GetPrincipal(token, default))
-            .ThrowsAsync(new Exception("Test exception"));
-        var context = new DefaultHttpContext()
-        {
-            Request =
-            {
-                Query = new QueryCollection(new Dictionary<string, StringValues>
-                {
-                    { AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME, token }
-                })
-            }
-        };
-        await _accessTokenHandler.InitializeAsync(scheme, context);
-
-        // Act
-        var result = await _accessTokenHandler.AuthenticateAsync();
-
-        // Assert
-        Assert.False(result.Succeeded);
+        Assert.Equal("expired", result.Failure?.Message);
     }
 }

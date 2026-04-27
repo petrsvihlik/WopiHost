@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Routing;
@@ -15,7 +16,8 @@ namespace WopiHost.Validator.Pages;
 public class HostPageModel(
     IOptions<WopiOptions> wopiOptions,
     IWopiStorageProvider storageProvider,
-    IWopiSecurityHandler securityHandler,
+    IWopiAccessTokenService accessTokenService,
+    IWopiPermissionProvider permissionProvider,
     IDiscoverer discoverer,
     LinkGenerator linkGenerator) : PageModel
 {
@@ -39,15 +41,26 @@ public class HostPageModel(
 
         var file = await storageProvider.GetWopiResource<IWopiFile>(FileId, cancellationToken)
             ?? throw new FileNotFoundException($"File with ID '{FileId}' not found.");
-        var token = await securityHandler.GenerateAccessToken(wopiOptions.Value.UserId, file.Identifier, cancellationToken);
 
-        AccessToken = securityHandler.WriteToken(token);
-        var tokenDateOffset = new DateTimeOffset(token.ValidTo);
-        AccessTokenTtl = (tokenDateOffset - DateTimeOffset.UnixEpoch).TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
-        //TODO: fix
-        //ViewData["access_token_ttl"] = //token.ValidTo
+        var hostUser = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim(ClaimTypes.NameIdentifier, wopiOptions.Value.UserId),
+            new Claim(ClaimTypes.Name, wopiOptions.Value.UserId),
+        ], "validator"));
 
-        //http://dotnet-stuff.com/tutorials/aspnet-mvc/how-to-render-different-layout-in-asp-net-mvc
+        var permissions = await permissionProvider.GetFilePermissionsAsync(hostUser, file, cancellationToken);
+        var token = await accessTokenService.IssueAsync(new WopiAccessTokenRequest
+        {
+            UserId = wopiOptions.Value.UserId,
+            UserDisplayName = wopiOptions.Value.UserId,
+            UserEmail = wopiOptions.Value.UserId + "@domain.tld",
+            ResourceId = file.Identifier,
+            ResourceType = WopiResourceType.File,
+            FilePermissions = permissions,
+        }, cancellationToken);
+
+        AccessToken = token.Token;
+        AccessTokenTtl = token.ExpiresAt.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture);
 
         var extension = file.Extension.TrimStart('.');
         var wopiFileUrl = new Uri(

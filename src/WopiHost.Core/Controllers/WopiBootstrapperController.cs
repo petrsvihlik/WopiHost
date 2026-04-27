@@ -1,8 +1,8 @@
-﻿using System.Net.Mime;
+using System.Net.Mime;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Primitives;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
@@ -13,89 +13,102 @@ using WopiHost.Core.Security.Authentication;
 namespace WopiHost.Core.Controllers;
 
 /// <summary>
-/// Controller containing the bootstrap operation.
+/// Bootstrap operation per
+/// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap.
 /// </summary>
 /// <remarks>
-/// Creates an instance of <see cref="WopiBootstrapperController"/>.
+/// <para>
+/// Unlike the regular <c>/wopi/*</c> endpoints (which authenticate via the
+/// <c>access_token</c> query parameter), the bootstrapper is called by Office mobile clients
+/// with an OAuth2 Bearer token from the host's identity provider. Configure that scheme as
+/// <see cref="WopiAuthenticationSchemes.Bootstrap"/> and supply the IdP discovery URLs via the
+/// <c>WWW-Authenticate</c> challenge.
+/// </para>
 /// </remarks>
-/// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
-/// <param name="securityHandler">Security handler instance for performing security-related operations.</param>
-[Authorize]
+[Authorize(AuthenticationSchemes = WopiAuthenticationSchemes.Bootstrap)]
 [ApiController]
 [Route("wopibootstrapper")]
 [ServiceFilter(typeof(WopiOriginValidationActionFilter))]
 public class WopiBootstrapperController(
     IWopiStorageProvider storageProvider,
-    IWopiSecurityHandler securityHandler) : ControllerBase
+    IWopiAccessTokenService accessTokenService,
+    IWopiPermissionProvider permissionProvider) : ControllerBase
 {
     /// <summary>
-    /// Gets information about the root container.
+    /// Bootstrap entry point.
     /// </summary>
-    /// <returns></returns>
     [HttpPost]
     [Produces(MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetRootContainer(
         [FromHeader(Name = WopiHeaders.ECOSYSTEM_OPERATION)] string? ecosystemOperation = null,
         [FromHeader(Name = WopiHeaders.WOPI_SRC)] string? wopiSrc = null,
         CancellationToken cancellationToken = default)
-    //TODO: fix the path
     {
-        var authorizationHeader = HttpContext.Request.Headers.Authorization;
-        if (ValidateAuthorizationHeader(authorizationHeader))
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue(ClaimTypes.Upn)
+            ?? throw new InvalidOperationException("Bootstrap principal lacks an identifier claim.");
+
+        var bootstrapRoot = new BootstrapRootContainerInfo
         {
-            //TODO: supply user
-            var user = "Anonymous";
-
-            //TODO: implement bootstrap
-            var bootstrapRoot = new BootstrapRootContainerInfo
+            Bootstrap = new BootstrapInfo
             {
-                Bootstrap = new BootstrapInfo
-                {
-                    EcosystemUrl = Url.GetWopiSrc(WopiRouteNames.CheckEcosystem),
-                    SignInName = "",
-                    UserFriendlyName = "",
-                    UserId = ""
-                }
+                EcosystemUrl = Url.GetWopiSrc(WopiRouteNames.CheckEcosystem),
+                SignInName = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty,
+                UserFriendlyName = User.FindFirstValue(ClaimTypes.Name) ?? string.Empty,
+                UserId = userId,
+            }
+        };
+
+        if (ecosystemOperation == "GET_ROOT_CONTAINER")
+        {
+            var rootContainer = storageProvider.RootContainerPointer;
+            var token = await IssueAsync(userId, rootContainer.Identifier, WopiResourceType.Container, file: null, container: rootContainer, cancellationToken);
+            bootstrapRoot.RootContainerInfo = new RootContainerInfo
+            {
+                ContainerPointer = new ChildContainer(
+                    rootContainer.Name,
+                    Url.GetWopiSrc(WopiResourceType.Container, rootContainer.Identifier, token.Token))
             };
-            if (ecosystemOperation == "GET_ROOT_CONTAINER")
+        }
+        else if (ecosystemOperation == "GET_NEW_ACCESS_TOKEN")
+        {
+            ArgumentException.ThrowIfNullOrEmpty(wopiSrc);
+            var resourceId = GetIdFromUrl(wopiSrc);
+            var file = await storageProvider.GetWopiResource<IWopiFile>(resourceId, cancellationToken);
+            var token = await IssueAsync(userId, resourceId, WopiResourceType.File, file, container: null, cancellationToken);
+            bootstrapRoot.AccessTokenInfo = new AccessTokenInfo
             {
-                var resourceId = storageProvider.RootContainerPointer.Identifier;
-                var token = await securityHandler.GenerateAccessToken(user, resourceId, cancellationToken);
-
-                bootstrapRoot.RootContainerInfo = new RootContainerInfo
-                {
-                    ContainerPointer = new ChildContainer(
-                        storageProvider.RootContainerPointer.Name,
-                        Url.GetWopiSrc(WopiResourceType.Container, storageProvider.RootContainerPointer.Identifier, securityHandler.WriteToken(token)))
-                };
-            }
-            else if (ecosystemOperation == "GET_NEW_ACCESS_TOKEN")
-            {
-                ArgumentException.ThrowIfNullOrEmpty(wopiSrc);
-                var token = await securityHandler.GenerateAccessToken(user, GetIdFromUrl(wopiSrc), cancellationToken);
-
-                bootstrapRoot.AccessTokenInfo = new AccessTokenInfo
-                {
-                    AccessToken = securityHandler.WriteToken(token),
-                    AccessTokenExpiry = token.ValidTo.ToUnixTimestamp()
-                };
-            }
-            else
-            {
-                return new NotImplementedResult();
-            }
-            return new JsonResult(bootstrapRoot);
+                AccessToken = token.Token,
+                AccessTokenExpiry = token.ExpiresAt.ToUnixTimeSeconds(),
+            };
         }
         else
         {
-            //TODO: implement WWW-authentication header https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap#www-authenticate-response-header-format
-            var authorizationUri = "https://contoso.com/api/oauth2/authorize";
-            var tokenIssuanceUri = "https://contoso.com/api/oauth2/token";
-            var providerId = "tp_contoso";
-            var urlSchemes = Uri.EscapeDataString("{\"iOS\" : [\"contoso\",\"contoso - EMM\"], \"Android\" : [\"contoso\",\"contoso - EMM\"], \"UWP\": [\"contoso\",\"contoso - EMM\"]}");
-            Response.Headers.Append("WWW-Authenticate", $"Bearer authorization_uri=\"{authorizationUri}\",tokenIssuance_uri=\"{tokenIssuanceUri}\",providerId=\"{providerId}\", UrlSchemes=\"{urlSchemes}\"");
-            return new UnauthorizedResult();
+            return new NotImplementedResult();
         }
+        return new JsonResult(bootstrapRoot);
+    }
+
+    private async Task<WopiAccessToken> IssueAsync(
+        string userId,
+        string resourceId,
+        WopiResourceType resourceType,
+        IWopiFile? file,
+        IWopiFolder? container,
+        CancellationToken cancellationToken)
+    {
+        var filePerms = file is null ? WopiFilePermissions.None : await permissionProvider.GetFilePermissionsAsync(User, file, cancellationToken);
+        var containerPerms = container is null ? WopiContainerPermissions.None : await permissionProvider.GetContainerPermissionsAsync(User, container, cancellationToken);
+        return await accessTokenService.IssueAsync(new WopiAccessTokenRequest
+        {
+            UserId = userId,
+            UserDisplayName = User.FindFirstValue(ClaimTypes.Name),
+            UserEmail = User.FindFirstValue(ClaimTypes.Email),
+            ResourceId = resourceId,
+            ResourceType = resourceType,
+            FilePermissions = filePerms,
+            ContainerPermissions = containerPerms,
+        }, cancellationToken);
     }
 
     private static string GetIdFromUrl(string resourceUrl)
@@ -106,14 +119,6 @@ public class WopiBootstrapperController(
         {
             resourceId = resourceId[..queryIndex];
         }
-        resourceId = Uri.UnescapeDataString(resourceId);
-        return resourceId;
-    }
-
-    private static bool ValidateAuthorizationHeader(StringValues authorizationHeader)
-    {
-        //TODO: implement header validation https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getrootcontainer#sample-response
-        // http://stackoverflow.com/questions/31948426/oauth-bearer-token-authentication-is-not-passing-signature-validation
-        return true;
+        return Uri.UnescapeDataString(resourceId);
     }
 }
