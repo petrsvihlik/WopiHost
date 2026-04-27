@@ -145,7 +145,7 @@ public class WopiExtensionsTests
     }
 
     [Fact]
-    public async Task GetWopiCheckFileInfo_PopulatesFileUrl_WhenLinkGeneratorRegistered()
+    public async Task GetWopiCheckFileInfo_PopulatesFileUrl_WhenLinkGeneratorIsRegistered()
     {
         // Arrange
         var mockFile = new Mock<IWopiFile>();
@@ -174,7 +174,7 @@ public class WopiExtensionsTests
     }
 
     [Fact]
-    public async Task GetWopiCheckFileInfo_OnCheckFileInfo_CanOverrideFileUrl()
+    public async Task GetWopiCheckFileInfo_OverridesFileUrl_WhenOnCheckFileInfoSetsIt()
     {
         // Arrange
         var mockFile = new Mock<IWopiFile>();
@@ -204,12 +204,12 @@ public class WopiExtensionsTests
         // Act
         var result = await mockFile.Object.GetWopiCheckFileInfo(httpContext);
 
-        // Assert: host's override wins over framework default.
+        // Assert
         Assert.Equal(cdnUrl, result.FileUrl);
     }
 
     [Fact]
-    public async Task GetWopiCheckFileInfo_FileUrl_StaysNull_WhenLinkGeneratorMissing()
+    public async Task GetWopiCheckFileInfo_LeavesFileUrlNull_WhenLinkGeneratorIsMissing()
     {
         // Arrange
         var mockFile = new Mock<IWopiFile>();
