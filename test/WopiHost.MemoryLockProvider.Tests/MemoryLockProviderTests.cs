@@ -1,3 +1,6 @@
+using System.Collections.Concurrent;
+using System.Reflection;
+using WopiHost.Abstractions;
 using Xunit;
 
 namespace WopiHost.MemoryLockProvider.Tests;
@@ -77,5 +80,55 @@ public class MemoryLockProviderTests
         var lockExists = _lockProvider.TryGetLock(fileId, out var lockInfo);
         Assert.False(lockExists);
         Assert.Null(lockInfo);
+    }
+
+    [Fact]
+    public void AddLock_DuplicateFileId_ReturnsNull()
+    {
+        var fileId = $"dup-{Guid.NewGuid()}";
+        _lockProvider.AddLock(fileId, "first");
+
+        var second = _lockProvider.AddLock(fileId, "second");
+
+        Assert.Null(second);
+    }
+
+    [Fact]
+    public void RefreshLock_NoExistingLock_ReturnsFalse()
+    {
+        var fileId = $"missing-{Guid.NewGuid()}";
+
+        var result = _lockProvider.RefreshLock(fileId);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void TryGetLock_ExpiredLock_RemovesAndReturnsFalse()
+    {
+        // The provider's AddLock always stamps DateCreated with UtcNow, so the
+        // only way to seed an expired entry is to inject one directly into the
+        // private static dictionary backing the provider.
+        var fileId = $"expired-{Guid.NewGuid()}";
+        var locks = GetSharedLockDictionary();
+        locks[fileId] = new WopiLockInfo
+        {
+            FileId = fileId,
+            LockId = "stale",
+            DateCreated = DateTimeOffset.UtcNow.AddHours(-1),
+        };
+
+        var found = _lockProvider.TryGetLock(fileId, out _);
+
+        Assert.False(found);
+        Assert.False(locks.ContainsKey(fileId));
+    }
+
+    private static ConcurrentDictionary<string, WopiLockInfo> GetSharedLockDictionary()
+    {
+        var field = typeof(MemoryLockProvider)
+            .GetField("locks", BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("MemoryLockProvider.locks field not found");
+        return (ConcurrentDictionary<string, WopiLockInfo>)field.GetValue(null)!;
     }
 }
