@@ -70,4 +70,26 @@ public class WopiDiscovererProofKeyTests
         Assert.Null(keys.OldModulus);
         Assert.Null(keys.OldExponent);
     }
+
+    [Fact]
+    public async Task SupportsExtensionAsync_NetZoneWithoutName_FiltersOut()
+    {
+        // Discovery with a net-zone element missing the `name` attribute
+        // should be skipped by ValidateNetZone, leaving no apps to inspect.
+        var xml = XElement.Parse(
+            """
+            <wopi-discovery>
+                <net-zone>
+                    <app name="Excel">
+                        <action ext="xlsx" name="edit" urlsrc="http://owaserver/x/" />
+                    </app>
+                </net-zone>
+            </wopi-discovery>
+            """);
+        var sut = CreateSut(xml);
+
+        var supported = await sut.SupportsExtensionAsync("xlsx");
+
+        Assert.False(supported);
+    }
 }

@@ -196,18 +196,68 @@ public class HttpRequestExtensionsTests
         return request.Object;
     }
 
-    private static void AddProxyHeaders(HttpRequest request, string? forwardedProto = null, 
+    private static void AddProxyHeaders(HttpRequest request, string? forwardedProto = null,
         string? forwardedHost = null, string? forwardedPathBase = null)
     {
         var headers = request.Headers;
-        
+
         if (forwardedProto != null)
             headers["X-Forwarded-Proto"] = forwardedProto;
-        
+
         if (forwardedHost != null)
             headers["X-Forwarded-Host"] = forwardedHost;
-        
+
         if (forwardedPathBase != null)
             headers["X-Forwarded-PathBase"] = forwardedPathBase;
     }
-} 
+
+    [Fact]
+    public void GetAccessToken_FromQueryString_ReturnsToken()
+    {
+        var ctx = new DefaultHttpContext();
+        ctx.Request.QueryString = new QueryString("?access_token=from-query");
+
+        Assert.Equal("from-query", ctx.Request.GetAccessToken());
+    }
+
+    [Fact]
+    public async Task GetAccessToken_FromFormBody_ReturnsToken()
+    {
+        var ctx = new DefaultHttpContext();
+        ctx.Request.ContentType = "application/x-www-form-urlencoded";
+        var formContent = "access_token=from-form";
+        var bodyBytes = System.Text.Encoding.UTF8.GetBytes(formContent);
+        ctx.Request.Body = new MemoryStream(bodyBytes);
+        ctx.Request.ContentLength = bodyBytes.Length;
+        // Pre-warm the form so HasFormContentType + Form.TryGetValue work.
+        await ctx.Request.ReadFormAsync();
+
+        Assert.Equal("from-form", ctx.Request.GetAccessToken());
+    }
+
+    [Fact]
+    public void GetAccessToken_FromBearerHeader_ReturnsToken()
+    {
+        var ctx = new DefaultHttpContext();
+        ctx.Request.Headers["Authorization"] = "Bearer from-header";
+
+        Assert.Equal("from-header", ctx.Request.GetAccessToken());
+    }
+
+    [Fact]
+    public void GetAccessToken_FromNonBearerAuthorizationHeader_ReturnsEmpty()
+    {
+        var ctx = new DefaultHttpContext();
+        ctx.Request.Headers["Authorization"] = "Basic abc123";
+
+        Assert.Equal(string.Empty, ctx.Request.GetAccessToken());
+    }
+
+    [Fact]
+    public void GetAccessToken_NoTokenAnywhere_ReturnsEmpty()
+    {
+        var ctx = new DefaultHttpContext();
+
+        Assert.Equal(string.Empty, ctx.Request.GetAccessToken());
+    }
+}
