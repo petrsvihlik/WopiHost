@@ -71,4 +71,70 @@ public class InMemoryFileIdsTests : IDisposable
         Assert.True(_sut.TryGetPath(fileId, out var resolvedPath));
         Assert.Equal(filePath, resolvedPath);
     }
+
+    [Fact]
+    public void WasScanned_FalseUntilScan()
+    {
+        Assert.False(_sut.WasScanned);
+        _sut.ScanAll(_tempDir.FullName);
+        Assert.True(_sut.WasScanned);
+    }
+
+    [Fact]
+    public void GetPath_KnownId_ReturnsPath()
+    {
+        var path = Path.Combine(_tempDir.FullName, "doc.docx");
+        var id = _sut.AddFile(path);
+
+        Assert.Equal(path, _sut.GetPath(id));
+    }
+
+    [Fact]
+    public void GetPath_UnknownId_ReturnsNull()
+    {
+        Assert.Null(_sut.GetPath("unknown-id"));
+    }
+
+    [Fact]
+    public void GetPath_NullOrEmptyId_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => _sut.GetPath(""));
+        Assert.Throws<ArgumentNullException>(() => _sut.GetPath(null!));
+    }
+
+    [Fact]
+    public void RemoveId_RemovesEntry()
+    {
+        var path = Path.Combine(_tempDir.FullName, "doc.docx");
+        var id = _sut.AddFile(path);
+
+        _sut.RemoveId(id);
+
+        Assert.False(_sut.TryGetPath(id, out _));
+    }
+
+    [Fact]
+    public void UpdateFile_ChangesPathForExistingId()
+    {
+        var oldPath = Path.Combine(_tempDir.FullName, "old.docx");
+        var newPath = Path.Combine(_tempDir.FullName, "new.docx");
+        var id = _sut.AddFile(oldPath);
+
+        _sut.UpdateFile(id, newPath);
+
+        Assert.True(_sut.TryGetPath(id, out var resolved));
+        Assert.Equal(newPath, resolved);
+    }
+
+    [Fact]
+    public void ScanAll_WopiTestFile_GetsWopitestIdentifier()
+    {
+        var path = Path.Combine(_tempDir.FullName, "test.wopitest");
+        File.WriteAllText(path, string.Empty);
+
+        _sut.ScanAll(_tempDir.FullName);
+
+        Assert.True(_sut.TryGetPath("WOPITEST", out var resolved));
+        Assert.Equal(path, resolved);
+    }
 }
