@@ -120,8 +120,10 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         }
         var container = await GetWopiResource<IWopiFolder>(identifier, cancellationToken)
             ?? throw new DirectoryNotFoundException($"Directory '{identifier}' not found.");
-        if (container.Identifier == RootContainerPointer.Identifier && typeof(T) == typeof(IWopiFile))
+        if (typeof(T) == typeof(IWopiFile))
         {
+            // For files, the immediate parent container is always part of the
+            // ancestor list (whether it is the root or a nested folder).
             result.Add(container);
         }
 
@@ -222,7 +224,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
                 var counter = 1;
                 while (File.Exists(Path.Combine(fullPath, newName)))
                 {
-                    newName = $"{Path.GetFileNameWithoutExtension(name)} ({counter++}) {Path.GetExtension(name)}";
+                    newName = $"{Path.GetFileNameWithoutExtension(name)} ({counter++}){Path.GetExtension(name)}";
                 }
                 return newName;
             }
@@ -259,7 +261,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     {
         if (!fileIds.TryGetPath(containerId, out var fullPath))
         {
-            throw new DirectoryNotFoundException($"Directory '{containerId}' found.");
+            throw new DirectoryNotFoundException($"Directory '{containerId}' not found.");
         }
         var newPath = Path.Combine(fullPath, name);
         if (File.Exists(newPath))
@@ -377,7 +379,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         {
             if (!fileIds.TryGetPath(identifier, out var fullPath))
             {
-                throw new FileNotFoundException($"Directory '{identifier}'not found.");
+                throw new DirectoryNotFoundException($"Directory '{identifier}' not found.");
             }
             var parentPath = Path.GetDirectoryName(fullPath)
                 ?? throw new DirectoryNotFoundException("Parent directory not found");
@@ -417,7 +419,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     {
         if (!fileIds.TryGetPath(identifier, out var folderPath))
         {
-            throw new DirectoryNotFoundException($"File '{identifier}' not found");
+            throw new DirectoryNotFoundException($"Folder '{identifier}' not found");
         }
         var parentPath = Path.GetDirectoryName(folderPath)
             ?? throw new DirectoryNotFoundException("Parent directory not found");

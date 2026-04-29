@@ -16,15 +16,12 @@ public class ServiceCollectionExtensionsTests
     [Fact]
     public void AddWopi_RegistersIMemoryCache()
     {
-        // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
 
-        // Act
         services.AddWopi();
         var provider = services.BuildServiceProvider();
 
-        // Assert
         var cache = provider.GetService<IMemoryCache>();
         Assert.NotNull(cache);
     }
@@ -32,15 +29,12 @@ public class ServiceCollectionExtensionsTests
     [Fact]
     public void AddWopi_ConfiguresLowercaseUrls()
     {
-        // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
 
-        // Act
         services.AddWopi();
         var provider = services.BuildServiceProvider();
 
-        // Assert
         var routeOptions = provider.GetRequiredService<IOptions<RouteOptions>>().Value;
         Assert.True(routeOptions.LowercaseUrls);
     }

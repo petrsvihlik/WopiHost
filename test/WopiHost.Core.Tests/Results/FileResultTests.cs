@@ -26,15 +26,12 @@ public class FileResultTests
     [Fact]
     public async Task ExecuteResultAsync_WithByteArray_WritesContentToResponseBody()
     {
-        // Arrange
         var expected = "hello cobalt"u8.ToArray();
         var result = new FileResult(expected, MediaTypeNames.Application.Octet);
         var context = CreateActionContext();
 
-        // Act
         await result.ExecuteResultAsync(context);
 
-        // Assert
         var actual = await GetResponseBytes(context);
         Assert.Equal(expected, actual);
         Assert.Equal(MediaTypeNames.Application.Octet, context.HttpContext.Response.ContentType);
@@ -43,16 +40,13 @@ public class FileResultTests
     [Fact]
     public async Task ExecuteResultAsync_WithStream_WritesContentToResponseBody()
     {
-        // Arrange
         var expected = "stream content"u8.ToArray();
         var sourceStream = new MemoryStream(expected);
         var result = new FileResult(sourceStream, MediaTypeNames.Application.Octet);
         var context = CreateActionContext();
 
-        // Act
         await result.ExecuteResultAsync(context);
 
-        // Assert
         var actual = await GetResponseBytes(context);
         Assert.Equal(expected, actual);
         Assert.Equal(MediaTypeNames.Application.Octet, context.HttpContext.Response.ContentType);
@@ -61,17 +55,14 @@ public class FileResultTests
     [Fact]
     public async Task ExecuteResultAsync_WithSeekableStream_ResetsPositionBeforeCopying()
     {
-        // Arrange
         var expected = "seekable"u8.ToArray();
         var sourceStream = new MemoryStream(expected);
         sourceStream.Seek(sourceStream.Length, SeekOrigin.Begin); // move past content
         var result = new FileResult(sourceStream, MediaTypeNames.Application.Octet);
         var context = CreateActionContext();
 
-        // Act
         await result.ExecuteResultAsync(context);
 
-        // Assert
         var actual = await GetResponseBytes(context);
         Assert.Equal(expected, actual);
     }
@@ -79,14 +70,11 @@ public class FileResultTests
     [Fact]
     public async Task ExecuteResultAsync_WithEmptyByteArray_WritesEmptyResponse()
     {
-        // Arrange
         var result = new FileResult([], MediaTypeNames.Application.Octet);
         var context = CreateActionContext();
 
-        // Act
         await result.ExecuteResultAsync(context);
 
-        // Assert
         var actual = await GetResponseBytes(context);
         Assert.Empty(actual);
     }

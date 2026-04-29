@@ -10,7 +10,6 @@ public class HttpHeaderAttributeTests
     [Fact]
     public void Accept_HeaderMatches_ReturnsTrue()
     {
-        // Arrange
         var headerName = "X-Test-Header";
         var headerValue = "TestValue";
         var attribute = new HttpHeaderAttribute(headerName, headerValue);
@@ -24,17 +23,14 @@ public class HttpHeaderAttributeTests
             RouteContext = routeContext
         };
 
-        // Act
         var result = attribute.Accept(actionConstraintContext);
 
-        // Assert
         Assert.True(result);
     }
 
     [Fact]
     public void Accept_HeaderDoesNotMatch_ReturnsFalse()
     {
-        // Arrange
         var headerName = "X-Test-Header";
         var headerValue = "TestValue";
         var attribute = new HttpHeaderAttribute(headerName, headerValue);
@@ -48,17 +44,14 @@ public class HttpHeaderAttributeTests
             RouteContext = routeContext
         };
 
-        // Act
         var result = attribute.Accept(actionConstraintContext);
 
-        // Assert
         Assert.False(result);
     }
 
     [Fact]
     public void Accept_HeaderNotPresent_ReturnsFalse()
     {
-        // Arrange
         var headerName = "X-Test-Header";
         var headerValue = "TestValue";
         var attribute = new HttpHeaderAttribute(headerName, headerValue);
@@ -71,10 +64,8 @@ public class HttpHeaderAttributeTests
             RouteContext = routeContext
         };
 
-        // Act
         var result = attribute.Accept(actionConstraintContext);
 
-        // Assert
         Assert.False(result);
     }
 }
