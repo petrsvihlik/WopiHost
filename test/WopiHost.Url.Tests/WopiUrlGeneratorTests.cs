@@ -21,13 +21,10 @@ public class WopiUrlGeneratorTests
     [InlineData("docx", "http://wopihost:5000/wopi/files/test.docx", WopiActionEnum.View, "http://owaserver/wv/wordviewerframe.aspx?&WOPISrc=http%3A%2F%2Fwopihost%3A5000%2Fwopi%2Ffiles%2Ftest.docx")]
     public async Task GetFileUrlAsync_WithoutAdditionalSettings_ReturnsExpectedUrl(string extension, string wopiFileUrl, WopiActionEnum action, string expectedValue)
     {
-        // Arrange
         var urlGenerator = new WopiUrlBuilder(_discoverer);
 
-        // Act
         var result = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiFileUrl), action);
 
-        // Assert
         Assert.Equal(expectedValue, result);
     }
 
@@ -36,14 +33,11 @@ public class WopiUrlGeneratorTests
     [InlineData("docx", "http://wopihost:5000/wopi/files/test.docx", WopiActionEnum.View, "http://owaserver/wv/wordviewerframe.aspx?ui=en-US&WOPISrc=http%3A%2F%2Fwopihost%3A5000%2Fwopi%2Ffiles%2Ftest.docx")]
     public async Task GetFileUrlAsync_WithAdditionalSettings_ReturnsExpectedUrl(string extension, string wopiFileUrl, WopiActionEnum action, string expectedValue)
     {
-        // Arrange
         var settings = new WopiUrlSettings { UiLlcc = new CultureInfo("en-US") };
         var urlGenerator = new WopiUrlBuilder(_discoverer, settings);
 
-        // Act
         var result = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiFileUrl), action);
 
-        // Assert
         Assert.Equal(expectedValue, result);
     }
 
@@ -51,20 +45,16 @@ public class WopiUrlGeneratorTests
     [InlineData("html", "http://wopihost:5000/wopi/files/test.xlsx", WopiActionEnum.Edit, null)]
     public async Task GetFileUrlAsync_UnknownTemplate_ReturnsNull(string extension, string wopiFileUrl, WopiActionEnum action, string? expectedValue)
     {
-        // Arrange
         var urlGenerator = new WopiUrlBuilder(_discoverer);
 
-        // Act
         var result = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiFileUrl), action);
 
-        // Assert
         Assert.Equal(expectedValue, result);
     }
 
     [Fact]
     public void WopiUrlSettings_AssignedProperties_ExposeSameValues()
     {
-        // Arrange
         var businessUser = new Random(DateTime.Now.Millisecond).Next();
         var uiLlcc = new CultureInfo("en-US");
         var dcLlcc = new CultureInfo("es-ES");
@@ -81,7 +71,6 @@ public class WopiUrlGeneratorTests
         var wopiSource = "c:\\doc.docx";
         var validatorTestCategory = ValidatorTestCategoryEnum.All;
 
-        // Act
         var settings = new WopiUrlSettings()
         {
             BusinessUser = businessUser,
@@ -101,7 +90,6 @@ public class WopiUrlGeneratorTests
             ValidatorTestCategory = validatorTestCategory
         };
 
-        // Assert
         Assert.Equal(15, settings.Count);
         Assert.Equal(businessUser, settings.BusinessUser);
         Assert.Equal(uiLlcc, settings.UiLlcc);

@@ -15,31 +15,25 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetEncodedSha256_ReturnsBase64Checksum_WhenChecksumIsProvided()
     {
-        // Arrange
         var mockFile = new Mock<IWopiFile>();
         var checksum = new byte[] { 1, 2, 3, 4, 5 };
         mockFile.Setup(f => f.Checksum).Returns(checksum);
 
-        // Act
         var result = await mockFile.Object.GetEncodedSha256();
 
-        // Assert
         Assert.Equal(Convert.ToBase64String(checksum), result);
     }
 
     [Fact]
     public async Task GetEncodedSha256_CalculatesChecksum_WhenChecksumIsNotProvided()
     {
-        // Arrange
         var mockFile = new Mock<IWopiFile>();
         mockFile.Setup(f => f.Checksum).Returns((byte[]?)null);
         var stream = new MemoryStream([1, 2, 3, 4, 5]);
         mockFile.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(stream);
 
-        // Act
         var result = await mockFile.Object.GetEncodedSha256();
 
-        // Assert
         var stream2 = new MemoryStream([1, 2, 3, 4, 5]);
         var expectedChecksum = await SHA256.Create().ComputeHashAsync(stream2);
         Assert.Equal(Convert.ToBase64String(expectedChecksum), result);
@@ -48,7 +42,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckFileInfo_ReturnsCorrectInfo()
     {
-        // Arrange
         var mockFile = new Mock<IWopiFile>();
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
@@ -81,10 +74,8 @@ public class WopiExtensionsTests
             ServiceScopeFactory = TestUtils.CreateServiceScope(),
         };
 
-        // Act
         var result = await mockFile.Object.GetWopiCheckFileInfo(httpContext, capabilities, "userInfo text");
 
-        // Assert
         Assert.Equal("owner", result.OwnerId);
         Assert.Equal("test.txt", result.BaseFileName);
         Assert.Equal(".txt", result.FileExtension);
@@ -113,7 +104,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckFileInfo_WithWritableStorageProvider_ReturnsCorrectInfo()
     {
-        // Arrange
         var mockFile = new Mock<IWopiFile>();
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
@@ -129,10 +119,8 @@ public class WopiExtensionsTests
             ServiceScopeFactory = TestUtils.CreateServiceScope(writableStorageProvider.Object),
         };
 
-        // Act
         var result = await mockFile.Object.GetWopiCheckFileInfo(httpContext);
 
-        // Assert
         Assert.Equal(13, result.FileNameMaxLength);
     }
 
@@ -147,7 +135,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckFileInfo_PopulatesFileUrl_WhenLinkGeneratorIsRegistered()
     {
-        // Arrange
         var mockFile = new Mock<IWopiFile>();
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
@@ -165,10 +152,8 @@ public class WopiExtensionsTests
         httpContext.Request.Scheme = "https";
         httpContext.Request.Host = new HostString("localhost");
 
-        // Act
         var result = await mockFile.Object.GetWopiCheckFileInfo(httpContext);
 
-        // Assert
         Assert.NotNull(result.FileUrl);
         Assert.Equal(expected, result.FileUrl.ToString());
     }
@@ -176,7 +161,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckFileInfo_OverridesFileUrl_WhenOnCheckFileInfoSetsIt()
     {
-        // Arrange
         var mockFile = new Mock<IWopiFile>();
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
@@ -201,17 +185,14 @@ public class WopiExtensionsTests
         httpContext.Request.Scheme = "https";
         httpContext.Request.Host = new HostString("localhost");
 
-        // Act
         var result = await mockFile.Object.GetWopiCheckFileInfo(httpContext);
 
-        // Assert
         Assert.Equal(cdnUrl, result.FileUrl);
     }
 
     [Fact]
     public async Task GetWopiCheckFileInfo_LeavesFileUrlNull_WhenLinkGeneratorIsMissing()
     {
-        // Arrange
         var mockFile = new Mock<IWopiFile>();
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
@@ -224,17 +205,14 @@ public class WopiExtensionsTests
             ServiceScopeFactory = TestUtils.CreateServiceScope(),
         };
 
-        // Act
         var result = await mockFile.Object.GetWopiCheckFileInfo(httpContext);
 
-        // Assert
         Assert.Null(result.FileUrl);
     }
 
     [Fact]
     public async Task GetWopiCheckFileInfo_CallsOnCheckFileInfoEvent()
     {
-        // Arrange
         var mockFile = new Mock<IWopiFile>();
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
@@ -254,17 +232,14 @@ public class WopiExtensionsTests
             ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(wopiHostOptions),
         };
 
-        // Act
         var result = await mockFile.Object.GetWopiCheckFileInfo(httpContext);
 
-        // Assert
         Assert.True(eventFired);
     }
 
     [Fact]
     public async Task GetWopiCheckFileInfo_WithAuthenticatedUser()
     {
-        // Arrange
         var mockFile = new Mock<IWopiFile>();
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
@@ -287,10 +262,8 @@ public class WopiExtensionsTests
                 ], "test auth scheme")),
         };
 
-        // Act
         var result = await mockFile.Object.GetWopiCheckFileInfo(httpContext);
 
-        // Assert
         Assert.Equal("userId", result.UserId);
         Assert.Equal("userId", result.HostAuthenticationId);
         Assert.Equal("test", result.UserFriendlyName);
@@ -309,7 +282,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckFolderInfo_ReturnsAnonymousUser_WhenNotAuthenticated()
     {
-        // Arrange
         var mockFolder = new Mock<IWopiFolder>();
         mockFolder.Setup(f => f.Name).Returns("MyFolder");
         var httpContext = new DefaultHttpContext()
@@ -317,10 +289,8 @@ public class WopiExtensionsTests
             ServiceScopeFactory = TestUtils.CreateServiceScope(),
         };
 
-        // Act
         var result = await mockFolder.Object.GetWopiCheckFolderInfo(httpContext);
 
-        // Assert
         Assert.Equal("MyFolder", result.FolderName);
         Assert.True(result.IsAnonymousUser);
         Assert.Null(result.UserId);
@@ -330,7 +300,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckFolderInfo_WithAuthenticatedUser()
     {
-        // Arrange
         var mockFolder = new Mock<IWopiFolder>();
         mockFolder.Setup(f => f.Name).Returns("MyFolder");
         var httpContext = new DefaultHttpContext()
@@ -344,10 +313,8 @@ public class WopiExtensionsTests
                 ], "test auth scheme")),
         };
 
-        // Act
         var result = await mockFolder.Object.GetWopiCheckFolderInfo(httpContext);
 
-        // Assert
         Assert.Equal("userId42", result.UserId);
         Assert.Equal("Jane Doe", result.UserFriendlyName);
         Assert.False(result.IsAnonymousUser);
@@ -356,7 +323,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckFolderInfo_CallsOnCheckFolderInfoEvent()
     {
-        // Arrange
         var mockFolder = new Mock<IWopiFolder>();
         mockFolder.Setup(f => f.Name).Returns("MyFolder");
         var eventFired = false;
@@ -397,10 +363,8 @@ public class WopiExtensionsTests
             ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(wopiHostOptions),
         };
 
-        // Act
         var result = await mockFolder.Object.GetWopiCheckFolderInfo(httpContext);
 
-        // Assert
         Assert.True(eventFired);
         Assert.Equal("owner1", result.OwnerId);
         Assert.True(result.UserCanWrite);
@@ -419,7 +383,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckContainerInfo_CallsOnCheckContainerInfoEvent()
     {
-        // Arrange
         var mockFolder = new Mock<IWopiFolder>();
         mockFolder.Setup(f => f.Name).Returns("test");
         var mockSecurityHandler = new Mock<IWopiPermissionProvider>();
@@ -438,10 +401,8 @@ public class WopiExtensionsTests
             ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>, IWopiPermissionProvider>(wopiHostOptions, mockSecurityHandler.Object),
         };
 
-        // Act
         var result = await mockFolder.Object.GetWopiCheckContainerInfo(httpContext);
 
-        // Assert
         Assert.Equal("test", result.Name);
         Assert.True(eventFired);
     }
@@ -449,7 +410,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckContainerInfo_WithAllPermissions_ReturnsAllTrue()
     {
-        // Arrange
         var mockFolder = new Mock<IWopiFolder>();
         mockFolder.Setup(f => f.Name).Returns("MyContainer");
         var mockSecurityHandler = new Mock<IWopiPermissionProvider>();
@@ -465,10 +425,8 @@ public class WopiExtensionsTests
             ServiceScopeFactory = TestUtils.CreateServiceScope(mockSecurityHandler.Object),
         };
 
-        // Act
         var result = await mockFolder.Object.GetWopiCheckContainerInfo(httpContext);
 
-        // Assert
         Assert.Equal("MyContainer", result.Name);
         Assert.True(result.UserCanCreateChildContainer);
         Assert.True(result.UserCanCreateChildFile);
@@ -480,7 +438,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckContainerInfo_WithNoPermissions_ReturnsAllFalse()
     {
-        // Arrange
         var mockFolder = new Mock<IWopiFolder>();
         mockFolder.Setup(f => f.Name).Returns("RestrictedContainer");
         var mockSecurityHandler = new Mock<IWopiPermissionProvider>();
@@ -492,10 +449,8 @@ public class WopiExtensionsTests
             ServiceScopeFactory = TestUtils.CreateServiceScope(mockSecurityHandler.Object),
         };
 
-        // Act
         var result = await mockFolder.Object.GetWopiCheckContainerInfo(httpContext);
 
-        // Assert
         Assert.Equal("RestrictedContainer", result.Name);
         Assert.False(result.UserCanCreateChildContainer);
         Assert.False(result.UserCanCreateChildFile);
@@ -506,7 +461,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckContainerInfo_WithPartialPermissions_ReturnsCorrectFlags()
     {
-        // Arrange
         var mockFolder = new Mock<IWopiFolder>();
         mockFolder.Setup(f => f.Name).Returns("PartialContainer");
         var mockSecurityHandler = new Mock<IWopiPermissionProvider>();
@@ -518,10 +472,8 @@ public class WopiExtensionsTests
             ServiceScopeFactory = TestUtils.CreateServiceScope(mockSecurityHandler.Object),
         };
 
-        // Act
         var result = await mockFolder.Object.GetWopiCheckContainerInfo(httpContext);
 
-        // Assert
         Assert.False(result.UserCanCreateChildContainer);
         Assert.True(result.UserCanCreateChildFile);
         Assert.False(result.UserCanDelete);
@@ -531,7 +483,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckFileInfo_WithAllPermissions_ReturnsAllTrue()
     {
-        // Arrange
         var mockFile = new Mock<IWopiFile>();
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
@@ -562,10 +513,8 @@ public class WopiExtensionsTests
                 ], "test auth scheme")),
         };
 
-        // Act
         var result = await mockFile.Object.GetWopiCheckFileInfo(httpContext);
 
-        // Assert
         Assert.True(result.ReadOnly);
         Assert.True(result.RestrictedWebViewOnly);
         Assert.True(result.UserCanAttend);
@@ -579,7 +528,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckContainerInfo_ThrowsOnNullContainer()
     {
-        // Arrange
         IWopiFolder? container = null;
         var httpContext = new DefaultHttpContext();
 
@@ -590,7 +538,6 @@ public class WopiExtensionsTests
     [Fact]
     public async Task GetWopiCheckContainerInfo_ThrowsOnNullHttpContext()
     {
-        // Arrange
         var mockFolder = new Mock<IWopiFolder>();
 
         // Act & Assert

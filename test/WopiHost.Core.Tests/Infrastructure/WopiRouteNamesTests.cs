@@ -31,11 +31,9 @@ public class WopiRouteNamesTests
     [InlineData(WopiRouteNames.CheckEcosystem, "wopi/Ecosystem")]
     public void NamedRoute_HasExpectedTemplate(string routeName, string expectedTemplate)
     {
-        // Act
         var descriptor = actionDescriptors
             .FirstOrDefault(d => d.AttributeRouteInfo?.Name == routeName);
 
-        // Assert
         Assert.NotNull(descriptor);
         Assert.Equal(expectedTemplate, descriptor.AttributeRouteInfo!.Template);
     }

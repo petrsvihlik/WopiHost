@@ -48,32 +48,26 @@ public class FoldersControllerTests
     [Fact]
     public async Task CheckFolderInfo_ReturnsNotFound_WhenFolderDoesNotExist()
     {
-        // Arrange
         storageProviderMock
             .Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
-        // Act
         var result = await _controller.CheckFolderInfo("nonexistent");
 
-        // Assert
         Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]
     public async Task CheckFolderInfo_ReturnsFolderInfo_WhenFolderExists()
     {
-        // Arrange
         var folder = new Mock<IWopiFolder>();
         folder.Setup(f => f.Name).Returns("TestFolder");
         storageProviderMock
             .Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => folder.Object);
 
-        // Act
         var result = await _controller.CheckFolderInfo("existing");
 
-        // Assert
         var jsonResult = Assert.IsType<JsonResult<WopiCheckFolderInfo>>(result);
         var checkFolderInfo = Assert.IsType<WopiCheckFolderInfo>(jsonResult.Value);
         Assert.Equal("TestFolder", checkFolderInfo.FolderName);
@@ -82,22 +76,18 @@ public class FoldersControllerTests
     [Fact]
     public async Task EnumerateChildren_ReturnsNotFound_WhenFolderDoesNotExist()
     {
-        // Arrange
         storageProviderMock
             .Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
-        // Act
         var result = await _controller.EnumerateChildren("nonexistent");
 
-        // Assert
         Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]
     public async Task EnumerateChildren_ReturnsEmptyList_WhenNoFiles()
     {
-        // Arrange
         var folderId = "folder";
         storageProviderMock
             .Setup(sp => sp.GetWopiResource<IWopiFolder>(folderId, It.IsAny<CancellationToken>()))
@@ -106,10 +96,8 @@ public class FoldersControllerTests
             .Setup(sp => sp.GetWopiFiles(folderId, null, It.IsAny<CancellationToken>()))
             .Returns(AsyncEnumerable.Empty<IWopiFile>());
 
-        // Act
         var result = await _controller.EnumerateChildren(folderId) as JsonResult;
 
-        // Assert
         Assert.NotNull(result);
         var value = result.Value!;
         var childFiles = value.GetType().GetProperty("ChildFiles")?.GetValue(value) as IEnumerable<ChildFile>;
@@ -120,7 +108,6 @@ public class FoldersControllerTests
     [Fact]
     public async Task EnumerateChildren_ReturnsFiles()
     {
-        // Arrange
         var folderId = "folder";
         var fileMock = new Mock<IWopiFile>();
         fileMock.Setup(f => f.Name).Returns("file");
@@ -136,10 +123,8 @@ public class FoldersControllerTests
             .Setup(sp => sp.GetWopiFiles(folderId, null, It.IsAny<CancellationToken>()))
             .Returns(new[] { fileMock.Object }.ToAsyncEnumerable());
 
-        // Act
         var result = await _controller.EnumerateChildren(folderId) as JsonResult;
 
-        // Assert
         Assert.NotNull(result);
         var value = result.Value!;
         var childFiles = value.GetType().GetProperty("ChildFiles")?.GetValue(value) as IEnumerable<ChildFile>;
@@ -150,7 +135,6 @@ public class FoldersControllerTests
     [Fact]
     public async Task EnumerateChildren_FiltersFilesByExtension()
     {
-        // Arrange
         var folderId = "folder";
         var fileMock1 = new Mock<IWopiFile>();
         fileMock1.Setup(f => f.Name).Returns("notebook1");
@@ -173,10 +157,8 @@ public class FoldersControllerTests
             .Setup(sp => sp.GetWopiFiles(folderId, null, It.IsAny<CancellationToken>()))
             .Returns(new[] { fileMock1.Object, fileMock2.Object }.ToAsyncEnumerable());
 
-        // Act
         var result = await _controller.EnumerateChildren(folderId, ".one") as JsonResult;
 
-        // Assert
         Assert.NotNull(result);
         var value = result.Value!;
         var childFiles = (value.GetType().GetProperty("ChildFiles")?.GetValue(value) as IEnumerable<ChildFile>)?.ToList();

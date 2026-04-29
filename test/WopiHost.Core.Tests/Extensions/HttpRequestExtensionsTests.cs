@@ -10,7 +10,6 @@ public class HttpRequestExtensionsTests
     [Fact]
     public void GetProxyAwareRequestUrl_WithoutProxyHeaders_ReturnsStandardUrl()
     {
-        // Arrange
         var request = CreateMockRequest(
             scheme: "https",
             host: "example.com",
@@ -19,17 +18,14 @@ public class HttpRequestExtensionsTests
             queryString: "?access_token=123"
         );
 
-        // Act
         var result = request.GetProxyAwareRequestUrl();
 
-        // Assert
         Assert.Equal("https://example.com/api/wopi/files?access_token=123", result);
     }
 
     [Fact]
     public void GetProxyAwareRequestUrl_WithProxyHeaders_UsesProxyValues()
     {
-        // Arrange
         var request = CreateMockRequest(
             scheme: "http",
             host: "internal.server",
@@ -43,17 +39,14 @@ public class HttpRequestExtensionsTests
             forwardedHost: "proxy.example.com", 
             forwardedPathBase: "/external");
 
-        // Act
         var result = request.GetProxyAwareRequestUrl();
 
-        // Assert
         Assert.Equal("https://proxy.example.com/external/wopi/files?access_token=123", result);
     }
 
     [Fact]
     public void GetProxyAwareRequestUrl_WithPartialProxyHeaders_UsesProxyAndOriginalValues()
     {
-        // Arrange
         var request = CreateMockRequest(
             scheme: "http",
             host: "internal.server",
@@ -67,17 +60,14 @@ public class HttpRequestExtensionsTests
             forwardedProto: "https", 
             forwardedHost: "proxy.example.com");
 
-        // Act
         var result = request.GetProxyAwareRequestUrl();
 
-        // Assert
         Assert.Equal("https://proxy.example.com/internal/wopi/files?access_token=123", result);
     }
 
     [Fact]
     public void GetProxyAwareRequestUrl_WithEmptyPathBase_HandlesCorrectly()
     {
-        // Arrange
         var request = CreateMockRequest(
             scheme: "https",
             host: "example.com",
@@ -86,17 +76,14 @@ public class HttpRequestExtensionsTests
             queryString: "?access_token=123"
         );
 
-        // Act
         var result = request.GetProxyAwareRequestUrl();
 
-        // Assert
         Assert.Equal("https://example.com/wopi/files?access_token=123", result);
     }
 
     [Fact]
     public void GetProxyAwareRequestUrl_WithoutQueryString_HandlesCorrectly()
     {
-        // Arrange
         var request = CreateMockRequest(
             scheme: "https",
             host: "example.com",
@@ -105,17 +92,14 @@ public class HttpRequestExtensionsTests
             queryString: ""
         );
 
-        // Act
         var result = request.GetProxyAwareRequestUrl();
 
-        // Assert
         Assert.Equal("https://example.com/api/wopi/files", result);
     }
 
     [Fact]
     public void GetProxyAwareRequestUrl_WithRootPath_HandlesCorrectly()
     {
-        // Arrange
         var request = CreateMockRequest(
             scheme: "https",
             host: "example.com",
@@ -124,17 +108,14 @@ public class HttpRequestExtensionsTests
             queryString: ""
         );
 
-        // Act
         var result = request.GetProxyAwareRequestUrl();
 
-        // Assert
         Assert.Equal("https://example.com/", result);
     }
 
     [Fact]
     public void GetProxyAwareRequestUrl_WithComplexPath_HandlesCorrectly()
     {
-        // Arrange
         var request = CreateMockRequest(
             scheme: "https",
             host: "example.com",
@@ -143,17 +124,14 @@ public class HttpRequestExtensionsTests
             queryString: "?access_token=abc&version=1"
         );
 
-        // Act
         var result = request.GetProxyAwareRequestUrl();
 
-        // Assert
         Assert.Equal("https://example.com/wopi-host/wopi/files/123/contents?access_token=abc&version=1", result);
     }
 
     [Fact]
     public void GetProxyAwareRequestUrl_WithNullValues_HandlesGracefully()
     {
-        // Arrange
         var request = CreateMockRequest(
             scheme: "https",
             host: "example.com",
@@ -162,10 +140,8 @@ public class HttpRequestExtensionsTests
             queryString: null
         );
 
-        // Act
         var result = request.GetProxyAwareRequestUrl();
 
-        // Assert
         Assert.Equal("https://example.com", result);
     }
 
@@ -175,7 +151,6 @@ public class HttpRequestExtensionsTests
     [InlineData("X-Forwarded-PathBase", "/external")]
     public void GetProxyAwareRequestUrl_WithSingleProxyHeader_UsesProxyValueForThatHeader(string headerName, string headerValue)
     {
-        // Arrange
         var request = CreateMockRequest(
             scheme: "http",
             host: "internal.server",
@@ -190,10 +165,8 @@ public class HttpRequestExtensionsTests
         };
         Mock.Get(request).Setup(r => r.Headers).Returns(headers);
 
-        // Act
         var result = request.GetProxyAwareRequestUrl();
 
-        // Assert
         switch (headerName)
         {
             case "X-Forwarded-Proto":

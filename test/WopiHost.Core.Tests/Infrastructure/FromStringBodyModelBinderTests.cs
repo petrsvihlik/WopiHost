@@ -11,7 +11,6 @@ public class FromStringBodyModelBinderTests
     [Fact]
     public async Task BindModelAsync_BindsRequestBodyToString()
     {
-        // Arrange
         var modelBinder = new FromStringBodyModelBinder();
         var context = new DefaultHttpContext();
         var requestBody = "Test request body";
@@ -29,10 +28,8 @@ public class FromStringBodyModelBinderTests
             ModelMetadata = new EmptyModelMetadataProvider().GetMetadataForType(typeof(string))
         };
 
-        // Act
         await modelBinder.BindModelAsync(bindingContext);
 
-        // Assert
         Assert.True(bindingContext.Result.IsModelSet);
         Assert.Equal(requestBody, bindingContext.Result.Model);
     }
@@ -40,7 +37,6 @@ public class FromStringBodyModelBinderTests
     [Fact]
     public async Task BindModelAsync_HandlesEmptyRequestBody()
     {
-        // Arrange
         var modelBinder = new FromStringBodyModelBinder();
         var context = new DefaultHttpContext();
         context.Request.Body = new MemoryStream();
@@ -57,10 +53,8 @@ public class FromStringBodyModelBinderTests
             ModelMetadata = new EmptyModelMetadataProvider().GetMetadataForType(typeof(string))
         };
 
-        // Act
         await modelBinder.BindModelAsync(bindingContext);
 
-        // Assert
         Assert.True(bindingContext.Result.IsModelSet);
         Assert.Equal(string.Empty, bindingContext.Result.Model);
     }

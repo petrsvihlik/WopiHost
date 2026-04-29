@@ -28,26 +28,20 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "ods", WopiActionEnum.Edit, "http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&<ui=UI_LLCC&><rs=DC_LLCC&>", XmlOwa2013)]
     public async Task GetUrlTemplateAsync_NetZone_ReturnsTemplateForZone(NetZoneEnum netZone, string extension, WopiActionEnum action, string expectedValue, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
 
-        // Assert
         Assert.Equal(expectedValue, result);
     }
 
     [Fact]
     public async Task GetAppsAsync_InvalidNetZone_ReturnsEmpty()
     {
-        // Arrange
         InitDiscoverer(XmlInvalid, NetZoneEnum.InternalHttp);
 
-        // Act
         var result = await _wopiDiscoverer.GetAppsAsync();
 
-        // Assert
         Assert.Empty(result.Elements());
     }
 
@@ -56,13 +50,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "docx", XmlOos2016)]
     public async Task SupportsExtensionAsync_KnownExtension_ReturnsTrue(NetZoneEnum netZone, string extension, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.SupportsExtensionAsync(extension);
 
-        // Assert
         Assert.True(result, $"{extension} should be supported!");
     }
 
@@ -72,13 +63,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "XlSx", XmlOos2016)]
     public async Task SupportsExtensionAsync_KnownExtensionCaseInsensitive_ReturnsTrue(NetZoneEnum netZone, string extension, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.SupportsExtensionAsync(extension);
 
-        // Assert
         Assert.True(result, $"{extension} should be supported!");
     }
 
@@ -87,13 +75,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "txt", XmlOos2016)]
     public async Task SupportsExtensionAsync_UnknownExtension_ReturnsFalse(NetZoneEnum netZone, string extension, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.SupportsExtensionAsync(extension);
 
-        // Assert
         Assert.False(result, $"{extension} should not be supported!");
     }
 
@@ -102,13 +87,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "txt", XmlOos2016)]
     public async Task SupportsActionAsync_UnknownExtension_ReturnsFalse(NetZoneEnum netZone, string extension, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.SupportsActionAsync(extension, WopiActionEnum.Edit);
 
-        // Assert
         Assert.False(result, $"{extension} should not be supported!");
     }
 
@@ -117,13 +99,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "docx", XmlOos2016)]
     public async Task SupportsActionAsync_KnownExtension_ReturnsTrue(NetZoneEnum netZone, string extension, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.SupportsActionAsync(extension, WopiActionEnum.Edit);
 
-        // Assert
         Assert.True(result, $"{extension} should be supported!");
     }
 
@@ -133,13 +112,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "PpTx", XmlOos2016)]
     public async Task SupportsActionAsync_KnownExtensionCaseInsensitive_ReturnsTrue(NetZoneEnum netZone, string extension, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.SupportsActionAsync(extension, WopiActionEnum.Edit);
 
-        // Assert
         Assert.True(result, $"{extension} should be supported!");
     }
 
@@ -148,13 +124,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "txt", XmlOos2016)]
     public async Task RequiresCobaltAsync_UnknownExtension_ReturnsFalse(NetZoneEnum netZone, string extension, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.RequiresCobaltAsync(extension, WopiActionEnum.Edit);
 
-        // Assert
         Assert.False(result, $"{extension} should not be supported!");
     }
 
@@ -163,13 +136,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "docx", XmlOos2016, false)]
     public async Task RequiresCobaltAsync_KnownExtension_ReturnsExpected(NetZoneEnum netZone, string extension, string fileName, bool expected)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.RequiresCobaltAsync(extension, WopiActionEnum.Edit);
 
-        // Assert
         Assert.Equal(expected, result);
     }
 
@@ -180,13 +150,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "txt", WopiActionEnum.Edit, null, XmlOwa2013)]
     public async Task GetUrlTemplateAsync_ExtensionAndAction_ReturnsTemplate(NetZoneEnum netZone, string extension, WopiActionEnum action, string? expectedValue, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
 
-        // Assert
         Assert.Equal(expectedValue, result);
     }
 
@@ -196,13 +163,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "XlSx", WopiActionEnum.Edit, "http://owaserver/x/_layouts/xlviewerinternal.aspx?edit=1&<ui=UI_LLCC&><rs=DC_LLCC&>", XmlOwa2013)]
     public async Task GetUrlTemplateAsync_ExtensionCaseInsensitive_ReturnsTemplate(NetZoneEnum netZone, string extension, WopiActionEnum action, string? expectedValue, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
 
-        // Assert
         Assert.Equal(expectedValue, result);
     }
 
@@ -213,13 +177,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "txt", null, XmlOos2016)]
     public async Task GetApplicationNameAsync_Extension_ReturnsAppName(NetZoneEnum netZone, string extension, string? expectedValue, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.GetApplicationNameAsync(extension);
 
-        // Assert
         Assert.Equal(expectedValue, result);
     }
 
@@ -229,13 +190,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "XlSx", "Excel", XmlOos2016)]
     public async Task GetApplicationNameAsync_ExtensionCaseInsensitive_ReturnsAppName(NetZoneEnum netZone, string extension, string? expectedValue, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.GetApplicationNameAsync(extension);
 
-        // Assert
         Assert.Equal(expectedValue, result);
     }
 
@@ -246,13 +204,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "txt", null, XmlOos2016)]
     public async Task GetApplicationFavIconAsync_Extension_ReturnsFavIconUri(NetZoneEnum netZone, string extension, string? expectedValue, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.GetApplicationFavIconAsync(extension);
 
-        // Assert
         Assert.Equal(expectedValue is not null ? new Uri(expectedValue) : null, result);
     }
 
@@ -264,13 +219,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "one", WopiActionEnum.View, "containers", XmlOwa2013)]
     public async Task GetActionRequirementsAsync_ExtensionAndAction_ContainsRequirement(NetZoneEnum netZone, string extension, WopiActionEnum action, string expectedValue, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.GetActionRequirementsAsync(extension, action);
 
-        // Assert
         Assert.Contains(expectedValue, result);
     }
 
@@ -281,13 +233,10 @@ public class WopiDiscovererTests
     [InlineData(NetZoneEnum.InternalHttp, "xlsx", WopiActionEnum.Edit, "cobalt", XmlOos2016)]
     public async Task GetActionRequirementsAsync_ExtensionAndAction_DoesNotContainUnrelatedRequirement(NetZoneEnum netZone, string extension, WopiActionEnum action, string expectedValue, string fileName)
     {
-        // Arrange
         InitDiscoverer(fileName, netZone);
 
-        // Act
         var result = await _wopiDiscoverer.GetActionRequirementsAsync(extension, action);
 
-        // Assert
         Assert.DoesNotContain(expectedValue, result);
     }
 }
