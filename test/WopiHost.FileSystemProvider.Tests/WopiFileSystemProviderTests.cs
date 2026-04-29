@@ -274,14 +274,15 @@ public class WopiFileSystemProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAncestors_FileInSubfolder_ReturnsRoot()
+    public async Task GetAncestors_FileInSubfolder_ReturnsRootThenImmediateParent()
     {
         Assert.True(_fileIds.TryGetFileId(_leafTxtPath, out var fileId));
 
         var ancestors = await _sut.GetAncestors<IWopiFile>(fileId);
 
-        Assert.Single(ancestors);
+        Assert.Equal(2, ancestors.Count);
         Assert.Equal(_root.Name, ancestors[0].Name);
+        Assert.Equal("sub", ancestors[1].Name);
     }
 
     [Fact]
@@ -439,8 +440,7 @@ public class WopiFileSystemProviderTests : IDisposable
         var rootId = _sut.RootContainerPointer.Identifier;
         // "root.txt" already exists in fixture
         var name = await _sut.GetSuggestedName<IWopiFile>(rootId, "root.txt");
-        Assert.Contains("(1)", name);
-        Assert.EndsWith(".txt", name);
+        Assert.Equal("root (1).txt", name);
     }
 
     [Fact]
@@ -650,7 +650,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task RenameWopiResource_FolderMissingId_Throws()
     {
-        await Assert.ThrowsAsync<FileNotFoundException>(() =>
+        await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
             _sut.RenameWopiResource<IWopiFolder>("missing", "x"));
     }
 
