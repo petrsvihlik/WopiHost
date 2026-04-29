@@ -5,7 +5,7 @@ namespace WopiHost.Core.Tests.Extensions;
 public class ExtensionsTests
 {
     [Fact]
-    public void ToUnixTimestampTest()
+    public void ToUnixTimestamp_DateTime_ReturnsUnixSeconds()
     {
         // Arrange
         long ticks = 1664582400;

@@ -3,7 +3,7 @@
 public class CollectionExtensionsTests
 {
     [Fact]
-    public void MergeWorksWithNulls()
+    public void Merge_WithNullArgument_ReturnsOther()
     {
         // Arrange
         var full = new Dictionary<string, string>();
@@ -19,7 +19,7 @@ public class CollectionExtensionsTests
     }
 
     [Fact]
-    public void MergeTwoDictionaries()
+    public void Merge_TwoDictionaries_CombinesEntries()
     {
         // Arrange
         var a = new Dictionary<string, string> { { "A", "B"}, { "C", "D" } };
