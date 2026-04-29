@@ -59,7 +59,6 @@ public class HttpDiscoveryFileProviderTests
             Task.FromException<HttpResponseMessage>(new HttpRequestException("Connection refused")));
         var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler));
 
-        // Act & Assert
         await Assert.ThrowsAsync<DiscoveryException>(() => sut.GetDiscoveryXmlAsync());
     }
 

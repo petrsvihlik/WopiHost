@@ -12,7 +12,7 @@ public class InMemoryFileIdsTests : IDisposable
     [Fact]
     public void ScanAll_SamePath_ProducesSameIds()
     {
-        // Act – scan the same directory twice
+        // scan the same directory twice
         _sut.ScanAll(_tempDir.FullName);
         _sut.TryGetFileId(_tempDir.FullName, out var id1);
 

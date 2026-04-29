@@ -531,7 +531,6 @@ public class WopiExtensionsTests
         IWopiFolder? container = null;
         var httpContext = new DefaultHttpContext();
 
-        // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(() => container!.GetWopiCheckContainerInfo(httpContext));
     }
 
@@ -540,7 +539,6 @@ public class WopiExtensionsTests
     {
         var mockFolder = new Mock<IWopiFolder>();
 
-        // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(() => mockFolder.Object.GetWopiCheckContainerInfo(null!));
     }
 }
