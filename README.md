@@ -487,7 +487,7 @@ public class RedisLockProvider : IWopiLockProvider
 
 ## Advanced Customization
 
-### CheckFileInfo & CheckContainerInfo Events
+### CheckFileInfo, CheckContainerInfo & CheckEcosystem Events
 Customize WOPI responses by registering for events in your `WopiHostOptions`:
 
 ```csharp
@@ -507,6 +507,14 @@ builder.Services.Configure<WopiHostOptions>(options =>
         // Add custom security properties
         containerInfo.CustomSecurityProperty = "CustomSecurityValue";
         return containerInfo;
+    };
+
+    // Override capability flags returned from GET /wopi/ecosystem.
+    // Spec: SupportsContainers should match the value returned from CheckFileInfo.
+    options.OnCheckEcosystem = context =>
+    {
+        context.CheckEcosystem.SupportsContainers = false;
+        return Task.FromResult(context.CheckEcosystem);
     };
 });
 ```
