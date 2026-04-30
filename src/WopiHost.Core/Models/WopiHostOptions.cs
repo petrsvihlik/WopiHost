@@ -41,6 +41,11 @@ public class WopiHostOptions : IDiscoveryOptions
     public Func<WopiCheckFolderInfoContext, Task<WopiCheckFolderInfo>> OnCheckFolderInfo { get; set; } = c => Task.FromResult(c.CheckFolderInfo);
 
     /// <summary>
+    /// Callback for the CheckEcosystem operation.
+    /// </summary>
+    public Func<WopiCheckEcosystemContext, Task<WopiCheckEcosystem>> OnCheckEcosystem { get; set; } = c => Task.FromResult(c.CheckEcosystem);
+
+    /// <summary>
     /// Base URI of the WOPI Client server (Office Online Server / Office Web Apps).
     /// </summary>
     [Required]

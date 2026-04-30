@@ -323,6 +323,8 @@ public class WopiHostOptions : IDiscoveryOptions
     public string? LockProviderAssemblyName { get; set; }
     public Func<WopiCheckFileInfoContext, Task<WopiCheckFileInfo>> OnCheckFileInfo { get; set; }
     public Func<WopiCheckContainerInfoContext, Task<WopiCheckContainerInfo>> OnCheckContainerInfo { get; set; }
+    public Func<WopiCheckFolderInfoContext, Task<WopiCheckFolderInfo>> OnCheckFolderInfo { get; set; }
+    public Func<WopiCheckEcosystemContext, Task<WopiCheckEcosystem>> OnCheckEcosystem { get; set; }
     public required Uri ClientUrl { get; set; }
 }
 ```
