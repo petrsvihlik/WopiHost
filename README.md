@@ -519,6 +519,64 @@ builder.Services.Configure<WopiHostOptions>(options =>
 });
 ```
 
+### Bootstrap endpoint (Office for mobile)
+
+WopiHost exposes two authentication surfaces, and they speak different protocols:
+
+| Endpoint | Authentication | Used by |
+|---|---|---|
+| `/wopi/*` | `access_token` query parameter (host-issued WOPI access token) | Office for the Web, Office desktop |
+| `/wopibootstrapper` | OAuth2 `Authorization: Bearer <token>` from your IdP | Office mobile (iOS / Android) |
+
+The bootstrap operation lets a mobile client exchange an OAuth2 token from your identity
+provider for the WOPI tokens it needs to drive the rest of the protocol. Wire it up in two
+steps:
+
+**1. Register the `WopiBootstrap` authentication scheme** (any handler that validates your IdP's tokens):
+
+```csharp
+services.AddAuthentication()
+    .AddJwtBearer(WopiAuthenticationSchemes.Bootstrap, options =>
+    {
+        options.Authority = "https://idp.contoso.com";
+        options.Audience = "wopi";
+
+        // Spec mandates a specific WWW-Authenticate header on 401 so the mobile client
+        // knows where to send the user for OAuth2 sign-in. WopiBootstrapChallenge formats
+        // that header for you.
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = context =>
+            {
+                context.HandleResponse();
+                WopiBootstrapChallenge.Apply(
+                    context.Response,
+                    authorizationUri: new Uri("https://idp.contoso.com/oauth2/authorize"),
+                    tokenIssuanceUri: new Uri("https://idp.contoso.com/oauth2/token"),
+                    providerId: "tpcontoso");
+                return Task.CompletedTask;
+            },
+        };
+    });
+```
+
+**2. Make sure the principal carries the claims the bootstrapper needs.**
+At minimum: `ClaimTypes.NameIdentifier` (or `ClaimTypes.Upn` as fallback) for `UserId`,
+optionally `ClaimTypes.Email` for `SignInName`, and `ClaimTypes.Name` for
+`UserFriendlyName`. Most IdPs ship these by default.
+
+Once wired, the controller handles the three operations the spec defines:
+
+| Method + header | Behavior |
+|---|---|
+| `GET /wopibootstrapper` | Returns the bare `{ Bootstrap }` payload |
+| `POST /wopibootstrapper` with `X-WOPI-EcosystemOperation: GET_ROOT_CONTAINER` | Returns `{ Bootstrap, RootContainerInfo }` (with a per-container token + populated `ContainerInfo`) |
+| `POST /wopibootstrapper` with `X-WOPI-EcosystemOperation: GET_NEW_ACCESS_TOKEN` and `X-WOPI-WopiSrc: <files\|containers URL>` | Returns `{ Bootstrap, AccessTokenInfo }` (a fresh, real-permission WOPI access token bound to the resource) |
+
+Missing or malformed `X-WOPI-WopiSrc`, or a resource the user cannot access, returns
+`404 Not Found` per spec — the bootstrapper never issues a token for a resource it
+cannot validate.
+
 ## Package-Specific Documentation
 
 Each WopiHost package includes comprehensive documentation with:
