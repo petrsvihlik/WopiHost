@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Routing;
 using Moq;
 using WopiHost.Abstractions;
 using WopiHost.Core.Controllers;
@@ -18,6 +20,8 @@ public class ContainersControllerTests
     private readonly Mock<IWopiLockProvider> lockProviderMock;
     private readonly Mock<IWopiWritableStorageProvider> writableStorageProviderMock;
     private readonly Mock<IWopiPermissionProvider> permissionProviderMock;
+    private readonly Mock<IWopiAccessTokenService> accessTokenServiceMock;
+    private readonly Mock<IUrlHelper> urlMock;
     private readonly ContainersController _controller;
 
     public ContainersControllerTests()
@@ -27,13 +31,17 @@ public class ContainersControllerTests
         writableStorageProviderMock = new Mock<IWopiWritableStorageProvider>();
         permissionProviderMock = new Mock<IWopiPermissionProvider>();
         permissionProviderMock
-            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WopiContainerPermissions.UserCanCreateChildContainer | WopiContainerPermissions.UserCanCreateChildFile | WopiContainerPermissions.UserCanDelete | WopiContainerPermissions.UserCanRename);
-        var url = new Mock<IUrlHelper>();
-        url
+        accessTokenServiceMock = new Mock<IWopiAccessTokenService>();
+        accessTokenServiceMock
+            .Setup(s => s.IssueAsync(It.IsAny<WopiAccessTokenRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new WopiAccessToken("FRESH-TOKEN", DateTimeOffset.UtcNow.AddMinutes(10)));
+        urlMock = new Mock<IUrlHelper>();
+        urlMock
             .Setup(_ => _.RouteUrl(It.IsAny<UrlRouteContext>()))
             .Returns("https://localhost");
-        url
+        urlMock
             .Setup(_ => _.ActionContext)
             .Returns(new ActionContext
             {
@@ -47,12 +55,18 @@ public class ContainersControllerTests
             lockProviderMock.Object,
             writableStorageProviderMock.Object)
         {
-            Url = url.Object,
+            Url = urlMock.Object,
             ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext()
                 {
-                    ServiceScopeFactory = TestUtils.CreateServiceScope(permissionProviderMock.Object)
+                    ServiceScopeFactory = TestUtils.CreateServiceScope(permissionProviderMock.Object),
+                    User = new ClaimsPrincipal(new ClaimsIdentity(
+                    [
+                        new Claim(ClaimTypes.NameIdentifier, "alice"),
+                        new Claim(ClaimTypes.Name, "Alice Example"),
+                        new Claim(ClaimTypes.Email, "alice@example.com"),
+                    ], "Test")),
                 }
             }
         };
@@ -490,21 +504,59 @@ public class ContainersControllerTests
     {
         storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
-        var result = await _controller.GetEcosystem("nonexistent");
+        var result = await _controller.GetEcosystem("nonexistent", accessTokenServiceMock.Object);
 
         Assert.IsType<NotFoundResult>(result);
+        accessTokenServiceMock.Verify(t => t.IssueAsync(It.IsAny<WopiAccessTokenRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task GetEcosystem_ReturnsLink()
     {
         var containerId = "existing-container";
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        var folderMock = new Mock<IWopiFolder>();
+        folderMock.SetupGet(f => f.Identifier).Returns(containerId);
+        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(folderMock.Object);
 
-        var result = await _controller.GetEcosystem(containerId);
+        var result = await _controller.GetEcosystem(containerId, accessTokenServiceMock.Object);
 
         var jsonResult = Assert.IsType<JsonResult<UrlResponse>>(result);
-        var response = Assert.IsType<UrlResponse>(jsonResult.Value);
+        Assert.IsType<UrlResponse>(jsonResult.Value);
+    }
+
+    [Fact]
+    public async Task GetEcosystem_IssuesFreshMinimumPrivilegeToken_NotInbound()
+    {
+        // Token-trading prevention: the URL handed back to the WOPI client must carry a
+        // FRESH access token, not the inbound one, and that token must grant the minimum
+        // privileges required by the URL it lives in (CheckEcosystem -> None).
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#preventing-token-trading
+        var containerId = "existing-container";
+        var folderMock = new Mock<IWopiFolder>();
+        folderMock.SetupGet(f => f.Identifier).Returns(containerId);
+        storageProviderMock
+            .Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(folderMock.Object);
+
+        UrlRouteContext? captured = null;
+        urlMock
+            .Setup(_ => _.RouteUrl(It.IsAny<UrlRouteContext>()))
+            .Callback<UrlRouteContext>(rc => captured = rc)
+            .Returns("https://localhost/wopi/ecosystem");
+
+        await _controller.GetEcosystem(containerId, accessTokenServiceMock.Object);
+
+        accessTokenServiceMock.Verify(t => t.IssueAsync(
+            It.Is<WopiAccessTokenRequest>(r =>
+                r.UserId == "alice" &&
+                r.ResourceId == containerId &&
+                r.ResourceType == WopiResourceType.Container &&
+                r.ContainerPermissions == WopiContainerPermissions.None),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        Assert.NotNull(captured);
+        var values = new RouteValueDictionary(captured!.Values);
+        Assert.Equal("FRESH-TOKEN", values["access_token"]);
     }
 
     [Fact]

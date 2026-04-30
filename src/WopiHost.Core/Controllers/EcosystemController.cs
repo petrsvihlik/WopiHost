@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Mime;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
@@ -7,6 +8,7 @@ using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
+using WopiHost.Core.Results;
 using WopiHost.Core.Security.Authentication;
 
 namespace WopiHost.Core.Controllers;
@@ -70,6 +72,41 @@ public class EcosystemController(
             ContainerInfo = await root.GetWopiCheckContainerInfo(HttpContext, cancellationToken),
         };
         return new JsonResult(rc);
+    }
+
+    /// <summary>
+    /// The GetFileWopiSrc operation converts a host-specific file identifier (passed via
+    /// the <c>X-WOPI-HostNativeFileName</c> header) into a <c>WopiSrc</c> URL with an
+    /// access token appended.
+    /// Spec: <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getfilewopisrc"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Reserved for future use.</b> Microsoft's documentation states:
+    /// <i>"This operation should not be called by WOPI clients at this time. It is reserved
+    /// for future use and subject to change."</i> The endpoint is wired up here so the route
+    /// matches the spec when Microsoft starts shipping clients that exercise it; until then
+    /// the action returns <c>501 Not Implemented</c> (which the spec allows).
+    /// </para>
+    /// <para>
+    /// The matching <see cref="IWopiHostCapabilities.SupportsGetFileWopiSrc"/> capability flag
+    /// defaults to <c>false</c> so WOPI clients do not advertise the operation. When Microsoft
+    /// un-reserves the operation, hosts can replace this stub by overriding the controller or
+    /// by introducing an <c>OnGetFileWopiSrc</c> hook on <see cref="WopiHostOptions"/> and
+    /// flipping <c>SupportsGetFileWopiSrc</c> to <c>true</c>.
+    /// </para>
+    /// </remarks>
+    /// <param name="hostNativeFileName">The host-specific file identifier passed in <c>X-WOPI-HostNativeFileName</c>.</param>
+    [HttpPost]
+    [WopiOverrideHeader(WopiEcosystemOperations.GetWopiSrcWithAccessToken)]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    [Experimental(WopiDiagnostics.GetFileWopiSrcReserved, UrlFormat = "https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getfilewopisrc")]
+    public IActionResult GetFileWopiSrc(
+        [FromHeader(Name = WopiHeaders.HOST_NATIVE_FILE_NAME)] string? hostNativeFileName = null)
+    {
+        _ = hostNativeFileName;
+        return new NotImplementedResult();
     }
 
     /// <summary>

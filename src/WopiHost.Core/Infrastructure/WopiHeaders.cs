@@ -108,6 +108,12 @@ public static class WopiHeaders
     public const string ECOSYSTEM_OPERATION = "X-WOPI-EcosystemOperation";
 
     /// <summary>
+    /// A string representing the host-specific file identifier for a file. Used by
+    /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getfilewopisrc">GetFileWopiSrc</see>.
+    /// </summary>
+    public const string HOST_NATIVE_FILE_NAME = "X-WOPI-HostNativeFileName";
+
+    /// <summary>
     /// An optional string value indicating the version of the file.
     /// </summary>
     public const string ITEM_VERSION = "X-WOPI-ItemVersion";

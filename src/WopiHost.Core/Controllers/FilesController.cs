@@ -1,4 +1,5 @@
 ﻿using System.Net.Mime;
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -215,15 +216,19 @@ public class FilesController(
     /// <summary>
     /// The GetEcosystem operation returns the URI for the WOPI server's Ecosystem endpoint, given a file ID.
     /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getecosystem
-    /// Example URL path: /wopi/files/(container_id)/ecosystem_pointer
+    /// Example URL path: /wopi/files/(file_id)/ecosystem_pointer
     /// </summary>
     /// <param name="id">A string that specifies a file ID of a file managed by host. This string must be URL safe.</param>
+    /// <param name="accessTokenService">Issues the per-call access token embedded in the response URL.</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>URL response pointing to <see cref="WopiRouteNames.CheckEcosystem"/></returns>
     [HttpGet("{id}/ecosystem_pointer")]
     [WopiAuthorize(WopiResourceType.File, Permission.Read)]
     [Produces(MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> GetEcosystem(string id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetEcosystem(
+        string id,
+        [FromServices] IWopiAccessTokenService accessTokenService,
+        CancellationToken cancellationToken = default)
     {
         // Get file
         var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken);
@@ -231,9 +236,25 @@ public class FilesController(
         {
             return NotFound();
         }
-        // A URI for the WOPI server's Ecosystem endpoint, with an access token appended. A GET request to this URL will invoke the CheckEcosystem operation.
+
+        // Issue a fresh, minimum-privilege access token to embed in the response URL.
+        // Reusing the inbound token violates WOPI "preventing token trading" guidance:
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#preventing-token-trading
+        // The URL points to CheckEcosystem, which has no resource gate — so the token
+        // grants WopiFilePermissions.None and is bound to this file purely as the
+        // resource binding required by the access-token model.
+        var token = await accessTokenService.IssueAsync(new WopiAccessTokenRequest
+        {
+            UserId = User.GetUserId(),
+            UserDisplayName = User.FindFirstValue(ClaimTypes.Name),
+            UserEmail = User.FindFirstValue(ClaimTypes.Email),
+            ResourceId = file.Identifier,
+            ResourceType = WopiResourceType.File,
+            FilePermissions = WopiFilePermissions.None,
+        }, cancellationToken);
+
         return new JsonResult<UrlResponse>(
-            new(Url.GetWopiSrc(WopiRouteNames.CheckEcosystem)));
+            new(Url.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: token.Token)));
     }
 
     /// <summary>
