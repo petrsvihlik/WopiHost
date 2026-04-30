@@ -9,6 +9,7 @@ using Moq;
 using WopiHost.Abstractions;
 using WopiHost.Core.Controllers;
 using WopiHost.Core.Models;
+using WopiHost.Core.Results;
 
 namespace WopiHost.Core.Tests.Controllers;
 
@@ -232,4 +233,17 @@ public class EcosystemControllerTests
         Assert.NotNull(observed);
         Assert.Equal("alice", observed!.FindFirst(ClaimTypes.NameIdentifier)?.Value);
     }
+
+    [Fact]
+#pragma warning disable WOPIHOST001 // GetFileWopiSrc is reserved for future use; suppression is the documented opt-in.
+    public void GetFileWopiSrc_ReturnsNotImplemented_BySpecReservation()
+    {
+        // The Microsoft spec explicitly tells WOPI clients not to call this operation today.
+        // Until that changes, the host returns 501 (which the spec allows) and the
+        // SupportsGetFileWopiSrc capability flag stays false so the operation is not advertised.
+        var result = BuildController().GetFileWopiSrc(hostNativeFileName: "anything");
+
+        Assert.IsType<NotImplementedResult>(result);
+    }
+#pragma warning restore WOPIHOST001
 }

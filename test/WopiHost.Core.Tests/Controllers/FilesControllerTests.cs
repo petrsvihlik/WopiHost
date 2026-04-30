@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -23,6 +24,7 @@ public class FilesControllerTests
     private readonly Mock<IWopiStorageProvider> storageProviderMock;
     private readonly Mock<IWopiWritableStorageProvider> writableStorageProviderMock;
     private readonly Mock<IWopiPermissionProvider> permissionProviderMock;
+    private readonly Mock<IWopiAccessTokenService> accessTokenServiceMock;
     private readonly Mock<IOptions<WopiHostOptions>> wopiHostOptionsMock;
     private readonly IMemoryCache memoryCache;
     private readonly Mock<IWopiLockProvider> lockProviderMock;
@@ -49,6 +51,10 @@ public class FilesControllerTests
             });
         memoryCache = new MemoryCache(new MemoryCacheOptions());
         lockProviderMock = new Mock<IWopiLockProvider>();
+        accessTokenServiceMock = new Mock<IWopiAccessTokenService>();
+        accessTokenServiceMock
+            .Setup(s => s.IssueAsync(It.IsAny<WopiAccessTokenRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new WopiAccessToken("FRESH-TOKEN", DateTimeOffset.UtcNow.AddMinutes(10)));
 
         urlMock = new Mock<IUrlHelper>();
         urlMock
@@ -282,9 +288,10 @@ public class FilesControllerTests
     {
         storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
-        var result = await controller.GetEcosystem("file_id");
+        var result = await controller.GetEcosystem("file_id", accessTokenServiceMock.Object);
 
         Assert.IsType<NotFoundResult>(result);
+        accessTokenServiceMock.Verify(t => t.IssueAsync(It.IsAny<WopiAccessTokenRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -295,11 +302,64 @@ public class FilesControllerTests
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
+        SetAuthenticatedUser();
 
-        var result = await controller.GetEcosystem(fileId);
+        var result = await controller.GetEcosystem(fileId, accessTokenServiceMock.Object);
 
         var jsonResult = Assert.IsType<JsonResult<UrlResponse>>(result);
         Assert.NotNull(jsonResult.Value);
+    }
+
+    [Fact]
+    public async Task GetEcosystem_IssuesFreshMinimumPrivilegeToken_NotInbound()
+    {
+        // Token-trading prevention: the URL handed back to the WOPI client must carry a
+        // FRESH access token, not the inbound one, and that token must grant the minimum
+        // privileges required by the URL it lives in (CheckEcosystem -> None).
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#preventing-token-trading
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId);
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+        SetAuthenticatedUser();
+
+        UrlRouteContext? captured = null;
+        urlMock
+            .Setup(_ => _.RouteUrl(It.IsAny<UrlRouteContext>()))
+            .Callback<UrlRouteContext>(rc => captured = rc)
+            .Returns("https://localhost/wopi/ecosystem");
+
+        await controller.GetEcosystem(fileId, accessTokenServiceMock.Object);
+
+        accessTokenServiceMock.Verify(t => t.IssueAsync(
+            It.Is<WopiAccessTokenRequest>(r =>
+                r.UserId == "alice" &&
+                r.ResourceId == fileId &&
+                r.ResourceType == WopiResourceType.File &&
+                r.FilePermissions == WopiFilePermissions.None),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        Assert.NotNull(captured);
+        var values = new RouteValueDictionary(captured!.Values);
+        Assert.Equal("FRESH-TOKEN", values["access_token"]);
+    }
+
+    private void SetAuthenticatedUser()
+    {
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope(permissionProviderMock.Object),
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                [
+                    new Claim(ClaimTypes.NameIdentifier, "alice"),
+                    new Claim(ClaimTypes.Name, "Alice Example"),
+                    new Claim(ClaimTypes.Email, "alice@example.com"),
+                ], "Test")),
+            },
+        };
     }
 
     #endregion

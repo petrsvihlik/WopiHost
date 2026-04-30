@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Net.Mime;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WopiHost.Abstractions;
@@ -382,20 +383,41 @@ public class ContainersController(
     /// Example URL path: /wopi/containers/(container_id)/ecosystem_pointer
     /// </summary>
     /// <param name="id">A string that specifies a container ID of a container managed by host. This string must be URL safe.</param>
+    /// <param name="accessTokenService">Issues the per-call access token embedded in the response URL.</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>URL response pointing to <see cref="WopiRouteNames.CheckEcosystem"/></returns>
     [HttpGet("{id}/ecosystem_pointer")]
     [WopiAuthorize(WopiResourceType.Container, Permission.Read)]
     [Produces(MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> GetEcosystem(string id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetEcosystem(
+        string id,
+        [FromServices] IWopiAccessTokenService accessTokenService,
+        CancellationToken cancellationToken = default)
     {
-        if (await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken) is null)
+        var container = await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken);
+        if (container is null)
         {
             return NotFound();
         }
-        // A URI for the WOPI server’s Ecosystem endpoint, with an access token appended. A GET request to this URL will invoke the CheckEcosystem operation.
+
+        // Issue a fresh, minimum-privilege access token to embed in the response URL.
+        // Reusing the inbound token violates WOPI "preventing token trading" guidance:
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#preventing-token-trading
+        // The URL points to CheckEcosystem, which has no resource gate — so the token
+        // grants WopiContainerPermissions.None and is bound to this container purely as
+        // the resource binding required by the access-token model.
+        var token = await accessTokenService.IssueAsync(new WopiAccessTokenRequest
+        {
+            UserId = User.GetUserId(),
+            UserDisplayName = User.FindFirstValue(ClaimTypes.Name),
+            UserEmail = User.FindFirstValue(ClaimTypes.Email),
+            ResourceId = container.Identifier,
+            ResourceType = WopiResourceType.Container,
+            ContainerPermissions = WopiContainerPermissions.None,
+        }, cancellationToken);
+
         return new JsonResult<UrlResponse>(
-            new(Url.GetWopiSrc(WopiRouteNames.CheckEcosystem)));
+            new(Url.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: token.Token)));
     }
 
     /// <summary>
