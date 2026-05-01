@@ -1,4 +1,10 @@
 <Project>
+	<!-- Chain to the repo-root Directory.Build.props so tests inherit shared
+	     settings (UseArtifactsOutput, TreatWarningsAsErrors, analyzers, etc.).
+	     Without this import MSBuild stops walking up at the first Directory.Build.props
+	     it finds, so root-level governance silently does not apply to tests. -->
+	<Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..'))" />
+
 	<PropertyGroup>
 		<Authors>Petr Svihlik</Authors>
 		<IsPackable>false</IsPackable>

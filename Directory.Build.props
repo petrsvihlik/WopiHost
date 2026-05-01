@@ -8,6 +8,11 @@
 		<AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 		<LangVersion>latest</LangVersion>
+		<!-- Centralize bin/obj/package/publish output under repo-root artifacts/.
+		     ArtifactsPath is pinned here so that test projects (which have their
+		     own Directory.Build.props) don't end up with a separate test/artifacts/. -->
+		<UseArtifactsOutput>true</UseArtifactsOutput>
+		<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
 	</PropertyGroup>
 
 	<!-- Package Validation Configuration for NuGet packages -->
@@ -16,6 +21,9 @@
 		<!-- Set baseline version to a reasonable previous version for breaking change detection -->
 		<!-- This should be updated to the actual previous stable version before release -->
 		<PackageValidationBaselineVersion>4.0.0</PackageValidationBaselineVersion>
+		<!-- Generate XML doc files alongside the assembly. Letting the SDK pick the
+		     path keeps it in sync with UseArtifactsOutput. -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
 	
 	<ItemGroup Condition="!$(MSBuildProjectName.EndsWith('Tests'))">
