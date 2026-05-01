@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - WopiHost.Web.Oidc</title>
+    <link rel="stylesheet" href="https://unpkg.com/marx-css/css/marx.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a asp-controller="Home" asp-action="Index">Home</a></li>
+            <li><a href="https://github.com/petrsvihlik/WopiHost">GitHub</a></li>
+        </ul>
+        <ul style="margin-left:auto;">
+            @if (User?.Identity?.IsAuthenticated == true)
+            {
+                <li>Signed in as <strong>@(User.Identity.Name ?? "user")</strong></li>
+                <li>
+                    <form asp-controller="Account" asp-action="Logout" method="post" style="display:inline;">
+                        <button type="submit">Sign out</button>
+                    </form>
+                </li>
+            }
+            else
+            {
+                <li><a asp-controller="Account" asp-action="Login">Sign in</a></li>
+            }
+        </ul>
+    </nav>
+    <header></header>
+    <main>
+        <section>
+            <h1>WopiHost - OIDC Example</h1>
+            @RenderBody()
+        </section>
+    </main>
+    <footer>
+        <p>&copy; @DateTime.Now.Year - WopiHost.Web.Oidc</p>
+    </footer>
+@await RenderSectionAsync("scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,21 @@
+@{
+    Layout = "~/Views/Shared/_LayoutWOPI.cshtml";
+}
+<form id="office_form" name="office_form" target="office_frame" action="@ViewData["urlsrc"]" method="post">
+    <input name="access_token" value="@ViewData["access_token"]" type="hidden" />
+    <input name="access_token_ttl" value="@ViewData["access_token_ttl"]" type="hidden" />
+</form>
+
+<span id="frameholder"></span>
+
+<script type="text/javascript">
+    var frameholder = document.getElementById('frameholder');
+    var office_frame = document.createElement('iframe');
+    office_frame.name = 'office_frame';
+    office_frame.id = 'office_frame';
+    // Title for accessibility — required by the M365 business flow.
+    office_frame.title = 'Office Online Frame';
+    office_frame.setAttribute('allowfullscreen', 'true');
+    frameholder.appendChild(office_frame);
+    document.getElementById('office_form').submit();
+</script>

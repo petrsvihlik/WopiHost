@@ -38,6 +38,15 @@ Two companion samples - the WopiHost is the actual Wopi Server host and the Wopi
 
 Additionally, you can use the [secret storage](https://learn.microsoft.com/aspnet/core/security/app-secrets?view=aspnetcore-2.2&tabs=windows) to configure both of the apps.
 
+WopiHost.Web.Oidc
+---
+
+Same role as WopiHost.Web (a frontend Host page that talks to the WopiHost backend), but with users signed in via **OpenID Connect** instead of being anonymous. Demonstrates the [M365 business flow](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/business) end-to-end without locking the WOPI core into a specific identity provider.
+
+The sample is **IdP-agnostic**: configure the OIDC `Authority`, `ClientId`, and `ClientSecret` and it works against Microsoft Entra, Auth0, Okta, Keycloak, or any other spec-compliant OIDC provider. See [`WopiHost.Web.Oidc/README.md`](WopiHost.Web.Oidc/README.md) for per-IdP setup walkthroughs.
+
+Automated tests (using [Testcontainers](https://dotnet.testcontainers.org/) + [`mock-oauth2-server`](https://github.com/navikt/mock-oauth2-server)) live in [`test/WopiHost.IntegrationTests`](../test/WopiHost.IntegrationTests/README.md).
+
 WopiHost.Validator
 ---
 

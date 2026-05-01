@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "WopiHost.Web.Oidc": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:6101;http://localhost:6100",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

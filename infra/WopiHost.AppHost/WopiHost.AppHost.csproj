@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\sample\WopiHost\WopiHost.csproj" />
     <ProjectReference Include="..\..\sample\WopiHost.Web\WopiHost.Web.csproj" />
+    <ProjectReference Include="..\..\sample\WopiHost.Web.Oidc\WopiHost.Web.Oidc.csproj" />
     <ProjectReference Include="..\..\sample\WopiHost.Validator\WopiHost.Validator.csproj" />
     <ProjectReference Include="..\WopiHost.ServiceDefaults\WopiHost.ServiceDefaults.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
