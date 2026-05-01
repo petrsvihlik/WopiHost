@@ -12,8 +12,8 @@ namespace WopiHost.Discovery;
 /// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
 /// <param name="discoveryOptions">the discovery options</param>
 public class WopiDiscoverer(
-    IDiscoveryFileProvider discoveryFileProvider, 
-    IOptions<DiscoveryOptions> discoveryOptions) : IDiscoverer
+    IDiscoveryFileProvider discoveryFileProvider,
+    IOptions<DiscoveryOptions> discoveryOptions) : IDiscoverer, IDisposable
 {
     private const string ElementNetZone = "net-zone";
     private const string ElementApp = "app";
@@ -34,9 +34,15 @@ public class WopiDiscoverer(
     private const string AttrProofKeyOldModulus = "oldmodulus";
     private const string AttrProofKeyOldExponent = "oldexponent";
 
-    private AsyncExpiringLazy<IEnumerable<XElement>> Apps
-    {
-        get => field ??= new AsyncExpiringLazy<IEnumerable<XElement>>(async metadata =>
+    // Explicit backing fields (instead of field-keyword auto-properties) so
+    // Dispose() can release the AsyncExpiringLazy<T> instances without
+    // forcing them to be allocated first.
+    private AsyncExpiringLazy<IEnumerable<XElement>>? _apps;
+    private AsyncExpiringLazy<XElement>? _proofKey;
+    private bool _disposed;
+
+    private AsyncExpiringLazy<IEnumerable<XElement>> Apps =>
+        _apps ??= new AsyncExpiringLazy<IEnumerable<XElement>>(async metadata =>
         {
             return new TemporaryValue<IEnumerable<XElement>>
             {
@@ -48,11 +54,9 @@ public class WopiDiscoverer(
                 ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval)
             };
         });
-    }
 
-    private AsyncExpiringLazy<XElement> ProofKey
-    {
-        get => field ??= new AsyncExpiringLazy<XElement>(async metadata =>
+    private AsyncExpiringLazy<XElement> ProofKey =>
+        _proofKey ??= new AsyncExpiringLazy<XElement>(async metadata =>
         {
             return new TemporaryValue<XElement>
             {
@@ -63,7 +67,6 @@ public class WopiDiscoverer(
                 ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval)
             };
         });
-    }
 
     internal async Task<IEnumerable<XElement>> GetAppsAsync() => await Apps.Value();
     
@@ -156,7 +159,7 @@ public class WopiDiscoverer(
     public async Task<WopiProofKeys> GetProofKeysAsync()
     {
         var proofKey = await GetProofKeyAsync();
-        
+
         return new WopiProofKeys
         {
             Value = proofKey.Attribute(AttrProofKeyValue)?.Value,
@@ -166,5 +169,35 @@ public class WopiDiscoverer(
             OldModulus = proofKey.Attribute(AttrProofKeyOldModulus)?.Value,
             OldExponent = proofKey.Attribute(AttrProofKeyOldExponent)?.Value
         };
+    }
+
+    /// <summary>
+    /// Disposes the cached <see cref="AsyncExpiringLazy{T}"/> instances so
+    /// their internal semaphores are released. The DI container invokes this
+    /// at host shutdown when <see cref="WopiDiscoverer"/> is registered as a
+    /// singleton.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases managed resources held by this instance.
+    /// </summary>
+    /// <param name="disposing"><c>true</c> when called from <see cref="Dispose()"/>.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        if (disposing)
+        {
+            _apps?.Dispose();
+            _proofKey?.Dispose();
+        }
+        _disposed = true;
     }
 }

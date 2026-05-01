@@ -11,7 +11,7 @@
 /// </remarks>
 /// <param name="valueProvider">A delegate that facilitates the creation of the value.</param>
 /// <exception cref="ArgumentNullException">The <paramref name="valueProvider"/> must be initialized.</exception>
-public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>>> valueProvider)
+public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>>> valueProvider) : IDisposable
 {
     // Instance-scoped on purpose: a static lock would be shared across every
     // AsyncExpiringLazy<T> with the same closed generic type, serializing
@@ -19,6 +19,7 @@ public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>
     private readonly SemaphoreSlim _syncLock = new(initialCount: 1);
     private readonly Func<TemporaryValue<T>, Task<TemporaryValue<T>>> _valueProvider = valueProvider ?? throw new ArgumentNullException(nameof(valueProvider));
     private TemporaryValue<T> _value;
+    private bool _disposed;
     private bool IsValueCreatedInternal => _value.Result != null && _value.ValidUntil > DateTimeOffset.UtcNow;
 
     /// <summary>
@@ -72,5 +73,33 @@ public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>
         await _syncLock.WaitAsync().ConfigureAwait(false);
         _value = default;
         _syncLock.Release();
+    }
+
+    /// <summary>
+    /// Releases the internal <see cref="SemaphoreSlim"/>. The class is not
+    /// sealed; derived types should override <see cref="Dispose(bool)"/> if
+    /// they hold additional resources.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases managed resources held by this instance.
+    /// </summary>
+    /// <param name="disposing"><c>true</c> when called from <see cref="Dispose()"/>.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        if (disposing)
+        {
+            _syncLock.Dispose();
+        }
+        _disposed = true;
     }
 }
