@@ -1,0 +1,16 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: auto
+
+# Sample / app-host / validator code is illustrative — not exercised by the unit tests that
+# feed coverage. Excluding them keeps the repo's coverage signal focused on src/* libraries.
+ignore:
+  - "sample/**/*"
+  - "infra/**/*"
+  - "test/**/*"

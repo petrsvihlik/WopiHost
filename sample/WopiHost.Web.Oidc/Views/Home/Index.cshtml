@@ -1,0 +1,18 @@
+@using WopiHost.Discovery.Enumerations
+@model IEnumerable<FileViewModel>
+@{
+    ViewData["Title"] = "List of WOPI files";
+}
+
+<h2>Documents:</h2>
+<ul>
+@foreach (var file in Model)
+{
+    <li style="list-style: none; display: flex; flex-direction: row; align-items: center; margin-bottom: 10px;">
+        <img src="@file.IconUri" style="height: 32px;" />&nbsp;
+        @file.FileName&nbsp;
+        <a title="View" asp-controller="Home" asp-action="Detail" asp-route-id="@file.FileId" asp-route-wopiaction="@WopiActionEnum.View" class="@(file.SupportsView ? "":"disabledIcon")">👁️</a>
+        <a title="Edit" asp-controller="Home" asp-action="Detail" asp-route-id="@file.FileId" asp-route-wopiaction="@WopiActionEnum.Edit" class="@(file.SupportsEdit ? "":"disabledIcon")">🖊️</a>
+    </li>
+}
+</ul>
