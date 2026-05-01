@@ -106,20 +106,23 @@ public class WopiFileTests : IDisposable
     }
 
     [Fact]
-    public void Owner_OnLinux_MissingFile_Throws()
+    public void Owner_OnLinux_FileDeleted_Throws()
     {
         if (!OperatingSystem.IsLinux())
         {
             return;
         }
 
-        // statx returns -1 with ENOENT when the file does not exist;
-        // LinuxFileOwner surfaces that as IOException.
-        var missing = Path.Combine(_tempDir.FullName, "no-such-file.docx");
-        var sut = new WopiFile(missing, "id-missing");
+        // Construct against a real file (FileVersionInfo.GetVersionInfo throws
+        // FileNotFoundException for missing paths on Unix), then remove it so
+        // statx fails with ENOENT and LinuxFileOwner surfaces that as IOException.
+        var transient = Path.Combine(_tempDir.FullName, "transient.docx");
+        File.WriteAllText(transient, "x");
+        var sut = new WopiFile(transient, "id-transient");
+        File.Delete(transient);
 
 #pragma warning disable CA1416 // Linux-only test path; analyzer can't follow the early-return guard through the lambda
-        Assert.Throws<IOException>(() => _ = sut.Owner);
+        Assert.ThrowsAny<IOException>(() => _ = sut.Owner);
 #pragma warning restore CA1416
     }
 }
