@@ -27,6 +27,9 @@ bld/
 [Bb]in/
 [Oo]bj/
 
+# .NET SDK artifacts output (UseArtifactsOutput=true; see Directory.Build.props)
+/artifacts/
+
 # Visual Studo 2015 cache/options directory
 .vs/
 

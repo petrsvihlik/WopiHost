@@ -50,19 +50,21 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
     - name: Pack
-      run: dotnet pack --no-build --include-symbols --verbosity normal --configuration Release --output ./artifacts /p:PackageVersion="${{ steps.get_version.outputs.version-without-v }}"
+      # Output is centralized via UseArtifactsOutput (see Directory.Build.props);
+      # nupkg/snupkg files land in artifacts/package/release/.
+      run: dotnet pack --no-build --include-symbols --verbosity normal --configuration Release /p:PackageVersion="${{ steps.get_version.outputs.version-without-v }}"
     - name: Upload artifacts
       uses: actions/upload-artifact@v7
       with:
         name: "NuGet packages"
-        path: ./artifacts
+        path: artifacts/package/release
     - name: Publish artifacts to NuGet.org
-      run: dotnet nuget push './artifacts/*.nupkg' -s https://api.nuget.org/v3/index.json -k ${NUGET_API_KEY} --skip-duplicate
+      run: dotnet nuget push 'artifacts/package/release/*.nupkg' -s https://api.nuget.org/v3/index.json -k ${NUGET_API_KEY} --skip-duplicate
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
     - name: Upload artifacts to the GitHub release
       uses: Roang-zero1/github-upload-release-artifacts-action@v3
       with:
-        args: ./artifacts
+        args: artifacts/package/release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
