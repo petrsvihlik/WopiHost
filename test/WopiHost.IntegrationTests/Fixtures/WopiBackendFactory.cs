@@ -34,7 +34,7 @@ public sealed class WopiBackendFactory : WebApplicationFactory<global::WopiHost.
                 ["Wopi:ClientUrl"] = "https://office.example.test",
                 ["Wopi:Discovery:NetZone"] = "ExternalHttps",
                 ["Wopi:Discovery:RefreshInterval"] = "12:00:00",
-                ["Wopi:Security:SigningKey"] = Convert.ToBase64String(SigningKeyBytes(_wopiSigningSecret)),
+                ["Wopi:Security:SigningKey"] = Convert.ToBase64String(OidcSampleTestConfig.SigningKeyBytes(_wopiSigningSecret)),
             });
         });
 
@@ -47,15 +47,6 @@ public sealed class WopiBackendFactory : WebApplicationFactory<global::WopiHost.
         });
 
         builder.UseEnvironment("Development");
-    }
-
-    private static byte[] SigningKeyBytes(string secret)
-    {
-        var raw = System.Text.Encoding.UTF8.GetBytes(secret);
-        if (raw.Length >= 32) return raw;
-        var padded = new byte[32];
-        Array.Copy(raw, padded, raw.Length);
-        return padded;
     }
 }
 

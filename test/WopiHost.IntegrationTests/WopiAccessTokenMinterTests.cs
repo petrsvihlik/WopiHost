@@ -18,12 +18,20 @@ public class WopiAccessTokenMinterTests
     // ClaimTypes.Name → "unique_name" at minting time; the wopi:* names pass through as-is.
     private static readonly JwtSecurityTokenHandler Handler = new();
 
+    private static WopiTokenMintRequest StandardRequest(WopiFilePermissions permissions = WopiFilePermissions.UserCanWrite) => new()
+    {
+        UserId = "user-1",
+        UserDisplayName = "Alice",
+        UserEmail = "alice@example.com",
+        ResourceId = "file-42",
+        FilePermissions = permissions,
+    };
+
     [Fact]
     public void Mint_EmitsRequiredWopiClaims()
     {
         var minter = WopiAccessTokenMinter.FromSecret("test-secret");
-        var (token, _) = minter.Mint("user-1", "Alice", "alice@example.com", "file-42",
-            WopiFilePermissions.UserCanWrite);
+        var (token, _) = minter.Mint(StandardRequest());
 
         var jwt = Handler.ReadJwtToken(token);
 
@@ -40,8 +48,7 @@ public class WopiAccessTokenMinterTests
     public void Mint_OmitsEmailClaim_WhenEmailIsNull()
     {
         var minter = WopiAccessTokenMinter.FromSecret("test-secret");
-        var (token, _) = minter.Mint("user-1", "Alice", userEmail: null, "file-42",
-            WopiFilePermissions.UserCanWrite);
+        var (token, _) = minter.Mint(StandardRequest() with { UserEmail = null });
 
         var jwt = Handler.ReadJwtToken(token);
         Assert.DoesNotContain(jwt.Claims, c => c.Type == "email");
@@ -51,8 +58,7 @@ public class WopiAccessTokenMinterTests
     public void Mint_OmitsPermissionsClaim_WhenNone()
     {
         var minter = WopiAccessTokenMinter.FromSecret("test-secret");
-        var (token, _) = minter.Mint("user-1", "Alice", "alice@example.com", "file-42",
-            WopiFilePermissions.None);
+        var (token, _) = minter.Mint(StandardRequest(WopiFilePermissions.None));
 
         var jwt = Handler.ReadJwtToken(token);
         Assert.DoesNotContain(jwt.Claims, c => c.Type == WopiClaimTypes.FilePermissions);
@@ -63,7 +69,7 @@ public class WopiAccessTokenMinterTests
     {
         var minter = WopiAccessTokenMinter.FromSecret("test-secret");
         var before = DateTimeOffset.UtcNow;
-        var (_, expiresAt) = minter.Mint("u", "n", null, "r", WopiFilePermissions.UserCanWrite);
+        var (_, expiresAt) = minter.Mint(StandardRequest());
         var after = DateTimeOffset.UtcNow;
 
         Assert.InRange(expiresAt, before.AddMinutes(10).AddSeconds(-1), after.AddMinutes(10).AddSeconds(1));
@@ -74,8 +80,7 @@ public class WopiAccessTokenMinterTests
     {
         var secret = "test-secret-some-string";
         var minter = WopiAccessTokenMinter.FromSecret(secret);
-        var (token, _) = minter.Mint("user-1", "Alice", "alice@example.com", "file-42",
-            WopiFilePermissions.UserCanWrite);
+        var (token, _) = minter.Mint(StandardRequest());
 
         var keyBytes = PadToHmacKey(System.Text.Encoding.UTF8.GetBytes(secret));
         var validationParameters = new TokenValidationParameters
@@ -97,8 +102,7 @@ public class WopiAccessTokenMinterTests
     public void Mint_TokenRejected_WithDifferentKey()
     {
         var minter = WopiAccessTokenMinter.FromSecret("test-secret");
-        var (token, _) = minter.Mint("user-1", "Alice", "alice@example.com", "file-42",
-            WopiFilePermissions.UserCanWrite);
+        var (token, _) = minter.Mint(StandardRequest());
 
         var differentKey = PadToHmacKey(System.Text.Encoding.UTF8.GetBytes("a-totally-different-secret"));
         var validationParameters = new TokenValidationParameters
@@ -116,8 +120,9 @@ public class WopiAccessTokenMinterTests
     public void Mint_NullUserId_Throws()
     {
         var minter = WopiAccessTokenMinter.FromSecret("test-secret");
-        // ArgumentException.ThrowIfNullOrEmpty throws ArgumentNullException for null, ArgumentException for empty.
-        Assert.Throws<ArgumentNullException>(() => minter.Mint(null!, "n", null, "r", WopiFilePermissions.UserCanWrite));
+        // The record's required modifier on UserId means the compiler enforces non-null at construction;
+        // the runtime guard catches reflection-built or null! casts.
+        Assert.ThrowsAny<ArgumentException>(() => minter.Mint(StandardRequest() with { UserId = null! }));
     }
 
     private static byte[] PadToHmacKey(byte[] raw)

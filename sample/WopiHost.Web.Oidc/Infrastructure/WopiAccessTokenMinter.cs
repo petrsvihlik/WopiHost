@@ -7,6 +7,30 @@ using WopiHost.Abstractions;
 namespace WopiHost.Web.Oidc.Infrastructure;
 
 /// <summary>
+/// Inputs for minting a WOPI access token. Optional fields are nullable.
+/// </summary>
+public sealed record WopiTokenMintRequest
+{
+    /// <summary>Stable unique id for the user (typically the OIDC <c>sub</c> claim).</summary>
+    public required string UserId { get; init; }
+
+    /// <summary>Friendly display name. Falls back to <see cref="UserId"/> on the issued <c>name</c> claim if null.</summary>
+    public string? UserDisplayName { get; init; }
+
+    /// <summary>User's email, if available. Omitted from the token when null.</summary>
+    public string? UserEmail { get; init; }
+
+    /// <summary>Identifier of the WOPI resource the token is bound to.</summary>
+    public required string ResourceId { get; init; }
+
+    /// <summary>WOPI permissions baked into the token. <see cref="WopiFilePermissions.None"/> omits the claim.</summary>
+    public WopiFilePermissions FilePermissions { get; init; } = WopiFilePermissions.None;
+
+    /// <summary>Token lifetime. Defaults to 10 minutes when null.</summary>
+    public TimeSpan? Lifetime { get; init; }
+}
+
+/// <summary>
 /// Mints WOPI access tokens that the WOPI client (Office Online) replays back to the WOPI
 /// backend. Format and signing key MUST match the WOPI server's
 /// <c>JwtAccessTokenService</c> — see <c>sample/WopiHost/Program.cs</c>.
@@ -33,41 +57,33 @@ public sealed class WopiAccessTokenMinter
     public static WopiAccessTokenMinter FromSecret(string secret) =>
         new(Encoding.UTF8.GetBytes(secret));
 
-    /// <summary>
-    /// Issues a 10-minute WOPI access token bound to <paramref name="resourceId"/> with the
-    /// supplied permissions and user identity.
-    /// </summary>
-    public (string Token, DateTimeOffset ExpiresAt) Mint(
-        string userId,
-        string? userDisplayName,
-        string? userEmail,
-        string resourceId,
-        WopiFilePermissions filePermissions,
-        TimeSpan? lifetime = null)
+    /// <summary>Issues a WOPI access token bound to a resource and user.</summary>
+    public (string Token, DateTimeOffset ExpiresAt) Mint(WopiTokenMintRequest request)
     {
-        ArgumentException.ThrowIfNullOrEmpty(userId);
-        ArgumentException.ThrowIfNullOrEmpty(resourceId);
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrEmpty(request.UserId);
+        ArgumentException.ThrowIfNullOrEmpty(request.ResourceId);
 
-        var expires = DateTimeOffset.UtcNow.Add(lifetime ?? TimeSpan.FromMinutes(10));
+        var expires = DateTimeOffset.UtcNow.Add(request.Lifetime ?? TimeSpan.FromMinutes(10));
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, userId),
-            new(ClaimTypes.Name, userDisplayName ?? userId),
-            new(WopiClaimTypes.ResourceId, resourceId),
+            new(ClaimTypes.NameIdentifier, request.UserId),
+            new(ClaimTypes.Name, request.UserDisplayName ?? request.UserId),
+            new(WopiClaimTypes.ResourceId, request.ResourceId),
             new(WopiClaimTypes.ResourceType, WopiResourceType.File.ToString()),
         };
-        if (!string.IsNullOrEmpty(userDisplayName))
+        if (!string.IsNullOrEmpty(request.UserDisplayName))
         {
-            claims.Add(new Claim(WopiClaimTypes.UserDisplayName, userDisplayName));
+            claims.Add(new Claim(WopiClaimTypes.UserDisplayName, request.UserDisplayName));
         }
-        if (!string.IsNullOrEmpty(userEmail))
+        if (!string.IsNullOrEmpty(request.UserEmail))
         {
-            claims.Add(new Claim(ClaimTypes.Email, userEmail));
+            claims.Add(new Claim(ClaimTypes.Email, request.UserEmail));
         }
-        if (filePermissions != WopiFilePermissions.None)
+        if (request.FilePermissions != WopiFilePermissions.None)
         {
-            claims.Add(new Claim(WopiClaimTypes.FilePermissions, filePermissions.ToString()));
+            claims.Add(new Claim(WopiClaimTypes.FilePermissions, request.FilePermissions.ToString()));
         }
 
         var descriptor = new SecurityTokenDescriptor

@@ -34,26 +34,16 @@ public sealed class TestAuthOidcWebAppFactory : WebApplicationFactory<OidcSample
     {
         builder.ConfigureAppConfiguration((_, config) =>
         {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Wopi:HostUrl"] = _wopiBackendUrl,
-                ["Wopi:ClientUrl"] = "https://office.example.test",
-                ["Wopi:Discovery:NetZone"] = "ExternalHttps",
-                ["Wopi:Discovery:RefreshInterval"] = "12:00:00",
-                ["Wopi:StorageProvider:RootPath"] = TestPaths.WopiDocsRoot,
-                ["Wopi:Security:SigningKey"] = Convert.ToBase64String(SigningKeyBytes(_wopiSigningSecret)),
-                ["Oidc:Authority"] = _authority.AbsoluteUri.TrimEnd('/'),
-                ["Oidc:ClientId"] = OidcWebAppFactory.TestClientId,
-                ["Oidc:ClientSecret"] = OidcWebAppFactory.TestClientSecret,
-                ["Oidc:RequireHttpsMetadata"] = "false",
-                ["Oidc:RoleClaimType"] = "roles",
-            });
+            config.AddInMemoryCollection(OidcSampleTestConfig.Build(
+                oidcAuthority: _authority.AbsoluteUri.TrimEnd('/'),
+                wopiSigningSecret: _wopiSigningSecret,
+                wopiBackendUrl: _wopiBackendUrl));
         });
 
         builder.ConfigureServices(services =>
         {
             // Replace the default cookie scheme with our test handler so [Authorize] passes when
-            // TestUser.SignIn() is in scope.
+            // a request includes the test-user headers (see TestAuthClientExtensions.AsUser).
             var defaultScheme = TestAuthHandler.SchemeName;
             services.AddAuthentication(options =>
             {
@@ -67,20 +57,11 @@ public sealed class TestAuthOidcWebAppFactory : WebApplicationFactory<OidcSample
             services.AddAuthorization();
 
             // Replace the discoverer so tests don't try to fetch discovery XML from the configured
-            // ClientUrl (which is unreachable test hostname). FakeDiscoverer returns canned values.
+            // ClientUrl (which is an unreachable test hostname). FakeDiscoverer returns canned values.
             services.RemoveAll<IDiscoverer>();
             services.AddSingleton<IDiscoverer, FakeDiscoverer>();
         });
 
         builder.UseEnvironment("Development");
-    }
-
-    private static byte[] SigningKeyBytes(string secret)
-    {
-        var raw = System.Text.Encoding.UTF8.GetBytes(secret);
-        if (raw.Length >= 32) return raw;
-        var padded = new byte[32];
-        Array.Copy(raw, padded, raw.Length);
-        return padded;
     }
 }

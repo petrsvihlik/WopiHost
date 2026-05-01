@@ -70,12 +70,14 @@ public class HomeController(
 
         var permissions = OidcRolePermissionMapper.Resolve(User, oidcOptions.Value.RoleClaimType);
 
-        var (token, expiresAt) = tokenMinter.Mint(
-            userId,
-            displayName,
-            email,
-            file.Identifier,
-            permissions);
+        var (token, expiresAt) = tokenMinter.Mint(new WopiTokenMintRequest
+        {
+            UserId = userId,
+            UserDisplayName = displayName,
+            UserEmail = email,
+            ResourceId = file.Identifier,
+            FilePermissions = permissions,
+        });
 
         ViewData["access_token"] = token;
         ViewData["access_token_ttl"] = expiresAt.ToUnixTimeMilliseconds();

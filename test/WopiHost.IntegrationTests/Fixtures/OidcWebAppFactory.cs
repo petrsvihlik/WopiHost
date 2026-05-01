@@ -26,30 +26,19 @@ public sealed class OidcWebAppFactory : WebApplicationFactory<OidcSampleEntryPoi
     }
 
     /// <summary>Client id the sample registers with the mock IdP. Mock-oauth2-server accepts any id.</summary>
-    public const string TestClientId = "wopihost-oidc-sample";
+    public const string TestClientId = OidcSampleTestConfig.TestClientId;
 
     /// <summary>Client secret. Mock-oauth2-server accepts any value here.</summary>
-    public const string TestClientSecret = "test-client-secret";
+    public const string TestClientSecret = OidcSampleTestConfig.TestClientSecret;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureAppConfiguration((_, config) =>
         {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Wopi:HostUrl"] = _wopiBackendUrl,
-                ["Wopi:ClientUrl"] = "https://office.example.test",
-                ["Wopi:Discovery:NetZone"] = "ExternalHttps",
-                ["Wopi:Discovery:RefreshInterval"] = "12:00:00",
-                ["Wopi:StorageProvider:RootPath"] = TestPaths.WopiDocsRoot,
-                ["Wopi:Security:SigningKey"] = Convert.ToBase64String(SigningKeyBytes(_wopiSigningSecret)),
-                ["Oidc:Authority"] = _authority.AbsoluteUri.TrimEnd('/'),
-                ["Oidc:ClientId"] = TestClientId,
-                ["Oidc:ClientSecret"] = TestClientSecret,
-                ["Oidc:RequireHttpsMetadata"] = "false",
-                ["Oidc:UsePkce"] = "true",
-                ["Oidc:RoleClaimType"] = "roles",
-            });
+            config.AddInMemoryCollection(OidcSampleTestConfig.Build(
+                oidcAuthority: _authority.AbsoluteUri.TrimEnd('/'),
+                wopiSigningSecret: _wopiSigningSecret,
+                wopiBackendUrl: _wopiBackendUrl));
         });
 
         builder.ConfigureServices(services =>
@@ -65,14 +54,5 @@ public sealed class OidcWebAppFactory : WebApplicationFactory<OidcSampleEntryPoi
         });
 
         builder.UseEnvironment("Development");
-    }
-
-    private static byte[] SigningKeyBytes(string secret)
-    {
-        var raw = System.Text.Encoding.UTF8.GetBytes(secret);
-        if (raw.Length >= 32) return raw;
-        var padded = new byte[32];
-        Array.Copy(raw, padded, raw.Length);
-        return padded;
     }
 }
