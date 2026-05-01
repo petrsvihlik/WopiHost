@@ -215,3 +215,7 @@ coverage.json
 # WOPI validator local logs (see scripts/run-validator.sh)
 /host.log
 /validator.log
+
+# Infer# static analysis output (see .github/workflows/infersharp.yml)
+/infer-staging/
+/infer-out/

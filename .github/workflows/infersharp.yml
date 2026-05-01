@@ -1,0 +1,112 @@
+name: Infer# Static Analysis
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - 'LICENSE'
+      - '.claude/**'
+  pull_request_target:
+    branches: [ master ]
+    paths-ignore:
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - 'LICENSE'
+      - '.claude/**'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  approve:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Approve
+        run: echo For security reasons, all pull requests need to be approved first before running any automated CI.
+
+  analyze:
+    runs-on: ubuntu-latest
+    needs: [approve]
+    if: |
+      always() &&
+      (github.event_name == 'push' || needs.approve.result == 'success')
+    environment:
+      name: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository && 'Integrate Pull Request' || '' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 2
+
+      - name: Setup .NET 8.0
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+      - name: Setup .NET 9.0
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '9.0.x'
+      - name: Setup .NET 10.0
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Set MYGET_FEED Environment Variable
+        run: echo "MYGET_FEED=${{ secrets.MYGET_FEED }}" >> $GITHUB_ENV
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build (Release, no warnings-as-errors for analysis-only build)
+        run: dotnet build --no-restore -c Release /p:ContinuousIntegrationBuild=true
+
+      - name: Stage src/ libraries (net10.0)
+        run: |
+          mkdir -p infer-staging
+          for proj in WopiHost.Abstractions WopiHost.Core WopiHost.Discovery WopiHost.Url WopiHost.Cobalt WopiHost.FileSystemProvider WopiHost.MemoryLockProvider; do
+            cp "src/$proj/bin/Release/net10.0/$proj.dll" "src/$proj/bin/Release/net10.0/$proj.pdb" infer-staging/
+          done
+          ls -la infer-staging/
+
+      - name: Run Infer#
+        run: |
+          mkdir -p infer-out
+          docker run --rm \
+            -v "$PWD/infer-staging:/binaries:ro" \
+            -v "$PWD/infer-out:/output" \
+            --entrypoint sh \
+            mcr.microsoft.com/infersharp@sha256:030eb68fb99f86f6c6351672f444a7092dceb0fdf15ac5f24ddf9f9e198484cd \
+            -c "cd /infersharp && ./run_infersharp.sh /binaries && cp -r infer-out/* /output/ 2>/dev/null; cp filtered_output.sarif /output/ 2>/dev/null; true"
+
+      - name: Upload SARIF to GitHub code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: infer-out/report.sarif
+          category: infersharp
+
+      - name: Upload Infer# output as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infer-output
+          path: |
+            infer-out/report.txt
+            infer-out/report.json
+            infer-out/report.sarif
+            infer-out/logs
+
+      - name: Fail on any finding
+        run: |
+          if [ -s infer-out/report.txt ]; then
+            echo "::error::Infer# reported findings — see report.txt artifact and the Security tab."
+            cat infer-out/report.txt
+            exit 1
+          fi
+          echo "Infer# clean — no issues found."
