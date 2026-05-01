@@ -3,633 +3,135 @@
 [![NuGet](https://img.shields.io/nuget/v/WopiHost.Abstractions.svg)](https://www.nuget.org/packages/WopiHost.Abstractions)
 [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Abstractions.svg)](https://www.nuget.org/packages/WopiHost.Abstractions)
 
-A .NET library containing the core abstractions and interfaces for building WOPI (Web Application Open Platform Interface) host implementations. This package defines the contracts that WOPI hosts must implement to integrate with Office Online Server.
+The contracts a WOPI host implementation has to satisfy. Reference this package if you are writing a custom storage provider, lock provider, or permission provider; everything else in the repo depends on it.
 
-## Features
-
-- **Core Interfaces**: Essential interfaces for WOPI host implementation
-- **Storage Abstractions**: Abstract file and folder operations
-- **Security Contracts**: Authentication and authorization interfaces
-- **WOPI Models**: Standard WOPI data models and enums
-- **Lock Management**: File locking and concurrency control interfaces
-- **Host Capabilities**: WOPI host capability definitions
-
-## Installation
+## Install
 
 ```bash
 dotnet add package WopiHost.Abstractions
 ```
 
-## Quick Start
+## The interfaces
 
-### Basic Interface Usage
+| Interface | Purpose | Default | When to implement |
+|---|---|---|---|
+| [`IWopiStorageProvider`](IWopiStorageProvider.cs) | Read access to files and containers (folders). | `WopiFileSystemProvider` | Always — there is no useful default beyond the file-system sample. |
+| [`IWopiWritableStorageProvider`](IWopiWritableStorageProvider.cs) | Create / delete / rename / suggest names. Optional. | — | If you want WOPI clients to be able to mutate the store. |
+| [`IWopiLockProvider`](IWopiLockProvider.cs) | Editing locks. Synchronous. | `MemoryLockProvider` (in-process) | Replace for multi-instance hosts. |
+| [`IWopiPermissionProvider`](IWopiPermissionProvider.cs) | What a `ClaimsPrincipal` can do with a file/container. | `DefaultWopiPermissionProvider` (reads from token claims) | Almost always — this is where your ACL model plugs in. |
+| [`IWopiAccessTokenService`](IWopiAccessTokenService.cs) | Issue and validate access tokens. | `JwtAccessTokenService` (signed JWT) | Rarely — only if you need opaque/revocable tokens or external issuance. |
+| [`IWopiHostCapabilities`](IWopiHostCapabilities.cs) | Feature flags reported in `CheckFileInfo`. | `WopiHostCapabilities` | Override individual flags via `WopiHostOptions.OnCheckFileInfo`. |
 
-```csharp
-using WopiHost.Abstractions;
+The defaults marked above ship in `WopiHost.Core`, `WopiHost.FileSystemProvider`, and `WopiHost.MemoryLockProvider` — wired up by `services.AddWopi()`.
 
-// Implement a custom storage provider
-public class CustomStorageProvider : IWopiStorageProvider
-{
-    public Task<T?> GetWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource
-    {
-        // Your implementation here
-        throw new NotImplementedException();
-    }
-    
-    public IAsyncEnumerable<IWopiFile> GetWopiFiles(string? identifier = null, string? searchPattern = null, CancellationToken cancellationToken = default)
-    {
-        // Your implementation here
-        throw new NotImplementedException();
-    }
-    
-    public IAsyncEnumerable<IWopiFolder> GetWopiContainers(string? identifier = null, CancellationToken cancellationToken = default)
-    {
-        // Your implementation here
-        throw new NotImplementedException();
-    }
-    
-    public IWopiFolder RootContainerPointer { get; } = new CustomFolder("root", "root-id");
-}
-```
-
-## Hero Scenarios
-
-### 1. Custom Cloud Storage Integration
-
-Integrate with any cloud storage provider (Azure Blob, AWS S3, Google Cloud, etc.):
+## Resource model
 
 ```csharp
-public class AzureBlobStorageProvider : IWopiStorageProvider, IWopiWritableStorageProvider
+public interface IWopiResource
 {
-    private readonly BlobServiceClient _blobServiceClient;
-    private readonly string _containerName;
-    
-    public AzureBlobStorageProvider(BlobServiceClient blobServiceClient, string containerName)
-    {
-        _blobServiceClient = blobServiceClient;
-        _containerName = containerName;
-    }
-    
-    public async Task<T?> GetWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource
-    {
-        var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
-        var blobClient = containerClient.GetBlobClient(identifier);
-        
-        if (typeof(T) == typeof(IWopiFile))
-        {
-            var exists = await blobClient.ExistsAsync(cancellationToken);
-            if (exists.Value)
-            {
-                return new AzureBlobFile(blobClient, identifier) as T;
-            }
-        }
-        else if (typeof(T) == typeof(IWopiFolder))
-        {
-            // Handle folder logic
-            return new AzureBlobFolder(identifier) as T;
-        }
-        
-        return null;
-    }
-    
-    public async IAsyncEnumerable<IWopiFile> GetWopiFiles(string? identifier = null, string? searchPattern = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
-        var prefix = identifier ?? "";
-        
-        await foreach (var blobItem in containerClient.GetBlobsAsync(prefix: prefix, cancellationToken: cancellationToken))
-        {
-            if (blobItem.Properties.ContentType?.StartsWith("application/") == true)
-            {
-                var blobClient = containerClient.GetBlobClient(blobItem.Name);
-                yield return new AzureBlobFile(blobClient, blobItem.Name);
-            }
-        }
-    }
-    
-    // Implement other required methods...
+    string Name { get; }
+    string Identifier { get; }
 }
 
-public class AzureBlobFile : IWopiFile
-{
-    private readonly BlobClient _blobClient;
-    
-    public AzureBlobFile(BlobClient blobClient, string identifier)
-    {
-        _blobClient = blobClient;
-        Identifier = identifier;
-    }
-    
-    public string Identifier { get; }
-    public string Name => Path.GetFileNameWithoutExtension(_blobClient.Name);
-    public string Extension => Path.GetExtension(_blobClient.Name).TrimStart('.');
-    public bool Exists => true; // We know it exists if we got here
-    public long Length => 0; // Would need to fetch properties
-    public long Size => Length;
-    public DateTime LastWriteTimeUtc => DateTime.UtcNow; // Would need to fetch properties
-    public string? Version => null;
-    public byte[]? Checksum => null;
-    public string Owner => "system"; // Would need to fetch metadata
-    
-    public async Task<Stream> GetReadStream(CancellationToken cancellationToken = default)
-    {
-        var response = await _blobClient.DownloadStreamingAsync(cancellationToken: cancellationToken);
-        return response.Value.Content;
-    }
-    
-    public async Task<Stream> GetWriteStream(CancellationToken cancellationToken = default)
-    {
-        // Implementation for write stream
-        throw new NotImplementedException();
-    }
-}
-```
-
-### 2. Database-Backed Document Storage
-
-Store documents in a database with metadata:
-
-```csharp
-public class DatabaseStorageProvider : IWopiStorageProvider, IWopiWritableStorageProvider
-{
-    private readonly ApplicationDbContext _context;
-    private readonly IBlobStorage _blobStorage;
-    
-    public async Task<T?> GetWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource
-    {
-        var document = await _context.Documents
-            .FirstOrDefaultAsync(d => d.Id == identifier, cancellationToken);
-            
-        if (document == null) return null;
-        
-        if (typeof(T) == typeof(IWopiFile))
-        {
-            return new DatabaseFile(document, _blobStorage) as T;
-        }
-        else if (typeof(T) == typeof(IWopiFolder))
-        {
-            return new DatabaseFolder(document) as T;
-        }
-        
-        return null;
-    }
-    
-    public async IAsyncEnumerable<IWopiFile> GetWopiFiles(string? identifier = null, string? searchPattern = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var query = _context.Documents.AsQueryable();
-        
-        if (!string.IsNullOrEmpty(identifier))
-        {
-            query = query.Where(d => d.ParentId == identifier);
-        }
-        
-        if (!string.IsNullOrEmpty(searchPattern))
-        {
-            query = query.Where(d => EF.Functions.Like(d.Name, searchPattern));
-        }
-        
-        await foreach (var document in query.AsAsyncEnumerable())
-        {
-            yield return new DatabaseFile(document, _blobStorage);
-        }
-    }
-    
-    // Implement other methods...
-}
-
-public class DatabaseFile : IWopiFile
-{
-    private readonly Document _document;
-    private readonly IBlobStorage _blobStorage;
-    
-    public DatabaseFile(Document document, IBlobStorage blobStorage)
-    {
-        _document = document;
-        _blobStorage = blobStorage;
-    }
-    
-    public string Identifier => _document.Id;
-    public string Name => _document.Name;
-    public string Extension => _document.Extension;
-    public bool Exists => true;
-    public long Length => _document.Size;
-    public long Size => _document.Size;
-    public DateTime LastWriteTimeUtc => _document.LastModified;
-    public string? Version => _document.Version;
-    public byte[]? Checksum => _document.Checksum;
-    public string Owner => _document.OwnerId;
-    
-    public async Task<Stream> GetReadStream(CancellationToken cancellationToken = default)
-    {
-        return await _blobStorage.GetStreamAsync(_document.BlobPath, cancellationToken);
-    }
-    
-    public async Task<Stream> GetWriteStream(CancellationToken cancellationToken = default)
-    {
-        return await _blobStorage.GetWriteStreamAsync(_document.BlobPath, cancellationToken);
-    }
-}
-```
-
-### 3. Custom Security Implementation
-
-The typical extension is a single class — your ACL provider:
-
-```csharp
-public class MyAclPermissionProvider(IUserDirectory users, IAclStore acls) : IWopiPermissionProvider
-{
-    public async Task<WopiFilePermissions> GetFilePermissionsAsync(
-        ClaimsPrincipal user, IWopiFile file, CancellationToken ct)
-    {
-        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-        var entries = await acls.GetEntriesAsync(userId, file.Identifier, ct);
-
-        var perms = WopiFilePermissions.None;
-        if (!entries.CanWrite)  perms |= WopiFilePermissions.ReadOnly;
-        if (entries.CanWrite)   perms |= WopiFilePermissions.UserCanWrite;
-        if (entries.CanRename)  perms |= WopiFilePermissions.UserCanRename;
-        if (!entries.CanCreate) perms |= WopiFilePermissions.UserCanNotWriteRelative;
-        return perms;
-    }
-
-    public async Task<WopiContainerPermissions> GetContainerPermissionsAsync(
-        ClaimsPrincipal user, IWopiFolder container, CancellationToken ct) => /* ... */;
-}
-
-// Registered AFTER AddWopi(), this overrides the default DefaultWopiPermissionProvider.
-services.AddWopi();
-services.AddSingleton<IWopiPermissionProvider, MyAclPermissionProvider>();
-```
-
-Token issuance / validation almost never needs replacing — `WopiHost.Core`'s
-`JwtAccessTokenService` handles signing, expiry, claim layout, and key rotation. Configure
-it via `services.ConfigureWopiSecurity(o => { o.SigningKey = ...; o.Issuer = ...; })`.
-
-public class CustomLockProvider : IWopiLockProvider
-{
-    private readonly IDistributedCache _cache;
-    private readonly ILogger<CustomLockProvider> _logger;
-    
-    public async Task<bool> LockAsync(string resourceId, string lockId, TimeSpan timeout)
-    {
-        try
-        {
-            var lockKey = $"wopi:lock:{resourceId}";
-            var existingLock = await _cache.GetStringAsync(lockKey);
-            
-            if (!string.IsNullOrEmpty(existingLock) && existingLock != lockId)
-            {
-                return false; // Resource is already locked by someone else
-            }
-            
-            await _cache.SetStringAsync(lockKey, lockId, new DistributedCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = timeout
-            });
-            
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to acquire lock for resource {ResourceId}", resourceId);
-            return false;
-        }
-    }
-    
-    public async Task<bool> UnlockAsync(string resourceId, string lockId)
-    {
-        try
-        {
-            var lockKey = $"wopi:lock:{resourceId}";
-            var existingLock = await _cache.GetStringAsync(lockKey);
-            
-            if (existingLock != lockId)
-            {
-                return false; // Lock doesn't match
-            }
-            
-            await _cache.RemoveAsync(lockKey);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to release lock for resource {ResourceId}", resourceId);
-            return false;
-        }
-    }
-    
-    // Implement other required methods...
-}
-```
-
-## Core Interfaces
-
-### IWopiStorageProvider
-
-Base interface for read-only storage operations.
-
-```csharp
-public interface IWopiStorageProvider
-{
-    Task<T?> GetWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource;
-    
-    IAsyncEnumerable<IWopiFile> GetWopiFiles(string? identifier = null, string? searchPattern = null, CancellationToken cancellationToken = default);
-    
-    IAsyncEnumerable<IWopiFolder> GetWopiContainers(string? identifier = null, CancellationToken cancellationToken = default);
-    
-    IWopiFolder RootContainerPointer { get; }
-    
-    Task<IEnumerable<IWopiResource>> GetAncestorsAsync(string identifier, CancellationToken cancellationToken = default);
-}
-```
-
-### IWopiWritableStorageProvider
-
-Extends `IWopiStorageProvider` with write operations.
-
-```csharp
-public interface IWopiWritableStorageProvider : IWopiStorageProvider
-{
-    Task<IWopiFile> CreateFileAsync(string identifier, Stream content, CancellationToken cancellationToken = default);
-    
-    Task<IWopiFolder> CreateFolderAsync(string identifier, CancellationToken cancellationToken = default);
-    
-    Task DeleteFileAsync(string identifier, CancellationToken cancellationToken = default);
-    
-    Task DeleteFolderAsync(string identifier, CancellationToken cancellationToken = default);
-    
-    Task<IWopiFile> RenameFileAsync(string identifier, string newName, CancellationToken cancellationToken = default);
-    
-    Task<IWopiFolder> RenameFolderAsync(string identifier, string newName, CancellationToken cancellationToken = default);
-}
-```
-
-### IWopiFile
-
-Represents a file in the WOPI system.
-
-```csharp
 public interface IWopiFile : IWopiResource
 {
     string Owner { get; }
     bool Exists { get; }
     long Length { get; }
-    DateTime LastWriteTimeUtc { get; }
-    string Extension { get; }
-    string? Version { get; }
-    byte[]? Checksum { get; }
     long Size { get; }
-    
+    DateTime LastWriteTimeUtc { get; }
+    string Extension { get; }            // without leading dot
+    string? Version { get; }
+    byte[]? Checksum { get; }            // SHA-256
+
     Task<Stream> GetReadStream(CancellationToken cancellationToken = default);
     Task<Stream> GetWriteStream(CancellationToken cancellationToken = default);
 }
+
+public interface IWopiFolder : IWopiResource { }
 ```
 
-### IWopiFolder
+## Permission model
 
-Represents a folder/container in the WOPI system.
+`IWopiPermissionProvider` is the single seam for "what is this user allowed to do here?". The provider is consulted at two points:
 
-```csharp
-public interface IWopiFolder : IWopiResource
-{
-    // Inherits Name and Identifier from IWopiResource
-}
-```
-
-### Security: `IWopiAccessTokenService` and `IWopiPermissionProvider`
-
-WOPI security is split into two orthogonal abstractions. **Most consumers only implement
-`IWopiPermissionProvider`** — the access-token plumbing has a usable default in `WopiHost.Core`.
+1. **Token issuance** by host code that builds the WOPI URL — to decide what permissions to bake into the token.
+2. **CheckFileInfo / CheckContainerInfo** — to populate the `UserCan*` response flags Office reads.
 
 ```csharp
-// 1. Issues and validates the per-(user, resource, window) WOPI access token.
-//    Default implementation in WopiHost.Core (JwtAccessTokenService) signs JWTs;
-//    replace only if you need opaque reference tokens or an external token service.
-public interface IWopiAccessTokenService
+public class MyAclPermissionProvider(IAclStore acls) : IWopiPermissionProvider
 {
-    Task<WopiAccessToken> IssueAsync(WopiAccessTokenRequest request, CancellationToken ct = default);
-    Task<WopiAccessTokenValidationResult> ValidateAsync(string token, CancellationToken ct = default);
-}
-
-// 2. Computes what a user is allowed to do with a file or container.
-//    THIS is where you plug in your ACL model. Default reads from token claims,
-//    falling back to WopiHostOptions.DefaultFilePermissions / DefaultContainerPermissions.
-public interface IWopiPermissionProvider
-{
-    Task<WopiFilePermissions> GetFilePermissionsAsync(
-        ClaimsPrincipal user, IWopiFile file, CancellationToken ct = default);
-    Task<WopiContainerPermissions> GetContainerPermissionsAsync(
-        ClaimsPrincipal user, IWopiFolder container, CancellationToken ct = default);
-}
-```
-
-The flow:
-
-1. The host's URL-generating code calls `IWopiPermissionProvider.GetFilePermissionsAsync` to
-   decide what permissions to grant the user for this session.
-2. It calls `IWopiAccessTokenService.IssueAsync` with those permissions; they get baked into
-   the token's claims (`wopi:rid`, `wopi:fperms`, etc. — see `WopiClaimTypes`).
-3. The WOPI client replays the token on every `/wopi/*` call; `IWopiAccessTokenService.ValidateAsync`
-   re-materializes the principal.
-4. `WopiAuthorizationHandler` (in Core) enforces that the `[WopiAuthorize(..., Permission.X)]`
-   requirement is granted by the file/container permission flags carried in the token.
-   The `wopi:rid` claim is logged for audit but not enforced as a route-binding by default —
-   WOPI tokens are session-scoped and used across related resources (file → ancestor container).
-   Layer a custom `IAuthorizationHandler` if your scenario needs strict per-resource binding.
-
-### IWopiLockProvider
-
-Manages file locking for concurrent access.
-
-```csharp
-public interface IWopiLockProvider
-{
-    Task<bool> LockAsync(string resourceId, string lockId, TimeSpan timeout);
-    Task<bool> UnlockAsync(string resourceId, string lockId);
-    Task<string?> GetLockAsync(string resourceId);
-    Task<bool> RefreshLockAsync(string resourceId, string lockId, TimeSpan timeout);
-}
-```
-
-## WOPI Models
-
-### WopiCheckFileInfo
-
-Standard WOPI file information model.
-
-```csharp
-public class WopiCheckFileInfo
-{
-    public string BaseFileName { get; set; }
-    public string OwnerId { get; set; }
-    public long Size { get; set; }
-    public string UserId { get; set; }
-    public string Version { get; set; }
-    public string Sha256 { get; set; }
-    public bool UserCanWrite { get; set; }
-    public bool UserCanNotWriteRelative { get; set; }
-    public bool UserCanRename { get; set; }
-    public bool UserCanAttend { get; set; }
-    public bool UserCanPresent { get; set; }
-    public bool UserCanEdit { get; set; }
-    public bool UserCanView { get; set; }
-    public bool UserCanDelete { get; set; }
-    // ... more properties
-}
-```
-
-### WopiHostCapabilities
-
-Defines what the WOPI host supports.
-
-```csharp
-public class WopiHostCapabilities : IWopiHostCapabilities
-{
-    public bool SupportsCoauth { get; set; }
-    public bool SupportsCobalt { get; set; }
-    public bool SupportsFolders { get; set; } = true;
-    public bool SupportsContainers { get; set; } = true;
-    public bool SupportsLocks { get; set; }
-    public bool SupportsGetLock { get; set; }
-    public bool SupportsExtendedLockLength { get; set; } = true;
-    public bool SupportsEcosystem { get; set; } = true;
-    public bool SupportsGetFileWopiSrc { get; set; }
-    public IEnumerable<string> SupportedShareUrlTypes { get; set; } = [];
-    public bool SupportsScenarioLinks { get; set; }
-    public bool SupportsSecureStore { get; set; }
-    public bool SupportsFileCreation { get; set; }
-    public bool SupportsUpdate { get; set; } = true;
-    public bool SupportsRename { get; set; } = true;
-    public bool SupportsDeleteFile { get; set; } = true;
-    public bool SupportsUserInfo { get; set; } = true;
-}
-```
-
-## Enums
-
-### PermissionEnum
-
-File permission levels.
-
-```csharp
-public enum PermissionEnum
-{
-    None = 0,
-    Read = 1,
-    Write = 2,
-    Delete = 4,
-    All = Read | Write | Delete
-}
-```
-
-### WopiFileOperations
-
-Standard WOPI file operations.
-
-```csharp
-public enum WopiFileOperations
-{
-    GetFile,
-    PutFile,
-    Lock,
-    Unlock,
-    RefreshLock,
-    GetLock,
-    CheckFileInfo,
-    PutRelativeFile,
-    DeleteFile,
-    RenameFile,
-    PutUserInfo,
-    ReadSecureStore,
-    GetRestrictedLink,
-    RevokeRestrictedLink,
-    CheckContainerInfo,
-    GetContainer,
-    CreateContainer,
-    DeleteContainer,
-    CheckEcosystem,
-    GetEcosystem,
-    GetFileWopiSrc,
-    EnumerateChildren,
-    CheckFolderInfo,
-    PutFileWopiSrc,
-    DeleteFileWopiSrc,
-    PutRelativeFileLocal,
-    GetFileWopiSrc,
-    PutFileWopiSrc,
-    DeleteFileWopiSrc,
-    PutRelativeFileLocal,
-    GetFileWopiSrc,
-    PutFileWopiSrc,
-    DeleteFileWopiSrc,
-    PutRelativeFileLocal
-}
-```
-
-## Dependencies
-
-- `Microsoft.AspNetCore.Authorization`: For authorization support
-- `Microsoft.IdentityModel.Tokens`: For JWT token handling
-
-## Examples
-
-### Custom Resource Implementation
-
-```csharp
-public class CustomFile : IWopiFile
-{
-    public CustomFile(string path, string identifier)
+    public async Task<WopiFilePermissions> GetFilePermissionsAsync(
+        ClaimsPrincipal user, IWopiFile file, CancellationToken ct = default)
     {
-        Path = path;
-        Identifier = identifier;
-        var fileInfo = new FileInfo(path);
-        Name = fileInfo.Name;
-        Exists = fileInfo.Exists;
-        Length = fileInfo.Length;
-        LastWriteTimeUtc = fileInfo.LastWriteTimeUtc;
-        Extension = fileInfo.Extension.TrimStart('.');
-        Owner = Environment.UserName;
+        var sub = user.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var entry = await acls.GetEntriesAsync(sub, file.Identifier, ct);
+
+        var perms = WopiFilePermissions.None;
+        if (entry.CanWrite)  perms |= WopiFilePermissions.UserCanWrite | WopiFilePermissions.UserCanRename;
+        else                 perms |= WopiFilePermissions.ReadOnly;
+        if (!entry.CanCreate) perms |= WopiFilePermissions.UserCanNotWriteRelative;
+        return perms;
     }
-    
-    public string Path { get; }
-    public string Identifier { get; }
-    public string Name { get; }
-    public bool Exists { get; }
-    public long Length { get; }
-    public long Size => Length;
-    public DateTime LastWriteTimeUtc { get; }
-    public string Extension { get; }
-    public string? Version => null;
-    public byte[]? Checksum => null;
-    public string Owner { get; }
-    
-    public Task<Stream> GetReadStream(CancellationToken cancellationToken = default)
+
+    public Task<WopiContainerPermissions> GetContainerPermissionsAsync(
+        ClaimsPrincipal user, IWopiFolder container, CancellationToken ct = default)
+        => /* ... */;
+}
+
+// Register AFTER AddWopi() so it overrides the default.
+services.AddWopi();
+services.AddSingleton<IWopiPermissionProvider, MyAclPermissionProvider>();
+```
+
+For the full token pipeline (claim layout, key rotation, the bootstrapper authentication scheme), see the [WopiHost.Core README](../WopiHost.Core/README.md#security).
+
+## Storage example sketch
+
+A real storage provider implements the read interface and, if writable, the writable one:
+
+```csharp
+public class AzureBlobStorageProvider(BlobContainerClient container)
+    : IWopiStorageProvider, IWopiWritableStorageProvider
+{
+    public IWopiFolder RootContainerPointer { get; } = new BlobFolder(container, "/");
+
+    public async Task<T?> GetWopiResource<T>(string identifier, CancellationToken ct = default)
+        where T : class, IWopiResource
     {
-        return Task.FromResult<Stream>(File.OpenRead(Path));
+        // Resolve identifier → BlobClient or virtual folder, then return as T.
     }
-    
-    public Task<Stream> GetWriteStream(CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult<Stream>(File.OpenWrite(Path));
-    }
+
+    public IAsyncEnumerable<IWopiFile> GetWopiFiles(
+        string? identifier = null, string? searchPattern = null, CancellationToken ct = default) => /* ... */;
+
+    public IAsyncEnumerable<IWopiFolder> GetWopiContainers(
+        string? identifier = null, CancellationToken ct = default) => /* ... */;
+
+    public Task<ReadOnlyCollection<IWopiFolder>> GetAncestors<T>(
+        string identifier, CancellationToken ct = default) where T : class, IWopiResource => /* ... */;
+
+    public Task<T?> GetWopiResourceByName<T>(
+        string containerId, string name, CancellationToken ct = default)
+        where T : class, IWopiResource => /* ... */;
+
+    // IWopiWritableStorageProvider
+    public int FileNameMaxLength => 250;
+    public Task<T?> CreateWopiChildResource<T>(string? containerId, string name, CancellationToken ct = default)
+        where T : class, IWopiResource => /* ... */;
+    public Task<bool> DeleteWopiResource<T>(string identifier, CancellationToken ct = default)
+        where T : class, IWopiResource => /* ... */;
+    public Task<bool> RenameWopiResource<T>(string identifier, string requestedName, CancellationToken ct = default)
+        where T : class, IWopiResource => /* ... */;
+    public Task<bool> CheckValidName<T>(string name, CancellationToken ct = default)
+        where T : class, IWopiResource => /* ... */;
+    public Task<string> GetSuggestedName<T>(string containerId, string name, CancellationToken ct = default)
+        where T : class, IWopiResource => /* ... */;
 }
 ```
+
+Once registered, `services.AddWopi()` discovers it via `WopiHostOptions.StorageProviderAssemblyName`. See [WopiHost.FileSystemProvider](../WopiHost.FileSystemProvider/README.md) for a working reference implementation.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](../../LICENSE.txt) file for details.
-
-## Contributing
-
-Contributions are welcome! Please read our [Contributing Guidelines](../../CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
-
-## Support
-
-For support and questions:
-- Create an issue on [GitHub](https://github.com/petrsvihlik/WopiHost/issues)
-- Check the [documentation](https://github.com/petrsvihlik/WopiHost)
-- Review the [WOPI specification](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/discovery)
+See the [repo README](../../README.md#license).

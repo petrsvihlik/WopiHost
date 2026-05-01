@@ -18,9 +18,9 @@
 	<!-- Package Validation Configuration for NuGet packages -->
 	<PropertyGroup Condition="$(IsPackable) == 'true' AND $(PackageId) != ''">
 		<EnablePackageValidation>true</EnablePackageValidation>
-		<!-- Set baseline version to a reasonable previous version for breaking change detection -->
-		<!-- This should be updated to the actual previous stable version before release -->
-		<PackageValidationBaselineVersion>4.0.0</PackageValidationBaselineVersion>
+		<!-- Baseline used to detect public-API breaks against the last released version.
+		     Bump this in lockstep with releases. -->
+		<PackageValidationBaselineVersion>5.0.0</PackageValidationBaselineVersion>
 		<!-- Generate XML doc files alongside the assembly. Letting the SDK pick the
 		     path keeps it in sync with UseArtifactsOutput. -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>

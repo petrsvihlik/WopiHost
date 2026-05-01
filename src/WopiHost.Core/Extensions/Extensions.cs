@@ -1,10 +1,8 @@
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WopiHost.Abstractions;
 using WopiHost.Core.Infrastructure;
-using WopiHost.Core.Security.Authentication;
 
 namespace WopiHost.Core.Extensions;
 
@@ -68,17 +66,6 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Get WOPI authentication token
-    /// </summary>
-    /// <param name="httpContext">HTTP context</param>
-    private static string? GetAccessToken(this HttpContext httpContext)
-    {
-        //TODO: an alternative would be HttpContext.GetTokenAsync(AccessTokenDefaults.AuthenticationScheme, AccessTokenDefaults.AccessTokenQueryName).Result (if the code below doesn't work)
-        var authenticateInfo = httpContext.AuthenticateAsync(AccessTokenDefaults.AUTHENTICATION_SCHEME).Result;
-        return authenticateInfo?.Properties?.GetTokenValue(AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME);
-    }
-
-    /// <summary>
     /// Creates an absolute URL to access a WOPI object of choice.
     /// </summary>
     /// <param name="url">url helper</param>
@@ -91,8 +78,14 @@ internal static class Extensions
         ArgumentNullException.ThrowIfNull(url);
         ArgumentException.ThrowIfNullOrWhiteSpace(routeName);
 
-        accessToken ??= url.ActionContext.HttpContext.GetAccessToken();
-        
+        if (string.IsNullOrEmpty(accessToken))
+        {
+            // Reuse the request token rather than calling AuthenticateAsync().Result (deadlock risk).
+            // HttpRequest.GetAccessToken probes query → form → Authorization: Bearer.
+            var requestToken = url.ActionContext.HttpContext.Request.GetAccessToken();
+            accessToken = string.IsNullOrEmpty(requestToken) ? null : requestToken;
+        }
+
         return url.ProxyAwareRouteUrl(routeName, new { id = identifier ?? string.Empty, access_token = accessToken })
                ?? throw new InvalidOperationException(routeName + " route not found");
     }
