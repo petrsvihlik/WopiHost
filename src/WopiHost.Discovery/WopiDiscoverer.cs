@@ -6,14 +6,7 @@ using WopiHost.Discovery.Models;
 namespace WopiHost.Discovery;
 
 ///<inheritdoc cref="IDiscoverer"/>
-/// <summary>
-/// Creates a new instance of the <see cref="WopiDiscoverer"/>, a class for examining the capabilities of the WOPI client.
-/// </summary>
-/// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
-/// <param name="discoveryOptions">the discovery options</param>
-public class WopiDiscoverer(
-    IDiscoveryFileProvider discoveryFileProvider,
-    IOptions<DiscoveryOptions> discoveryOptions) : IDiscoverer, IDisposable
+public class WopiDiscoverer : IDiscoverer, IDisposable
 {
     private const string ElementNetZone = "net-zone";
     private const string ElementApp = "app";
@@ -34,43 +27,53 @@ public class WopiDiscoverer(
     private const string AttrProofKeyOldModulus = "oldmodulus";
     private const string AttrProofKeyOldExponent = "oldexponent";
 
-    // Explicit backing fields (instead of field-keyword auto-properties) so
-    // Dispose() can release the AsyncExpiringLazy<T> instances without
-    // forcing them to be allocated first.
-    private AsyncExpiringLazy<IEnumerable<XElement>>? _apps;
-    private AsyncExpiringLazy<XElement>? _proofKey;
+    private readonly IOptions<DiscoveryOptions> _discoveryOptions;
+
+    // Eagerly constructed in the ctor (and stored in readonly fields) so
+    // Infer# can statically track the SemaphoreSlim allocation through to
+    // Dispose(). The previous lazy `??=` pattern hid ownership from the
+    // analyzer and was reported as PULSE_RESOURCE_LEAK.
+    private readonly AsyncExpiringLazy<IEnumerable<XElement>> _apps;
+    private readonly AsyncExpiringLazy<XElement> _proofKey;
     private bool _disposed;
 
-    private AsyncExpiringLazy<IEnumerable<XElement>> Apps =>
-        _apps ??= new AsyncExpiringLazy<IEnumerable<XElement>>(async metadata =>
-        {
-            return new TemporaryValue<IEnumerable<XElement>>
+    /// <summary>
+    /// Creates a new instance of the <see cref="WopiDiscoverer"/>, a class for examining the capabilities of the WOPI client.
+    /// </summary>
+    /// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
+    /// <param name="discoveryOptions">the discovery options</param>
+    public WopiDiscoverer(
+        IDiscoveryFileProvider discoveryFileProvider,
+        IOptions<DiscoveryOptions> discoveryOptions)
+    {
+        ArgumentNullException.ThrowIfNull(discoveryFileProvider);
+        ArgumentNullException.ThrowIfNull(discoveryOptions);
+
+        _discoveryOptions = discoveryOptions;
+
+        _apps = new AsyncExpiringLazy<IEnumerable<XElement>>(async _ =>
+            new TemporaryValue<IEnumerable<XElement>>
             {
                 Result = (await discoveryFileProvider.GetDiscoveryXmlAsync())
-                .Elements(ElementNetZone)
-                .Where(ValidateNetZone)
-                .Elements(ElementApp),
+                    .Elements(ElementNetZone)
+                    .Where(ValidateNetZone)
+                    .Elements(ElementApp),
+                ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval),
+            });
 
-                ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval)
-            };
-        });
-
-    private AsyncExpiringLazy<XElement> ProofKey =>
-        _proofKey ??= new AsyncExpiringLazy<XElement>(async metadata =>
-        {
-            return new TemporaryValue<XElement>
+        _proofKey = new AsyncExpiringLazy<XElement>(async _ =>
+            new TemporaryValue<XElement>
             {
                 Result = (await discoveryFileProvider.GetDiscoveryXmlAsync())
                     .Elements(ElementProofKey)
                     .FirstOrDefault() ?? new XElement(ElementProofKey),
+                ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval),
+            });
+    }
 
-                ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval)
-            };
-        });
+    internal async Task<IEnumerable<XElement>> GetAppsAsync() => await _apps.Value();
 
-    internal async Task<IEnumerable<XElement>> GetAppsAsync() => await Apps.Value();
-    
-    internal async Task<XElement> GetProofKeyAsync() => await ProofKey.Value();
+    internal async Task<XElement> GetProofKeyAsync() => await _proofKey.Value();
 
     private bool ValidateNetZone(XElement e)
     {
@@ -81,7 +84,7 @@ public class WopiDiscoverer(
         }
         netZoneString = netZoneString.Replace("-", "", StringComparison.InvariantCulture);
         var success = Enum.TryParse(netZoneString, true, out NetZoneEnum netZone);
-        return success && (netZone == discoveryOptions.Value.NetZone);
+        return success && (netZone == _discoveryOptions.Value.NetZone);
     }
 
     ///<inheritdoc />
@@ -195,8 +198,8 @@ public class WopiDiscoverer(
         }
         if (disposing)
         {
-            _apps?.Dispose();
-            _proofKey?.Dispose();
+            _apps.Dispose();
+            _proofKey.Dispose();
         }
         _disposed = true;
     }
