@@ -54,7 +54,8 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
 
     /// <summary>
     /// A string that uniquely identifies the owner of the file.
-    /// Supported only on Windows and Linux.
+    /// Supported only on Windows and Linux. Throws
+    /// <see cref="PlatformNotSupportedException"/> on other platforms.
     /// https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416
     /// </summary>
     [SupportedOSPlatform("linux")]
@@ -67,14 +68,12 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
             {
                 return fileInfo.GetAccessControl().GetOwner(typeof(NTAccount))?.ToString() ?? string.Empty;
             }
-            //else if (OperatingSystem.IsLinux())
-            //{
-            //    return Mono.Unix.UnixFileSystemInfo.GetFileSystemEntry(FilePath).OwnerUser.UserName; //TODO: test
-            //}
-            else
+            if (OperatingSystem.IsLinux())
             {
-                return "UNSUPPORTED_PLATFORM";
+                return LinuxFileOwner.GetOwnerName(fileInfo.FullName);
             }
+            throw new PlatformNotSupportedException(
+                "WopiFile.Owner is only supported on Windows and Linux.");
         }
     }
 }
