@@ -137,11 +137,47 @@ jobs:
           PASS=$(grep -cE '^  Pass:' validator.log || true)
           FAIL=$(grep -cE '^  Fail:' validator.log || true)
           SKIP=$(grep -cE '^  Skipped:' validator.log || true)
+
+          # Known-failure baseline (issues #291, #292, #293).
+          # The upstream Microsoft validator CLI has no --rsa-key option, so it
+          # never sends X-WOPI-Proof / X-WOPI-ProofOld / X-WOPI-TimeStamp
+          # headers — see microsoft/wopi-validator-core#22 and the rebase PR
+          # microsoft/wopi-validator-core#145 (of stalled #86). Our validator sample therefore
+          # registers NoOpProofValidator, which accepts every request and
+          # returns 200. The three tests below send mutated/old-timestamp
+          # proof headers and expect 500; with no proof headers in flight they
+          # cannot fail the way the test author intended. Pinning their names
+          # here lets us hard-fail CI on any *new* regression while accepting
+          # these as a known upstream limitation. Retire the pin once
+          # microsoft/wopi-validator-core#145 lands and a new WopiValidator
+          # NuGet release ships.
+          KNOWN_FAILURES=$(printf '%s\n' \
+            "ProofKeys.CurrentInvalid.OldValidSignedWithOldKey" \
+            "ProofKeys.CurrentInvalid.OldInvalid" \
+            "ProofKeys.TimestampOlderThan20Min" \
+            | sort -u)
+          ACTUAL_FAILURES=$(grep -E '^  Fail:' validator.log | sed -E 's/^  Fail:[[:space:]]*//' | sort -u)
+
+          UNEXPECTED_FAILURES=$(comm -23 <(printf '%s\n' "${ACTUAL_FAILURES}") <(printf '%s\n' "${KNOWN_FAILURES}"))
+          UNEXPECTEDLY_PASSING=$(comm -13 <(printf '%s\n' "${ACTUAL_FAILURES}") <(printf '%s\n' "${KNOWN_FAILURES}"))
+
+          if [ -n "${UNEXPECTED_FAILURES}" ] || [ -n "${UNEXPECTEDLY_PASSING}" ]; then
+            EXIT_CODE=1
+          else
+            EXIT_CODE=0
+          fi
+
           {
             echo "pass=${PASS}"
             echo "fail=${FAIL}"
             echo "skip=${SKIP}"
-            echo "exit_code=$([ "${FAIL}" -gt 0 ] && echo 1 || echo 0)"
+            echo "exit_code=${EXIT_CODE}"
+            echo "unexpected_failures<<__EOF_UF__"
+            echo "${UNEXPECTED_FAILURES}"
+            echo "__EOF_UF__"
+            echo "unexpectedly_passing<<__EOF_UP__"
+            echo "${UNEXPECTEDLY_PASSING}"
+            echo "__EOF_UP__"
           } >> "$GITHUB_OUTPUT"
 
       - name: Stop WopiHost.Validator
@@ -154,6 +190,9 @@ jobs:
 
       - name: Job summary
         if: always()
+        env:
+          UNEXPECTED_FAILURES: ${{ steps.validate.outputs.unexpected_failures }}
+          UNEXPECTEDLY_PASSING: ${{ steps.validate.outputs.unexpectedly_passing }}
         run: |
           PASS="${{ steps.validate.outputs.pass }}"
           FAIL="${{ steps.validate.outputs.fail }}"
@@ -176,8 +215,33 @@ jobs:
             echo "_Full \`validator.log\` and \`host.log\` are attached as the **wopi-validator-output** artifact on this run._"
             echo
 
+            if [ -n "${UNEXPECTED_FAILURES}" ]; then
+              echo "### ❌ Unexpected failures"
+              echo
+              echo "These tests are NOT in the pinned baseline and cause the job to fail."
+              echo
+              echo '```'
+              echo "${UNEXPECTED_FAILURES}"
+              echo '```'
+              echo
+            fi
+
+            if [ -n "${UNEXPECTEDLY_PASSING}" ]; then
+              echo "### ⚠️ Pinned tests that no longer fail"
+              echo
+              echo "These tests are in the known-failures pin but didn't appear in the failures of this run."
+              echo "If the upstream validator gained proof-key signing (or the tests were renamed/removed),"
+              echo "remove them from \`KNOWN_FAILURES\` in [\`.github/workflows/wopi-validator.yml\`](.github/workflows/wopi-validator.yml)"
+              echo "and the matching block in [\`scripts/run-validator.sh\`](scripts/run-validator.sh)."
+              echo
+              echo '```'
+              echo "${UNEXPECTEDLY_PASSING}"
+              echo '```'
+              echo
+            fi
+
             if [ "${FAIL}" -gt 0 ] && [ -f validator.log ]; then
-              echo "<details open><summary><b>Failures (${FAIL})</b></summary>"
+              echo "<details open><summary><b>All failures (${FAIL})</b></summary>"
               echo
               echo '```'
               awk '
@@ -187,6 +251,8 @@ jobs:
                 printing { print }
               ' validator.log
               echo '```'
+              echo
+              echo "_Failures matching the pinned baseline (issues #291, #292, #293) do not fail the job — see [\`NoOpProofValidator.cs\`](sample/WopiHost.Validator/Infrastructure/NoOpProofValidator.cs) for why._"
               echo
               echo "</details>"
               echo
@@ -234,5 +300,21 @@ jobs:
 
       - name: Surface validator failure
         if: always() && steps.validate.outputs.exit_code != '0'
+        env:
+          UNEXPECTED_FAILURES: ${{ steps.validate.outputs.unexpected_failures }}
+          UNEXPECTEDLY_PASSING: ${{ steps.validate.outputs.unexpectedly_passing }}
         run: |
-          echo "::warning::WOPI validator exited with code ${{ steps.validate.outputs.exit_code }}. See job summary and artifact for details."
+          if [ -n "${UNEXPECTED_FAILURES}" ]; then
+            echo "::error::WOPI validator reported unexpected failures (not in the pinned baseline):"
+            while IFS= read -r line; do
+              [ -z "${line}" ] || echo "::error::  - ${line}"
+            done <<< "${UNEXPECTED_FAILURES}"
+          fi
+          if [ -n "${UNEXPECTEDLY_PASSING}" ]; then
+            echo "::error::Pinned ProofKeys baseline contains tests that did NOT fail in this run — retire the pin or update the names:"
+            while IFS= read -r line; do
+              [ -z "${line}" ] || echo "::error::  - ${line}"
+            done <<< "${UNEXPECTEDLY_PASSING}"
+          fi
+          echo "See job summary and the wopi-validator-output artifact for full details."
+          exit 1
