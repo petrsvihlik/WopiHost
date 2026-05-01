@@ -13,8 +13,10 @@
   <Project Path="sample/WopiHost/WopiHost.csproj" />
   <Project Path="sample/WopiHost.Validator/WopiHost.Validator.csproj" />
   <Project Path="sample/WopiHost.Web/WopiHost.Web.csproj" />
+  <Project Path="sample/WopiHost.Web.Oidc/WopiHost.Web.Oidc.csproj" />
 
   <Project Path="test/WopiHost.Core.Tests/WopiHost.Core.Tests.csproj" />
+  <Project Path="test/WopiHost.IntegrationTests/WopiHost.IntegrationTests.csproj" />
   <Project Path="test/WopiHost.Discovery.Tests/WopiHost.Discovery.Tests.csproj" />
   <Project Path="test/WopiHost.FileSystemProvider.Tests/WopiHost.FileSystemProvider.Tests.csproj" />
   <Project Path="test/WopiHost.MemoryLockProvider.Tests/WopiHost.MemoryLockProvider.Tests.csproj" />

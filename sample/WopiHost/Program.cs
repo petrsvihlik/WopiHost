@@ -11,8 +11,11 @@ using Scalar.AspNetCore;
 
 namespace WopiHost;
 
-public static class Program
+public partial class Program
 {
+    /// <summary>Marker for <c>WebApplicationFactory&lt;Program&gt;</c> in integration tests.</summary>
+    private Program() { }
+
     public static int Main(string[] args)
     {
         Log.Logger = new LoggerConfiguration()
