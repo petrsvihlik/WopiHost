@@ -73,12 +73,56 @@ public class WopiFileTests : IDisposable
     }
 
     [Fact]
-    public void Owner_ReturnsNonNull()
+    public void Owner_OnSupportedPlatform_ReturnsNonEmpty()
     {
-        // The Windows branch returns the NT account; the non-Windows branch
-        // returns the literal "UNSUPPORTED_PLATFORM". Both must be non-null.
-#pragma warning disable CA1416 // Owner is annotated for Windows/Linux only; the impl returns a fallback string elsewhere
-        Assert.NotNull(_sut.Owner);
+        if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux())
+        {
+            Assert.False(string.IsNullOrEmpty(_sut.Owner));
+        }
+        else
+        {
+            // CA1416 suppressed: the surrounding else branch already guards
+            // for non-Windows/non-Linux, but the analyzer can't follow that
+            // through the lambda capture.
+#pragma warning disable CA1416
+            Assert.Throws<PlatformNotSupportedException>(() => _ = _sut.Owner);
+#pragma warning restore CA1416
+        }
+    }
+
+    [Fact]
+    public void Owner_OnLinux_MatchesProcessUserName()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        // Files created by the test process are owned by the current user;
+        // statx + getpwuid_r should resolve back to that name (or numeric uid
+        // if the user has been deleted from /etc/passwd, which we don't expect
+        // in a CI environment).
+        Assert.Equal(Environment.UserName, _sut.Owner);
+    }
+
+    [Fact]
+    public void Owner_OnLinux_FileDeleted_Throws()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        // Construct against a real file (FileVersionInfo.GetVersionInfo throws
+        // FileNotFoundException for missing paths on Unix), then remove it so
+        // statx fails with ENOENT and LinuxFileOwner surfaces that as IOException.
+        var transient = Path.Combine(_tempDir.FullName, "transient.docx");
+        File.WriteAllText(transient, "x");
+        var sut = new WopiFile(transient, "id-transient");
+        File.Delete(transient);
+
+#pragma warning disable CA1416 // Linux-only test path; analyzer can't follow the early-return guard through the lambda
+        Assert.ThrowsAny<IOException>(() => _ = sut.Owner);
 #pragma warning restore CA1416
     }
 }
