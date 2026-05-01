@@ -104,4 +104,22 @@ public class WopiFileTests : IDisposable
         // in a CI environment).
         Assert.Equal(Environment.UserName, _sut.Owner);
     }
+
+    [Fact]
+    public void Owner_OnLinux_MissingFile_Throws()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        // statx returns -1 with ENOENT when the file does not exist;
+        // LinuxFileOwner surfaces that as IOException.
+        var missing = Path.Combine(_tempDir.FullName, "no-such-file.docx");
+        var sut = new WopiFile(missing, "id-missing");
+
+#pragma warning disable CA1416 // Linux-only test path; analyzer can't follow the early-return guard through the lambda
+        Assert.Throws<IOException>(() => _ = sut.Owner);
+#pragma warning restore CA1416
+    }
 }
