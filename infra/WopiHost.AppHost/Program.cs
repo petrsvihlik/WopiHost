@@ -23,12 +23,44 @@ if (builder.Configuration.GetValue<bool>("AppHost:UseAzureStorage"))
     wopiHost.WithReference(blobs);
 }
 
+// Optional: Collabora Online Development Edition (CODE) as a real WOPI client for end-to-end
+// editing. Opt-in via "AppHost:UseCollabora"=true. CODE is free and Docker-distributable; it is
+// a development substitute for Office Online Server / M365 for the Web (discovery output and
+// supported features differ — do NOT treat a green Collabora run as M365 conformance).
+//
+// Wiring:
+//  - Browser reaches Collabora at http://localhost:9980.
+//  - Collabora (in Docker) reaches the WOPI host via host.docker.internal:5000, which Docker
+//    Desktop maps to the host. On Linux Docker, run with --add-host=host.docker.internal:host-gateway.
+//  - "domain" is a regex (escape dots) of WOPI hosts Collabora is allowed to call back to;
+//    a mismatch with the WopiSrc query param yields a silent 401.
+//  - SSL is disabled for local dev only.
+var useCollabora = builder.Configuration.GetValue<bool>("AppHost:UseCollabora");
+if (useCollabora)
+{
+    builder.AddContainer("collabora", "collabora/code")
+           .WithEnvironment("domain", "host\\.docker\\.internal:5000")
+           .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false")
+           .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora");
+
+    // Backend fetches /hosting/discovery from Collabora at startup.
+    wopiHost.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980");
+}
+
 // Add WopiHost.Web frontend that depends on WopiHost
-builder.AddProject<Projects.WopiHost_Web>("wopihost-web")
+var wopiHostWeb = builder.AddProject<Projects.WopiHost_Web>("wopihost-web")
        .WithReference(wopiHost)
        .WithEndpoint(name: "web-http", port: 6000, scheme: "http")
        .WithEndpoint(name: "web-https", port: 6001, scheme: "https")
        .WithExternalHttpEndpoints();
+
+if (useCollabora)
+{
+    // The frontend embeds Collabora; the iframe URL must come from Collabora's discovery, and
+    // the WopiSrc it carries must resolve from inside the Collabora container.
+    wopiHostWeb.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
+               .WithEnvironment("Wopi__HostUrl", "http://host.docker.internal:5000");
+}
 
 // Add Validator project for testing
 builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator")

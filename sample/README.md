@@ -22,13 +22,13 @@ Three runnable samples + a folder of test documents. The recommended way to laun
 | `Wopi:StorageProvider:RootPath` | `"../wopi-docs"` | Root of the directory tree the file-system provider exposes. |
 | `Wopi:LockProviderAssemblyName` | `"WopiHost.MemoryLockProvider"` | Assembly providing `IWopiLockProvider`. See [src/WopiHost.MemoryLockProvider](../src/WopiHost.MemoryLockProvider/README.md). |
 | `Wopi:UseCobalt` | `false` | Reflectively register [WopiHost.Cobalt](../src/WopiHost.Cobalt/README.md) when `true`. Requires a private `Microsoft.CobaltCore` package. |
-| `Wopi:ClientUrl` | `"https://ffc-onenote.officeapps.live.com"` | Base URI of the WOPI client (Office Online Server / M365 for the Web). Used by discovery. |
+| `Wopi:ClientUrl` | `"https://ffc-onenote.officeapps.live.com"` | Base URI of the WOPI client (Office Online Server / M365 for the Web / Collabora). Used by discovery. The AppHost overrides this to `http://localhost:9980` when run with `AppHost:UseCollabora=true` — see [End-to-end editing with Collabora Online](../README.md#end-to-end-editing-with-collabora-online). |
 
 ### `WopiHost.Web` ([appsettings.json](WopiHost.Web/appsettings.json))
 
 | Key | Sample value | Purpose |
 |---|---|---|
-| `Wopi:HostUrl` | `"http://wopihost"` | Base URI of the backend (above). Used to construct WopiSrc URLs. |
+| `Wopi:HostUrl` | `"http://wopihost"` | Base URI of the backend (above). Used to construct WopiSrc URLs. AppHost overrides this to `http://host.docker.internal:5000` when `AppHost:UseCollabora=true`, so callbacks from the Collabora container resolve to the host machine. |
 | `Wopi:ClientUrl` | `"https://ffc-onenote.officeapps.live.com"` | Base URI of the WOPI client. Used by the discovery cache. |
 | `Wopi:Discovery:NetZone` | `"ExternalHttps"` | Which discovery zone to read URL templates from. Values: see [`NetZoneEnum`](../src/WopiHost.Discovery/NetZoneEnum.cs). |
 | `Wopi:UiCulture` | (unset) | Optional IETF BCP 47 tag (e.g. `en-US`) for the `UI_LLCC` placeholder. Defaults to `CultureInfo.CurrentUICulture`. |

@@ -33,7 +33,7 @@ graph TB
     end
     
     subgraph "WOPI Client"
-        OOS["**Office Online Server**<br/>Microsoft 365 for the Web"]
+        OOS["**Office Online Server**<br/>Microsoft 365 for the Web<br/>Collabora Online (dev)"]
     end
     
     subgraph "WopiHost Backend API"
@@ -222,6 +222,63 @@ You can also customize application settings through:
 - `infra/WopiHost.AppHost/appsettings.json`
 - `infra/WopiHost.AppHost/appsettings.Development.json`
 
+#### Optional resources (opt-in flags)
+
+The AppHost reads a few `AppHost:*` flags so the default first-run flow stays minimal. Set them
+in `infra/WopiHost.AppHost/appsettings.Development.json` (or via environment variables / user secrets):
+
+| Flag | Adds | Notes |
+|---|---|---|
+| `AppHost:UseAzureStorage` | Azurite emulator + `BlobStorage` connection string forwarded to the WOPI host | Pair with `Wopi:StorageProviderAssemblyName=WopiHost.AzureStorageProvider` in `sample/WopiHost`. |
+| `AppHost:UseCollabora` | Collabora Online Development Edition (CODE) container as a real WOPI client | See [End-to-end editing with Collabora Online](#end-to-end-editing-with-collabora-online) below. |
+| `AppHost:IncludeOidcSample` | `WopiHost.Web.Oidc` frontend | Requires IdP configuration — see [`sample/WopiHost.Web.Oidc/README.md`](sample/WopiHost.Web.Oidc/README.md). |
+
+#### End-to-end editing with Collabora Online
+
+Office Online Server / M365 for the Web cannot legally be redistributed in a Docker image, so the
+AppHost ships [Collabora Online Development Edition](https://www.collaboraonline.com/code/) (the
+free, redistributable WOPI client from Collabora Productivity) as the optional in-the-loop client
+for end-to-end editing. CODE is **not** a substitute for OOS / M365 for the Web — discovery output
+and supported features differ — but it exercises the host across a real WOPI client without
+requiring a Microsoft Volume Licensing agreement or Windows containers.
+
+**Enable it:**
+
+```jsonc
+// infra/WopiHost.AppHost/appsettings.Development.json
+{
+  "AppHost": { "UseCollabora": true }
+}
+```
+
+Then `dotnet run --project infra/WopiHost.AppHost`. The dashboard will show a `collabora`
+container resource. The first run pulls the `collabora/code` image (~1 GB) and takes a minute or two.
+
+**Open a document:** browse to `http://localhost:6000`, pick a file from `sample/wopi-docs`, and
+the iframe will load Collabora at `http://localhost:9980/...`. Plain HTTP, signed WOPI proof keys,
+host-issued JWT access tokens — the whole flow.
+
+**How the wiring works:**
+
+| Hop | URL | Why |
+|---|---|---|
+| Browser → Collabora | `http://localhost:9980` | Container's published port. |
+| Collabora → WopiHost | `http://host.docker.internal:5000` | `host.docker.internal` is the Docker Desktop alias for the host machine — the WOPI host runs on the host, not in a container. |
+| WopiHost → Collabora (discovery) | `http://localhost:9980/hosting/discovery` | Server-to-server, fetched at startup. |
+
+The AppHost overrides `Wopi:ClientUrl` and `Wopi:HostUrl` env vars on the affected projects when
+`UseCollabora=true`, so no manual `appsettings.json` edits are needed.
+
+**Linux Docker** (not Docker Desktop): `host.docker.internal` is not auto-mapped. Run the engine
+with `--add-host=host.docker.internal:host-gateway` or change the override URLs in
+`infra/WopiHost.AppHost/Program.cs` to your host's LAN address.
+
+**Caveats:**
+- `extra_params: --o:ssl.enable=false --o:ssl.termination=false` — plain HTTP, dev only.
+- Collabora's `domain` env is a regex; the AppHost passes `host\.docker\.internal:5000`. If you
+  remap the WOPI host port, update both sides or Collabora silently rejects callbacks.
+- The `WopiHost.Validator` project does not need Collabora — it's a protocol-conformance tool.
+
 ### Alternative: Running individual projects
 
 If you prefer to run the projects individually without Aspire:
@@ -400,6 +457,14 @@ You can [use WopiHost to integrate with Microsoft 365 for the web](https://learn
 - onboarding - [apply for CSPP](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/apply-for-cspp-program)
 - extending the provided interfaces to support the required features by Microsoft; we provide a sample implementation of the interfaces that pass the interactive [WOPI-Validator](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/build-test-ship/validator) tests
 - [Test Microsoft 365 for the web integration](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/build-test-ship/testing)
+
+#### Collabora Online (development)
+
+[Collabora Online Development Edition](https://www.collaboraonline.com/code/) (CODE) is a free,
+redistributable WOPI client. The Aspire AppHost can spin it up as a Docker container so the host
+can be exercised end-to-end without a CSPP application or an Office Online Server install — see
+[End-to-end editing with Collabora Online](#end-to-end-editing-with-collabora-online). Treat CODE
+as a development client only; passing through CODE is not a guarantee of M365 conformance.
 
 Cobalt
 ------
