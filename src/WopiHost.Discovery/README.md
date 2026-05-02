@@ -3,7 +3,7 @@
 [![NuGet](https://img.shields.io/nuget/v/WopiHost.Discovery.svg)](https://www.nuget.org/packages/WopiHost.Discovery)
 [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Discovery.svg)](https://www.nuget.org/packages/WopiHost.Discovery)
 
-Parses the [WOPI client discovery XML](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/discovery) to determine which file extensions and actions a WOPI client (Office Online Server / Microsoft 365 for the Web) supports, and returns the corresponding URL templates. Used by [WopiHost.Url](../WopiHost.Url/README.md) and consumed indirectly by host pages.
+Parses the [WOPI client discovery XML](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/discovery) to determine which file extensions and actions a WOPI client (Office Online Server / Microsoft 365 for the Web / Collabora Online) supports, and returns the corresponding URL templates. Used by [WopiHost.Url](../WopiHost.Url/README.md) and consumed indirectly by host pages.
 
 ## Install
 
