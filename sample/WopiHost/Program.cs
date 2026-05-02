@@ -1,4 +1,6 @@
-﻿using Serilog;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Serilog;
 using Serilog.Events;
 using WopiHost.Abstractions;
 using WopiHost.Core.Models;
@@ -90,6 +92,23 @@ public partial class Program
                     : Convert.FromBase64String(configured);
             });
 
+            // Dev-only escape hatch for WOPI clients that do not sign requests with proof keys
+            // (e.g. Collabora Online — proof keys are an OOS / M365-for-the-Web feature). Without
+            // this, every WOPI callback 500s in WopiOriginValidationActionFilter because
+            // sourceProofKeys.Value is null. Refuses to enable outside Development so a stray
+            // production config cannot silently disable signature checking.
+            if (builder.Configuration.GetValue<bool>("Wopi:Security:DisableProofValidation"))
+            {
+                if (!builder.Environment.IsDevelopment())
+                {
+                    throw new InvalidOperationException(
+                        "Wopi:Security:DisableProofValidation can only be enabled in the Development environment.");
+                }
+                Log.Warning("WOPI proof validation is DISABLED. This is a development-only setting.");
+                builder.Services.RemoveAll<IWopiProofValidator>();
+                builder.Services.AddSingleton<IWopiProofValidator, NoOpProofValidator>();
+            }
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline
@@ -138,4 +157,15 @@ public partial class Program
             Log.CloseAndFlush();
         }
     }
+}
+
+/// <summary>
+/// Dev-only no-op proof validator used when <c>Wopi:Security:DisableProofValidation</c> is set
+/// (typically with the AppHost's <c>UseCollabora</c> flag, since Collabora does not sign WOPI
+/// callbacks with proof keys). Real hosts must keep <c>WopiProofValidator</c>.
+/// </summary>
+internal sealed class NoOpProofValidator : IWopiProofValidator
+{
+    public Task<bool> ValidateProofAsync(HttpContext httpContext, string accessToken)
+        => Task.FromResult(true);
 }
