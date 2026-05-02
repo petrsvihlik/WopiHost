@@ -20,5 +20,11 @@ public class WopiOptions : IDiscoveryOptions
     [Required]
     public required Uri ClientUrl { get; set; }
 
+    /// <summary>
+    /// IETF BCP 47 language tag (e.g. <c>en-US</c>) used to populate the <c>UI_LLCC</c> placeholder
+    /// on WOPI URLs. Leave unset to fall back to <see cref="System.Globalization.CultureInfo.CurrentUICulture"/>.
+    /// </summary>
+    public string? UiCulture { get; set; }
+
     //TODO: create configuration sections related to host and client and group the related settings (e.g. discovery stuff and WopiUrlSettings should be together with the client)
 }
