@@ -152,11 +152,10 @@ Building the app
 ----------------
 The WopiHost app targets `net8.0`, `net9.0`, and `net10.0`.
 
-If you need a version that targets an older version of .NET, check out the releases:
-- [.NET 6](TBD)
+If you need a version that targets an older runtime, see the [release tags](https://github.com/petrsvihlik/WopiHost/releases). For reference:
 - [.NET 5](https://github.com/petrsvihlik/WopiHost/releases/tag/3.0.0)
-- [.NET Core 2.1 + .NET Framework 4.6](https://github.com/petrsvihlik/WopiHost/releases/tag/1.0.0)
 - [.NET Core 3.1 + .NET Standard 2.1](https://github.com/petrsvihlik/WopiHost/releases/tag/2.0.0)
+- [.NET Core 2.1 + .NET Framework 4.6](https://github.com/petrsvihlik/WopiHost/releases/tag/1.0.0)
 
 If you get errors saying that Microsoft.CobaltCore.*.nupkg can't be found, then just remove the reference or see the chapter [Cobalt](#Cobalt) below.
 
@@ -412,7 +411,33 @@ If you need or want your project to use Cobalt, you'll need to [create a NuGet p
 
 Using in your web project
 -------------------------
-TODO
+
+A minimal host that serves WOPI from the file system + an in-memory lock store:
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddWopi(o =>
+{
+    o.ClientUrl                   = new Uri(builder.Configuration["Wopi:ClientUrl"]!);
+    o.StorageProviderAssemblyName = "WopiHost.FileSystemProvider";
+    o.LockProviderAssemblyName    = "WopiHost.MemoryLockProvider";
+});
+
+// Pin the access-token signing key in production.
+builder.Services.ConfigureWopiSecurity(o =>
+{
+    o.SigningKey = Convert.FromBase64String(builder.Configuration["Wopi:Security:SigningKey"]!);
+});
+
+var app = builder.Build();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+app.Run();
+```
+
+For permission models beyond the defaults, implement [`IWopiPermissionProvider`](src/WopiHost.Abstractions/IWopiPermissionProvider.cs) — see [WopiHost.Core security](src/WopiHost.Core/README.md#security). For a complete runnable host, see [`sample/WopiHost`](sample/WopiHost/Program.cs); for OIDC sign-in, [`sample/WopiHost.Web.Oidc`](sample/WopiHost.Web.Oidc/README.md).
 
 Extending WopiHost
 ==================
@@ -577,64 +602,25 @@ Missing or malformed `X-WOPI-WopiSrc`, or a resource the user cannot access, ret
 `404 Not Found` per spec — the bootstrapper never issues a token for a resource it
 cannot validate.
 
-## Package-Specific Documentation
+## Package documentation
 
-Each WopiHost package includes comprehensive documentation with:
-- **Hero scenarios** showing real-world usage patterns
-- **API reference** with complete interface documentation
-- **Configuration examples** for various deployment scenarios
-- **Integration patterns** for enterprise systems
-- **Performance considerations** and best practices
-
-**📚 [View all package documentation →](src/)**
-
-## Extending Documentation Index
-
-### By Extension Type
-
-| Extension Type | Package | Documentation | Key Interfaces |
-|----------------|---------|---------------|----------------|
-| **Storage** | [WopiHost.Abstractions](src/WopiHost.Abstractions/README.md) | Core storage interfaces | `IWopiStorageProvider`, `IWopiWritableStorageProvider` |
-| **File System** | [WopiHost.FileSystemProvider](src/WopiHost.FileSystemProvider/README.md) | File system implementation | `WopiFileSystemProvider`, `WopiSecurityHandler` |
-| **Locking** | [WopiHost.MemoryLockProvider](src/WopiHost.MemoryLockProvider/README.md) | In-memory locking | `IWopiLockProvider`, `MemoryLockProvider` |
-| **Core Server** | [WopiHost.Core](src/WopiHost.Core/README.md) | WOPI server implementation | Controllers, middleware, security |
-| **Discovery** | [WopiHost.Discovery](src/WopiHost.Discovery/README.md) | Client capability discovery | `IDiscoverer`, `IDiscoveryFileProvider` |
-| **URL Generation** | [WopiHost.Url](src/WopiHost.Url/README.md) | WOPI URL generation | `WopiUrlBuilder`, `WopiUrlSettings` |
-| **Cobalt Protocol** | [WopiHost.Cobalt](src/WopiHost.Cobalt/README.md) | MS-FSSHTTP support | `ICobaltSessionManager`, `CobaltSession` |
-
-### By Use Case
-
-| Use Case | Recommended Packages | Documentation |
-|----------|---------------------|---------------|
-| **Cloud Storage Integration** | Abstractions + Custom Implementation | [Storage Examples](src/WopiHost.Abstractions/README.md#hero-scenarios) |
-| **Database-Backed Documents** | Abstractions + Custom Implementation | [Database Examples](src/WopiHost.Abstractions/README.md#hero-scenarios) |
-| **Enterprise Security** | Core + Custom Security Handler | [Security Examples](src/WopiHost.Core/README.md#security) |
-| **Distributed Locking** | Abstractions + Custom Lock Provider | [Lock Examples](src/WopiHost.Abstractions/README.md#hero-scenarios) |
-| **Multi-Tenant Host** | Core + Custom Providers | [Multi-Tenant Examples](src/WopiHost.Core/README.md#hero-scenarios) |
-| **High-Performance Editing** | Cobalt + Core | [Cobalt Examples](src/WopiHost.Cobalt/README.md#hero-scenarios) |
-| **Local Development** | FileSystemProvider + MemoryLockProvider | [Quick Start](src/WopiHost.FileSystemProvider/README.md#quick-start) |
-
-### By Integration Pattern
-
-| Pattern | Description | Packages | Examples |
-|---------|-------------|----------|----------|
-| **Custom Storage** | Implement your own storage backend | Abstractions | [Cloud Storage](src/WopiHost.Abstractions/README.md#hero-scenarios), [Database Storage](src/WopiHost.Abstractions/README.md#hero-scenarios) |
-| **Custom Security** | Implement your own authentication/authorization | Abstractions, Core | [Security Handler](src/WopiHost.Abstractions/README.md#hero-scenarios), [Authorization](src/WopiHost.Core/README.md#authorization) |
-| **Custom Locking** | Implement distributed or custom locking | Abstractions | [Distributed Locking](src/WopiHost.Abstractions/README.md#hero-scenarios) |
-| **Custom Discovery** | Implement custom WOPI discovery | Discovery | [Custom Provider](src/WopiHost.Discovery/README.md#examples) |
-| **Custom URL Generation** | Implement custom URL templates | Url | [URL Builder](src/WopiHost.Url/README.md#hero-scenarios) |
-| **Custom Controllers** | Extend or replace WOPI controllers | Core | [Custom Controllers](src/WopiHost.Core/README.md#examples) |
-| **Custom Middleware** | Add custom middleware to WOPI pipeline | Core | [Custom Middleware](src/WopiHost.Core/README.md#examples) |
+| Package | What it does | Key types |
+|---|---|---|
+| [WopiHost.Abstractions](src/WopiHost.Abstractions/README.md) | Interfaces every other package builds on | `IWopiStorageProvider`, `IWopiLockProvider`, `IWopiPermissionProvider`, `IWopiAccessTokenService` |
+| [WopiHost.Core](src/WopiHost.Core/README.md) | The WOPI server (controllers, auth, proof validation) | `AddWopi()`, `ConfigureWopiSecurity()` |
+| [WopiHost.Discovery](src/WopiHost.Discovery/README.md) | Reads the WOPI client's discovery XML | `IDiscoverer`, `IDiscoveryFileProvider` |
+| [WopiHost.Url](src/WopiHost.Url/README.md) | Builds the URLs you embed in iframes | `WopiUrlBuilder`, `WopiUrlSettings` |
+| [WopiHost.FileSystemProvider](src/WopiHost.FileSystemProvider/README.md) | Reference storage backed by a directory tree | `WopiFileSystemProvider` |
+| [WopiHost.MemoryLockProvider](src/WopiHost.MemoryLockProvider/README.md) | In-process lock store (single instance / dev) | `MemoryLockProvider` |
+| [WopiHost.Cobalt](src/WopiHost.Cobalt/README.md) | Optional MS-FSSHTTP support (requires `Microsoft.CobaltCore`) | `CobaltProcessor` |
 
 Known issues / TODOs
 ==================
-There is plenty of space for improvements in the overall architecture, implementation of the [MS-*] protocols, or just finishing the TODOs in the code. A lot of refactoring still needs to be done and also the code style has to be unified. So please feel free to help me out with it :)
-
- - Check out [open issues](https://github.com/petrsvihlik/WopiHost/issues?q=is%3Aopen)
+There's still plenty of room for improvement in the overall architecture, the [MS-*] protocols, and so on — see the [open issues](https://github.com/petrsvihlik/WopiHost/issues?q=is%3Aopen). Contributions welcome.
 
 Contributing
 ==========
-https://learn.microsoft.com/dotnet/standard/design-guidelines/
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow. Code follows the [.NET Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/).
 
 License
 =======

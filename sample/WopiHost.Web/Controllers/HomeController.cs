@@ -29,8 +29,12 @@ public class HomeController(
     IWopiStorageProvider storageProvider,
     IDiscoverer discoverer) : Controller
 {
-    //TODO: remove test culture value and load it from configuration SECTION
-    private readonly WopiUrlBuilder urlGenerator = new(discoverer, new WopiUrlSettings { UiLlcc = new CultureInfo("en-US") });
+    private readonly WopiUrlBuilder urlGenerator = new(
+        discoverer,
+        new WopiUrlSettings { UiLlcc = ResolveUiCulture(wopiOptions.Value.UiCulture) });
+
+    private static CultureInfo ResolveUiCulture(string? configured)
+        => string.IsNullOrWhiteSpace(configured) ? CultureInfo.CurrentUICulture : new CultureInfo(configured);
 
     // Demo-only shared key — must match the WopiHost server's Wopi:Security:SigningKey.
     // In a real frontend, load this from the same managed secret store the server uses.

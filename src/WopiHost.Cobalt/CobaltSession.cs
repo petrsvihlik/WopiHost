@@ -73,16 +73,6 @@ public class CobaltProcessor : ICobaltProcessor
         return tempCobaltFile;
     }
 
-    // not used anywhere?
-    //public async Task<Stream> GetFileStream(IWopiFile file, ClaimsPrincipal principal)
-    //{
-    //    //TODO: use in filescontroller
-    //    using var ms = new MemoryStream();
-    //    var cobaltFile = await GetCobaltFile(file, principal);
-    //    new GenericFda(cobaltFile.CobaltEndpoint).GetContentStream().CopyTo(ms);
-    //    return ms;
-    //}
-
     /// <inheritdoc/>
     public async Task<byte[]> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent)
     {
