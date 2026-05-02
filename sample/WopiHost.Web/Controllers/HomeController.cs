@@ -40,18 +40,63 @@ public class HomeController(
     // In a real frontend, load this from the same managed secret store the server uses.
     private static readonly byte[] SharedSigningKey = DerivePaddedKey("wopi-sample-shared-dev-key");
 
-    public async Task<ActionResult> Index()
+    public async Task<ActionResult> Index(string? containerId = null, string? parentContainerId = null, CancellationToken cancellationToken = default)
     {
         ViewData["Title"] = "Welcome to WOPI HOST test page";
         try
         {
-            var fileViewModels = new List<FileViewModel>();
-            await foreach (var file in storageProvider.GetWopiFiles(storageProvider.RootContainerPointer.Identifier))
+            // Default to the storage provider's root when no container is specified.
+            containerId ??= storageProvider.RootContainerPointer.Identifier;
+            var current = await storageProvider.GetWopiResource<IWopiFolder>(containerId, cancellationToken)
+                ?? throw new DirectoryNotFoundException($"Container '{containerId}' not found.");
+
+            var model = new BrowseViewModel
             {
-                fileViewModels.Add(new FileViewModel
+                ContainerId = containerId,
+                ContainerName = current.Name,
+            };
+
+            // Breadcrumb: if we're below the root, walk ancestors to build clickable trail
+            // and recover the parent container id when the URL didn't supply one.
+            if (containerId != storageProvider.RootContainerPointer.Identifier)
+            {
+                var ancestors = await storageProvider.GetAncestors<IWopiFolder>(containerId, cancellationToken);
+                for (var i = 0; i < ancestors.Count; i++)
+                {
+                    var ancestor = ancestors[i];
+                    var parentId = i > 0 ? ancestors[i - 1].Identifier : null;
+                    model.BreadcrumbParts.Add(new BreadcrumbPart(
+                        ancestor.Name,
+                        Url.Action("Index", "Home", new { containerId = ancestor.Identifier, parentContainerId = parentId })!));
+                }
+                if (string.IsNullOrWhiteSpace(parentContainerId) && ancestors.Count > 0)
+                {
+                    parentContainerId = ancestors[^1].Identifier;
+                }
+            }
+
+            // Show ".." entry when there's somewhere to go up to.
+            if (!string.IsNullOrWhiteSpace(parentContainerId))
+            {
+                var parent = await storageProvider.GetWopiResource<IWopiFolder>(parentContainerId, cancellationToken)
+                    ?? throw new DirectoryNotFoundException($"Parent container '{parentContainerId}' not found.");
+                model.Containers.Add(new ContainerViewModel { ContainerId = parent.Identifier, Name = ".." });
+            }
+
+            await foreach (var folder in storageProvider.GetWopiContainers(containerId, cancellationToken))
+            {
+                model.Containers.Add(new ContainerViewModel { ContainerId = folder.Identifier, Name = folder.Name });
+            }
+
+            await foreach (var file in storageProvider.GetWopiFiles(containerId, cancellationToken: cancellationToken))
+            {
+                model.Files.Add(new FileViewModel
                 {
                     FileId = file.Identifier,
                     FileName = file.Name + "." + file.Extension,
+                    LastModified = file.LastWriteTimeUtc.ToLocalTime(),
+                    Size = file.Size,
+                    FormattedSize = FormatFileSize(file.Size),
                     SupportsEdit = await discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.Edit),
                     SupportsView = await discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.View),
                     // Leading slash so the fallback resolves to /file.ico regardless of the
@@ -60,7 +105,8 @@ public class HomeController(
                     IconUri = (await discoverer.GetApplicationFavIconAsync(file.Extension)) ?? new Uri("/file.ico", UriKind.Relative)
                 });
             }
-            return View(fileViewModels);
+
+            return View(model);
         }
         catch (DiscoveryException ex)
         {
@@ -70,6 +116,19 @@ public class HomeController(
         {
             return View("Error", new ErrorViewModel { Exception = ex, ShowExceptionDetails = true });
         }
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB", "PB"];
+        double size = bytes;
+        var unit = 0;
+        while (size >= 1024 && unit < units.Length - 1)
+        {
+            size /= 1024;
+            unit++;
+        }
+        return string.Format(CultureInfo.CurrentCulture, "{0:0.#} {1}", size, units[unit]);
     }
 
     public async Task<ActionResult> Detail(string id, string wopiAction)
