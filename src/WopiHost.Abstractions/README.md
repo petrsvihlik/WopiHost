@@ -13,16 +13,16 @@ dotnet add package WopiHost.Abstractions
 
 ## The interfaces
 
-| Interface | Purpose | Default | When to implement |
+| Interface | Purpose | Bundled implementations | When to implement |
 |---|---|---|---|
-| [`IWopiStorageProvider`](IWopiStorageProvider.cs) | Read access to files and containers (folders). | `WopiFileSystemProvider` | Always — there is no useful default beyond the file-system sample. |
-| [`IWopiWritableStorageProvider`](IWopiWritableStorageProvider.cs) | Create / delete / rename / suggest names. Optional. | — | If you want WOPI clients to be able to mutate the store. |
-| [`IWopiLockProvider`](IWopiLockProvider.cs) | Editing locks. Synchronous. | `MemoryLockProvider` (in-process) | Replace for multi-instance hosts. |
+| [`IWopiStorageProvider`](IWopiStorageProvider.cs) | Read access to files and containers (folders). | `WopiFileSystemProvider` (local disk), `WopiAzureStorageProvider` (Azure Blob) | When neither bundled provider fits. |
+| [`IWopiWritableStorageProvider`](IWopiWritableStorageProvider.cs) | Create / delete / rename / suggest names. Optional. | Same providers above also implement this. | If you want WOPI clients to be able to mutate the store. |
+| [`IWopiLockProvider`](IWopiLockProvider.cs) | Editing locks. Asynchronous so out-of-process stores (Azure Blob, Redis, SQL) can plug in without sync-over-async. | `MemoryLockProvider` (in-process), `WopiAzureLockProvider` (blob leases) | Replace for multi-instance hosts. |
 | [`IWopiPermissionProvider`](IWopiPermissionProvider.cs) | What a `ClaimsPrincipal` can do with a file/container. | `DefaultWopiPermissionProvider` (reads from token claims) | Almost always — this is where your ACL model plugs in. |
 | [`IWopiAccessTokenService`](IWopiAccessTokenService.cs) | Issue and validate access tokens. | `JwtAccessTokenService` (signed JWT) | Rarely — only if you need opaque/revocable tokens or external issuance. |
 | [`IWopiHostCapabilities`](IWopiHostCapabilities.cs) | Feature flags reported in `CheckFileInfo`. | `WopiHostCapabilities` | Override individual flags via `WopiHostOptions.OnCheckFileInfo`. |
 
-The defaults marked above ship in `WopiHost.Core`, `WopiHost.FileSystemProvider`, and `WopiHost.MemoryLockProvider` — wired up by `services.AddWopi()`.
+The defaults ship in `WopiHost.Core`, `WopiHost.FileSystemProvider`, `WopiHost.MemoryLockProvider`, `WopiHost.AzureStorageProvider`, and `WopiHost.AzureLockProvider` — selected via `WopiHostOptions.StorageProviderAssemblyName` / `LockProviderAssemblyName`.
 
 ## Resource model
 

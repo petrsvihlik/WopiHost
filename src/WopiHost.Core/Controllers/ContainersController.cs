@@ -207,10 +207,14 @@ public class ContainersController(
                 else
                 {
                     // a file matching the target name might be locked
-                    if (lockProvider?.TryGetLock(newFile.Identifier, out var existingLock) == true)
+                    if (lockProvider is not null)
                     {
-                        // the host must respond with a 409 Conflict and include a X-WOPI-Lock response header
-                        return new LockMismatchResult(Response, existingLock.LockId, reason: "File already exists and is currently locked");
+                        var existingLock = await lockProvider.GetLockAsync(newFile.Identifier, cancellationToken);
+                        if (existingLock is not null)
+                        {
+                            // the host must respond with a 409 Conflict and include a X-WOPI-Lock response header
+                            return new LockMismatchResult(Response, existingLock.LockId, reason: "File already exists and is currently locked");
+                        }
                     }
                 }
             }

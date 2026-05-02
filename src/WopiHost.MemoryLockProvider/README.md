@@ -35,16 +35,16 @@ services.AddSingleton<IWopiLockProvider, MemoryLockProvider>();
 
 ## API
 
-The interface is **synchronous** (lock state is in-process; there's nothing to await):
+The interface is **asynchronous** so out-of-process implementations (Azure Blob, Redis, SQL) can plug in without sync-over-async. This in-memory provider just wraps its synchronous logic in `Task.FromResult`:
 
 ```csharp
-bool          TryGetLock(string fileId, out WopiLockInfo? lockInfo);
-WopiLockInfo? AddLock(string fileId, string lockId);
-bool          RefreshLock(string fileId, string? lockId = null);
-bool          RemoveLock(string fileId);
+Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken ct = default);
+Task<WopiLockInfo?> AddLockAsync(string fileId, string lockId, CancellationToken ct = default);
+Task<bool>          RefreshLockAsync(string fileId, string? lockId = null, CancellationToken ct = default);
+Task<bool>          RemoveLockAsync(string fileId, CancellationToken ct = default);
 ```
 
-`WopiLockInfo` carries `LockId`, `FileId`, `DateCreated`, and a computed `Expired` flag.
+`GetLockAsync` returns `null` when the lock isn't present (or has expired and was evicted). `WopiLockInfo` carries `LockId`, `FileId`, `DateCreated`, and a computed `Expired` flag.
 
 See [WopiHost.Abstractions](../WopiHost.Abstractions/IWopiLockProvider.cs) for the full contract.
 

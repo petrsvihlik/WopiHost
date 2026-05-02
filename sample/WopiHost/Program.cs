@@ -5,7 +5,6 @@ using WopiHost.Core.Models;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Security.Authentication;
-using WopiHost.FileSystemProvider;
 using WopiHost.Discovery;
 using Scalar.AspNetCore;
 
@@ -55,13 +54,10 @@ public partial class Program
 
             var wopiHostOptions = wopiHostOptionsSection.Get<WopiHostOptions>();
 
-            // Register InMemoryFileIds - needed by WopiFileSystemProvider
-            builder.Services.AddSingleton<InMemoryFileIds>();
-
-            // Add file provider
-            builder.Services.AddStorageProvider(wopiHostOptions.StorageProviderAssemblyName);
+            // Add file provider (registers required dependencies based on which assembly is configured)
+            builder.Services.AddStorageProvider(builder.Configuration, wopiHostOptions.StorageProviderAssemblyName);
             // Add lock provider
-            builder.Services.AddLockProvider(wopiHostOptions.LockProviderAssemblyName);
+            builder.Services.AddLockProvider(builder.Configuration, wopiHostOptions.LockProviderAssemblyName);
 
             // Add Discovery services
             builder.Services.AddWopiDiscovery<WopiHostOptions>(

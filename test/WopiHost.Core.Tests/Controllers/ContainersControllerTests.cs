@@ -300,8 +300,8 @@ public class ContainersControllerTests
             .ReturnsAsync(existingFile);
         writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-        lockProviderMock.Setup(lp => lp.TryGetLock(It.IsAny<string>(), out lockInfo))
-            .Returns(true);
+        lockProviderMock.Setup(lp => lp.GetLockAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(lockInfo);
 
         var result = await _controller.CreateChildFile("containerId", relativeTarget: UtfString.FromDecoded("relativeTarget"), overwriteRelativeTarget: true);
 

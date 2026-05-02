@@ -11,6 +11,18 @@ var wopiHost = builder.AddProject<Projects.WopiHost>("wopihost")
                           url.Url = "/scalar";
                       });
 
+// Optional: Azure Blob Storage backend via Azurite emulator. Opt-in via "AppHost:UseAzureStorage"=true
+// so the default flow keeps using the file-system provider out of the box. When enabled, the Azurite
+// resource is added and its connection string is forwarded to the WopiHost project as
+// "ConnectionStrings__BlobStorage", which sample/WopiHost reads when configured for the Azure provider.
+if (builder.Configuration.GetValue<bool>("AppHost:UseAzureStorage"))
+{
+    var storage = builder.AddAzureStorage("blob-storage")
+                         .RunAsEmulator(emu => emu.WithLifetime(ContainerLifetime.Persistent));
+    var blobs = storage.AddBlobs("BlobStorage");
+    wopiHost.WithReference(blobs);
+}
+
 // Add WopiHost.Web frontend that depends on WopiHost
 builder.AddProject<Projects.WopiHost_Web>("wopihost-web")
        .WithReference(wopiHost)

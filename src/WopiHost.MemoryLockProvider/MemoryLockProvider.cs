@@ -1,12 +1,16 @@
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using WopiHost.Abstractions;
 
 namespace WopiHost.MemoryLockProvider;
 
 /// <summary>
-/// In-memory implementation of a <see cref="IWopiLockProvider"/>
+/// In-memory implementation of <see cref="IWopiLockProvider"/>.
 /// </summary>
+/// <remarks>
+/// State lives in a static <see cref="ConcurrentDictionary{TKey,TValue}"/>; locks survive
+/// the lifetime of the process but not multi-instance deployments or restarts. Operations are
+/// inherently synchronous and are wrapped in <see cref="Task.FromResult{T}"/> to satisfy the async contract.
+/// </remarks>
 public class MemoryLockProvider : IWopiLockProvider
 {
     /// <summary>
@@ -15,25 +19,22 @@ public class MemoryLockProvider : IWopiLockProvider
     private static readonly ConcurrentDictionary<string, WopiLockInfo> locks = [];
 
     /// <inheritdoc />
-    public bool TryGetLock(string fileId, [NotNullWhen(true)] out WopiLockInfo? lockInfo)
+    public Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default)
     {
-        if (locks.TryGetValue(fileId, out lockInfo))
+        if (locks.TryGetValue(fileId, out var lockInfo))
         {
             if (lockInfo.Expired)
             {
-                _ = RemoveLock(fileId);
-                return false;
+                _ = locks.TryRemove(fileId, out _);
+                return Task.FromResult<WopiLockInfo?>(null);
             }
-            return true;
+            return Task.FromResult<WopiLockInfo?>(lockInfo);
         }
-        else
-        {
-            return false;
-        }
+        return Task.FromResult<WopiLockInfo?>(null);
     }
 
     /// <inheritdoc />
-    public WopiLockInfo? AddLock(string fileId, string lockId)
+    public Task<WopiLockInfo?> AddLockAsync(string fileId, string lockId, CancellationToken cancellationToken = default)
     {
         var lockInfo = new WopiLockInfo
         {
@@ -41,35 +42,26 @@ public class MemoryLockProvider : IWopiLockProvider
             LockId = lockId,
             DateCreated = DateTimeOffset.UtcNow,
         };
-        if (locks.TryAdd(fileId, lockInfo))
-        {
-            return lockInfo;
-        }
-        else
-        {
-            return null;
-        }
+        return Task.FromResult<WopiLockInfo?>(locks.TryAdd(fileId, lockInfo) ? lockInfo : null);
     }
 
     /// <inheritdoc />
-    public bool RefreshLock(string fileId, string? lockId = null)
+    public async Task<bool> RefreshLockAsync(string fileId, string? lockId = null, CancellationToken cancellationToken = default)
     {
-        if (TryGetLock(fileId, out var existingLock))
+        var existing = await GetLockAsync(fileId, cancellationToken).ConfigureAwait(false);
+        if (existing is null)
         {
-            var lockInfo = existingLock with
-            {
-                DateCreated = DateTimeOffset.UtcNow,
-                LockId = lockId ?? existingLock.LockId,
-            };
-            return locks.TryUpdate(fileId, lockInfo, existingLock);
+            return false;
         }
-        return false;
+        var updated = existing with
+        {
+            DateCreated = DateTimeOffset.UtcNow,
+            LockId = lockId ?? existing.LockId,
+        };
+        return locks.TryUpdate(fileId, updated, existing);
     }
-
 
     /// <inheritdoc />
-    public bool RemoveLock(string fileId)
-    {
-        return locks.TryRemove(fileId, out _);
-    }
+    public Task<bool> RemoveLockAsync(string fileId, CancellationToken cancellationToken = default)
+        => Task.FromResult(locks.TryRemove(fileId, out _));
 }

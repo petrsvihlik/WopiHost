@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<Description>WopiHost.AzureStorageProvider Class Library — Azure Blob Storage backend.</Description>
+		<Authors>Petr Svihlik</Authors>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<AssemblyName>WopiHost.AzureStorageProvider</AssemblyName>
+		<PackageId>WopiHost.AzureStorageProvider</PackageId>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageTags>WOPI;Azure;Blob;Storage;Office Online Server;Office Web Apps;Web Application Open Platform Interface</PackageTags>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/petrsvihlik/WopiHost.git</RepositoryUrl>
+		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+		<GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+		<GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+		<!-- This is a brand new package; no prior released version to validate against. -->
+		<EnablePackageValidation>false</EnablePackageValidation>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\LICENSE.txt" Pack="true" PackagePath="" />
+		<None Include="..\..\img\logo.png" Pack="true" PackagePath="" />
+		<None Include="README.md" Pack="true" PackagePath="" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+		<PackageReference Include="Azure.Storage.Blobs" />
+		<PackageReference Include="Azure.Identity" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+		<PackageReference Include="Microsoft.DotNet.PackageValidation" PrivateAssets="All" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\WopiHost.Abstractions\WopiHost.Abstractions.csproj" />
+	</ItemGroup>
+
+</Project>

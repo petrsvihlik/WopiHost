@@ -15,12 +15,12 @@ public class MemoryLockProviderTests
     }
 
     [Fact]
-    public void AddLock_ShouldAddLock()
+    public async Task AddLock_ShouldAddLock()
     {
-        var fileId = "file1";
+        var fileId = $"add-{Guid.NewGuid()}";
         var lockId = "lock1";
 
-        var lockInfo = _lockProvider.AddLock(fileId, lockId);
+        var lockInfo = await _lockProvider.AddLockAsync(fileId, lockId);
 
         Assert.NotNull(lockInfo);
         Assert.Equal(fileId, lockInfo.FileId);
@@ -28,85 +28,82 @@ public class MemoryLockProviderTests
     }
 
     [Fact]
-    public void TryGetLock_ShouldReturnTrue_WhenLockExists()
+    public async Task GetLockAsync_ShouldReturnLock_WhenLockExists()
     {
-        var fileId = "file2";
+        var fileId = $"get-{Guid.NewGuid()}";
         var lockId = "lock2";
-        _lockProvider.AddLock(fileId, lockId);
+        await _lockProvider.AddLockAsync(fileId, lockId);
 
-        var result = _lockProvider.TryGetLock(fileId, out var lockInfo);
+        var lockInfo = await _lockProvider.GetLockAsync(fileId);
 
-        Assert.True(result);
         Assert.NotNull(lockInfo);
         Assert.Equal(fileId, lockInfo.FileId);
         Assert.Equal(lockId, lockInfo.LockId);
     }
 
     [Fact]
-    public void TryGetLock_ShouldReturnFalse_WhenLockDoesNotExist()
+    public async Task GetLockAsync_ShouldReturnNull_WhenLockDoesNotExist()
     {
-        var result = _lockProvider.TryGetLock("nonexistentFile", out var lockInfo);
+        var lockInfo = await _lockProvider.GetLockAsync($"missing-{Guid.NewGuid()}");
 
-        Assert.False(result);
         Assert.Null(lockInfo);
     }
 
     [Fact]
-    public void RefreshLock_ShouldUpdateLock()
+    public async Task RefreshLock_ShouldUpdateLock()
     {
-        var fileId = "file3";
+        var fileId = $"refresh-{Guid.NewGuid()}";
         var lockId = "lock3";
-        _lockProvider.AddLock(fileId, lockId);
+        await _lockProvider.AddLockAsync(fileId, lockId);
 
-        var result = _lockProvider.RefreshLock(fileId);
+        var result = await _lockProvider.RefreshLockAsync(fileId);
 
         Assert.True(result);
-        _lockProvider.TryGetLock(fileId, out var lockInfo);
+        var lockInfo = await _lockProvider.GetLockAsync(fileId);
         Assert.NotNull(lockInfo);
         Assert.Equal(fileId, lockInfo.FileId);
         Assert.Equal(lockId, lockInfo.LockId);
     }
 
     [Fact]
-    public void RemoveLock_ShouldRemoveLock()
+    public async Task RemoveLock_ShouldRemoveLock()
     {
-        var fileId = "file4";
+        var fileId = $"remove-{Guid.NewGuid()}";
         var lockId = "lock4";
-        _lockProvider.AddLock(fileId, lockId);
+        await _lockProvider.AddLockAsync(fileId, lockId);
 
-        var result = _lockProvider.RemoveLock(fileId);
+        var result = await _lockProvider.RemoveLockAsync(fileId);
 
         Assert.True(result);
-        var lockExists = _lockProvider.TryGetLock(fileId, out var lockInfo);
-        Assert.False(lockExists);
+        var lockInfo = await _lockProvider.GetLockAsync(fileId);
         Assert.Null(lockInfo);
     }
 
     [Fact]
-    public void AddLock_DuplicateFileId_ReturnsNull()
+    public async Task AddLock_DuplicateFileId_ReturnsNull()
     {
         var fileId = $"dup-{Guid.NewGuid()}";
-        _lockProvider.AddLock(fileId, "first");
+        await _lockProvider.AddLockAsync(fileId, "first");
 
-        var second = _lockProvider.AddLock(fileId, "second");
+        var second = await _lockProvider.AddLockAsync(fileId, "second");
 
         Assert.Null(second);
     }
 
     [Fact]
-    public void RefreshLock_NoExistingLock_ReturnsFalse()
+    public async Task RefreshLock_NoExistingLock_ReturnsFalse()
     {
         var fileId = $"missing-{Guid.NewGuid()}";
 
-        var result = _lockProvider.RefreshLock(fileId);
+        var result = await _lockProvider.RefreshLockAsync(fileId);
 
         Assert.False(result);
     }
 
     [Fact]
-    public void TryGetLock_ExpiredLock_RemovesAndReturnsFalse()
+    public async Task GetLockAsync_ExpiredLock_RemovesAndReturnsNull()
     {
-        // The provider's AddLock always stamps DateCreated with UtcNow, so the
+        // The provider's AddLockAsync always stamps DateCreated with UtcNow, so the
         // only way to seed an expired entry is to inject one directly into the
         // private static dictionary backing the provider.
         var fileId = $"expired-{Guid.NewGuid()}";
@@ -118,9 +115,9 @@ public class MemoryLockProviderTests
             DateCreated = DateTimeOffset.UtcNow.AddHours(-1),
         };
 
-        var found = _lockProvider.TryGetLock(fileId, out _);
+        var found = await _lockProvider.GetLockAsync(fileId);
 
-        Assert.False(found);
+        Assert.Null(found);
         Assert.False(locks.ContainsKey(fileId));
     }
 
