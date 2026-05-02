@@ -266,8 +266,11 @@ host-issued JWT access tokens — the whole flow.
 | Collabora → WopiHost | `http://host.docker.internal:5000` | `host.docker.internal` is the Docker Desktop alias for the host machine — the WOPI host runs on the host, not in a container. |
 | WopiHost → Collabora (discovery) | `http://localhost:9980/hosting/discovery` | Server-to-server, fetched at startup. |
 
-The AppHost overrides `Wopi:ClientUrl` and `Wopi:HostUrl` env vars on the affected projects when
-`UseCollabora=true`, so no manual `appsettings.json` edits are needed.
+The AppHost overrides `Wopi:ClientUrl`, `Wopi:HostUrl`, and `Wopi:Discovery:NetZone` env vars
+on the affected projects when `UseCollabora=true`, so no manual `appsettings.json` edits are
+needed. (`NetZone` is forced to `ExternalHttp` because Collabora's `/hosting/discovery` XML
+emits only a single `<net-zone name="external-http">` — leaving the default `ExternalHttps`
+filters every action and icon out, and files render with the generic icon and disabled buttons.)
 
 **Linux Docker** (not Docker Desktop): `host.docker.internal` is not auto-mapped. Run the engine
 with `--add-host=host.docker.internal:host-gateway` or change the override URLs in
