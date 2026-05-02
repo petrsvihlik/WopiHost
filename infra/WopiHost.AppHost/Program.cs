@@ -57,9 +57,13 @@ var wopiHostWeb = builder.AddProject<Projects.WopiHost_Web>("wopihost-web")
 if (useCollabora)
 {
     // The frontend embeds Collabora; the iframe URL must come from Collabora's discovery, and
-    // the WopiSrc it carries must resolve from inside the Collabora container.
+    // the WopiSrc it carries must resolve from inside the Collabora container. Collabora's
+    // discovery XML emits a single <net-zone name="external-http"> only — defaulting to
+    // ExternalHttps (as appsettings does for OOS/M365) silently filters every action and icon
+    // out, so files render with the generic icon and edit/view buttons stay disabled.
     wopiHostWeb.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
-               .WithEnvironment("Wopi__HostUrl", "http://host.docker.internal:5000");
+               .WithEnvironment("Wopi__HostUrl", "http://host.docker.internal:5000")
+               .WithEnvironment("Wopi__Discovery__NetZone", "ExternalHttp");
 }
 
 // Add Validator project for testing
