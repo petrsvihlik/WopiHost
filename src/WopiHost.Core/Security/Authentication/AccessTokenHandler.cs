@@ -15,12 +15,15 @@ namespace WopiHost.Core.Security.Authentication;
 /// Only requests under <c>/wopi</c> are handled — for any other path the handler returns
 /// <see cref="AuthenticateResult.NoResult"/> so other authentication schemes can take over.
 /// </remarks>
-public class AccessTokenHandler(
+public partial class AccessTokenHandler(
     IWopiAccessTokenService accessTokenService,
     IOptionsMonitor<AccessTokenAuthenticationOptions> options,
     ILoggerFactory logger,
     UrlEncoder encoder) : AuthenticationHandler<AccessTokenAuthenticationOptions>(options, logger, encoder)
 {
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Access token validation failed: {Reason}")]
+    private static partial void LogTokenValidationFailed(ILogger logger, string? reason);
+
     /// <summary>
     /// Validates the <c>access_token</c> query parameter on WOPI requests.
     /// </summary>
@@ -40,7 +43,7 @@ public class AccessTokenHandler(
         var validation = await accessTokenService.ValidateAsync(token, Context.RequestAborted);
         if (!validation.IsValid || validation.Principal is null)
         {
-            Logger.LogDebug("Access token validation failed: {Reason}", validation.FailureReason);
+            LogTokenValidationFailed(Logger, validation.FailureReason);
             return AuthenticateResult.Fail(validation.FailureReason ?? "Invalid access token.");
         }
 

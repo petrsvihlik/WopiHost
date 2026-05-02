@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Logging;
 using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
+using WopiHost.ServiceDefaults;
 using WopiHost.Web.Oidc.Infrastructure;
 using WopiHost.Web.Oidc.Models;
 

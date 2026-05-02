@@ -26,9 +26,14 @@ namespace WopiHost.Core.Security.Authorization;
 /// the requirement on mismatch.
 /// </para>
 /// </remarks>
-public class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)
+public partial class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)
     : AuthorizationHandler<WopiAuthorizeAttribute, HttpContext>
 {
+    [LoggerMessage(Level = LogLevel.Debug,
+        Message = "Token bound to resource '{TokenRid}' is being used against route id '{RouteId}'. " +
+            "This is allowed by default (WOPI tokens are session-scoped); register a stricter IAuthorizationHandler if you need to block cross-resource reuse.")]
+    private static partial void LogResourceBindingMismatch(ILogger logger, string tokenRid, string? routeId);
+
     /// <inheritdoc/>
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, WopiAuthorizeAttribute requirement, HttpContext resource)
     {
@@ -44,7 +49,7 @@ public class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)
             return Task.CompletedTask;
         }
 
-        LogResourceBindingMismatch(user, requirement);
+        WarnIfResourceBindingMismatch(user, requirement);
 
         if (!HasRequiredPermission(user, requirement))
         {
@@ -56,15 +61,13 @@ public class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)
         return Task.CompletedTask;
     }
 
-    private void LogResourceBindingMismatch(ClaimsPrincipal user, WopiAuthorizeAttribute requirement)
+    private void WarnIfResourceBindingMismatch(ClaimsPrincipal user, WopiAuthorizeAttribute requirement)
     {
         if (string.IsNullOrEmpty(requirement.ResourceId)) return;
         var ridClaim = user.FindFirstValue(WopiClaimTypes.ResourceId);
         if (!string.IsNullOrEmpty(ridClaim) && !string.Equals(ridClaim, requirement.ResourceId, StringComparison.Ordinal))
         {
-            logger.LogDebug("Token bound to resource '{TokenRid}' is being used against route id '{RouteId}'. " +
-                "This is allowed by default (WOPI tokens are session-scoped); register a stricter IAuthorizationHandler if you need to block cross-resource reuse.",
-                ridClaim, requirement.ResourceId);
+            LogResourceBindingMismatch(logger, ridClaim, requirement.ResourceId);
         }
     }
 

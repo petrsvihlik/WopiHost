@@ -239,7 +239,7 @@ public class HttpRequestExtensionsTests
     public void GetAccessToken_FromBearerHeader_ReturnsToken()
     {
         var ctx = new DefaultHttpContext();
-        ctx.Request.Headers["Authorization"] = "Bearer from-header";
+        ctx.Request.Headers.Authorization = "Bearer from-header";
 
         Assert.Equal("from-header", ctx.Request.GetAccessToken());
     }
@@ -248,7 +248,7 @@ public class HttpRequestExtensionsTests
     public void GetAccessToken_FromNonBearerAuthorizationHeader_ReturnsEmpty()
     {
         var ctx = new DefaultHttpContext();
-        ctx.Request.Headers["Authorization"] = "Basic abc123";
+        ctx.Request.Headers.Authorization = "Basic abc123";
 
         Assert.Equal(string.Empty, ctx.Request.GetAccessToken());
     }

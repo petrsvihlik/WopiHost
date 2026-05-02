@@ -13,19 +13,17 @@ namespace WopiHost.IntegrationTests;
 /// from their identity + roles, and the WOPI backend accepts that token and reflects the user
 /// identity in CheckFileInfo. No Docker required (TestAuthHandler stands in for the OIDC handler).
 /// </summary>
-public sealed class WopiTokenRoundTripTests : IClassFixture<WopiTokenRoundTripTests.Fixture>
+public sealed partial class WopiTokenRoundTripTests(WopiTokenRoundTripTests.Fixture fixture) : IClassFixture<WopiTokenRoundTripTests.Fixture>
 {
     private const string SharedSigningSecret = "integration-test-shared-key-32bytes!";
-    private static readonly Regex AccessTokenInput = new(
-        """<input name="access_token" value="([^"]+)" type="hidden" />""",
-        RegexOptions.Compiled);
 
-    private readonly Fixture _fixture;
+    [GeneratedRegex("""<input name="access_token" value="([^"]+)" type="hidden" />""")]
+    private static partial Regex AccessTokenInputRegex();
 
-    public WopiTokenRoundTripTests(Fixture fixture)
-    {
-        _fixture = fixture;
-    }
+    [GeneratedRegex("""asp-route-id="([^"]+)"|/Home/Detail/([^?"]+)\?""")]
+    private static partial Regex DetailLinkRegex();
+
+    private readonly Fixture _fixture = fixture;
 
     [Fact]
     public async Task SignedInEditor_HostpageEmitsToken_ContainingOidcIdentity()
@@ -143,7 +141,7 @@ public sealed class WopiTokenRoundTripTests : IClassFixture<WopiTokenRoundTripTe
         index.EnsureSuccessStatusCode();
         var html = await index.Content.ReadAsStringAsync();
 
-        var match = Regex.Match(html, """asp-route-id="([^"]+)"|/Home/Detail/([^?"]+)\?""");
+        var match = DetailLinkRegex().Match(html);
         if (!match.Success)
         {
             throw new InvalidOperationException("No file id found on the index page. Did sample/wopi-docs lose its files?");
@@ -153,7 +151,7 @@ public sealed class WopiTokenRoundTripTests : IClassFixture<WopiTokenRoundTripTe
 
     private static string ExtractAccessToken(string html)
     {
-        var match = AccessTokenInput.Match(html);
+        var match = AccessTokenInputRegex().Match(html);
         if (!match.Success)
         {
             throw new InvalidOperationException("Hostpage did not contain an access_token input.");

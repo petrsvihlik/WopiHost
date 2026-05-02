@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.IdentityModel.Tokens;
 
 namespace WopiHost.Core.Security;
@@ -28,6 +29,8 @@ public class WopiSecurityOptions
     /// key on startup and logs a warning. This is convenient for local dev but means tokens are
     /// invalidated on every restart and cannot work across multiple host instances.
     /// </remarks>
+    [SuppressMessage("Performance", "CA1819:Properties should not return arrays",
+        Justification = "Bound from a base64 config string by the IConfiguration BinaryConverter, which only targets byte[].")]
     public byte[]? SigningKey { get; set; }
 
     /// <summary>

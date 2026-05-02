@@ -127,7 +127,7 @@ public sealed class CobaltProcessor : ICobaltProcessor, IDisposable
         // the closest equivalent (in-memory by default; can be backed by a
         // directory if a `dirPathForFileBackedBlobs` is supplied — left null here
         // to match the old temp-only behavior).
-        CobaltFilePartitionConfig MakePartition(FilePartitionId partition, bool genericFda) => new()
+        static CobaltFilePartitionConfig MakePartition(FilePartitionId partition, bool genericFda) => new()
         {
             IsNewFile = true,
             HostBlobStore = new LocalHostBlobStore(new LocalHostBlobStore.Config()),
@@ -213,7 +213,7 @@ public sealed class CobaltProcessor : ICobaltProcessor, IDisposable
 
     private void ThrowIfDisposed()
     {
-        if (Volatile.Read(ref _disposed) != 0) throw new ObjectDisposedException(nameof(CobaltProcessor));
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, typeof(CobaltProcessor));
     }
 
     private sealed class CobaltSessionEntry(CobaltFile file, DisposalEscrow disposal) : IDisposable

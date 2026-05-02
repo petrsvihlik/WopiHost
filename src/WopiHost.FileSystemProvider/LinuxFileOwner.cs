@@ -15,7 +15,7 @@ namespace WopiHost.FileSystemProvider;
 /// P/Invoke fragile. Available on glibc ≥ 2.28 and musl ≥ 1.2.
 /// </remarks>
 [SupportedOSPlatform("linux")]
-internal static class LinuxFileOwner
+internal static partial class LinuxFileOwner
 {
     private const int AT_FDCWD = -100;
     private const uint STATX_UID = 0x00000008;
@@ -95,16 +95,16 @@ internal static class LinuxFileOwner
     }
 
 #pragma warning disable CA5392 // Use DefaultDllImportSearchPaths attribute for P/Invokes
-    [DllImport("libc", EntryPoint = "statx", SetLastError = true)]
-    private static extern int Statx(
+    [LibraryImport("libc", EntryPoint = "statx", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
+    private static partial int Statx(
         int dirfd,
-        [MarshalAs(UnmanagedType.LPUTF8Str)] string pathname,
+        string pathname,
         int flags,
         uint mask,
         out StatxBuf statxbuf);
 
-    [DllImport("libc", EntryPoint = "getpwuid_r", SetLastError = false)]
-    private static extern int GetPwUid_R(
+    [LibraryImport("libc", EntryPoint = "getpwuid_r", SetLastError = false)]
+    private static partial int GetPwUid_R(
         uint uid,
         ref Passwd pwd,
         IntPtr buf,

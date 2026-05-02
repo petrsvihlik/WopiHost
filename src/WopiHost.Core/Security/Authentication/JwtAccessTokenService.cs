@@ -12,37 +12,37 @@ namespace WopiHost.Core.Security.Authentication;
 /// Default <see cref="IWopiAccessTokenService"/> implementation. Issues signed JWTs that bind
 /// a user to a single <c>(resource, permissions, lifetime)</c> tuple.
 /// </summary>
-public class JwtAccessTokenService : IWopiAccessTokenService
+/// <remarks>
+/// Creates a new instance of the <see cref="JwtAccessTokenService"/>.
+/// </remarks>
+public partial class JwtAccessTokenService(
+    IOptionsMonitor<WopiSecurityOptions> options,
+    ILogger<JwtAccessTokenService> logger,
+    TimeProvider? timeProvider = null) : IWopiAccessTokenService
 {
-    private readonly IOptionsMonitor<WopiSecurityOptions> _options;
-    private readonly ILogger<JwtAccessTokenService> _logger;
-    private readonly TimeProvider _timeProvider;
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Access token rejected: {Reason}")]
+    private static partial void LogAccessTokenRejected(ILogger logger, Exception ex, string reason);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "WopiSecurityOptions.SigningKey is not configured; generated an ephemeral in-memory key. " +
+            "Tokens will be invalidated on restart and cannot work across multiple host instances. " +
+            "Configure Wopi:Security:SigningKey for any non-development scenario.")]
+    private static partial void LogEphemeralSigningKey(ILogger logger);
+
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     // MapInboundClaims maps short JWT names back to long ClaimTypes.* on validation, so
     // downstream code (e.g. ClaimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)) keeps working.
     private readonly JwtSecurityTokenHandler _handler = new() { MapInboundClaims = true };
     private SymmetricSecurityKey? _ephemeralDevKey;
-
-    /// <summary>
-    /// Creates a new instance of the <see cref="JwtAccessTokenService"/>.
-    /// </summary>
-    public JwtAccessTokenService(
-        IOptionsMonitor<WopiSecurityOptions> options,
-        ILogger<JwtAccessTokenService> logger,
-        TimeProvider? timeProvider = null)
-    {
-        _options = options;
-        _logger = logger;
-        _timeProvider = timeProvider ?? TimeProvider.System;
-    }
 
     /// <inheritdoc/>
     public Task<WopiAccessToken> IssueAsync(WopiAccessTokenRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var options = _options.CurrentValue;
+        var opts = options.CurrentValue;
         var now = _timeProvider.GetUtcNow();
-        var lifetime = request.Lifetime ?? options.DefaultTokenLifetime;
+        var lifetime = request.Lifetime ?? opts.DefaultTokenLifetime;
         var expires = now.Add(lifetime);
 
         var claims = new List<Claim>
@@ -88,9 +88,9 @@ public class JwtAccessTokenService : IWopiAccessTokenService
             IssuedAt = now.UtcDateTime,
             NotBefore = now.UtcDateTime,
             Expires = expires.UtcDateTime,
-            Issuer = options.Issuer,
-            Audience = options.Audience,
-            SigningCredentials = new SigningCredentials(GetSigningKey(options), options.SigningAlgorithm),
+            Issuer = opts.Issuer,
+            Audience = opts.Audience,
+            SigningCredentials = new SigningCredentials(GetSigningKey(opts), opts.SigningAlgorithm),
         };
 
         var token = _handler.CreateToken(descriptor);
@@ -106,9 +106,9 @@ public class JwtAccessTokenService : IWopiAccessTokenService
             return Task.FromResult(WopiAccessTokenValidationResult.Failure("Token is empty."));
         }
 
-        var options = _options.CurrentValue;
-        var validationKeys = new List<SecurityKey> { GetSigningKey(options) };
-        foreach (var extraKey in options.AdditionalValidationKeys)
+        var opts = options.CurrentValue;
+        var validationKeys = new List<SecurityKey> { GetSigningKey(opts) };
+        foreach (var extraKey in opts.AdditionalValidationKeys)
         {
             validationKeys.Add(new SymmetricSecurityKey(extraKey));
         }
@@ -118,11 +118,11 @@ public class JwtAccessTokenService : IWopiAccessTokenService
             ValidateIssuerSigningKey = true,
             IssuerSigningKeys = validationKeys,
             ValidateLifetime = true,
-            ValidateIssuer = !string.IsNullOrEmpty(options.Issuer),
-            ValidIssuer = options.Issuer,
-            ValidateAudience = !string.IsNullOrEmpty(options.Audience),
-            ValidAudience = options.Audience,
-            ClockSkew = options.ClockSkew,
+            ValidateIssuer = !string.IsNullOrEmpty(opts.Issuer),
+            ValidIssuer = opts.Issuer,
+            ValidateAudience = !string.IsNullOrEmpty(opts.Audience),
+            ValidAudience = opts.Audience,
+            ClockSkew = opts.ClockSkew,
             NameClaimType = ClaimTypes.NameIdentifier,
         };
 
@@ -137,20 +137,20 @@ public class JwtAccessTokenService : IWopiAccessTokenService
             // so the auth pipeline returns 401, not 500. SecurityTokenException covers most cases (expiry,
             // signature, audience). Malformed inputs throw ArgumentException, base64 decode errors throw
             // FormatException, and structurally-broken JWT JSON throws JsonException.
-            _logger.LogDebug(ex, "Access token rejected: {Reason}", ex.Message);
+            LogAccessTokenRejected(logger, ex, ex.Message);
             return Task.FromResult(WopiAccessTokenValidationResult.Failure(ex.Message));
         }
     }
 
-    private SecurityKey GetSigningKey(WopiSecurityOptions options)
+    private SecurityKey GetSigningKey(WopiSecurityOptions opts)
     {
-        if (options.SecurityKey is not null)
+        if (opts.SecurityKey is not null)
         {
-            return options.SecurityKey;
+            return opts.SecurityKey;
         }
-        if (options.SigningKey is { Length: > 0 })
+        if (opts.SigningKey is { Length: > 0 })
         {
-            return new SymmetricSecurityKey(options.SigningKey);
+            return new SymmetricSecurityKey(opts.SigningKey);
         }
         // No key configured: generate a per-process random key. Loud warning so this is
         // never silently used in production.
@@ -158,10 +158,7 @@ public class JwtAccessTokenService : IWopiAccessTokenService
         {
             var keyBytes = RandomNumberGenerator.GetBytes(64);
             _ephemeralDevKey = new SymmetricSecurityKey(keyBytes);
-            _logger.LogWarning(
-                "WopiSecurityOptions.SigningKey is not configured; generated an ephemeral in-memory key. " +
-                "Tokens will be invalidated on restart and cannot work across multiple host instances. " +
-                "Configure Wopi:Security:SigningKey for any non-development scenario.");
+            LogEphemeralSigningKey(logger);
         }
         return _ephemeralDevKey;
     }

@@ -17,6 +17,7 @@ public class WopiFileTests : IDisposable
     {
         _tempDir.Refresh();
         if (_tempDir.Exists) _tempDir.Delete(recursive: true);
+        GC.SuppressFinalize(this);
     }
 
     [Fact]

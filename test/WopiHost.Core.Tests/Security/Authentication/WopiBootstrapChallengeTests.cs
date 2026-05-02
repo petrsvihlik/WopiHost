@@ -96,7 +96,7 @@ public class WopiBootstrapChallengeTests
         WopiBootstrapChallenge.Apply(ctx.Response, AuthUri, TokenUri, providerId: "tpcontoso");
 
         Assert.Equal(StatusCodes.Status401Unauthorized, ctx.Response.StatusCode);
-        var header = Assert.Single(ctx.Response.Headers["WWW-Authenticate"]!);
+        var header = Assert.Single(ctx.Response.Headers.WWWAuthenticate!);
         Assert.StartsWith("Bearer ", header);
         Assert.Contains("authorization_uri=\"https://idp.contoso.com/oauth2/authorize\"", header);
         Assert.Contains("tokenIssuance_uri=\"https://idp.contoso.com/oauth2/token\"", header);
