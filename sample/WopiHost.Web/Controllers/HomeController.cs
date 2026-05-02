@@ -54,7 +54,10 @@ public class HomeController(
                     FileName = file.Name + "." + file.Extension,
                     SupportsEdit = await discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.Edit),
                     SupportsView = await discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.View),
-                    IconUri = (await discoverer.GetApplicationFavIconAsync(file.Extension)) ?? new Uri("file.ico", UriKind.Relative)
+                    // Leading slash so the fallback resolves to /file.ico regardless of the
+                    // current URL — without it the browser resolves "file.ico" relative to
+                    // the current path (e.g. /Home/Index → /Home/file.ico → 404).
+                    IconUri = (await discoverer.GetApplicationFavIconAsync(file.Extension)) ?? new Uri("/file.ico", UriKind.Relative)
                 });
             }
             return View(fileViewModels);
