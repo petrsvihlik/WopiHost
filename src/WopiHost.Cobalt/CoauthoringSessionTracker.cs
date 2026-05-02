@@ -1,5 +1,8 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
+using System.Text;
 using Cobalt;
+using Cobalt.Base;
 
 namespace WopiHost.Cobalt;
 
@@ -89,9 +92,17 @@ public class CoauthoringSessionTracker
     /// <summary>
     /// Returns the editors table for the Cobalt protocol.
     /// </summary>
-    public Dictionary<string, EditorsTableEntry> GetEditorsTable(string fileId)
+    /// <remarks>
+    /// As of MS-FSSHTTP/CobaltCore 16.x the editors table is keyed by
+    /// <see cref="ArrayGuid"/> (per-editor ClientId) and entries are
+    /// <see cref="EditorsTableEntryNew"/>. We don't have a real Cobalt ClientId
+    /// in WopiHost, so we derive a stable one per-user by hashing the user id —
+    /// this preserves the dedup-by-user behavior that the older string-keyed
+    /// table provided.
+    /// </remarks>
+    public EditorsTable GetEditorsTable(string fileId)
     {
-        var result = new Dictionary<string, EditorsTableEntry>();
+        var result = new EditorsTable();
         if (!Sessions.TryGetValue(fileId, out var fileSessions))
         {
             return result;
@@ -100,15 +111,27 @@ public class CoauthoringSessionTracker
         var cutoff = DateTimeOffset.UtcNow - SessionTimeout;
         foreach (var session in fileSessions.Values.Where(s => s.LastActivity > cutoff))
         {
-            result[session.UserId] = new EditorsTableEntry
-            {
-                HasEditPermission = true,
-                UserName = session.UserName,
-                UserLogin = session.UserId
-            };
+            var clientId = DeriveClientId(session.UserId);
+            result[clientId] = new EditorsTableEntryNew(
+                dtTimeout: session.LastActivity.UtcDateTime + SessionTimeout,
+                clientId: clientId,
+                userName: session.UserName,
+                userLogin: session.UserId,
+                sipAddress: null,
+                emailAddress: null,
+                hasEditPermission: true);
         }
 
         return result;
+    }
+
+    private static ArrayGuid DeriveClientId(string userId)
+    {
+        // 16-byte MD5 of the user id maps cleanly onto ArrayGuid's underlying
+        // byte array. Not used for security — just a stable per-user identity
+        // so the same user across tabs collapses to a single editor row.
+        var bytes = MD5.HashData(Encoding.UTF8.GetBytes(userId ?? string.Empty));
+        return new ArrayGuid(bytes);
     }
 
     /// <summary>

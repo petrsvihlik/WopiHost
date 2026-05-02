@@ -38,7 +38,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CobaltCore" VersionOverride="15.0.0" />
+    <PackageReference Include="Microsoft.CobaltCore" VersionOverride="16.0.19725.20210" />
   </ItemGroup>
 
 </Project>

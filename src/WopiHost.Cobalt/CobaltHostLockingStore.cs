@@ -35,12 +35,13 @@ public class CobaltHostLockingStore(
         return result;
     }
 
-    public override LockAndCheckOutStatusRequest.OutputType HandleLockAndCheckOutStatus(LockAndCheckOutStatusRequest.InputType input)
+    public override LockStatusRequest.OutputType HandleLockStatus(LockStatusRequest.InputType input)
     {
-        var result = new LockAndCheckOutStatusRequest.OutputType
+        // Replaces the 15.x `HandleLockAndCheckOutStatus`. The output shape
+        // changed too: old (LockType, CheckOutType) → new (LockType, LockId, LockedBy).
+        var result = new LockStatusRequest.OutputType
         {
-            LockType = 1U,
-            CheckOutType = 0U
+            LockType = LockType.SchemaLock
         };
 
         return result;
@@ -186,7 +187,7 @@ public class CobaltHostLockingStore(
         return result;
     }
 
-    public override Dictionary<string, EditorsTableEntry> QueryEditorsTable() =>
+    public override EditorsTable QueryEditorsTable() =>
         _sessionTracker.GetEditorsTable(_fileId);
 
     public override JoinEditingSessionRequest.OutputType HandleJoinEditingSession(JoinEditingSessionRequest.InputType input)
@@ -249,4 +250,34 @@ public class CobaltHostLockingStore(
 
         return result;
     }
+
+    // The methods below were added to HostLockingStore in CobaltCore 16.x.
+    // They cover protocol features WopiHost doesn't implement yet (rename,
+    // delete, version history, editors-property metadata). Stubbed with
+    // empty default outputs so the host accepts the request without erroring;
+    // hosts that need the real behavior should override these.
+
+    public override EnumerateEditorsRequest.OutputType HandleEnumerateEditors(EnumerateEditorsRequest.InputType input) =>
+        new();
+
+    public override EditorsPropertyCheckRequest.OutputType HandleEditorsPropertyCheck(EditorsPropertyCheckRequest.InputType input) =>
+        new();
+
+    public override RenameFileRequest.OutputType HandleRename(RenameFileRequest.InputType input) =>
+        new();
+
+    public override DeleteFileRequest.OutputType HandleDelete(DeleteFileRequest.InputType input) =>
+        new();
+
+    public override GetVersionListRequest.OutputType HandleGetVersionList(GetVersionListRequest.InputType input) =>
+        new();
+
+    public override RestoreVersionRequest.OutputType HandleRestoreVersion(RestoreVersionRequest.InputType input) =>
+        new();
+
+    // Indicates whether the file backing this locking store still exists.
+    // WopiHost only constructs CobaltHostLockingStore for an active WOPI session,
+    // which by definition has a backing file — so `true` is the correct answer
+    // here. If a host wants to surface deletes from a side channel it can override.
+    public override bool FileExists() => true;
 }
