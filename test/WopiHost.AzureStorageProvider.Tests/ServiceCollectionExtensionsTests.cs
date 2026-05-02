@@ -122,7 +122,7 @@ public class ServiceCollectionExtensionsTests
     public void AddAzureStorageProvider_NullArgs_Throw()
     {
         var services = new ServiceCollection();
-        var config = BuildConfig(new());
+        var config = BuildConfig([]);
 
         Assert.Throws<ArgumentNullException>(
             () => ServiceCollectionExtensions.AddAzureStorageProvider(null!, config));

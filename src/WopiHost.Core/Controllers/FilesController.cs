@@ -650,7 +650,7 @@ public class FilesController(
         };
     }
 
-    private IActionResult HandleGetLock(WopiLockInfo? existingLock)
+    private OkResult HandleGetLock(WopiLockInfo? existingLock)
     {
         Response.Headers[WopiHeaders.LOCK] = existingLock is not null
             ? existingLock.LockId

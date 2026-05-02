@@ -43,7 +43,7 @@ public static class ServiceCollectionExtensions
             .AddOptions<WopiAzureStorageProviderOptions>()
             .Bind(configuration.GetSection(WopiConfigurationSections.STORAGE_OPTIONS))
             .Validate(o => !string.IsNullOrWhiteSpace(o.ContainerName), "Wopi:StorageProvider:ContainerName is required.")
-            .Validate(o => !string.IsNullOrWhiteSpace(o.ConnectionString) || !string.IsNullOrWhiteSpace(o.ServiceUri),
+            .Validate(o => !string.IsNullOrWhiteSpace(o.ConnectionString) || o.ServiceUri is not null,
                 "Either Wopi:StorageProvider:ConnectionString or Wopi:StorageProvider:ServiceUri must be set.")
             .ValidateOnStart();
 
@@ -60,7 +60,7 @@ public static class ServiceCollectionExtensions
             else
             {
                 var credential = sp.GetService<TokenCredential>() ?? new DefaultAzureCredential();
-                serviceClient = new BlobServiceClient(new Uri(opts.ServiceUri!), credential);
+                serviceClient = new BlobServiceClient(opts.ServiceUri!, credential);
             }
             return serviceClient.GetBlobContainerClient(opts.ContainerName);
         });

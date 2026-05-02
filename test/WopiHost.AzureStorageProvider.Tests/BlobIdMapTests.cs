@@ -85,7 +85,7 @@ public class BlobIdMapTests
     public void ScanAll_EmptyEnumeration_RegistersOnlyRoot()
     {
         var map = NewMap();
-        map.ScanAll(Array.Empty<string>());
+        map.ScanAll([]);
 
         Assert.True(map.WasScanned);
         var rootId = BlobIdMap.IdFromPath(string.Empty);

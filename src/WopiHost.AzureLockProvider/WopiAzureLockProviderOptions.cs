@@ -14,7 +14,7 @@ public class WopiAzureLockProviderOptions
     public string? ConnectionString { get; set; }
 
     /// <summary>Blob service endpoint when using <see cref="Azure.Core.TokenCredential"/>.</summary>
-    public string? ServiceUri { get; set; }
+    public Uri? ServiceUri { get; set; }
 
     /// <summary>
     /// Name of the blob container that holds the per-fileId lock placeholder blobs. Will be created

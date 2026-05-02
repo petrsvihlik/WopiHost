@@ -132,11 +132,11 @@ public class WopiAzureLockProviderTests(AzuriteFixture azurite)
     public async Task GetLockAsync_ExpiredLock_ReturnsNull_AndEvicts()
     {
         // Seed an expired entry directly so we don't have to wait 30 minutes.
-        var (provider, container) = await CreateProviderAsync();
+        var (provider, _) = await CreateProviderAsync();
         var lockBlob = GetLockBlob(provider, "file-stale");
 
         // Stage: create the blob, set metadata with an old timestamp.
-        using (var empty = new MemoryStream(Array.Empty<byte>()))
+        using (var empty = new MemoryStream([]))
         {
             await lockBlob.UploadAsync(empty);
         }
@@ -159,7 +159,7 @@ public class WopiAzureLockProviderTests(AzuriteFixture azurite)
         var (provider, _) = await CreateProviderAsync();
         var lockBlob = GetLockBlob(provider, "file-takeover");
 
-        using (var empty = new MemoryStream(Array.Empty<byte>()))
+        using (var empty = new MemoryStream([]))
         {
             await lockBlob.UploadAsync(empty);
         }

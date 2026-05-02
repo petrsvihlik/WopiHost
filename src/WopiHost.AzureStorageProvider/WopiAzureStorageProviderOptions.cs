@@ -26,7 +26,7 @@ public class WopiAzureStorageProviderOptions
     /// <see cref="Azure.Core.TokenCredential"/> from DI (typically <see cref="Azure.Identity.DefaultAzureCredential"/>)
     /// for managed-identity / service-principal auth.
     /// </summary>
-    public string? ServiceUri { get; set; }
+    public Uri? ServiceUri { get; set; }
 
     /// <summary>
     /// Name of the blob container that holds WOPI files. Will be created on startup if missing.

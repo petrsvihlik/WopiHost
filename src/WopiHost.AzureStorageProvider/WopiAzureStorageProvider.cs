@@ -264,7 +264,7 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
             throw new ArgumentException("Invalid characters in the name.", nameof(name));
         }
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
-        if (!idMap.TryGetPath(containerId, out var folderPath))
+        if (!idMap.TryGetPath(containerId, out _))
         {
             throw new DirectoryNotFoundException($"Container '{containerId}' not found.");
         }
@@ -303,7 +303,7 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
             var blobClient = containerClient.GetBlobClient(path);
             try
             {
-                using var empty = new MemoryStream(Array.Empty<byte>(), writable: false);
+                using var empty = new MemoryStream([], writable: false);
                 await blobClient.UploadAsync(empty, overwrite: false, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             catch (RequestFailedException ex) when (ex.Status == 409)
@@ -320,7 +320,7 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
             var markerClient = containerClient.GetBlobClient(markerPath);
             try
             {
-                using var empty = new MemoryStream(Array.Empty<byte>(), writable: false);
+                using var empty = new MemoryStream([], writable: false);
                 await markerClient.UploadAsync(empty, overwrite: false, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             catch (RequestFailedException ex) when (ex.Status == 409)

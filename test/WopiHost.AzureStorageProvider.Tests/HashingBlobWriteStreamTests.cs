@@ -15,7 +15,7 @@ public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
         await container.CreateIfNotExistsAsync();
         var blob = container.GetBlobClient("subject.bin");
         // Pre-create the blob so OpenWriteAsync(overwrite:true) works.
-        using var empty = new MemoryStream(Array.Empty<byte>(), writable: false);
+        using var empty = new MemoryStream([], writable: false);
         await blob.UploadAsync(empty, overwrite: false);
         return (blob, container);
     }
@@ -73,7 +73,11 @@ public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
 
         await using (var s = await OpenWrapperAsync(blob))
         {
+            // The whole point of this test is to exercise the byte[]/offset/count WriteAsync
+            // override; using the Memory<byte> overload would defeat it.
+#pragma warning disable CA1835
             await s.WriteAsync(bytes, 0, bytes.Length, CancellationToken.None);
+#pragma warning restore CA1835
         }
 
         var props = await blob.GetPropertiesAsync();

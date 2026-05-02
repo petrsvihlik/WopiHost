@@ -71,7 +71,7 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
     {
         var container = await CreateContainerAsync();
         var blob = container.GetBlobClient("with-hash.bin");
-        using (var stream = new MemoryStream(new byte[] { 0xAB, 0xCD }))
+        using (var stream = new MemoryStream([0xAB, 0xCD]))
         {
             await blob.UploadAsync(stream, overwrite: true);
         }
@@ -90,7 +90,7 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         // Empty hash string should fall through the !string.IsNullOrEmpty check.
         var container = await CreateContainerAsync();
         var blob = container.GetBlobClient("empty-hash.bin");
-        using (var stream = new MemoryStream(new byte[] { 0x01 }))
+        using (var stream = new MemoryStream([0x01]))
         {
             await blob.UploadAsync(stream, overwrite: true);
         }
@@ -158,7 +158,7 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         // `new Dictionary<string, string>(StringComparer.Ordinal)` branch.
         var container = await CreateContainerAsync();
         var blob = container.GetBlobClient("nometa.bin");
-        using (var stream = new MemoryStream(Array.Empty<byte>()))
+        using (var stream = new MemoryStream([]))
         {
             await blob.UploadAsync(stream, overwrite: true);
         }

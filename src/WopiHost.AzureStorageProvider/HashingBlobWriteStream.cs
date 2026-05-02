@@ -9,20 +9,11 @@ namespace WopiHost.AzureStorageProvider;
 /// On dispose, the hash is finalized and written back as the <see cref="WopiBlobFile.Sha256MetadataKey"/>
 /// metadata key, preserving the metadata that existed before the write.
 /// </summary>
-internal sealed class HashingBlobWriteStream : Stream
+internal sealed class HashingBlobWriteStream(Stream inner, BlobClient blobClient, Dictionary<string, string> preservedMetadata) : Stream
 {
-    private readonly Stream inner;
-    private readonly BlobClient blobClient;
-    private readonly Dictionary<string, string> metadataToWrite;
+    private readonly Dictionary<string, string> metadataToWrite = preservedMetadata;
     private readonly IncrementalHash hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
     private bool disposed;
-
-    public HashingBlobWriteStream(Stream inner, BlobClient blobClient, Dictionary<string, string> preservedMetadata)
-    {
-        this.inner = inner;
-        this.blobClient = blobClient;
-        this.metadataToWrite = preservedMetadata;
-    }
 
     public override bool CanRead => false;
     public override bool CanSeek => false;

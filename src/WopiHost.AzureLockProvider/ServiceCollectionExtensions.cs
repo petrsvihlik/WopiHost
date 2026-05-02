@@ -27,7 +27,7 @@ public static class ServiceCollectionExtensions
             .AddOptions<WopiAzureLockProviderOptions>()
             .Bind(configuration.GetSection(WopiConfigurationSections.LOCK_OPTIONS))
             .Validate(o => !string.IsNullOrWhiteSpace(o.ContainerName), "Wopi:LockProvider:ContainerName is required.")
-            .Validate(o => !string.IsNullOrWhiteSpace(o.ConnectionString) || !string.IsNullOrWhiteSpace(o.ServiceUri),
+            .Validate(o => !string.IsNullOrWhiteSpace(o.ConnectionString) || o.ServiceUri is not null,
                 "Either Wopi:LockProvider:ConnectionString or Wopi:LockProvider:ServiceUri must be set.")
             .ValidateOnStart();
 
@@ -42,7 +42,7 @@ public static class ServiceCollectionExtensions
             else
             {
                 var credential = sp.GetService<TokenCredential>() ?? new DefaultAzureCredential();
-                serviceClient = new BlobServiceClient(new Uri(opts.ServiceUri!), credential);
+                serviceClient = new BlobServiceClient(opts.ServiceUri!, credential);
             }
             var container = serviceClient.GetBlobContainerClient(opts.ContainerName);
             return new WopiAzureLockProvider(container, sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WopiAzureLockProvider>>());

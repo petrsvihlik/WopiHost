@@ -36,7 +36,7 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
         var lockBlob = GetLockBlob(provider, "file-expired-refresh");
-        using (var empty = new MemoryStream(Array.Empty<byte>()))
+        using (var empty = new MemoryStream([]))
         {
             await lockBlob.UploadAsync(empty);
         }
@@ -57,7 +57,7 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
         var lockBlob = GetLockBlob(provider, "file-no-leaseid");
-        using (var empty = new MemoryStream(Array.Empty<byte>()))
+        using (var empty = new MemoryStream([]))
         {
             await lockBlob.UploadAsync(empty);
         }
@@ -96,7 +96,7 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
         var lockBlob = GetLockBlob(provider, "file-no-lease-remove");
-        using (var empty = new MemoryStream(Array.Empty<byte>()))
+        using (var empty = new MemoryStream([]))
         {
             await lockBlob.UploadAsync(empty);
         }
@@ -120,7 +120,7 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         // a 409/412 LeaseIdMismatch. The fallback path break-leases and proceeds to delete.
         var (provider, _) = await CreateProviderAsync();
         var lockBlob = GetLockBlob(provider, "file-stale-lease-remove");
-        using (var empty = new MemoryStream(Array.Empty<byte>()))
+        using (var empty = new MemoryStream([]))
         {
             await lockBlob.UploadAsync(empty);
         }
@@ -143,7 +143,7 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         // Hits the TryReadLock parse-failure branch (returns false → outer GetLockAsync returns null).
         var (provider, _) = await CreateProviderAsync();
         var lockBlob = GetLockBlob(provider, "file-malformed-created");
-        using (var empty = new MemoryStream(Array.Empty<byte>()))
+        using (var empty = new MemoryStream([]))
         {
             await lockBlob.UploadAsync(empty);
         }
@@ -165,7 +165,7 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         // TryReadLock requires non-empty lock id; otherwise returns false.
         var (provider, _) = await CreateProviderAsync();
         var lockBlob = GetLockBlob(provider, "file-empty-lockid");
-        using (var empty = new MemoryStream(Array.Empty<byte>()))
+        using (var empty = new MemoryStream([]))
         {
             await lockBlob.UploadAsync(empty);
         }
@@ -188,7 +188,7 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         // then proceeds to upload + acquire.
         var (provider, _) = await CreateProviderAsync();
         var lockBlob = GetLockBlob(provider, "file-stale-blob");
-        using (var empty = new MemoryStream(Array.Empty<byte>()))
+        using (var empty = new MemoryStream([]))
         {
             await lockBlob.UploadAsync(empty);
         }

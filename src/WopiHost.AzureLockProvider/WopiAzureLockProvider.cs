@@ -28,23 +28,17 @@ namespace WopiHost.AzureLockProvider;
 /// observes the WOPI-expiry has passed and explicitly breaks the lease in <see cref="GetLockAsync"/>.
 /// </para>
 /// </remarks>
-public class WopiAzureLockProvider : IWopiLockProvider
+/// <summary>Create the provider from a configured <see cref="BlobContainerClient"/>.</summary>
+public class WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<WopiAzureLockProvider> logger) : IWopiLockProvider
 {
     internal const string LockIdKey = "wopi_lock_id";
     internal const string LeaseIdKey = "wopi_lease_id";
     internal const string CreatedKey = "wopi_created";
 
-    private readonly BlobContainerClient containerClient;
-    private readonly ILogger<WopiAzureLockProvider> logger;
+    private readonly BlobContainerClient containerClient = containerClient ?? throw new ArgumentNullException(nameof(containerClient));
+    private readonly ILogger<WopiAzureLockProvider> logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly SemaphoreSlim initLock = new(1, 1);
     private bool initialized;
-
-    /// <summary>Create the provider from a configured <see cref="BlobContainerClient"/>.</summary>
-    public WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<WopiAzureLockProvider> logger)
-    {
-        this.containerClient = containerClient ?? throw new ArgumentNullException(nameof(containerClient));
-        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <inheritdoc />
     public async Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default)
@@ -89,7 +83,7 @@ public class WopiAzureLockProvider : IWopiLockProvider
         // Upload the placeholder. If two callers race here, exactly one wins (overwrite=false).
         try
         {
-            using var empty = new MemoryStream(Array.Empty<byte>(), writable: false);
+            using var empty = new MemoryStream([], writable: false);
             await blobClient.UploadAsync(empty, overwrite: false, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (RequestFailedException ex) when (ex.Status == 409)
