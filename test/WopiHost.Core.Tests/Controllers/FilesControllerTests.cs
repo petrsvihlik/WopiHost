@@ -1292,6 +1292,25 @@ public class FilesControllerTests
     }
 
     [Fact]
+    public async Task ProcessLock_Put_MatchingOldLock_EmptyNewLockId_ReturnsLockMismatch()
+    {
+        var fileId = "test-file-id";
+        var oldLockId = "old-lock-id";
+        SetupFileMock(fileId);
+        var lockInfo = new WopiLockInfo { LockId = oldLockId, FileId = fileId };
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
+
+        var result = await controller.ProcessLock(
+            fileId,
+            WopiFileOperations.Put,
+            oldLockIdentifier: oldLockId,
+            newLockIdentifier: null);
+
+        var lockMismatch = Assert.IsType<LockMismatchResult>(result);
+        Assert.Equal("Missing new lock identifier", lockMismatch.Reason);
+    }
+
+    [Fact]
     public async Task ProcessLock_Put_MatchingOldLock_Success_ReturnsOk()
     {
         var fileId = "test-file-id";
