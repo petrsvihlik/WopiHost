@@ -1,6 +1,7 @@
 using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
+using WopiHost.ServiceDefaults;
 using WopiHost.Web.Models;
 
 var builder = WebApplication.CreateBuilder(args);

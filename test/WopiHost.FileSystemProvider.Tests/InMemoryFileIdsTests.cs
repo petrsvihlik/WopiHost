@@ -7,7 +7,11 @@ public class InMemoryFileIdsTests : IDisposable
     private readonly InMemoryFileIds _sut = new(NullLogger<InMemoryFileIds>.Instance);
     private readonly DirectoryInfo _tempDir = Directory.CreateTempSubdirectory("WopiTest_");
 
-    public void Dispose() => _tempDir.Delete(recursive: true);
+    public void Dispose()
+    {
+        _tempDir.Delete(recursive: true);
+        GC.SuppressFinalize(this);
+    }
 
     [Fact]
     public void ScanAll_SamePath_ProducesSameIds()

@@ -12,15 +12,8 @@ namespace WopiHost.IntegrationTests.Fixtures;
 /// <see cref="OidcWebAppFactory"/>) and replaces the default proof validator with a no-op so
 /// tests can synthesize WOPI requests without forging proof-key headers.
 /// </summary>
-public sealed class WopiBackendFactory : WebApplicationFactory<global::WopiHost.Program>
+public sealed class WopiBackendFactory(string wopiSigningSecret) : WebApplicationFactory<global::WopiHost.Program>
 {
-    private readonly string _wopiSigningSecret;
-
-    public WopiBackendFactory(string wopiSigningSecret)
-    {
-        _wopiSigningSecret = wopiSigningSecret;
-    }
-
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureAppConfiguration((_, config) =>
@@ -34,7 +27,7 @@ public sealed class WopiBackendFactory : WebApplicationFactory<global::WopiHost.
                 ["Wopi:ClientUrl"] = "https://office.example.test",
                 ["Wopi:Discovery:NetZone"] = "ExternalHttps",
                 ["Wopi:Discovery:RefreshInterval"] = "12:00:00",
-                ["Wopi:Security:SigningKey"] = Convert.ToBase64String(OidcSampleTestConfig.SigningKeyBytes(_wopiSigningSecret)),
+                ["Wopi:Security:SigningKey"] = Convert.ToBase64String(OidcSampleTestConfig.SigningKeyBytes(wopiSigningSecret)),
             });
         });
 

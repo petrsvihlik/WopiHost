@@ -15,6 +15,7 @@ namespace WopiHost.Core.Security.Authentication;
 /// </remarks>
 /// <param name="proofValidator">The service used to validate WOPI proof keys.</param>
 /// <param name="logger">Logger instance.</param>
+[AttributeUsage(AttributeTargets.Class)]
 public class WopiOriginValidationActionFilter(IWopiProofValidator proofValidator, ILogger<WopiOriginValidationActionFilter> logger) : Attribute, IAsyncActionFilter
 {
     /// <summary>

@@ -35,9 +35,9 @@ public class WopiOriginValidationActionFilterTests
     {
         var ctx = BuildContext(new DefaultHttpContext());
         var nextCalled = false;
-        ActionExecutionDelegate next = () => { nextCalled = true; return Task.FromResult<ActionExecutedContext>(null!); };
+        Task<ActionExecutedContext> Next() { nextCalled = true; return Task.FromResult<ActionExecutedContext>(null!); }
 
-        await BuildSut().OnActionExecutionAsync(ctx, next);
+        await BuildSut().OnActionExecutionAsync(ctx, Next);
 
         Assert.Equal(StatusCodes.Status500InternalServerError, ctx.HttpContext.Response.StatusCode);
         Assert.False(nextCalled);
@@ -53,9 +53,9 @@ public class WopiOriginValidationActionFilterTests
             .ReturnsAsync(false);
         var ctx = BuildContext(http);
         var nextCalled = false;
-        ActionExecutionDelegate next = () => { nextCalled = true; return Task.FromResult<ActionExecutedContext>(null!); };
+        Task<ActionExecutedContext> Next() { nextCalled = true; return Task.FromResult<ActionExecutedContext>(null!); }
 
-        await BuildSut().OnActionExecutionAsync(ctx, next);
+        await BuildSut().OnActionExecutionAsync(ctx, Next);
 
         var statusResult = Assert.IsType<StatusCodeResult>(ctx.Result);
         Assert.Equal(StatusCodes.Status500InternalServerError, statusResult.StatusCode);
@@ -72,13 +72,13 @@ public class WopiOriginValidationActionFilterTests
             .ReturnsAsync(true);
         var ctx = BuildContext(http);
         var nextCalled = false;
-        ActionExecutionDelegate next = () =>
+        Task<ActionExecutedContext> Next()
         {
             nextCalled = true;
             return Task.FromResult(new ActionExecutedContext(ctx, [], controller: new object()));
-        };
+        }
 
-        await BuildSut().OnActionExecutionAsync(ctx, next);
+        await BuildSut().OnActionExecutionAsync(ctx, Next);
 
         Assert.True(nextCalled);
         Assert.Null(ctx.Result);

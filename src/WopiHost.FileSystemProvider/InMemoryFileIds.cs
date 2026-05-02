@@ -9,8 +9,11 @@ namespace WopiHost.FileSystemProvider;
 /// Provides unique file identifiers for files.
 /// </summary>
 /// <remarks>very basic in-memory for sample purposes only</remarks>
-public class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
+public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
 {
+    [LoggerMessage(Level = LogLevel.Information, Message = "Scanned {total} items")]
+    private static partial void LogScannedItems(ILogger logger, int total);
+
     private readonly Dictionary<string, string> fileIds = [];
 
     /// <summary>
@@ -110,7 +113,7 @@ public class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
             fileIds[newId] = file;
         }
 
-        logger.LogInformation("Scanned {total} items", fileIds.Count);
+        LogScannedItems(logger, fileIds.Count);
     }
 
     /// <summary>

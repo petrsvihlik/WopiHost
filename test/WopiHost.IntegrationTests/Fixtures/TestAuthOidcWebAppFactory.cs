@@ -14,21 +14,12 @@ namespace WopiHost.IntegrationTests.Fixtures;
 /// live IdP. The mock OIDC server still has to exist (the OIDC handler validates discovery at
 /// startup) — this factory just routes the actual authentication to the test handler.
 /// </summary>
-public sealed class TestAuthOidcWebAppFactory : WebApplicationFactory<OidcSampleEntryPoint>
+public sealed class TestAuthOidcWebAppFactory(string wopiSigningSecret, string wopiBackendUrl, Uri? authority = null) : WebApplicationFactory<OidcSampleEntryPoint>
 {
-    private readonly Uri _authority;
-    private readonly string _wopiSigningSecret;
-    private readonly string _wopiBackendUrl;
+    private readonly Uri _authority = authority ?? new Uri(PlaceholderAuthority);
 
     /// <summary>Default placeholder authority — never contacted because TestAuth bypasses OIDC.</summary>
     public const string PlaceholderAuthority = "https://placeholder.invalid/";
-
-    public TestAuthOidcWebAppFactory(string wopiSigningSecret, string wopiBackendUrl, Uri? authority = null)
-    {
-        _authority = authority ?? new Uri(PlaceholderAuthority);
-        _wopiSigningSecret = wopiSigningSecret;
-        _wopiBackendUrl = wopiBackendUrl;
-    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -36,8 +27,8 @@ public sealed class TestAuthOidcWebAppFactory : WebApplicationFactory<OidcSample
         {
             config.AddInMemoryCollection(OidcSampleTestConfig.Build(
                 oidcAuthority: _authority.AbsoluteUri.TrimEnd('/'),
-                wopiSigningSecret: _wopiSigningSecret,
-                wopiBackendUrl: _wopiBackendUrl));
+                wopiSigningSecret: wopiSigningSecret,
+                wopiBackendUrl: wopiBackendUrl));
         });
 
         builder.ConfigureServices(services =>

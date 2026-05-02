@@ -25,10 +25,10 @@ public record ChildFile(string Name, string Url) : AbstractChildBase(Name, Url)
     /// <summary>
     /// URL to view the file in the host's web interface.
     /// </summary>
-    public string? HostViewUrl { get; set; }
+    public Uri? HostViewUrl { get; set; }
 
     /// <summary>
     /// URL to edit the file in the host's web interface.
     /// </summary>
-    public string? HostEditUrl { get; set; }
+    public Uri? HostEditUrl { get; set; }
 }

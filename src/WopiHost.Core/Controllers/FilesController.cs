@@ -475,8 +475,8 @@ public class FilesController(
                     newFile.Name + '.' + newFile.Extension,
                     Url.GetWopiSrc(WopiResourceType.File, newFile.Identifier))
                 {
-                    HostEditUrl = checkFileInfo.HostEditUrl?.ToString(),
-                    HostViewUrl = checkFileInfo.HostViewUrl?.ToString() 
+                    HostEditUrl = checkFileInfo.HostEditUrl,
+                    HostViewUrl = checkFileInfo.HostViewUrl,
                 });
         }
 

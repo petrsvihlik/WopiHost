@@ -6,6 +6,7 @@ using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Security.Authentication;
 using WopiHost.Discovery;
+using WopiHost.ServiceDefaults;
 using Scalar.AspNetCore;
 
 namespace WopiHost;

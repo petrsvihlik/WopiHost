@@ -1,4 +1,6 @@
-﻿namespace WopiHost.Abstractions;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace WopiHost.Abstractions;
 
 /// <summary>
 /// Representation of a file.
@@ -38,6 +40,8 @@ public interface IWopiFile : IWopiResource
     /// <summary>
     /// SHA256 checksum
     /// </summary>
+    [SuppressMessage("Performance", "CA1819:Properties should not return arrays",
+        Justification = "SHA-256 hash bytes; byte[] is the natural shape and matches SHA256.ComputeHash output.")]
     byte[]? Checksum { get; }
 
     /// <summary>

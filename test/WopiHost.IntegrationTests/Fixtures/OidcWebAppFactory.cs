@@ -12,19 +12,8 @@ namespace WopiHost.IntegrationTests.Fixtures;
 /// OIDC authority and signing key so the sample talks to a controllable mock IdP and shares
 /// a known WOPI access-token secret with <see cref="WopiBackendFactory"/>.
 /// </summary>
-public sealed class OidcWebAppFactory : WebApplicationFactory<OidcSampleEntryPoint>
+public sealed class OidcWebAppFactory(Uri authority, string wopiSigningSecret, string wopiBackendUrl) : WebApplicationFactory<OidcSampleEntryPoint>
 {
-    private readonly Uri _authority;
-    private readonly string _wopiSigningSecret;
-    private readonly string _wopiBackendUrl;
-
-    public OidcWebAppFactory(Uri authority, string wopiSigningSecret, string wopiBackendUrl)
-    {
-        _authority = authority;
-        _wopiSigningSecret = wopiSigningSecret;
-        _wopiBackendUrl = wopiBackendUrl;
-    }
-
     /// <summary>Client id the sample registers with the mock IdP. Mock-oauth2-server accepts any id.</summary>
     public const string TestClientId = OidcSampleTestConfig.TestClientId;
 
@@ -36,9 +25,9 @@ public sealed class OidcWebAppFactory : WebApplicationFactory<OidcSampleEntryPoi
         builder.ConfigureAppConfiguration((_, config) =>
         {
             config.AddInMemoryCollection(OidcSampleTestConfig.Build(
-                oidcAuthority: _authority.AbsoluteUri.TrimEnd('/'),
-                wopiSigningSecret: _wopiSigningSecret,
-                wopiBackendUrl: _wopiBackendUrl));
+                oidcAuthority: authority.AbsoluteUri.TrimEnd('/'),
+                wopiSigningSecret: wopiSigningSecret,
+                wopiBackendUrl: wopiBackendUrl));
         });
 
         builder.ConfigureServices(services =>
@@ -48,7 +37,7 @@ public sealed class OidcWebAppFactory : WebApplicationFactory<OidcSampleEntryPoi
             services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
             {
                 options.RequireHttpsMetadata = false;
-                options.Authority = _authority.AbsoluteUri.TrimEnd('/');
+                options.Authority = authority.AbsoluteUri.TrimEnd('/');
                 options.BackchannelHttpHandler = new HttpClientHandler();
             });
         });

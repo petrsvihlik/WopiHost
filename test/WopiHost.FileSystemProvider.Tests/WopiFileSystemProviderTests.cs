@@ -41,6 +41,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         _root.Refresh();
         if (_root.Exists) _root.Delete(recursive: true);
+        GC.SuppressFinalize(this);
     }
 
     private WopiFileSystemProvider CreateProvider(

@@ -29,7 +29,7 @@ public class OidcOptions
     public string SignedOutCallbackPath { get; set; } = "/signout-callback-oidc";
 
     /// <summary>Scopes to request from the IdP. Defaults to <c>openid profile email</c>.</summary>
-    public string[] Scopes { get; set; } = ["openid", "profile", "email"];
+    public IList<string> Scopes { get; set; } = ["openid", "profile", "email"];
 
     /// <summary>Whether to use PKCE. Default true; recommended for all clients per OAuth 2.1.</summary>
     public bool UsePkce { get; set; } = true;
