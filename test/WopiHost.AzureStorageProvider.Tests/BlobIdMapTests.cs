@@ -163,5 +163,4 @@ public class BlobIdMapTests
         Assert.False(map.TryGetFileId("orphan.txt", out _));
         Assert.True(map.TryGetFileId("fresh.txt", out _));
     }
-
 }
