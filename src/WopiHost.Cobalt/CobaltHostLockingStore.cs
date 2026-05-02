@@ -4,28 +4,36 @@ using Cobalt;
 namespace WopiHost.Cobalt;
 
 public class CobaltHostLockingStore(
-    ClaimsPrincipal principal,
     string fileId,
     CoauthoringSessionTracker sessionTracker) : HostLockingStore
 {
-    private readonly ClaimsPrincipal _principal = principal;
+    /// <summary>
+    /// Per-call principal. <see cref="CobaltProcessor"/> caches one
+    /// <see cref="CobaltHostLockingStore"/> per file (it lives inside the cached
+    /// <c>CobaltFile</c>) so the locking store cannot capture a single principal
+    /// at construction; instead each <c>ProcessCobalt</c> invocation sets this
+    /// AsyncLocal before the request runs and clears it after.
+    /// </summary>
+    internal static readonly AsyncLocal<ClaimsPrincipal> CurrentPrincipal = new();
+
     private readonly string _fileId = fileId;
     private readonly CoauthoringSessionTracker _sessionTracker = sessionTracker;
 
-    private string UserId => _principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-    private string UserName => _principal?.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
+    private static ClaimsPrincipal Principal => CurrentPrincipal.Value;
+    private string UserId => Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+    private string UserName => Principal?.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
 
     public override WhoAmIRequest.OutputType HandleWhoAmI(WhoAmIRequest.InputType input)
     {
-        var result = new WhoAmIRequest.OutputType
+        var p = Principal;
+        var login = p?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return new WhoAmIRequest.OutputType
         {
-            UserEmailAddress = _principal?.FindFirst(ClaimTypes.Email).Value,
-            UserIsAnonymous = string.IsNullOrEmpty(_principal?.FindFirst(ClaimTypes.NameIdentifier).Value),
-            UserLogin = _principal?.FindFirst(ClaimTypes.NameIdentifier).Value,
-            UserName = _principal?.FindFirst(ClaimTypes.Name).Value
+            UserEmailAddress = p?.FindFirst(ClaimTypes.Email)?.Value,
+            UserIsAnonymous = string.IsNullOrEmpty(login),
+            UserLogin = login,
+            UserName = p?.FindFirst(ClaimTypes.Name)?.Value,
         };
-
-        return result;
     }
 
     public override ServerTimeRequest.OutputType HandleServerTime(ServerTimeRequest.InputType input)
