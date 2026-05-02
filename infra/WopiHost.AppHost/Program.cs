@@ -43,8 +43,14 @@ if (useCollabora)
            .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false")
            .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora");
 
-    // Backend fetches /hosting/discovery from Collabora at startup.
-    wopiHost.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980");
+    // Backend fetches /hosting/discovery from Collabora at startup. Collabora does not sign WOPI
+    // callbacks with proof keys (those are an OOS / M365-for-the-Web feature) and emits no
+    // <proof-key> element in discovery, so the default WopiProofValidator rejects every request
+    // and CheckFileInfo 500s — the editor loads but the document never appears. The sample WOPI
+    // host honours Wopi:Security:DisableProofValidation in Development to swap in a no-op
+    // validator; refuse to run in non-Development if the flag is set.
+    wopiHost.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
+            .WithEnvironment("Wopi__Security__DisableProofValidation", "true");
 }
 
 // Add WopiHost.Web frontend that depends on WopiHost
