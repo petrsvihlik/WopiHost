@@ -420,14 +420,13 @@ public class FilesController(
                 else
                 {
                     // a file matching the target name might be locked
-                    if (lockProvider is not null)
+                    var existingLock = lockProvider is null
+                        ? null
+                        : await lockProvider.GetLockAsync(newFile.Identifier, cancellationToken);
+                    if (existingLock is not null)
                     {
-                        var existingLock = await lockProvider.GetLockAsync(newFile.Identifier, cancellationToken);
-                        if (existingLock is not null)
-                        {
-                            // the host must respond with a 409 Conflict and include a X-WOPI-Lock response header
-                            return new LockMismatchResult(Response, existingLock.LockId, reason: "File already exists and is currently locked");
-                        }
+                        // the host must respond with a 409 Conflict and include a X-WOPI-Lock response header
+                        return new LockMismatchResult(Response, existingLock.LockId, reason: "File already exists and is currently locked");
                     }
                 }
             }
@@ -637,10 +636,14 @@ public class FilesController(
         Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
 
         var existingLock = await lockProvider.GetLockAsync(id, cancellationToken);
+        // The Lock override doubles as UnlockAndRelock when X-WOPI-OldLock is present, so dispatch
+        // by header presence rather than baking a third branch into the switch.
         return wopiOverrideHeader switch
         {
             WopiFileOperations.GetLock => HandleGetLock(existingLock),
-            WopiFileOperations.Lock or WopiFileOperations.Put => await HandleLockOrPut(id, oldLockIdentifier, newLockIdentifier, existingLock, cancellationToken),
+            WopiFileOperations.Lock or WopiFileOperations.Put => oldLockIdentifier is null
+                ? await HandleLock(id, newLockIdentifier, existingLock, cancellationToken)
+                : await HandleUnlockAndRelock(id, oldLockIdentifier, newLockIdentifier, existingLock, cancellationToken),
             WopiFileOperations.Unlock => await HandleUnlock(id, newLockIdentifier, existingLock, cancellationToken),
             WopiFileOperations.RefreshLock => await HandleRefreshLock(newLockIdentifier, existingLock, cancellationToken),
             _ => new NotImplementedResult(),
@@ -656,32 +659,35 @@ public class FilesController(
     }
 
     /// <summary>
-    /// Handles Lock and UnlockAndRelock operations.
-    /// When <paramref name="oldLockIdentifier"/> is null, this is a Lock request.
-    /// When <paramref name="oldLockIdentifier"/> is present, this is an UnlockAndRelock request:
-    /// the existing lock matching oldLockIdentifier is atomically replaced with a new lock using newLockIdentifier.
-    /// Specification: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock
+    /// Handles a Lock request (X-WOPI-OldLock absent). Acquires a new lock when the file is unlocked,
+    /// or refreshes the existing one if the lock IDs match. Spec:
+    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock
     /// </summary>
-    private async Task<IActionResult> HandleLockOrPut(string id, string? oldLockIdentifier, string? newLockIdentifier, WopiLockInfo? existingLock, CancellationToken cancellationToken)
+    private async Task<IActionResult> HandleLock(string id, string? newLockIdentifier, WopiLockInfo? existingLock, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(lockProvider);
-        if (oldLockIdentifier is null)
+        if (string.IsNullOrWhiteSpace(newLockIdentifier))
         {
-            if (string.IsNullOrWhiteSpace(newLockIdentifier))
-            {
-                return new LockMismatchResult(Response, reason: "Missing new lock identifier");
-            }
-
-            if (existingLock is not null)
-            {
-                return await LockOrRefresh(newLockIdentifier, existingLock, cancellationToken);
-            }
-
-            return await lockProvider.AddLockAsync(id, newLockIdentifier, cancellationToken) is not null
-                ? Ok()
-                : new LockMismatchResult(Response, "Could not create lock");
+            return new LockMismatchResult(Response, reason: "Missing new lock identifier");
         }
+        if (existingLock is not null)
+        {
+            return await LockOrRefresh(newLockIdentifier, existingLock, cancellationToken);
+        }
+        return await lockProvider.AddLockAsync(id, newLockIdentifier, cancellationToken) is not null
+            ? Ok()
+            : new LockMismatchResult(Response, "Could not create lock");
+    }
 
+    /// <summary>
+    /// Handles an UnlockAndRelock request (X-WOPI-OldLock present). Atomically replaces the existing
+    /// lock matching <paramref name="oldLockIdentifier"/> with a new lock using
+    /// <paramref name="newLockIdentifier"/>. Spec:
+    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock
+    /// </summary>
+    private async Task<IActionResult> HandleUnlockAndRelock(string id, string oldLockIdentifier, string? newLockIdentifier, WopiLockInfo? existingLock, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(lockProvider);
         if (existingLock is null)
         {
             return new LockMismatchResult(Response, reason: "File not locked");
@@ -694,7 +700,6 @@ public class FilesController(
         {
             return new LockMismatchResult(Response, reason: "Missing new lock identifier");
         }
-
         return await lockProvider.RefreshLockAsync(id, newLockIdentifier, cancellationToken)
             ? Ok()
             : new LockMismatchResult(Response, "Could not create lock");

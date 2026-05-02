@@ -243,33 +243,16 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
     public Task<bool> CheckValidName<T>(string name, CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return Task.FromResult(false);
-        }
-        if (name.Length > FileNameMaxLength)
-        {
-            return Task.FromResult(false);
-        }
-        // Single segment — no slashes, no path nav.
-        if (name.Contains('/') || name.Contains('\\') || name == "." || name == "..")
-        {
-            return Task.FromResult(false);
-        }
-        // Azure blob naming spec disallows control characters.
-        foreach (var ch in name)
-        {
-            if (char.IsControl(ch))
-            {
-                return Task.FromResult(false);
-            }
-        }
-        // Folder-marker is reserved.
-        if (name == BlobIdMap.FolderMarker)
-        {
-            return Task.FromResult(false);
-        }
-        return Task.FromResult(true);
+        var valid =
+            !string.IsNullOrWhiteSpace(name)
+            && name.Length <= FileNameMaxLength
+            // Single segment — no slashes, no path nav.
+            && !name.Contains('/') && !name.Contains('\\') && name != "." && name != ".."
+            // Folder-marker is reserved.
+            && name != BlobIdMap.FolderMarker
+            // Azure blob naming spec disallows control characters.
+            && !name.Any(char.IsControl);
+        return Task.FromResult(valid);
     }
 
     /// <inheritdoc/>
