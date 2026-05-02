@@ -70,6 +70,15 @@ public class HomeController(
 
         var permissions = OidcRolePermissionMapper.Resolve(User, oidcOptions.Value.RoleClaimType);
 
+        // Scope by the requested action: even an editor-role user opening a "view" link gets a
+        // read-only token. Necessary because Collabora derives view-vs-edit from CheckFileInfo
+        // permission flags (single editor URL); OOS / M365 ship distinct view/edit URLs and so
+        // would mask this. Strip write+rename; keep Attend/Present (interaction, not authoring).
+        if (actionEnum != WopiActionEnum.Edit)
+        {
+            permissions &= ~(WopiFilePermissions.UserCanWrite | WopiFilePermissions.UserCanRename);
+        }
+
         var (token, expiresAt) = tokenMinter.Mint(new WopiTokenMintRequest
         {
             UserId = userId,
