@@ -78,7 +78,7 @@ public class HomeController(
         var file = await storageProvider.GetWopiResource<IWopiFile>(id)
             ?? throw new FileNotFoundException($"File with ID '{id}' not found.");
 
-        var (token, expiresAt) = MintAccessToken("Anonymous", file.Identifier);
+        var (token, expiresAt) = MintAccessToken("Anonymous", file.Identifier, actionEnum);
         ViewData["access_token"] = token;
         ViewData["access_token_ttl"] = expiresAt.ToUnixTimeMilliseconds();
 
@@ -103,8 +103,19 @@ public class HomeController(
         ShowExceptionDetails = true,
     });
 
-    private static (string Token, DateTimeOffset ExpiresAt) MintAccessToken(string userId, string resourceId)
+    private static (string Token, DateTimeOffset ExpiresAt) MintAccessToken(string userId, string resourceId, WopiActionEnum action)
     {
+        // Scope permissions by action. OOS / M365 ship distinct view vs edit URLs (the URL alone
+        // enforces the mode), but Collabora Online uses a single editor URL and derives the mode
+        // from CheckFileInfo permission flags — so a token granting UserCanWrite always opens
+        // in edit, regardless of which discovery action was selected. View-only must omit it.
+        var perms = action == WopiActionEnum.Edit
+            ? (WopiFilePermissions.UserCanWrite
+               | WopiFilePermissions.UserCanRename
+               | WopiFilePermissions.UserCanAttend
+               | WopiFilePermissions.UserCanPresent)
+            : WopiFilePermissions.UserCanAttend;
+
         var expires = DateTimeOffset.UtcNow.AddMinutes(10);
         var descriptor = new SecurityTokenDescriptor
         {
@@ -115,11 +126,7 @@ public class HomeController(
                 new Claim(ClaimTypes.Name, userId),
                 new Claim("wopi:rid", resourceId),
                 new Claim("wopi:rtype", "File"),
-                new Claim("wopi:fperms",
-                    (WopiFilePermissions.UserCanWrite |
-                     WopiFilePermissions.UserCanRename |
-                     WopiFilePermissions.UserCanAttend |
-                     WopiFilePermissions.UserCanPresent).ToString()),
+                new Claim("wopi:fperms", perms.ToString()),
             ]),
             NotBefore = DateTime.UtcNow,
             Expires = expires.UtcDateTime,
