@@ -61,8 +61,8 @@ jobs:
             8.0.x
             10.0.x
 
-      - name: Set MYGET_FEED Environment Variable
-        run: echo "MYGET_FEED=${{ secrets.MYGET_FEED }}" >> $GITHUB_ENV
+      - name: Set Cobalt packages token
+        run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
 
       - name: Cache validator package
         uses: actions/cache@v5
