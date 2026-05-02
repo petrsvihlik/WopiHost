@@ -16,6 +16,11 @@ public class WopiConfigurationSections
     public const string STORAGE_OPTIONS = WOPI_ROOT + ":StorageProvider";
 
     /// <summary>
+    /// Name of the configuration section related to lock provider settings.
+    /// </summary>
+    public const string LOCK_OPTIONS = WOPI_ROOT + ":LockProvider";
+
+    /// <summary>
     /// Name of the configuration section related to WOPI discovery.
     /// </summary>
     public const string DISCOVERY_OPTIONS = WOPI_ROOT + ":Discovery";

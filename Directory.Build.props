@@ -20,7 +20,7 @@
 		<EnablePackageValidation>true</EnablePackageValidation>
 		<!-- Baseline used to detect public-API breaks against the last released version.
 		     Bump this in lockstep with releases. -->
-		<PackageValidationBaselineVersion>5.0.0</PackageValidationBaselineVersion>
+		<PackageValidationBaselineVersion>6.0.0</PackageValidationBaselineVersion>
 		<!-- Generate XML doc files alongside the assembly. Letting the SDK pick the
 		     path keeps it in sync with UseArtifactsOutput. -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>

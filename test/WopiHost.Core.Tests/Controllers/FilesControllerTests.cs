@@ -489,7 +489,7 @@ public class FilesControllerTests
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => fileMock.Object);
         var wopiLockInfo = new WopiLockInfo() { LockId = "lockId", FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out wopiLockInfo)).Returns(true);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(wopiLockInfo);
 
         var result = await controller.DeleteFile(fileId);
 
@@ -504,8 +504,7 @@ public class FilesControllerTests
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         writableStorageProviderMock
             .Setup(w => w.CheckValidName<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -526,8 +525,7 @@ public class FilesControllerTests
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         writableStorageProviderMock
             .Setup(w => w.CheckValidName<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -578,7 +576,7 @@ public class FilesControllerTests
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
         var existingLock = new WopiLockInfo { LockId = "differentLockId", FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out existingLock)).Returns(true);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(existingLock);
 
         var result = await controller.RenameFile(fileId, UtfString.FromDecoded("newName"), lockIdentifier: "myLockId");
 
@@ -593,8 +591,7 @@ public class FilesControllerTests
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         writableStorageProviderMock
             .Setup(w => w.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -613,8 +610,7 @@ public class FilesControllerTests
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         writableStorageProviderMock
             .Setup(w => w.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -639,8 +635,7 @@ public class FilesControllerTests
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         writableStorageProviderMock
             .Setup(w => w.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -664,8 +659,7 @@ public class FilesControllerTests
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         writableStorageProviderMock
             .Setup(w => w.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -687,8 +681,7 @@ public class FilesControllerTests
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         writableStorageProviderMock
             .Setup(w => w.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -709,8 +702,7 @@ public class FilesControllerTests
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         writableStorageProviderMock
             .Setup(w => w.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -731,8 +723,7 @@ public class FilesControllerTests
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         writableStorageProviderMock
             .Setup(w => w.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -826,11 +817,10 @@ public class FilesControllerTests
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         lockProviderMock
-            .Setup(x => x.AddLock(fileId, lockId))
-            .Returns(new WopiLockInfo { LockId = lockId, FileId = fileId });
+            .Setup(x => x.AddLockAsync(fileId, lockId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new WopiLockInfo { LockId = lockId, FileId = fileId });
 
         controller.ControllerContext = new ControllerContext
         {
@@ -854,7 +844,7 @@ public class FilesControllerTests
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
         var existingLock = new WopiLockInfo { LockId = "other-lock", FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out existingLock)).Returns(true);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(existingLock);
 
         controller.ControllerContext = new ControllerContext
         {
@@ -1008,8 +998,8 @@ public class FilesControllerTests
             .Setup(w => w.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         lockProviderMock
-            .Setup(x => x.TryGetLock("existingFileId", out lockInfo))
-            .Returns(true);
+            .Setup(x => x.GetLockAsync("existingFileId", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(lockInfo);
 
         var result = await controller.PutRelativeFile(
             fileId,
@@ -1174,7 +1164,7 @@ public class FilesControllerTests
 
         var wopiOverrideHeader = WopiFileOperations.GetLock;
         var lockInfo = new WopiLockInfo { LockId = "existing-lock-id", FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
 
         var result = await controller.ProcessLock(fileId, wopiOverrideHeader);
 
@@ -1183,30 +1173,13 @@ public class FilesControllerTests
     }
 
     [Fact]
-    public async Task ProcessLock_GetLock_NoLockInfo_ReturnsLockMismatchResult()
+    public async Task ProcessLock_GetLock_NoExistingLock_ReturnsOkWithEmptyLockHeader()
     {
         var fileId = "test-file-id";
         SetupFileMock(fileId);
 
         var wopiOverrideHeader = WopiFileOperations.GetLock;
-        WopiLockInfo? lockInfo = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
-
-        var result = await controller.ProcessLock(fileId, wopiOverrideHeader);
-
-        var lockMismatchResult = Assert.IsType<LockMismatchResult>(result);
-        Assert.Equal("Missing existing lock", lockMismatchResult.Reason);
-    }
-
-    [Fact]
-    public async Task ProcessLock_GetLock_Expired_ReturnsOkResultWithLockHeader()
-    {
-        var fileId = "test-file-id";
-        SetupFileMock(fileId);
-
-        var wopiOverrideHeader = WopiFileOperations.GetLock;
-        var lockInfo = new WopiLockInfo { LockId = "existing-lock-id", FileId = fileId, DateCreated = DateTimeOffset.MinValue };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
 
         var result = await controller.ProcessLock(fileId, wopiOverrideHeader);
 
@@ -1222,8 +1195,8 @@ public class FilesControllerTests
 
         var wopiOverrideHeader = WopiFileOperations.Lock;
         var newLockIdentifier = "new-lock-id";
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out It.Ref<WopiLockInfo?>.IsAny)).Returns(false);
-        lockProviderMock.Setup(x => x.AddLock(fileId, newLockIdentifier)).Returns(new WopiLockInfo { LockId = newLockIdentifier, FileId = fileId });
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
+        lockProviderMock.Setup(x => x.AddLockAsync(fileId, newLockIdentifier, It.IsAny<CancellationToken>())).ReturnsAsync(new WopiLockInfo { LockId = newLockIdentifier, FileId = fileId });
 
         var result = await controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
 
@@ -1239,8 +1212,8 @@ public class FilesControllerTests
         var wopiOverrideHeader = WopiFileOperations.Unlock;
         var newLockIdentifier = "existing-lock-id";
         var lockInfo = new WopiLockInfo { LockId = newLockIdentifier, FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
-        lockProviderMock.Setup(x => x.RemoveLock(fileId)).Returns(true);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
+        lockProviderMock.Setup(x => x.RemoveLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var result = await controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
 
@@ -1256,8 +1229,8 @@ public class FilesControllerTests
         var wopiOverrideHeader = WopiFileOperations.RefreshLock;
         var newLockIdentifier = "existing-lock-id";
         var lockInfo = new WopiLockInfo { LockId = newLockIdentifier, FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
-        lockProviderMock.Setup(x => x.RefreshLock(fileId, null)).Returns(true);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
+        lockProviderMock.Setup(x => x.RefreshLockAsync(fileId, null, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var result = await controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
 
@@ -1269,8 +1242,7 @@ public class FilesControllerTests
     {
         var fileId = "test-file-id";
         SetupFileMock(fileId);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
 
         var result = await controller.ProcessLock(fileId, WopiFileOperations.Lock, newLockIdentifier: null);
 
@@ -1285,8 +1257,8 @@ public class FilesControllerTests
         var lockId = "same-lock-id";
         SetupFileMock(fileId);
         var lockInfo = new WopiLockInfo { LockId = lockId, FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
-        lockProviderMock.Setup(x => x.RefreshLock(fileId, It.IsAny<string?>())).Returns(true);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
+        lockProviderMock.Setup(x => x.RefreshLockAsync(fileId, It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var result = await controller.ProcessLock(fileId, WopiFileOperations.Lock, newLockIdentifier: lockId);
 
@@ -1299,7 +1271,7 @@ public class FilesControllerTests
         var fileId = "test-file-id";
         SetupFileMock(fileId);
         var lockInfo = new WopiLockInfo { LockId = "existing-lock", FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
 
         var result = await controller.ProcessLock(fileId, WopiFileOperations.Lock, newLockIdentifier: "different-lock");
 
@@ -1311,13 +1283,31 @@ public class FilesControllerTests
     {
         var fileId = "test-file-id";
         SetupFileMock(fileId);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
-        lockProviderMock.Setup(x => x.AddLock(fileId, It.IsAny<string>())).Returns((WopiLockInfo?)null);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
+        lockProviderMock.Setup(x => x.AddLockAsync(fileId, It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
 
         var result = await controller.ProcessLock(fileId, WopiFileOperations.Lock, newLockIdentifier: "new-lock");
 
         Assert.IsType<LockMismatchResult>(result);
+    }
+
+    [Fact]
+    public async Task ProcessLock_Put_MatchingOldLock_EmptyNewLockId_ReturnsLockMismatch()
+    {
+        var fileId = "test-file-id";
+        var oldLockId = "old-lock-id";
+        SetupFileMock(fileId);
+        var lockInfo = new WopiLockInfo { LockId = oldLockId, FileId = fileId };
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
+
+        var result = await controller.ProcessLock(
+            fileId,
+            WopiFileOperations.Put,
+            oldLockIdentifier: oldLockId,
+            newLockIdentifier: null);
+
+        var lockMismatch = Assert.IsType<LockMismatchResult>(result);
+        Assert.Equal("Missing new lock identifier", lockMismatch.Reason);
     }
 
     [Fact]
@@ -1328,8 +1318,8 @@ public class FilesControllerTests
         var newLockId = "new-lock-id";
         SetupFileMock(fileId);
         var lockInfo = new WopiLockInfo { LockId = oldLockId, FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
-        lockProviderMock.Setup(x => x.RefreshLock(fileId, newLockId)).Returns(true);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
+        lockProviderMock.Setup(x => x.RefreshLockAsync(fileId, newLockId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var result = await controller.ProcessLock(
             fileId,
@@ -1346,7 +1336,7 @@ public class FilesControllerTests
         var fileId = "test-file-id";
         SetupFileMock(fileId);
         var lockInfo = new WopiLockInfo { LockId = "actual-lock", FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
 
         var result = await controller.ProcessLock(
             fileId,
@@ -1362,8 +1352,7 @@ public class FilesControllerTests
     {
         var fileId = "test-file-id";
         SetupFileMock(fileId);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
 
         var result = await controller.ProcessLock(
             fileId,
@@ -1381,7 +1370,7 @@ public class FilesControllerTests
         var fileId = "test-file-id";
         SetupFileMock(fileId);
         var lockInfo = new WopiLockInfo { LockId = "actual-lock", FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
 
         var result = await controller.ProcessLock(
             fileId,
@@ -1396,8 +1385,7 @@ public class FilesControllerTests
     {
         var fileId = "test-file-id";
         SetupFileMock(fileId);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
 
         var result = await controller.ProcessLock(
             fileId,
@@ -1415,8 +1403,8 @@ public class FilesControllerTests
         var lockId = "lock-id";
         SetupFileMock(fileId);
         var lockInfo = new WopiLockInfo { LockId = lockId, FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
-        lockProviderMock.Setup(x => x.RemoveLock(fileId)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
+        lockProviderMock.Setup(x => x.RemoveLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         var result = await controller.ProcessLock(
             fileId,
@@ -1431,8 +1419,7 @@ public class FilesControllerTests
     {
         var fileId = "test-file-id";
         SetupFileMock(fileId);
-        WopiLockInfo? noLock = null;
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out noLock)).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
 
         var result = await controller.ProcessLock(
             fileId,
@@ -1450,7 +1437,7 @@ public class FilesControllerTests
         var lockId = "lock-id";
         SetupFileMock(fileId);
         var lockInfo = new WopiLockInfo { LockId = lockId, FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
 
         var result = await controller.ProcessLock(
             fileId,
@@ -1467,7 +1454,7 @@ public class FilesControllerTests
         var fileId = "test-file-id";
         SetupFileMock(fileId);
         var lockInfo = new WopiLockInfo { LockId = "actual-lock", FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
 
         var result = await controller.ProcessLock(
             fileId,
@@ -1484,8 +1471,8 @@ public class FilesControllerTests
         var lockId = "lock-id";
         SetupFileMock(fileId);
         var lockInfo = new WopiLockInfo { LockId = lockId, FileId = fileId };
-        lockProviderMock.Setup(x => x.TryGetLock(fileId, out lockInfo)).Returns(true);
-        lockProviderMock.Setup(x => x.RefreshLock(fileId, It.IsAny<string?>())).Returns(false);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
+        lockProviderMock.Setup(x => x.RefreshLockAsync(fileId, It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         var result = await controller.ProcessLock(
             fileId,

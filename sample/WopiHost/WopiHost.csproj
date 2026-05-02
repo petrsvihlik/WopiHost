@@ -20,6 +20,8 @@
 		<!--ProjectReference Include="..\WopiHost.Cobalt\WopiHost.Cobalt.csproj" /-->
 		<ProjectReference Include="..\..\src\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj" />
+		<ProjectReference Include="..\..\src\WopiHost.AzureStorageProvider\WopiHost.AzureStorageProvider.csproj" />
+		<ProjectReference Include="..\..\src\WopiHost.AzureLockProvider\WopiHost.AzureLockProvider.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.Core\WopiHost.Core.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.Discovery\WopiHost.Discovery.csproj" />
 		<ProjectReference Include="..\..\infra\WopiHost.ServiceDefaults\WopiHost.ServiceDefaults.csproj" />

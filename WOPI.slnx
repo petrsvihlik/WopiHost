@@ -1,5 +1,7 @@
 <Solution>
   <Project Path="src/WopiHost.Abstractions/WopiHost.Abstractions.csproj" />
+  <Project Path="src/WopiHost.AzureLockProvider/WopiHost.AzureLockProvider.csproj" />
+  <Project Path="src/WopiHost.AzureStorageProvider/WopiHost.AzureStorageProvider.csproj" />
   <Project Path="src/WopiHost.Cobalt/WopiHost.Cobalt.csproj" />
   <Project Path="src/WopiHost.Core/WopiHost.Core.csproj" />
   <Project Path="src/WopiHost.Discovery/WopiHost.Discovery.csproj" />
@@ -15,6 +17,8 @@
   <Project Path="sample/WopiHost.Web/WopiHost.Web.csproj" />
   <Project Path="sample/WopiHost.Web.Oidc/WopiHost.Web.Oidc.csproj" />
 
+  <Project Path="test/WopiHost.AzureLockProvider.Tests/WopiHost.AzureLockProvider.Tests.csproj" />
+  <Project Path="test/WopiHost.AzureStorageProvider.Tests/WopiHost.AzureStorageProvider.Tests.csproj" />
   <Project Path="test/WopiHost.Core.Tests/WopiHost.Core.Tests.csproj" />
   <Project Path="test/WopiHost.IntegrationTests/WopiHost.IntegrationTests.csproj" />
   <Project Path="test/WopiHost.Discovery.Tests/WopiHost.Discovery.Tests.csproj" />

@@ -1,42 +1,48 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
 namespace WopiHost.Abstractions;
 
 /// <summary>
 /// Represents an editing file lock provider.
 /// </summary>
+/// <remarks>
+/// All operations are asynchronous so implementations can talk to out-of-process
+/// stores (Azure Blob, Redis, SQL, etc.) without blocking. The in-process
+/// <c>MemoryLockProvider</c> simply wraps its synchronous logic in <see cref="Task.FromResult{T}"/>.
+/// </remarks>
 public interface IWopiLockProvider
 {
     /// <summary>
-    /// try to get an existing lock by it's identifier.
+    /// Try to get an existing lock by its identifier.
     /// </summary>
     /// <param name="fileId">the fileId to check for.</param>
-    /// <param name="lockInfo">the existing lockInfo if found.</param>
-    /// <returns>true if found, false otherwise</returns>
-    bool TryGetLock(string fileId, [NotNullWhen(true)] out WopiLockInfo? lockInfo);
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns>the existing <see cref="WopiLockInfo"/> if present and not expired; <see langword="null"/> otherwise.</returns>
+    Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// extend an existing lock on fileId expiration time.
+    /// Extend an existing lock's expiration time.
     /// </summary>
     /// <param name="fileId">the fileId to refresh the lock for.</param>
     /// <param name="lockId">include to also update the lockId.</param>
-    /// <returns>true if success</returns>
-    bool RefreshLock(string fileId, string? lockId = null);
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns>true if the lock was successfully refreshed</returns>
+    Task<bool> RefreshLockAsync(string fileId, string? lockId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// create a new lock.
+    /// Create a new lock.
     /// </summary>
     /// <param name="fileId">the fileId to lock.</param>
     /// <param name="lockId">the lock identifier to use.</param>
-    /// <returns></returns>
-    WopiLockInfo? AddLock(string fileId, string lockId);
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns>the created <see cref="WopiLockInfo"/>, or <see langword="null"/> if a lock already exists for <paramref name="fileId"/>.</returns>
+    Task<WopiLockInfo?> AddLockAsync(string fileId, string lockId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// remove an existing lock from a given fileId.
+    /// Remove an existing lock from a given fileId.
     /// </summary>
     /// <param name="fileId">the lock for fileId to remove.</param>
-    /// <returns>true for success</returns>
-    bool RemoveLock(string fileId);
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns>true if a lock was removed</returns>
+    Task<bool> RemoveLockAsync(string fileId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
