@@ -30,99 +30,101 @@ The WopiHost project is built using a modular architecture that separates concer
 
 ```mermaid
 graph TB
-    subgraph "Sample Applications"
-        SampleApps["**Sample Applications**<br/>🌐 **WopiHost.Web**<br/>🧪 **WopiHost.Validator**<br/>📝 **WopiHost Sample**"]
+    User(["👤 User<br/><sub>browser</sub>"])
+
+    subgraph Frontend ["Frontend samples (sample/)"]
+        Web["<b>WopiHost.Web</b> · <b>WopiHost.Web.Oidc</b><br/><sub>file picker · mints access tokens · builds action URLs</sub>"]
     end
-    
-    subgraph "WOPI Client"
-        OOS["**Office Online Server**<br/>Microsoft 365 for the Web<br/>Collabora Online (dev)"]
+
+    subgraph WopiClient ["WOPI client — 3rd-party"]
+        WC["<b>Office Online Server</b><br/><b>Microsoft 365 for the Web</b><br/><b>Collabora Online</b> <sub>(dev only)</sub>"]
     end
-    
-    subgraph "WopiHost Backend API"
-        WopiHost["**WopiHost**<br/>Host Application"]
-        Core["**WopiHost.Core**<br/>Controllers & Implementation"]
-        
-        subgraph "Core Libraries"
-            Abstractions["**WopiHost.Abstractions**<br/>Core Interfaces"]
-            Discovery["**WopiHost.Discovery**<br/>Client Capabilities"]
-            Url["**WopiHost.Url**<br/>URL Generation"]
-        end
-        
-        subgraph "Providers"
-            FileSystem["**WopiHost.FileSystemProvider**<br/>File System Storage"]
-            MemoryLock["**WopiHost.MemoryLockProvider**<br/>In-Memory Locking"]
-            CustomStorage["**Custom Storage**<br/>Cloud, Database, etc."]
-            CustomLock["**Custom Locking**<br/>Distributed Locking"]
-        end
+
+    subgraph Backend ["WOPI host backend (sample/WopiHost)"]
+        Host["<b>WopiHost</b> host app<br/><sub>composes Core + picks providers from config</sub>"]
+        Core["<b>WopiHost.Core</b><br/><sub>controllers · JWT auth · WOPI proof · bootstrapper</sub>"]
     end
-    
-    %% Sample apps embed WOPI client
-    SampleApps --> OOS
-    
-    %% WOPI client depends on WopiHost backend
-    OOS --> WopiHost
-    
-    %% WopiHost host app uses Core implementation
-    WopiHost --> Core
-    
-    %% Core dependencies
-    Core --> Abstractions
-    Core --> Discovery
-    
-    %% Library dependencies
-    Discovery --> Abstractions
-    Url --> Discovery
-    Url --> Abstractions
-    
-    %% Provider implementations
-    FileSystem --> Abstractions
-    MemoryLock --> Abstractions
-    CustomStorage --> Abstractions
-    CustomLock --> Abstractions
-    
-    %% Core uses providers
-    Core --> FileSystem
-    Core --> MemoryLock
-    Core --> CustomStorage
-    Core --> CustomLock
-    
-    %% Styling
-    classDef sampleApp fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef wopiClient fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef hostApp fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef coreModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef libraryModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef providerModule fill:#fce4ec,stroke:#880e4f,stroke-width:2px
-    
-    class SampleApps sampleApp
-    class OOS wopiClient
-    class WopiHost hostApp
-    class Core coreModule
-    class Abstractions,Discovery,Url libraryModule
-    class FileSystem,MemoryLock,CustomStorage,CustomLock providerModule
+
+    subgraph Providers ["Pluggable providers"]
+        direction LR
+        FS["FileSystemProvider"]
+        AzS["AzureStorageProvider"]
+        Mem["MemoryLockProvider"]
+        AzL["AzureLockProvider"]
+        Cob["Cobalt <sub>(opt-in MS-FSSHTTP)</sub>"]
+        Cust["⋯ your own"]
+    end
+
+    subgraph Libs ["Shared libraries (NuGet)"]
+        Abs["<b>Abstractions</b><br/><sub>interfaces</sub>"]
+        Disc["<b>Discovery</b><br/><sub>reads client XML</sub>"]
+        Url["<b>Url</b><br/><sub>action-URL builder</sub>"]
+    end
+
+    %% Runtime request flow
+    User ==>|"① pick a file"| Web
+    Web ==>|"② iframe → action URL<br/>+ access_token"| WC
+    WC ==>|"③ /wopi/* with X-WOPI-* headers<br/>(signed by proof key)"| Host
+
+    %% Composition
+    Host --> Core
+    Host -. loaded at startup<br/>by assembly name .-> FS
+    Host -.-> AzS
+    Host -.-> Mem
+    Host -.-> AzL
+    Host -.-> Cob
+
+    %% Frontend uses Url + Discovery to build the action URL
+    Web --> Url
+    Web --> Disc
+
+    %% Build-time package deps
+    Core --> Abs
+    Core --> Disc
+    Url --> Disc
+    Disc --> Abs
+    FS --> Abs
+    AzS --> Abs
+    Mem --> Abs
+    AzL --> Abs
+    Cob --> Abs
+
+    classDef user fill:#fff8e1,stroke:#8a6d00,color:#000
+    classDef sample fill:#e3f2fd,stroke:#0d47a1,color:#000
+    classDef client fill:#fff3e0,stroke:#bf360c,color:#000
+    classDef host fill:#f3e5f5,stroke:#4a148c,color:#000
+    classDef server fill:#e8f5e9,stroke:#1b5e20,color:#000
+    classDef provider fill:#fce4ec,stroke:#880e4f,color:#000
+    classDef lib fill:#ede7f6,stroke:#311b92,color:#000
+
+    class User user
+    class Web sample
+    class WC client
+    class Host host
+    class Core server
+    class FS,AzS,Mem,AzL,Cob,Cust provider
+    class Abs,Disc,Url lib
 ```
 
-### How It Works
+> **Reading the diagram**
+> - **Thick arrows (`==>`)** are the runtime request flow, numbered ①–③.
+> - **Thin solid arrows (`-->`)** are build-time package references.
+> - **Dashed arrows (`-.->`)** mark providers that the host loads dynamically at startup by assembly name (`StorageProviderAssemblyName`, `LockProviderAssemblyName`) — Core itself does not reference them.
 
-1. **Sample Applications**: The `/sample` folder contains complete applications that embed the WOPI client:
-   - **WopiHost.Web**: A web application with file management UI that embeds Office Online Server
-   - **WopiHost.Validator**: A testing tool for WOPI protocol validation
-   - **WopiHost Sample**: A basic WOPI host implementation
+### How it works
 
-2. **WOPI Client Integration**: The sample applications embed Office Online Server or Microsoft 365 for the Web as a WOPI client component.
+1. **Frontend** (`sample/WopiHost.Web`, `sample/WopiHost.Web.Oidc`) — your web app. It authenticates the user, mints a host-issued WOPI access token (with per-resource permissions baked in via [`IWopiPermissionProvider`](src/WopiHost.Abstractions/README.md)), uses **`WopiHost.Url`** + **`WopiHost.Discovery`** to build the WOPI client's action URL, and embeds it in an iframe.
 
-3. **WopiHost Backend API**: The WOPI client depends on the WopiHost backend API (NuGet packages) to serve files:
-   - **WopiHost.Core**: Implements the WOPI REST API endpoints, handles authentication, authorization, and orchestrates all operations
-   - **WopiHost.Abstractions**: Defines the core interfaces for storage, security, and locking functionality
-   - **WopiHost.Discovery**: Queries the WOPI client to understand its capabilities
-   - **WopiHost.Url**: Generates proper WOPI URLs based on discovered capabilities
+2. **WOPI client** (Office Online Server, Microsoft 365 for the Web, or Collabora Online) — the third-party renderer that actually displays / edits the document. It loads the iframe URL, then calls back to your host with `/wopi/*` requests signed by the WOPI proof key.
 
-4. **Storage & Lock Providers**: The WOPI client uses these providers to access and manage files:
-   - **WopiHost.FileSystemProvider**: File system storage implementation
-   - **WopiHost.MemoryLockProvider**: In-memory locking implementation
-   - **Custom Providers**: You can implement your own storage and locking providers
+3. **Backend host** (`sample/WopiHost`) — composes **`WopiHost.Core`** with one storage provider and one lock provider chosen by configuration. Core handles all the WOPI REST endpoints, JWT validation, proof-key validation, the bootstrapper, and dispatch to your providers.
 
-5. **Your Own Applications**: You can create your own applications by embedding the WOPI client and referencing the WopiHost NuGet packages.
+4. **Pluggable providers** — implement `IWopiStorageProvider` (+ optionally `IWopiWritableStorageProvider`) and/or `IWopiLockProvider`, then point the host at your assembly. Ships out of the box:
+   - **Storage**: `FileSystemProvider` (local disk), `AzureStorageProvider` (Blob Storage)
+   - **Locks**: `MemoryLockProvider` (single-instance / dev), `AzureLockProvider` (blob-lease, multi-instance safe)
+   - **Optional**: `WopiHost.Cobalt` — MS-FSSHTTP support for older clients (requires the licensed `Microsoft.CobaltCore` NuGet, see [Cobalt](#cobalt)).
+
+5. **Your own app** — drop in your own frontend + backend host using the same NuGet packages. The contract surface lives in **`WopiHost.Abstractions`**.
 
 This modular design allows you to:
 - **Use the sample applications** as starting points for your own WOPI-enabled applications
@@ -133,7 +135,7 @@ This modular design allows you to:
 
 Key Differentiators
 -------------------
- - **Modular Architecture**: Complete separation of concerns with dedicated NuGet packages (Abstractions, Core, Discovery, Url, FileSystemProvider, MemoryLockProvider, AzureStorageProvider, AzureLockProvider) allowing selective integration
+ - **Modular Architecture**: Complete separation of concerns across 9 dedicated NuGet packages — `Abstractions`, `Core`, `Discovery`, `Url`, `FileSystemProvider`, `AzureStorageProvider`, `MemoryLockProvider`, `AzureLockProvider`, `Cobalt` — allowing selective integration
  - **WOPI Discovery Integration**: Dynamic capability detection that queries Office Online Server to determine supported file types and actions, with intelligent URL template resolution and caching
  - **Advanced Cobalt Support**: Optional MS-FSSHTTP protocol integration for enhanced performance and compatibility with Office Web Apps 2013+ features
  - **Flexible Storage Abstraction**: Complete decoupling from file system with clean interfaces supporting any storage backend (cloud, database, custom APIs) through `IWopiStorageProvider`
