@@ -8,6 +8,8 @@ Backed by a static `ConcurrentDictionary<string, WopiLockInfo>`. Locks auto-expi
 
 Use it for development, single-instance hosts, and tests. **Don't** use it for multi-instance deployments — locks are not shared across processes and are lost on restart.
 
+> **IIS / app-pool recycling.** "Single-instance" includes single-worker IIS sites only as long as the app pool stays warm. Recycles, idle shutdowns, and overlapped recycling all wipe the in-memory store, which surfaces as *"Sorry, you cannot edit this document with others"* on the next open of a previously-locked file (the WOPI client still holds the old lock id, the host no longer recognises it). For IIS — and any host with a non-trivial recycle policy — use a distributed provider such as [`WopiHost.AzureLockProvider`](../WopiHost.AzureLockProvider/README.md).
+
 ## Install
 
 ```bash
