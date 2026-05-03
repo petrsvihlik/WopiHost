@@ -13,6 +13,7 @@ on:
 permissions:
   contents: read
   id-token: write # Required for OIDC
+  pull-requests: write # Required for the api-compat sticky comment
 
 jobs:
   approve:
@@ -67,3 +68,146 @@ jobs:
     #  uses: fossa-contrib/fossa-action@v1
     #  with:
     #    fossa-api-key: ${{ secrets.FOSSA_API_KEY }}
+
+  api-compat:
+    name: API Compatibility
+    runs-on: ubuntu-latest
+    needs: [approve]
+    environment:
+      name: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'Integrate Pull Request' || '' }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 1
+    - name: Setup .NET 8.0
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '8.0.x'
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '9.0.x'
+    - name: Setup .NET 10.0
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '10.0.x'
+    - name: Set Cobalt packages token
+      run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
+    - name: Pack PR nupkgs
+      # Use a high version so AssemblyVersion sorts above any baseline release (avoids CP0003 noise).
+      # PackageValidation is intentionally disabled here — we run ApiCompat directly below.
+      run: |
+        dotnet pack --configuration Release \
+          -p:ContinuousIntegrationBuild=true \
+          -p:Version=99.99.99 \
+          -p:EnablePackageValidation=false \
+          --output ./artifacts/new
+    - name: Install Microsoft.DotNet.ApiCompat.Tool
+      run: dotnet tool install --global Microsoft.DotNet.ApiCompat.Tool
+    - name: Run ApiCompat against latest released packages
+      id: apicompat
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p ./artifacts/baseline
+
+        PACKAGES=(
+          "WopiHost.Abstractions"
+          "WopiHost.Core"
+          "WopiHost.Discovery"
+          "WopiHost.Url"
+          "WopiHost.FileSystemProvider"
+          "WopiHost.MemoryLockProvider"
+          "WopiHost.AzureStorageProvider"
+          "WopiHost.AzureLockProvider"
+        )
+
+        REPORT_FILE="$GITHUB_WORKSPACE/apicompat-report.md"
+        {
+          echo "<!-- apicompat-report -->"
+          echo "## API Compatibility Report"
+          echo ""
+          echo "Compared this PR's packed assemblies against the latest stable release on [NuGet.org](https://www.nuget.org/packages?q=WopiHost) for each library. This check is **informational only** — intentional breaks at major version bumps are expected."
+          echo ""
+        } > "$REPORT_FILE"
+
+        ANY_DIFFS=0
+
+        for pkg in "${PACKAGES[@]}"; do
+          pkg_lower="$(echo "$pkg" | tr '[:upper:]' '[:lower:]')"
+
+          # Find the freshly-packed nupkg.
+          new_nupkg="$(ls ./artifacts/new/${pkg}.99.99.99.nupkg 2>/dev/null || true)"
+          if [[ -z "$new_nupkg" ]]; then
+            echo "### :grey_question: ${pkg}" >> "$REPORT_FILE"
+            echo "_No nupkg produced for this package — skipped._" >> "$REPORT_FILE"
+            echo "" >> "$REPORT_FILE"
+            continue
+          fi
+
+          # Resolve latest stable on NuGet.org (filter out prereleases by '-').
+          versions_json="$(curl -fsSL "https://api.nuget.org/v3-flatcontainer/${pkg_lower}/index.json" || echo '{"versions":[]}')"
+          baseline_version="$(echo "$versions_json" | grep -oE '"[0-9][^"]+"' | tr -d '"' | grep -v -- '-' | tail -n 1 || true)"
+
+          if [[ -z "$baseline_version" ]]; then
+            echo "### :grey_question: ${pkg}" >> "$REPORT_FILE"
+            echo "_No prior stable release on NuGet.org — skipped._" >> "$REPORT_FILE"
+            echo "" >> "$REPORT_FILE"
+            continue
+          fi
+
+          # Download baseline nupkg.
+          baseline_nupkg="./artifacts/baseline/${pkg}.${baseline_version}.nupkg"
+          curl -fsSL \
+            "https://api.nuget.org/v3-flatcontainer/${pkg_lower}/${baseline_version}/${pkg_lower}.${baseline_version}.nupkg" \
+            -o "$baseline_nupkg"
+
+          # Run apicompat. Note: <package> is positional, --baseline-package is named, --run-api-compat is required.
+          # The tool installs as 'apicompat' (not 'dotnet apicompat') and exits 0 on both clean and break
+          # cases; detect findings via output text.
+          set +e
+          output="$(apicompat package "$new_nupkg" \
+            --baseline-package "$baseline_nupkg" \
+            --run-api-compat \
+            --verbosity Normal 2>&1)"
+          set -e
+
+          if grep -Eq '^(CP|PKV)[0-9]+:' <<< "$output"; then
+            ANY_DIFFS=1
+            {
+              echo "### :warning: ${pkg} vs \`${baseline_version}\`"
+              echo "<details><summary>API differences found — click to expand</summary>"
+              echo ""
+              echo '```'
+              echo "${output}"
+              echo '```'
+              echo ""
+              echo "</details>"
+              echo ""
+            } >> "$REPORT_FILE"
+          else
+            {
+              echo "### :white_check_mark: ${pkg} vs \`${baseline_version}\`"
+              echo "No public API breaking changes detected."
+              echo ""
+            } >> "$REPORT_FILE"
+          fi
+        done
+
+        {
+          echo "---"
+          if [[ $ANY_DIFFS -eq 0 ]]; then
+            echo "_No API differences detected across any package._"
+          else
+            echo "_Diagnostic IDs starting with \`CP\` are assembly-level diffs; \`PKV\` are package-shape diffs. See the [ApiCompat docs](https://learn.microsoft.com/dotnet/fundamentals/apicompat/diagnostic-ids) for details._"
+          fi
+        } >> "$REPORT_FILE"
+
+        # Surface in the job log too.
+        cat "$REPORT_FILE"
+    - name: Post sticky PR comment
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: apicompat-report
+        path: apicompat-report.md

@@ -41,7 +41,6 @@
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
-		<PackageReference Include="Microsoft.DotNet.PackageValidation" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>
