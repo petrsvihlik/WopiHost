@@ -31,7 +31,8 @@ dotnet run --project sample/WopiHost
 - Follow [.NET Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/).
 - Centralized package management via `Directory.Packages.props` — specify versions there, not in individual `.csproj` files.
 - Multi-targeting: libraries target `net8.0;net9.0;net10.0`; sample apps target `net10.0` only.
-- Package validation baseline is `4.0.0` — avoid breaking public API changes in NuGet-packaged libraries.
+- Build output is centralized under `artifacts/` at the repo root (`UseArtifactsOutput=true` in `Directory.Build.props`) — there are no per-project `bin/`/`obj/` folders.
+- Package validation baseline is `6.0.0` — avoid breaking public API changes in NuGet-packaged libraries. Bump in lockstep with releases. The two newest packages (`WopiHost.AzureStorageProvider`, `WopiHost.AzureLockProvider`) opt out via `EnablePackageValidation=false` in their `.csproj` until they have a prior release to validate against.
 - `InternalsVisibleTo` is auto-configured for `*.Tests` assemblies.
 
 ## Architecture
@@ -56,7 +57,9 @@ This is a modular **WOPI protocol host** implementation that integrates custom d
 Abstractions ← Discovery ← Core
 Abstractions ← Url ← (depends on Discovery)
 Abstractions ← FileSystemProvider
+Abstractions ← AzureStorageProvider
 Abstractions ← MemoryLockProvider
+Abstractions ← AzureLockProvider
 Abstractions ← Cobalt
 ```
 
