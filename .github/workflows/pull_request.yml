@@ -207,7 +207,7 @@ jobs:
         # Surface in the job log too.
         cat "$REPORT_FILE"
     - name: Post sticky PR comment
-      uses: marocchino/sticky-pull-request-comment@v2
+      uses: marocchino/sticky-pull-request-comment@v3
       with:
         header: apicompat-report
         path: apicompat-report.md
