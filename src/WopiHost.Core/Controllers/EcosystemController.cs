@@ -25,6 +25,7 @@ namespace WopiHost.Core.Controllers;
 [ApiController]
 [Route("wopi/[controller]")]
 [ServiceFilter(typeof(WopiOriginValidationActionFilter))]
+[ServiceFilter(typeof(WopiTelemetryActionFilter))]
 public class EcosystemController(
     IWopiStorageProvider storageProvider,
     IWopiAccessTokenService accessTokenService,

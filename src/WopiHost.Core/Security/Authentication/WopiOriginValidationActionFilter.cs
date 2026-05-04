@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
 using WopiHost.Core.Extensions;
+using WopiHost.Core.Infrastructure;
 
 namespace WopiHost.Core.Security.Authentication;
 
@@ -16,7 +17,7 @@ namespace WopiHost.Core.Security.Authentication;
 /// <param name="proofValidator">The service used to validate WOPI proof keys.</param>
 /// <param name="logger">Logger instance.</param>
 [AttributeUsage(AttributeTargets.Class)]
-public class WopiOriginValidationActionFilter(IWopiProofValidator proofValidator, ILogger<WopiOriginValidationActionFilter> logger) : Attribute, IAsyncActionFilter
+public partial class WopiOriginValidationActionFilter(IWopiProofValidator proofValidator, ILogger<WopiOriginValidationActionFilter> logger) : Attribute, IAsyncActionFilter
 {
     /// <summary>
     /// Execute pipeline before any Controller for /wopi endpoints
@@ -25,22 +26,29 @@ public class WopiOriginValidationActionFilter(IWopiProofValidator proofValidator
     /// <param name="next"></param>
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(next);
+
         string accessToken = context.HttpContext.Request.GetAccessToken();
         if (string.IsNullOrEmpty(accessToken))
         {
-            logger.LogWarning("Access token is missing from the request");
+            LogAccessTokenMissing(logger);
+            WopiTelemetry.ProofValidationFailures.Add(1,
+                new KeyValuePair<string, object?>("reason", "access_token_missing"));
             context.HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
             return;
         }
-        
-        var validated = await proofValidator.ValidateProofAsync(context.HttpContext, accessToken); 
+
+        var validated = await proofValidator.ValidateProofAsync(context.HttpContext, accessToken);
         if (!validated)
         {
+            LogProofRejected(logger);
+            // Note: ProofValidationFailures counter is incremented inside WopiProofValidator
+            // with a more specific reason tag; we don't double-count here.
             context.Result = new StatusCodeResult(StatusCodes.Status500InternalServerError);
             return;
         }
 
         await next();
     }
-    
 }

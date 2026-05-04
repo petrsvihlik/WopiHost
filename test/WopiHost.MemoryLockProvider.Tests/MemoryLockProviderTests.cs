@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using Microsoft.Extensions.Logging.Abstractions;
 using WopiHost.Abstractions;
 using Xunit;
 
@@ -11,7 +12,7 @@ public class MemoryLockProviderTests
 
     public MemoryLockProviderTests()
     {
-        _lockProvider = new MemoryLockProvider();
+        _lockProvider = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance);
     }
 
     [Fact]
@@ -96,6 +97,16 @@ public class MemoryLockProviderTests
         var fileId = $"missing-{Guid.NewGuid()}";
 
         var result = await _lockProvider.RefreshLockAsync(fileId);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task RemoveLock_NoExistingLock_ReturnsFalse()
+    {
+        var fileId = $"remove-missing-{Guid.NewGuid()}";
+
+        var result = await _lockProvider.RemoveLockAsync(fileId);
 
         Assert.False(result);
     }

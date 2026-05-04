@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
-
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 
@@ -15,12 +16,18 @@ namespace WopiHost.Url;
 /// </remarks>
 /// <param name="discoverer">Provider of WOPI discovery data.</param>
 /// <param name="urlSettings">Additional settings influencing behavior of the WOPI client.</param>
-public partial class WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings? urlSettings = null)
+/// <param name="logger">Optional logger. When omitted, a <see cref="NullLogger{T}"/> is used so the package
+/// stays usable without DI.</param>
+public partial class WopiUrlBuilder(
+    IDiscoverer discoverer,
+    WopiUrlSettings? urlSettings = null,
+    ILogger<WopiUrlBuilder>? logger = null)
 {
     [GeneratedRegex("<(?<name>\\w*)=(?<value>\\w*)&*>")]
     private static partial Regex UrlParamRegex();
-    
+
     private readonly IDiscoverer _wopiDiscoverer = discoverer;
+    private readonly ILogger<WopiUrlBuilder> _logger = logger ?? NullLogger<WopiUrlBuilder>.Instance;
 
     /// <summary>
     /// Additional URL parameters influencing the behavior of the WOPI client.
@@ -48,8 +55,10 @@ public partial class WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings? url
             // Append mandatory parameters
             url += "&WOPISrc=" + Uri.EscapeDataString(wopiFileUrl.ToString());
 
+            LogFileUrlGenerated(_logger, extension, action);
             return url;
         }
+        LogTemplateNotFound(_logger, extension, action);
         return null;
     }
 

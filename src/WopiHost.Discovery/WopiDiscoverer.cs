@@ -1,4 +1,6 @@
 ﻿using System.Xml.Linq;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using WopiHost.Discovery.Enumerations;
 using WopiHost.Discovery.Models;
@@ -6,7 +8,7 @@ using WopiHost.Discovery.Models;
 namespace WopiHost.Discovery;
 
 ///<inheritdoc cref="IDiscoverer"/>
-public class WopiDiscoverer : IDiscoverer, IDisposable
+public partial class WopiDiscoverer : IDiscoverer, IDisposable
 {
     private const string ElementNetZone = "net-zone";
     private const string ElementApp = "app";
@@ -28,6 +30,7 @@ public class WopiDiscoverer : IDiscoverer, IDisposable
     private const string AttrProofKeyOldExponent = "oldexponent";
 
     private readonly IOptions<DiscoveryOptions> _discoveryOptions;
+    private readonly ILogger<WopiDiscoverer> _logger;
 
     // Eagerly constructed in the ctor (and stored in readonly fields) so
     // Infer# can statically track the SemaphoreSlim allocation through to
@@ -42,33 +45,46 @@ public class WopiDiscoverer : IDiscoverer, IDisposable
     /// </summary>
     /// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
     /// <param name="discoveryOptions">the discovery options</param>
+    /// <param name="logger">Optional logger. When omitted, a <see cref="NullLogger{T}"/> is used so the
+    /// package stays usable without DI.</param>
     public WopiDiscoverer(
         IDiscoveryFileProvider discoveryFileProvider,
-        IOptions<DiscoveryOptions> discoveryOptions)
+        IOptions<DiscoveryOptions> discoveryOptions,
+        ILogger<WopiDiscoverer>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(discoveryFileProvider);
         ArgumentNullException.ThrowIfNull(discoveryOptions);
 
         _discoveryOptions = discoveryOptions;
+        _logger = logger ?? NullLogger<WopiDiscoverer>.Instance;
 
         _apps = new AsyncExpiringLazy<IEnumerable<XElement>>(async _ =>
-            new TemporaryValue<IEnumerable<XElement>>
+        {
+            var apps = (await discoveryFileProvider.GetDiscoveryXmlAsync())
+                .Elements(ElementNetZone)
+                .Where(ValidateNetZone)
+                .Elements(ElementApp)
+                .ToArray();
+            LogDiscoveryRefreshed(_logger, apps.Length, _discoveryOptions.Value.NetZone);
+            return new TemporaryValue<IEnumerable<XElement>>
             {
-                Result = (await discoveryFileProvider.GetDiscoveryXmlAsync())
-                    .Elements(ElementNetZone)
-                    .Where(ValidateNetZone)
-                    .Elements(ElementApp),
+                Result = apps,
                 ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval),
-            });
+            };
+        });
 
         _proofKey = new AsyncExpiringLazy<XElement>(async _ =>
-            new TemporaryValue<XElement>
+        {
+            var proofKey = (await discoveryFileProvider.GetDiscoveryXmlAsync())
+                .Elements(ElementProofKey)
+                .FirstOrDefault() ?? new XElement(ElementProofKey);
+            LogProofKeyRefreshed(_logger);
+            return new TemporaryValue<XElement>
             {
-                Result = (await discoveryFileProvider.GetDiscoveryXmlAsync())
-                    .Elements(ElementProofKey)
-                    .FirstOrDefault() ?? new XElement(ElementProofKey),
+                Result = proofKey,
                 ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval),
-            });
+            };
+        });
     }
 
     internal async Task<IEnumerable<XElement>> GetAppsAsync() => await _apps.Value();

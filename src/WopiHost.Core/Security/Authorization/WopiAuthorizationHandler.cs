@@ -29,11 +29,6 @@ namespace WopiHost.Core.Security.Authorization;
 public partial class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)
     : AuthorizationHandler<WopiAuthorizeAttribute, HttpContext>
 {
-    [LoggerMessage(Level = LogLevel.Debug,
-        Message = "Token bound to resource '{TokenRid}' is being used against route id '{RouteId}'. " +
-            "This is allowed by default (WOPI tokens are session-scoped); register a stricter IAuthorizationHandler if you need to block cross-resource reuse.")]
-    private static partial void LogResourceBindingMismatch(ILogger logger, string tokenRid, string? routeId);
-
     /// <inheritdoc/>
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, WopiAuthorizeAttribute requirement, HttpContext resource)
     {

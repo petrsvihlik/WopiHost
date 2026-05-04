@@ -29,7 +29,7 @@ namespace WopiHost.AzureLockProvider;
 /// </para>
 /// </remarks>
 /// <summary>Create the provider from a configured <see cref="BlobContainerClient"/>.</summary>
-public class WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<WopiAzureLockProvider> logger) : IWopiLockProvider
+public partial class WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<WopiAzureLockProvider> logger) : IWopiLockProvider
 {
     internal const string LockIdKey = "wopi_lock_id";
     internal const string LeaseIdKey = "wopi_lease_id";
@@ -58,6 +58,7 @@ public class WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<
         // WOPI-expired. Break the lease so subsequent AddLock calls can take over, then evict.
         await TryBreakLeaseAsync(blobClient, cancellationToken).ConfigureAwait(false);
         await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        LogLockExpired(logger, fileId, info.LockId);
         return null;
     }
 
@@ -71,6 +72,7 @@ public class WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<
         var existing = await TryGetPropertiesAsync(blobClient, cancellationToken).ConfigureAwait(false);
         if (existing is not null && TryReadLock(fileId, existing, out var existingInfo) && !existingInfo.Expired)
         {
+            LogLockAddRejected(logger, fileId, lockId, existingInfo.LockId);
             return null;
         }
         if (existing is not null)
@@ -89,6 +91,7 @@ public class WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<
         catch (RequestFailedException ex) when (ex.Status == 409)
         {
             // Raced with another caller that just created the blob.
+            LogLockAddRaceLost(logger, fileId, lockId);
             return null;
         }
 
@@ -103,7 +106,7 @@ public class WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<
         catch (RequestFailedException ex)
         {
             // Couldn't lease — clean up the placeholder so we don't leave a no-op blob behind.
-            logger.LogWarning(ex, "Failed to acquire lease for fileId {FileId}", fileId);
+            LogLeaseAcquireFailed(logger, ex, fileId);
             await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             return null;
         }
@@ -118,6 +121,7 @@ public class WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<
             conditions: new BlobRequestConditions { LeaseId = leaseId },
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
+        LogLockAcquired(logger, fileId, lockId);
         return new WopiLockInfo { FileId = fileId, LockId = lockId, DateCreated = now };
     }
 
@@ -149,7 +153,7 @@ public class WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<
         }
         catch (RequestFailedException ex)
         {
-            logger.LogWarning(ex, "Failed to renew lease for fileId {FileId}", fileId);
+            LogLeaseRenewFailed(logger, ex, fileId);
             return false;
         }
 
@@ -167,7 +171,7 @@ public class WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<
         }
         catch (RequestFailedException ex)
         {
-            logger.LogWarning(ex, "Failed to update metadata while refreshing lock for fileId {FileId}", fileId);
+            LogLockMetadataUpdateFailed(logger, ex, fileId);
             return false;
         }
     }
@@ -195,6 +199,11 @@ public class WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<
             }
         }
         var deleted = await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        if (deleted.Value)
+        {
+            var removedLockId = props.Metadata.TryGetValue(LockIdKey, out var lid) ? lid : null;
+            LogLockRemoved(logger, fileId, removedLockId);
+        }
         return deleted.Value;
     }
 

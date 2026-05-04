@@ -11,9 +11,6 @@ namespace WopiHost.FileSystemProvider;
 /// <remarks>very basic in-memory for sample purposes only</remarks>
 public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
 {
-    [LoggerMessage(Level = LogLevel.Information, Message = "Scanned {total} items")]
-    private static partial void LogScannedItems(ILogger logger, int total);
-
     private readonly Dictionary<string, string> fileIds = [];
 
     /// <summary>

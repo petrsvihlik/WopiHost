@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 using WopiHost.Abstractions;
 
 namespace WopiHost.MemoryLockProvider;
@@ -11,12 +12,14 @@ namespace WopiHost.MemoryLockProvider;
 /// the lifetime of the process but not multi-instance deployments or restarts. Operations are
 /// inherently synchronous and are wrapped in <see cref="Task.FromResult{T}"/> to satisfy the async contract.
 /// </remarks>
-public class MemoryLockProvider : IWopiLockProvider
+public partial class MemoryLockProvider(ILogger<MemoryLockProvider> logger) : IWopiLockProvider
 {
     /// <summary>
     /// keyed with fileId
     /// </summary>
     private static readonly ConcurrentDictionary<string, WopiLockInfo> locks = [];
+
+    private readonly ILogger<MemoryLockProvider> logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <inheritdoc />
     public Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default)
@@ -26,6 +29,7 @@ public class MemoryLockProvider : IWopiLockProvider
             if (lockInfo.Expired)
             {
                 _ = locks.TryRemove(fileId, out _);
+                LogLockExpired(logger, fileId, lockInfo.LockId);
                 return Task.FromResult<WopiLockInfo?>(null);
             }
             return Task.FromResult<WopiLockInfo?>(lockInfo);
@@ -42,7 +46,15 @@ public class MemoryLockProvider : IWopiLockProvider
             LockId = lockId,
             DateCreated = DateTimeOffset.UtcNow,
         };
-        return Task.FromResult<WopiLockInfo?>(locks.TryAdd(fileId, lockInfo) ? lockInfo : null);
+        if (locks.TryAdd(fileId, lockInfo))
+        {
+            LogLockAcquired(logger, fileId, lockId);
+            return Task.FromResult<WopiLockInfo?>(lockInfo);
+        }
+
+        var existingLockId = locks.TryGetValue(fileId, out var existing) ? existing.LockId : null;
+        LogLockAddRejected(logger, fileId, lockId, existingLockId);
+        return Task.FromResult<WopiLockInfo?>(null);
     }
 
     /// <inheritdoc />
@@ -63,5 +75,12 @@ public class MemoryLockProvider : IWopiLockProvider
 
     /// <inheritdoc />
     public Task<bool> RemoveLockAsync(string fileId, CancellationToken cancellationToken = default)
-        => Task.FromResult(locks.TryRemove(fileId, out _));
+    {
+        if (locks.TryRemove(fileId, out var removed))
+        {
+            LogLockRemoved(logger, fileId, removed.LockId);
+            return Task.FromResult(true);
+        }
+        return Task.FromResult(false);
+    }
 }

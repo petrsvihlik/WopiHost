@@ -27,6 +27,7 @@ namespace WopiHost.Core.Controllers;
 [ApiController]
 [Route("wopi/[controller]")]
 [ServiceFilter(typeof(WopiOriginValidationActionFilter))]
+[ServiceFilter(typeof(WopiTelemetryActionFilter))]
 public class FoldersController(IWopiStorageProvider storageProvider) : ControllerBase
 {
     /// <summary>
