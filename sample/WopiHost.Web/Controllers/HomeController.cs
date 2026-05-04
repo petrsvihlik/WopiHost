@@ -67,7 +67,7 @@ public class HomeController(
                     var parentId = i > 0 ? ancestors[i - 1].Identifier : null;
                     model.BreadcrumbParts.Add(new BreadcrumbPart(
                         ancestor.Name,
-                        Url.Action("Index", "Home", new { containerId = ancestor.Identifier, parentContainerId = parentId })!));
+                        new Uri(Url.Action("Index", "Home", new { containerId = ancestor.Identifier, parentContainerId = parentId })!, UriKind.Relative)));
                 }
                 if (string.IsNullOrWhiteSpace(parentContainerId) && ancestors.Count > 0)
                 {

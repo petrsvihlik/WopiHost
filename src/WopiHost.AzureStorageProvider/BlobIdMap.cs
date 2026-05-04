@@ -21,7 +21,7 @@ namespace WopiHost.AzureStorageProvider;
 /// recognised as creating an otherwise-empty folder.
 /// </para>
 /// </remarks>
-public sealed class BlobIdMap(ILogger<BlobIdMap> logger)
+public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
 {
     /// <summary>
     /// Zero-byte marker blob name used to materialize otherwise-empty folders.
@@ -105,7 +105,7 @@ public sealed class BlobIdMap(ILogger<BlobIdMap> logger)
         }
 
         WasScanned = true;
-        logger.LogInformation("Scanned {Count} blob entries", idToPath.Count);
+        LogScannedEntries(logger, idToPath.Count);
     }
 
     private void AddDirectoryAndAncestors(string dirPath, HashSet<string> seen)

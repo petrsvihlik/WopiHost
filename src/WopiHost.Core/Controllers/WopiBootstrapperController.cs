@@ -39,6 +39,7 @@ namespace WopiHost.Core.Controllers;
 [ApiController]
 [Route("wopibootstrapper")]
 [ServiceFilter(typeof(WopiOriginValidationActionFilter))]
+[ServiceFilter(typeof(WopiTelemetryActionFilter))]
 public class WopiBootstrapperController(
     IWopiStorageProvider storageProvider,
     IWopiAccessTokenService accessTokenService,

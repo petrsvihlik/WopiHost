@@ -26,7 +26,7 @@ namespace WopiHost.AzureStorageProvider;
 /// the in-memory map to the new path.
 /// </para>
 /// </remarks>
-public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStorageProvider
+public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStorageProvider
 {
     private readonly BlobContainerClient containerClient;
     private readonly BlobIdMap idMap;
@@ -74,7 +74,7 @@ public class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWritableStora
                 idMap.ScanAll(paths);
             }
             initialized = true;
-            logger.LogInformation("WopiAzureStorageProvider initialized for container {Container}", containerClient.Name);
+            LogInitialized(logger, containerClient.Name);
         }
         finally
         {

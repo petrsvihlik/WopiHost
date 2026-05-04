@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using Microsoft.Extensions.Logging.Abstractions;
 using WopiHost.Abstractions;
 using Xunit;
 
@@ -11,7 +12,7 @@ public class MemoryLockProviderTests
 
     public MemoryLockProviderTests()
     {
-        _lockProvider = new MemoryLockProvider();
+        _lockProvider = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance);
     }
 
     [Fact]
