@@ -102,6 +102,16 @@ public class MemoryLockProviderTests
     }
 
     [Fact]
+    public async Task RemoveLock_NoExistingLock_ReturnsFalse()
+    {
+        var fileId = $"remove-missing-{Guid.NewGuid()}";
+
+        var result = await _lockProvider.RemoveLockAsync(fileId);
+
+        Assert.False(result);
+    }
+
+    [Fact]
     public async Task GetLockAsync_ExpiredLock_RemovesAndReturnsNull()
     {
         // The provider's AddLockAsync always stamps DateCreated with UtcNow, so the

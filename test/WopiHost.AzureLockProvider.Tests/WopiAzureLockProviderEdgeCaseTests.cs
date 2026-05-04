@@ -201,6 +201,24 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
     }
 
     [Fact]
+    public async Task AddLockAsync_ConcurrentRace_OneWinsOthersReturnNull()
+    {
+        // Hits the 409-on-Upload race-lost branch: both callers pass TryGetProperties (blob doesn't
+        // exist yet), then race on UploadAsync(overwrite:false). Azurite serializes the writes — the
+        // loser sees 409 and goes through the LogLockAddRaceLost catch.
+        var (provider, _) = await CreateProviderAsync();
+        var fileId = $"file-race-{Guid.NewGuid():N}";
+
+        var tasks = Enumerable.Range(0, 6)
+            .Select(i => provider.AddLockAsync(fileId, $"lock-{i}"))
+            .ToArray();
+        var results = await Task.WhenAll(tasks);
+
+        Assert.Single(results, r => r is not null);
+        Assert.Equal(results.Length - 1, results.Count(r => r is null));
+    }
+
+    [Fact]
     public async Task Constructor_NullArgs_Throws()
     {
         Assert.Throws<ArgumentNullException>(
