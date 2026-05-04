@@ -65,7 +65,7 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
                 .Where(ValidateNetZone)
                 .Elements(ElementApp)
                 .ToArray();
-            LogDiscoveryRefreshed(_logger, apps.Length, _discoveryOptions.Value.NetZone.ToString());
+            LogDiscoveryRefreshed(_logger, apps.Length, _discoveryOptions.Value.NetZone);
             return new TemporaryValue<IEnumerable<XElement>>
             {
                 Result = apps,

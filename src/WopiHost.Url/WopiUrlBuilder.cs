@@ -55,10 +55,10 @@ public partial class WopiUrlBuilder(
             // Append mandatory parameters
             url += "&WOPISrc=" + Uri.EscapeDataString(wopiFileUrl.ToString());
 
-            LogFileUrlGenerated(_logger, extension, action.ToString());
+            LogFileUrlGenerated(_logger, extension, action);
             return url;
         }
-        LogTemplateNotFound(_logger, extension, action.ToString());
+        LogTemplateNotFound(_logger, extension, action);
         return null;
     }
 

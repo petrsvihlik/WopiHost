@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using WopiHost.Discovery.Enumerations;
 
 namespace WopiHost.Url;
 
@@ -10,10 +11,10 @@ public partial class WopiUrlBuilder
     [LoggerMessage(
         Level = LogLevel.Debug,
         Message = "WOPI URL generated for extension {extension} action {action}")]
-    private static partial void LogFileUrlGenerated(ILogger logger, string extension, string action);
+    private static partial void LogFileUrlGenerated(ILogger logger, string extension, WopiActionEnum action);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "WOPI discovery has no URL template for extension {extension} action {action} — file type is not editable by the configured WOPI client")]
-    private static partial void LogTemplateNotFound(ILogger logger, string extension, string action);
+    private static partial void LogTemplateNotFound(ILogger logger, string extension, WopiActionEnum action);
 }
