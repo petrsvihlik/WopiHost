@@ -1,7 +1,23 @@
 version: 2
+
+# The repo's nuget.config registers a private GitHub Packages feed
+# (nuget.pkg.github.com/petrsvihlik) for Microsoft.CobaltCore. CI workflows
+# authenticate to it via the COBALT_PACKAGES_TOKEN Actions secret, but
+# Dependabot has its own separate secret store and won't see Actions secrets.
+# Add the same token at https://github.com/petrsvihlik/WopiHost/settings/secrets/dependabot
+# so the cobalt-github-packages registry below can authenticate.
+registries:
+  cobalt-github-packages:
+    type: nuget-feed
+    url: https://nuget.pkg.github.com/petrsvihlik/index.json
+    username: petrsvihlik
+    password: ${{secrets.COBALT_PACKAGES_TOKEN}}
+
 updates:
   - package-ecosystem: nuget
     directory: "/"
+    registries:
+      - cobalt-github-packages
     schedule:
       interval: daily
     open-pull-requests-limit: 20
