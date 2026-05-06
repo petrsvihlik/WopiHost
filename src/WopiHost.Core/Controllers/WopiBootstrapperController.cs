@@ -1,7 +1,6 @@
 using System.Net.Mime;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
