@@ -21,7 +21,7 @@ namespace WopiHost.Cobalt;
 /// </para>
 /// <para>
 /// Sessions are cached in a <see cref="ConcurrentDictionary{TKey,TValue}"/>
-/// keyed by <see cref="IWopiFile.Identifier"/>. A periodic timer evicts idle
+/// keyed by <see cref="IWopiResource.Identifier"/>. A periodic timer evicts idle
 /// sessions after <see cref="SessionIdleTimeout"/> to keep memory bounded —
 /// the <see cref="LocalHostBlobStore"/> backing each session is in-memory.
 /// </para>

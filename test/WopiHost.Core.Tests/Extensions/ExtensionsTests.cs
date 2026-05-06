@@ -1,5 +1,4 @@
-﻿using System.Text;
-using WopiHost.Core.Extensions;
+﻿using WopiHost.Core.Extensions;
 
 namespace WopiHost.Core.Tests.Extensions;
 

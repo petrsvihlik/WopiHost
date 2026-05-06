@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using WopiHost.Discovery.Enumerations;
 
 namespace WopiHost.Discovery.Tests;
 

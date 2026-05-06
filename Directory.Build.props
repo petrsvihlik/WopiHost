@@ -13,6 +13,16 @@
 		     own Directory.Build.props) don't end up with a separate test/artifacts/. -->
 		<UseArtifactsOutput>true</UseArtifactsOutput>
 		<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
+		<!-- IDE0005 (remove unnecessary usings) only fires at build-time when XML docs
+		     are generated, so enable doc generation everywhere. Non-packable projects
+		     silence CS1591 below to avoid missing-doc warning floods. -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	</PropertyGroup>
+
+	<!-- Non-packable projects (samples, infra, tests): silence CS1591 since they don't
+	     ship to consumers and don't need XML docs on every public member. -->
+	<PropertyGroup Condition="$(IsPackable) != 'true' OR $(PackageId) == ''">
+		<NoWarn>$(NoWarn);CS1591</NoWarn>
 	</PropertyGroup>
 
 	<!-- Package Validation Configuration for NuGet packages -->
@@ -22,9 +32,6 @@
 		<!-- Baseline used to detect public-API breaks against the last released version.
 		     Bump this in lockstep with releases. -->
 		<PackageValidationBaselineVersion>6.0.0</PackageValidationBaselineVersion>
-		<!-- Generate XML doc files alongside the assembly. Letting the SDK pick the
-		     path keeps it in sync with UseArtifactsOutput. -->
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
 	
 	<ItemGroup Condition="!$(MSBuildProjectName.EndsWith('Tests'))">
