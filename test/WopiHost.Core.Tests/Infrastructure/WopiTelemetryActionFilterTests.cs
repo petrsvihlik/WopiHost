@@ -29,7 +29,7 @@ public sealed class WopiTelemetryActionFilterTests : IDisposable
         _listener = new ActivityListener
         {
             ShouldListenTo = source => source.Name == WopiTelemetry.Name,
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            Sample = (ref _) => ActivitySamplingResult.AllData,
         };
         ActivitySource.AddActivityListener(_listener);
     }
@@ -48,7 +48,7 @@ public sealed class WopiTelemetryActionFilterTests : IDisposable
     {
         var result = (IActionResult)Activator.CreateInstance(resultType)!;
 
-        var (executing, recordedActivity) = await RunFilterAsync(controller: new FilesController(null!, null!), result);
+        var (_, recordedActivity) = await RunFilterAsync(controller: new FilesController(null!, null!), result);
 
         Assert.NotNull(recordedActivity);
         Assert.Equal(expectedOutcome, recordedActivity.GetTagItem(WopiTelemetry.Tags.Outcome));
@@ -166,24 +166,24 @@ public sealed class WopiTelemetryActionFilterTests : IDisposable
 
         var executingContext = new ActionExecutingContext(
             actionContext,
-            filters: new List<IFilterMetadata>(),
-            actionArguments: actionArguments ?? new Dictionary<string, object?>(),
+            filters: [],
+            actionArguments: actionArguments ?? [],
             controller: controller);
 
         Activity? captured = null;
-        ActionExecutionDelegate next = () =>
+        Task<ActionExecutedContext> Next()
         {
             captured = Activity.Current;
-            var executed = new ActionExecutedContext(actionContext, new List<IFilterMetadata>(), controller)
+            var executed = new ActionExecutedContext(actionContext, [], controller)
             {
                 Result = result,
                 Exception = exception,
             };
             return Task.FromResult(executed);
-        };
+        }
 
         var filter = new WopiTelemetryActionFilter(NullLogger<WopiTelemetryActionFilter>.Instance);
-        await filter.OnActionExecutionAsync(executingContext, next);
+        await filter.OnActionExecutionAsync(executingContext, Next);
         return (executingContext, captured);
     }
 }

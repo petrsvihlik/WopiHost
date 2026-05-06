@@ -19,7 +19,7 @@ public sealed class WopiTelemetryTests : IDisposable
         _listener = new ActivityListener
         {
             ShouldListenTo = source => source.Name == WopiTelemetry.Name,
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            Sample = (ref _) => ActivitySamplingResult.AllData,
         };
         ActivitySource.AddActivityListener(_listener);
     }
@@ -90,9 +90,9 @@ public sealed class WopiTelemetryTests : IDisposable
         Assert.NotNull(activity);
         Assert.Equal(WopiTelemetry.Outcomes.Success, activity.GetTagItem(WopiTelemetry.Tags.Outcome));
         Assert.Equal(ActivityStatusCode.Unset, activity.Status);
-        var m = Assert.Single(measurements);
-        Assert.Equal(1, m.value);
-        Assert.Contains(m.tags, t => t.Key == WopiTelemetry.Tags.Outcome && (string?)t.Value == WopiTelemetry.Outcomes.Success);
+        var (value, tags) = Assert.Single(measurements);
+        Assert.Equal(1, value);
+        Assert.Contains(tags, t => t.Key == WopiTelemetry.Tags.Outcome && (string?)t.Value == WopiTelemetry.Outcomes.Success);
     }
 
     [Fact]
@@ -118,8 +118,8 @@ public sealed class WopiTelemetryTests : IDisposable
         WopiTelemetry.RecordOutcome(activity, Op, WopiTelemetry.Outcomes.LockMismatch);
 
         Assert.Single(requestMeasurements);
-        var lockHit = Assert.Single(lockMeasurements);
-        Assert.Equal(1, lockHit.value);
+        var (lockValue, _) = Assert.Single(lockMeasurements);
+        Assert.Equal(1, lockValue);
     }
 
     [Fact]
