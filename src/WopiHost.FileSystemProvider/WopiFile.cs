@@ -30,9 +30,7 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
     public string? Version => fileVersionInfo.FileVersion ?? fileInfo.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
-#pragma warning disable CA1819 // Properties should not return arrays
-    public byte[]? Checksum { get; } = null;
-#pragma warning restore CA1819 // Properties should not return arrays
+    public ReadOnlyMemory<byte>? Checksum => null;
 
     /// <inheritdoc/>
     public long Size => fileInfo.Length;

@@ -94,7 +94,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
         var refreshed = (await provider.GetWopiResource<IWopiFile>(created.Identifier))!;
         Assert.Equal(payload.Length, refreshed.Length);
         Assert.NotNull(refreshed.Checksum);
-        Assert.Equal(expectedHash, Convert.ToHexString(refreshed.Checksum!).ToLowerInvariant());
+        Assert.Equal(expectedHash, Convert.ToHexString(refreshed.Checksum.Value.Span).ToLowerInvariant());
     }
 
     [Fact]

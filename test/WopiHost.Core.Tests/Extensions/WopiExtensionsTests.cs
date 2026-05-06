@@ -17,7 +17,7 @@ public class WopiExtensionsTests
     {
         var mockFile = new Mock<IWopiFile>();
         var checksum = new byte[] { 1, 2, 3, 4, 5 };
-        mockFile.Setup(f => f.Checksum).Returns(checksum);
+        mockFile.Setup(f => f.Checksum).Returns(new ReadOnlyMemory<byte>(checksum));
 
         var result = await mockFile.Object.GetEncodedSha256();
 
@@ -28,7 +28,7 @@ public class WopiExtensionsTests
     public async Task GetEncodedSha256_CalculatesChecksum_WhenChecksumIsNotProvided()
     {
         var mockFile = new Mock<IWopiFile>();
-        mockFile.Setup(f => f.Checksum).Returns((byte[]?)null);
+        mockFile.Setup(f => f.Checksum).Returns((ReadOnlyMemory<byte>?)null);
         var stream = new MemoryStream([1, 2, 3, 4, 5]);
         mockFile.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(stream);
 

@@ -33,7 +33,7 @@ public static class WopiExtensions
             using var stream = await file.GetReadStream(cancellationToken);
             result = await Sha.ComputeHashAsync(stream, cancellationToken);
         }
-        return Convert.ToBase64String(result);
+        return Convert.ToBase64String(result.Value.Span);
     }
 
     /// <summary>
