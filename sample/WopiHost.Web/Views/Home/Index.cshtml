@@ -67,15 +67,16 @@
                 <td class="col-date">@file.LastModified.ToString("yyyy-MM-dd HH:mm")</td>
                 <td class="col-size">@file.FormattedSize</td>
                 <td class="col-actions">
-                    @* Both glyphs are Emoji=Yes / Emoji_Presentation=No, so they render as
-                       monochrome text-style shapes by default across OSes. ◉ (U+25C9 FISHEYE)
-                       pairs visually with 🖉 (U+1F589 LOWER LEFT PENCIL). *@
+                    @* 🔍 (U+1F50D) for view + 🖉 (U+1F589) for edit. The magnifying glass has
+                       Emoji_Presentation=Yes so a VS-15 (U+FE0E) is appended to request text
+                       style; site.css backs that up with font-variant-emoji: text so both
+                       glyphs render as thin monochrome shapes on browsers that honour it. *@
                     <a title="View"
                        asp-controller="Home"
                        asp-action="Detail"
                        asp-route-id="@file.FileId"
                        asp-route-wopiaction="@WopiActionEnum.View"
-                       class="@(file.SupportsView ? "" : "disabledIcon")">&#9673;</a>
+                       class="@(file.SupportsView ? "" : "disabledIcon")">&#128269;&#65038;</a>
                     <a title="Edit"
                        asp-controller="Home"
                        asp-action="Detail"

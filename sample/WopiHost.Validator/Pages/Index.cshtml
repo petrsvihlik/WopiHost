@@ -62,12 +62,12 @@
                 <td class="col-size">@file.FormattedSize</td>
                 <td class="col-actions">
                     @* See WopiHost.Web/Views/Home/Index.cshtml for the rationale on these
-                       glyphs (◉ U+25C9 + 🖉 U+1F589 — both text-style by default). *@
+                       glyphs (🔍 U+1F50D + VS-15 / 🖉 U+1F589). *@
                     <a title="View"
                        asp-page="HostPage"
                        asp-route-FileId="@file.FileId"
                        asp-route-WopiAction="@WopiActionEnum.View"
-                       class="@(file.SupportsView ? "" : "disabledIcon")">&#9673;</a>
+                       class="@(file.SupportsView ? "" : "disabledIcon")">&#128269;&#65038;</a>
                     <a title="Edit"
                        asp-page="HostPage"
                        asp-route-FileId="@file.FileId"
