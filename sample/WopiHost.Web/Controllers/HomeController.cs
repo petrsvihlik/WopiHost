@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using WopiHost.Abstractions;
@@ -27,10 +28,12 @@ namespace WopiHost.Web.Controllers;
 public class HomeController(
     IOptions<WopiOptions> wopiOptions,
     IWopiStorageProvider storageProvider,
-    IDiscoverer discoverer) : Controller
+    IDiscoverer discoverer,
+    ILogger<WopiUrlBuilder> urlBuilderLogger) : Controller
 {
     private readonly WopiUrlBuilder urlGenerator = new(
         discoverer,
+        urlBuilderLogger,
         new WopiUrlSettings { UiLlcc = ResolveUiCulture(wopiOptions.Value.UiCulture) });
 
     private static CultureInfo ResolveUiCulture(string? configured)
@@ -67,7 +70,7 @@ public class HomeController(
                     var parentId = i > 0 ? ancestors[i - 1].Identifier : null;
                     model.BreadcrumbParts.Add(new BreadcrumbPart(
                         ancestor.Name,
-                        Url.Action("Index", "Home", new { containerId = ancestor.Identifier, parentContainerId = parentId })!));
+                        new Uri(Url.Action("Index", "Home", new { containerId = ancestor.Identifier, parentContainerId = parentId })!, UriKind.Relative)));
                 }
                 if (string.IsNullOrWhiteSpace(parentContainerId) && ancestors.Count > 0)
                 {

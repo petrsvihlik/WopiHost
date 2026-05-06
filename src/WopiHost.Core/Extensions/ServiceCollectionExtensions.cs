@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using WopiHost.Abstractions;
+using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 using WopiHost.Core.Security;
 using WopiHost.Core.Security.Authentication;
@@ -31,6 +32,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IWopiProofValidator, WopiProofValidator>();
         services.AddScoped<WopiOriginValidationActionFilter>();
+        services.AddScoped<WopiTelemetryActionFilter>();
         services.AddControllers()
             .AddApplicationPart(typeof(ServiceCollectionExtensions).GetTypeInfo().Assembly)
             .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null);

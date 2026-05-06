@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Cobalt;
 using Cobalt.Base;
+using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Cobalt;
 
@@ -16,8 +17,10 @@ namespace WopiHost.Cobalt;
 /// <see cref="CoauthStatusType.Alone"/> and an empty editors table, causing older OOS versions
 /// to show duplicate user names when the same person opens a document in multiple tabs.
 /// </remarks>
-public class CoauthoringSessionTracker
+public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker> logger)
 {
+    private readonly ILogger<CoauthoringSessionTracker> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
     /// <summary>
     /// Represents a single editing session (one browser tab / WOPI session).
     /// </summary>
@@ -38,7 +41,12 @@ public class CoauthoringSessionTracker
     public void AddOrRefreshSession(string fileId, string userId, string userName)
     {
         var fileSessions = Sessions.GetOrAdd(fileId, _ => new ConcurrentDictionary<string, EditorSession>());
+        var added = !fileSessions.ContainsKey(userId);
         fileSessions[userId] = new EditorSession(userId, userName, DateTimeOffset.UtcNow);
+        if (added)
+        {
+            LogEditorJoined(_logger, userId, userName, fileId);
+        }
     }
 
     /// <summary>
@@ -48,7 +56,10 @@ public class CoauthoringSessionTracker
     {
         if (Sessions.TryGetValue(fileId, out var fileSessions))
         {
-            fileSessions.TryRemove(userId, out _);
+            if (fileSessions.TryRemove(userId, out _))
+            {
+                LogEditorLeft(_logger, userId, fileId);
+            }
             // Clean up empty file entries
             if (fileSessions.IsEmpty)
             {

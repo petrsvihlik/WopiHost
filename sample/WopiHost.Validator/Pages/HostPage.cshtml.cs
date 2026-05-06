@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Infrastructure;
@@ -19,7 +20,8 @@ public class HostPageModel(
     IWopiAccessTokenService accessTokenService,
     IWopiPermissionProvider permissionProvider,
     IDiscoverer discoverer,
-    LinkGenerator linkGenerator) : PageModel
+    LinkGenerator linkGenerator,
+    ILogger<WopiUrlBuilder> urlBuilderLogger) : PageModel
 {
     [BindProperty(SupportsGet = true)]
     public required string FileId { get; set; }
@@ -30,7 +32,7 @@ public class HostPageModel(
     public string AccessTokenTtl { get; set; } = string.Empty;
     public Uri? UrlSrc { get; set; }
 
-    private readonly WopiUrlBuilder urlGenerator = new(discoverer, new WopiUrlSettings { UiLlcc = CultureInfo.CurrentUICulture });
+    private readonly WopiUrlBuilder urlGenerator = new(discoverer, urlBuilderLogger, new WopiUrlSettings { UiLlcc = CultureInfo.CurrentUICulture });
 
     public async Task<IActionResult> OnGet(CancellationToken cancellationToken = default)
     {

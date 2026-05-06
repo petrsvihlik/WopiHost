@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using FakeItEasy;
+using Microsoft.Extensions.Logging.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 
@@ -21,7 +22,7 @@ public class WopiUrlGeneratorTests
     [InlineData("docx", "http://wopihost:5000/wopi/files/test.docx", WopiActionEnum.View, "http://owaserver/wv/wordviewerframe.aspx?&WOPISrc=http%3A%2F%2Fwopihost%3A5000%2Fwopi%2Ffiles%2Ftest.docx")]
     public async Task GetFileUrlAsync_WithoutAdditionalSettings_ReturnsExpectedUrl(string extension, string wopiFileUrl, WopiActionEnum action, string expectedValue)
     {
-        var urlGenerator = new WopiUrlBuilder(_discoverer);
+        var urlGenerator = new WopiUrlBuilder(_discoverer, NullLogger<WopiUrlBuilder>.Instance);
 
         var result = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiFileUrl), action);
 
@@ -34,7 +35,7 @@ public class WopiUrlGeneratorTests
     public async Task GetFileUrlAsync_WithAdditionalSettings_ReturnsExpectedUrl(string extension, string wopiFileUrl, WopiActionEnum action, string expectedValue)
     {
         var settings = new WopiUrlSettings { UiLlcc = new CultureInfo("en-US") };
-        var urlGenerator = new WopiUrlBuilder(_discoverer, settings);
+        var urlGenerator = new WopiUrlBuilder(_discoverer, NullLogger<WopiUrlBuilder>.Instance, settings);
 
         var result = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiFileUrl), action);
 
@@ -45,7 +46,7 @@ public class WopiUrlGeneratorTests
     [InlineData("html", "http://wopihost:5000/wopi/files/test.xlsx", WopiActionEnum.Edit, null)]
     public async Task GetFileUrlAsync_UnknownTemplate_ReturnsNull(string extension, string wopiFileUrl, WopiActionEnum action, string? expectedValue)
     {
-        var urlGenerator = new WopiUrlBuilder(_discoverer);
+        var urlGenerator = new WopiUrlBuilder(_discoverer, NullLogger<WopiUrlBuilder>.Instance);
 
         var result = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiFileUrl), action);
 
