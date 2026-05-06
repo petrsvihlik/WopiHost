@@ -1,4 +1,4 @@
-﻿footer {
+footer {
     position: fixed;
     bottom: 0px;
     margin: 0px;
@@ -128,3 +128,7 @@ table.files {
         padding: 24px;
         font-style: italic;
     }
+
+.error {
+    color: #b00020;
+}

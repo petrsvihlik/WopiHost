@@ -1,64 +1,85 @@
-﻿@page
+@page
 @using WopiHost.Discovery.Enumerations
 @model IndexModel
 
+<nav class="breadcrumb" aria-label="breadcrumb">
+    <ol>
+        <li><a asp-page="/Index">Root</a></li>
+        @foreach (var part in Model.BreadcrumbParts)
+        {
+            <li><a href="@part.Url">@part.Name</a></li>
+        }
+        <li class="current" aria-current="page">@Model.ContainerName</li>
+    </ol>
+</nav>
 
-<div class="panel">
-    <div class="panel-heading">
-        <h3 class="panel-title">
-            <ol class="breadcrumb">
-                @foreach (var part in Model.BreadcrumbParts)
-                {
-                    <li class="breadcrumb-item"><a href="@part.Url">@part.Name</a></li>
-                }
-                <li class="breadcrumb-item active" aria-current="page">@Model.ContainerName</li>
-            </ol>
-        </h3>
-    </div>
-    <table class="table table-striped table-hover" id="Extension1">
-        <thead>
+<table class="files">
+    <thead>
+        <tr>
+            <th class="col-icon">Type</th>
+            <th>Name</th>
+            <th class="col-date">Modified</th>
+            <th class="col-size">Size</th>
+            <th class="col-actions">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var container in Model.Containers)
+        {
             <tr>
-                <th>Type</th>
-                <th>Name</th>
-                <th>Date</th>
-                <th>Size</th>
-                <th>Edit</th>
+                <td class="col-icon">&#128193;</td>
+                <td>
+                    <a asp-page="/Index"
+                       asp-route-ContainerId="@container.ContainerId"
+                       asp-route-ParentContainerId="@(container.Name == ".." ? "" : Model.ContainerId)">
+                        @container.Name
+                    </a>
+                </td>
+                <td></td>
+                <td></td>
+                <td></td>
             </tr>
-        </thead>
-        <tbody>
-            @foreach (var container in Model.Containers)
-            {
-                <tr class="paginate-show">
-                    <td>&#128193;</td>
-                    <td><a title="View" asp-route-ContainerId="@container.ContainerId" asp-route-ParentContainerId="@(container.Name == ".." ? "" : Model.ContainerId)">@container.Name</a></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-            }
+        }
 
-            @foreach (var file in Model.Files)
-            {
-                <tr class="paginate-show">
-                    <td><img src="@file.IconUri" style="height: 32px;" alt="icon" /></td>
-                    <td>@if (file.SupportsView)
-                        {
-                            <a title="View" asp-page="HostPage" asp-route-FileId="@file.FileId" asp-route-WopiAction="@WopiActionEnum.View">@file.FileName</a>
-                        }
-                        else
-                        {
-                            @file.FileName
-                        }
-                    </td>
-                    <td>@file.LastModified</td>
-                    <td>@file.FormattedSize</td>
-                    <td>@if (file.SupportsEdit)
-                        {
-                            <a title="Edit" asp-page="HostPage" asp-route-FileId="@file.FileId" asp-route-WopiAction="@WopiActionEnum.Edit">&#128393;</a>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-</div>
+        @foreach (var file in Model.Files)
+        {
+            <tr>
+                <td class="col-icon"><img src="@file.IconUri" alt="" /></td>
+                <td>
+                    @if (file.SupportsView)
+                    {
+                        <a asp-page="HostPage"
+                           asp-route-FileId="@file.FileId"
+                           asp-route-WopiAction="@WopiActionEnum.View"
+                           title="View">@file.FileName</a>
+                    }
+                    else
+                    {
+                        @file.FileName
+                    }
+                </td>
+                <td class="col-date">@file.LastModified.ToString("yyyy-MM-dd HH:mm")</td>
+                <td class="col-size">@file.FormattedSize</td>
+                <td class="col-actions">
+                    @* See WopiHost.Web/Views/Home/Index.cshtml for the rationale on these
+                       glyphs (◉ U+25C9 + 🖉 U+1F589 — both text-style by default). *@
+                    <a title="View"
+                       asp-page="HostPage"
+                       asp-route-FileId="@file.FileId"
+                       asp-route-WopiAction="@WopiActionEnum.View"
+                       class="@(file.SupportsView ? "" : "disabledIcon")">&#9673;</a>
+                    <a title="Edit"
+                       asp-page="HostPage"
+                       asp-route-FileId="@file.FileId"
+                       asp-route-WopiAction="@WopiActionEnum.Edit"
+                       class="@(file.SupportsEdit ? "" : "disabledIcon")">&#128393;</a>
+                </td>
+            </tr>
+        }
+
+        @if (Model.Containers.Count == 0 && Model.Files.Count == 0)
+        {
+            <tr><td colspan="5" class="empty">This container is empty.</td></tr>
+        }
+    </tbody>
+</table>

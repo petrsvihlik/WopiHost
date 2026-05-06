@@ -1,50 +1,30 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - WopiHost.Validator</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/marx-css/css/marx.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">WopiHost.Validator</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a href="https://www.paypal.me/Svihlik">Donate</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+    <nav>
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="https://github.com/petrsvihlik/WopiHost">GitHub</a></li>
+            <li><a href="https://www.paypal.me/Svihlik">Donate</a></li>
+        </ul>
+    </nav>
+    <header></header>
+    <main>
+        <section>
+            <h1>WopiHost - Validator</h1>
             @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - WopiHost.Validator - <a href="https://github.com/petrsvihlik/WopiHost" target="_blank">GitHub</a>
-        </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; @DateTime.Now.Year - WopiHost.Validator - <a href="https://github.com/petrsvihlik/WopiHost" target="_blank" rel="noopener">GitHub</a></p>
     </footer>
-
-    @* Bootstrap 5 dropped its jQuery dependency and this sample has no client JS
-       that uses jQuery, so loading it is just attack surface (Dependabot picks up
-       CVEs in the bundled jquery-validation files even though they're never
-       referenced). bootstrap.bundle.min.js includes Popper for tooltips/dropdowns. *@
-    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
