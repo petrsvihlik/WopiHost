@@ -1,14 +1,14 @@
 using Microsoft.Extensions.Logging;
 
-namespace WopiHost.AzureStorageProvider;
+namespace WopiHost.FileSystemProvider;
 
 /// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for <see cref="WopiAzureStorageProvider"/>.
+/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for <see cref="WopiFileSystemProvider"/>.
 /// </summary>
-public partial class WopiAzureStorageProvider
+public partial class WopiFileSystemProvider
 {
-    [LoggerMessage(Level = LogLevel.Information, Message = "WopiAzureStorageProvider initialized for container {container}")]
-    private static partial void LogInitialized(ILogger logger, string container);
+    [LoggerMessage(Level = LogLevel.Information, Message = "WopiFileSystemProvider initialized at root {rootPath}")]
+    private static partial void LogProviderInitialized(ILogger logger, string rootPath);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Created file {fileId} at {path}")]
     private static partial void LogFileCreated(ILogger logger, string fileId, string path);
@@ -25,6 +25,6 @@ public partial class WopiAzureStorageProvider
     [LoggerMessage(Level = LogLevel.Information, Message = "Deleted folder {folderId} at {path}")]
     private static partial void LogFolderDeleted(ILogger logger, string folderId, string path);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Renamed folder {folderId} ({blobCount} blobs): {oldPath} → {newPath}")]
-    private static partial void LogFolderRenamed(ILogger logger, string folderId, string oldPath, string newPath, int blobCount);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Renamed folder {folderId}: {oldPath} → {newPath}")]
+    private static partial void LogFolderRenamed(ILogger logger, string folderId, string oldPath, string newPath);
 }

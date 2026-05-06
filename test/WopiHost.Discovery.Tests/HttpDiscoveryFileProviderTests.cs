@@ -1,5 +1,6 @@
 using System.Net;
 using System.Xml.Linq;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace WopiHost.Discovery.Tests;
 
@@ -16,7 +17,7 @@ public class HttpDiscoveryFileProviderTests
     {
         const string xml = "<wopi-discovery><net-zone /></wopi-discovery>";
         var handler = new FakeHttpMessageHandler(_ => Task.FromResult(XmlResponse(xml)));
-        var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler));
+        var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler), NullLogger<HttpDiscoveryFileProvider>.Instance);
 
         var result = await sut.GetDiscoveryXmlAsync();
 
@@ -33,7 +34,7 @@ public class HttpDiscoveryFileProviderTests
             captured = req;
             return Task.FromResult(XmlResponse(xml));
         });
-        var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler));
+        var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler), NullLogger<HttpDiscoveryFileProvider>.Instance);
 
         await sut.GetDiscoveryXmlAsync();
 
@@ -45,7 +46,7 @@ public class HttpDiscoveryFileProviderTests
     {
         var xml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "OOS2016_discovery.xml"));
         var handler = new FakeHttpMessageHandler(_ => Task.FromResult(XmlResponse(xml)));
-        var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler));
+        var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler), NullLogger<HttpDiscoveryFileProvider>.Instance);
 
         var result = await sut.GetDiscoveryXmlAsync();
 
@@ -57,7 +58,7 @@ public class HttpDiscoveryFileProviderTests
     {
         var handler = new FakeHttpMessageHandler(_ =>
             Task.FromException<HttpResponseMessage>(new HttpRequestException("Connection refused")));
-        var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler));
+        var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler), NullLogger<HttpDiscoveryFileProvider>.Instance);
 
         await Assert.ThrowsAsync<DiscoveryException>(() => sut.GetDiscoveryXmlAsync());
     }
@@ -67,7 +68,7 @@ public class HttpDiscoveryFileProviderTests
     {
         var original = new HttpRequestException("Connection refused");
         var handler = new FakeHttpMessageHandler(_ => Task.FromException<HttpResponseMessage>(original));
-        var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler));
+        var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler), NullLogger<HttpDiscoveryFileProvider>.Instance);
 
         var ex = await Assert.ThrowsAsync<DiscoveryException>(() => sut.GetDiscoveryXmlAsync());
 
@@ -80,7 +81,7 @@ public class HttpDiscoveryFileProviderTests
         var baseAddress = new Uri("http://wopi-client.example.com");
         var handler = new FakeHttpMessageHandler(_ =>
             Task.FromException<HttpResponseMessage>(new HttpRequestException("Connection refused")));
-        var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler, baseAddress));
+        var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler, baseAddress), NullLogger<HttpDiscoveryFileProvider>.Instance);
 
         var ex = await Assert.ThrowsAsync<DiscoveryException>(() => sut.GetDiscoveryXmlAsync());
 

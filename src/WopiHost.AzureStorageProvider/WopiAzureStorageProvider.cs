@@ -311,6 +311,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
                 throw new ArgumentException($"File '{path}' already exists.", nameof(name));
             }
             var id = idMap.Add(path);
+            LogFileCreated(logger, id, path);
             return await WopiBlobFile.CreateAsync(blobClient, path, id, cancellationToken).ConfigureAwait(false) as T;
         }
         if (typeof(IWopiFolder).IsAssignableFrom(typeof(T)))
@@ -328,6 +329,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
                 throw new ArgumentException($"Folder '{path}' already exists.", nameof(name));
             }
             var id = idMap.Add(path);
+            LogFolderCreated(logger, id, path);
             return new WopiBlobFolder(path, id) as T;
         }
         throw new NotSupportedException($"Unsupported resource type: {typeof(T).Name}");
@@ -350,6 +352,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
             if (deleted.Value)
             {
                 idMap.Remove(identifier);
+                LogFileDeleted(logger, identifier, path);
             }
             return deleted.Value;
         }
@@ -374,6 +377,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
             var markerClient = containerClient.GetBlobClient(prefix + BlobIdMap.FolderMarker);
             await markerClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             idMap.Remove(identifier);
+            LogFolderDeleted(logger, identifier, path);
             return true;
         }
         throw new NotSupportedException($"Unsupported resource type: {typeof(T).Name}");
@@ -399,6 +403,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
             var newPath = string.IsNullOrEmpty(parent) ? requestedName : parent + "/" + requestedName;
             await CopyAndDeleteBlobAsync(oldPath, newPath, cancellationToken).ConfigureAwait(false);
             idMap.Update(identifier, newPath);
+            LogFileRenamed(logger, identifier, oldPath, newPath);
             return true;
         }
         if (typeof(IWopiFolder).IsAssignableFrom(typeof(T)))
@@ -432,6 +437,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
                     idMap.Update(oldId, newName);
                 }
             }
+            LogFolderRenamed(logger, identifier, oldPath, newPath, renamed.Count);
             return true;
         }
         throw new NotSupportedException($"Unsupported resource type: {typeof(T).Name}");

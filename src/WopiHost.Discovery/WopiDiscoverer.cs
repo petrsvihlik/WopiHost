@@ -1,6 +1,5 @@
 ﻿using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using WopiHost.Discovery.Enumerations;
 using WopiHost.Discovery.Models;
@@ -45,18 +44,17 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
     /// </summary>
     /// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
     /// <param name="discoveryOptions">the discovery options</param>
-    /// <param name="logger">Optional logger. When omitted, a <see cref="NullLogger{T}"/> is used so the
-    /// package stays usable without DI.</param>
+    /// <param name="logger">Logger.</param>
     public WopiDiscoverer(
         IDiscoveryFileProvider discoveryFileProvider,
         IOptions<DiscoveryOptions> discoveryOptions,
-        ILogger<WopiDiscoverer>? logger = null)
+        ILogger<WopiDiscoverer> logger)
     {
         ArgumentNullException.ThrowIfNull(discoveryFileProvider);
         ArgumentNullException.ThrowIfNull(discoveryOptions);
 
         _discoveryOptions = discoveryOptions;
-        _logger = logger ?? NullLogger<WopiDiscoverer>.Instance;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         _apps = new AsyncExpiringLazy<IEnumerable<XElement>>(async _ =>
         {

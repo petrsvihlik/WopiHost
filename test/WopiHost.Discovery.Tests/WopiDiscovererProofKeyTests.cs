@@ -1,5 +1,6 @@
 using System.Xml.Linq;
 using FakeItEasy;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace WopiHost.Discovery.Tests;
@@ -10,7 +11,7 @@ public class WopiDiscovererProofKeyTests
     {
         var fileProvider = A.Fake<IDiscoveryFileProvider>();
         A.CallTo(() => fileProvider.GetDiscoveryXmlAsync()).Returns(Task.FromResult(discoveryXml));
-        return new WopiDiscoverer(fileProvider, Options.Create(new DiscoveryOptions()));
+        return new WopiDiscoverer(fileProvider, Options.Create(new DiscoveryOptions()), NullLogger<WopiDiscoverer>.Instance);
     }
 
     [Fact]

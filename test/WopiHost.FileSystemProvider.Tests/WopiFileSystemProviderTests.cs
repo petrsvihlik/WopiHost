@@ -55,7 +55,7 @@ public class WopiFileSystemProviderTests : IDisposable
                 [$"{WopiConfigurationSections.STORAGE_OPTIONS}:RootPath"] = rootPath,
             })
             .Build();
-        return new WopiFileSystemProvider(ids ?? _fileIds, env ?? _env, config);
+        return new WopiFileSystemProvider(ids ?? _fileIds, env ?? _env, config, NullLogger<WopiFileSystemProvider>.Instance);
     }
 
     // ---------- Constructor ----------
@@ -64,7 +64,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public void Ctor_NullConfiguration_Throws()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            new WopiFileSystemProvider(_fileIds, _env, configuration: null!));
+            new WopiFileSystemProvider(_fileIds, _env, configuration: null!, NullLogger<WopiFileSystemProvider>.Instance));
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class WopiFileSystemProviderTests : IDisposable
             }).Build();
 
         Assert.Throws<ArgumentNullException>(() =>
-            new WopiFileSystemProvider(fileIds: null!, _env, config));
+            new WopiFileSystemProvider(fileIds: null!, _env, config, NullLogger<WopiFileSystemProvider>.Instance));
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         var emptyConfig = new ConfigurationBuilder().Build();
         Assert.ThrowsAny<Exception>(() =>
-            new WopiFileSystemProvider(_fileIds, _env, emptyConfig));
+            new WopiFileSystemProvider(_fileIds, _env, emptyConfig, NullLogger<WopiFileSystemProvider>.Instance));
     }
 
     [Fact]

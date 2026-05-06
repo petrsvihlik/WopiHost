@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace WopiHost.Discovery;
 
@@ -12,12 +11,11 @@ namespace WopiHost.Discovery;
 /// Creates an instance of a discovery file provider that loads the discovery file from a WOPI client over HTTP.
 /// </remarks>
 /// <param name="httpClient">An HTTP client with a <see cref="HttpClient.BaseAddress"/> configured to point to a WOPI client.</param>
-/// <param name="logger">Optional logger. When omitted, a <see cref="NullLogger{T}"/> is used so the package
-/// stays usable without DI.</param>
-public partial class HttpDiscoveryFileProvider(HttpClient httpClient, ILogger<HttpDiscoveryFileProvider>? logger = null) : IDiscoveryFileProvider
+/// <param name="logger">Logger.</param>
+public partial class HttpDiscoveryFileProvider(HttpClient httpClient, ILogger<HttpDiscoveryFileProvider> logger) : IDiscoveryFileProvider
 {
-    private readonly HttpClient _httpClient = httpClient;
-    private readonly ILogger<HttpDiscoveryFileProvider> _logger = logger ?? NullLogger<HttpDiscoveryFileProvider>.Instance;
+    private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+    private readonly ILogger<HttpDiscoveryFileProvider> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <inheritdoc />
     public async Task<XElement> GetDiscoveryXmlAsync()

@@ -1,4 +1,5 @@
 using System.Xml;
+using Microsoft.Extensions.Logging.Abstractions;
 using WopiHost.Discovery;
 
 namespace WopiHost.Discovery.Tests;
@@ -9,7 +10,7 @@ public class FileSystemDiscoveryFileProviderTests
     public async Task GetDiscoveryXmlAsync_ValidFile_ReturnsXml()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "OOS2016_discovery.xml");
-        var sut = new FileSystemDiscoveryFileProvider(path);
+        var sut = new FileSystemDiscoveryFileProvider(path, NullLogger<FileSystemDiscoveryFileProvider>.Instance);
 
         var xml = await sut.GetDiscoveryXmlAsync();
 
@@ -19,7 +20,9 @@ public class FileSystemDiscoveryFileProviderTests
     [Fact]
     public async Task GetDiscoveryXmlAsync_MissingFile_ThrowsAndIsObservableViaCatchPath()
     {
-        var sut = new FileSystemDiscoveryFileProvider(Path.Combine(Path.GetTempPath(), $"does-not-exist-{Guid.NewGuid()}.xml"));
+        var sut = new FileSystemDiscoveryFileProvider(
+            Path.Combine(Path.GetTempPath(), $"does-not-exist-{Guid.NewGuid()}.xml"),
+            NullLogger<FileSystemDiscoveryFileProvider>.Instance);
 
         await Assert.ThrowsAnyAsync<IOException>(() => sut.GetDiscoveryXmlAsync());
     }
@@ -31,7 +34,7 @@ public class FileSystemDiscoveryFileProviderTests
         await File.WriteAllTextAsync(path, "<not-closed-element>");
         try
         {
-            var sut = new FileSystemDiscoveryFileProvider(path);
+            var sut = new FileSystemDiscoveryFileProvider(path, NullLogger<FileSystemDiscoveryFileProvider>.Instance);
 
             await Assert.ThrowsAsync<XmlException>(() => sut.GetDiscoveryXmlAsync());
         }

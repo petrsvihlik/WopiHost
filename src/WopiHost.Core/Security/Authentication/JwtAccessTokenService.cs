@@ -86,6 +86,14 @@ public partial class JwtAccessTokenService(
 
         var token = _handler.CreateToken(descriptor);
         var tokenString = _handler.WriteToken(token);
+        LogAccessTokenIssued(
+            logger,
+            request.UserId,
+            request.ResourceType,
+            request.ResourceId,
+            request.FilePermissions,
+            request.ContainerPermissions,
+            expires);
         return Task.FromResult(new WopiAccessToken(tokenString, expires));
     }
 

@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using WopiHost.Abstractions;
@@ -27,10 +28,12 @@ namespace WopiHost.Web.Controllers;
 public class HomeController(
     IOptions<WopiOptions> wopiOptions,
     IWopiStorageProvider storageProvider,
-    IDiscoverer discoverer) : Controller
+    IDiscoverer discoverer,
+    ILogger<WopiUrlBuilder> urlBuilderLogger) : Controller
 {
     private readonly WopiUrlBuilder urlGenerator = new(
         discoverer,
+        urlBuilderLogger,
         new WopiUrlSettings { UiLlcc = ResolveUiCulture(wopiOptions.Value.UiCulture) });
 
     private static CultureInfo ResolveUiCulture(string? configured)

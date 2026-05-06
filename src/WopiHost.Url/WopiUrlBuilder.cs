@@ -1,6 +1,5 @@
 ﻿using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 
@@ -15,19 +14,18 @@ namespace WopiHost.Url;
 /// Creates a new instance of WOPI URL generator class.
 /// </remarks>
 /// <param name="discoverer">Provider of WOPI discovery data.</param>
+/// <param name="logger">Logger.</param>
 /// <param name="urlSettings">Additional settings influencing behavior of the WOPI client.</param>
-/// <param name="logger">Optional logger. When omitted, a <see cref="NullLogger{T}"/> is used so the package
-/// stays usable without DI.</param>
 public partial class WopiUrlBuilder(
     IDiscoverer discoverer,
-    WopiUrlSettings? urlSettings = null,
-    ILogger<WopiUrlBuilder>? logger = null)
+    ILogger<WopiUrlBuilder> logger,
+    WopiUrlSettings? urlSettings = null)
 {
     [GeneratedRegex("<(?<name>\\w*)=(?<value>\\w*)&*>")]
     private static partial Regex UrlParamRegex();
 
     private readonly IDiscoverer _wopiDiscoverer = discoverer;
-    private readonly ILogger<WopiUrlBuilder> _logger = logger ?? NullLogger<WopiUrlBuilder>.Instance;
+    private readonly ILogger<WopiUrlBuilder> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <summary>
     /// Additional URL parameters influencing the behavior of the WOPI client.
