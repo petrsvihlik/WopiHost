@@ -139,17 +139,6 @@ public class WopiUrlSettings : Dictionary<string, string>
     }
 
     /// <summary>
-    /// This placeholder must be replaced by a WopiSrc value. Unlike other placeholders, replacing this placeholder is required.
-    /// New in version 2018.12.15: Prior to this version, hosts were required to add the WopiSrc to the action URL for most (but not all) actions. This placeholder enables hosts to handle the WopiSrc in the same way as other URL parameters.
-    /// </summary>
-    public string WopiSource
-    {
-        //TODO: unify with WopiSrc
-        get => this["WOPI_SOURCE"];
-        set => this["WOPI_SOURCE"] = value;
-    }
-
-    /// <summary>
     /// This value is used to run the WOPI Validation application in different modes.
     /// This value can be set to All, OfficeOnline or OfficeNativeClient to activate tests specific to Office Online and Office for iOS.If omitted, the default value is All.
     /// All: activates all WOPI Validation application tests.

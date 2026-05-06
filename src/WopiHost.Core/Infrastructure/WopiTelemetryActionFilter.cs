@@ -45,8 +45,18 @@ public sealed partial class WopiTelemetryActionFilter(ILogger<WopiTelemetryActio
             var executed = await next().ConfigureAwait(false);
             if (executed.Exception is { } ex)
             {
-                outcome = WopiTelemetry.Outcomes.Error;
-                LogActionFailed(logger, ex, operation, resourceId ?? string.Empty);
+                // Client disconnect / aborted request shouldn't surface as an Error in metrics
+                // or logs — the WOPI client closed the socket and there's nothing wrong with us.
+                if (IsCancellation(ex, context.HttpContext.RequestAborted))
+                {
+                    outcome = WopiTelemetry.Outcomes.Cancelled;
+                    LogActionCancelled(logger, operation, resourceId ?? string.Empty);
+                }
+                else
+                {
+                    outcome = WopiTelemetry.Outcomes.Error;
+                    LogActionFailed(logger, ex, operation, resourceId ?? string.Empty);
+                }
             }
             else
             {
@@ -59,6 +69,11 @@ public sealed partial class WopiTelemetryActionFilter(ILogger<WopiTelemetryActio
             WopiTelemetry.RecordOutcome(activity, operation, outcome);
         }
     }
+
+    private static bool IsCancellation(Exception ex, CancellationToken requestAborted) =>
+        (ex is OperationCanceledException && requestAborted.IsCancellationRequested)
+        // AggregateException can wrap an OCE when a Task.WhenAll observes one of several faults.
+        || (ex is AggregateException agg && agg.InnerExceptions.All(e => e is OperationCanceledException) && requestAborted.IsCancellationRequested);
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;
 

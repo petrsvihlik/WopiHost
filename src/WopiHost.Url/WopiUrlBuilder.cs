@@ -42,23 +42,53 @@ public partial class WopiUrlBuilder(
     /// <returns></returns>
     public async Task<string?> GetFileUrlAsync(string extension, Uri wopiFileUrl, WopiActionEnum action, WopiUrlSettings? urlSettings = null)
     {
-        var combinedUrlSettings = new WopiUrlSettings((urlSettings ?? []).Merge(UrlSettings ?? []));
-        var template = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
-        if (!string.IsNullOrEmpty(template))
+        ArgumentNullException.ThrowIfNull(wopiFileUrl);
+
+        // Combine settings with method-arg precedence over constructor-arg.
+        WopiUrlSettings combinedUrlSettings = [];
+        if (UrlSettings is not null)
         {
-            // Resolve optional parameters
-            var url = UrlParamRegex().Replace(template, m => ResolveOptionalParameter(m.Groups["name"].Value, m.Groups["value"].Value, combinedUrlSettings) ?? string.Empty);
-            url = url.TrimEnd('&');
-
-            // Append mandatory parameters
-            url += "&WOPISrc=" + Uri.EscapeDataString(wopiFileUrl.ToString());
-
-            LogFileUrlGenerated(_logger, extension, action);
-            return url;
+            foreach (var kvp in UrlSettings) combinedUrlSettings[kvp.Key] = kvp.Value;
         }
-        LogTemplateNotFound(_logger, extension, action);
-        return null;
+        if (urlSettings is not null)
+        {
+            foreach (var kvp in urlSettings) combinedUrlSettings[kvp.Key] = kvp.Value; // overrides
+        }
+
+        // Single source of truth for the WopiSrc value: the wopiFileUrl parameter. The
+        // WOPI_SOURCE placeholder, when present in a template, gets substituted with this
+        // value (URL-escaped by ResolveOptionalParameter). Any caller-provided WOPI_SOURCE
+        // value in urlSettings is overwritten so we never produce two different WopiSrc
+        // values in the same URL.
+        combinedUrlSettings[WopiSourcePlaceholder] = wopiFileUrl.ToString();
+
+        var template = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
+        if (string.IsNullOrEmpty(template))
+        {
+            LogTemplateNotFound(_logger, extension, action);
+            return null;
+        }
+
+        var templateHasWopiSourcePlaceholder = template.Contains(WopiSourcePlaceholder, StringComparison.Ordinal);
+
+        // Resolve optional parameters
+        var url = UrlParamRegex().Replace(template, m => ResolveOptionalParameter(m.Groups["name"].Value, m.Groups["value"].Value, combinedUrlSettings) ?? string.Empty);
+        url = url.TrimEnd('&');
+
+        // Only append &WOPISrc= when the template did not already carry the WOPI_SOURCE
+        // placeholder. Modern Office Online / M365 templates include `<wopisrc=WOPI_SOURCE&>`
+        // and would otherwise produce two WopiSrc params (lowercase from the substitution,
+        // uppercase from this append) with potentially different values.
+        if (!templateHasWopiSourcePlaceholder)
+        {
+            url += "&WOPISrc=" + Uri.EscapeDataString(wopiFileUrl.ToString());
+        }
+
+        LogFileUrlGenerated(_logger, extension, action);
+        return url;
     }
+
+    private const string WopiSourcePlaceholder = "WOPI_SOURCE";
 
     private static string? ResolveOptionalParameter(string name, string value, WopiUrlSettings urlSettings)
     {

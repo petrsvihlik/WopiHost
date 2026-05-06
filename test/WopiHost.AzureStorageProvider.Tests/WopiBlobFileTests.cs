@@ -81,7 +81,7 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         var file = await WopiBlobFile.CreateAsync(blob, "with-hash.bin", "id", CancellationToken.None);
 
         Assert.NotNull(file.Checksum);
-        Assert.Equal(Convert.FromHexString(hex), file.Checksum);
+        Assert.Equal(Convert.FromHexString(hex), file.Checksum.Value.ToArray());
     }
 
     [Fact]

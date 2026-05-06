@@ -5,7 +5,7 @@
 /// </summary>
 /// <param name="Name">Name of the object.</param>
 /// <param name="Url">URL pointing to the object.</param>
-public record ChildFile(string Name, string Url) : AbstractChildBase(Name, Url)
+public record ChildFile(string Name, Uri Url) : AbstractChildBase(Name, Url)
 {
 	/// <summary>
 	/// Version of the file.

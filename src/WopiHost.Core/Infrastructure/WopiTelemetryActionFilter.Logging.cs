@@ -27,4 +27,12 @@ public sealed partial class WopiTelemetryActionFilter
         Exception exception,
         string operation,
         string resourceId);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "WOPI {operation} on {resourceId} cancelled (client disconnected)")]
+    private static partial void LogActionCancelled(
+        ILogger logger,
+        string operation,
+        string resourceId);
 }

@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Text.RegularExpressions;
 using FakeItEasy;
 using Microsoft.Extensions.Logging.Abstractions;
 using WopiHost.Discovery;
@@ -6,8 +7,12 @@ using WopiHost.Discovery.Enumerations;
 
 namespace WopiHost.Url.Tests;
 
-public class WopiUrlGeneratorTests
+public partial class WopiUrlGeneratorTests
 {
+    /// <summary>Counts WopiSrc occurrences in the generated URL (case-insensitive).</summary>
+    [GeneratedRegex("wopisrc=", RegexOptions.IgnoreCase)]
+    private static partial Regex WopiSrcParamRegex();
+
     private readonly IDiscoverer _discoverer;
 
     public WopiUrlGeneratorTests()
@@ -54,6 +59,62 @@ public class WopiUrlGeneratorTests
     }
 
     [Fact]
+    public async Task GetFileUrlAsync_TemplateContainsWopiSourcePlaceholder_SubstitutesAndDoesNotAppendDuplicate()
+    {
+        // Modern OOS / M365 templates carry `<wopisrc=WOPI_SOURCE&>`. Prior to the WOPI_SOURCE fix
+        // the builder would unconditionally append `&WOPISrc=...`, producing two WopiSrc params
+        // (lowercase from the substitution + uppercase from the append). The placeholder must now
+        // be auto-populated from the wopiFileUrl parameter and the unconditional append skipped.
+        const string template = "https://office.example.com/x/_vti_bin/excelserviceinternal.asmx?<ui=UI_LLCC&><wopisrc=WOPI_SOURCE&>";
+        A.CallTo(() => _discoverer.GetUrlTemplateAsync("xlsm", WopiActionEnum.LegacyWebService)).ReturnsLazily(() => template);
+
+        var urlGenerator = new WopiUrlBuilder(_discoverer, NullLogger<WopiUrlBuilder>.Instance);
+        var fileUrl = new Uri("http://wopihost:5000/wopi/files/test.xlsm");
+
+        var result = await urlGenerator.GetFileUrlAsync("xlsm", fileUrl, WopiActionEnum.LegacyWebService);
+
+        Assert.NotNull(result);
+        // The substitution is URL-escaped and lowercase per the template.
+        Assert.Contains("wopisrc=" + Uri.EscapeDataString(fileUrl.ToString()), result, StringComparison.Ordinal);
+        // No second copy of the param — case-insensitive count of "wopisrc=" must be exactly 1.
+        Assert.Single(WopiSrcParamRegex().Matches(result));
+    }
+
+    [Fact]
+    public async Task GetFileUrlAsync_TemplateWithoutWopiSourcePlaceholder_AppendsWopiSrcExactlyOnce()
+    {
+        // Backward-compat path: templates that don't include the WOPI_SOURCE placeholder still
+        // get the unconditional `&WOPISrc=` append.
+        var urlGenerator = new WopiUrlBuilder(_discoverer, NullLogger<WopiUrlBuilder>.Instance);
+        var fileUrl = new Uri("http://wopihost:5000/wopi/files/test.xlsx");
+
+        var result = await urlGenerator.GetFileUrlAsync("xlsx", fileUrl, WopiActionEnum.Edit);
+
+        Assert.NotNull(result);
+        Assert.Single(WopiSrcParamRegex().Matches(result));
+        Assert.Contains("WOPISrc=" + Uri.EscapeDataString(fileUrl.ToString()), result, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetFileUrlAsync_CallerProvidedWopiSourceSetting_IsOverriddenByFileUrlParameter()
+    {
+        // Defensive: even if a caller leaks WOPI_SOURCE into urlSettings, the wopiFileUrl
+        // parameter wins. The builder owns the single source of truth for the WopiSrc value.
+        const string template = "https://office.example.com/x/_layouts/foo.aspx?<wopisrc=WOPI_SOURCE&>";
+        A.CallTo(() => _discoverer.GetUrlTemplateAsync("xlsm", WopiActionEnum.LegacyWebService)).ReturnsLazily(() => template);
+
+        var settings = new WopiUrlSettings { ["WOPI_SOURCE"] = "http://impostor/file/999" };
+        var urlGenerator = new WopiUrlBuilder(_discoverer, NullLogger<WopiUrlBuilder>.Instance, settings);
+        var fileUrl = new Uri("http://wopihost:5000/wopi/files/real.xlsm");
+
+        var result = await urlGenerator.GetFileUrlAsync("xlsm", fileUrl, WopiActionEnum.LegacyWebService);
+
+        Assert.NotNull(result);
+        Assert.Contains("wopisrc=" + Uri.EscapeDataString(fileUrl.ToString()), result, StringComparison.Ordinal);
+        Assert.DoesNotContain("impostor", result, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void WopiUrlSettings_AssignedProperties_ExposeSameValues()
     {
         var businessUser = new Random(DateTime.Now.Millisecond).Next();
@@ -69,7 +130,6 @@ public class WopiUrlGeneratorTests
         var perfstats = new Random(DateTime.Now.Millisecond).Next();
         var hostSessionId = Guid.NewGuid().ToString();
         var sessionContext = Guid.NewGuid().ToString();
-        var wopiSource = "c:\\doc.docx";
         var validatorTestCategory = ValidatorTestCategoryEnum.All;
 
         var settings = new WopiUrlSettings()
@@ -87,11 +147,10 @@ public class WopiUrlGeneratorTests
             Perfstats = perfstats,
             HostSessionId = hostSessionId,
             SessionContext = sessionContext,
-            WopiSource = wopiSource,
             ValidatorTestCategory = validatorTestCategory
         };
 
-        Assert.Equal(15, settings.Count);
+        Assert.Equal(14, settings.Count);
         Assert.Equal(businessUser, settings.BusinessUser);
         Assert.Equal(uiLlcc, settings.UiLlcc);
         Assert.Equal(dcLlcc, settings.DcLlcc);
@@ -105,7 +164,6 @@ public class WopiUrlGeneratorTests
         Assert.Equal(perfstats, settings.Perfstats);
         Assert.Equal(hostSessionId, settings.HostSessionId);
         Assert.Equal(sessionContext, settings.SessionContext);
-        Assert.Equal(wopiSource, settings.WopiSource);
         Assert.Equal(validatorTestCategory, settings.ValidatorTestCategory);
     }
 }
