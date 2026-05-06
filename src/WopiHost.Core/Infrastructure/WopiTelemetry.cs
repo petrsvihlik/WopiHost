@@ -57,6 +57,10 @@ public static class WopiTelemetry
         public const string PreconditionFailed = "precondition_failed";
         public const string NotImplemented = "not_implemented";
         public const string ProofValidationFailed = "proof_validation_failed";
+
+        /// <summary>Client disconnected / request aborted before completion. Not a server error.</summary>
+        public const string Cancelled = "cancelled";
+
         public const string Error = "error";
     }
 
@@ -84,7 +88,9 @@ public static class WopiTelemetry
     public static void RecordOutcome(Activity? activity, string operation, string outcome)
     {
         activity?.SetTag(Tags.Outcome, outcome);
-        if (outcome != Outcomes.Success)
+        // Success and Cancelled are non-Error from a tracing perspective — Cancelled means the
+        // client closed the connection, which isn't a server-side fault.
+        if (outcome != Outcomes.Success && outcome != Outcomes.Cancelled)
         {
             activity?.SetStatus(ActivityStatusCode.Error, outcome);
         }

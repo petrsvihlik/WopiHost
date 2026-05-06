@@ -11,12 +11,13 @@ internal static class Extensions
     /// <summary>
     /// Copies the stream to a byte array.
     /// </summary>
-    /// <param name="input">Stream to read from</param>
-    /// <returns>Byte array copy of a stream</returns>
-    public static async Task<byte[]> ReadBytesAsync(this Stream input)
+    /// <param name="input">Stream to read from.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Byte array copy of a stream.</returns>
+    public static async Task<byte[]> ReadBytesAsync(this Stream input, CancellationToken cancellationToken = default)
     {
         using var ms = new MemoryStream();
-        await input.CopyToAsync(ms);
+        await input.CopyToAsync(ms, cancellationToken);
         return ms.ToArray();
     }
 

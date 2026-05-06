@@ -47,13 +47,13 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
     }
 
     /// <inheritdoc/>
-    public async Task<byte[]> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent)
+    public async Task<byte[]> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(newContent);
 
-        var entry = await GetOrCreateSession(file).ConfigureAwait(false);
+        var entry = await GetOrCreateSession(file, cancellationToken).ConfigureAwait(false);
 
         // Wrap the request bytes as a CobaltStream (16.x replaced the Atom-taking
         // overload of DeserializeInputFromProtocol with one that takes CobaltStream).
@@ -79,10 +79,13 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
                 // Serialize concurrent saves for the same file. WOPI itself uses
                 // protocol-level locks but those don't necessarily cover the
                 // window between ExecuteRequestBatch and the disk flush.
-                await entry.WriteLock.WaitAsync().ConfigureAwait(false);
+                await entry.WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false);
                 try
                 {
-                    using var stream = await file.GetWriteStream().ConfigureAwait(false);
+                    using var stream = await file.GetWriteStream(cancellationToken).ConfigureAwait(false);
+                    // GenericFdaStream is sync-only (CobaltCore exposes no async copy). The
+                    // surrounding awaits already honor cancellation; the sync copy itself runs
+                    // against an in-memory buffer so it's not network-bound.
                     new GenericFda(entry.File.CobaltEndpoint).GetContentStream().CopyTo(stream);
                     LogContentFlushed(_logger, file.Identifier);
                 }
@@ -104,7 +107,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
         return response;
     }
 
-    private async Task<CobaltSessionEntry> GetOrCreateSession(IWopiFile file)
+    private async Task<CobaltSessionEntry> GetOrCreateSession(IWopiFile file, CancellationToken cancellationToken)
     {
         var freshEntry = false;
         var lazy = _sessions.GetOrAdd(
@@ -112,7 +115,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
             _ =>
             {
                 freshEntry = true;
-                return new Lazy<Task<CobaltSessionEntry>>(() => CreateSessionEntry(file), LazyThreadSafetyMode.ExecutionAndPublication);
+                return new Lazy<Task<CobaltSessionEntry>>(() => CreateSessionEntry(file, cancellationToken), LazyThreadSafetyMode.ExecutionAndPublication);
             });
         try
         {
@@ -135,7 +138,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
         }
     }
 
-    private async Task<CobaltSessionEntry> CreateSessionEntry(IWopiFile file)
+    private async Task<CobaltSessionEntry> CreateSessionEntry(IWopiFile file, CancellationToken cancellationToken)
     {
         var disposal = new DisposalEscrow(file.Owner);
 
@@ -170,12 +173,12 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
 
         if (file.Exists)
         {
-            using var stream = await file.GetReadStream().ConfigureAwait(false);
+            using var stream = await file.GetReadStream(cancellationToken).ConfigureAwait(false);
             // 16.x made `AtomFromStream` an internal sealed type; `Atom.CreateFromArray`
             // is the public byte[] factory. Buffer the stream so we can hand a byte[]
             // to it.
             using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms).ConfigureAwait(false);
+            await stream.CopyToAsync(ms, cancellationToken).ConfigureAwait(false);
             var srcAtom = Atom.CreateFromArray(ms.ToArray());
             cobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out _);
             cobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
