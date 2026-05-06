@@ -72,10 +72,9 @@ if (useCollabora)
                .WithEnvironment("Wopi__Discovery__NetZone", "ExternalHttp");
 }
 
-// Add Validator project for testing
+// Add Validator project for testing. Endpoints come from launchSettings.json (HTTPS only).
 builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator")
        .WithReference(wopiHost)
-       .WithEndpoint(name: "validator-http", port: 7000, scheme: "http")
        .WithExternalHttpEndpoints();
 
 // Optional: OIDC frontend sample. Opt-in via "AppHost:IncludeOidcSample"=true so newcomers don't

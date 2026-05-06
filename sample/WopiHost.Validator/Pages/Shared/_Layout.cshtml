@@ -38,8 +38,11 @@
         </div>
     </footer>
 
-    <script src="~/lib/jquery/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/js/bootstrap.min.js"></script>
+    @* Bootstrap 5 dropped its jQuery dependency and this sample has no client JS
+       that uses jQuery, so loading it is just attack surface (Dependabot picks up
+       CVEs in the bundled jquery-validation files even though they're never
+       referenced). bootstrap.bundle.min.js includes Popper for tooltips/dropdowns. *@
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
