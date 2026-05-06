@@ -127,18 +127,11 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
         var actionString = action.ToString().ToUpperInvariant();
 
         var query = (await GetAppsAsync()).Elements()
-            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) && 
+            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) &&
                 e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true)
             .Select(e => e.Attribute(AttrActionRequires)?.Value.Split(','));
 
         return query?.FirstOrDefault() ?? [];
-    }
-
-    ///<inheritdoc />
-    public async Task<bool> RequiresCobaltAsync(string extension, WopiActionEnum action)
-    {
-        var requirements = await GetActionRequirementsAsync(extension, action);
-        return requirements is not null && requirements.Contains(AttrValCobalt);
     }
 
     ///<inheritdoc />
