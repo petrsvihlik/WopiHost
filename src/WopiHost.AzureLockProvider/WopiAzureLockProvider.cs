@@ -68,58 +68,80 @@ public partial class WopiAzureLockProvider(BlobContainerClient containerClient, 
         await EnsureContainerAsync(cancellationToken).ConfigureAwait(false);
         var blobClient = GetLockBlob(fileId);
 
-        // Honour WOPI expiry: a stale (>30 min old) lock can be taken over.
+        // Step 1: probe existing state.
         var existing = await TryGetPropertiesAsync(blobClient, cancellationToken).ConfigureAwait(false);
-        if (existing is not null && TryReadLock(fileId, existing, out var existingInfo) && !existingInfo.Expired)
-        {
-            LogLockAddRejected(logger, fileId, lockId, existingInfo.LockId);
-            return null;
-        }
         if (existing is not null)
         {
-            // Either no valid metadata or expired. Break the lease and delete so we can start fresh.
-            await TryBreakLeaseAsync(blobClient, cancellationToken).ConfigureAwait(false);
-            await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (TryReadLock(fileId, existing, out var existingInfo))
+            {
+                if (!existingInfo.Expired)
+                {
+                    LogLockAddRejected(logger, fileId, lockId, existingInfo.LockId);
+                    return null;
+                }
+                // Stale (>30 min old) — clean up so we can take over.
+                await TryBreakLeaseAsync(blobClient, cancellationToken).ConfigureAwait(false);
+                await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                // Blob exists but metadata is missing/malformed. With the atomic upload-with-
+                // metadata flow below, healthy peers never observe this state — it can only mean
+                // a peer is mid-acquire RIGHT NOW (we lost the race) or a previous attempt
+                // crashed between Upload and lease acquisition. Either way, treat it as
+                // "lock-attempt in progress" and yield. (Aggressive cleanup here was the prior
+                // bug that broke healthy peers via lease-break + delete in their acquire window.)
+                LogLockAddRaceLost(logger, fileId, lockId);
+                return null;
+            }
         }
 
-        // Upload the placeholder. If two callers race here, exactly one wins (overwrite=false).
-        try
-        {
-            using var empty = new MemoryStream([], writable: false);
-            await blobClient.UploadAsync(empty, overwrite: false, cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-        catch (RequestFailedException ex) when (ex.Status == 409)
-        {
-            // Raced with another caller that just created the blob.
-            LogLockAddRaceLost(logger, fileId, lockId);
-            return null;
-        }
-
+        // Step 2: atomic upload-with-metadata. The blob is never observable in a "no metadata"
+        // state, so any peer's TryReadLock either gets a complete WopiLockInfo (we won) or the
+        // blob doesn't yet exist (their probe hits before our upload lands). IfNoneMatch=*
+        // serves as the create-if-not-exists conditional: a 412 means a sibling acquire raced
+        // ahead and we lost. Some Azure SDK paths surface 409 instead — we treat both as the
+        // race-lost outcome.
         var leaseId = Guid.NewGuid().ToString();
         var now = DateTimeOffset.UtcNow;
-        var leaseClient = blobClient.GetBlobLeaseClient(leaseId);
-
-        try
-        {
-            await leaseClient.AcquireAsync(TimeSpan.FromSeconds(-1), cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-        catch (RequestFailedException ex)
-        {
-            // Couldn't lease — clean up the placeholder so we don't leave a no-op blob behind.
-            LogLeaseAcquireFailed(logger, ex, fileId);
-            await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            return null;
-        }
-
         var metadata = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [LockIdKey] = lockId,
             [LeaseIdKey] = leaseId,
             [CreatedKey] = now.ToString("O", CultureInfo.InvariantCulture),
         };
-        await blobClient.SetMetadataAsync(metadata,
-            conditions: new BlobRequestConditions { LeaseId = leaseId },
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        try
+        {
+            using var empty = new MemoryStream([], writable: false);
+            await blobClient.UploadAsync(
+                empty,
+                new BlobUploadOptions
+                {
+                    Metadata = metadata,
+                    Conditions = new BlobRequestConditions { IfNoneMatch = ETag.All },
+                },
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (RequestFailedException ex) when (ex.Status == 409 || ex.Status == 412)
+        {
+            LogLockAddRaceLost(logger, fileId, lockId);
+            return null;
+        }
+
+        // Step 3: acquire the infinite lease whose id is already announced via metadata. If
+        // this fails, delete the placeholder so we don't leave a no-op blob behind that claims
+        // a lease we don't actually hold.
+        var leaseClient = blobClient.GetBlobLeaseClient(leaseId);
+        try
+        {
+            await leaseClient.AcquireAsync(TimeSpan.FromSeconds(-1), cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (RequestFailedException ex)
+        {
+            LogLeaseAcquireFailed(logger, ex, fileId);
+            await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            return null;
+        }
 
         LogLockAcquired(logger, fileId, lockId);
         return new WopiLockInfo { FileId = fileId, LockId = lockId, DateCreated = now };
