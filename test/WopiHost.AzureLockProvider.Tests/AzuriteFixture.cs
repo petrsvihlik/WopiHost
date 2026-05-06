@@ -14,8 +14,7 @@ public sealed class AzuriteFixture : IAsyncLifetime
     /// </summary>
     public const BlobClientOptions.ServiceVersion AzuriteSupportedVersion = BlobClientOptions.ServiceVersion.V2025_11_05;
 
-    private readonly AzuriteContainer container = new AzuriteBuilder()
-        .WithImage(AzuriteImage)
+    private readonly AzuriteContainer container = new AzuriteBuilder(AzuriteImage)
         .Build();
 
     public string ConnectionString => container.GetConnectionString();

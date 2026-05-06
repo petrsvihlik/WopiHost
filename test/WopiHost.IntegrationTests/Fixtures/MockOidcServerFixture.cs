@@ -38,8 +38,7 @@ public sealed class MockOidcServerFixture : IAsyncLifetime
     {
         try
         {
-            _container = new ContainerBuilder()
-                .WithImage(Image)
+            _container = new ContainerBuilder(Image)
                 .WithPortBinding(ContainerPort, true)
                 .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r =>
                     r.ForPort(ContainerPort).ForPath($"/{Issuer}/.well-known/openid-configuration")))
