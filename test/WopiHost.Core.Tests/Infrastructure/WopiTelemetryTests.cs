@@ -10,6 +10,14 @@ namespace WopiHost.Core.Tests.Infrastructure;
 /// produces an <see cref="Activity"/> (otherwise it returns <c>null</c> and the helper paths
 /// stay uncovered).
 /// </summary>
+/// <remarks>
+/// Pinned to <see cref="WopiTelemetryCollection"/> so this class runs sequentially with
+/// <see cref="WopiTelemetryActionFilterTests"/>. Both register a process-global
+/// <see cref="ActivitySource"/> listener for <see cref="WopiTelemetry.Name"/>; if xUnit runs
+/// them in parallel, this class's <c>StartActivity_NoListener_ReturnsNull</c> sees the sibling
+/// class's listener and fails non-deterministically.
+/// </remarks>
+[Collection(WopiTelemetryCollection.Name)]
 public sealed class WopiTelemetryTests : IDisposable
 {
     private readonly ActivityListener _listener;

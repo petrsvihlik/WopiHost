@@ -20,6 +20,7 @@ namespace WopiHost.Core.Tests.Infrastructure;
 /// <see cref="IActionResult"/>. Assertions verify the recorded outcome via the activity tag
 /// (the easiest single observable that proves the classification + RecordOutcome path ran).
 /// </summary>
+[Collection(WopiTelemetryCollection.Name)]
 public sealed class WopiTelemetryActionFilterTests : IDisposable
 {
     private readonly ActivityListener _listener;

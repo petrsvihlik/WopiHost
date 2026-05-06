@@ -36,12 +36,18 @@ if (builder.Configuration.GetValue<bool>("AppHost:UseAzureStorage"))
 //    a mismatch with the WopiSrc query param yields a silent 401.
 //  - SSL is disabled for local dev only.
 var useCollabora = builder.Configuration.GetValue<bool>("AppHost:UseCollabora");
+IResourceBuilder<ContainerResource>? collabora = null;
 if (useCollabora)
 {
-    builder.AddContainer("collabora", "collabora/code")
+    // Health check on /hosting/discovery: the loolwsd process inside the container takes a few
+    // seconds to bind to 9980 even after the TCP listener accepts. Without this, dependents
+    // would race ahead and Polly's Standard-Retry pipeline logs "ResponseEnded" / 10s timeouts
+    // on the first page load. WaitFor below blocks dependents until this returns 200.
+    collabora = builder.AddContainer("collabora", "collabora/code")
            .WithEnvironment("domain", "host\\.docker\\.internal:5000")
            .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false")
-           .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora");
+           .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
+           .WithHttpHealthCheck("/hosting/discovery", endpointName: "collabora");
 
     // Backend fetches /hosting/discovery from Collabora at startup. Collabora does not sign WOPI
     // callbacks with proof keys (those are an OOS / M365-for-the-Web feature) and emits no
@@ -50,7 +56,8 @@ if (useCollabora)
     // host honours Wopi:Security:DisableProofValidation in Development to swap in a no-op
     // validator; refuse to run in non-Development if the flag is set.
     wopiHost.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
-            .WithEnvironment("Wopi__Security__DisableProofValidation", "true");
+            .WithEnvironment("Wopi__Security__DisableProofValidation", "true")
+            .WaitFor(collabora);
 }
 
 // Add WopiHost.Web frontend that depends on WopiHost. Endpoints come from the project's
@@ -69,7 +76,8 @@ if (useCollabora)
     // out, so files render with the generic icon and edit/view buttons stay disabled.
     wopiHostWeb.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
                .WithEnvironment("Wopi__HostUrl", "http://host.docker.internal:5000")
-               .WithEnvironment("Wopi__Discovery__NetZone", "ExternalHttp");
+               .WithEnvironment("Wopi__Discovery__NetZone", "ExternalHttp")
+               .WaitFor(collabora!);
 }
 
 // Add Validator project for testing. Endpoints come from launchSettings.json (HTTPS only).
