@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace WopiHost.Abstractions;
+﻿namespace WopiHost.Abstractions;
 
 /// <summary>
 /// Representation of a file.
@@ -38,11 +36,12 @@ public interface IWopiFile : IWopiResource
     string? Version { get; }
 
     /// <summary>
-    /// SHA256 checksum
+    /// SHA-256 checksum of the file contents, or <see langword="null"/> when the provider doesn't
+    /// compute one. <see cref="ReadOnlyMemory{T}"/> hands callers an immutable view; providers
+    /// can wrap their existing <c>byte[]</c> hash output via the implicit conversion from
+    /// <c>byte[]</c> to <see cref="ReadOnlyMemory{T}"/>.
     /// </summary>
-    [SuppressMessage("Performance", "CA1819:Properties should not return arrays",
-        Justification = "SHA-256 hash bytes; byte[] is the natural shape and matches SHA256.ComputeHash output.")]
-    byte[]? Checksum { get; }
+    ReadOnlyMemory<byte>? Checksum { get; }
 
     /// <summary>
     /// Size of the file.

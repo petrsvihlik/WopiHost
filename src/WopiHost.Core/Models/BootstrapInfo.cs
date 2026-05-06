@@ -8,11 +8,10 @@ namespace WopiHost.Core.Models;
 public class BootstrapInfo
 {
     /// <summary>
-    /// A string URI for the WOPI server’s 🔧 Ecosystem endpoint, with a WOPI access token appended. A GET request to this URL will invoke the CheckEcosystem operation.
+    /// URI for the WOPI server's 🔧 Ecosystem endpoint, with a WOPI access token appended.
+    /// A GET request to this URL will invoke the CheckEcosystem operation.
     /// </summary>
-#pragma warning disable CA1056 // URI-like properties should not be strings
-    public string? EcosystemUrl { get; set; }
-#pragma warning restore CA1056 // URI-like properties should not be strings
+    public Uri? EcosystemUrl { get; set; }
 
     /// <summary>
     /// A string value uniquely identifying the user making the request. This value should match the UserId value provided in <see cref="WopiCheckFileInfo"/>. 

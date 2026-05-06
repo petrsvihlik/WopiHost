@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Discovery;
@@ -23,9 +24,10 @@ public class HomeController(
     IOptions<OidcOptions> oidcOptions,
     IWopiStorageProvider storageProvider,
     IDiscoverer discoverer,
-    WopiAccessTokenMinter tokenMinter) : Controller
+    WopiAccessTokenMinter tokenMinter,
+    ILogger<WopiUrlBuilder> urlBuilderLogger) : Controller
 {
-    private readonly WopiUrlBuilder _urlGenerator = new(discoverer, new WopiUrlSettings { UiLlcc = new CultureInfo("en-US") });
+    private readonly WopiUrlBuilder _urlGenerator = new(discoverer, urlBuilderLogger, new WopiUrlSettings { UiLlcc = new CultureInfo("en-US") });
 
     public async Task<ActionResult> Index()
     {

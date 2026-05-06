@@ -94,7 +94,12 @@ internal static partial class LinuxFileOwner
         public IntPtr pw_shell;
     }
 
-#pragma warning disable CA5392 // Use DefaultDllImportSearchPaths attribute for P/Invokes
+    // CA5392 wants explicit DLL search paths to limit the loader's search to safe directories
+    // and prevent DLL hijacking. The attribute is honored on Windows only — on Linux the dynamic
+    // loader uses LD_LIBRARY_PATH + system paths and ignores the attribute entirely. This whole
+    // class is [SupportedOSPlatform("linux")] so the attribute is effectively a no-op for us, but
+    // it satisfies the analyzer and documents intent.
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [LibraryImport("libc", EntryPoint = "statx", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
     private static partial int Statx(
         int dirfd,
@@ -103,6 +108,7 @@ internal static partial class LinuxFileOwner
         uint mask,
         out StatxBuf statxbuf);
 
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [LibraryImport("libc", EntryPoint = "getpwuid_r", SetLastError = false)]
     private static partial int GetPwUid_R(
         uint uid,
@@ -110,5 +116,4 @@ internal static partial class LinuxFileOwner
         IntPtr buf,
         nuint buflen,
         out IntPtr result);
-#pragma warning restore CA5392
 }

@@ -18,7 +18,7 @@ namespace WopiHost.Core.Security.Authentication;
 /// <param name="discoverer">Service for retrieving WOPI discovery information, including proof keys.</param>
 /// <param name="logger">Logger instance.</param>
 /// <param name="timeProvider">Provider for time operations (defaults to system time if not provided).</param>
-public class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidator> logger, TimeProvider? timeProvider = null) : IWopiProofValidator
+public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidator> logger, TimeProvider? timeProvider = null) : IWopiProofValidator
 {
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
@@ -37,7 +37,9 @@ public class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidat
                 !request.Headers.TryGetValue(WopiHeaders.TIMESTAMP, out var receivedTimeStamp) ||
                 !long.TryParse(receivedTimeStamp.ToString(), CultureInfo.InvariantCulture, out var ticks))
             {
-                logger.LogWarning("Missing or invalid proof/timestamp headers");
+                LogProofHeadersMissing(logger);
+                WopiTelemetry.ProofValidationFailures.Add(1,
+                    new KeyValuePair<string, object?>("reason", "missing_or_invalid_headers"));
                 return false;
             }
 
@@ -51,6 +53,12 @@ public class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidat
                 || age > TimeSpan.FromMinutes(20)
                 || age < TimeSpan.FromMinutes(-5))
             {
+                var reason = sourceProofKeys.Value is null || sourceProofKeys.OldValue is null
+                    ? "missing_discovery_keys"
+                    : "timestamp_outside_window";
+                LogProofTimestampOrKeysInvalid(logger, age, reason);
+                WopiTelemetry.ProofValidationFailures.Add(1,
+                    new KeyValuePair<string, object?>("reason", reason));
                 return false;
             }
 
@@ -74,13 +82,22 @@ public class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidat
             byte[] expectedBytes = [.. expectedProof];
 
             var receivedProofOld = request.Headers[WopiHeaders.PROOF_OLD].FirstOrDefault() ?? string.Empty;
-            return VerifyProof(expectedBytes, receivedProof.ToString(), sourceProofKeys.Value)
+            var verified = VerifyProof(expectedBytes, receivedProof.ToString(), sourceProofKeys.Value)
                 || VerifyProof(expectedBytes, receivedProof.ToString(), sourceProofKeys.OldValue)
                 || VerifyProof(expectedBytes, receivedProofOld, sourceProofKeys.Value);
+            if (!verified)
+            {
+                LogProofSignatureMismatch(logger);
+                WopiTelemetry.ProofValidationFailures.Add(1,
+                    new KeyValuePair<string, object?>("reason", "signature_mismatch"));
+            }
+            return verified;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error validating WOPI proof");
+            LogProofValidationError(logger, ex);
+            WopiTelemetry.ProofValidationFailures.Add(1,
+                new KeyValuePair<string, object?>("reason", "exception"));
             return false;
         }
     }

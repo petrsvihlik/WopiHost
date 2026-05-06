@@ -26,6 +26,7 @@ namespace WopiHost.Core.Controllers;
 [ApiController]
 [Route("wopi/[controller]")]
 [ServiceFilter(typeof(WopiOriginValidationActionFilter))]
+[ServiceFilter(typeof(WopiTelemetryActionFilter))]
 public class ContainersController(
     IWopiStorageProvider storageProvider,
     IWopiLockProvider? lockProvider = null,

@@ -21,8 +21,6 @@ internal sealed class FakeDiscoverer : IDiscoverer
     public Task<IEnumerable<string>> GetActionRequirementsAsync(string extension, WopiActionEnum action) =>
         Task.FromResult(Enumerable.Empty<string>());
 
-    public Task<bool> RequiresCobaltAsync(string extension, WopiActionEnum action) => Task.FromResult(false);
-
     public Task<string?> GetApplicationNameAsync(string extension) => Task.FromResult<string?>("FakeOffice");
 
     public Task<Uri?> GetApplicationFavIconAsync(string extension) =>

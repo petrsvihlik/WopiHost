@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider;
@@ -9,10 +10,11 @@ namespace WopiHost.FileSystemProvider;
 /// <summary>
 /// Provides files and folders based on a base64-encoded paths.
 /// </summary>
-public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorageProvider
+public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorageProvider
 {
     private readonly InMemoryFileIds fileIds;
     private readonly string wopiAbsolutePath;
+    private readonly ILogger<WopiFileSystemProvider> logger;
 
     /// <summary>
     /// Reference to the root container.
@@ -25,13 +27,16 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
     /// <param name="fileIds">In-memory storage for file identifiers.</param>
     /// <param name="env">Provides information about the hosting environment an application is running in.</param>
     /// <param name="configuration">Application configuration.</param>
+    /// <param name="logger">Logger.</param>
     public WopiFileSystemProvider(
         InMemoryFileIds fileIds,
         IHostEnvironment env,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger<WopiFileSystemProvider> logger)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         this.fileIds = fileIds ?? throw new ArgumentNullException(nameof(fileIds));
+        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         var fileSystemProviderOptions = configuration.GetSection(WopiConfigurationSections.STORAGE_OPTIONS)?
             .Get<WopiFileSystemProviderOptions>() ?? throw new ArgumentNullException(nameof(configuration));
 
@@ -49,6 +54,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
             throw new InvalidOperationException("Root directory not found.");
         }
         RootContainerPointer = new WopiFolder(wopiAbsolutePath, rootId);
+        LogProviderInitialized(this.logger, wopiAbsolutePath);
     }
 
     /// <inheritdoc/>
@@ -276,6 +282,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         }
 
         var newFileId = fileIds.AddFile(newPath);
+        LogFileCreated(logger, newFileId, newPath);
         return GetWopiResource<IWopiFile>(newFileId, cancellationToken);
     }
 
@@ -300,6 +307,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
             dirInfo.Create();
         }
         var newId = fileIds.AddFile(dirInfo.FullName);
+        LogFolderCreated(logger, newId, dirInfo.FullName);
         return GetWopiResource<IWopiFolder>(newId, cancellationToken);
     }
 
@@ -332,6 +340,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         }
         Directory.Delete(fullPath, true);
         fileIds.RemoveId(identifier);
+        LogFolderDeleted(logger, identifier, fullPath);
         return true;
     }
 
@@ -347,6 +356,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
         }
         File.Delete(fullPath);
         fileIds.RemoveId(identifier);
+        LogFileDeleted(logger, identifier, fullPath);
         return true;
     }
 
@@ -374,6 +384,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
             }
             File.Move(fullPath, newPath);
             fileIds.UpdateFile(identifier, newPath);
+            LogFileRenamed(logger, identifier, fullPath, newPath);
         }
         else if (typeof(T) == typeof(IWopiFolder))
         {
@@ -390,6 +401,7 @@ public class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorage
             }
             Directory.Move(fullPath, newPath);
             fileIds.UpdateFile(identifier, newPath);
+            LogFolderRenamed(logger, identifier, fullPath, newPath);
         }
         else
         {

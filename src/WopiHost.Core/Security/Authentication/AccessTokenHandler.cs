@@ -21,9 +21,6 @@ public partial class AccessTokenHandler(
     ILoggerFactory logger,
     UrlEncoder encoder) : AuthenticationHandler<AccessTokenAuthenticationOptions>(options, logger, encoder)
 {
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Access token validation failed: {Reason}")]
-    private static partial void LogTokenValidationFailed(ILogger logger, string? reason);
-
     /// <summary>
     /// Validates the <c>access_token</c> query parameter on WOPI requests.
     /// </summary>

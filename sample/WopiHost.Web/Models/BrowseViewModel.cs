@@ -14,4 +14,11 @@ public class BrowseViewModel
 }
 
 /// <summary>One ancestor folder rendered in the breadcrumb trail.</summary>
-public sealed record BreadcrumbPart(string Name, string Url);
+/// <remarks>
+/// <see cref="Url"/> is a relative <see cref="Uri"/> (<see cref="UriKind.Relative"/>) produced by
+/// <c>IUrlHelper.Action</c> and rendered into an <c>&lt;a href&gt;</c> by Razor via <see cref="object.ToString"/>.
+/// If this type is ever exposed through a JSON API, note that OpenAPI's <c>format: uri</c> implies an
+/// absolute URI per RFC 3986; use <c>format: uri-reference</c> (via a schema filter) so strict clients
+/// don't reject relative values.
+/// </remarks>
+public sealed record BreadcrumbPart(string Name, Uri Url);

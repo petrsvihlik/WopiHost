@@ -98,9 +98,7 @@ public class WopiBlobFile : IWopiFile
     }
 
     /// <inheritdoc/>
-#pragma warning disable CA1819 // Properties should not return arrays — interface contract
-    public byte[]? Checksum
-#pragma warning restore CA1819
+    public ReadOnlyMemory<byte>? Checksum
     {
         get
         {

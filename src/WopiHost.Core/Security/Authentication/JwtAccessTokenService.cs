@@ -20,15 +20,6 @@ public partial class JwtAccessTokenService(
     ILogger<JwtAccessTokenService> logger,
     TimeProvider? timeProvider = null) : IWopiAccessTokenService
 {
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Access token rejected: {Reason}")]
-    private static partial void LogAccessTokenRejected(ILogger logger, Exception ex, string reason);
-
-    [LoggerMessage(Level = LogLevel.Warning,
-        Message = "WopiSecurityOptions.SigningKey is not configured; generated an ephemeral in-memory key. " +
-            "Tokens will be invalidated on restart and cannot work across multiple host instances. " +
-            "Configure Wopi:Security:SigningKey for any non-development scenario.")]
-    private static partial void LogEphemeralSigningKey(ILogger logger);
-
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     // MapInboundClaims maps short JWT names back to long ClaimTypes.* on validation, so
     // downstream code (e.g. ClaimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)) keeps working.
@@ -95,6 +86,14 @@ public partial class JwtAccessTokenService(
 
         var token = _handler.CreateToken(descriptor);
         var tokenString = _handler.WriteToken(token);
+        LogAccessTokenIssued(
+            logger,
+            request.UserId,
+            request.ResourceType,
+            request.ResourceId,
+            request.FilePermissions,
+            request.ContainerPermissions,
+            expires);
         return Task.FromResult(new WopiAccessToken(tokenString, expires));
     }
 

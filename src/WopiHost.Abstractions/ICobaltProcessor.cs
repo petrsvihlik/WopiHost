@@ -10,9 +10,10 @@ public interface ICobaltProcessor
     /// <summary>
     /// Gets content of a MS-FSSHTTP update action.
     /// </summary>
-    /// <param name="file">File to process</param>
-    /// <param name="principal">User editing the file</param>
-    /// <param name="newContent">Partitions with new content (diffs)</param>
+    /// <param name="file">File to process.</param>
+    /// <param name="principal">User editing the file.</param>
+    /// <param name="newContent">Partitions with new content (diffs).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>An octet stream.</returns>
-    Task<byte[]> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent);
+    Task<byte[]> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent, CancellationToken cancellationToken = default);
 }

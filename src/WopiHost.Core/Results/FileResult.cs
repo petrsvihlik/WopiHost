@@ -50,12 +50,14 @@ public class FileResult : ActionResult
     /// <inheritdoc/>
     public override async Task ExecuteResultAsync(ActionContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
         var response = context.HttpContext.Response;
+        var ct = context.HttpContext.RequestAborted;
         response.ContentType = ContentType;
         var targetStream = response.Body;
         if (Content is not null)
         {
-            await targetStream.WriteAsync(Content.AsMemory(0, Content.Length));
+            await targetStream.WriteAsync(Content.AsMemory(0, Content.Length), ct);
         }
         else
         {
@@ -66,7 +68,7 @@ public class FileResult : ActionResult
                 {
                     SourceStream.Seek(0, SeekOrigin.Begin);
                 }
-                await SourceStream.CopyToAsync(targetStream);
+                await SourceStream.CopyToAsync(targetStream, ct);
             }
         }
     }

@@ -40,14 +40,6 @@ public interface IDiscoverer
 		Task<IEnumerable<string>> GetActionRequirementsAsync(string extension, WopiActionEnum action);
 
 		/// <summary>
-		/// Determines if files with the given extension require MS-FSSHTTP (Cobalt) to be implemented in order to support the given action.
-		/// </summary>
-		/// <param name="extension">File extension to consider (without the leading dot).</param>
-		/// <param name="action">WOPI action to consider.</param>
-		/// <returns>True if MS-FSSHTTP (Cobalt) is required for the combination of action and file extension.</returns>
-		Task<bool> RequiresCobaltAsync(string extension, WopiActionEnum action); //TODO: convert to an extension method (remove from interface)
-
-		/// <summary>
 		/// Gets the name of the application that handles files with the given extension.
 		/// </summary>
 		/// <param name="extension">File extension to get the app name for (without the leading dot).</param>

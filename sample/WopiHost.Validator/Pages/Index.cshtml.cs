@@ -44,11 +44,11 @@ public class IndexModel(
                         : null;
                     var part = new ChildContainer(
                         ancestor.Name,
-                        Url.Page(pageName: null, values: new 
-                        { 
+                        new Uri(Url.Page(pageName: null, values: new
+                        {
                             ContainerId = ancestor.Identifier,
                             ParentContainerId = parentId
-                        })!
+                        })!, UriKind.RelativeOrAbsolute)
                     );
                     BreadcrumbParts.Add(part);
                 }

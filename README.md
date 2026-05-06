@@ -150,7 +150,7 @@ Usage
 Prerequisites
 -------------
  - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0), [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0), or [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
- - Recommended: [VS Code](https://code.visualstudio.com/) or [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)
+ - Recommended: [VS Code](https://code.visualstudio.com/) or [Visual Studio 2026](https://visualstudio.microsoft.com/vs/)
 
 Building the app
 ----------------
@@ -170,7 +170,7 @@ This project includes a .NET Aspire orchestration for easy development and deplo
 ### Prerequisites for .NET Aspire
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (required for the AppHost project)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop) (for containerization support)
-- Recommended: [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) with the .NET Aspire workload, or [VS Code](https://code.visualstudio.com/) with the C# Dev Kit extension
+- Recommended: [Visual Studio 2026](https://visualstudio.microsoft.com/vs/) with the .NET Aspire workload, or [VS Code](https://code.visualstudio.com/) with the C# Dev Kit extension
 
 ### Running the application with .NET Aspire
 

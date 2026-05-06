@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Security.Claims;
 using Cobalt;
 using Cobalt.Base.IO;
+using Microsoft.Extensions.Logging;
 using WopiHost.Abstractions;
 
 namespace WopiHost.Cobalt;
@@ -25,31 +26,34 @@ namespace WopiHost.Cobalt;
 /// the <see cref="LocalHostBlobStore"/> backing each session is in-memory.
 /// </para>
 /// </remarks>
-public sealed class CobaltProcessor : ICobaltProcessor, IDisposable
+public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
 {
     /// <summary>How long a session may go without traffic before it is disposed.</summary>
     public static TimeSpan SessionIdleTimeout { get; } = TimeSpan.FromMinutes(60);
 
     private static readonly TimeSpan CleanupInterval = TimeSpan.FromMinutes(5);
 
-    private readonly CoauthoringSessionTracker _sessionTracker = new();
+    private readonly ILogger<CobaltProcessor> _logger;
+    private readonly CoauthoringSessionTracker _sessionTracker;
     private readonly ConcurrentDictionary<string, Lazy<Task<CobaltSessionEntry>>> _sessions = new(StringComparer.Ordinal);
     private readonly Timer _cleanupTimer;
     private int _disposed;
 
-    public CobaltProcessor()
+    public CobaltProcessor(ILogger<CobaltProcessor> logger, ILogger<CoauthoringSessionTracker> trackerLogger)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _sessionTracker = new CoauthoringSessionTracker(trackerLogger ?? throw new ArgumentNullException(nameof(trackerLogger)));
         _cleanupTimer = new Timer(_ => EvictIdleSessions(), state: null, CleanupInterval, CleanupInterval);
     }
 
     /// <inheritdoc/>
-    public async Task<byte[]> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent)
+    public async Task<byte[]> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(newContent);
 
-        var entry = await GetOrCreateSession(file).ConfigureAwait(false);
+        var entry = await GetOrCreateSession(file, cancellationToken).ConfigureAwait(false);
 
         // Wrap the request bytes as a CobaltStream (16.x replaced the Atom-taking
         // overload of DeserializeInputFromProtocol with one that takes CobaltStream).
@@ -75,11 +79,15 @@ public sealed class CobaltProcessor : ICobaltProcessor, IDisposable
                 // Serialize concurrent saves for the same file. WOPI itself uses
                 // protocol-level locks but those don't necessarily cover the
                 // window between ExecuteRequestBatch and the disk flush.
-                await entry.WriteLock.WaitAsync().ConfigureAwait(false);
+                await entry.WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false);
                 try
                 {
-                    using var stream = await file.GetWriteStream().ConfigureAwait(false);
+                    using var stream = await file.GetWriteStream(cancellationToken).ConfigureAwait(false);
+                    // GenericFdaStream is sync-only (CobaltCore exposes no async copy). The
+                    // surrounding awaits already honor cancellation; the sync copy itself runs
+                    // against an in-memory buffer so it's not network-bound.
                     new GenericFda(entry.File.CobaltEndpoint).GetContentStream().CopyTo(stream);
+                    LogContentFlushed(_logger, file.Identifier);
                 }
                 finally
                 {
@@ -99,27 +107,38 @@ public sealed class CobaltProcessor : ICobaltProcessor, IDisposable
         return response;
     }
 
-    private async Task<CobaltSessionEntry> GetOrCreateSession(IWopiFile file)
+    private async Task<CobaltSessionEntry> GetOrCreateSession(IWopiFile file, CancellationToken cancellationToken)
     {
+        var freshEntry = false;
         var lazy = _sessions.GetOrAdd(
             file.Identifier,
-            _ => new Lazy<Task<CobaltSessionEntry>>(() => CreateSessionEntry(file), LazyThreadSafetyMode.ExecutionAndPublication));
+            _ =>
+            {
+                freshEntry = true;
+                return new Lazy<Task<CobaltSessionEntry>>(() => CreateSessionEntry(file, cancellationToken), LazyThreadSafetyMode.ExecutionAndPublication);
+            });
         try
         {
-            return await lazy.Value.ConfigureAwait(false);
+            var entry = await lazy.Value.ConfigureAwait(false);
+            if (freshEntry)
+            {
+                LogSessionCreated(_logger, file.Identifier);
+            }
+            return entry;
         }
-        catch
+        catch (Exception ex)
         {
             // A faulted Lazy<Task<>> would otherwise be cached forever; remove
             // exactly this entry so the next call retries. The KeyValuePair
             // overload of TryRemove avoids racing with a concurrent
             // GetOrCreateSession that already replaced the entry.
             _sessions.TryRemove(new KeyValuePair<string, Lazy<Task<CobaltSessionEntry>>>(file.Identifier, lazy));
+            LogSessionCreateFailed(_logger, ex, file.Identifier);
             throw;
         }
     }
 
-    private async Task<CobaltSessionEntry> CreateSessionEntry(IWopiFile file)
+    private async Task<CobaltSessionEntry> CreateSessionEntry(IWopiFile file, CancellationToken cancellationToken)
     {
         var disposal = new DisposalEscrow(file.Owner);
 
@@ -154,12 +173,12 @@ public sealed class CobaltProcessor : ICobaltProcessor, IDisposable
 
         if (file.Exists)
         {
-            using var stream = await file.GetReadStream().ConfigureAwait(false);
+            using var stream = await file.GetReadStream(cancellationToken).ConfigureAwait(false);
             // 16.x made `AtomFromStream` an internal sealed type; `Atom.CreateFromArray`
             // is the public byte[] factory. Buffer the stream so we can hand a byte[]
             // to it.
             using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms).ConfigureAwait(false);
+            await stream.CopyToAsync(ms, cancellationToken).ConfigureAwait(false);
             var srcAtom = Atom.CreateFromArray(ms.ToArray());
             cobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out _);
             cobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
@@ -192,6 +211,7 @@ public sealed class CobaltProcessor : ICobaltProcessor, IDisposable
             if (entry.LastUsed < cutoff && _sessions.TryRemove(pair.Key, out _))
             {
                 entry.Dispose();
+                LogSessionEvicted(_logger, pair.Key);
             }
         }
     }

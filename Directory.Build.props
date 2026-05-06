@@ -16,6 +16,7 @@
 	</PropertyGroup>
 
 	<!-- Package Validation Configuration for NuGet packages -->
+	<!-- Baseline is auto-bumped by .github/workflows/release.yml after each stable release. -->
 	<PropertyGroup Condition="$(IsPackable) == 'true' AND $(PackageId) != ''">
 		<EnablePackageValidation>true</EnablePackageValidation>
 		<!-- Baseline used to detect public-API breaks against the last released version.
