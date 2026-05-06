@@ -318,6 +318,9 @@ public class ContainersControllerTests
         fileMock.SetupGet(f => f.Extension).Returns("txt");
         fileMock.SetupGet(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
         fileMock.SetupGet(f => f.Length).Returns(1024);
+        // Stub Checksum so GetEncodedSha256 takes the early-return path; avoids the unmocked
+        // GetReadStream call inside CheckFileInfo composition.
+        fileMock.SetupGet(f => f.Checksum).Returns(new ReadOnlyMemory<byte>([0]));
         storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Mock<IWopiFolder>().Object);
         writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))

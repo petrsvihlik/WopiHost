@@ -73,7 +73,7 @@ internal static class Extensions
     /// <param name="identifier">Identifier of an object associated to the controller.</param>
     /// <param name="accessToken">Access token to use for authentication for the given controller.</param>
     /// <returns>https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#wopisrc</returns>
-    public static string GetWopiSrc(this IUrlHelper url, string routeName, string? identifier = null, string? accessToken = null)
+    public static Uri GetWopiSrc(this IUrlHelper url, string routeName, string? identifier = null, string? accessToken = null)
     {
         ArgumentNullException.ThrowIfNull(url);
         ArgumentException.ThrowIfNullOrWhiteSpace(routeName);
@@ -86,8 +86,12 @@ internal static class Extensions
             accessToken = string.IsNullOrEmpty(requestToken) ? null : requestToken;
         }
 
-        return url.ProxyAwareRouteUrl(routeName, new { id = identifier ?? string.Empty, access_token = accessToken })
+        var built = url.ProxyAwareRouteUrl(routeName, new { id = identifier ?? string.Empty, access_token = accessToken })
                ?? throw new InvalidOperationException(routeName + " route not found");
+        // RelativeOrAbsolute so the helper still works in test contexts (DefaultHttpContext with
+        // empty Host) and behind proxies that strip the path-base. In production the result is
+        // always absolute because Request.Scheme and Request.Host are populated by the host server.
+        return new Uri(built, UriKind.RelativeOrAbsolute);
     }
 
     /// <summary>
@@ -98,7 +102,7 @@ internal static class Extensions
     /// <param name="identifier">resource unique identifier</param>
     /// <param name="accessToken">Access token to use for authentication for the given controller.</param>
     /// <returns>https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#wopisrc</returns>
-    public static string GetWopiSrc(this IUrlHelper url, WopiResourceType resourceType, string? identifier = null, string? accessToken = null)
+    public static Uri GetWopiSrc(this IUrlHelper url, WopiResourceType resourceType, string? identifier = null, string? accessToken = null)
     {
         ArgumentNullException.ThrowIfNull(url);
         return url.GetWopiSrc(

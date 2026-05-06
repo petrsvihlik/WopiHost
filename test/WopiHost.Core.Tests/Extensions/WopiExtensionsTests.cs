@@ -43,6 +43,9 @@ public class WopiExtensionsTests
     public async Task GetWopiCheckFileInfo_ReturnsCorrectInfo()
     {
         var mockFile = new Mock<IWopiFile>();
+        // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
+        // call GetReadStream (also unmocked), and ComputeHashAsync(null) throws.
+        mockFile.Setup(f => f.Checksum).Returns(new ReadOnlyMemory<byte>([0]));
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
         mockFile.Setup(f => f.Extension).Returns("txt");
@@ -105,6 +108,9 @@ public class WopiExtensionsTests
     public async Task GetWopiCheckFileInfo_WithWritableStorageProvider_ReturnsCorrectInfo()
     {
         var mockFile = new Mock<IWopiFile>();
+        // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
+        // call GetReadStream (also unmocked), and ComputeHashAsync(null) throws.
+        mockFile.Setup(f => f.Checksum).Returns(new ReadOnlyMemory<byte>([0]));
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
         mockFile.Setup(f => f.Extension).Returns("txt");
@@ -136,6 +142,9 @@ public class WopiExtensionsTests
     public async Task GetWopiCheckFileInfo_PopulatesFileUrl_WhenLinkGeneratorIsRegistered()
     {
         var mockFile = new Mock<IWopiFile>();
+        // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
+        // call GetReadStream (also unmocked), and ComputeHashAsync(null) throws.
+        mockFile.Setup(f => f.Checksum).Returns(new ReadOnlyMemory<byte>([0]));
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
         mockFile.Setup(f => f.Extension).Returns("txt");
@@ -162,6 +171,9 @@ public class WopiExtensionsTests
     public async Task GetWopiCheckFileInfo_OverridesFileUrl_WhenOnCheckFileInfoSetsIt()
     {
         var mockFile = new Mock<IWopiFile>();
+        // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
+        // call GetReadStream (also unmocked), and ComputeHashAsync(null) throws.
+        mockFile.Setup(f => f.Checksum).Returns(new ReadOnlyMemory<byte>([0]));
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
         mockFile.Setup(f => f.Extension).Returns("txt");
@@ -194,6 +206,9 @@ public class WopiExtensionsTests
     public async Task GetWopiCheckFileInfo_LeavesFileUrlNull_WhenLinkGeneratorIsMissing()
     {
         var mockFile = new Mock<IWopiFile>();
+        // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
+        // call GetReadStream (also unmocked), and ComputeHashAsync(null) throws.
+        mockFile.Setup(f => f.Checksum).Returns(new ReadOnlyMemory<byte>([0]));
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
         mockFile.Setup(f => f.Extension).Returns("txt");
@@ -214,6 +229,9 @@ public class WopiExtensionsTests
     public async Task GetWopiCheckFileInfo_CallsOnCheckFileInfoEvent()
     {
         var mockFile = new Mock<IWopiFile>();
+        // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
+        // call GetReadStream (also unmocked), and ComputeHashAsync(null) throws.
+        mockFile.Setup(f => f.Checksum).Returns(new ReadOnlyMemory<byte>([0]));
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
         mockFile.Setup(f => f.Extension).Returns("txt");
@@ -241,6 +259,9 @@ public class WopiExtensionsTests
     public async Task GetWopiCheckFileInfo_WithAuthenticatedUser()
     {
         var mockFile = new Mock<IWopiFile>();
+        // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
+        // call GetReadStream (also unmocked), and ComputeHashAsync(null) throws.
+        mockFile.Setup(f => f.Checksum).Returns(new ReadOnlyMemory<byte>([0]));
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
         mockFile.Setup(f => f.Extension).Returns("txt");
@@ -484,6 +505,9 @@ public class WopiExtensionsTests
     public async Task GetWopiCheckFileInfo_WithAllPermissions_ReturnsAllTrue()
     {
         var mockFile = new Mock<IWopiFile>();
+        // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
+        // call GetReadStream (also unmocked), and ComputeHashAsync(null) throws.
+        mockFile.Setup(f => f.Checksum).Returns(new ReadOnlyMemory<byte>([0]));
         mockFile.Setup(f => f.Name).Returns("test");
         mockFile.Setup(f => f.Owner).Returns("owner");
         mockFile.Setup(f => f.Extension).Returns("txt");

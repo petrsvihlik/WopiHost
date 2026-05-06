@@ -11,7 +11,7 @@ public class RootContainerInfoTests
         var info = new WopiCheckContainerInfo { Name = "Root" };
         var sut = new RootContainerInfo
         {
-            ContainerPointer = new ChildContainer("Root", "https://wopi/root"),
+            ContainerPointer = new ChildContainer("Root", new Uri("https://wopi/root")),
             ContainerInfo = info,
         };
 
