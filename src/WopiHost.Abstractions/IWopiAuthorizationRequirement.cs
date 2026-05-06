@@ -15,7 +15,6 @@ public enum WopiResourceType
     Container
 }
 
-
 /// <summary>
 /// Represents an authorization requirement for a given combination of resource, user, and action.
 /// </summary>
