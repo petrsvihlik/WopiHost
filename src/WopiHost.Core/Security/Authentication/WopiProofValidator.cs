@@ -20,6 +20,18 @@ namespace WopiHost.Core.Security.Authentication;
 /// <param name="timeProvider">Provider for time operations (defaults to system time if not provided).</param>
 public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidator> logger, TimeProvider? timeProvider = null) : IWopiProofValidator
 {
+    /// <summary>
+    /// Maximum age of a request timestamp before it is rejected as stale, in minutes.
+    /// Per WOPI spec: <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts/proof-keys"/>.
+    /// </summary>
+    private const int MaxTimestampAgeMinutes = 20;
+
+    /// <summary>
+    /// Maximum allowed clock skew where a request's timestamp is in the future, in minutes.
+    /// Tolerates small drift between the WOPI client's clock and the host's clock.
+    /// </summary>
+    private const int MaxFutureSkewMinutes = 5;
+
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
     /// <summary>
@@ -46,12 +58,12 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
             var sourceProofKeys = await discoverer.GetProofKeysAsync();
 
             // Per WOPI spec: X-WOPI-TimeStamp is .NET DateTime.Ticks (UTC).
-            // Reject timestamps older than 20 minutes; allow a small future skew.
+            // Reject stale timestamps; allow a small future skew.
             var age = _timeProvider.GetUtcNow().UtcDateTime - new DateTime(ticks, DateTimeKind.Utc);
             if (sourceProofKeys.Value is null
                 || sourceProofKeys.OldValue is null
-                || age > TimeSpan.FromMinutes(20)
-                || age < TimeSpan.FromMinutes(-5))
+                || age > TimeSpan.FromMinutes(MaxTimestampAgeMinutes)
+                || age < TimeSpan.FromMinutes(-MaxFutureSkewMinutes))
             {
                 var reason = sourceProofKeys.Value is null || sourceProofKeys.OldValue is null
                     ? "missing_discovery_keys"
