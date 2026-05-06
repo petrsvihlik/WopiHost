@@ -1,5 +1,4 @@
 using System.Runtime.Loader;
-using Microsoft.Extensions.Configuration;
 using WopiHost.Abstractions;
 using WopiHost.AzureLockProvider;
 using WopiHost.AzureStorageProvider;

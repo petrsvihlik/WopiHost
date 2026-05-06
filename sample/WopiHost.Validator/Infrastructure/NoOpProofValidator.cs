@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using WopiHost.Core.Security.Authentication;
 
 namespace WopiHost.Validator.Infrastructure;

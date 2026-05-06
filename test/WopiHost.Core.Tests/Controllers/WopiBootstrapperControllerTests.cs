@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
-using Microsoft.AspNetCore.Routing;
 using Moq;
 using WopiHost.Abstractions;
 using WopiHost.Core.Controllers;

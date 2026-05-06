@@ -1,6 +1,5 @@
 using System.Reflection;
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
