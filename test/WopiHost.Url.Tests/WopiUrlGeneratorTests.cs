@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Text.RegularExpressions;
 using FakeItEasy;
 using Microsoft.Extensions.Logging.Abstractions;
 using WopiHost.Discovery;
@@ -6,8 +7,12 @@ using WopiHost.Discovery.Enumerations;
 
 namespace WopiHost.Url.Tests;
 
-public class WopiUrlGeneratorTests
+public partial class WopiUrlGeneratorTests
 {
+    /// <summary>Counts WopiSrc occurrences in the generated URL (case-insensitive).</summary>
+    [GeneratedRegex("wopisrc=", RegexOptions.IgnoreCase)]
+    private static partial Regex WopiSrcParamRegex();
+
     private readonly IDiscoverer _discoverer;
 
     public WopiUrlGeneratorTests()
@@ -72,7 +77,7 @@ public class WopiUrlGeneratorTests
         // The substitution is URL-escaped and lowercase per the template.
         Assert.Contains("wopisrc=" + Uri.EscapeDataString(fileUrl.ToString()), result, StringComparison.Ordinal);
         // No second copy of the param — case-insensitive count of "wopisrc=" must be exactly 1.
-        Assert.Single(System.Text.RegularExpressions.Regex.Matches(result, "wopisrc=", System.Text.RegularExpressions.RegexOptions.IgnoreCase));
+        Assert.Single(WopiSrcParamRegex().Matches(result));
     }
 
     [Fact]
@@ -86,7 +91,7 @@ public class WopiUrlGeneratorTests
         var result = await urlGenerator.GetFileUrlAsync("xlsx", fileUrl, WopiActionEnum.Edit);
 
         Assert.NotNull(result);
-        Assert.Single(System.Text.RegularExpressions.Regex.Matches(result, "wopisrc=", System.Text.RegularExpressions.RegexOptions.IgnoreCase));
+        Assert.Single(WopiSrcParamRegex().Matches(result));
         Assert.Contains("WOPISrc=" + Uri.EscapeDataString(fileUrl.ToString()), result, StringComparison.Ordinal);
     }
 

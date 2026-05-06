@@ -43,7 +43,17 @@ public partial class WopiUrlBuilder(
     public async Task<string?> GetFileUrlAsync(string extension, Uri wopiFileUrl, WopiActionEnum action, WopiUrlSettings? urlSettings = null)
     {
         ArgumentNullException.ThrowIfNull(wopiFileUrl);
-        var combinedUrlSettings = new WopiUrlSettings((urlSettings ?? []).Merge(UrlSettings ?? []));
+
+        // Combine settings with method-arg precedence over constructor-arg.
+        WopiUrlSettings combinedUrlSettings = [];
+        if (UrlSettings is not null)
+        {
+            foreach (var kvp in UrlSettings) combinedUrlSettings[kvp.Key] = kvp.Value;
+        }
+        if (urlSettings is not null)
+        {
+            foreach (var kvp in urlSettings) combinedUrlSettings[kvp.Key] = kvp.Value; // overrides
+        }
 
         // Single source of truth for the WopiSrc value: the wopiFileUrl parameter. The
         // WOPI_SOURCE placeholder, when present in a template, gets substituted with this
