@@ -182,10 +182,15 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
     }
 
     [Fact]
-    public async Task AddLockAsync_BlobExistsButNoMetadata_TakesOver()
+    public async Task AddLockAsync_BlobExistsButNoMetadata_ReturnsNull_ToProtectInFlightAcquires()
     {
-        // Hits the "existing blob with no readable lock metadata" → break-lease + delete path,
-        // then proceeds to upload + acquire.
+        // After the #353 race fix the "no readable metadata" branch yields rather than cleaning
+        // up — that aggressive cleanup was the bug it was clobbering healthy peers mid-acquire.
+        // A bare metadata-less blob can mean either (a) a sibling acquire happening right now,
+        // whose UploadAsync has landed but whose AcquireAsync hasn't returned yet, or (b) an
+        // unlikely operator-created stub or a pre-fix crashed acquire. Either way, the safe
+        // answer is to return null; case (b) requires manual cleanup, which is documented and
+        // very rare since the new flow uploads metadata atomically.
         var (provider, _) = await CreateProviderAsync();
         var lockBlob = GetLockBlob(provider, "file-stale-blob");
         using (var empty = new MemoryStream([]))
@@ -196,8 +201,7 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
 
         var info = await provider.AddLockAsync("file-stale-blob", "fresh");
 
-        Assert.NotNull(info);
-        Assert.Equal("fresh", info.LockId);
+        Assert.Null(info);
     }
 
     [Fact]
