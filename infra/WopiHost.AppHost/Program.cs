@@ -53,11 +53,11 @@ if (useCollabora)
             .WithEnvironment("Wopi__Security__DisableProofValidation", "true");
 }
 
-// Add WopiHost.Web frontend that depends on WopiHost
+// Add WopiHost.Web frontend that depends on WopiHost. Endpoints come from the project's
+// launchSettings.json (HTTPS only — see that file). Duplicating them here with .WithEndpoint
+// would cause the dashboard to list the same URL twice.
 var wopiHostWeb = builder.AddProject<Projects.WopiHost_Web>("wopihost-web")
        .WithReference(wopiHost)
-       .WithEndpoint(name: "web-http", port: 6000, scheme: "http")
-       .WithEndpoint(name: "web-https", port: 6001, scheme: "https")
        .WithExternalHttpEndpoints();
 
 if (useCollabora)
@@ -83,10 +83,10 @@ builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator")
 // in sample/WopiHost.Web.Oidc/appsettings.Development.json (see that sample's README for setup).
 if (builder.Configuration.GetValue<bool>("AppHost:IncludeOidcSample"))
 {
+    // Endpoints come from the project's launchSettings.json (HTTPS only). OIDC requires HTTPS
+    // for cookie/redirect-URI sanity anyway.
     builder.AddProject<Projects.WopiHost_Web_Oidc>("wopihost-web-oidc")
            .WithReference(wopiHost)
-           .WithEndpoint(name: "web-oidc-http", port: 6100, scheme: "http")
-           .WithEndpoint(name: "web-oidc-https", port: 6101, scheme: "https")
            .WithExternalHttpEndpoints();
 }
 

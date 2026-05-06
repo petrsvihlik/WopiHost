@@ -67,18 +67,20 @@
                 <td class="col-date">@file.LastModified.ToString("yyyy-MM-dd HH:mm")</td>
                 <td class="col-size">@file.FormattedSize</td>
                 <td class="col-actions">
+                    @* Codepoints without VS-16 so the OS renders them as text-style glyphs
+                       (no cartoonish emoji), matching the validator sample's pencil. *@
                     <a title="View"
                        asp-controller="Home"
                        asp-action="Detail"
                        asp-route-id="@file.FileId"
                        asp-route-wopiaction="@WopiActionEnum.View"
-                       class="@(file.SupportsView ? "" : "disabledIcon")">👁️</a>
+                       class="@(file.SupportsView ? "" : "disabledIcon")">&#128065;</a>
                     <a title="Edit"
                        asp-controller="Home"
                        asp-action="Detail"
                        asp-route-id="@file.FileId"
                        asp-route-wopiaction="@WopiActionEnum.Edit"
-                       class="@(file.SupportsEdit ? "" : "disabledIcon")">🖊️</a>
+                       class="@(file.SupportsEdit ? "" : "disabledIcon")">&#128393;</a>
                 </td>
             </tr>
         }
