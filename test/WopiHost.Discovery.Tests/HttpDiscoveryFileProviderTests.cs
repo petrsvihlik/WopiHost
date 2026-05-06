@@ -1,5 +1,4 @@
 using System.Net;
-using System.Xml.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace WopiHost.Discovery.Tests;

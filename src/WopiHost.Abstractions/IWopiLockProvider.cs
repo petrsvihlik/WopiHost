@@ -51,6 +51,16 @@ public interface IWopiLockProvider
 public record WopiLockInfo
 {
     /// <summary>
+    /// Lock auto-expiration window mandated by the WOPI specification.
+    /// </summary>
+    /// <remarks>
+    /// Per <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock"/>,
+    /// WOPI locks MUST automatically expire after 30 minutes if not renewed by the WOPI client.
+    /// This is fixed by the spec and not a tunable.
+    /// </remarks>
+    public const int ExpirationMinutes = 30;
+
+    /// <summary>
     /// The lock identifier
     /// </summary>
     public required string LockId { get; init; }
@@ -68,6 +78,6 @@ public record WopiLockInfo
     /// <summary>
     /// Is this lock expired
     /// </summary>
-    /// <remarks>WOPI locks must automatically expire after 30 minutes if not renewed by the WOPI client</remarks>
-    public bool Expired => DateCreated.AddMinutes(30) < DateTime.UtcNow;
+    /// <remarks>See <see cref="ExpirationMinutes"/> for the spec-mandated 30-minute window.</remarks>
+    public bool Expired => DateCreated.AddMinutes(ExpirationMinutes) < DateTime.UtcNow;
 }

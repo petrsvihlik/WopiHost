@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Primitives;
 using Moq;
 using WopiHost.Core.Extensions;
 

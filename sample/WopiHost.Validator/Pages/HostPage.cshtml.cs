@@ -2,8 +2,6 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Infrastructure;
