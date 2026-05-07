@@ -59,6 +59,8 @@ jobs:
       with:
         oidc: true
         files: "**/coverage.*.info"
+        # See integrate.yml for the rationale.
+        skip-missing-files: true
     - name: Codecov
       uses: codecov/codecov-action@v6
       with:

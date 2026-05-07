@@ -46,6 +46,11 @@ jobs:
       with:
         oidc: true
         files: "**/coverage.*.info"
+        # Coverlet's lcov references source-generated files (LoggerMessage.g.cs,
+        # LibraryImports.g.cs, etc.) under artifacts/obj/, which don't exist at
+        # publish time. Without this flag Qlty counts them as 0% covered, hence
+        # the ~74% vs Codecov's ~93% disparity. See also .qlty/qlty.toml.
+        skip-missing-files: true
     - name: Codecov
       uses: codecov/codecov-action@v6
       with:

@@ -5,6 +5,15 @@ exclude_patterns = [
   "**/wwwroot/**",
   "sample/**",
   "infra/**",
+  # Source-generated output. Coverlet emits lcov entries for these (Logger source
+  # generator, LibraryImport source generator, etc.) but the files don't exist on
+  # disk at coverage-publish time — they're build outputs under artifacts/obj/.
+  # Without this exclusion, Qlty counts them as 0%-covered and tanks the
+  # percentage. (Codecov auto-skips files missing from the repo, which is why
+  # the same lcov yields ~93% there.)
+  "**/artifacts/**",
+  "**/obj/**",
+  "**/*.g.cs",
 ]
 
 test_patterns = [
