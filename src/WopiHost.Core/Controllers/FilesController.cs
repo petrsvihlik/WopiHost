@@ -1,10 +1,13 @@
-﻿using System.Net.Mime;
+﻿using System.Collections.ObjectModel;
+using System.Net.Mime;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
@@ -294,6 +297,9 @@ public class FilesController(
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <param name="newLockIdentifier">new lockId</param>
+    /// <param name="editors">Optional <c>X-WOPI-Editors</c> request header — a comma-delimited
+    /// list of <see cref="WopiCheckFileInfo.UserId"/> values for users who contributed to this
+    /// PutFile. Surfaced via <see cref="WopiHostOptions.OnPutFile"/>.</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPut("{id}/contents")]
@@ -302,6 +308,7 @@ public class FilesController(
     public async Task<IActionResult> PutFile(
         string id,
         [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null,
+        [FromHeader(Name = WopiHeaders.EDITORS)] string? editors = null,
         CancellationToken cancellationToken = default)
     {
         // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
@@ -310,7 +317,7 @@ public class FilesController(
         {
             return NotFound();
         }
-        
+
         // When a host receives a PutFile request on a file that's not locked, the host checks the current size of the file.
         if (string.IsNullOrEmpty(newLockIdentifier))
         {
@@ -323,6 +330,7 @@ public class FilesController(
                 {
                     Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
                 }
+                await InvokePutFileCallbackAsync(file, editors).ConfigureAwait(false);
                 return Ok();
             }
             else // If ... missing altogether, the host should respond with a 409 Conflict
@@ -332,7 +340,7 @@ public class FilesController(
                 return new LockMismatchResult(Response, existingLock: null);
             }
         }
-        
+
         // Acquire lock
         var lockResult = await ProcessLock(id, wopiOverrideHeader: WopiFileOperations.Lock, newLockIdentifier: newLockIdentifier, cancellationToken: cancellationToken);
 
@@ -344,9 +352,37 @@ public class FilesController(
             {
                 Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
             }
+            await InvokePutFileCallbackAsync(file, editors).ConfigureAwait(false);
             return Ok();
         }
         return lockResult;
+    }
+
+    /// <summary>
+    /// Resolves the configured <see cref="WopiHostOptions.OnPutFile"/> callback (if any) and
+    /// invokes it with the parsed <c>X-WOPI-Editors</c> contributor list. The header is a
+    /// comma-delimited list per WOPI <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see>;
+    /// blank entries (extra commas, leading/trailing whitespace) are dropped.
+    /// </summary>
+    private async Task InvokePutFileCallbackAsync(IWopiFile file, string? editorsHeader)
+    {
+        var options = HttpContext.RequestServices.GetService<IOptions<WopiHostOptions>>();
+        if (options is null)
+        {
+            return;
+        }
+        var editors = ParseEditorsHeader(editorsHeader);
+        await options.Value.OnPutFile(new WopiPutFileContext(User, file, editors)).ConfigureAwait(false);
+    }
+
+    private static ReadOnlyCollection<string> ParseEditorsHeader(string? header)
+    {
+        if (string.IsNullOrWhiteSpace(header))
+        {
+            return new ReadOnlyCollection<string>([]);
+        }
+        var parts = header.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return new ReadOnlyCollection<string>(parts);
     }
 
     /// <summary>

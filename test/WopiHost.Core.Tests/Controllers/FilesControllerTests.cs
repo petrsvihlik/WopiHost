@@ -839,6 +839,73 @@ public class FilesControllerTests
     }
 
     [Fact]
+    public async Task PutFile_WithEditorsHeader_InvokesOnPutFileWithParsedContributors()
+    {
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId, size: 0);
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+
+        WopiPutFileContext? captured = null;
+        var optionsWithCallback = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            OnPutFile = ctx => { captured = ctx; return Task.CompletedTask; },
+        });
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithCallback),
+            }
+        };
+
+        var result = await controller.PutFile(fileId, newLockIdentifier: null, editors: " alice , bob ,, charlie");
+
+        Assert.IsType<OkResult>(result);
+        Assert.NotNull(captured);
+        Assert.Equal(fileMock.Object, captured.File);
+        // Spec: comma-delimited list of UserIds. Empty entries from extra commas are dropped;
+        // surrounding whitespace is trimmed.
+        Assert.Equal(["alice", "bob", "charlie"], captured.Editors);
+    }
+
+    [Fact]
+    public async Task PutFile_NoEditorsHeader_InvokesOnPutFileWithEmptyContributorList()
+    {
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId, size: 0);
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+
+        WopiPutFileContext? captured = null;
+        var optionsWithCallback = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            OnPutFile = ctx => { captured = ctx; return Task.CompletedTask; },
+        });
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithCallback),
+            }
+        };
+
+        var result = await controller.PutFile(fileId, newLockIdentifier: null, editors: null);
+
+        Assert.IsType<OkResult>(result);
+        Assert.NotNull(captured);
+        Assert.Empty(captured.Editors);
+    }
+
+    [Fact]
     public async Task PutFile_WithLock_ExistingDifferentLock_ReturnsLockMismatch()
     {
         var fileId = "testFileId";

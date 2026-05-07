@@ -46,6 +46,17 @@ public class WopiHostOptions : IDiscoveryOptions
     public Func<WopiCheckEcosystemContext, Task<WopiCheckEcosystem>> OnCheckEcosystem { get; set; } = c => Task.FromResult(c.CheckEcosystem);
 
     /// <summary>
+    /// Callback raised after a successful <c>PutFile</c> write. Receives the updated file plus
+    /// the user ids parsed from the optional <c>X-WOPI-Editors</c> request header. Use this for
+    /// audit trails and last-touch metadata; the default is a no-op.
+    /// </summary>
+    /// <remarks>
+    /// Throwing inside this callback turns the response into a 500. For best-effort bookkeeping,
+    /// catch exceptions inside the handler.
+    /// </remarks>
+    public Func<WopiPutFileContext, Task> OnPutFile { get; set; } = _ => Task.CompletedTask;
+
+    /// <summary>
     /// Base URI of the WOPI Client server (Office Online Server / Office Web Apps).
     /// </summary>
     [Required]

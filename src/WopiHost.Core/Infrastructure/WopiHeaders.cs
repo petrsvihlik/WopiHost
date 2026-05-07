@@ -41,10 +41,17 @@ public static class WopiHeaders
     public const string EMPTY_LOCK_VALUE = "";
 
     /// <summary>
-    /// A string provided by the WOPI client that is the existing lock on the file. 
+    /// A string provided by the WOPI client that is the existing lock on the file.
     /// Required. Note that if X-WOPI-OldLock is not provided, the request is identical to a Lock request.
     /// </summary>
     public const string OLD_LOCK = "X-WOPI-OldLock";
+
+    /// <summary>
+    /// A comma-delimited string of <c>UserId</c> values representing all the users who contributed
+    /// changes to the document in this <c>PutFile</c> request. Optional; surfaced via
+    /// <see cref="WopiHost.Core.Models.WopiHostOptions.OnPutFile"/>.
+    /// </summary>
+    public const string EDITORS = "X-WOPI-Editors";
 
     /// <summary>
     /// An optional string value indicating the cause of a lock failure. 
