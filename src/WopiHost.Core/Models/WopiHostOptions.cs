@@ -57,6 +57,18 @@ public class WopiHostOptions : IDiscoveryOptions
     public Func<WopiPutFileContext, Task> OnPutFile { get; set; } = _ => Task.CompletedTask;
 
     /// <summary>
+    /// Callback raised after a successful <c>PutRelativeFile</c> write. Surfaces the optional
+    /// <c>X-WOPI-FileConversion</c> (presence flag) and <c>X-WOPI-Size</c> headers alongside
+    /// both the original and newly-created files. Hosts that want to flag conversion-context
+    /// uploads or record declared-size telemetry plug in here; the default is a no-op.
+    /// </summary>
+    /// <remarks>
+    /// Throwing inside this callback turns the response into a 500. For best-effort bookkeeping,
+    /// catch exceptions inside the handler.
+    /// </remarks>
+    public Func<WopiPutRelativeFileContext, Task> OnPutRelativeFile { get; set; } = _ => Task.CompletedTask;
+
+    /// <summary>
     /// Base URI of the WOPI Client server (Office Online Server / Office Web Apps).
     /// </summary>
     [Required]

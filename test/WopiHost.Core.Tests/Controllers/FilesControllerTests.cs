@@ -1122,6 +1122,114 @@ public class FilesControllerTests
     }
 
     [Fact]
+    public async Task PutRelativeFile_FileConversionAndSizeHeaders_SurfaceViaOnPutRelativeFile()
+    {
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId);
+        var parentFolder = new Mock<IWopiFolder>();
+        parentFolder.SetupGet(f => f.Identifier).Returns("parentId");
+        var ancestors = new ReadOnlyCollection<IWopiFolder>([parentFolder.Object]);
+        var newFileMock = CreateFileMock("newFileId");
+
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+        storageProviderMock
+            .Setup(s => s.GetAncestors<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ancestors);
+        storageProviderMock
+            .Setup(s => s.GetWopiResourceByName<IWopiFile>("parentId", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
+        writableStorageProviderMock
+            .Setup(w => w.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        writableStorageProviderMock
+            .Setup(w => w.CreateWopiChildResource<IWopiFile>("parentId", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(newFileMock.Object);
+
+        WopiPutRelativeFileContext? captured = null;
+        var optionsWithCallback = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            OnPutRelativeFile = ctx => { captured = ctx; return Task.CompletedTask; },
+        });
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithCallback),
+            }
+        };
+
+        var result = await controller.PutRelativeFile(
+            fileId,
+            relativeTarget: UtfString.FromDecoded("newfile.txt"),
+            fileConversion: "true",
+            declaredSize: 4096);
+
+        Assert.IsType<JsonResult>(result);
+        Assert.NotNull(captured);
+        Assert.Same(fileMock.Object, captured.OriginalFile);
+        Assert.Same(newFileMock.Object, captured.NewFile);
+        Assert.True(captured.IsFileConversion);
+        Assert.Equal(4096, captured.DeclaredSize);
+    }
+
+    [Fact]
+    public async Task PutRelativeFile_NoConversionOrSize_SurfaceFalseAndNullDefaults()
+    {
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId);
+        var parentFolder = new Mock<IWopiFolder>();
+        parentFolder.SetupGet(f => f.Identifier).Returns("parentId");
+        var ancestors = new ReadOnlyCollection<IWopiFolder>([parentFolder.Object]);
+        var newFileMock = CreateFileMock("newFileId");
+
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+        storageProviderMock
+            .Setup(s => s.GetAncestors<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ancestors);
+        storageProviderMock
+            .Setup(s => s.GetWopiResourceByName<IWopiFile>("parentId", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
+        writableStorageProviderMock
+            .Setup(w => w.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        writableStorageProviderMock
+            .Setup(w => w.CreateWopiChildResource<IWopiFile>("parentId", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(newFileMock.Object);
+
+        WopiPutRelativeFileContext? captured = null;
+        var optionsWithCallback = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            OnPutRelativeFile = ctx => { captured = ctx; return Task.CompletedTask; },
+        });
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithCallback),
+            }
+        };
+
+        var result = await controller.PutRelativeFile(
+            fileId,
+            relativeTarget: UtfString.FromDecoded("newfile.txt"));
+
+        Assert.IsType<JsonResult>(result);
+        Assert.NotNull(captured);
+        Assert.False(captured.IsFileConversion);
+        Assert.Null(captured.DeclaredSize);
+    }
+
+    [Fact]
     public async Task PutRelativeFile_SuggestedTarget_ExtensionOnly_ReturnsJsonResult()
     {
         var fileId = "testFileId";

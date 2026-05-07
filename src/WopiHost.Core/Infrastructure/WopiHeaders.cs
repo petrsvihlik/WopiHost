@@ -54,6 +54,20 @@ public static class WopiHeaders
     public const string EDITORS = "X-WOPI-Editors";
 
     /// <summary>
+    /// Marker request header on <c>PutRelativeFile</c> whose <em>presence</em> indicates the call
+    /// is being made in the context of a binary document conversion. The header value itself is
+    /// not significant per the spec — only its presence. Surfaced via
+    /// <see cref="WopiHost.Core.Models.WopiHostOptions.OnPutRelativeFile"/>.
+    /// </summary>
+    public const string FILE_CONVERSION = "X-WOPI-FileConversion";
+
+    /// <summary>
+    /// Optional integer request header on <c>PutRelativeFile</c> announcing the size in bytes of
+    /// the file being uploaded. Surfaced via <see cref="WopiHost.Core.Models.WopiHostOptions.OnPutRelativeFile"/>.
+    /// </summary>
+    public const string SIZE = "X-WOPI-Size";
+
+    /// <summary>
     /// An optional string value indicating the cause of a lock failure. 
     /// This header may be included when responding to the request with 409 Conflict. 
     /// There is no standard for how this string is formatted, and it must only be used for logging purposes.

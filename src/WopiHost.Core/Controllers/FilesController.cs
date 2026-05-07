@@ -395,6 +395,11 @@ public class FilesController(
     /// <param name="suggestedTarget">A UTF-7 encoded string specifying either a file extension or a full file name, including the file extension</param>
     /// <param name="relativeTarget">A UTF-7 encoded string that specifies a full file name including the file extension. The host must not modify the name to fulfill the request.</param>
     /// <param name="overwriteRelativeTarget">A Boolean value that specifies whether the host must overwrite the file name if it exists. The default value is false.</param>
+    /// <param name="fileConversion">Optional <c>X-WOPI-FileConversion</c> header. When present
+    /// (any value), signals that the request is part of a binary document conversion. Surfaced
+    /// via <see cref="WopiHostOptions.OnPutRelativeFile"/>.</param>
+    /// <param name="declaredSize">Optional <c>X-WOPI-Size</c> header announcing the file size in
+    /// bytes. Surfaced via <see cref="WopiHostOptions.OnPutRelativeFile"/>.</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.PutRelativeFile)]
@@ -404,6 +409,8 @@ public class FilesController(
         [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget = null,
         [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? relativeTarget = null,
         [FromHeader(Name = WopiHeaders.OVERWRITE_RELATIVE_TARGET)] bool? overwriteRelativeTarget = false,
+        [FromHeader(Name = WopiHeaders.FILE_CONVERSION)] string? fileConversion = null,
+        [FromHeader(Name = WopiHeaders.SIZE)] long? declaredSize = null,
         CancellationToken cancellationToken = default)
     {
         if (writableStorageProvider is null)
@@ -507,6 +514,7 @@ public class FilesController(
         {
             // copy new contents to storage
             await HttpContext.CopyToWriteStream(newFile, cancellationToken);
+            await InvokePutRelativeFileCallbackAsync(file, newFile, fileConversion, declaredSize).ConfigureAwait(false);
             var checkFileInfo = await newFile.GetWopiCheckFileInfo(HttpContext, HostCapabilities, cancellationToken: cancellationToken);
             return new JsonResult(
                 new ChildFile(
@@ -518,7 +526,27 @@ public class FilesController(
                 });
         }
 
-        return new InternalServerErrorResult();        
+        return new InternalServerErrorResult();
+    }
+
+    /// <summary>
+    /// Resolves the configured <see cref="WopiHostOptions.OnPutRelativeFile"/> callback (if any)
+    /// and invokes it with the parsed <c>X-WOPI-FileConversion</c> presence flag and
+    /// <c>X-WOPI-Size</c> declared-size value.
+    /// </summary>
+    private async Task InvokePutRelativeFileCallbackAsync(IWopiFile originalFile, IWopiFile newFile, string? fileConversion, long? declaredSize)
+    {
+        var options = HttpContext.RequestServices.GetService<IOptions<WopiHostOptions>>();
+        if (options is null)
+        {
+            return;
+        }
+        // Per spec, X-WOPI-FileConversion is presence-only; the value is irrelevant. Treat any
+        // bound value (including the empty string) as "header was present."
+        var isConversion = fileConversion is not null
+            || HttpContext.Request.Headers.ContainsKey(WopiHeaders.FILE_CONVERSION);
+        await options.Value.OnPutRelativeFile(
+            new WopiPutRelativeFileContext(User, originalFile, newFile, isConversion, declaredSize)).ConfigureAwait(false);
     }
 
     /// <summary>
