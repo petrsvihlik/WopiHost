@@ -775,7 +775,7 @@ public class FilesControllerTests
     }
 
     [Fact]
-    public async Task PutFile_NoLock_NonEmptyFile_ReturnsConflict()
+    public async Task PutFile_NoLock_NonEmptyFile_ReturnsLockMismatchWithEmptyLockHeader()
     {
         var fileId = "testFileId";
         var fileMock = CreateFileMock(fileId, size: 1024);
@@ -785,7 +785,10 @@ public class FilesControllerTests
 
         var result = await controller.PutFile(fileId, newLockIdentifier: null);
 
-        Assert.IsType<ConflictResult>(result);
+        // Spec (PutFile): non-empty unlocked file must respond 409 with X-WOPI-Lock set to the empty string.
+        Assert.IsType<LockMismatchResult>(result);
+        Assert.True(controller.Response.Headers.ContainsKey(WopiHeaders.LOCK));
+        Assert.Equal(WopiHeaders.EMPTY_LOCK_VALUE, controller.Response.Headers[WopiHeaders.LOCK].ToString());
     }
 
     [Fact]

@@ -327,7 +327,9 @@ public class FilesController(
             }
             else // If ... missing altogether, the host should respond with a 409 Conflict
             {
-                return new ConflictResult();
+                // Spec (PutFile): "In cases where the file is unlocked, the host must set X-WOPI-Lock to the empty string."
+                // LockMismatchResult writes WopiHeaders.LOCK = WopiHeaders.EMPTY_LOCK_VALUE when no existing lock is supplied.
+                return new LockMismatchResult(Response, existingLock: null);
             }
         }
         
