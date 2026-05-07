@@ -215,7 +215,7 @@ services.AddAuthentication()
     });
 ```
 
-Skip this section if you are not exposing the bootstrapper. See the top-level [README](../../README.md#bootstrap-endpoint-office-for-mobile) for the WWW-Authenticate challenge and the three operations.
+Skip this section if you are not exposing the bootstrapper. See [Bootstrap endpoint](https://github.com/petrsvihlik/WopiHost/wiki/Bootstrap-Endpoint) on the wiki for the WWW-Authenticate challenge and the three operations.
 
 ## Customizing CheckFileInfo / CheckContainerInfo / CheckEcosystem
 

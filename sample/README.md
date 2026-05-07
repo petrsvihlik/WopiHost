@@ -1,6 +1,6 @@
 # ![Logo](../img/logo48.png) WopiHost samples
 
-Three runnable samples + a folder of test documents. The recommended way to launch them is via .NET Aspire — see [Running with .NET Aspire](../README.md#running-with-net-aspire) in the top-level README.
+Three runnable samples + a folder of test documents. The recommended way to launch them is via .NET Aspire — see [Quick start](../README.md#quick-start) in the top-level README.
 
 ## Layout
 
@@ -22,7 +22,7 @@ Three runnable samples + a folder of test documents. The recommended way to laun
 | `Wopi:StorageProvider:RootPath` | `"../wopi-docs"` | Root of the directory tree the file-system provider exposes. |
 | `Wopi:LockProviderAssemblyName` | `"WopiHost.MemoryLockProvider"` | Assembly providing `IWopiLockProvider`. See [src/WopiHost.MemoryLockProvider](../src/WopiHost.MemoryLockProvider/README.md). |
 | `Wopi:UseCobalt` | `false` | Reflectively register [WopiHost.Cobalt](../src/WopiHost.Cobalt/README.md) when `true`. Requires a private `Microsoft.CobaltCore` package. |
-| `Wopi:ClientUrl` | `"https://ffc-onenote.officeapps.live.com"` | Base URI of the WOPI client (Office Online Server / M365 for the Web / Collabora). Used by discovery. The AppHost overrides this to `http://localhost:9980` when run with `AppHost:UseCollabora=true` — see [End-to-end editing with Collabora Online](../README.md#end-to-end-editing-with-collabora-online). |
+| `Wopi:ClientUrl` | `"https://ffc-onenote.officeapps.live.com"` | Base URI of the WOPI client (Office Online Server / M365 for the Web / Collabora). Used by discovery. The AppHost overrides this to `http://localhost:9980` when run with `AppHost:UseCollabora=true` — see [End-to-end editing with Collabora Online](https://github.com/petrsvihlik/WopiHost/wiki/Collabora-Online) on the wiki. |
 
 ### `WopiHost.Web` ([appsettings.json](WopiHost.Web/appsettings.json))
 
@@ -67,4 +67,4 @@ dotnet run --project src/WopiValidator/WopiValidator.csproj --framework net10.0 
 
 ## Hosting in IIS / Docker
 
-See [Hosting Options](../README.md#hosting-options) in the top-level README.
+See [Hosting](https://github.com/petrsvihlik/WopiHost/wiki/Hosting) on the wiki.
