@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using Cobalt;
 using Cobalt.Base.IO;
@@ -47,6 +48,13 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
     }
 
     /// <inheritdoc/>
+    // Binary-protocol orchestration: deserializes a CobaltCore RequestBatch, executes it
+    // against the cached CobaltFile, optionally flushes content via GenericFda, and
+    // serializes the response. Exercised end-to-end by the WOPI Validator + sample apps;
+    // unit-testing it would require constructing real Cobalt protocol bytes which is
+    // brittle and high-maintenance. The argument-validation and dispose contract above
+    // and below are unit-tested in CobaltProcessorTests.
+    [ExcludeFromCodeCoverage(Justification = "Binary protocol; covered by integration tests")]
     public async Task<byte[]> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
@@ -107,6 +115,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
         return response;
     }
 
+    [ExcludeFromCodeCoverage(Justification = "Cache + retry around CreateSessionEntry; reachable only via the binary-protocol ProcessCobalt path")]
     private async Task<CobaltSessionEntry> GetOrCreateSession(IWopiFile file, CancellationToken cancellationToken)
     {
         var freshEntry = false;
@@ -138,6 +147,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
         }
     }
 
+    [ExcludeFromCodeCoverage(Justification = "Instantiates CobaltFile / LocalHostBlobStore / Atom from CobaltCore; verified end-to-end by the validator + sample apps")]
     private async Task<CobaltSessionEntry> CreateSessionEntry(IWopiFile file, CancellationToken cancellationToken)
     {
         var disposal = new DisposalEscrow(file.Owner);
@@ -187,6 +197,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
         return new CobaltSessionEntry(cobaltFile, disposal);
     }
 
+    [ExcludeFromCodeCoverage(Justification = "Time-dependent timer callback; exercising it without real timers would require reflective state injection")]
     private void EvictIdleSessions()
     {
         if (Volatile.Read(ref _disposed) != 0) return;
