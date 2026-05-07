@@ -64,7 +64,13 @@ public sealed class WopiLockAwareWritableStorageProvider : IWopiWritableStorageP
     public async Task<bool> DeleteWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
-        await EnsureNotLockedAsync(identifier, cancellationToken).ConfigureAwait(false);
+        // Inlined lock probe: pulled out of a private async helper because Infer# can't see
+        // through cross-method async calls and flags the returned Task as potentially null.
+        var existing = await lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
+        if (existing is not null)
+        {
+            throw new WopiResourceLockedException(identifier, existing.LockId);
+        }
         return await inner.DeleteWopiResource<T>(identifier, cancellationToken).ConfigureAwait(false);
     }
 
@@ -72,16 +78,11 @@ public sealed class WopiLockAwareWritableStorageProvider : IWopiWritableStorageP
     public async Task<bool> RenameWopiResource<T>(string identifier, string requestedName, CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
-        await EnsureNotLockedAsync(identifier, cancellationToken).ConfigureAwait(false);
-        return await inner.RenameWopiResource<T>(identifier, requestedName, cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task EnsureNotLockedAsync(string identifier, CancellationToken cancellationToken)
-    {
         var existing = await lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
         if (existing is not null)
         {
             throw new WopiResourceLockedException(identifier, existing.LockId);
         }
+        return await inner.RenameWopiResource<T>(identifier, requestedName, cancellationToken).ConfigureAwait(false);
     }
 }
