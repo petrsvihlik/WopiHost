@@ -18,12 +18,27 @@ public static class WopiHeaders
 	public const string LOCK = "X-WOPI-Lock";
 
     /// <summary>
-    /// Value to use when no lock exists but header must be included.
-    /// This is a workaround for IIS/Azure Web App behavior that removes headers with empty values.
-    /// See: https://github.com/petrsvihlik/WopiHost/issues/208
-    /// Reference: https://github.com/dotnet/aspnetcore/blob/df0c4597422b0e7592118cb9c7e40fa820d2ce0a/src/Servers/IIS/IIS/src/Core/IISHttpContext.cs#L608
+    /// Value to write into the <c>X-WOPI-Lock</c> response header when the file is unlocked but
+    /// the spec requires the header to be present.
     /// </summary>
-    public const string EMPTY_LOCK_VALUE = " ";
+    /// <remarks>
+    /// <para>
+    /// Per the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getlock">GetLock</see>
+    /// and <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see>
+    /// spec, this MUST be the empty string when the file is unlocked. Previously this constant was
+    /// set to a single space (<c>" "</c>) as a workaround for IIS in-process hosting stripping
+    /// headers with empty values (issue #208) — but that workaround makes WopiHost non-compliant
+    /// with strict WOPI clients (e.g. Collabora Online, the WOPI Validator), which can interpret
+    /// the space as a real lock id rather than "unlocked".
+    /// </para>
+    /// <para>
+    /// Kestrel preserves empty header values, so the default Aspire / out-of-process hosting path
+    /// is unaffected. Hosts that still deploy under IIS in-process and observe the original
+    /// stripping behavior should add header-rewriting middleware that substitutes their preferred
+    /// non-empty placeholder, rather than reverting this constant.
+    /// </para>
+    /// </remarks>
+    public const string EMPTY_LOCK_VALUE = "";
 
     /// <summary>
     /// A string provided by the WOPI client that is the existing lock on the file. 

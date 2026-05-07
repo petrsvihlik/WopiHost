@@ -788,7 +788,7 @@ public class FilesControllerTests
         // Spec (PutFile): non-empty unlocked file must respond 409 with X-WOPI-Lock set to the empty string.
         Assert.IsType<LockMismatchResult>(result);
         Assert.True(controller.Response.Headers.ContainsKey(WopiHeaders.LOCK));
-        Assert.Equal(WopiHeaders.EMPTY_LOCK_VALUE, controller.Response.Headers[WopiHeaders.LOCK].ToString());
+        Assert.Equal(string.Empty, controller.Response.Headers[WopiHeaders.LOCK].ToString());
     }
 
     [Fact]
@@ -1188,6 +1188,10 @@ public class FilesControllerTests
 
         Assert.IsType<OkResult>(result);
         Assert.Equal(WopiHeaders.EMPTY_LOCK_VALUE, controller.Response.Headers[WopiHeaders.LOCK]);
+        // Spec (GetLock): "the host must return a 200 OK and include an X-WOPI-Lock response header
+        // set to the empty string." Pinning the literal value guards against a regression to the
+        // pre-#359 IIS-workaround behavior where this constant was a single space.
+        Assert.Empty(WopiHeaders.EMPTY_LOCK_VALUE);
     }
 
     [Fact]
