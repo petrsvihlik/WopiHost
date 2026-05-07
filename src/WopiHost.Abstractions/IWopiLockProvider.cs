@@ -95,6 +95,18 @@ public record WopiLockInfo
     public const int ExpirationMinutes = 30;
 
     /// <summary>
+    /// Maximum lock-id length permitted by the WOPI spec when the host advertises
+    /// <c>SupportsExtendedLockLength=true</c>.
+    /// </summary>
+    /// <remarks>
+    /// Per the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#lock">Lock concepts</see>
+    /// page: <i>"Contain a lock ID of maximum length 1024 ASCII characters."</i> WopiHost advertises
+    /// <c>SupportsExtendedLockLength</c> in <c>CheckFileInfo</c>, so this is the contract limit
+    /// upstream WOPI clients are entitled to assume.
+    /// </remarks>
+    public const int MaxLockIdLength = 1024;
+
+    /// <summary>
     /// The lock identifier
     /// </summary>
     public required string LockId { get; init; }

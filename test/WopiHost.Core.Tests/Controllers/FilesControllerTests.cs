@@ -1399,6 +1399,61 @@ public class FilesControllerTests
     }
 
     [Fact]
+    public async Task ProcessLock_NewLockIdLongerThanMax_ReturnsBadRequestWithReasonHeader()
+    {
+        var fileId = "test-file-id";
+        SetupFileMock(fileId);
+
+        var oversized = new string('a', WopiLockInfo.MaxLockIdLength + 1);
+
+        var result = await controller.ProcessLock(
+            fileId,
+            wopiOverrideHeader: WopiFileOperations.Lock,
+            newLockIdentifier: oversized);
+
+        Assert.IsType<BadRequestResult>(result);
+        Assert.True(controller.Response.Headers.ContainsKey(WopiHeaders.LOCK_FAILURE_REASON));
+        Assert.Contains(WopiLockInfo.MaxLockIdLength.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            controller.Response.Headers[WopiHeaders.LOCK_FAILURE_REASON].ToString());
+    }
+
+    [Fact]
+    public async Task ProcessLock_OldLockIdLongerThanMax_ReturnsBadRequest()
+    {
+        var fileId = "test-file-id";
+        SetupFileMock(fileId);
+
+        var oversized = new string('z', WopiLockInfo.MaxLockIdLength + 1);
+
+        var result = await controller.ProcessLock(
+            fileId,
+            wopiOverrideHeader: WopiFileOperations.Lock,
+            oldLockIdentifier: oversized,
+            newLockIdentifier: "valid-new");
+
+        Assert.IsType<BadRequestResult>(result);
+    }
+
+    [Fact]
+    public async Task ProcessLock_LockIdAtMaxLength_IsAccepted()
+    {
+        var fileId = "test-file-id";
+        SetupFileMock(fileId);
+        // exactly at the cap - must NOT be rejected.
+        var atCap = new string('x', WopiLockInfo.MaxLockIdLength);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
+        lockProviderMock.Setup(x => x.AddLockAsync(fileId, atCap, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new WopiLockInfo { LockId = atCap, FileId = fileId });
+
+        var result = await controller.ProcessLock(
+            fileId,
+            wopiOverrideHeader: WopiFileOperations.Lock,
+            newLockIdentifier: atCap);
+
+        Assert.IsType<OkResult>(result);
+    }
+
+    [Fact]
     public async Task ProcessLock_GetLock_ReturnsOkResultWithLockHeader()
     {
         var fileId = "test-file-id";

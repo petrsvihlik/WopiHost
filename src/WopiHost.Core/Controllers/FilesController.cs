@@ -739,6 +739,16 @@ public class FilesController(
             return new LockMismatchResult(Response, reason: "Locking is not supported");
         }
 
+        // Reject lock ids longer than the contract advertised in CheckFileInfo
+        // (SupportsExtendedLockLength = 1024 chars). Catching a malformed client up front avoids
+        // wasted backend writes and silent truncation in storage layers.
+        if ((newLockIdentifier is not null && newLockIdentifier.Length > WopiLockInfo.MaxLockIdLength)
+            || (oldLockIdentifier is not null && oldLockIdentifier.Length > WopiLockInfo.MaxLockIdLength))
+        {
+            Response.Headers[WopiHeaders.LOCK_FAILURE_REASON] = $"Lock id exceeds maximum length of {WopiLockInfo.MaxLockIdLength} characters";
+            return BadRequest();
+        }
+
         var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken)
                    ?? throw new InvalidOperationException("File not found");
         Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
