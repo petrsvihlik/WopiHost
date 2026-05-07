@@ -18,6 +18,7 @@ dotnet add package WopiHost.Abstractions
 | [`IWopiStorageProvider`](IWopiStorageProvider.cs) | Read access to files and containers (folders). | `WopiFileSystemProvider` (local disk), `WopiAzureStorageProvider` (Azure Blob) | When neither bundled provider fits. |
 | [`IWopiWritableStorageProvider`](IWopiWritableStorageProvider.cs) | Create / delete / rename / suggest names. Optional. | Same providers above also implement this. | If you want WOPI clients to be able to mutate the store. |
 | [`IWopiLockProvider`](IWopiLockProvider.cs) | Editing locks. Asynchronous so out-of-process stores (Azure Blob, Redis, SQL) can plug in without sync-over-async. | `MemoryLockProvider` (in-process), `WopiAzureLockProvider` (blob leases) | Replace for multi-instance hosts. |
+| [`IWopiLockComparer`](IWopiLockComparer.cs) | Compares two lock ids for equivalence — used by every controller validation and by both providers' atomic compare-and-swap. | `OrdinalWopiLockComparer` (default, byte-exact), `JsonShapedWopiLockComparer` (opt-in, OOS-tolerant) | Replace only if you observe a specific WOPI client mutating lock ids between round-trips. |
 | [`IWopiPermissionProvider`](IWopiPermissionProvider.cs) | What a `ClaimsPrincipal` can do with a file/container. | `DefaultWopiPermissionProvider` (reads from token claims) | Almost always — this is where your ACL model plugs in. |
 | [`IWopiAccessTokenService`](IWopiAccessTokenService.cs) | Issue and validate access tokens. | `JwtAccessTokenService` (signed JWT) | Rarely — only if you need opaque/revocable tokens or external issuance. |
 | [`IWopiHostCapabilities`](IWopiHostCapabilities.cs) | Feature flags reported in `CheckFileInfo`. | `WopiHostCapabilities` | Override individual flags via `WopiHostOptions.OnCheckFileInfo`. |
@@ -85,6 +86,39 @@ services.AddSingleton<IWopiPermissionProvider, MyAclPermissionProvider>();
 ```
 
 For the full token pipeline (claim layout, key rotation, the bootstrapper authentication scheme), see the [WopiHost.Core README](../WopiHost.Core/README.md#security).
+
+## Lock comparison
+
+Every controller-level lock check and both providers' atomic compare-and-swap go through `IWopiLockComparer`. The default — `OrdinalWopiLockComparer` (byte-exact ordinal equality) — is the safe choice and matches the spec's implicit contract.
+
+`JsonShapedWopiLockComparer` ships as an opt-in fallback for hosts that observe Office Online Server / Microsoft 365-for-the-Web round-tripping JSON-format lock ids with extra properties added (the same quirk that drives `cs3org/wopiserver`'s `wopilockstrictcheck=False` mode). It treats two JSON locks as equivalent when their `S` (sequence) field matches and falls back to ordinal for non-JSON inputs. Tolerance has its own correctness cost — distinct locks that share an `S` field are treated as equal, masking lost updates — so don't relax the strict default speculatively.
+
+Wire either via DI:
+
+```csharp
+services.AddWopi(...);
+services.Replace(ServiceDescriptor.Singleton<IWopiLockComparer, JsonShapedWopiLockComparer>());
+```
+
+Custom implementations are a single-method interface:
+
+```csharp
+public class MyLockComparer : IWopiLockComparer
+{
+    public bool AreEqual(string? storedLockId, string? candidateLockId) { /* ... */ }
+}
+```
+
+## Lock model & limits
+
+`WopiLockInfo` carries `LockId`, `FileId`, `DateCreated`, and a computed `Expired` flag. Two spec-mandated constants live alongside it:
+
+- `WopiLockInfo.ExpirationMinutes = 30` — the WOPI spec requires locks auto-expire after 30 minutes if not refreshed.
+- `WopiLockInfo.MaxLockIdLength = 1024` — WopiHost advertises `SupportsExtendedLockLength` in `CheckFileInfo`, so this is the contract limit; `ProcessLock` rejects oversize lock ids with 400.
+
+`IWopiLockProvider` also exposes `TryUnlockAndRelockAsync(fileId, newLockId, expectedExistingLockId, ct)` — a required member that implements WOPI's `UnlockAndRelock` operation as a true compare-and-swap. Custom providers must implement this with their store's atomic primitive (`ConcurrentDictionary.TryUpdate`, ETag-conditional writes, optimistic-concurrency tokens, etc.). A naive Get-then-Refresh sequence is not sufficient.
+
+`WopiResourceLockedException` is the contract type the lock-aware writable storage decorator (`WopiLockAwareWritableStorageProvider` in `WopiHost.Core`) throws when delete/rename hits a locked target.
 
 ## Storage example sketch
 

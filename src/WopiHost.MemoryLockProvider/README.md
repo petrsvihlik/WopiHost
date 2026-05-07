@@ -42,13 +42,20 @@ The interface is **asynchronous** so out-of-process implementations (Azure Blob,
 ```csharp
 Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken ct = default);
 Task<WopiLockInfo?> AddLockAsync(string fileId, string lockId, CancellationToken ct = default);
-Task<bool>          RefreshLockAsync(string fileId, string? lockId = null, CancellationToken ct = default);
+Task<bool>          RefreshLockAsync(string fileId, CancellationToken ct = default);
 Task<bool>          RemoveLockAsync(string fileId, CancellationToken ct = default);
+Task<bool>          TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken ct = default);
 ```
 
 `GetLockAsync` returns `null` when the lock isn't present (or has expired and was evicted). `WopiLockInfo` carries `LockId`, `FileId`, `DateCreated`, and a computed `Expired` flag.
 
+`TryUnlockAndRelockAsync` is implemented with `ConcurrentDictionary.TryUpdate` against a snapshot — a true compare-and-swap, so a concurrent `UnlockAndRelock` from another caller correctly loses the race instead of silently overwriting.
+
 See [WopiHost.Abstractions](../WopiHost.Abstractions/IWopiLockProvider.cs) for the full contract.
+
+## Lock-id comparison
+
+The provider takes an optional `IWopiLockComparer` constructor parameter, defaulting to `OrdinalWopiLockComparer.Instance` (byte-exact). Plug in a custom comparer either via DI (`services.Replace(ServiceDescriptor.Singleton<IWopiLockComparer, ...>())`) or by passing it explicitly when constructing the provider. See the [WopiHost.Abstractions README](../WopiHost.Abstractions/README.md#lock-comparison) for the trade-offs (the bundled `JsonShapedWopiLockComparer` covers the OOS / M365-for-the-Web JSON-mutation quirk).
 
 ## License
 

@@ -12,14 +12,27 @@ namespace WopiHost.MemoryLockProvider;
 /// the lifetime of the process but not multi-instance deployments or restarts. Operations are
 /// inherently synchronous and are wrapped in <see cref="Task.FromResult{T}"/> to satisfy the async contract.
 /// </remarks>
-public partial class MemoryLockProvider(ILogger<MemoryLockProvider> logger) : IWopiLockProvider
+public partial class MemoryLockProvider : IWopiLockProvider
 {
     /// <summary>
     /// keyed with fileId
     /// </summary>
     private static readonly ConcurrentDictionary<string, WopiLockInfo> locks = [];
 
-    private readonly ILogger<MemoryLockProvider> logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly ILogger<MemoryLockProvider> logger;
+    private readonly IWopiLockComparer lockComparer;
+
+    /// <summary>
+    /// Creates the provider. <paramref name="lockComparer"/> defaults to
+    /// <see cref="OrdinalWopiLockComparer"/> when not supplied via DI; replace with a custom
+    /// comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>) to absorb known WOPI-client
+    /// lock-id mutations.
+    /// </summary>
+    public MemoryLockProvider(ILogger<MemoryLockProvider> logger, IWopiLockComparer? lockComparer = null)
+    {
+        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        this.lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
+    }
 
     /// <inheritdoc />
     public Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default)
@@ -58,7 +71,7 @@ public partial class MemoryLockProvider(ILogger<MemoryLockProvider> logger) : IW
     }
 
     /// <inheritdoc />
-    public async Task<bool> RefreshLockAsync(string fileId, string? lockId = null, CancellationToken cancellationToken = default)
+    public async Task<bool> RefreshLockAsync(string fileId, CancellationToken cancellationToken = default)
     {
         var existing = await GetLockAsync(fileId, cancellationToken).ConfigureAwait(false);
         if (existing is null)
@@ -68,7 +81,6 @@ public partial class MemoryLockProvider(ILogger<MemoryLockProvider> logger) : IW
         var updated = existing with
         {
             DateCreated = DateTimeOffset.UtcNow,
-            LockId = lockId ?? existing.LockId,
         };
         return locks.TryUpdate(fileId, updated, existing);
     }
@@ -82,5 +94,34 @@ public partial class MemoryLockProvider(ILogger<MemoryLockProvider> logger) : IW
             return Task.FromResult(true);
         }
         return Task.FromResult(false);
+    }
+
+    /// <inheritdoc />
+    public Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default)
+    {
+        if (!locks.TryGetValue(fileId, out var existing))
+        {
+            return Task.FromResult(false);
+        }
+        if (existing.Expired)
+        {
+            // Best-effort eviction; behave as if no lock exists.
+            _ = locks.TryRemove(fileId, out _);
+            LogLockExpired(logger, fileId, existing.LockId);
+            return Task.FromResult(false);
+        }
+        if (!lockComparer.AreEqual(existing.LockId, expectedExistingLockId))
+        {
+            return Task.FromResult(false);
+        }
+        var updated = existing with
+        {
+            DateCreated = DateTimeOffset.UtcNow,
+            LockId = newLockId,
+        };
+        // TryUpdate is the atomic CAS: succeeds only if the dictionary's current value still
+        // equals the snapshot we read. Any concurrent mutation (refresh, swap, removal) makes
+        // the comparand stale and the swap returns false.
+        return Task.FromResult(locks.TryUpdate(fileId, updated, existing));
     }
 }

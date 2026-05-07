@@ -1,10 +1,13 @@
-﻿using System.Net.Mime;
+﻿using System.Collections.ObjectModel;
+using System.Net.Mime;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
@@ -24,6 +27,10 @@ namespace WopiHost.Core.Controllers;
 /// <param name="writableStorageProvider">Storage provider instance for writing files and folders.</param>
 /// <param name="lockProvider">An instance of the lock provider.</param>
 /// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
+/// <param name="lockComparer">Compares lock ids when validating client-supplied tokens against
+/// stored ones. Defaults to <see cref="OrdinalWopiLockComparer"/> (byte-exact); replace via DI
+/// with <see cref="JsonShapedWopiLockComparer"/> or a custom implementation if a specific WOPI
+/// client mutates lock ids between round-trips.</param>
 [Authorize]
 [ApiController]
 [Route("wopi/[controller]")]
@@ -34,8 +41,10 @@ public class FilesController(
     IMemoryCache memoryCache,
     IWopiWritableStorageProvider? writableStorageProvider = null,
     IWopiLockProvider? lockProvider = null,
-    ICobaltProcessor? cobaltProcessor = null) : ControllerBase
+    ICobaltProcessor? cobaltProcessor = null,
+    IWopiLockComparer? lockComparer = null) : ControllerBase
 {
+    private readonly IWopiLockComparer lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
     private WopiHostCapabilities HostCapabilities => new()
     {
         SupportsCobalt = cobaltProcessor is not null,
@@ -161,7 +170,7 @@ public class FilesController(
         if (lockProvider is not null)
         {
             var existingLock = await lockProvider.GetLockAsync(id, cancellationToken);
-            if (existingLock is not null && existingLock.LockId != lockIdentifier)
+            if (existingLock is not null && !lockComparer.AreEqual(existingLock.LockId, lockIdentifier))
             {
                 return new LockMismatchResult(Response, existingLock.LockId);
             }
@@ -294,6 +303,9 @@ public class FilesController(
     /// </summary>
     /// <param name="id">File identifier.</param>
     /// <param name="newLockIdentifier">new lockId</param>
+    /// <param name="editors">Optional <c>X-WOPI-Editors</c> request header — a comma-delimited
+    /// list of <see cref="WopiCheckFileInfo.UserId"/> values for users who contributed to this
+    /// PutFile. Surfaced via <see cref="WopiHostOptions.OnPutFile"/>.</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPut("{id}/contents")]
@@ -302,6 +314,7 @@ public class FilesController(
     public async Task<IActionResult> PutFile(
         string id,
         [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null,
+        [FromHeader(Name = WopiHeaders.EDITORS)] string? editors = null,
         CancellationToken cancellationToken = default)
     {
         // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
@@ -310,7 +323,14 @@ public class FilesController(
         {
             return NotFound();
         }
-        
+
+        // Spec (PutFile): "413 Request Entity Too Large – File is too large. The maximum file size is host-specific."
+        var tooLarge = CheckMaxFileSize();
+        if (tooLarge is not null)
+        {
+            return tooLarge;
+        }
+
         // When a host receives a PutFile request on a file that's not locked, the host checks the current size of the file.
         if (string.IsNullOrEmpty(newLockIdentifier))
         {
@@ -323,14 +343,17 @@ public class FilesController(
                 {
                     Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
                 }
+                await InvokePutFileCallbackAsync(file, editors).ConfigureAwait(false);
                 return Ok();
             }
             else // If ... missing altogether, the host should respond with a 409 Conflict
             {
-                return new ConflictResult();
+                // Spec (PutFile): "In cases where the file is unlocked, the host must set X-WOPI-Lock to the empty string."
+                // LockMismatchResult writes WopiHeaders.LOCK = WopiHeaders.EMPTY_LOCK_VALUE when no existing lock is supplied.
+                return new LockMismatchResult(Response, existingLock: null);
             }
         }
-        
+
         // Acquire lock
         var lockResult = await ProcessLock(id, wopiOverrideHeader: WopiFileOperations.Lock, newLockIdentifier: newLockIdentifier, cancellationToken: cancellationToken);
 
@@ -342,9 +365,64 @@ public class FilesController(
             {
                 Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
             }
+            await InvokePutFileCallbackAsync(file, editors).ConfigureAwait(false);
             return Ok();
         }
         return lockResult;
+    }
+
+    /// <summary>
+    /// Resolves the configured <see cref="WopiHostOptions.OnPutFile"/> callback (if any) and
+    /// invokes it with the parsed <c>X-WOPI-Editors</c> contributor list. The header is a
+    /// comma-delimited list per WOPI <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see>;
+    /// blank entries (extra commas, leading/trailing whitespace) are dropped.
+    /// </summary>
+    private async Task InvokePutFileCallbackAsync(IWopiFile file, string? editorsHeader)
+    {
+        var options = HttpContext.RequestServices?.GetService<IOptions<WopiHostOptions>>();
+        if (options is null)
+        {
+            return;
+        }
+        var editors = ParseEditorsHeader(editorsHeader);
+        await options.Value.OnPutFile(new WopiPutFileContext(User, file, editors)).ConfigureAwait(false);
+    }
+
+    private static ReadOnlyCollection<string> ParseEditorsHeader(string? header)
+    {
+        if (string.IsNullOrWhiteSpace(header))
+        {
+            return new ReadOnlyCollection<string>([]);
+        }
+        var parts = header.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return new ReadOnlyCollection<string>(parts);
+    }
+
+    /// <summary>
+    /// Enforce <see cref="WopiHostOptions.MaxFileSize"/> as a 413 short-circuit before consuming
+    /// the request body. Compares the request's <c>Content-Length</c> and the optional
+    /// <paramref name="declaredSize"/> (typically from <c>X-WOPI-Size</c>) against the configured
+    /// limit; whichever is largest decides. Returns <see langword="null"/> when the request is
+    /// within budget or no limit is configured.
+    /// </summary>
+    private IActionResult? CheckMaxFileSize(long? declaredSize = null)
+    {
+        // RequestServices can be null when the controller is invoked without a configured
+        // ServiceProvidersFeature (some unit-test paths). Treat that as "no options resolved" so
+        // the limit just doesn't apply, instead of NRE-ing through the size check.
+        var options = HttpContext.RequestServices?.GetService<IOptions<WopiHostOptions>>();
+        var max = options?.Value.MaxFileSize;
+        if (max is null)
+        {
+            return null;
+        }
+        var contentLength = HttpContext.Request.ContentLength;
+        if ((contentLength is long len && len > max.Value)
+            || (declaredSize is long ds && ds > max.Value))
+        {
+            return StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+        return null;
     }
 
     /// <summary>
@@ -357,6 +435,11 @@ public class FilesController(
     /// <param name="suggestedTarget">A UTF-7 encoded string specifying either a file extension or a full file name, including the file extension</param>
     /// <param name="relativeTarget">A UTF-7 encoded string that specifies a full file name including the file extension. The host must not modify the name to fulfill the request.</param>
     /// <param name="overwriteRelativeTarget">A Boolean value that specifies whether the host must overwrite the file name if it exists. The default value is false.</param>
+    /// <param name="fileConversion">Optional <c>X-WOPI-FileConversion</c> header. When present
+    /// (any value), signals that the request is part of a binary document conversion. Surfaced
+    /// via <see cref="WopiHostOptions.OnPutRelativeFile"/>.</param>
+    /// <param name="declaredSize">Optional <c>X-WOPI-Size</c> header announcing the file size in
+    /// bytes. Surfaced via <see cref="WopiHostOptions.OnPutRelativeFile"/>.</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.PutRelativeFile)]
@@ -366,6 +449,8 @@ public class FilesController(
         [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget = null,
         [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? relativeTarget = null,
         [FromHeader(Name = WopiHeaders.OVERWRITE_RELATIVE_TARGET)] bool? overwriteRelativeTarget = false,
+        [FromHeader(Name = WopiHeaders.FILE_CONVERSION)] string? fileConversion = null,
+        [FromHeader(Name = WopiHeaders.SIZE)] long? declaredSize = null,
         CancellationToken cancellationToken = default)
     {
         if (writableStorageProvider is null)
@@ -377,6 +462,14 @@ public class FilesController(
         if (file is null)
         {
             return NotFound();
+        }
+
+        // Spec (PutRelativeFile): "413 Request Entity Too Large – File is too large. The maximum file size is host-specific."
+        // Honor X-WOPI-Size as a declared-size signal so we can reject before consuming the body.
+        var tooLarge = CheckMaxFileSize(declaredSize);
+        if (tooLarge is not null)
+        {
+            return tooLarge;
         }
 
         // the two headers are mutually exclusive. If both headers are present (or missing), the host should respond with a 501 Not Implemented status code.
@@ -469,6 +562,7 @@ public class FilesController(
         {
             // copy new contents to storage
             await HttpContext.CopyToWriteStream(newFile, cancellationToken);
+            await InvokePutRelativeFileCallbackAsync(file, newFile, fileConversion, declaredSize).ConfigureAwait(false);
             var checkFileInfo = await newFile.GetWopiCheckFileInfo(HttpContext, HostCapabilities, cancellationToken: cancellationToken);
             return new JsonResult(
                 new ChildFile(
@@ -480,7 +574,27 @@ public class FilesController(
                 });
         }
 
-        return new InternalServerErrorResult();        
+        return new InternalServerErrorResult();
+    }
+
+    /// <summary>
+    /// Resolves the configured <see cref="WopiHostOptions.OnPutRelativeFile"/> callback (if any)
+    /// and invokes it with the parsed <c>X-WOPI-FileConversion</c> presence flag and
+    /// <c>X-WOPI-Size</c> declared-size value.
+    /// </summary>
+    private async Task InvokePutRelativeFileCallbackAsync(IWopiFile originalFile, IWopiFile newFile, string? fileConversion, long? declaredSize)
+    {
+        var options = HttpContext.RequestServices?.GetService<IOptions<WopiHostOptions>>();
+        if (options is null)
+        {
+            return;
+        }
+        // Per spec, X-WOPI-FileConversion is presence-only; the value is irrelevant. Treat any
+        // bound value (including the empty string) as "header was present."
+        var isConversion = fileConversion is not null
+            || HttpContext.Request.Headers.ContainsKey(WopiHeaders.FILE_CONVERSION);
+        await options.Value.OnPutRelativeFile(
+            new WopiPutRelativeFileContext(User, originalFile, newFile, isConversion, declaredSize)).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -631,6 +745,16 @@ public class FilesController(
             return new LockMismatchResult(Response, reason: "Locking is not supported");
         }
 
+        // Reject lock ids longer than the contract advertised in CheckFileInfo
+        // (SupportsExtendedLockLength = 1024 chars). Catching a malformed client up front avoids
+        // wasted backend writes and silent truncation in storage layers.
+        if ((newLockIdentifier is not null && newLockIdentifier.Length > WopiLockInfo.MaxLockIdLength)
+            || (oldLockIdentifier is not null && oldLockIdentifier.Length > WopiLockInfo.MaxLockIdLength))
+        {
+            Response.Headers[WopiHeaders.LOCK_FAILURE_REASON] = $"Lock id exceeds maximum length of {WopiLockInfo.MaxLockIdLength} characters";
+            return BadRequest();
+        }
+
         var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken)
                    ?? throw new InvalidOperationException("File not found");
         Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
@@ -652,9 +776,12 @@ public class FilesController(
 
     private OkResult HandleGetLock(WopiLockInfo? existingLock)
     {
+        var emptyValue = HttpContext.RequestServices?
+            .GetService<IOptions<WopiHostOptions>>()?.Value.EmptyLockHeaderValue
+            ?? WopiHeaders.EMPTY_LOCK_VALUE;
         Response.Headers[WopiHeaders.LOCK] = existingLock is not null
             ? existingLock.LockId
-            : WopiHeaders.EMPTY_LOCK_VALUE;
+            : emptyValue;
         return Ok();
     }
 
@@ -692,7 +819,7 @@ public class FilesController(
         {
             return new LockMismatchResult(Response, reason: "File not locked");
         }
-        if (existingLock.LockId != oldLockIdentifier)
+        if (!lockComparer.AreEqual(existingLock.LockId, oldLockIdentifier))
         {
             return new LockMismatchResult(Response, existingLock.LockId);
         }
@@ -700,9 +827,14 @@ public class FilesController(
         {
             return new LockMismatchResult(Response, reason: "Missing new lock identifier");
         }
-        return await lockProvider.RefreshLockAsync(id, newLockIdentifier, cancellationToken)
+        // Pass the expected old lock id all the way down so the provider can do an atomic
+        // compare-and-swap. The controller-level check above is necessary (it produces the correct
+        // X-WOPI-Lock header on a stale-cache mismatch) but not sufficient — without the CAS, a
+        // concurrent UnlockAndRelock from another client between our GetLockAsync and the swap
+        // would silently steal the lock.
+        return await lockProvider.TryUnlockAndRelockAsync(id, newLockIdentifier, oldLockIdentifier, cancellationToken)
             ? Ok()
-            : new LockMismatchResult(Response, "Could not create lock");
+            : new LockMismatchResult(Response, existingLock.LockId, reason: "Lock changed concurrently");
     }
 
     private async Task<IActionResult> HandleUnlock(string id, string? newLockIdentifier, WopiLockInfo? existingLock, CancellationToken cancellationToken)
@@ -713,7 +845,7 @@ public class FilesController(
         {
             return new LockMismatchResult(Response, reason: "File not locked");
         }
-        if (existingLock.LockId != newLockIdentifier)
+        if (!lockComparer.AreEqual(existingLock.LockId, newLockIdentifier))
         {
             return new LockMismatchResult(Response, existingLock.LockId);
         }
@@ -739,7 +871,7 @@ public class FilesController(
     private async Task<IActionResult> LockOrRefresh(string newLock, WopiLockInfo existingLock, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(lockProvider);
-        if (existingLock.LockId != newLock)
+        if (!lockComparer.AreEqual(existingLock.LockId, newLock))
         {
             // The existing lock doesn't match the requested one (someone else might have locked the file). Return a lock mismatch error along with the current lock
             return new LockMismatchResult(Response, existingLock.LockId);

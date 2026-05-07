@@ -19,13 +19,13 @@ public interface IWopiLockProvider
     Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Extend an existing lock's expiration time.
+    /// Extend an existing lock's expiration time. Does not change the stored lock id — use
+    /// <see cref="TryUnlockAndRelockAsync"/> for atomic swap semantics.
     /// </summary>
     /// <param name="fileId">the fileId to refresh the lock for.</param>
-    /// <param name="lockId">include to also update the lockId.</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>true if the lock was successfully refreshed</returns>
-    Task<bool> RefreshLockAsync(string fileId, string? lockId = null, CancellationToken cancellationToken = default);
+    Task<bool> RefreshLockAsync(string fileId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Create a new lock.
@@ -43,6 +43,30 @@ public interface IWopiLockProvider
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>true if a lock was removed</returns>
     Task<bool> RemoveLockAsync(string fileId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Atomically replace the current lock id with a new one — but only if the existing lock id
+    /// matches <paramref name="expectedExistingLockId"/>. Implements the WOPI <c>UnlockAndRelock</c>
+    /// operation, which the spec requires be atomic with respect to concurrent lock modifications.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Implementations MUST perform a true compare-and-swap (e.g. <c>ConcurrentDictionary.TryUpdate</c>
+    /// against a snapshot, or an ETag/lease-conditional write on a remote store). A naive
+    /// "Get + Refresh" sequence is not sufficient — see the spec link below for why.
+    /// </para>
+    /// <para>
+    /// Spec: <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock"/>.
+    /// </para>
+    /// </remarks>
+    /// <param name="fileId">the fileId whose lock is being swapped.</param>
+    /// <param name="newLockId">the lock id to set.</param>
+    /// <param name="expectedExistingLockId">the lock id the caller observed; the swap aborts if the
+    /// stored lock id no longer matches this value.</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns>true if the swap completed atomically; false if the lock was missing, expired, or
+    /// the existing id no longer matches.</returns>
+    Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -59,6 +83,18 @@ public record WopiLockInfo
     /// This is fixed by the spec and not a tunable.
     /// </remarks>
     public const int ExpirationMinutes = 30;
+
+    /// <summary>
+    /// Maximum lock-id length permitted by the WOPI spec when the host advertises
+    /// <c>SupportsExtendedLockLength=true</c>.
+    /// </summary>
+    /// <remarks>
+    /// Per the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#lock">Lock concepts</see>
+    /// page: <i>"Contain a lock ID of maximum length 1024 ASCII characters."</i> WopiHost advertises
+    /// <c>SupportsExtendedLockLength</c> in <c>CheckFileInfo</c>, so this is the contract limit
+    /// upstream WOPI clients are entitled to assume.
+    /// </remarks>
+    public const int MaxLockIdLength = 1024;
 
     /// <summary>
     /// The lock identifier

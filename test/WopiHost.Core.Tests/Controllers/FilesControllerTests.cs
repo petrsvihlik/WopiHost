@@ -775,7 +775,7 @@ public class FilesControllerTests
     }
 
     [Fact]
-    public async Task PutFile_NoLock_NonEmptyFile_ReturnsConflict()
+    public async Task PutFile_NoLock_NonEmptyFile_ReturnsLockMismatchWithEmptyLockHeader()
     {
         var fileId = "testFileId";
         var fileMock = CreateFileMock(fileId, size: 1024);
@@ -785,7 +785,10 @@ public class FilesControllerTests
 
         var result = await controller.PutFile(fileId, newLockIdentifier: null);
 
-        Assert.IsType<ConflictResult>(result);
+        // Spec (PutFile): non-empty unlocked file must respond 409 with X-WOPI-Lock set to the empty string.
+        Assert.IsType<LockMismatchResult>(result);
+        Assert.True(controller.Response.Headers.ContainsKey(WopiHeaders.LOCK));
+        Assert.Equal(string.Empty, controller.Response.Headers[WopiHeaders.LOCK].ToString());
     }
 
     [Fact]
@@ -833,6 +836,103 @@ public class FilesControllerTests
         var result = await controller.PutFile(fileId, newLockIdentifier: lockId);
 
         Assert.IsType<OkResult>(result);
+    }
+
+    [Fact]
+    public async Task PutFile_WithEditorsHeader_InvokesOnPutFileWithParsedContributors()
+    {
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId, size: 0);
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+
+        WopiPutFileContext? captured = null;
+        var optionsWithCallback = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            OnPutFile = ctx => { captured = ctx; return Task.CompletedTask; },
+        });
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithCallback),
+            }
+        };
+
+        var result = await controller.PutFile(fileId, newLockIdentifier: null, editors: " alice , bob ,, charlie");
+
+        Assert.IsType<OkResult>(result);
+        Assert.NotNull(captured);
+        Assert.Equal(fileMock.Object, captured.File);
+        // Spec: comma-delimited list of UserIds. Empty entries from extra commas are dropped;
+        // surrounding whitespace is trimmed.
+        Assert.Equal(["alice", "bob", "charlie"], captured.Editors);
+    }
+
+    [Fact]
+    public async Task PutFile_NoEditorsHeader_InvokesOnPutFileWithEmptyContributorList()
+    {
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId, size: 0);
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+
+        WopiPutFileContext? captured = null;
+        var optionsWithCallback = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            OnPutFile = ctx => { captured = ctx; return Task.CompletedTask; },
+        });
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithCallback),
+            }
+        };
+
+        var result = await controller.PutFile(fileId, newLockIdentifier: null, editors: null);
+
+        Assert.IsType<OkResult>(result);
+        Assert.NotNull(captured);
+        Assert.Empty(captured.Editors);
+    }
+
+    [Fact]
+    public async Task PutFile_RequestExceedsMaxFileSize_Returns413()
+    {
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId, size: 0);
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+
+        var optionsWithLimit = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            MaxFileSize = 1024,
+        });
+
+        var httpContext = new DefaultHttpContext
+        {
+            ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithLimit),
+        };
+        httpContext.Request.ContentLength = 4096;
+
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var result = await controller.PutFile(fileId, newLockIdentifier: null);
+
+        var status = Assert.IsType<StatusCodeResult>(result);
+        Assert.Equal(StatusCodes.Status413PayloadTooLarge, status.StatusCode);
     }
 
     [Fact]
@@ -1052,6 +1152,148 @@ public class FilesControllerTests
     }
 
     [Fact]
+    public async Task PutRelativeFile_DeclaredSizeExceedsMaxFileSize_Returns413()
+    {
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId);
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+
+        var optionsWithLimit = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            MaxFileSize = 1024,
+        });
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithLimit),
+            }
+        };
+
+        // X-WOPI-Size declares 4096, MaxFileSize is 1024 → 413 short-circuits before write.
+        var result = await controller.PutRelativeFile(
+            fileId,
+            relativeTarget: UtfString.FromDecoded("newfile.txt"),
+            declaredSize: 4096);
+
+        var status = Assert.IsType<StatusCodeResult>(result);
+        Assert.Equal(StatusCodes.Status413PayloadTooLarge, status.StatusCode);
+    }
+
+    [Fact]
+    public async Task PutRelativeFile_FileConversionAndSizeHeaders_SurfaceViaOnPutRelativeFile()
+    {
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId);
+        var parentFolder = new Mock<IWopiFolder>();
+        parentFolder.SetupGet(f => f.Identifier).Returns("parentId");
+        var ancestors = new ReadOnlyCollection<IWopiFolder>([parentFolder.Object]);
+        var newFileMock = CreateFileMock("newFileId");
+
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+        storageProviderMock
+            .Setup(s => s.GetAncestors<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ancestors);
+        storageProviderMock
+            .Setup(s => s.GetWopiResourceByName<IWopiFile>("parentId", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
+        writableStorageProviderMock
+            .Setup(w => w.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        writableStorageProviderMock
+            .Setup(w => w.CreateWopiChildResource<IWopiFile>("parentId", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(newFileMock.Object);
+
+        WopiPutRelativeFileContext? captured = null;
+        var optionsWithCallback = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            OnPutRelativeFile = ctx => { captured = ctx; return Task.CompletedTask; },
+        });
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithCallback),
+            }
+        };
+
+        var result = await controller.PutRelativeFile(
+            fileId,
+            relativeTarget: UtfString.FromDecoded("newfile.txt"),
+            fileConversion: "true",
+            declaredSize: 4096);
+
+        Assert.IsType<JsonResult>(result);
+        Assert.NotNull(captured);
+        Assert.Same(fileMock.Object, captured.OriginalFile);
+        Assert.Same(newFileMock.Object, captured.NewFile);
+        Assert.True(captured.IsFileConversion);
+        Assert.Equal(4096, captured.DeclaredSize);
+    }
+
+    [Fact]
+    public async Task PutRelativeFile_NoConversionOrSize_SurfaceFalseAndNullDefaults()
+    {
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId);
+        var parentFolder = new Mock<IWopiFolder>();
+        parentFolder.SetupGet(f => f.Identifier).Returns("parentId");
+        var ancestors = new ReadOnlyCollection<IWopiFolder>([parentFolder.Object]);
+        var newFileMock = CreateFileMock("newFileId");
+
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+        storageProviderMock
+            .Setup(s => s.GetAncestors<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ancestors);
+        storageProviderMock
+            .Setup(s => s.GetWopiResourceByName<IWopiFile>("parentId", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
+        writableStorageProviderMock
+            .Setup(w => w.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        writableStorageProviderMock
+            .Setup(w => w.CreateWopiChildResource<IWopiFile>("parentId", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(newFileMock.Object);
+
+        WopiPutRelativeFileContext? captured = null;
+        var optionsWithCallback = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            OnPutRelativeFile = ctx => { captured = ctx; return Task.CompletedTask; },
+        });
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithCallback),
+            }
+        };
+
+        var result = await controller.PutRelativeFile(
+            fileId,
+            relativeTarget: UtfString.FromDecoded("newfile.txt"));
+
+        Assert.IsType<JsonResult>(result);
+        Assert.NotNull(captured);
+        Assert.False(captured.IsFileConversion);
+        Assert.Null(captured.DeclaredSize);
+    }
+
+    [Fact]
     public async Task PutRelativeFile_SuggestedTarget_ExtensionOnly_ReturnsJsonResult()
     {
         var fileId = "testFileId";
@@ -1157,6 +1399,61 @@ public class FilesControllerTests
     }
 
     [Fact]
+    public async Task ProcessLock_NewLockIdLongerThanMax_ReturnsBadRequestWithReasonHeader()
+    {
+        var fileId = "test-file-id";
+        SetupFileMock(fileId);
+
+        var oversized = new string('a', WopiLockInfo.MaxLockIdLength + 1);
+
+        var result = await controller.ProcessLock(
+            fileId,
+            wopiOverrideHeader: WopiFileOperations.Lock,
+            newLockIdentifier: oversized);
+
+        Assert.IsType<BadRequestResult>(result);
+        Assert.True(controller.Response.Headers.ContainsKey(WopiHeaders.LOCK_FAILURE_REASON));
+        Assert.Contains(WopiLockInfo.MaxLockIdLength.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            controller.Response.Headers[WopiHeaders.LOCK_FAILURE_REASON].ToString());
+    }
+
+    [Fact]
+    public async Task ProcessLock_OldLockIdLongerThanMax_ReturnsBadRequest()
+    {
+        var fileId = "test-file-id";
+        SetupFileMock(fileId);
+
+        var oversized = new string('z', WopiLockInfo.MaxLockIdLength + 1);
+
+        var result = await controller.ProcessLock(
+            fileId,
+            wopiOverrideHeader: WopiFileOperations.Lock,
+            oldLockIdentifier: oversized,
+            newLockIdentifier: "valid-new");
+
+        Assert.IsType<BadRequestResult>(result);
+    }
+
+    [Fact]
+    public async Task ProcessLock_LockIdAtMaxLength_IsAccepted()
+    {
+        var fileId = "test-file-id";
+        SetupFileMock(fileId);
+        // exactly at the cap - must NOT be rejected.
+        var atCap = new string('x', WopiLockInfo.MaxLockIdLength);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
+        lockProviderMock.Setup(x => x.AddLockAsync(fileId, atCap, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new WopiLockInfo { LockId = atCap, FileId = fileId });
+
+        var result = await controller.ProcessLock(
+            fileId,
+            wopiOverrideHeader: WopiFileOperations.Lock,
+            newLockIdentifier: atCap);
+
+        Assert.IsType<OkResult>(result);
+    }
+
+    [Fact]
     public async Task ProcessLock_GetLock_ReturnsOkResultWithLockHeader()
     {
         var fileId = "test-file-id";
@@ -1185,6 +1482,70 @@ public class FilesControllerTests
 
         Assert.IsType<OkResult>(result);
         Assert.Equal(WopiHeaders.EMPTY_LOCK_VALUE, controller.Response.Headers[WopiHeaders.LOCK]);
+        // Spec (GetLock): "the host must return a 200 OK and include an X-WOPI-Lock response header
+        // set to the empty string." Pinning the literal value guards against a regression to the
+        // pre-#359 IIS-workaround behavior where this constant was a single space.
+        Assert.Empty(WopiHeaders.EMPTY_LOCK_VALUE);
+    }
+
+    [Fact]
+    public async Task ProcessLock_GetLock_NoExistingLock_HonorsConfiguredEmptyLockValue()
+    {
+        // Hosts running under IIS in-process opt back into the single-space workaround for
+        // empty X-WOPI-Lock values via WopiHostOptions.EmptyLockHeaderValue. Verify the option
+        // flows through HandleGetLock at request time.
+        var fileId = "test-file-id";
+        SetupFileMock(fileId);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
+
+        var customOptions = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            EmptyLockHeaderValue = " ",
+        });
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(customOptions),
+            }
+        };
+
+        var result = await controller.ProcessLock(fileId, WopiFileOperations.GetLock);
+
+        Assert.IsType<OkResult>(result);
+        Assert.Equal(" ", controller.Response.Headers[WopiHeaders.LOCK]);
+    }
+
+    [Fact]
+    public async Task PutFile_NoLock_NonEmptyFile_HonorsConfiguredEmptyLockValue()
+    {
+        // Same option flow on the PutFile 409-with-empty-lock path (via LockMismatchResult).
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId, size: 1024);
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+
+        var customOptions = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            EmptyLockHeaderValue = " ",
+        });
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(customOptions),
+            }
+        };
+
+        var result = await controller.PutFile(fileId, newLockIdentifier: null);
+
+        Assert.IsType<LockMismatchResult>(result);
+        Assert.Equal(" ", controller.Response.Headers[WopiHeaders.LOCK].ToString());
     }
 
     [Fact]
@@ -1230,7 +1591,7 @@ public class FilesControllerTests
         var newLockIdentifier = "existing-lock-id";
         var lockInfo = new WopiLockInfo { LockId = newLockIdentifier, FileId = fileId };
         lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
-        lockProviderMock.Setup(x => x.RefreshLockAsync(fileId, null, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        lockProviderMock.Setup(x => x.RefreshLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var result = await controller.ProcessLock(fileId, wopiOverrideHeader, newLockIdentifier: newLockIdentifier);
 
@@ -1258,7 +1619,7 @@ public class FilesControllerTests
         SetupFileMock(fileId);
         var lockInfo = new WopiLockInfo { LockId = lockId, FileId = fileId };
         lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
-        lockProviderMock.Setup(x => x.RefreshLockAsync(fileId, It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        lockProviderMock.Setup(x => x.RefreshLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var result = await controller.ProcessLock(fileId, WopiFileOperations.Lock, newLockIdentifier: lockId);
 
@@ -1319,7 +1680,9 @@ public class FilesControllerTests
         SetupFileMock(fileId);
         var lockInfo = new WopiLockInfo { LockId = oldLockId, FileId = fileId };
         lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
-        lockProviderMock.Setup(x => x.RefreshLockAsync(fileId, newLockId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        lockProviderMock
+            .Setup(x => x.TryUnlockAndRelockAsync(fileId, newLockId, oldLockId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var result = await controller.ProcessLock(
             fileId,
@@ -1472,7 +1835,7 @@ public class FilesControllerTests
         SetupFileMock(fileId);
         var lockInfo = new WopiLockInfo { LockId = lockId, FileId = fileId };
         lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
-        lockProviderMock.Setup(x => x.RefreshLockAsync(fileId, It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        lockProviderMock.Setup(x => x.RefreshLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         var result = await controller.ProcessLock(
             fileId,

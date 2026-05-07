@@ -18,18 +18,51 @@ public static class WopiHeaders
 	public const string LOCK = "X-WOPI-Lock";
 
     /// <summary>
-    /// Value to use when no lock exists but header must be included.
-    /// This is a workaround for IIS/Azure Web App behavior that removes headers with empty values.
-    /// See: https://github.com/petrsvihlik/WopiHost/issues/208
-    /// Reference: https://github.com/dotnet/aspnetcore/blob/df0c4597422b0e7592118cb9c7e40fa820d2ce0a/src/Servers/IIS/IIS/src/Core/IISHttpContext.cs#L608
+    /// Spec-compliant default for the <c>X-WOPI-Lock</c> response header when the file is unlocked
+    /// but the spec requires the header to be present (notably <c>GetLock</c> on an unlocked file
+    /// and <c>PutFile</c> on a non-empty unlocked file).
     /// </summary>
-    public const string EMPTY_LOCK_VALUE = " ";
+    /// <remarks>
+    /// <para>
+    /// The runtime value is resolved from <see cref="WopiHost.Core.Models.WopiHostOptions.EmptyLockHeaderValue"/>
+    /// (default: empty string, matching the WOPI spec). This constant is the fallback used when
+    /// no service provider is available — and remains useful as a stable reference value for
+    /// tests that pin the spec-compliant default.
+    /// </para>
+    /// <para>
+    /// Hosting under IIS in-process strips empty header values before they reach the wire (see
+    /// issue #208). Hosts on that path should set <c>WopiHostOptions.EmptyLockHeaderValue = " "</c>
+    /// to opt into the historic single-space workaround.
+    /// </para>
+    /// </remarks>
+    public const string EMPTY_LOCK_VALUE = "";
 
     /// <summary>
-    /// A string provided by the WOPI client that is the existing lock on the file. 
+    /// A string provided by the WOPI client that is the existing lock on the file.
     /// Required. Note that if X-WOPI-OldLock is not provided, the request is identical to a Lock request.
     /// </summary>
     public const string OLD_LOCK = "X-WOPI-OldLock";
+
+    /// <summary>
+    /// A comma-delimited string of <c>UserId</c> values representing all the users who contributed
+    /// changes to the document in this <c>PutFile</c> request. Optional; surfaced via
+    /// <see cref="WopiHost.Core.Models.WopiHostOptions.OnPutFile"/>.
+    /// </summary>
+    public const string EDITORS = "X-WOPI-Editors";
+
+    /// <summary>
+    /// Marker request header on <c>PutRelativeFile</c> whose <em>presence</em> indicates the call
+    /// is being made in the context of a binary document conversion. The header value itself is
+    /// not significant per the spec — only its presence. Surfaced via
+    /// <see cref="WopiHost.Core.Models.WopiHostOptions.OnPutRelativeFile"/>.
+    /// </summary>
+    public const string FILE_CONVERSION = "X-WOPI-FileConversion";
+
+    /// <summary>
+    /// Optional integer request header on <c>PutRelativeFile</c> announcing the size in bytes of
+    /// the file being uploaded. Surfaced via <see cref="WopiHost.Core.Models.WopiHostOptions.OnPutRelativeFile"/>.
+    /// </summary>
+    public const string SIZE = "X-WOPI-Size";
 
     /// <summary>
     /// An optional string value indicating the cause of a lock failure. 
