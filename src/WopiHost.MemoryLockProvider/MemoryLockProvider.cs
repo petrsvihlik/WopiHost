@@ -83,4 +83,33 @@ public partial class MemoryLockProvider(ILogger<MemoryLockProvider> logger) : IW
         }
         return Task.FromResult(false);
     }
+
+    /// <inheritdoc />
+    public Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default)
+    {
+        if (!locks.TryGetValue(fileId, out var existing))
+        {
+            return Task.FromResult(false);
+        }
+        if (existing.Expired)
+        {
+            // Best-effort eviction; behave as if no lock exists.
+            _ = locks.TryRemove(fileId, out _);
+            LogLockExpired(logger, fileId, existing.LockId);
+            return Task.FromResult(false);
+        }
+        if (existing.LockId != expectedExistingLockId)
+        {
+            return Task.FromResult(false);
+        }
+        var updated = existing with
+        {
+            DateCreated = DateTimeOffset.UtcNow,
+            LockId = newLockId,
+        };
+        // TryUpdate is the atomic CAS: succeeds only if the dictionary's current value still
+        // equals the snapshot we read. Any concurrent mutation (refresh, swap, removal) makes
+        // the comparand stale and the swap returns false.
+        return Task.FromResult(locks.TryUpdate(fileId, updated, existing));
+    }
 }

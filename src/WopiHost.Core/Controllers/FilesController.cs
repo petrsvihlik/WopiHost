@@ -702,9 +702,14 @@ public class FilesController(
         {
             return new LockMismatchResult(Response, reason: "Missing new lock identifier");
         }
-        return await lockProvider.RefreshLockAsync(id, newLockIdentifier, cancellationToken)
+        // Pass the expected old lock id all the way down so the provider can do an atomic
+        // compare-and-swap. The controller-level check above is necessary (it produces the correct
+        // X-WOPI-Lock header on a stale-cache mismatch) but not sufficient — without the CAS, a
+        // concurrent UnlockAndRelock from another client between our GetLockAsync and the swap
+        // would silently steal the lock.
+        return await lockProvider.TryUnlockAndRelockAsync(id, newLockIdentifier, oldLockIdentifier, cancellationToken)
             ? Ok()
-            : new LockMismatchResult(Response, "Could not create lock");
+            : new LockMismatchResult(Response, existingLock.LockId, reason: "Lock changed concurrently");
     }
 
     private async Task<IActionResult> HandleUnlock(string id, string? newLockIdentifier, WopiLockInfo? existingLock, CancellationToken cancellationToken)

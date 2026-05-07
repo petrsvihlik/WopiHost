@@ -43,6 +43,40 @@ public interface IWopiLockProvider
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>true if a lock was removed</returns>
     Task<bool> RemoveLockAsync(string fileId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Atomically replace the current lock id with a new one — but only if the existing lock id
+    /// matches <paramref name="expectedExistingLockId"/>. Implements the WOPI <c>UnlockAndRelock</c>
+    /// operation, which the spec requires be atomic with respect to concurrent lock modifications.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The default implementation here is a non-atomic fallback (Get + RefreshLock) that exists only
+    /// to keep the interface backwards-compatible with custom <see cref="IWopiLockProvider"/>s that
+    /// pre-date this method. Built-in providers (<c>MemoryLockProvider</c>, <c>WopiAzureLockProvider</c>)
+    /// override this with a true compare-and-swap. Production providers should do the same; otherwise
+    /// a concurrent <c>UnlockAndRelock</c> from another client can be silently overwritten.
+    /// </para>
+    /// <para>
+    /// Spec: <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock"/>.
+    /// </para>
+    /// </remarks>
+    /// <param name="fileId">the fileId whose lock is being swapped.</param>
+    /// <param name="newLockId">the lock id to set.</param>
+    /// <param name="expectedExistingLockId">the lock id the caller observed; the swap aborts if the
+    /// stored lock id no longer matches this value.</param>
+    /// <param name="cancellationToken">cancellation token</param>
+    /// <returns>true if the swap completed atomically; false if the lock was missing, expired, or
+    /// the existing id no longer matches.</returns>
+    async Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default)
+    {
+        var existing = await GetLockAsync(fileId, cancellationToken).ConfigureAwait(false);
+        if (existing is null || existing.LockId != expectedExistingLockId)
+        {
+            return false;
+        }
+        return await RefreshLockAsync(fileId, newLockId, cancellationToken).ConfigureAwait(false);
+    }
 }
 
 /// <summary>

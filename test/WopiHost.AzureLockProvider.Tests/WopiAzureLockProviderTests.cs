@@ -180,6 +180,64 @@ public class WopiAzureLockProviderTests(AzuriteFixture azurite)
         Assert.Equal("fresh-lock", info.LockId);
     }
 
+    [Fact]
+    public async Task TryUnlockAndRelockAsync_MatchingExpectedLock_SwapsAtomically()
+    {
+        var (provider, _) = await CreateProviderAsync();
+        await provider.AddLockAsync("file-swap-1", "old-lock");
+
+        var swapped = await provider.TryUnlockAndRelockAsync("file-swap-1", "new-lock", expectedExistingLockId: "old-lock");
+
+        Assert.True(swapped);
+        var info = await provider.GetLockAsync("file-swap-1");
+        Assert.NotNull(info);
+        Assert.Equal("new-lock", info.LockId);
+    }
+
+    [Fact]
+    public async Task TryUnlockAndRelockAsync_MismatchedExpectedLock_ReturnsFalseAndDoesNotMutate()
+    {
+        var (provider, _) = await CreateProviderAsync();
+        await provider.AddLockAsync("file-swap-2", "current-lock");
+
+        var swapped = await provider.TryUnlockAndRelockAsync("file-swap-2", "new-lock", expectedExistingLockId: "stale-cached-lock");
+
+        Assert.False(swapped);
+        var info = await provider.GetLockAsync("file-swap-2");
+        Assert.NotNull(info);
+        Assert.Equal("current-lock", info.LockId);
+    }
+
+    [Fact]
+    public async Task TryUnlockAndRelockAsync_NoExistingLock_ReturnsFalse()
+    {
+        var (provider, _) = await CreateProviderAsync();
+
+        var swapped = await provider.TryUnlockAndRelockAsync("file-swap-missing", "new-lock", expectedExistingLockId: "anything");
+
+        Assert.False(swapped);
+        Assert.Null(await provider.GetLockAsync("file-swap-missing"));
+    }
+
+    [Fact]
+    public async Task TryUnlockAndRelockAsync_ConcurrentSwapBetweenObservationAndCAS_DoesNotStealLock()
+    {
+        // ETag-conditional metadata update is the protection: caller A snapshots an ETag, then
+        // caller B's swap mutates the blob (changing the ETag), so A's IfMatch=etag fails 412.
+        var (provider, _) = await CreateProviderAsync();
+        await provider.AddLockAsync("file-race", "old-lock");
+
+        var bSwapped = await provider.TryUnlockAndRelockAsync("file-race", "B-new", expectedExistingLockId: "old-lock");
+        Assert.True(bSwapped);
+
+        var aSwapped = await provider.TryUnlockAndRelockAsync("file-race", "A-new", expectedExistingLockId: "old-lock");
+        Assert.False(aSwapped);
+
+        var info = await provider.GetLockAsync("file-race");
+        Assert.NotNull(info);
+        Assert.Equal("B-new", info.LockId);
+    }
+
     private static BlobClient GetLockBlob(WopiAzureLockProvider provider, string fileId)
     {
         // Reach into the private GetLockBlob to address the same blob in setup helpers.

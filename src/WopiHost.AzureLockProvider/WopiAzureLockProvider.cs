@@ -199,6 +199,65 @@ public partial class WopiAzureLockProvider(BlobContainerClient containerClient, 
     }
 
     /// <inheritdoc />
+    public async Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default)
+    {
+        await EnsureContainerAsync(cancellationToken).ConfigureAwait(false);
+        var blobClient = GetLockBlob(fileId);
+        var props = await TryGetPropertiesAsync(blobClient, cancellationToken).ConfigureAwait(false);
+        if (props is null || !TryReadLock(fileId, props, out var info))
+        {
+            return false;
+        }
+        if (info.Expired || info.LockId != expectedExistingLockId)
+        {
+            return false;
+        }
+        if (!props.Metadata.TryGetValue(LeaseIdKey, out var leaseId) || string.IsNullOrEmpty(leaseId))
+        {
+            return false;
+        }
+
+        // Snapshot the ETag at read time. If anything mutates the blob (another swap, refresh, or
+        // remove) before our SetMetadata lands, the IfMatch condition fails with 412 and the swap
+        // is correctly reported as not-applied.
+        var etag = props.ETag;
+        var leaseClient = blobClient.GetBlobLeaseClient(leaseId);
+        try
+        {
+            await leaseClient.RenewAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (RequestFailedException ex)
+        {
+            LogLeaseRenewFailed(logger, ex, fileId);
+            return false;
+        }
+
+        var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal)
+        {
+            [LockIdKey] = newLockId,
+            [CreatedKey] = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture),
+        };
+        try
+        {
+            await blobClient.SetMetadataAsync(updated,
+                conditions: new BlobRequestConditions { LeaseId = leaseId, IfMatch = etag },
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (RequestFailedException ex) when (ex.Status == 412 || ex.Status == 409)
+        {
+            // 412 = ETag changed (concurrent swap). 409 = lease conflict. Either way, swap aborted.
+            LogLockMetadataUpdateFailed(logger, ex, fileId);
+            return false;
+        }
+        catch (RequestFailedException ex)
+        {
+            LogLockMetadataUpdateFailed(logger, ex, fileId);
+            return false;
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<bool> RemoveLockAsync(string fileId, CancellationToken cancellationToken = default)
     {
         await EnsureContainerAsync(cancellationToken).ConfigureAwait(false);

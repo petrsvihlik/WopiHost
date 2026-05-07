@@ -1322,7 +1322,9 @@ public class FilesControllerTests
         SetupFileMock(fileId);
         var lockInfo = new WopiLockInfo { LockId = oldLockId, FileId = fileId };
         lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync(lockInfo);
-        lockProviderMock.Setup(x => x.RefreshLockAsync(fileId, newLockId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        lockProviderMock
+            .Setup(x => x.TryUnlockAndRelockAsync(fileId, newLockId, oldLockId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var result = await controller.ProcessLock(
             fileId,

@@ -132,6 +132,67 @@ public class MemoryLockProviderTests
         Assert.False(locks.ContainsKey(fileId));
     }
 
+    [Fact]
+    public async Task TryUnlockAndRelockAsync_MatchingExpectedLock_SwapsAtomically()
+    {
+        var fileId = $"swap-{Guid.NewGuid()}";
+        await _lockProvider.AddLockAsync(fileId, "old-lock");
+
+        var swapped = await _lockProvider.TryUnlockAndRelockAsync(fileId, "new-lock", expectedExistingLockId: "old-lock");
+
+        Assert.True(swapped);
+        var info = await _lockProvider.GetLockAsync(fileId);
+        Assert.NotNull(info);
+        Assert.Equal("new-lock", info.LockId);
+    }
+
+    [Fact]
+    public async Task TryUnlockAndRelockAsync_MismatchedExpectedLock_ReturnsFalseAndDoesNotMutate()
+    {
+        var fileId = $"swap-mismatch-{Guid.NewGuid()}";
+        await _lockProvider.AddLockAsync(fileId, "current-lock");
+
+        var swapped = await _lockProvider.TryUnlockAndRelockAsync(fileId, "new-lock", expectedExistingLockId: "stale-cached-lock");
+
+        Assert.False(swapped);
+        var info = await _lockProvider.GetLockAsync(fileId);
+        Assert.NotNull(info);
+        Assert.Equal("current-lock", info.LockId);
+    }
+
+    [Fact]
+    public async Task TryUnlockAndRelockAsync_NoExistingLock_ReturnsFalse()
+    {
+        var fileId = $"swap-missing-{Guid.NewGuid()}";
+
+        var swapped = await _lockProvider.TryUnlockAndRelockAsync(fileId, "new-lock", expectedExistingLockId: "anything");
+
+        Assert.False(swapped);
+        Assert.Null(await _lockProvider.GetLockAsync(fileId));
+    }
+
+    [Fact]
+    public async Task TryUnlockAndRelockAsync_ConcurrentSwapBetweenObservationAndCAS_DoesNotStealLock()
+    {
+        // The race we're protecting against: caller A reads the lock as "old-lock", validates,
+        // and is about to relock to "A-new". Before A's CAS lands, caller B successfully relocks
+        // to "B-new". Without atomic CAS, A's swap would silently overwrite B's lock.
+        var fileId = $"race-{Guid.NewGuid()}";
+        await _lockProvider.AddLockAsync(fileId, "old-lock");
+
+        // Simulate caller B winning the race first.
+        var bSwapped = await _lockProvider.TryUnlockAndRelockAsync(fileId, "B-new", expectedExistingLockId: "old-lock");
+        Assert.True(bSwapped);
+
+        // Caller A still thinks the lock is "old-lock" — its CAS must fail.
+        var aSwapped = await _lockProvider.TryUnlockAndRelockAsync(fileId, "A-new", expectedExistingLockId: "old-lock");
+        Assert.False(aSwapped);
+
+        var info = await _lockProvider.GetLockAsync(fileId);
+        Assert.NotNull(info);
+        Assert.Equal("B-new", info.LockId);
+    }
+
     private static ConcurrentDictionary<string, WopiLockInfo> GetSharedLockDictionary()
     {
         var field = typeof(MemoryLockProvider)
