@@ -60,7 +60,7 @@ public partial class WopiUrlBuilder(
         // value (URL-escaped by ResolveOptionalParameter). Any caller-provided WOPI_SOURCE
         // value in urlSettings is overwritten so we never produce two different WopiSrc
         // values in the same URL.
-        combinedUrlSettings[WopiSourcePlaceholder] = wopiFileUrl.ToString();
+        combinedUrlSettings[WopiUrlSettings.Placeholders.WopiSource] = wopiFileUrl.ToString();
 
         var template = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
         if (string.IsNullOrEmpty(template))
@@ -69,7 +69,7 @@ public partial class WopiUrlBuilder(
             return null;
         }
 
-        var templateHasWopiSourcePlaceholder = template.Contains(WopiSourcePlaceholder, StringComparison.Ordinal);
+        var templateHasWopiSourcePlaceholder = template.Contains(WopiUrlSettings.Placeholders.WopiSource, StringComparison.Ordinal);
 
         // Resolve optional parameters
         var url = UrlParamRegex().Replace(template, m => ResolveOptionalParameter(m.Groups["name"].Value, m.Groups["value"].Value, combinedUrlSettings) ?? string.Empty);
@@ -87,8 +87,6 @@ public partial class WopiUrlBuilder(
         LogFileUrlGenerated(_logger, extension, action);
         return url;
     }
-
-    private const string WopiSourcePlaceholder = "WOPI_SOURCE";
 
     private static string? ResolveOptionalParameter(string name, string value, WopiUrlSettings urlSettings)
     {

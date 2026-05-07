@@ -1,4 +1,4 @@
-﻿footer {
+footer {
     position: fixed;
     bottom: 0px;
     margin: 0px;
@@ -120,6 +120,10 @@ table.files {
             text-decoration: none;
             font-size: 1.1rem;
             margin-right: 6px;
+            /* Force text-style rendering for codepoints whose default presentation is emoji
+               (e.g. 🔍 U+1F50D). Modern browsers honour this; the .cshtml also appends VS-15
+               to those codepoints so older user agents fall back gracefully. */
+            font-variant-emoji: text;
         }
 
     table.files td.empty {
@@ -128,3 +132,7 @@ table.files {
         padding: 24px;
         font-style: italic;
     }
+
+.error {
+    color: #b00020;
+}

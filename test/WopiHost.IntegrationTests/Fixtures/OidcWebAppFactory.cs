@@ -1,8 +1,5 @@
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using WopiHost.Web.Oidc;
 
 namespace WopiHost.IntegrationTests.Fixtures;

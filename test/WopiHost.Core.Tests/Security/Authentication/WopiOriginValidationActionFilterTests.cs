@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using WopiHost.Abstractions;
 using WopiHost.Core.Security.Authentication;
 
 namespace WopiHost.Core.Tests.Security.Authentication;

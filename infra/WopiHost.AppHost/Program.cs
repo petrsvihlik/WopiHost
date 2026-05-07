@@ -36,12 +36,18 @@ if (builder.Configuration.GetValue<bool>("AppHost:UseAzureStorage"))
 //    a mismatch with the WopiSrc query param yields a silent 401.
 //  - SSL is disabled for local dev only.
 var useCollabora = builder.Configuration.GetValue<bool>("AppHost:UseCollabora");
+IResourceBuilder<ContainerResource>? collabora = null;
 if (useCollabora)
 {
-    builder.AddContainer("collabora", "collabora/code")
+    // Health check on /hosting/discovery: the loolwsd process inside the container takes a few
+    // seconds to bind to 9980 even after the TCP listener accepts. Without this, dependents
+    // would race ahead and Polly's Standard-Retry pipeline logs "ResponseEnded" / 10s timeouts
+    // on the first page load. WaitFor below blocks dependents until this returns 200.
+    collabora = builder.AddContainer("collabora", "collabora/code")
            .WithEnvironment("domain", "host\\.docker\\.internal:5000")
            .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false")
-           .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora");
+           .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
+           .WithHttpHealthCheck("/hosting/discovery", endpointName: "collabora");
 
     // Backend fetches /hosting/discovery from Collabora at startup. Collabora does not sign WOPI
     // callbacks with proof keys (those are an OOS / M365-for-the-Web feature) and emits no
@@ -50,14 +56,15 @@ if (useCollabora)
     // host honours Wopi:Security:DisableProofValidation in Development to swap in a no-op
     // validator; refuse to run in non-Development if the flag is set.
     wopiHost.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
-            .WithEnvironment("Wopi__Security__DisableProofValidation", "true");
+            .WithEnvironment("Wopi__Security__DisableProofValidation", "true")
+            .WaitFor(collabora);
 }
 
-// Add WopiHost.Web frontend that depends on WopiHost
+// Add WopiHost.Web frontend that depends on WopiHost. Endpoints come from the project's
+// launchSettings.json (HTTPS only — see that file). Duplicating them here with .WithEndpoint
+// would cause the dashboard to list the same URL twice.
 var wopiHostWeb = builder.AddProject<Projects.WopiHost_Web>("wopihost-web")
        .WithReference(wopiHost)
-       .WithEndpoint(name: "web-http", port: 6000, scheme: "http")
-       .WithEndpoint(name: "web-https", port: 6001, scheme: "https")
        .WithExternalHttpEndpoints();
 
 if (useCollabora)
@@ -69,13 +76,13 @@ if (useCollabora)
     // out, so files render with the generic icon and edit/view buttons stay disabled.
     wopiHostWeb.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
                .WithEnvironment("Wopi__HostUrl", "http://host.docker.internal:5000")
-               .WithEnvironment("Wopi__Discovery__NetZone", "ExternalHttp");
+               .WithEnvironment("Wopi__Discovery__NetZone", "ExternalHttp")
+               .WaitFor(collabora!);
 }
 
-// Add Validator project for testing
+// Add Validator project for testing. Endpoints come from launchSettings.json (HTTPS only).
 builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator")
        .WithReference(wopiHost)
-       .WithEndpoint(name: "validator-http", port: 7000, scheme: "http")
        .WithExternalHttpEndpoints();
 
 // Optional: OIDC frontend sample. Opt-in via "AppHost:IncludeOidcSample"=true so newcomers don't
@@ -83,10 +90,10 @@ builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator")
 // in sample/WopiHost.Web.Oidc/appsettings.Development.json (see that sample's README for setup).
 if (builder.Configuration.GetValue<bool>("AppHost:IncludeOidcSample"))
 {
+    // Endpoints come from the project's launchSettings.json (HTTPS only). OIDC requires HTTPS
+    // for cookie/redirect-URI sanity anyway.
     builder.AddProject<Projects.WopiHost_Web_Oidc>("wopihost-web-oidc")
            .WithReference(wopiHost)
-           .WithEndpoint(name: "web-oidc-http", port: 6100, scheme: "http")
-           .WithEndpoint(name: "web-oidc-https", port: 6101, scheme: "https")
            .WithExternalHttpEndpoints();
 }
 

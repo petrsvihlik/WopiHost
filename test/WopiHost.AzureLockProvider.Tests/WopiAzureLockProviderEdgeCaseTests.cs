@@ -1,6 +1,5 @@
 using System.Reflection;
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -182,10 +181,15 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
     }
 
     [Fact]
-    public async Task AddLockAsync_BlobExistsButNoMetadata_TakesOver()
+    public async Task AddLockAsync_BlobExistsButNoMetadata_ReturnsNull_ToProtectInFlightAcquires()
     {
-        // Hits the "existing blob with no readable lock metadata" → break-lease + delete path,
-        // then proceeds to upload + acquire.
+        // After the #353 race fix the "no readable metadata" branch yields rather than cleaning
+        // up — that aggressive cleanup was the bug it was clobbering healthy peers mid-acquire.
+        // A bare metadata-less blob can mean either (a) a sibling acquire happening right now,
+        // whose UploadAsync has landed but whose AcquireAsync hasn't returned yet, or (b) an
+        // unlikely operator-created stub or a pre-fix crashed acquire. Either way, the safe
+        // answer is to return null; case (b) requires manual cleanup, which is documented and
+        // very rare since the new flow uploads metadata atomically.
         var (provider, _) = await CreateProviderAsync();
         var lockBlob = GetLockBlob(provider, "file-stale-blob");
         using (var empty = new MemoryStream([]))
@@ -196,8 +200,31 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
 
         var info = await provider.AddLockAsync("file-stale-blob", "fresh");
 
-        Assert.NotNull(info);
-        Assert.Equal("fresh", info.LockId);
+        Assert.Null(info);
+    }
+
+    [Fact]
+    public async Task AddLockAsync_ConcurrentRace_OneWinsOthersReturnNull()
+    {
+        // Regression test for the race that prompted #331 item 4b. With the atomic upload-with-
+        // metadata fix in place, six concurrent AddLockAsync calls converge on:
+        //   - exactly one winner (whose UploadAsync IfNoneMatch=* succeeds first)
+        //   - five losers that see either 412/409 from UploadAsync or, if their TryGetProperties
+        //     fired after the winner's upload, a fully-formed metadata blob → return null.
+        // Prior to the fix, peers' TryGetProperties hitting the brief Upload→SetMetadata window
+        // would observe an empty-metadata blob, enter the cleanup path, break the winner's
+        // lease, and clobber the acquire — surfacing as LeaseNotPresentWithBlobOperation on the
+        // winner's pending SetMetadata.
+        var (provider, _) = await CreateProviderAsync();
+        var fileId = $"file-race-{Guid.NewGuid():N}";
+
+        var tasks = Enumerable.Range(0, 6)
+            .Select(i => provider.AddLockAsync(fileId, $"lock-{i}"))
+            .ToArray();
+        var results = await Task.WhenAll(tasks);
+
+        Assert.Single(results, r => r is not null);
+        Assert.Equal(results.Length - 1, results.Count(r => r is null));
     }
 
     [Fact]
