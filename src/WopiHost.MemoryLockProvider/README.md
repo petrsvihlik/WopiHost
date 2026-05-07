@@ -49,7 +49,13 @@ Task<bool>          TryUnlockAndRelockAsync(string fileId, string newLockId, str
 
 `GetLockAsync` returns `null` when the lock isn't present (or has expired and was evicted). `WopiLockInfo` carries `LockId`, `FileId`, `DateCreated`, and a computed `Expired` flag.
 
+`TryUnlockAndRelockAsync` is implemented with `ConcurrentDictionary.TryUpdate` against a snapshot — a true compare-and-swap, so a concurrent `UnlockAndRelock` from another caller correctly loses the race instead of silently overwriting.
+
 See [WopiHost.Abstractions](../WopiHost.Abstractions/IWopiLockProvider.cs) for the full contract.
+
+## Lock-id comparison
+
+The provider takes an optional `IWopiLockComparer` constructor parameter, defaulting to `OrdinalWopiLockComparer.Instance` (byte-exact). Plug in a custom comparer either via DI (`services.Replace(ServiceDescriptor.Singleton<IWopiLockComparer, ...>())`) or by passing it explicitly when constructing the provider. See the [WopiHost.Abstractions README](../WopiHost.Abstractions/README.md#lock-comparison) for the trade-offs (the bundled `JsonShapedWopiLockComparer` covers the OOS / M365-for-the-Web JSON-mutation quirk).
 
 ## License
 

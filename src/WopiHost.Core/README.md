@@ -242,6 +242,75 @@ services.AddWopi(o =>
 });
 ```
 
+`WopiCheckFileInfo` is also decomposed into role interfaces — `IWopiCheckFileInfoIdentity`, `IWopiCheckFileInfoUserPermissions`, `IWopiCheckFileInfoUserMetadata`, `IWopiCheckFileInfoBreadcrumb`, plus `IWopiHostCapabilities` — so a permission policy or test rig can take a narrower contract than the full ~70-property response. The class implements all of them; existing code that touches the concrete type continues to work.
+
+## Hooks for PutFile / PutRelativeFile
+
+Both write paths fire a callback after a successful write so hosts can record audit trails, last-touch metadata, or react to binary-conversion uploads. Defaults are no-ops.
+
+```csharp
+services.AddWopi(o =>
+{
+    // Fired after a successful PutFile. Editors comes from X-WOPI-Editors —
+    // a comma-delimited list of UserId values for users who contributed
+    // changes in this PutFile request.
+    o.OnPutFile = async ctx =>
+    {
+        await audit.RecordEditAsync(ctx.File, ctx.Editors, ctx.User);
+    };
+
+    // Fired after a successful PutRelativeFile. IsFileConversion reflects
+    // X-WOPI-FileConversion (presence-only); DeclaredSize reflects X-WOPI-Size.
+    o.OnPutRelativeFile = ctx =>
+    {
+        if (ctx.IsFileConversion) telemetry.Conversion(ctx.NewFile);
+        return Task.CompletedTask;
+    };
+});
+```
+
+Throwing inside these callbacks turns the response into a 500 — for best-effort bookkeeping, catch exceptions inside the handler.
+
+## Upload-size budget
+
+Reject oversize uploads at the controller before the body is read:
+
+```csharp
+services.AddWopi(o =>
+{
+    o.MaxFileSize = 50 * 1024 * 1024;  // 50 MB; null (default) = no WOPI-level limit
+});
+```
+
+`PutFile` checks `Content-Length`; `PutRelativeFile` also honors the declared `X-WOPI-Size`. When the budget is exceeded the controller returns `413 Request Entity Too Large` (a valid response per the WOPI spec) without invoking the storage provider. The underlying server's request-size limits still apply on top.
+
+## Lock-id comparison
+
+By default the host compares lock ids with byte-exact ordinal equality (`OrdinalWopiLockComparer`), which is what the WOPI spec implies. If you observe the Office Online Server / Microsoft 365-for-the-Web quirk where JSON-shaped lock ids round-trip with extra properties added — `cs3org/wopiserver` and SenseNet both ship a tolerant fallback for the same reason — swap in the included `JsonShapedWopiLockComparer`:
+
+```csharp
+services.AddWopi(...);
+services.Replace(ServiceDescriptor.Singleton<IWopiLockComparer, JsonShapedWopiLockComparer>());
+```
+
+Or register your own `IWopiLockComparer` implementation tailored to the specific mutation you observe. Tolerance carries its own correctness risk — distinct locks that happen to share a `S` field are treated as equivalent, which can mask lost updates — so don't relax the strict default speculatively.
+
+## Lock-aware writable storage (defense in depth)
+
+`services.AddWopiLockAwareWritableStorage()` wraps the registered `IWopiWritableStorageProvider` so that `DeleteWopiResource` and `RenameWopiResource` consult `IWopiLockProvider` first and throw `WopiResourceLockedException` when the target is locked. The WOPI controllers already short-circuit on locks before reaching the storage layer, so on the hot path this decorator is redundant — it earns its keep when:
+
+- non-WOPI code paths in the same host (admin tools, batch jobs, REST APIs) resolve `IWopiWritableStorageProvider` directly and would otherwise clobber a locked file
+- a future controller refactor accidentally drops the lock check
+
+```csharp
+services.AddWopi(...);
+services.AddStorageProvider("WopiHost.AzureStorageProvider");
+services.AddLockProvider("WopiHost.AzureLockProvider");
+services.AddWopiLockAwareWritableStorage();   // must run after the storage + lock providers are registered
+```
+
+The decorator only guards single-resource mutations; `CreateWopiChildResource` (no prior lock to check) and the read-only members pass through unchanged.
+
 ## License
 
 See the [repo README](../../README.md#license).

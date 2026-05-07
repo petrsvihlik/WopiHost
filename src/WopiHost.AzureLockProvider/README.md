@@ -66,6 +66,20 @@ Why both? The lease provides "is this lock physically held right now"; the metad
 
 If the WopiHost instance that created a lock dies without releasing, the infinite lease persists. The next `GetLock` or `AddLock` call against that fileId notices the metadata indicates a >30-minute-old claim, breaks the lease, and either evicts (`GetLock`) or takes over (`AddLock`). This matches the WOPI specification's 30-minute lock auto-expiry without requiring a background sweeper.
 
+### UnlockAndRelock atomicity
+
+`TryUnlockAndRelockAsync` reads the current blob metadata + ETag, validates the caller's `expectedExistingLockId` against the stored value (through the configured `IWopiLockComparer`), and writes the new metadata under both an `IfMatch=etag` precondition and the existing lease. The ETag changes on every metadata mutation, so a concurrent `UnlockAndRelock` from a different instance landing first turns this call into a 412 Precondition Failed and returns `false` instead of silently overwriting the other instance's lock.
+
+## Lock-id comparison
+
+The provider takes an optional `IWopiLockComparer` constructor parameter, defaulting to `OrdinalWopiLockComparer.Instance` (byte-exact). If your WOPI client mutates lock ids between round-trips (the canonical case is OOS / M365-for-the-Web's JSON-format locks), wire `JsonShapedWopiLockComparer` (or your own implementation) via DI:
+
+```csharp
+services.Replace(ServiceDescriptor.Singleton<IWopiLockComparer, JsonShapedWopiLockComparer>());
+```
+
+See the [WopiHost.Abstractions README](../WopiHost.Abstractions/README.md#lock-comparison) for the trade-offs.
+
 ## Caveats
 
 - **Latency**: every WOPI lock op is one or two round-trips to Azure Blob. For high-volume editing scenarios, measure carefully.
