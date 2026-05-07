@@ -55,7 +55,8 @@ jobs:
       uses: codecov/codecov-action@v6
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-    #- name: Run FOSSA scan
-    #  uses: fossa-contrib/fossa-action@v1
-    #  with:
-    #    fossa-api-key: ${{ secrets.FOSSA_API_KEY }}
+    - name: FOSSA scan + policy gate
+      uses: fossas/fossa-action@v3
+      with:
+        api-key: ${{ secrets.FOSSA_API_KEY }}
+        run-tests: true
