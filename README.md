@@ -52,11 +52,14 @@ dotnet run --project infra/WopiHost.AppHost
 
 The Aspire dashboard opens automatically and starts:
 
-| Resource | URL | What it is |
-|---|---|---|
-| `wopihost` | <http://localhost:5000> | WOPI backend; OpenAPI at `/scalar` |
-| `wopihost-web` | <http://localhost:6000> | Sample frontend (file picker + iframe) |
-| `wopihost-validator` | <http://localhost:7000> | WOPI protocol validator |
+| Resource | What it is |
+|---|---|
+| `wopihost` | WOPI backend; OpenAPI at `/scalar` |
+| `wopihost-web` | Sample frontend (file picker + iframe) |
+| `wopihost-validator` | WOPI protocol validator |
+| `collabora` | [Collabora Online](https://github.com/petrsvihlik/WopiHost/wiki/Collabora-Online) (CODE) container — real WOPI client for end-to-end editing |
+
+The dashboard shows the URL each resource is bound to — Aspire allocates ports dynamically for the frontends, so they change between runs. The first run pulls the `collabora/code` Docker image (~1 GB) and takes a minute or two; if you don't want the dependency, set `"AppHost:UseCollabora": false` in [`infra/WopiHost.AppHost/appsettings.Development.json`](infra/WopiHost.AppHost/appsettings.Development.json).
 
 ![Aspire dashboard](https://github.com/user-attachments/assets/438cf17b-36f2-4d5f-adb5-6003314d17c3)
 
@@ -92,10 +95,6 @@ See the [Cobalt wiki page](https://github.com/petrsvihlik/WopiHost/wiki/Cobalt) 
 | **Office Online Server 2016+** | Production | Microsoft only [supports the latest version](https://learn.microsoft.com/officeonlineserver/office-online-server-release-schedule); WopiHost tracks the same. [Deployment guide](https://learn.microsoft.com/officeonlineserver/deploy-office-online-server). |
 | **Microsoft 365 for the Web** | Production | Requires [CSPP onboarding](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/apply-for-cspp-program) plus implementing the M365-specific feature surface. The provided sample passes the [WOPI-Validator](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/build-test-ship/validator). |
 | **Collabora Online (CODE)** | Development / CI only | Free and redistributable, runs as a Docker container. Useful for end-to-end testing without a Microsoft license; not a substitute for OOS or M365. See the [wiki](https://github.com/petrsvihlik/WopiHost/wiki/Collabora-Online) for the AppHost wiring. |
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md). Code follows the [.NET Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/).
 
 ## License
 
