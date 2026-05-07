@@ -906,6 +906,36 @@ public class FilesControllerTests
     }
 
     [Fact]
+    public async Task PutFile_RequestExceedsMaxFileSize_Returns413()
+    {
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId, size: 0);
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+
+        var optionsWithLimit = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            MaxFileSize = 1024,
+        });
+
+        var httpContext = new DefaultHttpContext
+        {
+            ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithLimit),
+        };
+        httpContext.Request.ContentLength = 4096;
+
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var result = await controller.PutFile(fileId, newLockIdentifier: null);
+
+        var status = Assert.IsType<StatusCodeResult>(result);
+        Assert.Equal(StatusCodes.Status413PayloadTooLarge, status.StatusCode);
+    }
+
+    [Fact]
     public async Task PutFile_WithLock_ExistingDifferentLock_ReturnsLockMismatch()
     {
         var fileId = "testFileId";
@@ -1119,6 +1149,40 @@ public class FilesControllerTests
 
         var jsonResult = Assert.IsType<JsonResult>(result);
         Assert.IsType<ChildFile>(jsonResult.Value);
+    }
+
+    [Fact]
+    public async Task PutRelativeFile_DeclaredSizeExceedsMaxFileSize_Returns413()
+    {
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId);
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+
+        var optionsWithLimit = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            MaxFileSize = 1024,
+        });
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithLimit),
+            }
+        };
+
+        // X-WOPI-Size declares 4096, MaxFileSize is 1024 → 413 short-circuits before write.
+        var result = await controller.PutRelativeFile(
+            fileId,
+            relativeTarget: UtfString.FromDecoded("newfile.txt"),
+            declaredSize: 4096);
+
+        var status = Assert.IsType<StatusCodeResult>(result);
+        Assert.Equal(StatusCodes.Status413PayloadTooLarge, status.StatusCode);
     }
 
     [Fact]

@@ -318,6 +318,13 @@ public class FilesController(
             return NotFound();
         }
 
+        // Spec (PutFile): "413 Request Entity Too Large – File is too large. The maximum file size is host-specific."
+        var tooLarge = CheckMaxFileSize();
+        if (tooLarge is not null)
+        {
+            return tooLarge;
+        }
+
         // When a host receives a PutFile request on a file that's not locked, the host checks the current size of the file.
         if (string.IsNullOrEmpty(newLockIdentifier))
         {
@@ -366,7 +373,7 @@ public class FilesController(
     /// </summary>
     private async Task InvokePutFileCallbackAsync(IWopiFile file, string? editorsHeader)
     {
-        var options = HttpContext.RequestServices.GetService<IOptions<WopiHostOptions>>();
+        var options = HttpContext.RequestServices?.GetService<IOptions<WopiHostOptions>>();
         if (options is null)
         {
             return;
@@ -383,6 +390,33 @@ public class FilesController(
         }
         var parts = header.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         return new ReadOnlyCollection<string>(parts);
+    }
+
+    /// <summary>
+    /// Enforce <see cref="WopiHostOptions.MaxFileSize"/> as a 413 short-circuit before consuming
+    /// the request body. Compares the request's <c>Content-Length</c> and the optional
+    /// <paramref name="declaredSize"/> (typically from <c>X-WOPI-Size</c>) against the configured
+    /// limit; whichever is largest decides. Returns <see langword="null"/> when the request is
+    /// within budget or no limit is configured.
+    /// </summary>
+    private IActionResult? CheckMaxFileSize(long? declaredSize = null)
+    {
+        // RequestServices can be null when the controller is invoked without a configured
+        // ServiceProvidersFeature (some unit-test paths). Treat that as "no options resolved" so
+        // the limit just doesn't apply, instead of NRE-ing through the size check.
+        var options = HttpContext.RequestServices?.GetService<IOptions<WopiHostOptions>>();
+        var max = options?.Value.MaxFileSize;
+        if (max is null)
+        {
+            return null;
+        }
+        var contentLength = HttpContext.Request.ContentLength;
+        if ((contentLength is long len && len > max.Value)
+            || (declaredSize is long ds && ds > max.Value))
+        {
+            return StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+        return null;
     }
 
     /// <summary>
@@ -422,6 +456,14 @@ public class FilesController(
         if (file is null)
         {
             return NotFound();
+        }
+
+        // Spec (PutRelativeFile): "413 Request Entity Too Large – File is too large. The maximum file size is host-specific."
+        // Honor X-WOPI-Size as a declared-size signal so we can reject before consuming the body.
+        var tooLarge = CheckMaxFileSize(declaredSize);
+        if (tooLarge is not null)
+        {
+            return tooLarge;
         }
 
         // the two headers are mutually exclusive. If both headers are present (or missing), the host should respond with a 501 Not Implemented status code.
@@ -536,7 +578,7 @@ public class FilesController(
     /// </summary>
     private async Task InvokePutRelativeFileCallbackAsync(IWopiFile originalFile, IWopiFile newFile, string? fileConversion, long? declaredSize)
     {
-        var options = HttpContext.RequestServices.GetService<IOptions<WopiHostOptions>>();
+        var options = HttpContext.RequestServices?.GetService<IOptions<WopiHostOptions>>();
         if (options is null)
         {
             return;

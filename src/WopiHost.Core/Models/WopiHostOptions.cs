@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using WopiHost.Abstractions;
 using WopiHost.Discovery;
 
@@ -67,6 +68,20 @@ public class WopiHostOptions : IDiscoveryOptions
     /// catch exceptions inside the handler.
     /// </remarks>
     public Func<WopiPutRelativeFileContext, Task> OnPutRelativeFile { get; set; } = _ => Task.CompletedTask;
+
+    /// <summary>
+    /// Optional upper bound (in bytes) on the size of files accepted via <c>PutFile</c> and
+    /// <c>PutRelativeFile</c>. When set, requests whose <c>Content-Length</c> or — for
+    /// <c>PutRelativeFile</c> — declared <c>X-WOPI-Size</c> exceed this value short-circuit with
+    /// <see cref="StatusCodes.Status413PayloadTooLarge"/> before any body is read. Defaults to
+    /// <see langword="null"/> (no WOPI-level limit; the host's underlying server still applies
+    /// its own request-size limits).
+    /// </summary>
+    /// <remarks>
+    /// Returning 413 is explicitly listed as a valid response in the WOPI <c>PutFile</c> and
+    /// <c>PutRelativeFile</c> specs (<i>"File is too large. The maximum file size is host-specific"</i>).
+    /// </remarks>
+    public long? MaxFileSize { get; set; }
 
     /// <summary>
     /// Base URI of the WOPI Client server (Office Online Server / Office Web Apps).
