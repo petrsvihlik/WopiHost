@@ -1,0 +1,25 @@
+# Infer# false-positive allowlist
+#
+# One pattern per line. Each pattern is matched as a fixed substring against
+# `infer-out/report.txt` lines; any matching error line is dropped before the
+# fail-on-finding gate. Empty lines and lines starting with `#` are ignored.
+#
+# Add a comment above each entry naming the issue tracking it. Don't add new
+# entries without a matching issue — every allowlist entry is technical debt.
+
+# Issue: https://github.com/petrsvihlik/WopiHost/issues/363
+# Three sites where Infer# reports `Null Dereference` on `await SomeAsyncCall()`
+# because it can't see through the call to confirm the returned Task is
+# non-null. The C# compiler guarantees that async Task methods always return
+# a non-null Task. Master ran clean on the same code; this PR's broader
+# binary surface (new types in WopiHost.Abstractions and WopiHost.Core)
+# pushes Infer#'s cross-file analysis depth past a threshold and surfaces
+# these FPs.
+#
+# Long-term fixes to consider when the issue is picked up:
+#   - Inline the helper method bodies so the await is on an interface call.
+#   - Drop `async`, return Task directly via ContinueWith / a local function.
+#   - Investigate Infer# annotation support (.infersharp.json or similar).
+src/WopiHost.Core/Controllers/FoldersController.cs:51: error: Null Dereference
+src/WopiHost.Core/Controllers/WopiBootstrapperController.cs:55: error: Null Dereference
+src/WopiHost.Core/Controllers/WopiBootstrapperController.cs:79: error: Null Dereference
