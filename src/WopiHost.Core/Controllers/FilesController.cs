@@ -776,9 +776,12 @@ public class FilesController(
 
     private OkResult HandleGetLock(WopiLockInfo? existingLock)
     {
+        var emptyValue = HttpContext.RequestServices?
+            .GetService<IOptions<WopiHostOptions>>()?.Value.EmptyLockHeaderValue
+            ?? WopiHeaders.EMPTY_LOCK_VALUE;
         Response.Headers[WopiHeaders.LOCK] = existingLock is not null
             ? existingLock.LockId
-            : WopiHeaders.EMPTY_LOCK_VALUE;
+            : emptyValue;
         return Ok();
     }
 

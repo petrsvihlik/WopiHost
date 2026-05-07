@@ -18,24 +18,21 @@ public static class WopiHeaders
 	public const string LOCK = "X-WOPI-Lock";
 
     /// <summary>
-    /// Value to write into the <c>X-WOPI-Lock</c> response header when the file is unlocked but
-    /// the spec requires the header to be present.
+    /// Spec-compliant default for the <c>X-WOPI-Lock</c> response header when the file is unlocked
+    /// but the spec requires the header to be present (notably <c>GetLock</c> on an unlocked file
+    /// and <c>PutFile</c> on a non-empty unlocked file).
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Per the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getlock">GetLock</see>
-    /// and <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see>
-    /// spec, this MUST be the empty string when the file is unlocked. Previously this constant was
-    /// set to a single space (<c>" "</c>) as a workaround for IIS in-process hosting stripping
-    /// headers with empty values (issue #208) — but that workaround makes WopiHost non-compliant
-    /// with strict WOPI clients (e.g. Collabora Online, the WOPI Validator), which can interpret
-    /// the space as a real lock id rather than "unlocked".
+    /// The runtime value is resolved from <see cref="WopiHost.Core.Models.WopiHostOptions.EmptyLockHeaderValue"/>
+    /// (default: empty string, matching the WOPI spec). This constant is the fallback used when
+    /// no service provider is available — and remains useful as a stable reference value for
+    /// tests that pin the spec-compliant default.
     /// </para>
     /// <para>
-    /// Kestrel preserves empty header values, so the default Aspire / out-of-process hosting path
-    /// is unaffected. Hosts that still deploy under IIS in-process and observe the original
-    /// stripping behavior should add header-rewriting middleware that substitutes their preferred
-    /// non-empty placeholder, rather than reverting this constant.
+    /// Hosting under IIS in-process strips empty header values before they reach the wire (see
+    /// issue #208). Hosts on that path should set <c>WopiHostOptions.EmptyLockHeaderValue = " "</c>
+    /// to opt into the historic single-space workaround.
     /// </para>
     /// </remarks>
     public const string EMPTY_LOCK_VALUE = "";

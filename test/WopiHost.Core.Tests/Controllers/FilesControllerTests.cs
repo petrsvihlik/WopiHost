@@ -1489,6 +1489,66 @@ public class FilesControllerTests
     }
 
     [Fact]
+    public async Task ProcessLock_GetLock_NoExistingLock_HonorsConfiguredEmptyLockValue()
+    {
+        // Hosts running under IIS in-process opt back into the single-space workaround for
+        // empty X-WOPI-Lock values via WopiHostOptions.EmptyLockHeaderValue. Verify the option
+        // flows through HandleGetLock at request time.
+        var fileId = "test-file-id";
+        SetupFileMock(fileId);
+        lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
+
+        var customOptions = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            EmptyLockHeaderValue = " ",
+        });
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(customOptions),
+            }
+        };
+
+        var result = await controller.ProcessLock(fileId, WopiFileOperations.GetLock);
+
+        Assert.IsType<OkResult>(result);
+        Assert.Equal(" ", controller.Response.Headers[WopiHeaders.LOCK]);
+    }
+
+    [Fact]
+    public async Task PutFile_NoLock_NonEmptyFile_HonorsConfiguredEmptyLockValue()
+    {
+        // Same option flow on the PutFile 409-with-empty-lock path (via LockMismatchResult).
+        var fileId = "testFileId";
+        var fileMock = CreateFileMock(fileId, size: 1024);
+        storageProviderMock
+            .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileMock.Object);
+
+        var customOptions = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            EmptyLockHeaderValue = " ",
+        });
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(customOptions),
+            }
+        };
+
+        var result = await controller.PutFile(fileId, newLockIdentifier: null);
+
+        Assert.IsType<LockMismatchResult>(result);
+        Assert.Equal(" ", controller.Response.Headers[WopiHeaders.LOCK].ToString());
+    }
+
+    [Fact]
     public async Task ProcessLock_LockWithoutOldLockIdentifier_ReturnsOkResult()
     {
         var fileId = "test-file-id";

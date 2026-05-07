@@ -70,6 +70,26 @@ public class WopiHostOptions : IDiscoveryOptions
     public Func<WopiPutRelativeFileContext, Task> OnPutRelativeFile { get; set; } = _ => Task.CompletedTask;
 
     /// <summary>
+    /// Value written to the <c>X-WOPI-Lock</c> response header when the file is unlocked but the
+    /// spec requires the header to be present (notably <c>GetLock</c> on an unlocked file and
+    /// <c>PutFile</c> on a non-empty unlocked file).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The WOPI spec mandates the empty string. This is the default and works under Kestrel, Linux
+    /// IIS out-of-process hosting, and any reverse proxy (NGINX, Caddy, YARP) that preserves empty
+    /// header values.
+    /// </para>
+    /// <para>
+    /// Set to <c>" "</c> (a single space) when hosting under <em>IIS in-process</em>, which strips
+    /// empty header values before they reach the wire (see issue #208). The space is technically
+    /// non-spec but is the historic workaround and what every WOPI client treats as "no lock". Also
+    /// useful as an escape hatch behind any other downstream component that drops empty headers.
+    /// </para>
+    /// </remarks>
+    public string EmptyLockHeaderValue { get; set; } = string.Empty;
+
+    /// <summary>
     /// Optional upper bound (in bytes) on the size of files accepted via <c>PutFile</c> and
     /// <c>PutRelativeFile</c>. When set, requests whose <c>Content-Length</c> or — for
     /// <c>PutRelativeFile</c> — declared <c>X-WOPI-Size</c> exceed this value short-circuit with

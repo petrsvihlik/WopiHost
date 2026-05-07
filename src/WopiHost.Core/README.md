@@ -284,6 +284,19 @@ services.AddWopi(o =>
 
 `PutFile` checks `Content-Length`; `PutRelativeFile` also honors the declared `X-WOPI-Size`. When the budget is exceeded the controller returns `413 Request Entity Too Large` (a valid response per the WOPI spec) without invoking the storage provider. The underlying server's request-size limits still apply on top.
 
+## Empty `X-WOPI-Lock` placeholder
+
+The WOPI spec for `GetLock` (on an unlocked file) and `PutFile` (on a non-empty unlocked file) requires `X-WOPI-Lock` to be present and set to the empty string. That's the default. IIS in-process hosting strips empty header values before they hit the wire (issue #208), so opt back into the historic single-space workaround on that path:
+
+```csharp
+services.AddWopi(o =>
+{
+    o.EmptyLockHeaderValue = " ";   // default is "" (spec)
+});
+```
+
+Kestrel, IIS out-of-process, and any reverse proxy that preserves empty headers (NGINX, Caddy, YARP) need no override.
+
 ## Lock-id comparison
 
 By default the host compares lock ids with byte-exact ordinal equality (`OrdinalWopiLockComparer`), which is what the WOPI spec implies. If you observe the Office Online Server / Microsoft 365-for-the-Web quirk where JSON-shaped lock ids round-trip with extra properties added — `cs3org/wopiserver` and SenseNet both ship a tolerant fallback for the same reason — swap in the included `JsonShapedWopiLockComparer`:
