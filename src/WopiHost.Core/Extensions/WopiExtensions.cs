@@ -206,13 +206,20 @@ public static class WopiExtensions
     }
 
     /// <summary>
-    /// Creates a new instance of the <see cref="WopiCheckFolderInfo"/> based on the provided <see cref="IWopiFolder"/>.
-    /// This is used by the OneNote for the web Folders endpoint.
+    /// Builds a default <see cref="WopiCheckFolderInfo"/> for the given <see cref="IWopiFolder"/>
+    /// — folder name, plus user identity slots populated from <see cref="HttpContext.User"/>.
+    /// Used by the OneNote-for-the-web Folders endpoint.
     /// </summary>
-    /// <param name="folder"><see cref="IWopiFolder"/> to return info</param>
-    /// <param name="httpContext">current HttpContext</param>
-    /// <returns>WopiCheckFolderInfo</returns>
-    public static async Task<WopiCheckFolderInfo> GetWopiCheckFolderInfo(
+    /// <remarks>
+    /// Synchronous on purpose — see #363. The <see cref="WopiHostOptions.OnCheckFolderInfo"/>
+    /// callback is fired by the <c>FoldersController</c> after this returns, so the controller's
+    /// only <c>await</c> in this path is the direct delegate invocation. An async extension
+    /// method here would re-introduce the Infer# null-deref FP that the issue tracks.
+    /// </remarks>
+    /// <param name="folder"><see cref="IWopiFolder"/> to return info for.</param>
+    /// <param name="httpContext">current <see cref="HttpContext"/>.</param>
+    /// <returns>The default <see cref="WopiCheckFolderInfo"/> before any host-supplied callback.</returns>
+    public static WopiCheckFolderInfo BuildCheckFolderInfo(
         this IWopiFolder folder,
         HttpContext httpContext)
     {
@@ -232,13 +239,6 @@ public static class WopiExtensions
         else
         {
             checkFolderInfo.IsAnonymousUser = true;
-        }
-
-        // allow changes and/or extensions before returning
-        var wopiHostOptions = httpContext.RequestServices.GetService<IOptions<WopiHostOptions>>();
-        if (wopiHostOptions is not null)
-        {
-            checkFolderInfo = await wopiHostOptions.Value.OnCheckFolderInfo(new WopiCheckFolderInfoContext(httpContext.User, folder, checkFolderInfo));
         }
 
         return checkFolderInfo;

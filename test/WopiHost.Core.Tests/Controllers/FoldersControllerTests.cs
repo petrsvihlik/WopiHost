@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.Extensions.Options;
 using Moq;
 using WopiHost.Abstractions;
 using WopiHost.Core.Controllers;
@@ -70,6 +71,77 @@ public class FoldersControllerTests
         var jsonResult = Assert.IsType<JsonResult<WopiCheckFolderInfo>>(result);
         var checkFolderInfo = Assert.IsType<WopiCheckFolderInfo>(jsonResult.Value);
         Assert.Equal("TestFolder", checkFolderInfo.FolderName);
+    }
+
+    [Fact]
+    public async Task CheckFolderInfo_CallsOnCheckFolderInfoEvent()
+    {
+        // Moved here from WopiExtensionsTests.GetWopiCheckFolderInfo_CallsOnCheckFolderInfoEvent
+        // when the OnCheckFolderInfo callback firing moved from the extension method to the
+        // controller as part of resolving #363.
+        var folder = new Mock<IWopiFolder>();
+        folder.Setup(f => f.Name).Returns("MyFolder");
+        storageProviderMock
+            .Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => folder.Object);
+
+        var eventFired = false;
+        var hostViewUrl = new Uri("https://host/view");
+        var hostEditUrl = new Uri("https://host/edit");
+        var closeUrl = new Uri("https://host/close");
+        var fileSharingUrl = new Uri("https://host/share");
+        var brandUrl = new Uri("https://brand.example.com");
+        var folderUrl = new Uri("https://host/parent");
+        var wopiHostOptions = Options.Create(new WopiHostOptions
+        {
+            StorageProviderAssemblyName = "test",
+            ClientUrl = new Uri("http://localhost:5000"),
+            OnCheckFolderInfo = context =>
+            {
+                eventFired = true;
+                Assert.Equal("MyFolder", context.CheckFolderInfo.FolderName);
+                Assert.NotNull(context.Folder);
+                context.CheckFolderInfo.OwnerId = "owner1";
+                context.CheckFolderInfo.UserCanWrite = true;
+                context.CheckFolderInfo.HostViewUrl = hostViewUrl;
+                context.CheckFolderInfo.HostEditUrl = hostEditUrl;
+                context.CheckFolderInfo.CloseUrl = closeUrl;
+                context.CheckFolderInfo.FileSharingUrl = fileSharingUrl;
+                context.CheckFolderInfo.BreadcrumbBrandName = "Contoso";
+                context.CheckFolderInfo.BreadcrumbBrandUrl = brandUrl;
+                context.CheckFolderInfo.BreadcrumbFolderName = "ParentFolder";
+                context.CheckFolderInfo.BreadcrumbFolderUrl = folderUrl;
+                context.CheckFolderInfo.DisablePrint = true;
+                context.CheckFolderInfo.CloseButtonClosesWindow = true;
+                return Task.FromResult(context.CheckFolderInfo);
+            }
+        });
+
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(wopiHostOptions),
+            }
+        };
+
+        var result = await _controller.CheckFolderInfo("folder");
+
+        Assert.True(eventFired);
+        var jsonResult = Assert.IsType<JsonResult<WopiCheckFolderInfo>>(result);
+        var checkFolderInfo = Assert.IsType<WopiCheckFolderInfo>(jsonResult.Value);
+        Assert.Equal("owner1", checkFolderInfo.OwnerId);
+        Assert.True(checkFolderInfo.UserCanWrite);
+        Assert.Equal(hostViewUrl, checkFolderInfo.HostViewUrl);
+        Assert.Equal(hostEditUrl, checkFolderInfo.HostEditUrl);
+        Assert.Equal(closeUrl, checkFolderInfo.CloseUrl);
+        Assert.Equal(fileSharingUrl, checkFolderInfo.FileSharingUrl);
+        Assert.Equal("Contoso", checkFolderInfo.BreadcrumbBrandName);
+        Assert.Equal(brandUrl, checkFolderInfo.BreadcrumbBrandUrl);
+        Assert.Equal("ParentFolder", checkFolderInfo.BreadcrumbFolderName);
+        Assert.Equal(folderUrl, checkFolderInfo.BreadcrumbFolderUrl);
+        Assert.True(checkFolderInfo.DisablePrint);
+        Assert.True(checkFolderInfo.CloseButtonClosesWindow);
     }
 
     [Fact]

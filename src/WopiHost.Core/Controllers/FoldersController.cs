@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
@@ -48,7 +50,17 @@ public class FoldersController(IWopiStorageProvider storageProvider) : Controlle
         {
             return NotFound();
         }
-        var checkFolderInfo = await folder.GetWopiCheckFolderInfo(HttpContext);
+
+        // Build the default response synchronously, then fire the host-supplied callback
+        // (when configured) here — keeps the only `await` on a direct interface/delegate call,
+        // avoiding the Infer# false positive tracked by #363.
+        var checkFolderInfo = folder.BuildCheckFolderInfo(HttpContext);
+        var options = HttpContext.RequestServices.GetService<IOptions<WopiHostOptions>>();
+        if (options is not null)
+        {
+            checkFolderInfo = await options.Value.OnCheckFolderInfo(
+                new WopiCheckFolderInfoContext(HttpContext.User, folder, checkFolderInfo));
+        }
         return new JsonResult<WopiCheckFolderInfo>(checkFolderInfo);
     }
 

@@ -52,7 +52,12 @@ public class WopiBootstrapperController(
     [Produces(MediaTypeNames.Application.Json)]
     public async Task<IActionResult> Bootstrap(CancellationToken cancellationToken = default)
     {
-        var bootstrap = await BuildBootstrapInfoAsync(cancellationToken);
+        var userId = GetUserIdOrThrow();
+        // Direct interface await keeps Infer# happy — see #363; the previous private async
+        // helper (BuildBootstrapInfoAsync) became an Infer null-deref FP that no analyzer
+        // annotation could suppress. Sync helpers do the request-shape and result-shape work.
+        var ecosystemToken = await accessTokenService.IssueAsync(BuildEcosystemTokenRequest(userId), cancellationToken);
+        var bootstrap = BuildBootstrapInfo(userId, ecosystemToken);
         return new JsonResult(new BootstrapRootContainerInfo { Bootstrap = bootstrap });
     }
 
@@ -76,7 +81,9 @@ public class WopiBootstrapperController(
 
     private async Task<IActionResult> GetRootContainerAsync(CancellationToken cancellationToken)
     {
-        var bootstrap = await BuildBootstrapInfoAsync(cancellationToken);
+        var userId = GetUserIdOrThrow();
+        var ecosystemToken = await accessTokenService.IssueAsync(BuildEcosystemTokenRequest(userId), cancellationToken);
+        var bootstrap = BuildBootstrapInfo(userId, ecosystemToken);
 
         var rootPointer = storageProvider.RootContainerPointer;
         var rootContainer = await storageProvider.GetWopiResource<IWopiFolder>(rootPointer.Identifier, cancellationToken);
@@ -108,7 +115,9 @@ public class WopiBootstrapperController(
             return NotFound();
         }
 
-        var bootstrap = await BuildBootstrapInfoAsync(cancellationToken);
+        var userId = GetUserIdOrThrow();
+        var ecosystemToken = await accessTokenService.IssueAsync(BuildEcosystemTokenRequest(userId), cancellationToken);
+        var bootstrap = BuildBootstrapInfo(userId, ecosystemToken);
         WopiAccessToken token;
 
         if (resourceType == WopiResourceType.File)
@@ -143,32 +152,40 @@ public class WopiBootstrapperController(
         });
     }
 
-    private async Task<BootstrapInfo> BuildBootstrapInfoAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// Builds the access-token request for the bootstrap ecosystem token. Per WOPI
+    /// "preventing token trading" guidance, this token must be fresh and minimum-privilege:
+    /// CheckEcosystem has no resource gate, so we bind it to the root container with no
+    /// permissions.
+    /// </summary>
+    /// <remarks>
+    /// Sync on purpose — see #363. Splitting the request-building (sync) from the IssueAsync
+    /// await (interface call) lets the caller `await accessTokenService.IssueAsync(...)`
+    /// directly, which Infer# can see through; an intermediate `private async Task` helper
+    /// trips a null-deref FP that no annotation suppresses.
+    /// </remarks>
+    private WopiAccessTokenRequest BuildEcosystemTokenRequest(string userId) => new()
     {
-        var userId = GetUserIdOrThrow();
-        var root = storageProvider.RootContainerPointer;
+        UserId = userId,
+        UserDisplayName = User.FindFirstValue(ClaimTypes.Name),
+        UserEmail = User.FindFirstValue(ClaimTypes.Email),
+        ResourceId = storageProvider.RootContainerPointer.Identifier,
+        ResourceType = WopiResourceType.Container,
+        ContainerPermissions = WopiContainerPermissions.None,
+    };
 
-        // Per WOPI "preventing token trading" guidance, the access token embedded in
-        // EcosystemUrl must be a fresh, minimum-privilege token. CheckEcosystem has no
-        // resource gate, so we bind the token to the root container with no permissions.
-        var ecosystemToken = await accessTokenService.IssueAsync(new WopiAccessTokenRequest
-        {
-            UserId = userId,
-            UserDisplayName = User.FindFirstValue(ClaimTypes.Name),
-            UserEmail = User.FindFirstValue(ClaimTypes.Email),
-            ResourceId = root.Identifier,
-            ResourceType = WopiResourceType.Container,
-            ContainerPermissions = WopiContainerPermissions.None,
-        }, cancellationToken);
-
-        return new BootstrapInfo
-        {
-            EcosystemUrl = Url.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: ecosystemToken.Token),
-            UserId = userId,
-            SignInName = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty,
-            UserFriendlyName = User.FindFirstValue(ClaimTypes.Name) ?? string.Empty,
-        };
-    }
+    /// <summary>
+    /// Synchronous shaping helper that turns a freshly-issued ecosystem token into the
+    /// <see cref="BootstrapInfo"/> the WOPI client expects. Paired with
+    /// <see cref="BuildEcosystemTokenRequest"/>; see its remarks for the rationale.
+    /// </summary>
+    private BootstrapInfo BuildBootstrapInfo(string userId, WopiAccessToken ecosystemToken) => new()
+    {
+        EcosystemUrl = Url.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: ecosystemToken.Token),
+        UserId = userId,
+        SignInName = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty,
+        UserFriendlyName = User.FindFirstValue(ClaimTypes.Name) ?? string.Empty,
+    };
 
     private async Task<WopiAccessToken> IssueFileTokenAsync(IWopiFile file, CancellationToken cancellationToken)
     {
