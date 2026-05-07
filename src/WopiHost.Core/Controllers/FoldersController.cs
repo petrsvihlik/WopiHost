@@ -48,10 +48,7 @@ public class FoldersController(IWopiStorageProvider storageProvider) : Controlle
         {
             return NotFound();
         }
-        // `!` suppresses Infer#'s null-deref false positive on the awaited Task — async methods
-        // are guaranteed by the C# compiler to return non-null Tasks, but the analyzer can't see
-        // through the call. See infersharp.yml CI on PR #362.
-        var checkFolderInfo = await folder.GetWopiCheckFolderInfo(HttpContext)!;
+        var checkFolderInfo = await folder.GetWopiCheckFolderInfo(HttpContext);
         return new JsonResult<WopiCheckFolderInfo>(checkFolderInfo);
     }
 

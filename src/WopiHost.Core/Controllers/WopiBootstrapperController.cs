@@ -52,10 +52,7 @@ public class WopiBootstrapperController(
     [Produces(MediaTypeNames.Application.Json)]
     public async Task<IActionResult> Bootstrap(CancellationToken cancellationToken = default)
     {
-        // `!` suppresses Infer#'s null-deref false positive on the awaited Task — async methods
-        // are guaranteed by the C# compiler to return non-null Tasks. See infersharp.yml CI on
-        // PR #362.
-        var bootstrap = await BuildBootstrapInfoAsync(cancellationToken)!;
+        var bootstrap = await BuildBootstrapInfoAsync(cancellationToken);
         return new JsonResult(new BootstrapRootContainerInfo { Bootstrap = bootstrap });
     }
 
@@ -79,7 +76,7 @@ public class WopiBootstrapperController(
 
     private async Task<IActionResult> GetRootContainerAsync(CancellationToken cancellationToken)
     {
-        var bootstrap = await BuildBootstrapInfoAsync(cancellationToken)!;
+        var bootstrap = await BuildBootstrapInfoAsync(cancellationToken);
 
         var rootPointer = storageProvider.RootContainerPointer;
         var rootContainer = await storageProvider.GetWopiResource<IWopiFolder>(rootPointer.Identifier, cancellationToken);
