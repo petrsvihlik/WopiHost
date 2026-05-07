@@ -148,7 +148,7 @@ public partial class WopiAzureLockProvider(BlobContainerClient containerClient, 
     }
 
     /// <inheritdoc />
-    public async Task<bool> RefreshLockAsync(string fileId, string? lockId = null, CancellationToken cancellationToken = default)
+    public async Task<bool> RefreshLockAsync(string fileId, CancellationToken cancellationToken = default)
     {
         await EnsureContainerAsync(cancellationToken).ConfigureAwait(false);
         var blobClient = GetLockBlob(fileId);
@@ -167,7 +167,7 @@ public partial class WopiAzureLockProvider(BlobContainerClient containerClient, 
         }
 
         // Renew the lease so the holder semantic stays alive (no-op for infinite leases but still
-        // confirms the lease is still ours), then update timestamp + optional new lockId.
+        // confirms the lease is still ours), then bump the WOPI-level timestamp.
         var leaseClient = blobClient.GetBlobLeaseClient(leaseId);
         try
         {
@@ -181,7 +181,6 @@ public partial class WopiAzureLockProvider(BlobContainerClient containerClient, 
 
         var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal)
         {
-            [LockIdKey] = lockId ?? info.LockId,
             [CreatedKey] = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture),
         };
         try

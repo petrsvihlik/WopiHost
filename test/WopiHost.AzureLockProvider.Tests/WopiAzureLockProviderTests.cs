@@ -66,19 +66,21 @@ public class WopiAzureLockProviderTests(AzuriteFixture azurite)
     }
 
     [Fact]
-    public async Task RefreshLockAsync_UpdatesTimestamp_AndOptionallyChangesLockId()
+    public async Task RefreshLockAsync_UpdatesTimestamp_PreservingLockId()
     {
         var (provider, _) = await CreateProviderAsync();
         var original = await provider.AddLockAsync("file-4", "lock-A");
         Assert.NotNull(original);
 
         await Task.Delay(50);
-        var refreshed = await provider.RefreshLockAsync("file-4", lockId: "lock-B");
+        var refreshed = await provider.RefreshLockAsync("file-4");
 
         Assert.True(refreshed);
         var info = await provider.GetLockAsync("file-4");
         Assert.NotNull(info);
-        Assert.Equal("lock-B", info.LockId);
+        // RefreshLockAsync only bumps the timestamp; for a swap-id semantic, callers must use
+        // TryUnlockAndRelockAsync.
+        Assert.Equal("lock-A", info.LockId);
         Assert.True(info.DateCreated > original.DateCreated);
     }
 

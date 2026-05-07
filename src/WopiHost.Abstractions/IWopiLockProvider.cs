@@ -19,13 +19,13 @@ public interface IWopiLockProvider
     Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Extend an existing lock's expiration time.
+    /// Extend an existing lock's expiration time. Does not change the stored lock id — use
+    /// <see cref="TryUnlockAndRelockAsync"/> for atomic swap semantics.
     /// </summary>
     /// <param name="fileId">the fileId to refresh the lock for.</param>
-    /// <param name="lockId">include to also update the lockId.</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>true if the lock was successfully refreshed</returns>
-    Task<bool> RefreshLockAsync(string fileId, string? lockId = null, CancellationToken cancellationToken = default);
+    Task<bool> RefreshLockAsync(string fileId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Create a new lock.
@@ -51,11 +51,9 @@ public interface IWopiLockProvider
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The default implementation here is a non-atomic fallback (Get + RefreshLock) that exists only
-    /// to keep the interface backwards-compatible with custom <see cref="IWopiLockProvider"/>s that
-    /// pre-date this method. Built-in providers (<c>MemoryLockProvider</c>, <c>WopiAzureLockProvider</c>)
-    /// override this with a true compare-and-swap. Production providers should do the same; otherwise
-    /// a concurrent <c>UnlockAndRelock</c> from another client can be silently overwritten.
+    /// Implementations MUST perform a true compare-and-swap (e.g. <c>ConcurrentDictionary.TryUpdate</c>
+    /// against a snapshot, or an ETag/lease-conditional write on a remote store). A naive
+    /// "Get + Refresh" sequence is not sufficient — see the spec link below for why.
     /// </para>
     /// <para>
     /// Spec: <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock"/>.
@@ -68,15 +66,7 @@ public interface IWopiLockProvider
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>true if the swap completed atomically; false if the lock was missing, expired, or
     /// the existing id no longer matches.</returns>
-    async Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default)
-    {
-        var existing = await GetLockAsync(fileId, cancellationToken).ConfigureAwait(false);
-        if (existing is null || existing.LockId != expectedExistingLockId)
-        {
-            return false;
-        }
-        return await RefreshLockAsync(fileId, newLockId, cancellationToken).ConfigureAwait(false);
-    }
+    Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

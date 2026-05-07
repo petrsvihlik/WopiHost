@@ -58,7 +58,7 @@ public partial class MemoryLockProvider(ILogger<MemoryLockProvider> logger) : IW
     }
 
     /// <inheritdoc />
-    public async Task<bool> RefreshLockAsync(string fileId, string? lockId = null, CancellationToken cancellationToken = default)
+    public async Task<bool> RefreshLockAsync(string fileId, CancellationToken cancellationToken = default)
     {
         var existing = await GetLockAsync(fileId, cancellationToken).ConfigureAwait(false);
         if (existing is null)
@@ -68,7 +68,6 @@ public partial class MemoryLockProvider(ILogger<MemoryLockProvider> logger) : IW
         var updated = existing with
         {
             DateCreated = DateTimeOffset.UtcNow,
-            LockId = lockId ?? existing.LockId,
         };
         return locks.TryUpdate(fileId, updated, existing);
     }
