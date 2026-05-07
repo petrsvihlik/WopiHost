@@ -242,8 +242,6 @@ services.AddWopi(o =>
 });
 ```
 
-`WopiCheckFileInfo` is also decomposed into role interfaces — `IWopiCheckFileInfoIdentity`, `IWopiCheckFileInfoUserPermissions`, `IWopiCheckFileInfoUserMetadata`, `IWopiCheckFileInfoBreadcrumb`, plus `IWopiHostCapabilities` — so a permission policy or test rig can take a narrower contract than the full ~70-property response. The class implements all of them; existing code that touches the concrete type continues to work.
-
 ## Hooks for PutFile / PutRelativeFile
 
 Both write paths fire a callback after a successful write so hosts can record audit trails, last-touch metadata, or react to binary-conversion uploads. Defaults are no-ops.

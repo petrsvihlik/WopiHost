@@ -23,8 +23,6 @@ dotnet add package WopiHost.Abstractions
 | [`IWopiAccessTokenService`](IWopiAccessTokenService.cs) | Issue and validate access tokens. | `JwtAccessTokenService` (signed JWT) | Rarely — only if you need opaque/revocable tokens or external issuance. |
 | [`IWopiHostCapabilities`](IWopiHostCapabilities.cs) | Feature flags reported in `CheckFileInfo`. | `WopiHostCapabilities` | Override individual flags via `WopiHostOptions.OnCheckFileInfo`. |
 
-`WopiCheckFileInfo` itself is decomposed into role interfaces — [`IWopiCheckFileInfoIdentity`](IWopiCheckFileInfoIdentity.cs), [`IWopiCheckFileInfoUserPermissions`](IWopiCheckFileInfoUserPermissions.cs), [`IWopiCheckFileInfoUserMetadata`](IWopiCheckFileInfoUserMetadata.cs), [`IWopiCheckFileInfoBreadcrumb`](IWopiCheckFileInfoBreadcrumb.cs) plus `IWopiHostCapabilities`. The class implements all of them so a permission policy or test rig can take a narrower contract than the full ~70-property response without giving up the same backing store.
-
 The defaults ship in `WopiHost.Core`, `WopiHost.FileSystemProvider`, `WopiHost.MemoryLockProvider`, `WopiHost.AzureStorageProvider`, and `WopiHost.AzureLockProvider` — selected via `WopiHostOptions.StorageProviderAssemblyName` / `LockProviderAssemblyName`.
 
 ## Resource model

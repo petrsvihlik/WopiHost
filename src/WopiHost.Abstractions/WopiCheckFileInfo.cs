@@ -6,19 +6,7 @@ namespace WopiHost.Abstractions;
 /// <summary>
 /// Model according to <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo">CheckFileInfo documentation</see> and <see href="https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/71e66fb4-144b-4369-b597-f425f0b700b9">Microsoft WOPI documentation</see>
 /// </summary>
-/// <remarks>
-/// Decomposed into role interfaces (<see cref="IWopiCheckFileInfoIdentity"/>,
-/// <see cref="IWopiCheckFileInfoUserPermissions"/>, <see cref="IWopiCheckFileInfoUserMetadata"/>,
-/// <see cref="IWopiCheckFileInfoBreadcrumb"/>, <see cref="IWopiHostCapabilities"/>) so callers
-/// that only care about a slice (a permission policy, a test rig) can take a narrower contract
-/// than the full ~70-property response.
-/// </remarks>
-public class WopiCheckFileInfo :
-    IWopiCheckFileInfoIdentity,
-    IWopiCheckFileInfoUserPermissions,
-    IWopiCheckFileInfoUserMetadata,
-    IWopiCheckFileInfoBreadcrumb,
-    IWopiHostCapabilities
+public class WopiCheckFileInfo : IWopiHostCapabilities
 {
     #region "Required properties"
     /// <summary>
