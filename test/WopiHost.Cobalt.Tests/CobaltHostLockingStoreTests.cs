@@ -259,4 +259,98 @@ public class CobaltHostLockingStoreTests
         var result = store.HandleVersions(new VersionsRequest.InputType());
         Assert.False(result.Enabled);
     }
+
+    // The handlers below are intentional pass-throughs that return a default OutputType.
+    // They cover protocol features WopiHost doesn't implement (exclusive locks, version
+    // history, editor metadata, rename/delete via Cobalt instead of WOPI). The contract
+    // is just "don't throw" — which is what these tests verify. Keeping them as
+    // separate facts so a regression on any one handler is precise in the test report.
+
+    [Fact]
+    public void HandleGetExclusiveLock_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleGetExclusiveLock(new GetExclusiveLockRequest.InputType()));
+
+    [Fact]
+    public void HandleRefreshExclusiveLock_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleRefreshExclusiveLock(new RefreshExclusiveLockRequest.InputType()));
+
+    [Fact]
+    public void HandleCheckExclusiveLockAvailability_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleCheckExclusiveLockAvailability(new CheckExclusiveLockAvailabilityRequest.InputType()));
+
+    [Fact]
+    public void HandleConvertExclusiveLockToSchemaLock_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleConvertExclusiveLockToSchemaLock(null!, 0, 0));
+
+    [Fact]
+    public void HandleConvertExclusiveLockWithCoauthTransition_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleConvertExclusiveLockWithCoauthTransition(null!, 0, 0));
+
+    [Fact]
+    public void HandleGetSchemaLock_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleGetSchemaLock(null!, 0, 0));
+
+    [Fact]
+    public void HandleReleaseExclusiveLock_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleReleaseExclusiveLock(new ReleaseExclusiveLockRequest.InputType()));
+
+    [Fact]
+    public void HandleReleaseSchemaLock_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleReleaseSchemaLock(null!, 0, 0));
+
+    [Fact]
+    public void HandleConvertSchemaLockToExclusiveLock_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleConvertSchemaLockToExclusiveLock(new ConvertSchemaLockToExclusiveLockRequest.InputType()));
+
+    [Fact]
+    public void HandleCheckSchemaLockAvailability_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleCheckSchemaLockAvailability(new CheckSchemaLockAvailabilityRequest.InputType()));
+
+    [Fact]
+    public void HandleConvertCoauthLockToExclusiveLock_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleConvertCoauthLockToExclusiveLock(new ConvertCoauthLockToExclusiveLockRequest.InputType()));
+
+    [Fact]
+    public void HandleCheckCoauthLockAvailability_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleCheckCoauthLockAvailability(new CheckCoauthLockAvailabilityRequest.InputType()));
+
+    [Fact]
+    public void HandleMarkCoauthTransitionComplete_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleMarkCoauthTransitionComplete(new MarkCoauthTransitionCompleteRequest.InputType()));
+
+    [Fact]
+    public void HandleUpdateEditorMetadata_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleUpdateEditorMetadata(new UpdateEditorMetadataRequest.InputType()));
+
+    [Fact]
+    public void HandleRemoveEditorMetadata_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleRemoveEditorMetadata(new RemoveEditorMetadataRequest.InputType()));
+
+    [Fact]
+    public void HandleDocMetaInfo_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleDocMetaInfo(new DocMetaInfoRequest.InputType()));
+
+    [Fact]
+    public void HandleEnumerateEditors_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleEnumerateEditors(new EnumerateEditorsRequest.InputType()));
+
+    [Fact]
+    public void HandleEditorsPropertyCheck_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleEditorsPropertyCheck(new EditorsPropertyCheckRequest.InputType()));
+
+    [Fact]
+    public void HandleRename_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleRename(new RenameFileRequest.InputType()));
+
+    [Fact]
+    public void HandleDelete_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleDelete(new DeleteFileRequest.InputType()));
+
+    [Fact]
+    public void HandleGetVersionList_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleGetVersionList(new GetVersionListRequest.InputType()));
+
+    [Fact]
+    public void HandleRestoreVersion_DoesNotThrow()
+        => Assert.NotNull(Build().Store.HandleRestoreVersion(new RestoreVersionRequest.InputType()));
 }
