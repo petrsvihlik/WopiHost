@@ -301,16 +301,13 @@ public class WopiExtensionsTests
     }
 
     [Fact]
-    public async Task GetWopiCheckFolderInfo_ReturnsAnonymousUser_WhenNotAuthenticated()
+    public void BuildCheckFolderInfo_ReturnsAnonymousUser_WhenNotAuthenticated()
     {
         var mockFolder = new Mock<IWopiFolder>();
         mockFolder.Setup(f => f.Name).Returns("MyFolder");
-        var httpContext = new DefaultHttpContext()
-        {
-            ServiceScopeFactory = TestUtils.CreateServiceScope(),
-        };
+        var httpContext = new DefaultHttpContext();
 
-        var result = await mockFolder.Object.GetWopiCheckFolderInfo(httpContext);
+        var result = mockFolder.Object.BuildCheckFolderInfo(httpContext);
 
         Assert.Equal("MyFolder", result.FolderName);
         Assert.True(result.IsAnonymousUser);
@@ -319,13 +316,12 @@ public class WopiExtensionsTests
     }
 
     [Fact]
-    public async Task GetWopiCheckFolderInfo_WithAuthenticatedUser()
+    public void BuildCheckFolderInfo_WithAuthenticatedUser()
     {
         var mockFolder = new Mock<IWopiFolder>();
         mockFolder.Setup(f => f.Name).Returns("MyFolder");
         var httpContext = new DefaultHttpContext()
         {
-            ServiceScopeFactory = TestUtils.CreateServiceScope(),
             User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                 [
@@ -334,72 +330,16 @@ public class WopiExtensionsTests
                 ], "test auth scheme")),
         };
 
-        var result = await mockFolder.Object.GetWopiCheckFolderInfo(httpContext);
+        var result = mockFolder.Object.BuildCheckFolderInfo(httpContext);
 
         Assert.Equal("userId42", result.UserId);
         Assert.Equal("Jane Doe", result.UserFriendlyName);
         Assert.False(result.IsAnonymousUser);
     }
 
-    [Fact]
-    public async Task GetWopiCheckFolderInfo_CallsOnCheckFolderInfoEvent()
-    {
-        var mockFolder = new Mock<IWopiFolder>();
-        mockFolder.Setup(f => f.Name).Returns("MyFolder");
-        var eventFired = false;
-        var hostViewUrl = new Uri("https://host/view");
-        var hostEditUrl = new Uri("https://host/edit");
-        var closeUrl = new Uri("https://host/close");
-        var fileSharingUrl = new Uri("https://host/share");
-        var brandUrl = new Uri("https://brand.example.com");
-        var folderUrl = new Uri("https://host/parent");
-        var wopiHostOptions = Options.Create(new WopiHostOptions
-        {
-            StorageProviderAssemblyName = "test",
-            ClientUrl = new Uri("http://localhost:5000"),
-            OnCheckFolderInfo = context =>
-            {
-                eventFired = true;
-                // Verify context record is properly constructed
-                Assert.Equal("MyFolder", context.CheckFolderInfo.FolderName);
-                Assert.NotNull(context.Folder);
-                // Set all optional properties to verify they round-trip
-                context.CheckFolderInfo.OwnerId = "owner1";
-                context.CheckFolderInfo.UserCanWrite = true;
-                context.CheckFolderInfo.HostViewUrl = hostViewUrl;
-                context.CheckFolderInfo.HostEditUrl = hostEditUrl;
-                context.CheckFolderInfo.CloseUrl = closeUrl;
-                context.CheckFolderInfo.FileSharingUrl = fileSharingUrl;
-                context.CheckFolderInfo.BreadcrumbBrandName = "Contoso";
-                context.CheckFolderInfo.BreadcrumbBrandUrl = brandUrl;
-                context.CheckFolderInfo.BreadcrumbFolderName = "ParentFolder";
-                context.CheckFolderInfo.BreadcrumbFolderUrl = folderUrl;
-                context.CheckFolderInfo.DisablePrint = true;
-                context.CheckFolderInfo.CloseButtonClosesWindow = true;
-                return Task.FromResult(context.CheckFolderInfo);
-            }
-        });
-        var httpContext = new DefaultHttpContext()
-        {
-            ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(wopiHostOptions),
-        };
-
-        var result = await mockFolder.Object.GetWopiCheckFolderInfo(httpContext);
-
-        Assert.True(eventFired);
-        Assert.Equal("owner1", result.OwnerId);
-        Assert.True(result.UserCanWrite);
-        Assert.Equal(hostViewUrl, result.HostViewUrl);
-        Assert.Equal(hostEditUrl, result.HostEditUrl);
-        Assert.Equal(closeUrl, result.CloseUrl);
-        Assert.Equal(fileSharingUrl, result.FileSharingUrl);
-        Assert.Equal("Contoso", result.BreadcrumbBrandName);
-        Assert.Equal(brandUrl, result.BreadcrumbBrandUrl);
-        Assert.Equal("ParentFolder", result.BreadcrumbFolderName);
-        Assert.Equal(folderUrl, result.BreadcrumbFolderUrl);
-        Assert.True(result.DisablePrint);
-        Assert.True(result.CloseButtonClosesWindow);
-    }
+    // Note: OnCheckFolderInfo callback firing is no longer the extension's responsibility — it
+    // moved to FoldersController.CheckFolderInfo as part of #363's resolution. The callback
+    // round-trip is covered by FoldersControllerTests.CheckFolderInfo_CallsOnCheckFolderInfoEvent.
 
     [Fact]
     public async Task GetWopiCheckContainerInfo_CallsOnCheckContainerInfoEvent()
