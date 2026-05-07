@@ -193,6 +193,40 @@ public class MemoryLockProviderTests
         Assert.Equal("B-new", info.LockId);
     }
 
+    [Fact]
+    public async Task TryUnlockAndRelockAsync_JsonShapedLockWithExtraProperty_FailsUnderStrictCompare()
+    {
+        // Pin: WopiHost compares lock ids with byte-exact string equality. If a WOPI client
+        // (most notably Office Online Server / M365 for the Web) ever round-trips back a
+        // JSON-shaped lock with an extra property added — a behavior cs3org/wopiserver and
+        // SenseNet both work around with tolerant comparison — this test will keep failing as a
+        // signal that the strict-compare decision needs revisiting.
+        //
+        // Reference points if you reach that signal:
+        //   - cs3org/wopiserver `wopilockstrictcheck=False` → JSON-S-field comparison fallback.
+        //   - SenseNet `WopiMiddleware.AreLocksEqual` → existing.Contains(current.Trim('{','}')).
+        // Either approach has its own correctness risks (false equivalences, lost-update
+        // surfaces); don't relax the comparison without evidence from a real OOS / M365
+        // session that genuinely needs it.
+        var fileId = $"json-lock-{Guid.NewGuid()}";
+        var clientLock = """{"S":"abc-123","F":4}""";
+        await _lockProvider.AddLockAsync(fileId, clientLock);
+
+        // Same logical lock, but with an extra property — the kind of mutation OOS has
+        // historically applied to its own JSON-format locks.
+        var clientLockMutated = """{"S":"abc-123","F":4,"V":1}""";
+
+        var swapped = await _lockProvider.TryUnlockAndRelockAsync(
+            fileId,
+            newLockId: "next-lock",
+            expectedExistingLockId: clientLockMutated);
+
+        Assert.False(swapped);
+        var info = await _lockProvider.GetLockAsync(fileId);
+        Assert.NotNull(info);
+        Assert.Equal(clientLock, info.LockId);
+    }
+
     private static ConcurrentDictionary<string, WopiLockInfo> GetSharedLockDictionary()
     {
         var field = typeof(MemoryLockProvider)
