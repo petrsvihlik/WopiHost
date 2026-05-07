@@ -60,11 +60,15 @@ if (useCollabora)
             .WaitFor(collabora);
 }
 
-// Add WopiHost.Web frontend that depends on WopiHost. Endpoints come from the project's
-// launchSettings.json (HTTPS only — see that file). Duplicating them here with .WithEndpoint
-// would cause the dashboard to list the same URL twice.
-var wopiHostWeb = builder.AddProject<Projects.WopiHost_Web>("wopihost-web")
+// Add WopiHost.Web frontend that depends on WopiHost. We let Aspire allocate the HTTPS port
+// dynamically — passing launchProfileName: null skips launchSettings.json so applicationUrl
+// stops being a stale hint, and WithHttpsEndpoint() without a port tells Aspire "give me an
+// HTTPS endpoint, you pick". The dashboard then shows the URL it actually bound, dependent
+// services resolve the backend through WithReference + Aspire service discovery, and a port
+// collision is impossible because Aspire picks from the OS's free pool.
+var wopiHostWeb = builder.AddProject<Projects.WopiHost_Web>("wopihost-web", launchProfileName: null)
        .WithReference(wopiHost)
+       .WithHttpsEndpoint()
        .WithExternalHttpEndpoints();
 
 if (useCollabora)
@@ -80,9 +84,10 @@ if (useCollabora)
                .WaitFor(collabora!);
 }
 
-// Add Validator project for testing. Endpoints come from launchSettings.json (HTTPS only).
-builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator")
+// Add Validator project for testing. Aspire picks the port — same shape as wopihost-web.
+builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator", launchProfileName: null)
        .WithReference(wopiHost)
+       .WithHttpsEndpoint()
        .WithExternalHttpEndpoints();
 
 // Optional: OIDC frontend sample. Opt-in via "AppHost:IncludeOidcSample"=true so newcomers don't
@@ -90,10 +95,14 @@ builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator")
 // in sample/WopiHost.Web.Oidc/appsettings.Development.json (see that sample's README for setup).
 if (builder.Configuration.GetValue<bool>("AppHost:IncludeOidcSample"))
 {
-    // Endpoints come from the project's launchSettings.json (HTTPS only). OIDC requires HTTPS
-    // for cookie/redirect-URI sanity anyway.
-    builder.AddProject<Projects.WopiHost_Web_Oidc>("wopihost-web-oidc")
+    // OIDC requires HTTPS for cookie/redirect-URI sanity; Aspire picks the port. Note that
+    // the OIDC sample's appsettings.Development.json must list whatever URL Aspire picks as
+    // an allowed redirect URI on the IdP side, so dynamic allocation does mean re-registering
+    // the redirect URI at the IdP after each port change. If that's painful in your setup,
+    // pin via WithHttpsEndpoint(port: 6101).
+    builder.AddProject<Projects.WopiHost_Web_Oidc>("wopihost-web-oidc", launchProfileName: null)
            .WithReference(wopiHost)
+           .WithHttpsEndpoint()
            .WithExternalHttpEndpoints();
 }
 
