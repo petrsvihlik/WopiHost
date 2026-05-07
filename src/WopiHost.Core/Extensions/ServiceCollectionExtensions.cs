@@ -48,6 +48,11 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IWopiAccessTokenService, JwtAccessTokenService>();
         services.TryAddSingleton<IWopiPermissionProvider, DefaultWopiPermissionProvider>();
 
+        // Lock-id comparison: strict by default. Hosts that need tolerant comparison (e.g. for
+        // OOS-style JSON-shaped lock mutations) replace this registration with their own
+        // IWopiLockComparer (JsonShapedWopiLockComparer ships as one option).
+        services.TryAddSingleton<IWopiLockComparer, OrdinalWopiLockComparer>();
+
         services.AddOptions<WopiHostOptions>()
             .Configure(o =>
             {

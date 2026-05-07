@@ -29,16 +29,30 @@ namespace WopiHost.AzureLockProvider;
 /// </para>
 /// </remarks>
 /// <summary>Create the provider from a configured <see cref="BlobContainerClient"/>.</summary>
-public partial class WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<WopiAzureLockProvider> logger) : IWopiLockProvider
+public partial class WopiAzureLockProvider : IWopiLockProvider
 {
     internal const string LockIdKey = "wopi_lock_id";
     internal const string LeaseIdKey = "wopi_lease_id";
     internal const string CreatedKey = "wopi_created";
 
-    private readonly BlobContainerClient containerClient = containerClient ?? throw new ArgumentNullException(nameof(containerClient));
-    private readonly ILogger<WopiAzureLockProvider> logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly BlobContainerClient containerClient;
+    private readonly ILogger<WopiAzureLockProvider> logger;
+    private readonly IWopiLockComparer lockComparer;
     private readonly SemaphoreSlim initLock = new(1, 1);
     private bool initialized;
+
+    /// <summary>
+    /// Creates the provider. <paramref name="lockComparer"/> defaults to
+    /// <see cref="OrdinalWopiLockComparer"/> when not supplied via DI; replace with a custom
+    /// comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>) to absorb known WOPI-client
+    /// lock-id mutations.
+    /// </summary>
+    public WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<WopiAzureLockProvider> logger, IWopiLockComparer? lockComparer = null)
+    {
+        this.containerClient = containerClient ?? throw new ArgumentNullException(nameof(containerClient));
+        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        this.lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
+    }
 
     /// <inheritdoc />
     public async Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default)
@@ -207,7 +221,7 @@ public partial class WopiAzureLockProvider(BlobContainerClient containerClient, 
         {
             return false;
         }
-        if (info.Expired || info.LockId != expectedExistingLockId)
+        if (info.Expired || !lockComparer.AreEqual(info.LockId, expectedExistingLockId))
         {
             return false;
         }

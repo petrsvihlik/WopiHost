@@ -27,6 +27,10 @@ namespace WopiHost.Core.Controllers;
 /// <param name="writableStorageProvider">Storage provider instance for writing files and folders.</param>
 /// <param name="lockProvider">An instance of the lock provider.</param>
 /// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
+/// <param name="lockComparer">Compares lock ids when validating client-supplied tokens against
+/// stored ones. Defaults to <see cref="OrdinalWopiLockComparer"/> (byte-exact); replace via DI
+/// with <see cref="JsonShapedWopiLockComparer"/> or a custom implementation if a specific WOPI
+/// client mutates lock ids between round-trips.</param>
 [Authorize]
 [ApiController]
 [Route("wopi/[controller]")]
@@ -37,8 +41,10 @@ public class FilesController(
     IMemoryCache memoryCache,
     IWopiWritableStorageProvider? writableStorageProvider = null,
     IWopiLockProvider? lockProvider = null,
-    ICobaltProcessor? cobaltProcessor = null) : ControllerBase
+    ICobaltProcessor? cobaltProcessor = null,
+    IWopiLockComparer? lockComparer = null) : ControllerBase
 {
+    private readonly IWopiLockComparer lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
     private WopiHostCapabilities HostCapabilities => new()
     {
         SupportsCobalt = cobaltProcessor is not null,
@@ -164,7 +170,7 @@ public class FilesController(
         if (lockProvider is not null)
         {
             var existingLock = await lockProvider.GetLockAsync(id, cancellationToken);
-            if (existingLock is not null && existingLock.LockId != lockIdentifier)
+            if (existingLock is not null && !lockComparer.AreEqual(existingLock.LockId, lockIdentifier))
             {
                 return new LockMismatchResult(Response, existingLock.LockId);
             }
@@ -810,7 +816,7 @@ public class FilesController(
         {
             return new LockMismatchResult(Response, reason: "File not locked");
         }
-        if (existingLock.LockId != oldLockIdentifier)
+        if (!lockComparer.AreEqual(existingLock.LockId, oldLockIdentifier))
         {
             return new LockMismatchResult(Response, existingLock.LockId);
         }
@@ -836,7 +842,7 @@ public class FilesController(
         {
             return new LockMismatchResult(Response, reason: "File not locked");
         }
-        if (existingLock.LockId != newLockIdentifier)
+        if (!lockComparer.AreEqual(existingLock.LockId, newLockIdentifier))
         {
             return new LockMismatchResult(Response, existingLock.LockId);
         }
@@ -862,7 +868,7 @@ public class FilesController(
     private async Task<IActionResult> LockOrRefresh(string newLock, WopiLockInfo existingLock, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(lockProvider);
-        if (existingLock.LockId != newLock)
+        if (!lockComparer.AreEqual(existingLock.LockId, newLock))
         {
             // The existing lock doesn't match the requested one (someone else might have locked the file). Return a lock mismatch error along with the current lock
             return new LockMismatchResult(Response, existingLock.LockId);

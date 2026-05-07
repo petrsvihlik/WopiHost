@@ -194,26 +194,16 @@ public class MemoryLockProviderTests
     }
 
     [Fact]
-    public async Task TryUnlockAndRelockAsync_JsonShapedLockWithExtraProperty_FailsUnderStrictCompare()
+    public async Task TryUnlockAndRelockAsync_JsonShapedLockWithExtraProperty_FailsUnderDefaultStrictCompare()
     {
-        // Pin: WopiHost compares lock ids with byte-exact string equality. If a WOPI client
-        // (most notably Office Online Server / M365 for the Web) ever round-trips back a
-        // JSON-shaped lock with an extra property added — a behavior cs3org/wopiserver and
-        // SenseNet both work around with tolerant comparison — this test will keep failing as a
-        // signal that the strict-compare decision needs revisiting.
-        //
-        // Reference points if you reach that signal:
-        //   - cs3org/wopiserver `wopilockstrictcheck=False` → JSON-S-field comparison fallback.
-        //   - SenseNet `WopiMiddleware.AreLocksEqual` → existing.Contains(current.Trim('{','}')).
-        // Either approach has its own correctness risks (false equivalences, lost-update
-        // surfaces); don't relax the comparison without evidence from a real OOS / M365
-        // session that genuinely needs it.
+        // Default IWopiLockComparer is OrdinalWopiLockComparer (byte-exact). Pin the strict
+        // behavior under the default — if M365 for the Web ever flakes on lock mismatches in
+        // production, the fix is to swap in JsonShapedWopiLockComparer (or a custom comparer
+        // tailored to the observed mutation), not to relax this test.
         var fileId = $"json-lock-{Guid.NewGuid()}";
         var clientLock = """{"S":"abc-123","F":4}""";
         await _lockProvider.AddLockAsync(fileId, clientLock);
 
-        // Same logical lock, but with an extra property — the kind of mutation OOS has
-        // historically applied to its own JSON-format locks.
         var clientLockMutated = """{"S":"abc-123","F":4,"V":1}""";
 
         var swapped = await _lockProvider.TryUnlockAndRelockAsync(
@@ -225,6 +215,30 @@ public class MemoryLockProviderTests
         var info = await _lockProvider.GetLockAsync(fileId);
         Assert.NotNull(info);
         Assert.Equal(clientLock, info.LockId);
+    }
+
+    [Fact]
+    public async Task TryUnlockAndRelockAsync_JsonShapedLockWithExtraProperty_SwapsUnderJsonShapedComparer()
+    {
+        // Same scenario, but with the tolerant comparer plugged in: the swap should succeed
+        // because the OOS-style lock-id mutation only added a property; the underlying S-field
+        // identity hasn't changed.
+        var provider = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance, new JsonShapedWopiLockComparer());
+        var fileId = $"json-lock-tolerant-{Guid.NewGuid()}";
+        var clientLock = """{"S":"abc-123","F":4}""";
+        await provider.AddLockAsync(fileId, clientLock);
+
+        var clientLockMutated = """{"S":"abc-123","F":4,"V":1}""";
+
+        var swapped = await provider.TryUnlockAndRelockAsync(
+            fileId,
+            newLockId: "next-lock",
+            expectedExistingLockId: clientLockMutated);
+
+        Assert.True(swapped);
+        var info = await provider.GetLockAsync(fileId);
+        Assert.NotNull(info);
+        Assert.Equal("next-lock", info.LockId);
     }
 
     private static ConcurrentDictionary<string, WopiLockInfo> GetSharedLockDictionary()

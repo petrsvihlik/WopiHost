@@ -12,14 +12,27 @@ namespace WopiHost.MemoryLockProvider;
 /// the lifetime of the process but not multi-instance deployments or restarts. Operations are
 /// inherently synchronous and are wrapped in <see cref="Task.FromResult{T}"/> to satisfy the async contract.
 /// </remarks>
-public partial class MemoryLockProvider(ILogger<MemoryLockProvider> logger) : IWopiLockProvider
+public partial class MemoryLockProvider : IWopiLockProvider
 {
     /// <summary>
     /// keyed with fileId
     /// </summary>
     private static readonly ConcurrentDictionary<string, WopiLockInfo> locks = [];
 
-    private readonly ILogger<MemoryLockProvider> logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly ILogger<MemoryLockProvider> logger;
+    private readonly IWopiLockComparer lockComparer;
+
+    /// <summary>
+    /// Creates the provider. <paramref name="lockComparer"/> defaults to
+    /// <see cref="OrdinalWopiLockComparer"/> when not supplied via DI; replace with a custom
+    /// comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>) to absorb known WOPI-client
+    /// lock-id mutations.
+    /// </summary>
+    public MemoryLockProvider(ILogger<MemoryLockProvider> logger, IWopiLockComparer? lockComparer = null)
+    {
+        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        this.lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
+    }
 
     /// <inheritdoc />
     public Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default)
@@ -97,7 +110,7 @@ public partial class MemoryLockProvider(ILogger<MemoryLockProvider> logger) : IW
             LogLockExpired(logger, fileId, existing.LockId);
             return Task.FromResult(false);
         }
-        if (existing.LockId != expectedExistingLockId)
+        if (!lockComparer.AreEqual(existing.LockId, expectedExistingLockId))
         {
             return Task.FromResult(false);
         }
