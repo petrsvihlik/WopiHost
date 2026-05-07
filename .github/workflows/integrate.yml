@@ -56,7 +56,7 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
     - name: FOSSA scan + policy gate
-      uses: fossas/fossa-action@v3
+      uses: fossa-contrib/fossa-action@v3
       with:
-        api-key: ${{ secrets.FOSSA_API_KEY }}
-        run-tests: true
+        fossa-api-key: ${{ secrets.FOSSA_API_KEY }}
+        skip-test: false
