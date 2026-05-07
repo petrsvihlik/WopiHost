@@ -1,0 +1,87 @@
+using WopiHost.Abstractions;
+
+namespace WopiHost.Core.Infrastructure;
+
+/// <summary>
+/// Decorator that consults <see cref="IWopiLockProvider"/> before mutating a resource and
+/// throws <see cref="WopiResourceLockedException"/> when the target is locked. Wired in via
+/// <c>services.AddWopiLockAwareWritableStorage()</c>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The WOPI controllers already validate locks before reaching the storage layer, so on the
+/// hot path this decorator is a redundant guard. It earns its keep as a <em>defense-in-depth</em>
+/// signal for two scenarios:
+/// </para>
+/// <list type="bullet">
+/// <item>Non-WOPI code paths in the same host that resolve <see cref="IWopiWritableStorageProvider"/>
+///   directly (admin tools, batch jobs, API endpoints) and would otherwise clobber a locked file.</item>
+/// <item>Future controller refactors that accidentally drop the lock check — the storage layer
+///   catches it instead of silently corrupting state.</item>
+/// </list>
+/// <para>
+/// Only the mutating, single-resource methods (<see cref="DeleteWopiResource{T}"/>,
+/// <see cref="RenameWopiResource{T}"/>) are guarded. <see cref="CreateWopiChildResource{T}"/>
+/// targets a parent container and the new resource has no prior lock; <see cref="CheckValidName{T}"/>
+/// and <see cref="GetSuggestedName{T}"/> are read-only.
+/// </para>
+/// </remarks>
+public sealed class WopiLockAwareWritableStorageProvider : IWopiWritableStorageProvider
+{
+    private readonly IWopiWritableStorageProvider inner;
+    private readonly IWopiLockProvider lockProvider;
+
+    /// <summary>
+    /// Creates a new lock-aware decorator over an existing writable storage provider.
+    /// </summary>
+    /// <param name="inner">the underlying writable storage provider being decorated.</param>
+    /// <param name="lockProvider">the lock provider consulted before mutating writes.</param>
+    public WopiLockAwareWritableStorageProvider(IWopiWritableStorageProvider inner, IWopiLockProvider lockProvider)
+    {
+        this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        this.lockProvider = lockProvider ?? throw new ArgumentNullException(nameof(lockProvider));
+    }
+
+    /// <inheritdoc />
+    public int FileNameMaxLength => inner.FileNameMaxLength;
+
+    /// <inheritdoc />
+    public Task<T?> CreateWopiChildResource<T>(string? containerId, string name, CancellationToken cancellationToken = default)
+        where T : class, IWopiResource
+        => inner.CreateWopiChildResource<T>(containerId, name, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<bool> CheckValidName<T>(string name, CancellationToken cancellationToken = default)
+        where T : class, IWopiResource
+        => inner.CheckValidName<T>(name, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<string> GetSuggestedName<T>(string containerId, string name, CancellationToken cancellationToken = default)
+        where T : class, IWopiResource
+        => inner.GetSuggestedName<T>(containerId, name, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<bool> DeleteWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
+        where T : class, IWopiResource
+    {
+        await EnsureNotLockedAsync(identifier, cancellationToken).ConfigureAwait(false);
+        return await inner.DeleteWopiResource<T>(identifier, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> RenameWopiResource<T>(string identifier, string requestedName, CancellationToken cancellationToken = default)
+        where T : class, IWopiResource
+    {
+        await EnsureNotLockedAsync(identifier, cancellationToken).ConfigureAwait(false);
+        return await inner.RenameWopiResource<T>(identifier, requestedName, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task EnsureNotLockedAsync(string identifier, CancellationToken cancellationToken)
+    {
+        var existing = await lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
+        if (existing is not null)
+        {
+            throw new WopiResourceLockedException(identifier, existing.LockId);
+        }
+    }
+}

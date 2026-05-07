@@ -85,4 +85,52 @@ public static class ServiceCollectionExtensions
         services.Configure(configure);
         return services;
     }
+
+    /// <summary>
+    /// Decorates the registered <see cref="IWopiWritableStorageProvider"/> with
+    /// <see cref="WopiLockAwareWritableStorageProvider"/> so delete/rename operations consult
+    /// <see cref="IWopiLockProvider"/> first and throw <see cref="WopiResourceLockedException"/>
+    /// when the target is locked. Defense in depth — the controllers already short-circuit on
+    /// locks; this decorator catches non-WOPI code paths (admin tools, batch jobs) and future
+    /// controller regressions before they corrupt locked state.
+    /// </summary>
+    /// <remarks>
+    /// Must be called <em>after</em> the storage provider is registered (typically via
+    /// <c>AddStorageProvider(...)</c>) and after a lock provider is registered.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">No <see cref="IWopiWritableStorageProvider"/>
+    /// is registered when this method runs.</exception>
+    public static IServiceCollection AddWopiLockAwareWritableStorage(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        var inner = services.LastOrDefault(d => d.ServiceType == typeof(IWopiWritableStorageProvider))
+            ?? throw new InvalidOperationException(
+                "AddWopiLockAwareWritableStorage requires an IWopiWritableStorageProvider to be registered first (typically via AddStorageProvider).");
+
+        services.Remove(inner);
+        services.Add(new ServiceDescriptor(
+            typeof(IWopiWritableStorageProvider),
+            sp =>
+            {
+                IWopiWritableStorageProvider innerInstance;
+                if (inner.ImplementationInstance is not null)
+                {
+                    innerInstance = (IWopiWritableStorageProvider)inner.ImplementationInstance;
+                }
+                else if (inner.ImplementationFactory is not null)
+                {
+                    innerInstance = (IWopiWritableStorageProvider)inner.ImplementationFactory(sp);
+                }
+                else
+                {
+                    innerInstance = (IWopiWritableStorageProvider)ActivatorUtilities.CreateInstance(sp, inner.ImplementationType!);
+                }
+                return new WopiLockAwareWritableStorageProvider(
+                    innerInstance,
+                    sp.GetRequiredService<IWopiLockProvider>());
+            },
+            inner.Lifetime));
+        return services;
+    }
 }
