@@ -19,6 +19,7 @@
 
   <Project Path="test/WopiHost.AzureLockProvider.Tests/WopiHost.AzureLockProvider.Tests.csproj" />
   <Project Path="test/WopiHost.AzureStorageProvider.Tests/WopiHost.AzureStorageProvider.Tests.csproj" />
+  <Project Path="test/WopiHost.Cobalt.Tests/WopiHost.Cobalt.Tests.csproj" />
   <Project Path="test/WopiHost.Core.Tests/WopiHost.Core.Tests.csproj" />
   <Project Path="test/WopiHost.IntegrationTests/WopiHost.IntegrationTests.csproj" />
   <Project Path="test/WopiHost.Discovery.Tests/WopiHost.Discovery.Tests.csproj" />
