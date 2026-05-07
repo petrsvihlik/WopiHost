@@ -105,11 +105,41 @@ jobs:
             infer-out/report.sarif
             infer-out/logs
 
-      - name: Fail on any finding
+      - name: Fail on any unlisted finding
         run: |
-          if [ -s infer-out/report.txt ]; then
-            echo "::error::Infer# reported findings — see report.txt artifact and the Security tab."
-            cat infer-out/report.txt
+          if [ ! -s infer-out/report.txt ]; then
+            echo "Infer# clean — no issues found."
+            exit 0
+          fi
+
+          # Filter known false positives via .github/infer-allowlist.txt. Each
+          # active line in the allowlist is a fixed-string substring matched
+          # against the report; any matching report line is dropped before the
+          # fail gate. See the allowlist itself for the policy on adding entries.
+          allowlist=".github/infer-allowlist.txt"
+          if [ -f "$allowlist" ]; then
+            grep -v -E '^(#|$)' "$allowlist" > /tmp/infer-allowlist-active || true
+            if [ -s /tmp/infer-allowlist-active ]; then
+              grep -v -F -f /tmp/infer-allowlist-active infer-out/report.txt > /tmp/infer-filtered.txt || true
+            else
+              cp infer-out/report.txt /tmp/infer-filtered.txt
+            fi
+          else
+            cp infer-out/report.txt /tmp/infer-filtered.txt
+          fi
+
+          # Count remaining error lines (not summary or context lines).
+          remaining=$(grep -cE ': error:' /tmp/infer-filtered.txt || true)
+          if [ "${remaining:-0}" -gt 0 ]; then
+            echo "::error::Infer# reported $remaining unlisted finding(s) — see report.txt artifact and the Security tab."
+            grep -E ': error:' /tmp/infer-filtered.txt
+            echo ""
+            echo "If these are true positives, fix the code. If they are false positives, add an entry to .github/infer-allowlist.txt with a tracking issue link."
             exit 1
           fi
-          echo "Infer# clean — no issues found."
+
+          echo "Infer# clean — all reported findings are in the allowlist."
+          if [ -s /tmp/infer-allowlist-active ]; then
+            echo "Allowlisted entries (these still need long-term fixes — see .github/infer-allowlist.txt):"
+            cat /tmp/infer-allowlist-active
+          fi
