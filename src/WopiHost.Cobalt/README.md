@@ -1,8 +1,5 @@
 # WopiHost.Cobalt
 
-[![NuGet](https://img.shields.io/nuget/v/WopiHost.Cobalt.svg)](https://www.nuget.org/packages/WopiHost.Cobalt)
-[![NuGet](https://img.shields.io/nuget/dt/WopiHost.Cobalt.svg)](https://www.nuget.org/packages/WopiHost.Cobalt)
-
 [MS-FSSHTTP](https://learn.microsoft.com/openspecs/sharepoint_protocols/ms-fsshttp/) ("Cobalt") implementation of [`ICobaltProcessor`](../WopiHost.Abstractions/ICobaltProcessor.cs). Office 2013+ uses Cobalt for delta-based file updates when both sides advertise it; modern Office Online Server falls back to plain `PutFile` if it is absent. Most hosts can leave this package out.
 
 ## Why you might (not) want this
@@ -14,11 +11,10 @@ In Office Web Apps 2013, several actions required Cobalt. Office Online Server 2
 
 ## Install
 
-```bash
-dotnet add package WopiHost.Cobalt
-```
+This package is **not published on NuGet.org** — `Microsoft.CobaltCore.dll` is proprietary and cannot be redistributed, so a public NuGet would never restore on someone else's machine. To consume `WopiHost.Cobalt`:
 
-You also need a `Microsoft.CobaltCore` package available to the build (see the wiki link above).
+1. Build a `Microsoft.CobaltCore` NuGet from a licensed installation (see the [wiki guide](https://github.com/petrsvihlik/WopiHost/wiki/Craft-your-own-Microsoft.CobaltCore-NuGet-package)) and put it on a private feed.
+2. Reference `WopiHost.Cobalt` directly as a `<ProjectReference>` from this repo, or build and pack it from source into the same private feed.
 
 ## Wire it up
 
@@ -28,6 +24,10 @@ The sample server registers Cobalt by reflection-loading the assembly when `Wopi
 public static void AddCobalt(this IServiceCollection services)
 {
     var assemblyPath = Path.Combine(AppContext.BaseDirectory, "WopiHost.Cobalt.dll");
+    if (!File.Exists(assemblyPath))
+    {
+        throw new InvalidProgramException($"Cobalt Assembly {assemblyPath} not found.");
+    }
     var asm = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
     services.Scan(s => s
         .FromAssemblies(asm)
@@ -71,11 +71,17 @@ When `ICobaltProcessor` is in the container, `WopiHost.Core`'s `FilesController`
 ```csharp
 public interface ICobaltProcessor
 {
-    Task<byte[]> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent);
+    Task<byte[]> ProcessCobalt(
+        IWopiFile file,
+        ClaimsPrincipal principal,
+        byte[] newContent,
+        CancellationToken cancellationToken = default);
 }
 ```
 
-`FilesController` invokes this from the [`POST /wopi/files/{id}` with `X-WOPI-Override: COBALT`](https://learn.microsoft.com/openspecs/sharepoint_protocols/ms-fsshttp/) handler. The processor reads the file via `IWopiFile.GetReadStream()`, applies the request batch, writes back through `GetWriteStream()` if content changed, and returns the response batch as bytes.
+`FilesController` invokes this from the [`POST /wopi/files/{id}` with `X-WOPI-Override: COBALT`](https://learn.microsoft.com/openspecs/sharepoint_protocols/ms-fsshttp/) handler. Each call deserializes the request batch, executes it against the `CobaltFile` for that WOPI file, flushes content via `IWopiFile.GetWriteStream()` when there's a `PutChangesRequest` for the content partition, and returns the serialized response batch.
+
+The Cobalt protocol is stateful (schema/exclusive locks, edit deltas, co-authoring metadata), so `CobaltProcessor` keeps a long-lived `CobaltFile` per WOPI file id in a `ConcurrentDictionary` and evicts idle sessions on a periodic timer (60-minute idle timeout). The first call for a file id reads the file content via `IWopiFile.GetReadStream()` to seed the session; subsequent calls reuse it.
 
 ## License
 
