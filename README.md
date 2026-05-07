@@ -52,11 +52,14 @@ dotnet run --project infra/WopiHost.AppHost
 
 The Aspire dashboard opens automatically and starts:
 
-| Resource | URL | What it is |
-|---|---|---|
-| `wopihost` | <http://localhost:5000> | WOPI backend; OpenAPI at `/scalar` |
-| `wopihost-web` | <http://localhost:6000> | Sample frontend (file picker + iframe) |
-| `wopihost-validator` | <http://localhost:7000> | WOPI protocol validator |
+| Resource | What it is |
+|---|---|
+| `wopihost` | WOPI backend; OpenAPI at `/scalar` |
+| `wopihost-web` | Sample frontend (file picker + iframe) |
+| `wopihost-validator` | WOPI protocol validator |
+| `collabora` | [Collabora Online](https://github.com/petrsvihlik/WopiHost/wiki/Collabora-Online) (CODE) container — real WOPI client for end-to-end editing |
+
+The dashboard shows the URL each resource is bound to — Aspire allocates ports dynamically for the frontends, so they change between runs. The first run pulls the `collabora/code` Docker image (~1 GB) and takes a minute or two; if you don't want the dependency, set `"AppHost:UseCollabora": false` in [`infra/WopiHost.AppHost/appsettings.Development.json`](infra/WopiHost.AppHost/appsettings.Development.json).
 
 ![Aspire dashboard](https://github.com/user-attachments/assets/438cf17b-36f2-4d5f-adb5-6003314d17c3)
 
