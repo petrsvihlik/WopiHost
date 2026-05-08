@@ -86,3 +86,9 @@ app.MapGet("/_test/issue-token/{fileId}", async (
 });
 
 await app.RunAsync();
+
+namespace WopiHost.Validator
+{
+    /// <summary>Test-only marker so <c>WebApplicationFactory&lt;ValidatorSampleEntryPoint&gt;</c> resolves unambiguously to this sample's assembly.</summary>
+    public partial class ValidatorSampleEntryPoint;
+}

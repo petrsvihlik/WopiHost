@@ -25,5 +25,6 @@
   <Project Path="test/WopiHost.Discovery.Tests/WopiHost.Discovery.Tests.csproj" />
   <Project Path="test/WopiHost.FileSystemProvider.Tests/WopiHost.FileSystemProvider.Tests.csproj" />
   <Project Path="test/WopiHost.MemoryLockProvider.Tests/WopiHost.MemoryLockProvider.Tests.csproj" />
+  <Project Path="test/WopiHost.SmokeTests/WopiHost.SmokeTests.csproj" />
   <Project Path="test/WopiHost.Url.Tests/WopiHost.Url.Tests.csproj" />
 </Solution>
