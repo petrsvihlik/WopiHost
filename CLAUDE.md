@@ -17,6 +17,10 @@ dotnet test test/WopiHost.Core.Tests
 # Run a single test by fully qualified name
 dotnet test test/WopiHost.Core.Tests --filter "FullyQualifiedName~TestMethodName"
 
+# Sample-app smoke tests (Playwright). First time only: install Chromium.
+pwsh artifacts/bin/WopiHost.SmokeTests/debug/playwright.ps1 install chromium
+dotnet test test/WopiHost.SmokeTests
+
 # Run the sample WOPI host via Aspire orchestration
 dotnet run --project infra/WopiHost.AppHost
 

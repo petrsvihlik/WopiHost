@@ -52,6 +52,10 @@ jobs:
       run: dotnet restore
     - name: Build
       run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
+    - name: Install Playwright browsers (for sample-app smoke tests)
+      # The build emits playwright.ps1 next to the SmokeTests assembly; run it with --with-deps
+      # so Linux runners get the apt packages Chromium needs. Idempotent — caches in ~/.cache.
+      run: pwsh artifacts/bin/WopiHost.SmokeTests/debug/playwright.ps1 install --with-deps chromium
     - name: Test
       run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=lcov
     - name: Upload coverage to Qlty

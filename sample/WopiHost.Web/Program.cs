@@ -55,3 +55,9 @@ app.MapHealthChecks("/health");
 app.MapDefaultEndpoints();
 
 app.Run();
+
+namespace WopiHost.Web
+{
+    /// <summary>Test-only marker so <c>WebApplicationFactory&lt;WebSampleEntryPoint&gt;</c> resolves unambiguously to this sample's assembly (the global <c>Program</c> name conflicts with the WOPI backend's <c>WopiHost.Program</c>).</summary>
+    public partial class WebSampleEntryPoint;
+}
