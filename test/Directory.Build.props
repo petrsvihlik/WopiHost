@@ -10,6 +10,15 @@
 		<IsPackable>false</IsPackable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<!-- xUnit v3 requires test projects to be built as console apps so the framework's
+		     Microsoft.Testing.Platform entry point can run them. The vstest path
+		     (Microsoft.NET.Test.Sdk + xunit.runner.visualstudio) continues to work. -->
+		<OutputType>Exe</OutputType>
+		<!-- xUnit1051 (added in v3) suggests routing every CancellationToken through
+		     TestContext.Current.CancellationToken so tests cancel responsively. Adopting that
+		     pattern is a separate follow-up — suppressing here so the v3 migration doesn't
+		     have to rewrite ~1.5k call sites first. -->
+		<NoWarn>$(NoWarn);xUnit1051</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -17,8 +26,7 @@
 		<PackageReference Include="coverlet.msbuild" />
 		<PackageReference Include="FakeItEasy" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk"/>
-		<PackageReference Include="xunit" />
-		<PackageReference Include="xunit.runner.console" />
+		<PackageReference Include="xunit.v3" />
 		<PackageReference Include="xunit.runner.visualstudio" />
 	</ItemGroup>
 </Project>

@@ -21,10 +21,10 @@ public class OidcStartupTests : IClassFixture<OidcStartupTests.AppFactory>
         _factory.MockOidc = mockOidc;
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task AnonymousRequest_RedirectsToOidcAuthority()
     {
-        Skip.IfNot(_mockOidc.IsAvailable, _mockOidc.UnavailableReason ?? "Docker unavailable.");
+        Assert.SkipUnless(_mockOidc.IsAvailable, _mockOidc.UnavailableReason ?? "Docker unavailable.");
 
         using var client = _factory.CreateInstance().CreateClient(new()
         {
@@ -41,10 +41,10 @@ public class OidcStartupTests : IClassFixture<OidcStartupTests.AppFactory>
         Assert.Contains("client_id=" + OidcWebAppFactory.TestClientId, location);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task DiscoveryDocument_IsReachableFromAppHost()
     {
-        Skip.IfNot(_mockOidc.IsAvailable, _mockOidc.UnavailableReason ?? "Docker unavailable.");
+        Assert.SkipUnless(_mockOidc.IsAvailable, _mockOidc.UnavailableReason ?? "Docker unavailable.");
 
         using var http = new HttpClient { BaseAddress = _mockOidc.Authority };
         var discovery = await http.GetAsync(".well-known/openid-configuration");
@@ -56,10 +56,10 @@ public class OidcStartupTests : IClassFixture<OidcStartupTests.AppFactory>
         Assert.True(doc.RootElement.TryGetProperty("jwks_uri", out _));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task HealthEndpoint_IsAnonymous()
     {
-        Skip.IfNot(_mockOidc.IsAvailable, _mockOidc.UnavailableReason ?? "Docker unavailable.");
+        Assert.SkipUnless(_mockOidc.IsAvailable, _mockOidc.UnavailableReason ?? "Docker unavailable.");
 
         using var client = _factory.CreateInstance().CreateClient(new()
         {

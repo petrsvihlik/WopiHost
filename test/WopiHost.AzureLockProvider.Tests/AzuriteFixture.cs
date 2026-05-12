@@ -22,9 +22,9 @@ public sealed class AzuriteFixture : IAsyncLifetime
     public BlobServiceClient CreateBlobServiceClient()
         => new(ConnectionString, new BlobClientOptions(AzuriteSupportedVersion));
 
-    public Task InitializeAsync() => container.StartAsync();
+    public ValueTask InitializeAsync() => new(container.StartAsync());
 
-    public Task DisposeAsync() => container.DisposeAsync().AsTask();
+    public ValueTask DisposeAsync() => container.DisposeAsync();
 }
 
 [CollectionDefinition(Name)]
