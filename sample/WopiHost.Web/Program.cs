@@ -30,11 +30,17 @@ builder.Services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
-app.UseDeveloperExceptionPage();
-
-// Configure exception handler as a fallback for production
-app.UseExceptionHandler("/Error");
+// Configure the HTTP request pipeline. The developer exception page leaks stack traces and
+// configuration values, so gate it behind the Development environment — production deployments
+// fall through to the /Error handler below.
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler("/Error");
+}
 
 //app.UseHttpsRedirection();
 

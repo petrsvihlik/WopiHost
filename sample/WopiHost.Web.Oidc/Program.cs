@@ -99,8 +99,16 @@ if (builder.Environment.IsDevelopment())
 
 var app = builder.Build();
 
-app.UseDeveloperExceptionPage();
-app.UseExceptionHandler("/Error");
+// Gate the developer exception page behind the Development environment — it leaks stack
+// traces and configuration values. Production falls through to the /Error handler.
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler("/Error");
+}
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
