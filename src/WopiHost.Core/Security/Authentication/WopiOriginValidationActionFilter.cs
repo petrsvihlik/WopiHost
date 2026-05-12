@@ -39,7 +39,7 @@ public partial class WopiOriginValidationActionFilter(IWopiProofValidator proofV
             return;
         }
 
-        var validated = await proofValidator.ValidateProofAsync(context.HttpContext, accessToken);
+        var validated = await proofValidator.ValidateProofAsync(context.HttpContext, accessToken).ConfigureAwait(false);
         if (!validated)
         {
             LogProofRejected(logger);
@@ -49,6 +49,6 @@ public partial class WopiOriginValidationActionFilter(IWopiProofValidator proofV
             return;
         }
 
-        await next();
+        await next().ConfigureAwait(false);
     }
 }

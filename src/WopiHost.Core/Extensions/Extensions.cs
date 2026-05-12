@@ -17,7 +17,7 @@ internal static class Extensions
     public static async Task<byte[]> ReadBytesAsync(this Stream input, CancellationToken cancellationToken = default)
     {
         using var ms = new MemoryStream();
-        await input.CopyToAsync(ms, cancellationToken);
+        await input.CopyToAsync(ms, cancellationToken).ConfigureAwait(false);
         return ms.ToArray();
     }
 
@@ -124,10 +124,10 @@ internal static class Extensions
     /// <returns></returns>
     public static async Task CopyToWriteStream(this HttpContext httpContext, IWopiFile file, CancellationToken cancellationToken = default)
     {
-        using var stream = await file.GetWriteStream(cancellationToken);
+        using var stream = await file.GetWriteStream(cancellationToken).ConfigureAwait(false);
         await httpContext.Request.Body.CopyToAsync(
             stream,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static string? ProxyAwareRouteUrl(this IUrlHelper helper,

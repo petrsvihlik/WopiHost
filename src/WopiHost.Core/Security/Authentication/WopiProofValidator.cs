@@ -55,7 +55,7 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
                 return false;
             }
 
-            var sourceProofKeys = await discoverer.GetProofKeysAsync();
+            var sourceProofKeys = await discoverer.GetProofKeysAsync().ConfigureAwait(false);
 
             // Per WOPI spec: X-WOPI-TimeStamp is .NET DateTime.Ticks (UTC).
             // Reject stale timestamps; allow a small future skew.

@@ -26,7 +26,7 @@ public sealed class FromStringBodyModelBinder : IModelBinder
             {
                 request.Body.Position = 0;
                 using var reader = new StreamReader(request.Body);
-                body = await reader.ReadToEndAsync();
+                body = await reader.ReadToEndAsync().ConfigureAwait(false);
                 request.Body.Position = 0;
             }
 

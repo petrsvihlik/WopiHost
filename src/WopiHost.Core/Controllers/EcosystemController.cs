@@ -43,7 +43,7 @@ public class EcosystemController(
     [Produces(MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetRootContainer(CancellationToken cancellationToken = default)
     {
-        var root = await storageProvider.GetWopiResource<IWopiFolder>(storageProvider.RootContainer.Identifier, cancellationToken);
+        var root = await storageProvider.GetWopiResource<IWopiFolder>(storageProvider.RootContainer.Identifier, cancellationToken).ConfigureAwait(false);
         if (root is null)
         {
             return NotFound();
@@ -52,7 +52,7 @@ public class EcosystemController(
         // Issue a per-container access token. Re-using the inbound token in
         // ContainerPointer.Url violates the WOPI "preventing token trading" guidance:
         // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#preventing-token-trading
-        var permissions = await permissionProvider.GetContainerPermissionsAsync(User, root, cancellationToken);
+        var permissions = await permissionProvider.GetContainerPermissionsAsync(User, root, cancellationToken).ConfigureAwait(false);
         var token = await accessTokenService.IssueAsync(new WopiAccessTokenRequest
         {
             UserId = User.GetUserId(),
@@ -61,7 +61,7 @@ public class EcosystemController(
             ResourceId = root.Identifier,
             ResourceType = WopiResourceType.Container,
             ContainerPermissions = permissions,
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
 
         var rc = new RootContainerInfo
         {
@@ -70,7 +70,7 @@ public class EcosystemController(
                 Url.GetWopiSrc(WopiResourceType.Container, root.Identifier, token.Token)),
             // The spec strongly recommends including ContainerInfo so the WOPI client
             // does not have to round-trip back to CheckContainerInfo.
-            ContainerInfo = await root.GetWopiCheckContainerInfo(HttpContext, cancellationToken),
+            ContainerInfo = await root.GetWopiCheckContainerInfo(HttpContext, cancellationToken).ConfigureAwait(false),
         };
         return new JsonResult(rc);
     }
@@ -130,7 +130,7 @@ public class EcosystemController(
         // Allow the host to override before returning, mirroring OnCheckFileInfo /
         // OnCheckContainerInfo / OnCheckFolderInfo.
         checkEcosystem = await wopiHostOptions.Value.OnCheckEcosystem(
-            new WopiCheckEcosystemContext(User, checkEcosystem));
+            new WopiCheckEcosystemContext(User, checkEcosystem)).ConfigureAwait(false);
 
         return new JsonResult(checkEcosystem);
     }

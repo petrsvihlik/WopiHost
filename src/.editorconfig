@@ -1,0 +1,13 @@
+# Library-code-only overrides. WopiHost.* assemblies under src/ ship as NuGet
+# packages, so they may end up hosted under SynchronizationContext-bearing
+# frameworks (Windows Forms, WPF, Blazor Server, custom test harnesses).
+# Library guidance requires .ConfigureAwait(false) on every awaited Task to
+# avoid forcing the continuation back onto a caller-owned context. CA2007 is
+# the analyzer that enforces this; the root .editorconfig disables it
+# globally so it stays quiet under sample/ test/ infra/ (none of which ship
+# or host code that warrants the noise). This file re-enables it for src/.
+
+[*.cs]
+
+# CA2007: Consider calling ConfigureAwait on the awaited task
+dotnet_diagnostic.CA2007.severity = warning

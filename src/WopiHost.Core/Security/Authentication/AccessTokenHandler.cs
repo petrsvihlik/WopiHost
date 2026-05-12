@@ -37,7 +37,7 @@ public partial class AccessTokenHandler(
             return AuthenticateResult.Fail("Access token missing.");
         }
 
-        var validation = await accessTokenService.ValidateAsync(token, Context.RequestAborted);
+        var validation = await accessTokenService.ValidateAsync(token, Context.RequestAborted).ConfigureAwait(false);
         if (!validation.IsValid || validation.Principal is null)
         {
             LogTokenValidationFailed(Logger, validation.FailureReason);
