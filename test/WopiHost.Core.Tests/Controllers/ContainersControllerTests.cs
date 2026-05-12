@@ -311,7 +311,6 @@ public class ContainersControllerTests
         Assert.IsType<ChildFile>(jsonResult.Value);
     }
 
-
     [Fact]
     public async Task DeleteContainer_ReturnsNotFound_WhenContainerDoesNotExist()
     {
@@ -377,7 +376,6 @@ public class ContainersControllerTests
 
         Assert.IsType<ConflictResult>(result);
     }
-
 
     [Fact]
     public async Task RenameContainer_ReturnsNotFound_WhenContainerNotFound()
