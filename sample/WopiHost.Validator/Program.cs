@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
-using WopiHost.Core.Security.Authentication;
 using WopiHost.Validator.Infrastructure;
 using WopiHost.Validator.Models;
 

@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Discovery;
