@@ -71,7 +71,7 @@ app.MapGet("/_test/issue-token/{fileId}", async (
     // The Microsoft WOPI validator uses a single token for both file and container ops, so
     // we mint one with both surfaces pre-authorized. Real hosts typically issue narrower
     // tokens per session.
-    var rootContainer = storage.RootContainerPointer;
+    var rootContainer = storage.RootContainer;
     var containerPerms = await permissions.GetContainerPermissionsAsync(anonymous, rootContainer, ct);
     var token = await tokens.IssueAsync(new WopiAccessTokenRequest
     {

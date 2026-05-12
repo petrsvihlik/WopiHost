@@ -98,13 +98,13 @@ public class WopiFileSystemProviderTests : IDisposable
         var provider = CreateProvider(rootPath: "sub", ids, env);
 
         // The provider should now consider _sub as the root container.
-        Assert.Equal(_sub.Name, provider.RootContainerPointer.Name);
+        Assert.Equal(_sub.Name, provider.RootContainer.Name);
     }
 
     [Fact]
     public void Ctor_AbsoluteRootPath_UsedAsIs()
     {
-        Assert.Equal(_root.Name, _sut.RootContainerPointer.Name);
+        Assert.Equal(_root.Name, _sut.RootContainer.Name);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class WopiFileSystemProviderTests : IDisposable
         ids.AddFile(_root.FullName);
 
         var provider = CreateProvider(_root.FullName, ids);
-        Assert.NotNull(provider.RootContainerPointer);
+        Assert.NotNull(provider.RootContainer);
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task GetWopiFiles_DefaultRoot_EnumeratesRootFiles()
     {
         var files = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles())
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier))
         {
             files.Add(f);
         }
@@ -187,7 +187,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task GetWopiFiles_WithSearchPattern_FiltersByPattern()
     {
         var files = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles(searchPattern: "*.docx"))
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, searchPattern: "*.docx"))
         {
             files.Add(f);
         }
@@ -224,7 +224,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task GetWopiContainers_DefaultRoot_EnumeratesSubfolders()
     {
         var containers = new List<IWopiFolder>();
-        await foreach (var c in _sut.GetWopiContainers())
+        await foreach (var c in _sut.GetWopiContainers(_sut.RootContainer.Identifier))
         {
             containers.Add(c);
         }
@@ -259,7 +259,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetAncestors_RootFolder_ReturnsEmpty()
     {
-        var ancestors = await _sut.GetAncestors<IWopiFolder>(_sut.RootContainerPointer.Identifier);
+        var ancestors = await _sut.GetAncestors<IWopiFolder>(_sut.RootContainer.Identifier);
         Assert.Empty(ancestors);
     }
 
@@ -305,7 +305,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetWopiResourceByName_File_ReturnsFile()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
 
         var file = await _sut.GetWopiResourceByName<IWopiFile>(rootId, "root.txt");
 
@@ -316,7 +316,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetWopiResourceByName_Folder_ReturnsFolder()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
 
         var folder = await _sut.GetWopiResourceByName<IWopiFolder>(rootId, "sub");
 
@@ -334,7 +334,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetWopiResourceByName_MissingName_ReturnsNull()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
 
         var result = await _sut.GetWopiResourceByName<IWopiFile>(rootId, "no-such-file.txt");
 
@@ -344,7 +344,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetWopiResourceByName_UnsupportedType_Throws()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
 
         await Assert.ThrowsAsync<NotSupportedException>(() =>
             _sut.GetWopiResourceByName<IWopiResource>(rootId, "root.txt"));
@@ -398,7 +398,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetSuggestedName_InvalidName_Throws()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
         await Assert.ThrowsAsync<ArgumentException>(() =>
             _sut.GetSuggestedName<IWopiFile>(rootId, "bad\0name.txt"));
     }
@@ -413,7 +413,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetSuggestedName_FolderNoCollision_ReturnsName()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
         var name = await _sut.GetSuggestedName<IWopiFolder>(rootId, "fresh");
         Assert.Equal("fresh", name);
     }
@@ -421,7 +421,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetSuggestedName_FolderCollision_AppendsCounter()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
         // "sub" already exists in fixture
         var name = await _sut.GetSuggestedName<IWopiFolder>(rootId, "sub");
         Assert.Equal("sub (1)", name);
@@ -430,7 +430,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetSuggestedName_FileNoCollision_ReturnsName()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
         var name = await _sut.GetSuggestedName<IWopiFile>(rootId, "fresh.txt");
         Assert.Equal("fresh.txt", name);
     }
@@ -438,7 +438,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetSuggestedName_FileCollision_AppendsCounter()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
         // "root.txt" already exists in fixture
         var name = await _sut.GetSuggestedName<IWopiFile>(rootId, "root.txt");
         Assert.Equal("root (1).txt", name);
@@ -447,7 +447,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetSuggestedName_UnsupportedType_Throws()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
         await Assert.ThrowsAsync<NotSupportedException>(() =>
             _sut.GetSuggestedName<IWopiResource>(rootId, "anything"));
     }
@@ -457,7 +457,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task CreateWopiChildResource_File_CreatesAndReturnsFile()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
 
         var file = await _sut.CreateWopiChildResource<IWopiFile>(rootId, "new.txt");
 
@@ -466,9 +466,9 @@ public class WopiFileSystemProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateWopiChildResource_FileWithoutContainer_UsesRoot()
+    public async Task CreateWopiChildResource_FileAtRoot_CreatesFileInRoot()
     {
-        var file = await _sut.CreateWopiChildResource<IWopiFile>(containerId: null, "rootless.txt");
+        var file = await _sut.CreateWopiChildResource<IWopiFile>(_sut.RootContainer.Identifier, "rootless.txt");
 
         Assert.NotNull(file);
         Assert.True(File.Exists(Path.Combine(_root.FullName, "rootless.txt")));
@@ -477,7 +477,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task CreateWopiChildResource_FileAlreadyExists_Throws()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
         await Assert.ThrowsAsync<ArgumentException>(() =>
             _sut.CreateWopiChildResource<IWopiFile>(rootId, "root.txt"));
     }
@@ -492,7 +492,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task CreateWopiChildResource_Folder_CreatesAndReturnsFolder()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
 
         var folder = await _sut.CreateWopiChildResource<IWopiFolder>(rootId, "new-folder");
 
@@ -503,7 +503,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task CreateWopiChildResource_FolderAlreadyExists_Throws()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
         await Assert.ThrowsAsync<ArgumentException>(() =>
             _sut.CreateWopiChildResource<IWopiFolder>(rootId, "sub"));
     }
@@ -518,7 +518,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task CreateWopiChildResource_UnsupportedType_Throws()
     {
-        var rootId = _sut.RootContainerPointer.Identifier;
+        var rootId = _sut.RootContainer.Identifier;
         await Assert.ThrowsAsync<NotSupportedException>(() =>
             _sut.CreateWopiChildResource<IWopiResource>(rootId, "x"));
     }

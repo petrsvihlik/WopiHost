@@ -17,24 +17,34 @@ public interface IWopiStorageProvider
         where T : class, IWopiResource;
 
     /// <summary>
-    /// Returns all files from the given source.
+    /// Returns all files contained by the container identified by <paramref name="identifier"/>.
+    /// Pass <c><see cref="RootContainer"/>.Identifier</c> to enumerate the root.
     /// </summary>
-    /// <param name="identifier">Container identifier (use null for root)</param>
+    /// <param name="identifier">Container identifier. Required.</param>
     /// <param name="searchPattern">search pattern for files</param>
     /// <param name="cancellationToken">cancellation token</param>
-    IAsyncEnumerable<IWopiFile> GetWopiFiles(string? identifier = null, string? searchPattern = null, CancellationToken cancellationToken = default);
+    IAsyncEnumerable<IWopiFile> GetWopiFiles(string identifier, string? searchPattern = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Returns all containers from the given source.
+    /// Returns all containers contained by the container identified by <paramref name="identifier"/>.
+    /// Pass <c><see cref="RootContainer"/>.Identifier</c> to enumerate the root.
     /// </summary>
-    /// <param name="identifier">Container identifier (use null for root)</param>
+    /// <param name="identifier">Container identifier. Required.</param>
     /// <param name="cancellationToken">cancellation token</param>
-    IAsyncEnumerable<IWopiFolder> GetWopiContainers(string? identifier = null, CancellationToken cancellationToken = default);
+    IAsyncEnumerable<IWopiFolder> GetWopiContainers(string identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Reference to the root container.
+    /// The root container of this storage provider. Use <see cref="IWopiResource.Identifier"/>
+    /// to refer to the root in any API that takes a container identifier; use
+    /// <see cref="IWopiResource.Name"/> for UI surfaces (breadcrumbs etc.).
     /// </summary>
-    IWopiFolder RootContainerPointer { get; }
+    /// <remarks>
+    /// The single canonical way to address the root. Earlier revisions also accepted a <see langword="null"/>
+    /// container identifier as "root" on <see cref="GetWopiFiles"/> / <see cref="GetWopiContainers"/> /
+    /// <see cref="IWopiWritableStorageProvider.CreateWopiChildResource{T}"/>; that sugar was removed
+    /// in favour of this property to keep one obvious way to spell the same thing.
+    /// </remarks>
+    IWopiFolder RootContainer { get; }
 
     /// <summary>
     /// Returns the ancestors of the given container or file.

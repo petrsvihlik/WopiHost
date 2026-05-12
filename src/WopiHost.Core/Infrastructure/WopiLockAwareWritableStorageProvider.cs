@@ -46,7 +46,7 @@ public sealed class WopiLockAwareWritableStorageProvider : IWopiWritableStorageP
     public int FileNameMaxLength => inner.FileNameMaxLength;
 
     /// <inheritdoc />
-    public Task<T?> CreateWopiChildResource<T>(string? containerId, string name, CancellationToken cancellationToken = default)
+    public Task<T?> CreateWopiChildResource<T>(string containerId, string name, CancellationToken cancellationToken = default)
         where T : class, IWopiResource
         => inner.CreateWopiChildResource<T>(containerId, name, cancellationToken);
 

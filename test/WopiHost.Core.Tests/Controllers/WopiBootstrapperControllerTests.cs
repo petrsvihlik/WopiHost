@@ -24,7 +24,7 @@ public class WopiBootstrapperControllerTests
     {
         _rootFolder.SetupGet(f => f.Identifier).Returns("root-id");
         _rootFolder.SetupGet(f => f.Name).Returns("Root");
-        _storage.SetupGet(s => s.RootContainerPointer).Returns(_rootFolder.Object);
+        _storage.SetupGet(s => s.RootContainer).Returns(_rootFolder.Object);
         _storage
             .Setup(s => s.GetWopiResource<IWopiFolder>("root-id", It.IsAny<CancellationToken>()))
             .ReturnsAsync(_rootFolder.Object);

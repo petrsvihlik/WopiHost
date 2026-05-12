@@ -48,7 +48,7 @@ public class HomeController(
         try
         {
             // Default to the storage provider's root when no container is specified.
-            containerId ??= storageProvider.RootContainerPointer.Identifier;
+            containerId ??= storageProvider.RootContainer.Identifier;
             var current = await storageProvider.GetWopiResource<IWopiFolder>(containerId, cancellationToken)
                 ?? throw new DirectoryNotFoundException($"Container '{containerId}' not found.");
 
@@ -60,7 +60,7 @@ public class HomeController(
 
             // Breadcrumb: if we're below the root, walk ancestors to build clickable trail
             // and recover the parent container id when the URL didn't supply one.
-            if (containerId != storageProvider.RootContainerPointer.Identifier)
+            if (containerId != storageProvider.RootContainer.Identifier)
             {
                 var ancestors = await storageProvider.GetAncestors<IWopiFolder>(containerId, cancellationToken);
                 for (var i = 0; i < ancestors.Count; i++)

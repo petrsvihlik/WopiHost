@@ -17,7 +17,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
         var provider = new WopiAzureStorageProvider(container, idMap, NullLogger<WopiAzureStorageProvider>.Instance);
 
         // Force initialization (creates the container, scans the empty space).
-        _ = await provider.GetWopiResource<IWopiFolder>(provider.RootContainerPointer.Identifier);
+        _ = await provider.GetWopiResource<IWopiFolder>(provider.RootContainer.Identifier);
         return (provider, container);
     }
 
@@ -36,7 +36,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
 
         // Re-list so the id map picks up the seeded blob.
         var files = new List<IWopiFile>();
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainerPointer.Identifier))
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier))
         {
             files.Add(f);
         }
@@ -64,8 +64,8 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     {
         var (provider, container) = await CreateProviderAsync();
         await UploadAsync(container, "doc.txt", "stream-me");
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainerPointer.Identifier)) { _ = f; }
-        var file = await provider.GetWopiResourceByName<IWopiFile>(provider.RootContainerPointer.Identifier, "doc.txt");
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier)) { _ = f; }
+        var file = await provider.GetWopiResourceByName<IWopiFile>(provider.RootContainer.Identifier, "doc.txt");
 
         Assert.NotNull(file);
         await using var s = await file.GetReadStream();
@@ -77,7 +77,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task GetWriteStream_StoresContent_AndComputesSha256()
     {
         var (provider, _) = await CreateProviderAsync();
-        var created = await provider.CreateWopiChildResource<IWopiFile>(null, "writeable.txt");
+        var created = await provider.CreateWopiChildResource<IWopiFile>(provider.RootContainer.Identifier, "writeable.txt");
         Assert.NotNull(created);
         Assert.True(created.Exists);
 
@@ -102,7 +102,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
 
-        var created = await provider.CreateWopiChildResource<IWopiFile>(null, "fresh.docx");
+        var created = await provider.CreateWopiChildResource<IWopiFile>(provider.RootContainer.Identifier, "fresh.docx");
 
         Assert.NotNull(created);
         Assert.True(created.Exists);
@@ -115,10 +115,10 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task CreateWopiChildResource_File_DuplicateName_Throws()
     {
         var (provider, _) = await CreateProviderAsync();
-        _ = await provider.CreateWopiChildResource<IWopiFile>(null, "dup.txt");
+        _ = await provider.CreateWopiChildResource<IWopiFile>(provider.RootContainer.Identifier, "dup.txt");
 
         await Assert.ThrowsAsync<ArgumentException>(
-            () => provider.CreateWopiChildResource<IWopiFile>(null, "dup.txt"));
+            () => provider.CreateWopiChildResource<IWopiFile>(provider.RootContainer.Identifier, "dup.txt"));
     }
 
     [Fact]
@@ -126,13 +126,13 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
 
-        var folder = await provider.CreateWopiChildResource<IWopiFolder>(null, "subfolder");
+        var folder = await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "subfolder");
 
         Assert.NotNull(folder);
         Assert.Equal("subfolder", folder.Name);
 
         var folders = new List<IWopiFolder>();
-        await foreach (var f in provider.GetWopiContainers(provider.RootContainerPointer.Identifier))
+        await foreach (var f in provider.GetWopiContainers(provider.RootContainer.Identifier))
         {
             folders.Add(f);
         }
@@ -143,7 +143,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task GetWopiFiles_HidesFolderMarker()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = await provider.CreateWopiChildResource<IWopiFolder>(null, "with-marker");
+        var folder = await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "with-marker");
 
         var files = new List<IWopiFile>();
         await foreach (var f in provider.GetWopiFiles(folder!.Identifier))
@@ -157,7 +157,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task DeleteWopiResource_File_RemovesBlob_AndDropsId()
     {
         var (provider, _) = await CreateProviderAsync();
-        var created = (await provider.CreateWopiChildResource<IWopiFile>(null, "doomed.txt"))!;
+        var created = (await provider.CreateWopiChildResource<IWopiFile>(provider.RootContainer.Identifier, "doomed.txt"))!;
 
         var deleted = await provider.DeleteWopiResource<IWopiFile>(created.Identifier);
 
@@ -169,7 +169,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task DeleteWopiResource_Folder_NonEmpty_Throws()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildResource<IWopiFolder>(null, "with-content"))!;
+        var folder = (await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "with-content"))!;
         _ = await provider.CreateWopiChildResource<IWopiFile>(folder.Identifier, "child.txt");
 
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -180,7 +180,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task DeleteWopiResource_Folder_Empty_Succeeds()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildResource<IWopiFolder>(null, "ephemeral"))!;
+        var folder = (await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "ephemeral"))!;
 
         var deleted = await provider.DeleteWopiResource<IWopiFolder>(folder.Identifier);
 
@@ -191,7 +191,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task RenameWopiResource_File_PreservesIdentifier()
     {
         var (provider, _) = await CreateProviderAsync();
-        var created = (await provider.CreateWopiChildResource<IWopiFile>(null, "before.txt"))!;
+        var created = (await provider.CreateWopiChildResource<IWopiFile>(provider.RootContainer.Identifier, "before.txt"))!;
         var originalId = created.Identifier;
 
         var renamed = await provider.RenameWopiResource<IWopiFile>(originalId, "after.txt");
@@ -206,8 +206,8 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task RenameWopiResource_File_TargetExists_Throws()
     {
         var (provider, _) = await CreateProviderAsync();
-        var src = (await provider.CreateWopiChildResource<IWopiFile>(null, "source.txt"))!;
-        _ = await provider.CreateWopiChildResource<IWopiFile>(null, "target.txt");
+        var src = (await provider.CreateWopiChildResource<IWopiFile>(provider.RootContainer.Identifier, "source.txt"))!;
+        _ = await provider.CreateWopiChildResource<IWopiFile>(provider.RootContainer.Identifier, "target.txt");
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => provider.RenameWopiResource<IWopiFile>(src.Identifier, "target.txt"));
@@ -217,10 +217,10 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task GetSuggestedName_File_ReturnsCounterSuffix_WhenNameExists()
     {
         var (provider, _) = await CreateProviderAsync();
-        _ = await provider.CreateWopiChildResource<IWopiFile>(null, "report.docx");
+        _ = await provider.CreateWopiChildResource<IWopiFile>(provider.RootContainer.Identifier, "report.docx");
 
         var suggested = await provider.GetSuggestedName<IWopiFile>(
-            provider.RootContainerPointer.Identifier, "report.docx");
+            provider.RootContainer.Identifier, "report.docx");
 
         Assert.Equal("report (1).docx", suggested);
     }
@@ -231,7 +231,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
         var (provider, _) = await CreateProviderAsync();
 
         var suggested = await provider.GetSuggestedName<IWopiFile>(
-            provider.RootContainerPointer.Identifier, "fresh.docx");
+            provider.RootContainer.Identifier, "fresh.docx");
 
         Assert.Equal("fresh.docx", suggested);
     }
@@ -261,7 +261,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task GetAncestors_File_IncludesParentChain()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildResource<IWopiFolder>(null, "outer"))!;
+        var folder = (await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "outer"))!;
         var inner = (await provider.CreateWopiChildResource<IWopiFolder>(folder.Identifier, "inner"))!;
         var file = (await provider.CreateWopiChildResource<IWopiFile>(inner.Identifier, "deep.txt"))!;
 
@@ -269,7 +269,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
 
         // Expected: [root, outer, inner]
         Assert.Equal(3, ancestors.Count);
-        Assert.Equal(provider.RootContainerPointer.Identifier, ancestors[0].Identifier);
+        Assert.Equal(provider.RootContainer.Identifier, ancestors[0].Identifier);
         Assert.Equal("outer", ancestors[1].Name);
         Assert.Equal("inner", ancestors[2].Name);
     }

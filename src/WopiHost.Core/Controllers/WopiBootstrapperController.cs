@@ -85,8 +85,7 @@ public class WopiBootstrapperController(
         var ecosystemToken = await accessTokenService.IssueAsync(BuildEcosystemTokenRequest(userId), cancellationToken);
         var bootstrap = BuildBootstrapInfo(userId, ecosystemToken);
 
-        var rootPointer = storageProvider.RootContainerPointer;
-        var rootContainer = await storageProvider.GetWopiResource<IWopiFolder>(rootPointer.Identifier, cancellationToken);
+        var rootContainer = await storageProvider.GetWopiResource<IWopiFolder>(storageProvider.RootContainer.Identifier, cancellationToken);
         if (rootContainer is null)
         {
             return NotFound();
@@ -169,7 +168,7 @@ public class WopiBootstrapperController(
         UserId = userId,
         UserDisplayName = User.FindFirstValue(ClaimTypes.Name),
         UserEmail = User.FindFirstValue(ClaimTypes.Email),
-        ResourceId = storageProvider.RootContainerPointer.Identifier,
+        ResourceId = storageProvider.RootContainer.Identifier,
         ResourceType = WopiResourceType.Container,
         ContainerPermissions = WopiContainerPermissions.None,
     };
