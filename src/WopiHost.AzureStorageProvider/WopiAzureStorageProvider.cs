@@ -20,7 +20,7 @@ namespace WopiHost.AzureStorageProvider;
 /// freshly-created folders are addressable until something is written to them.
 /// </para>
 /// <para>
-/// Identifiers are deterministic hex-MD5 of the lowercased blob path (see <see cref="BlobIdMap"/>),
+/// Identifiers are deterministic hex-SHA-256 of the lowercased blob path (see <see cref="BlobIdMap"/>),
 /// matching the scheme used by <c>WopiHost.FileSystemProvider</c>. Identifiers are stable across
 /// process restarts as long as paths don't change. A rename preserves the identifier by re-pointing
 /// the in-memory map to the new path.
