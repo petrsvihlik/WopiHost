@@ -124,7 +124,7 @@ internal static class Extensions
     /// <returns></returns>
     public static async Task CopyToWriteStream(this HttpContext httpContext, IWopiFile file, CancellationToken cancellationToken = default)
     {
-        using var stream = await file.GetWriteStream(cancellationToken).ConfigureAwait(false);
+        using var stream = await file.OpenWriteAsync(cancellationToken).ConfigureAwait(false);
         await httpContext.Request.Body.CopyToAsync(
             stream,
             cancellationToken).ConfigureAwait(false);

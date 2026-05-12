@@ -60,7 +60,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     }
 
     [Fact]
-    public async Task GetReadStream_ReturnsBlobContent()
+    public async Task OpenReadAsync_ReturnsBlobContent()
     {
         var (provider, container) = await CreateProviderAsync();
         await UploadAsync(container, "doc.txt", "stream-me");
@@ -68,13 +68,13 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
         var file = await provider.GetWopiResourceByName<IWopiFile>(provider.RootContainer.Identifier, "doc.txt");
 
         Assert.NotNull(file);
-        await using var s = await file.GetReadStream();
+        await using var s = await file.OpenReadAsync();
         using var reader = new StreamReader(s);
         Assert.Equal("stream-me", await reader.ReadToEndAsync());
     }
 
     [Fact]
-    public async Task GetWriteStream_StoresContent_AndComputesSha256()
+    public async Task OpenWriteAsync_StoresContent_AndComputesSha256()
     {
         var (provider, _) = await CreateProviderAsync();
         var created = await provider.CreateWopiChildResource<IWopiFile>(provider.RootContainer.Identifier, "writeable.txt");
@@ -85,7 +85,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
         var expectedHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(payload))).ToLowerInvariant();
 
         var writable = (await provider.GetWopiResource<IWopiFile>(created.Identifier))!;
-        await using (var s = await writable.GetWriteStream())
+        await using (var s = await writable.OpenWriteAsync())
         {
             await s.WriteAsync(System.Text.Encoding.UTF8.GetBytes(payload));
         }

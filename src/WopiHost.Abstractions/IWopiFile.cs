@@ -46,12 +46,32 @@ public interface IWopiFile : IWopiResource
     ReadOnlyMemory<byte>? Checksum { get; }
 
     /// <summary>
-    /// Gets read-only stream.
+    /// Opens the file for reading. Ownership of the returned <see cref="Stream"/> is transferred
+    /// to the caller, who must dispose it when done — typically via
+    /// <c>await using var stream = await file.OpenReadAsync(ct);</c>.
     /// </summary>
-    Task<Stream> GetReadStream(CancellationToken cancellationToken = default);
+    /// <remarks>
+    /// Naming mirrors the .NET BCL convention for resource-acquiring openers
+    /// (<see cref="System.IO.File.OpenRead(string)"/>, <c>BlobClient.OpenReadAsync</c>,
+    /// <c>HttpClient.GetStreamAsync</c>): <c>Open*</c> signals that the call acquires a resource
+    /// the caller must release, in contrast to a property-like <c>Get*</c> which would not.
+    /// <see cref="Stream"/> already implements <see cref="IAsyncDisposable"/> (since .NET Core
+    /// 3.0), so <c>await using</c> is the idiomatic disposal path.
+    /// </remarks>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A read-positioned <see cref="Stream"/> owned by the caller.</returns>
+    Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets r/w stream.
+    /// Opens the file for writing. Ownership of the returned <see cref="Stream"/> is transferred
+    /// to the caller, who must dispose it when done — typically via
+    /// <c>await using var stream = await file.OpenWriteAsync(ct);</c>. Disposing the stream is
+    /// what commits the write on most providers.
     /// </summary>
-    Task<Stream> GetWriteStream(CancellationToken cancellationToken = default);
+    /// <remarks>
+    /// See <see cref="OpenReadAsync"/> for the naming/ownership rationale.
+    /// </remarks>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A writable <see cref="Stream"/> owned by the caller.</returns>
+    Task<Stream> OpenWriteAsync(CancellationToken cancellationToken = default);
 }

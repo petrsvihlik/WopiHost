@@ -52,17 +52,17 @@ public class WopiFileTests : IDisposable
         => Assert.Equal(new FileInfo(_filePath).LastWriteTimeUtc, _sut.LastWriteTimeUtc);
 
     [Fact]
-    public async Task GetReadStream_ReturnsReadableStream()
+    public async Task OpenReadAsync_ReturnsReadableStream()
     {
-        await using var stream = await _sut.GetReadStream();
+        await using var stream = await _sut.OpenReadAsync();
         using var reader = new StreamReader(stream);
         Assert.Equal("hello world", await reader.ReadToEndAsync());
     }
 
     [Fact]
-    public async Task GetWriteStream_TruncatesAndAllowsWrite()
+    public async Task OpenWriteAsync_TruncatesAndAllowsWrite()
     {
-        await using (var stream = await _sut.GetWriteStream())
+        await using (var stream = await _sut.OpenWriteAsync())
         await using (var writer = new StreamWriter(stream))
         {
             await writer.WriteAsync("new");

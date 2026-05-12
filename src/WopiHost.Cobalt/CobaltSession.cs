@@ -90,7 +90,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
                 await entry.WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false);
                 try
                 {
-                    using var stream = await file.GetWriteStream(cancellationToken).ConfigureAwait(false);
+                    using var stream = await file.OpenWriteAsync(cancellationToken).ConfigureAwait(false);
                     // GenericFdaStream is sync-only (CobaltCore exposes no async copy). The
                     // surrounding awaits already honor cancellation; the sync copy itself runs
                     // against an in-memory buffer so it's not network-bound.
@@ -183,7 +183,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
 
         if (file.Exists)
         {
-            using var stream = await file.GetReadStream(cancellationToken).ConfigureAwait(false);
+            using var stream = await file.OpenReadAsync(cancellationToken).ConfigureAwait(false);
             // 16.x made `AtomFromStream` an internal sealed type; `Atom.CreateFromArray`
             // is the public byte[] factory. Buffer the stream so we can hand a byte[]
             // to it.

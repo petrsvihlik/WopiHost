@@ -134,7 +134,7 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
     }
 
     [Fact]
-    public async Task GetReadStream_ReturnsContent()
+    public async Task OpenReadAsync_ReturnsContent()
     {
         var container = await CreateContainerAsync();
         var blob = container.GetBlobClient("read.txt");
@@ -145,15 +145,15 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         }
         var file = await WopiBlobFile.CreateAsync(blob, "read.txt", "id", CancellationToken.None);
 
-        await using var s = await file.GetReadStream();
+        await using var s = await file.OpenReadAsync();
         using var reader = new StreamReader(s);
         Assert.Equal(body, await reader.ReadToEndAsync());
     }
 
     [Fact]
-    public async Task GetWriteStream_NoExistingMetadata_StillPersistsHash()
+    public async Task OpenWriteAsync_NoExistingMetadata_StillPersistsHash()
     {
-        // GetWriteStream when properties.Metadata is empty exercises the fallback
+        // OpenWriteAsync when properties.Metadata is empty exercises the fallback
         // `new Dictionary<string, string>(StringComparer.Ordinal)` branch.
         var container = await CreateContainerAsync();
         var blob = container.GetBlobClient("nometa.bin");
@@ -163,7 +163,7 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         }
         var file = await WopiBlobFile.CreateAsync(blob, "nometa.bin", "id", CancellationToken.None);
 
-        await using (var s = await file.GetWriteStream())
+        await using (var s = await file.OpenWriteAsync())
         {
             await s.WriteAsync(new byte[] { 1, 2, 3 });
         }
@@ -173,7 +173,7 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
     }
 
     [Fact]
-    public async Task GetWriteStream_OnNonExistentBlob_StillProducesUploadableStream()
+    public async Task OpenWriteAsync_OnNonExistentBlob_StillProducesUploadableStream()
     {
         // properties is null when the blob doesn't exist; the preserved-metadata branch falls back
         // to a fresh dictionary and OpenWriteAsync(overwrite:true) will create the blob.
@@ -182,7 +182,7 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         var file = await WopiBlobFile.CreateAsync(blob, "freshly-created.bin", "id", CancellationToken.None);
         Assert.False(file.Exists);
 
-        await using (var s = await file.GetWriteStream())
+        await using (var s = await file.OpenWriteAsync())
         {
             await s.WriteAsync(new byte[] { 9, 8, 7 });
         }
