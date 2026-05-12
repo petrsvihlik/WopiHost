@@ -16,32 +16,32 @@ namespace WopiHost.Core.Tests.Controllers;
 
 public class ContainersControllerTests
 {
-    private readonly Mock<IWopiStorageProvider> storageProviderMock;
-    private readonly Mock<IWopiLockProvider> lockProviderMock;
-    private readonly Mock<IWopiWritableStorageProvider> writableStorageProviderMock;
-    private readonly Mock<IWopiPermissionProvider> permissionProviderMock;
-    private readonly Mock<IWopiAccessTokenService> accessTokenServiceMock;
-    private readonly Mock<IUrlHelper> urlMock;
+    private readonly Mock<IWopiStorageProvider> _storageProviderMock;
+    private readonly Mock<IWopiLockProvider> _lockProviderMock;
+    private readonly Mock<IWopiWritableStorageProvider> _writableStorageProviderMock;
+    private readonly Mock<IWopiPermissionProvider> _permissionProviderMock;
+    private readonly Mock<IWopiAccessTokenService> _accessTokenServiceMock;
+    private readonly Mock<IUrlHelper> _urlMock;
     private readonly ContainersController _controller;
 
     public ContainersControllerTests()
     {
-        storageProviderMock = new Mock<IWopiStorageProvider>();
-        lockProviderMock = new Mock<IWopiLockProvider>();
-        writableStorageProviderMock = new Mock<IWopiWritableStorageProvider>();
-        permissionProviderMock = new Mock<IWopiPermissionProvider>();
-        permissionProviderMock
+        _storageProviderMock = new Mock<IWopiStorageProvider>();
+        _lockProviderMock = new Mock<IWopiLockProvider>();
+        _writableStorageProviderMock = new Mock<IWopiWritableStorageProvider>();
+        _permissionProviderMock = new Mock<IWopiPermissionProvider>();
+        _permissionProviderMock
             .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WopiContainerPermissions.UserCanCreateChildContainer | WopiContainerPermissions.UserCanCreateChildFile | WopiContainerPermissions.UserCanDelete | WopiContainerPermissions.UserCanRename);
-        accessTokenServiceMock = new Mock<IWopiAccessTokenService>();
-        accessTokenServiceMock
+        _accessTokenServiceMock = new Mock<IWopiAccessTokenService>();
+        _accessTokenServiceMock
             .Setup(s => s.IssueAsync(It.IsAny<WopiAccessTokenRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new WopiAccessToken("FRESH-TOKEN", DateTimeOffset.UtcNow.AddMinutes(10)));
-        urlMock = new Mock<IUrlHelper>();
-        urlMock
+        _urlMock = new Mock<IUrlHelper>();
+        _urlMock
             .Setup(_ => _.RouteUrl(It.IsAny<UrlRouteContext>()))
             .Returns("https://localhost");
-        urlMock
+        _urlMock
             .Setup(_ => _.ActionContext)
             .Returns(new ActionContext
             {
@@ -51,16 +51,16 @@ public class ContainersControllerTests
                 }
             });
         _controller = new ContainersController(
-            storageProviderMock.Object,
-            lockProviderMock.Object,
-            writableStorageProviderMock.Object)
+            _storageProviderMock.Object,
+            _lockProviderMock.Object,
+            _writableStorageProviderMock.Object)
         {
-            Url = urlMock.Object,
+            Url = _urlMock.Object,
             ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext()
                 {
-                    ServiceScopeFactory = TestUtils.CreateServiceScope(permissionProviderMock.Object),
+                    ServiceScopeFactory = TestUtils.CreateServiceScope(_permissionProviderMock.Object),
                     User = new ClaimsPrincipal(new ClaimsIdentity(
                     [
                         new Claim(ClaimTypes.NameIdentifier, "alice"),
@@ -75,7 +75,7 @@ public class ContainersControllerTests
     [Fact]
     public async Task CheckContainerInfo_ReturnsNotFound_WhenContainerDoesNotExist()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         var result = await _controller.CheckContainerInfo("nonexistent");
 
@@ -87,7 +87,7 @@ public class ContainersControllerTests
     {
         var container = new Mock<IWopiFolder>();
         container.Setup(c => c.Name).Returns("TestContainer");
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => container.Object);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => container.Object);
 
         var result = await _controller.CheckContainerInfo("existing");
 
@@ -99,7 +99,7 @@ public class ContainersControllerTests
     [Fact]
     public async Task CreateChildContainer_ReturnsNotFound_WhenContainerDoesNotExist()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         var result = await _controller.CreateChildContainer("nonexistent");
 
@@ -110,7 +110,7 @@ public class ContainersControllerTests
     public async Task CreateChildContainer_ReturnsNotImplemented_WhenBothHeadersArePresent()
     {
         var containerId = "existing-container";
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
 
         var result = await _controller.CreateChildContainer(containerId, UtfString.FromDecoded("suggestedTarget"), UtfString.FromDecoded("relativeTarget"));
 
@@ -121,7 +121,7 @@ public class ContainersControllerTests
     public async Task CreateChildContainer_ReturnsNotImplemented_WhenBothHeadersAreMissing()
     {
         var containerId = "existing-container";
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
 
         var result = await _controller.CreateChildContainer(containerId);
 
@@ -132,8 +132,8 @@ public class ContainersControllerTests
     public async Task CreateChildContainer_ReturnsBadRequest_WhenNameIsInvalid()
     {
         var containerId = "existing-container";
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         var result = await _controller.CreateChildContainer(containerId, UtfString.FromDecoded("suggestedTarget"));
 
@@ -144,9 +144,9 @@ public class ContainersControllerTests
     public async Task CreateChildContainer_ReturnsConflict_WhenContainerAlreadyExists()
     {
         var containerId = "existing-container";
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        storageProviderMock.Setup(sp => sp.GetWopiResourceByName<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _storageProviderMock.Setup(sp => sp.GetWopiResourceByName<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
 
         var result = await _controller.CreateChildContainer(containerId, relativeTarget: UtfString.FromDecoded("relativeTarget"));
 
@@ -157,9 +157,9 @@ public class ContainersControllerTests
     public async Task CreateChildContainer_ReturnsInternalServerError_WhenNewFolderIsNull()
     {
         var containerId = "existing-container";
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        storageProviderMock.Setup(sp => sp.GetWopiResourceByName<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _storageProviderMock.Setup(sp => sp.GetWopiResourceByName<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         var result = await _controller.CreateChildContainer(containerId, relativeTarget: UtfString.FromDecoded("relativeTarget"));
 
@@ -173,10 +173,10 @@ public class ContainersControllerTests
         var container = new Mock<IWopiFolder>();
         container.Setup(c => c.Name).Returns("container");
         container.Setup(c => c.Identifier).Returns(containerId);
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        storageProviderMock.Setup(sp => sp.GetWopiResourceByName<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
-        writableStorageProviderMock.Setup(_ => _.CreateWopiChildResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _storageProviderMock.Setup(sp => sp.GetWopiResourceByName<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        _writableStorageProviderMock.Setup(_ => _.CreateWopiChildResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(container.Object);
 
         var result = await _controller.CreateChildContainer(containerId, relativeTarget: UtfString.FromDecoded("relativeTarget"));
@@ -192,10 +192,10 @@ public class ContainersControllerTests
         var container = new Mock<IWopiFolder>();
         container.Setup(c => c.Name).Returns("container");
         container.Setup(c => c.Identifier).Returns(containerId);
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        writableStorageProviderMock.Setup(wsp => wsp.GetSuggestedName<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("suggestedTarget");
-        writableStorageProviderMock.Setup(_ => _.CreateWopiChildResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _writableStorageProviderMock.Setup(wsp => wsp.GetSuggestedName<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("suggestedTarget");
+        _writableStorageProviderMock.Setup(_ => _.CreateWopiChildResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(container.Object);
 
         var result = await _controller.CreateChildContainer(containerId, suggestedTarget: UtfString.FromDecoded("suggestedTarget"));
@@ -207,7 +207,7 @@ public class ContainersControllerTests
     [Fact]
     public async Task CreateChildFile_ReturnsNotFound_WhenContainerDoesNotExist()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         var result = await _controller.CreateChildFile("containerId");
@@ -218,7 +218,7 @@ public class ContainersControllerTests
     [Fact]
     public async Task CreateChildFile_ReturnsNotImplemented_WhenBothHeadersArePresent()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Mock<IWopiFolder>().Object);
 
         var result = await _controller.CreateChildFile("containerId", UtfString.FromDecoded("suggestedTarget"), UtfString.FromDecoded("relativeTarget"));
@@ -229,7 +229,7 @@ public class ContainersControllerTests
     [Fact]
     public async Task CreateChildFile_ReturnsNotImplemented_WhenBothHeadersAreMissing()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Mock<IWopiFolder>().Object);
 
         var result = await _controller.CreateChildFile("containerId");
@@ -240,9 +240,9 @@ public class ContainersControllerTests
     [Fact]
     public async Task CreateChildFile_ReturnsBadRequest_WhenNameIsInvalid()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Mock<IWopiFolder>().Object);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         var result = await _controller.CreateChildFile("containerId", UtfString.FromDecoded("relativeTarget"));
@@ -254,11 +254,11 @@ public class ContainersControllerTests
     public async Task CreateChildFile_ReturnsConflict_WhenFileAlreadyExistsAndOverwriteIsFalse()
     {
         var existingFile = new Mock<IWopiFile>().Object;
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Mock<IWopiFolder>().Object);
-        storageProviderMock.Setup(sp => sp.GetWopiResourceByName<IWopiFile>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResourceByName<IWopiFile>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingFile);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var result = await _controller.CreateChildFile("containerId", relativeTarget: UtfString.FromDecoded("relativeTarget"), overwriteRelativeTarget: false);
@@ -271,13 +271,13 @@ public class ContainersControllerTests
     {
         var existingFile = new Mock<IWopiFile>().Object;
         var lockInfo = new WopiLockInfo { FileId = "any", LockId = "lockId" };
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Mock<IWopiFolder>().Object);
-        storageProviderMock.Setup(sp => sp.GetWopiResourceByName<IWopiFile>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResourceByName<IWopiFile>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingFile);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-        lockProviderMock.Setup(lp => lp.GetLockAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _lockProviderMock.Setup(lp => lp.GetLockAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(lockInfo);
 
         var result = await _controller.CreateChildFile("containerId", relativeTarget: UtfString.FromDecoded("relativeTarget"), overwriteRelativeTarget: true);
@@ -298,11 +298,11 @@ public class ContainersControllerTests
         // Stub Checksum so GetEncodedSha256 takes the early-return path; avoids the unmocked
         // OpenReadAsync call inside CheckFileInfo composition.
         fileMock.SetupGet(f => f.Checksum).Returns(new ReadOnlyMemory<byte>([0]));
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Mock<IWopiFolder>().Object);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-        writableStorageProviderMock.Setup(wsp => wsp.CreateWopiChildResource<IWopiFile>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _writableStorageProviderMock.Setup(wsp => wsp.CreateWopiChildResource<IWopiFile>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
 
         var result = await _controller.CreateChildFile("containerId", relativeTarget: UtfString.FromDecoded("relativeTarget"));
@@ -314,7 +314,7 @@ public class ContainersControllerTests
     [Fact]
     public async Task DeleteContainer_ReturnsNotFound_WhenContainerDoesNotExist()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         var result = await _controller.DeleteContainer("nonexistent");
 
@@ -326,8 +326,8 @@ public class ContainersControllerTests
     {
         var containerId = "existing-container";
         var container = new Mock<IWopiFolder>();
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
-        writableStorageProviderMock.Setup(_ => _.DeleteWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
+        _writableStorageProviderMock.Setup(_ => _.DeleteWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var result = await _controller.DeleteContainer(containerId);
@@ -340,8 +340,8 @@ public class ContainersControllerTests
     {
         var containerId = "existing-container";
         var container = new Mock<IWopiFolder>();
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
-        writableStorageProviderMock.Setup(_ => _.DeleteWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
+        _writableStorageProviderMock.Setup(_ => _.DeleteWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         var result = await _controller.DeleteContainer(containerId);
@@ -354,8 +354,8 @@ public class ContainersControllerTests
     {
         var containerId = "existing-container";
         var container = new Mock<IWopiFolder>();
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
-        writableStorageProviderMock.Setup(_ => _.DeleteWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
+        _writableStorageProviderMock.Setup(_ => _.DeleteWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new DirectoryNotFoundException());
 
         var result = await _controller.DeleteContainer(containerId);
@@ -368,8 +368,8 @@ public class ContainersControllerTests
     {
         var containerId = "existing-container";
         var container = new Mock<IWopiFolder>();
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
-        writableStorageProviderMock.Setup(_ => _.DeleteWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
+        _writableStorageProviderMock.Setup(_ => _.DeleteWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException());
 
         var result = await _controller.DeleteContainer(containerId);
@@ -380,7 +380,7 @@ public class ContainersControllerTests
     [Fact]
     public async Task RenameContainer_ReturnsNotFound_WhenContainerNotFound()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         var result = await _controller.RenameContainer("id", new UtfString());
 
@@ -390,8 +390,8 @@ public class ContainersControllerTests
     [Fact]
     public async Task RenameContainer_ReturnsBadRequest_WhenRequestedNameIsIllegal()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         var result = await _controller.RenameContainer("containerId", UtfString.FromDecoded("illegalName"));
 
@@ -402,9 +402,9 @@ public class ContainersControllerTests
     [Fact]
     public async Task RenameContainer_ReturnsConflict_WhenRequestedNameAlreadyExists()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        writableStorageProviderMock.Setup(wsp => wsp.RenameWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _writableStorageProviderMock.Setup(wsp => wsp.RenameWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException());
 
         var result = await _controller.RenameContainer("containerId", UtfString.FromDecoded("existingName"));
@@ -415,9 +415,9 @@ public class ContainersControllerTests
     [Fact]
     public async Task RenameContainer_ReturnsNotFound_WhenDirectoryNotFoundException()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        writableStorageProviderMock.Setup(wsp => wsp.RenameWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _writableStorageProviderMock.Setup(wsp => wsp.RenameWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new DirectoryNotFoundException());
 
         var result = await _controller.RenameContainer("containerId", UtfString.FromDecoded("existingName"));
@@ -428,9 +428,9 @@ public class ContainersControllerTests
     [Fact]
     public async Task RenameContainer_ReturnsInternalServerError_WhenUnexpectedErrorOccurs()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        writableStorageProviderMock.Setup(wsp => wsp.RenameWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _writableStorageProviderMock.Setup(wsp => wsp.RenameWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception());
 
         var result = await _controller.RenameContainer("containerId", UtfString.FromDecoded("newName"));
@@ -443,9 +443,9 @@ public class ContainersControllerTests
     {
         var container = new Mock<IWopiFolder>();
         container.SetupGet(c => c.Name).Returns("newName");
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
-        writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        writableStorageProviderMock.Setup(wsp => wsp.RenameWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _writableStorageProviderMock.Setup(wsp => wsp.RenameWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var result = await _controller.RenameContainer("containerId", UtfString.FromDecoded("newName"));
@@ -456,12 +456,12 @@ public class ContainersControllerTests
     [Fact]
     public async Task GetEcosystem_ReturnsNotFound_WhenContainerDoesNotExist()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
-        var result = await _controller.GetEcosystem("nonexistent", accessTokenServiceMock.Object);
+        var result = await _controller.GetEcosystem("nonexistent", _accessTokenServiceMock.Object);
 
         Assert.IsType<NotFoundResult>(result);
-        accessTokenServiceMock.Verify(t => t.IssueAsync(It.IsAny<WopiAccessTokenRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _accessTokenServiceMock.Verify(t => t.IssueAsync(It.IsAny<WopiAccessTokenRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -470,9 +470,9 @@ public class ContainersControllerTests
         var containerId = "existing-container";
         var folderMock = new Mock<IWopiFolder>();
         folderMock.SetupGet(f => f.Identifier).Returns(containerId);
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(folderMock.Object);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(folderMock.Object);
 
-        var result = await _controller.GetEcosystem(containerId, accessTokenServiceMock.Object);
+        var result = await _controller.GetEcosystem(containerId, _accessTokenServiceMock.Object);
 
         var jsonResult = Assert.IsType<JsonResult<UrlResponse>>(result);
         Assert.IsType<UrlResponse>(jsonResult.Value);
@@ -488,19 +488,19 @@ public class ContainersControllerTests
         var containerId = "existing-container";
         var folderMock = new Mock<IWopiFolder>();
         folderMock.SetupGet(f => f.Identifier).Returns(containerId);
-        storageProviderMock
+        _storageProviderMock
             .Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(folderMock.Object);
 
         UrlRouteContext? captured = null;
-        urlMock
+        _urlMock
             .Setup(_ => _.RouteUrl(It.IsAny<UrlRouteContext>()))
             .Callback<UrlRouteContext>(rc => captured = rc)
             .Returns("https://localhost/wopi/ecosystem");
 
-        await _controller.GetEcosystem(containerId, accessTokenServiceMock.Object);
+        await _controller.GetEcosystem(containerId, _accessTokenServiceMock.Object);
 
-        accessTokenServiceMock.Verify(t => t.IssueAsync(
+        _accessTokenServiceMock.Verify(t => t.IssueAsync(
             It.Is<WopiAccessTokenRequest>(r =>
                 r.UserId == "alice" &&
                 r.ResourceId == containerId &&
@@ -516,7 +516,7 @@ public class ContainersControllerTests
     [Fact]
     public async Task EnumerateAncestors_ReturnsNotFound_WhenContainerDoesNotExist()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         var result = await _controller.EnumerateAncestors("nonexistent");
 
@@ -532,8 +532,8 @@ public class ContainersControllerTests
             new Mock<IWopiFolder>().Object,
             new Mock<IWopiFolder>().Object
         ]);
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
-        storageProviderMock.Setup(sp => sp.GetAncestors<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(ancestors);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _storageProviderMock.Setup(sp => sp.GetAncestors<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(ancestors);
 
         var result = await _controller.EnumerateAncestors(containerId);
 
@@ -545,7 +545,7 @@ public class ContainersControllerTests
     [Fact]
     public async Task EnumerateChildren_ReturnsNotFound_WhenContainerDoesNotExist()
     {
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
 
         var result = await _controller.EnumerateChildren("nonexistent");
 
@@ -556,9 +556,9 @@ public class ContainersControllerTests
     public async Task EnumerateChildren_ReturnsEmptyLists_WhenNoFilesOrContainers()
     {
         var containerId = "container";
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
-        storageProviderMock.Setup(sp => sp.GetWopiFiles(containerId, null, It.IsAny<CancellationToken>())).Returns(AsyncEnumerable.Empty<IWopiFile>());
-        storageProviderMock.Setup(sp => sp.GetWopiContainers(containerId, It.IsAny<CancellationToken>())).Returns(AsyncEnumerable.Empty<IWopiFolder>());
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _storageProviderMock.Setup(sp => sp.GetWopiFiles(containerId, null, It.IsAny<CancellationToken>())).Returns(AsyncEnumerable.Empty<IWopiFile>());
+        _storageProviderMock.Setup(sp => sp.GetWopiContainers(containerId, It.IsAny<CancellationToken>())).Returns(AsyncEnumerable.Empty<IWopiFolder>());
 
         var result = await _controller.EnumerateChildren(containerId) as JsonResult;
 
@@ -582,9 +582,9 @@ public class ContainersControllerTests
         folderMock.Setup(f => f.Name).Returns("folder");
         folderMock.Setup(f => f.Identifier).Returns("folderId");
 
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
-        storageProviderMock.Setup(sp => sp.GetWopiFiles(containerId, null, It.IsAny<CancellationToken>())).Returns(new[] { fileMock.Object }.ToAsyncEnumerable());
-        storageProviderMock.Setup(sp => sp.GetWopiContainers(containerId, It.IsAny<CancellationToken>())).Returns(new[] { folderMock.Object }.ToAsyncEnumerable());
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _storageProviderMock.Setup(sp => sp.GetWopiFiles(containerId, null, It.IsAny<CancellationToken>())).Returns(new[] { fileMock.Object }.ToAsyncEnumerable());
+        _storageProviderMock.Setup(sp => sp.GetWopiContainers(containerId, It.IsAny<CancellationToken>())).Returns(new[] { folderMock.Object }.ToAsyncEnumerable());
 
         var result = await _controller.EnumerateChildren(containerId) as JsonResult;
 
@@ -610,14 +610,14 @@ public class ContainersControllerTests
         fileMock1.Setup(f => f.Length).Returns(123);
         fileMock1.Setup(f => f.Identifier).Returns("fileId1");
 
-        storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
-        storageProviderMock
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _storageProviderMock
             .Setup(sp => sp.GetWopiFiles(
                 containerId,
                 It.Is<IReadOnlyCollection<string>?>(exts => exts != null && exts.SequenceEqual(new[] { ".txt" })),
                 It.IsAny<CancellationToken>()))
             .Returns(new[] { fileMock1.Object }.ToAsyncEnumerable());
-        storageProviderMock.Setup(sp => sp.GetWopiContainers(containerId, It.IsAny<CancellationToken>())).Returns(AsyncEnumerable.Empty<IWopiFolder>());
+        _storageProviderMock.Setup(sp => sp.GetWopiContainers(containerId, It.IsAny<CancellationToken>())).Returns(AsyncEnumerable.Empty<IWopiFolder>());
 
         var result = await _controller.EnumerateChildren(containerId, ".txt") as JsonResult;
 

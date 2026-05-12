@@ -14,17 +14,17 @@ public sealed class AzuriteFixture : IAsyncLifetime
     /// </summary>
     public const BlobClientOptions.ServiceVersion AzuriteSupportedVersion = BlobClientOptions.ServiceVersion.V2025_11_05;
 
-    private readonly AzuriteContainer container = new AzuriteBuilder(AzuriteImage)
+    private readonly AzuriteContainer _container = new AzuriteBuilder(AzuriteImage)
         .Build();
 
-    public string ConnectionString => container.GetConnectionString();
+    public string ConnectionString => _container.GetConnectionString();
 
     public BlobServiceClient CreateBlobServiceClient()
         => new(ConnectionString, new BlobClientOptions(AzuriteSupportedVersion));
 
-    public ValueTask InitializeAsync() => new(container.StartAsync());
+    public ValueTask InitializeAsync() => new(_container.StartAsync());
 
-    public ValueTask DisposeAsync() => container.DisposeAsync();
+    public ValueTask DisposeAsync() => _container.DisposeAsync();
 }
 
 [CollectionDefinition(Name)]

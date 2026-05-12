@@ -37,19 +37,19 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
     /// </remarks>
     public const string FolderMarker = ".wopi.folder";
 
-    private readonly Dictionary<string, string> idToPath = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _idToPath = new(StringComparer.Ordinal);
 
     /// <summary>Whether <see cref="ScanAll(IEnumerable{string})"/> has been called.</summary>
     public bool WasScanned { get; private set; }
 
     /// <summary>Looks up the blob path for an identifier.</summary>
     public bool TryGetPath(string fileId, [NotNullWhen(true)] out string? path)
-        => idToPath.TryGetValue(fileId, out path);
+        => _idToPath.TryGetValue(fileId, out path);
 
     /// <summary>Looks up the identifier for a blob path. Path comparison is case-sensitive.</summary>
     public bool TryGetFileId(string path, [NotNullWhen(true)] out string? fileId)
     {
-        foreach (var pair in idToPath)
+        foreach (var pair in _idToPath)
         {
             if (pair.Value == path)
             {
@@ -65,15 +65,15 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
     public string Add(string path)
     {
         var id = IdFromPath(path);
-        idToPath[id] = path;
+        _idToPath[id] = path;
         return id;
     }
 
     /// <summary>Removes a mapping by id.</summary>
-    public bool Remove(string fileId) => idToPath.Remove(fileId);
+    public bool Remove(string fileId) => _idToPath.Remove(fileId);
 
     /// <summary>Updates the path for an existing id (used after a rename to keep the id stable).</summary>
-    public void Update(string fileId, string newPath) => idToPath[fileId] = newPath;
+    public void Update(string fileId, string newPath) => _idToPath[fileId] = newPath;
 
     /// <summary>
     /// Rebuilds the map from a flat enumeration of blob paths. The empty path is treated as the root
@@ -82,9 +82,9 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
     /// </summary>
     public void ScanAll(IEnumerable<string> blobPaths)
     {
-        idToPath.Clear();
+        _idToPath.Clear();
         // Root container is always identified by the empty string.
-        idToPath[IdFromPath(string.Empty)] = string.Empty;
+        _idToPath[IdFromPath(string.Empty)] = string.Empty;
 
         var seenDirs = new HashSet<string>(StringComparer.Ordinal);
         foreach (var path in blobPaths)
@@ -98,7 +98,7 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
                 continue;
             }
 
-            idToPath[IdFromPath(path)] = path;
+            _idToPath[IdFromPath(path)] = path;
 
             var lastSlash = path.LastIndexOf('/');
             if (lastSlash > 0)
@@ -108,7 +108,7 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
         }
 
         WasScanned = true;
-        LogScannedEntries(logger, idToPath.Count);
+        LogScannedEntries(logger, _idToPath.Count);
     }
 
     private void AddDirectoryAndAncestors(string dirPath, HashSet<string> seen)
@@ -116,7 +116,7 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
         var current = dirPath;
         while (!string.IsNullOrEmpty(current) && seen.Add(current))
         {
-            idToPath[IdFromPath(current)] = current;
+            _idToPath[IdFromPath(current)] = current;
             var slash = current.LastIndexOf('/');
             current = slash > 0 ? current[..slash] : string.Empty;
         }

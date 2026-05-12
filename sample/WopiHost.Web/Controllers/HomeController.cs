@@ -30,7 +30,7 @@ public class HomeController(
     IDiscoverer discoverer,
     ILogger<WopiUrlBuilder> urlBuilderLogger) : Controller
 {
-    private readonly WopiUrlBuilder urlGenerator = new(
+    private readonly WopiUrlBuilder _urlGenerator = new(
         discoverer,
         urlBuilderLogger,
         new WopiUrlSettings { UiLlcc = ResolveUiCulture(wopiOptions.Value.UiCulture) });
@@ -40,7 +40,7 @@ public class HomeController(
 
     // Demo-only shared key — must match the WopiHost server's Wopi:Security:SigningKey.
     // In a real frontend, load this from the same managed secret store the server uses.
-    private static readonly byte[] SharedSigningKey = DerivePaddedKey("wopi-sample-shared-dev-key");
+    private static readonly byte[] s_sharedSigningKey = DerivePaddedKey("wopi-sample-shared-dev-key");
 
     public async Task<ActionResult> Index(string? containerId = null, string? parentContainerId = null, CancellationToken cancellationToken = default)
     {
@@ -144,7 +144,7 @@ public class HomeController(
         ViewData["access_token_ttl"] = expiresAt.ToUnixTimeMilliseconds();
 
         var extension = file.Extension.TrimStart('.');
-        ViewData["urlsrc"] = await urlGenerator.GetFileUrlAsync(extension, new Uri(wopiOptions.Value.HostUrl, $"/wopi/files/{id}"), actionEnum);
+        ViewData["urlsrc"] = await _urlGenerator.GetFileUrlAsync(extension, new Uri(wopiOptions.Value.HostUrl, $"/wopi/files/{id}"), actionEnum);
         ViewData["favicon"] = await discoverer.GetApplicationFavIconAsync(extension);
 
         // Host page headers per WOPI spec — prevent browser caching.
@@ -191,7 +191,7 @@ public class HomeController(
             ]),
             NotBefore = DateTime.UtcNow,
             Expires = expires.UtcDateTime,
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(SharedSigningKey), SecurityAlgorithms.HmacSha256),
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(s_sharedSigningKey), SecurityAlgorithms.HmacSha256),
         };
         var handler = new JwtSecurityTokenHandler { MapInboundClaims = false };
         return (handler.WriteToken(handler.CreateToken(descriptor)), expires);

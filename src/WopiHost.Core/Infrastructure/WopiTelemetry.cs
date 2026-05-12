@@ -17,20 +17,20 @@ public static class WopiTelemetry
     /// <summary>Activity source used by the WOPI request pipeline.</summary>
     public static readonly ActivitySource ActivitySource = new(Name);
 
-    private static readonly Meter Meter = new(Name);
+    private static readonly Meter s_meter = new(Name);
 
     /// <summary>Total WOPI operations processed, tagged by <see cref="Tags.Operation"/> and <see cref="Tags.Outcome"/>.</summary>
-    public static readonly Counter<long> Requests = Meter.CreateCounter<long>(
+    public static readonly Counter<long> Requests = s_meter.CreateCounter<long>(
         "wopi.requests", unit: "{request}",
         description: "WOPI operations processed by the host, tagged by operation and outcome.");
 
     /// <summary>Lock-conflict outcomes (HTTP 409 with <c>X-WOPI-Lock</c>). Charted separately so dashboards don't need filter math.</summary>
-    public static readonly Counter<long> LockConflicts = Meter.CreateCounter<long>(
+    public static readonly Counter<long> LockConflicts = s_meter.CreateCounter<long>(
         "wopi.lock_conflicts", unit: "{conflict}",
         description: "WOPI lock conflicts (409 with X-WOPI-Lock) observed by the request pipeline.");
 
     /// <summary>WOPI proof-key signature validation failures.</summary>
-    public static readonly Counter<long> ProofValidationFailures = Meter.CreateCounter<long>(
+    public static readonly Counter<long> ProofValidationFailures = s_meter.CreateCounter<long>(
         "wopi.proof_validation_failures", unit: "{failure}",
         description: "WOPI proof-key signature validation failures.");
 

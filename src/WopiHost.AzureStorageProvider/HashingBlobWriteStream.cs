@@ -11,9 +11,9 @@ namespace WopiHost.AzureStorageProvider;
 /// </summary>
 internal sealed class HashingBlobWriteStream(Stream inner, BlobClient blobClient, Dictionary<string, string> preservedMetadata) : Stream
 {
-    private readonly Dictionary<string, string> metadataToWrite = preservedMetadata;
-    private readonly IncrementalHash hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-    private bool disposed;
+    private readonly Dictionary<string, string> _metadataToWrite = preservedMetadata;
+    private readonly IncrementalHash _hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+    private bool _disposed;
 
     public override bool CanRead => false;
     public override bool CanSeek => false;
@@ -35,44 +35,44 @@ internal sealed class HashingBlobWriteStream(Stream inner, BlobClient blobClient
 
     public override void Write(byte[] buffer, int offset, int count)
     {
-        hasher.AppendData(buffer, offset, count);
+        _hasher.AppendData(buffer, offset, count);
         inner.Write(buffer, offset, count);
     }
 
     public override void Write(ReadOnlySpan<byte> buffer)
     {
-        hasher.AppendData(buffer);
+        _hasher.AppendData(buffer);
         inner.Write(buffer);
     }
 
     public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
-        hasher.AppendData(buffer, offset, count);
+        _hasher.AppendData(buffer, offset, count);
         await inner.WriteAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
     }
 
     public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
     {
-        hasher.AppendData(buffer.Span);
+        _hasher.AppendData(buffer.Span);
         await inner.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
     }
 
     public override async ValueTask DisposeAsync()
     {
-        if (disposed)
+        if (_disposed)
         {
             return;
         }
-        disposed = true;
+        _disposed = true;
 
         // Closing/disposing the inner Azure write stream is what actually commits the blob.
         await inner.DisposeAsync().ConfigureAwait(false);
 
-        var hash = hasher.GetCurrentHash();
-        hasher.Dispose();
-        metadataToWrite[WopiBlobFile.Sha256MetadataKey] = Convert.ToHexString(hash).ToLowerInvariant();
+        var hash = _hasher.GetCurrentHash();
+        _hasher.Dispose();
+        _metadataToWrite[WopiBlobFile.Sha256MetadataKey] = Convert.ToHexString(hash).ToLowerInvariant();
 
-        await blobClient.SetMetadataAsync(metadataToWrite).ConfigureAwait(false);
+        await blobClient.SetMetadataAsync(_metadataToWrite).ConfigureAwait(false);
     }
 
     protected override void Dispose(bool disposing)
@@ -81,16 +81,16 @@ internal sealed class HashingBlobWriteStream(Stream inner, BlobClient blobClient
         // expensive bits inline. Intentionally no GetAwaiter().GetResult() on user-facing async
         // calls here — we already removed sync-over-async from the lock provider; this stream is the
         // last necessary sync-over-async boundary because Stream.Dispose can't be async.
-        if (disposed || !disposing)
+        if (_disposed || !disposing)
         {
             return;
         }
-        disposed = true;
+        _disposed = true;
 
         inner.Dispose();
-        var hash = hasher.GetCurrentHash();
-        hasher.Dispose();
-        metadataToWrite[WopiBlobFile.Sha256MetadataKey] = Convert.ToHexString(hash).ToLowerInvariant();
-        blobClient.SetMetadata(metadataToWrite);
+        var hash = _hasher.GetCurrentHash();
+        _hasher.Dispose();
+        _metadataToWrite[WopiBlobFile.Sha256MetadataKey] = Convert.ToHexString(hash).ToLowerInvariant();
+        blobClient.SetMetadata(_metadataToWrite);
     }
 }

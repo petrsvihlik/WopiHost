@@ -9,7 +9,7 @@ namespace WopiHost.Core.Tests.Infrastructure;
 
 public class WopiRouteNamesTests
 {
-    private readonly IReadOnlyList<ActionDescriptor> actionDescriptors;
+    private readonly IReadOnlyList<ActionDescriptor> _actionDescriptors;
 
     public WopiRouteNamesTests()
     {
@@ -20,7 +20,7 @@ public class WopiRouteNamesTests
         services.AddRouting();
 
         var provider = services.BuildServiceProvider();
-        actionDescriptors = provider.GetRequiredService<IActionDescriptorCollectionProvider>()
+        _actionDescriptors = provider.GetRequiredService<IActionDescriptorCollectionProvider>()
             .ActionDescriptors.Items;
     }
 
@@ -31,7 +31,7 @@ public class WopiRouteNamesTests
     [InlineData(WopiRouteNames.CheckEcosystem, "wopi/Ecosystem")]
     public void NamedRoute_HasExpectedTemplate(string routeName, string expectedTemplate)
     {
-        var descriptor = actionDescriptors
+        var descriptor = _actionDescriptors
             .FirstOrDefault(d => d.AttributeRouteInfo?.Name == routeName);
 
         Assert.NotNull(descriptor);

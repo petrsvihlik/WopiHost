@@ -5,7 +5,7 @@ using Xunit;
 namespace WopiHost.AzureStorageProvider.Tests;
 
 /// <summary>
-/// xUnit class fixture that boots an Azurite container once per test class. Tests build clients via
+/// xUnit class fixture that boots an Azurite _container once per test class. Tests build clients via
 /// <see cref="CreateBlobServiceClient"/>. The image tag is pinned to a recent Azurite that supports
 /// the API version the bundled <c>Azure.Storage.Blobs</c> sends — Testcontainers.Azurite's default
 /// image (3.28) lags behind the SDK and is rejected by version-check.
@@ -22,17 +22,17 @@ public sealed class AzuriteFixture : IAsyncLifetime
     /// </summary>
     public const BlobClientOptions.ServiceVersion AzuriteSupportedVersion = BlobClientOptions.ServiceVersion.V2025_11_05;
 
-    private readonly AzuriteContainer container = new AzuriteBuilder(AzuriteImage)
+    private readonly AzuriteContainer _container = new AzuriteBuilder(AzuriteImage)
         .Build();
 
-    public string ConnectionString => container.GetConnectionString();
+    public string ConnectionString => _container.GetConnectionString();
 
     public BlobServiceClient CreateBlobServiceClient()
         => new(ConnectionString, new BlobClientOptions(AzuriteSupportedVersion));
 
-    public ValueTask InitializeAsync() => new(container.StartAsync());
+    public ValueTask InitializeAsync() => new(_container.StartAsync());
 
-    public ValueTask DisposeAsync() => container.DisposeAsync();
+    public ValueTask DisposeAsync() => _container.DisposeAsync();
 }
 
 [CollectionDefinition(Name)]

@@ -29,13 +29,13 @@ public class WopiBlobFile : IWopiFile
     /// <summary>Blob metadata key that holds the SHA-256 of the blob content as a lowercase hex string.</summary>
     public const string Sha256MetadataKey = "wopi_sha256";
 
-    private readonly BlobClient blobClient;
-    private readonly BlobProperties? properties;
+    private readonly BlobClient _blobClient;
+    private readonly BlobProperties? _properties;
 
     private WopiBlobFile(BlobClient blobClient, string blobPath, string identifier, BlobProperties? properties)
     {
-        this.blobClient = blobClient;
-        this.properties = properties;
+        _blobClient = blobClient;
+        _properties = properties;
         BlobPath = blobPath;
         Identifier = identifier;
     }
@@ -69,23 +69,23 @@ public class WopiBlobFile : IWopiFile
     }
 
     /// <inheritdoc/>
-    public bool Exists => properties is not null;
+    public bool Exists => _properties is not null;
 
     /// <inheritdoc/>
-    public long Length => properties?.ContentLength ?? 0;
+    public long Length => _properties?.ContentLength ?? 0;
 
     /// <inheritdoc/>
-    public DateTime LastWriteTimeUtc => properties?.LastModified.UtcDateTime ?? DateTime.MinValue;
+    public DateTime LastWriteTimeUtc => _properties?.LastModified.UtcDateTime ?? DateTime.MinValue;
 
     /// <inheritdoc/>
-    public string? Version => properties?.ETag.ToString();
+    public string? Version => _properties?.ETag.ToString();
 
     /// <inheritdoc/>
     public string Owner
     {
         get
         {
-            if (properties is { Metadata: { } meta } && meta.TryGetValue(OwnerMetadataKey, out var owner))
+            if (_properties is { Metadata: { } meta } && meta.TryGetValue(OwnerMetadataKey, out var owner))
             {
                 return owner;
             }
@@ -98,7 +98,7 @@ public class WopiBlobFile : IWopiFile
     {
         get
         {
-            if (properties is { Metadata: { } meta } && meta.TryGetValue(Sha256MetadataKey, out var hex) && !string.IsNullOrEmpty(hex))
+            if (_properties is { Metadata: { } meta } && meta.TryGetValue(Sha256MetadataKey, out var hex) && !string.IsNullOrEmpty(hex))
             {
                 return Convert.FromHexString(hex);
             }
@@ -108,7 +108,7 @@ public class WopiBlobFile : IWopiFile
 
     /// <inheritdoc/>
     public async Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default)
-        => await blobClient.OpenReadAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        => await _blobClient.OpenReadAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
     /// <inheritdoc/>
     /// <remarks>
@@ -119,12 +119,12 @@ public class WopiBlobFile : IWopiFile
     /// </remarks>
     public async Task<Stream> OpenWriteAsync(CancellationToken cancellationToken = default)
     {
-        var preserved = properties?.Metadata is { } existing
+        var preserved = _properties?.Metadata is { } existing
             ? new Dictionary<string, string>(existing, StringComparer.Ordinal)
             : new Dictionary<string, string>(StringComparer.Ordinal);
 
-        var inner = await blobClient.OpenWriteAsync(overwrite: true, cancellationToken: cancellationToken).ConfigureAwait(false);
-        return new HashingBlobWriteStream(inner, blobClient, preserved);
+        var inner = await _blobClient.OpenWriteAsync(overwrite: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return new HashingBlobWriteStream(inner, _blobClient, preserved);
     }
 
     /// <summary>Fetches blob properties (or returns null on 404) and produces a fully-populated <see cref="WopiBlobFile"/>.</summary>

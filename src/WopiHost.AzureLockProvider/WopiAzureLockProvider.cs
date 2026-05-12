@@ -35,12 +35,12 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
     internal const string LeaseIdKey = "wopi_lease_id";
     internal const string CreatedKey = "wopi_created";
 
-    private readonly BlobContainerClient containerClient;
-    private readonly ILogger<WopiAzureLockProvider> logger;
-    private readonly IWopiLockComparer lockComparer;
-    private readonly TimeProvider timeProvider;
-    private readonly SemaphoreSlim initLock = new(1, 1);
-    private bool initialized;
+    private readonly BlobContainerClient _containerClient;
+    private readonly ILogger<WopiAzureLockProvider> _logger;
+    private readonly IWopiLockComparer _lockComparer;
+    private readonly TimeProvider _timeProvider;
+    private readonly SemaphoreSlim _initLock = new(1, 1);
+    private bool _initialized;
 
     /// <summary>
     /// Creates the provider.
@@ -63,10 +63,10 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         TimeProvider? timeProvider = null,
         IWopiLockComparer? lockComparer = null)
     {
-        this.containerClient = containerClient ?? throw new ArgumentNullException(nameof(containerClient));
-        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        this.timeProvider = timeProvider ?? TimeProvider.System;
-        this.lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
+        _containerClient = containerClient ?? throw new ArgumentNullException(nameof(containerClient));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _timeProvider = timeProvider ?? TimeProvider.System;
+        _lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
     }
 
     /// <inheritdoc />
@@ -79,7 +79,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         {
             return null;
         }
-        if (!info.IsExpiredAt(timeProvider.GetUtcNow()))
+        if (!info.IsExpiredAt(_timeProvider.GetUtcNow()))
         {
             return info;
         }
@@ -87,7 +87,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         // WOPI-expired. Break the lease so subsequent AddLock calls can take over, then evict.
         await TryBreakLeaseAsync(blobClient, cancellationToken).ConfigureAwait(false);
         await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        LogLockExpired(logger, fileId, info.LockId);
+        LogLockExpired(_logger, fileId, info.LockId);
         return null;
     }
 
@@ -103,9 +103,9 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         {
             if (TryReadLock(fileId, existing, out var existingInfo))
             {
-                if (!existingInfo.IsExpiredAt(timeProvider.GetUtcNow()))
+                if (!existingInfo.IsExpiredAt(_timeProvider.GetUtcNow()))
                 {
-                    LogLockAddRejected(logger, fileId, lockId, existingInfo.LockId);
+                    LogLockAddRejected(_logger, fileId, lockId, existingInfo.LockId);
                     return null;
                 }
                 // Stale (>30 min old) — clean up so we can take over.
@@ -120,7 +120,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
                 // crashed between Upload and lease acquisition. Either way, treat it as
                 // "lock-attempt in progress" and yield. (Aggressive cleanup here was the prior
                 // bug that broke healthy peers via lease-break + delete in their acquire window.)
-                LogLockAddRaceLost(logger, fileId, lockId);
+                LogLockAddRaceLost(_logger, fileId, lockId);
                 return null;
             }
         }
@@ -132,7 +132,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         // ahead and we lost. Some Azure SDK paths surface 409 instead — we treat both as the
         // race-lost outcome.
         var leaseId = Guid.NewGuid().ToString();
-        var now = timeProvider.GetUtcNow();
+        var now = _timeProvider.GetUtcNow();
         var metadata = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [LockIdKey] = lockId,
@@ -153,7 +153,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         }
         catch (RequestFailedException ex) when (ex.Status == 409 || ex.Status == 412)
         {
-            LogLockAddRaceLost(logger, fileId, lockId);
+            LogLockAddRaceLost(_logger, fileId, lockId);
             return null;
         }
 
@@ -167,12 +167,12 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         }
         catch (RequestFailedException ex)
         {
-            LogLeaseAcquireFailed(logger, ex, fileId);
+            LogLeaseAcquireFailed(_logger, ex, fileId);
             await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             return null;
         }
 
-        LogLockAcquired(logger, fileId, lockId);
+        LogLockAcquired(_logger, fileId, lockId);
         return new WopiLockInfo { FileId = fileId, LockId = lockId, DateCreated = now };
     }
 
@@ -186,7 +186,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         {
             return false;
         }
-        if (info.IsExpiredAt(timeProvider.GetUtcNow()))
+        if (info.IsExpiredAt(_timeProvider.GetUtcNow()))
         {
             return false;
         }
@@ -204,13 +204,13 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         }
         catch (RequestFailedException ex)
         {
-            LogLeaseRenewFailed(logger, ex, fileId);
+            LogLeaseRenewFailed(_logger, ex, fileId);
             return false;
         }
 
         var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal)
         {
-            [CreatedKey] = timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture),
+            [CreatedKey] = _timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture),
         };
         try
         {
@@ -221,7 +221,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         }
         catch (RequestFailedException ex)
         {
-            LogLockMetadataUpdateFailed(logger, ex, fileId);
+            LogLockMetadataUpdateFailed(_logger, ex, fileId);
             return false;
         }
     }
@@ -236,7 +236,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         {
             return false;
         }
-        if (info.IsExpiredAt(timeProvider.GetUtcNow()) || !lockComparer.AreEqual(info.LockId, expectedExistingLockId))
+        if (info.IsExpiredAt(_timeProvider.GetUtcNow()) || !_lockComparer.AreEqual(info.LockId, expectedExistingLockId))
         {
             return false;
         }
@@ -256,14 +256,14 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         }
         catch (RequestFailedException ex)
         {
-            LogLeaseRenewFailed(logger, ex, fileId);
+            LogLeaseRenewFailed(_logger, ex, fileId);
             return false;
         }
 
         var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal)
         {
             [LockIdKey] = newLockId,
-            [CreatedKey] = timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture),
+            [CreatedKey] = _timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture),
         };
         try
         {
@@ -275,12 +275,12 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         catch (RequestFailedException ex) when (ex.Status == 412 || ex.Status == 409)
         {
             // 412 = ETag changed (concurrent swap). 409 = lease conflict. Either way, swap aborted.
-            LogLockMetadataUpdateFailed(logger, ex, fileId);
+            LogLockMetadataUpdateFailed(_logger, ex, fileId);
             return false;
         }
         catch (RequestFailedException ex)
         {
-            LogLockMetadataUpdateFailed(logger, ex, fileId);
+            LogLockMetadataUpdateFailed(_logger, ex, fileId);
             return false;
         }
     }
@@ -311,30 +311,30 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         if (deleted.Value)
         {
             var removedLockId = props.Metadata.TryGetValue(LockIdKey, out var lid) ? lid : null;
-            LogLockRemoved(logger, fileId, removedLockId);
+            LogLockRemoved(_logger, fileId, removedLockId);
         }
         return deleted.Value;
     }
 
     private async Task EnsureContainerAsync(CancellationToken cancellationToken)
     {
-        if (initialized)
+        if (_initialized)
         {
             return;
         }
-        await initLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await _initLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (initialized)
+            if (_initialized)
             {
                 return;
             }
-            await containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            initialized = true;
+            await _containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            _initialized = true;
         }
         finally
         {
-            initLock.Release();
+            _initLock.Release();
         }
     }
 
@@ -342,7 +342,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
     {
         // Hash the fileId so any caller-supplied identifier is reduced to a safe blob name.
         var name = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(fileId))).ToLowerInvariant();
-        return containerClient.GetBlobClient(name);
+        return _containerClient.GetBlobClient(name);
     }
 
     private static async Task<BlobProperties?> TryGetPropertiesAsync(BlobClient blobClient, CancellationToken cancellationToken)

@@ -4,44 +4,44 @@ namespace WopiHost.Core.Tests.Infrastructure;
 
 public class UtfStringTests
 {
-    const string encodedValue = "madeup+AF8-name.wopitestx";
-    const string decodedValue = "madeup_name.wopitestx";
+    const string EncodedValue = "madeup+AF8-name.wopitestx";
+    const string DecodedValue = "madeup_name.wopitestx";
 
     [Fact]
     public void FromDecoded_ShouldReturnCorrectEncodedValue()
     {
-        UtfString utfString = UtfString.FromDecoded(decodedValue);
+        UtfString utfString = UtfString.FromDecoded(DecodedValue);
 
-        Assert.Equal(encodedValue, utfString.ToString(true));
-        Assert.Equal(decodedValue, utfString.ToString(false));
+        Assert.Equal(EncodedValue, utfString.ToString(true));
+        Assert.Equal(DecodedValue, utfString.ToString(false));
     }
 
     [Fact]
     public void FromEncoded_ShouldReturnCorrectDecodedValue()
     {
-        UtfString utfString = UtfString.FromEncoded(encodedValue);
+        UtfString utfString = UtfString.FromEncoded(EncodedValue);
 
-        Assert.Equal(encodedValue, utfString.ToString(true));
-        Assert.Equal(decodedValue, utfString.ToString(false));
+        Assert.Equal(EncodedValue, utfString.ToString(true));
+        Assert.Equal(DecodedValue, utfString.ToString(false));
     }
 
     [Fact]
     public void Parse_ShouldReturnCorrectUtfString()
     {
-        UtfString utfString = UtfString.Parse(encodedValue, null);
+        UtfString utfString = UtfString.Parse(EncodedValue, null);
 
-        Assert.Equal(encodedValue, utfString.ToString(true));
-        Assert.Equal(decodedValue, utfString.ToString(false));
+        Assert.Equal(EncodedValue, utfString.ToString(true));
+        Assert.Equal(DecodedValue, utfString.ToString(false));
     }
 
     [Fact]
     public void TryParse_ShouldReturnTrueForValidString()
     {
-        bool result = UtfString.TryParse(encodedValue, null, out UtfString utfString);
+        bool result = UtfString.TryParse(EncodedValue, null, out UtfString utfString);
 
         Assert.True(result);
-        Assert.Equal(encodedValue, utfString.ToString(true));
-        Assert.Equal(decodedValue, utfString.ToString(false));
+        Assert.Equal(EncodedValue, utfString.ToString(true));
+        Assert.Equal(DecodedValue, utfString.ToString(false));
     }
 
     [Fact]
@@ -57,10 +57,10 @@ public class UtfStringTests
     [Fact]
     public void ImplicitConversion_ShouldReturnDecodedValue()
     {
-        UtfString utfString = UtfString.FromDecoded(decodedValue);
+        UtfString utfString = UtfString.FromDecoded(DecodedValue);
 
         string result = utfString;
 
-        Assert.Equal(decodedValue, result);
+        Assert.Equal(DecodedValue, result);
     }
 }

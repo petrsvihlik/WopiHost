@@ -16,7 +16,7 @@ public class WopiAccessTokenMinterTests
     // ReadJwtToken returns claims with their raw JWT payload names. The OutboundClaimTypeMap
     // converts ClaimTypes.NameIdentifier → "nameid", ClaimTypes.Email → "email",
     // ClaimTypes.Name → "unique_name" at minting time; the wopi:* names pass through as-is.
-    private static readonly JwtSecurityTokenHandler Handler = new();
+    private static readonly JwtSecurityTokenHandler s_handler = new();
 
     private static WopiTokenMintRequest StandardRequest(WopiFilePermissions permissions = WopiFilePermissions.UserCanWrite) => new()
     {
@@ -33,7 +33,7 @@ public class WopiAccessTokenMinterTests
         var minter = WopiAccessTokenMinter.FromSecret("test-secret");
         var (token, _) = minter.Mint(StandardRequest());
 
-        var jwt = Handler.ReadJwtToken(token);
+        var jwt = s_handler.ReadJwtToken(token);
 
         Assert.Equal("user-1", jwt.Claims.First(c => c.Type == "nameid").Value);
         Assert.Equal("Alice", jwt.Claims.First(c => c.Type == WopiClaimTypes.UserDisplayName).Value);
@@ -50,7 +50,7 @@ public class WopiAccessTokenMinterTests
         var minter = WopiAccessTokenMinter.FromSecret("test-secret");
         var (token, _) = minter.Mint(StandardRequest() with { UserEmail = null });
 
-        var jwt = Handler.ReadJwtToken(token);
+        var jwt = s_handler.ReadJwtToken(token);
         Assert.DoesNotContain(jwt.Claims, c => c.Type == "email");
     }
 
@@ -60,7 +60,7 @@ public class WopiAccessTokenMinterTests
         var minter = WopiAccessTokenMinter.FromSecret("test-secret");
         var (token, _) = minter.Mint(StandardRequest(WopiFilePermissions.None));
 
-        var jwt = Handler.ReadJwtToken(token);
+        var jwt = s_handler.ReadJwtToken(token);
         Assert.DoesNotContain(jwt.Claims, c => c.Type == WopiClaimTypes.FilePermissions);
     }
 

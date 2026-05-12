@@ -17,11 +17,11 @@ public partial class MemoryLockProvider : IWopiLockProvider
     /// <summary>
     /// keyed with fileId
     /// </summary>
-    private static readonly ConcurrentDictionary<string, WopiLockInfo> locks = [];
+    private static readonly ConcurrentDictionary<string, WopiLockInfo> s_locks = [];
 
-    private readonly ILogger<MemoryLockProvider> logger;
-    private readonly IWopiLockComparer lockComparer;
-    private readonly TimeProvider timeProvider;
+    private readonly ILogger<MemoryLockProvider> _logger;
+    private readonly IWopiLockComparer _lockComparer;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Creates the provider.
@@ -42,20 +42,20 @@ public partial class MemoryLockProvider : IWopiLockProvider
         TimeProvider? timeProvider = null,
         IWopiLockComparer? lockComparer = null)
     {
-        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        this.timeProvider = timeProvider ?? TimeProvider.System;
-        this.lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _timeProvider = timeProvider ?? TimeProvider.System;
+        _lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
     }
 
     /// <inheritdoc />
     public Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default)
     {
-        if (locks.TryGetValue(fileId, out var lockInfo))
+        if (s_locks.TryGetValue(fileId, out var lockInfo))
         {
-            if (lockInfo.IsExpiredAt(timeProvider.GetUtcNow()))
+            if (lockInfo.IsExpiredAt(_timeProvider.GetUtcNow()))
             {
-                _ = locks.TryRemove(fileId, out _);
-                LogLockExpired(logger, fileId, lockInfo.LockId);
+                _ = s_locks.TryRemove(fileId, out _);
+                LogLockExpired(_logger, fileId, lockInfo.LockId);
                 return Task.FromResult<WopiLockInfo?>(null);
             }
             return Task.FromResult<WopiLockInfo?>(lockInfo);
@@ -70,16 +70,16 @@ public partial class MemoryLockProvider : IWopiLockProvider
         {
             FileId = fileId,
             LockId = lockId,
-            DateCreated = timeProvider.GetUtcNow(),
+            DateCreated = _timeProvider.GetUtcNow(),
         };
-        if (locks.TryAdd(fileId, lockInfo))
+        if (s_locks.TryAdd(fileId, lockInfo))
         {
-            LogLockAcquired(logger, fileId, lockId);
+            LogLockAcquired(_logger, fileId, lockId);
             return Task.FromResult<WopiLockInfo?>(lockInfo);
         }
 
-        var existingLockId = locks.TryGetValue(fileId, out var existing) ? existing.LockId : null;
-        LogLockAddRejected(logger, fileId, lockId, existingLockId);
+        var existingLockId = s_locks.TryGetValue(fileId, out var existing) ? existing.LockId : null;
+        LogLockAddRejected(_logger, fileId, lockId, existingLockId);
         return Task.FromResult<WopiLockInfo?>(null);
     }
 
@@ -93,17 +93,17 @@ public partial class MemoryLockProvider : IWopiLockProvider
         }
         var updated = existing with
         {
-            DateCreated = timeProvider.GetUtcNow(),
+            DateCreated = _timeProvider.GetUtcNow(),
         };
-        return locks.TryUpdate(fileId, updated, existing);
+        return s_locks.TryUpdate(fileId, updated, existing);
     }
 
     /// <inheritdoc />
     public Task<bool> RemoveLockAsync(string fileId, CancellationToken cancellationToken = default)
     {
-        if (locks.TryRemove(fileId, out var removed))
+        if (s_locks.TryRemove(fileId, out var removed))
         {
-            LogLockRemoved(logger, fileId, removed.LockId);
+            LogLockRemoved(_logger, fileId, removed.LockId);
             return Task.FromResult(true);
         }
         return Task.FromResult(false);
@@ -112,29 +112,29 @@ public partial class MemoryLockProvider : IWopiLockProvider
     /// <inheritdoc />
     public Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default)
     {
-        if (!locks.TryGetValue(fileId, out var existing))
+        if (!s_locks.TryGetValue(fileId, out var existing))
         {
             return Task.FromResult(false);
         }
-        if (existing.IsExpiredAt(timeProvider.GetUtcNow()))
+        if (existing.IsExpiredAt(_timeProvider.GetUtcNow()))
         {
             // Best-effort eviction; behave as if no lock exists.
-            _ = locks.TryRemove(fileId, out _);
-            LogLockExpired(logger, fileId, existing.LockId);
+            _ = s_locks.TryRemove(fileId, out _);
+            LogLockExpired(_logger, fileId, existing.LockId);
             return Task.FromResult(false);
         }
-        if (!lockComparer.AreEqual(existing.LockId, expectedExistingLockId))
+        if (!_lockComparer.AreEqual(existing.LockId, expectedExistingLockId))
         {
             return Task.FromResult(false);
         }
         var updated = existing with
         {
-            DateCreated = timeProvider.GetUtcNow(),
+            DateCreated = _timeProvider.GetUtcNow(),
             LockId = newLockId,
         };
         // TryUpdate is the atomic CAS: succeeds only if the dictionary's current value still
         // equals the snapshot we read. Any concurrent mutation (refresh, swap, removal) makes
         // the comparand stale and the swap returns false.
-        return Task.FromResult(locks.TryUpdate(fileId, updated, existing));
+        return Task.FromResult(s_locks.TryUpdate(fileId, updated, existing));
     }
 }

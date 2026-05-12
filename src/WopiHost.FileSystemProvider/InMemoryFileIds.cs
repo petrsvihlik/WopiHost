@@ -11,12 +11,12 @@ namespace WopiHost.FileSystemProvider;
 /// <remarks>very basic in-memory for sample purposes only</remarks>
 public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
 {
-    private readonly Dictionary<string, string> fileIds = [];
+    private readonly Dictionary<string, string> _fileIds = [];
 
     /// <summary>
     /// Gets a value indicating whether any files have been scanned.
     /// </summary>
-    public bool WasScanned => fileIds.Count > 0;
+    public bool WasScanned => _fileIds.Count > 0;
 
     /// <summary>
     /// Gets the file identifier for the specified path.
@@ -26,7 +26,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// <returns></returns>
     public bool TryGetFileId(string path, [NotNullWhen(true)] out string? fileId)
     {
-        fileId = fileIds.FirstOrDefault(x => x.Value == path).Key;
+        fileId = _fileIds.FirstOrDefault(x => x.Value == path).Key;
         return fileId != null;
     }
 
@@ -38,7 +38,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// <returns></returns>
     public bool TryGetPath(string fileId, [NotNullWhen(true)] out string? path)
     {
-        return fileIds.TryGetValue(fileId, out path);
+        return _fileIds.TryGetValue(fileId, out path);
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     public string AddFile(string path)
     {
         var id = IdFromPath(path);
-        fileIds[id] = path;
+        _fileIds[id] = path;
         return id;
     }
 
@@ -74,7 +74,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// <param name="fileId"></param>
     public void RemoveId(string fileId)
     {
-        fileIds.Remove(fileId);
+        _fileIds.Remove(fileId);
     }
 
     /// <summary>
@@ -84,7 +84,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// <param name="path"></param>
     public void UpdateFile(string id, string path)
     {
-        fileIds[id] = path;
+        _fileIds[id] = path;
     }
 
     /// <summary>
@@ -93,13 +93,13 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// <param name="rootPath"></param>
     public void ScanAll(string rootPath)
     {
-        fileIds.Clear();
+        _fileIds.Clear();
 
-        fileIds[IdFromPath(rootPath)] = rootPath;
+        _fileIds[IdFromPath(rootPath)] = rootPath;
 
         foreach (var directory in Directory.EnumerateDirectories(rootPath, "*", SearchOption.AllDirectories))
         {
-            fileIds[IdFromPath(directory)] = directory;
+            _fileIds[IdFromPath(directory)] = directory;
         }
 
         foreach (var file in Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories))
@@ -107,10 +107,10 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
             var newId = file.EndsWith("test.wopitest", StringComparison.OrdinalIgnoreCase)
                 ? "WOPITEST"
                 : IdFromPath(file);
-            fileIds[newId] = file;
+            _fileIds[newId] = file;
         }
 
-        LogScannedItems(logger, fileIds.Count);
+        LogScannedItems(logger, _fileIds.Count);
     }
 
     /// <summary>

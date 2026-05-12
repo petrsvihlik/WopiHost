@@ -30,7 +30,7 @@ public class HostPageModel(
     public string AccessTokenTtl { get; set; } = string.Empty;
     public Uri? UrlSrc { get; set; }
 
-    private readonly WopiUrlBuilder urlGenerator = new(discoverer, urlBuilderLogger, new WopiUrlSettings { UiLlcc = CultureInfo.CurrentUICulture });
+    private readonly WopiUrlBuilder _urlGenerator = new(discoverer, urlBuilderLogger, new WopiUrlSettings { UiLlcc = CultureInfo.CurrentUICulture });
 
     public async Task<IActionResult> OnGet(CancellationToken cancellationToken = default)
     {
@@ -67,7 +67,7 @@ public class HostPageModel(
             wopiOptions.Value.HostUrl,
             linkGenerator.GetPathByRouteValues(WopiRouteNames.CheckFileInfo, new { id = FileId })
             ?? throw new InvalidOperationException($"Could not generate route for '{WopiRouteNames.CheckFileInfo}'"));
-        var urlSrcString = await urlGenerator.GetFileUrlAsync(extension, wopiFileUrl, WopiAction)
+        var urlSrcString = await _urlGenerator.GetFileUrlAsync(extension, wopiFileUrl, WopiAction)
             ?? throw new InvalidOperationException($"Could not retrieve WopiUrl for extension '{extension}'");
         UrlSrc = new Uri(urlSrcString, UriKind.Absolute);
         ViewData["favicon"] = await discoverer.GetApplicationFavIconAsync(extension);
