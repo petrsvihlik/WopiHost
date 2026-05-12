@@ -69,16 +69,14 @@ public class ContainersController(
     [Produces(MediaTypeNames.Application.Json)]
     [WopiOverrideHeader(WopiContainerOperations.CreateChildContainer)]
     [WopiAuthorize(WopiResourceType.Container, Permission.Create)]
+    [RequiresWritableStorage]
     public async Task<IActionResult> CreateChildContainer(
         string id,
         [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget = null,
         [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? relativeTarget = null,
         CancellationToken cancellationToken = default)
     {
-        if (writableStorageProvider is null)
-        {
-            return new NotImplementedResult();
-        }
+        ArgumentNullException.ThrowIfNull(writableStorageProvider);
 
         if (await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken) is null)
         {
@@ -154,6 +152,7 @@ public class ContainersController(
     [Produces(MediaTypeNames.Application.Json)]
     [WopiOverrideHeader(WopiContainerOperations.CreateChildFile)]
     [WopiAuthorize(WopiResourceType.Container, Permission.CreateChildFile)]
+    [RequiresWritableStorage]
     public async Task<IActionResult> CreateChildFile(
         string id,
         [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget = null,
@@ -161,10 +160,7 @@ public class ContainersController(
         [FromHeader(Name = WopiHeaders.OVERWRITE_RELATIVE_TARGET)] bool? overwriteRelativeTarget = false,
         CancellationToken cancellationToken = default)
     {
-        if (writableStorageProvider is null)
-        {
-            return new NotImplementedResult();
-        }
+        ArgumentNullException.ThrowIfNull(writableStorageProvider);
 
         var container = await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken);
         if (container is null)
@@ -280,12 +276,10 @@ public class ContainersController(
     [HttpPost("{id}")]
     [WopiOverrideHeader(WopiContainerOperations.DeleteContainer)]
     [WopiAuthorize(WopiResourceType.Container, Permission.Delete)]
+    [RequiresWritableStorage]
     public async Task<IActionResult> DeleteContainer(string id, CancellationToken cancellationToken = default)
     {
-        if (writableStorageProvider is null)
-        {
-            return new NotImplementedResult();
-        }
+        ArgumentNullException.ThrowIfNull(writableStorageProvider);
         if (await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken) is null)
         {
             return NotFound();
@@ -323,15 +317,13 @@ public class ContainersController(
     [Produces(MediaTypeNames.Application.Json)]
     [WopiOverrideHeader(WopiContainerOperations.RenameContainer)]
     [WopiAuthorize(WopiResourceType.Container, Permission.Rename)]
+    [RequiresWritableStorage]
     public async Task<IActionResult> RenameContainer(
         string id,
         [FromHeader(Name = WopiHeaders.REQUESTED_NAME)] UtfString requestedName,
         CancellationToken cancellationToken = default)
     {
-        if (writableStorageProvider is null)
-        {
-            return new NotImplementedResult();
-        }
+        ArgumentNullException.ThrowIfNull(writableStorageProvider);
         var container = await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken);
         if (container is null)
         {

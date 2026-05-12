@@ -97,19 +97,6 @@ public class ContainersControllerTests
     }
 
     [Fact]
-    public async Task CreateChildContainer_ReturnsNotImplemented_WhenWritableStorageProviderIsNull()
-    {
-        var controller = new ContainersController(
-            storageProviderMock.Object,
-            lockProviderMock.Object,
-            null);
-
-        var result = await controller.CreateChildContainer("id");
-
-        Assert.IsType<NotImplementedResult>(result);
-    }
-
-    [Fact]
     public async Task CreateChildContainer_ReturnsNotFound_WhenContainerDoesNotExist()
     {
         storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
@@ -215,16 +202,6 @@ public class ContainersControllerTests
 
         var jsonResult = Assert.IsType<JsonResult>(result);
         Assert.IsType<CreateChildContainerResponse>(jsonResult.Value);
-    }
-
-    [Fact]
-    public async Task CreateChildFile_ReturnsNotImplemented_WhenWritableStorageProviderIsNull()
-    {
-        var controller = new ContainersController(storageProviderMock.Object, lockProviderMock.Object, null);
-
-        var result = await controller.CreateChildFile("containerId");
-
-        Assert.IsType<NotImplementedResult>(result);
     }
 
     [Fact]
@@ -334,18 +311,6 @@ public class ContainersControllerTests
         Assert.IsType<ChildFile>(jsonResult.Value);
     }
 
-    [Fact]
-    public async Task DeleteContainer_ReturnsNotImplemented_WhenWritableStorageProviderIsNull()
-    {
-        var controller = new ContainersController(
-            storageProviderMock.Object,
-            lockProviderMock.Object,
-            null);
-
-        var result = await controller.DeleteContainer("id");
-
-        Assert.IsType<NotImplementedResult>(result);
-    }
 
     [Fact]
     public async Task DeleteContainer_ReturnsNotFound_WhenContainerDoesNotExist()
@@ -413,18 +378,6 @@ public class ContainersControllerTests
         Assert.IsType<ConflictResult>(result);
     }
 
-    [Fact]
-    public async Task RenameContainer_ReturnsNotImplemented_WhenWritableStorageProviderIsNull()
-    {
-        var controller = new ContainersController(
-            storageProviderMock.Object,
-            lockProviderMock.Object,
-            null);
-
-        var result = await controller.RenameContainer("id", new UtfString());
-
-        Assert.IsType<NotImplementedResult>(result);
-    }
 
     [Fact]
     public async Task RenameContainer_ReturnsNotFound_WhenContainerNotFound()
