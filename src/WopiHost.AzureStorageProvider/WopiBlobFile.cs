@@ -107,7 +107,7 @@ public class WopiBlobFile : IWopiFile
     }
 
     /// <inheritdoc/>
-    public async Task<Stream> GetReadStream(CancellationToken cancellationToken = default)
+    public async Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default)
         => await blobClient.OpenReadAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
     /// <inheritdoc/>
@@ -117,7 +117,7 @@ public class WopiBlobFile : IWopiFile
     /// <see cref="Sha256MetadataKey"/> metadata key, preserving any pre-existing metadata (owner,
     /// custom keys) so they survive the rewrite.
     /// </remarks>
-    public async Task<Stream> GetWriteStream(CancellationToken cancellationToken = default)
+    public async Task<Stream> OpenWriteAsync(CancellationToken cancellationToken = default)
     {
         var preserved = properties?.Metadata is { } existing
             ? new Dictionary<string, string>(existing, StringComparer.Ordinal)

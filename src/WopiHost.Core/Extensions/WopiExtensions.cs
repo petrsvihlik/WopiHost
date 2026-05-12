@@ -35,7 +35,7 @@ public static class WopiExtensions
         var result = file.Checksum;
         if (result is null)
         {
-            using var stream = await file.GetReadStream(cancellationToken).ConfigureAwait(false);
+            using var stream = await file.OpenReadAsync(cancellationToken).ConfigureAwait(false);
             result = await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);
         }
         return Convert.ToBase64String(result.Value.Span);

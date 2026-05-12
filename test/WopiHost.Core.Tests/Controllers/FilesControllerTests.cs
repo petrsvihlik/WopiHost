@@ -98,8 +98,8 @@ public class FilesControllerTests
         fileMock.SetupGet(f => f.Length).Returns(size);
         fileMock.SetupGet(f => f.Exists).Returns(size > 0);
         fileMock.SetupGet(f => f.Identifier).Returns(fileId);
-        fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
-        fileMock.Setup(f => f.GetWriteStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
+        fileMock.Setup(f => f.OpenReadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
+        fileMock.Setup(f => f.OpenWriteAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
         return fileMock;
     }
 
@@ -127,7 +127,7 @@ public class FilesControllerTests
         fileMock.SetupGet(f => f.Extension).Returns("txt");
         fileMock.SetupGet(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
         fileMock.SetupGet(f => f.Length).Returns(1024);
-        fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
+        fileMock.Setup(f => f.OpenReadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => fileMock.Object);
@@ -173,7 +173,7 @@ public class FilesControllerTests
         fileMock.SetupGet(f => f.Extension).Returns("txt");
         fileMock.SetupGet(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
         fileMock.SetupGet(f => f.Length).Returns(1024);
-        fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
+        fileMock.Setup(f => f.OpenReadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
 
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
@@ -424,7 +424,7 @@ public class FilesControllerTests
         fileMock.SetupGet(f => f.Extension).Returns("txt");
         fileMock.SetupGet(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
         fileMock.SetupGet(f => f.Length).Returns(1024);
-        fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
+        fileMock.Setup(f => f.OpenReadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
 
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
@@ -472,7 +472,7 @@ public class FilesControllerTests
         fileMock.SetupGet(f => f.Extension).Returns("txt");
         fileMock.SetupGet(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
         fileMock.SetupGet(f => f.Length).Returns(1024);
-        fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
+        fileMock.Setup(f => f.OpenReadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
 
         storageProviderMock
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))

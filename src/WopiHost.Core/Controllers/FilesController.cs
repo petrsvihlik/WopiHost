@@ -131,7 +131,7 @@ public class FilesController(
         }
 
         // Try to read content from a stream
-        return new FileStreamResult(await file.GetReadStream(cancellationToken).ConfigureAwait(false), MediaTypeNames.Application.Octet);
+        return new FileStreamResult(await file.OpenReadAsync(cancellationToken).ConfigureAwait(false), MediaTypeNames.Application.Octet);
     }
 
     /// <summary>

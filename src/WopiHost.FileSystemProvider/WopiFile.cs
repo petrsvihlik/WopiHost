@@ -42,10 +42,10 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
     public DateTime LastWriteTimeUtc => fileInfo.LastWriteTimeUtc;
 
     /// <inheritdoc/>
-    public Task<Stream> GetReadStream(CancellationToken cancellationToken = default) => Task.FromResult<Stream>(fileInfo.OpenRead());
+    public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) => Task.FromResult<Stream>(fileInfo.OpenRead());
 
     /// <inheritdoc/>
-    public Task<Stream> GetWriteStream(CancellationToken cancellationToken = default) => Task.FromResult<Stream>(fileInfo.Open(FileMode.Truncate));
+    public Task<Stream> OpenWriteAsync(CancellationToken cancellationToken = default) => Task.FromResult<Stream>(fileInfo.Open(FileMode.Truncate));
 
     /// <summary>
     /// A string that uniquely identifies the owner of the file.
