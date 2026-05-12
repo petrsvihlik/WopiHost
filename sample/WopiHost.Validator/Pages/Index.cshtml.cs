@@ -28,11 +28,11 @@ public class IndexModel(
         ViewData["Title"] = "Welcome to WOPI HOST test page";
 
         // setup title
-        ContainerId ??= storageProvider.RootContainerPointer.Identifier;
+        ContainerId ??= storageProvider.RootContainer.Identifier;
         ContainerName = (await storageProvider.GetWopiResource<IWopiFolder>(ContainerId, cancellationToken))?.Name
             ?? throw new InvalidOperationException("Container not found");
         // calc breadcrumb
-        if (ContainerId != storageProvider.RootContainerPointer.Identifier)
+        if (ContainerId != storageProvider.RootContainer.Identifier)
         {
             var ancestors = await storageProvider.GetAncestors<IWopiFolder>(ContainerId, cancellationToken);
             for (var i = 0; i < ancestors.Count; i++)

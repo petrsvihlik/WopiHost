@@ -16,10 +16,8 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     private readonly string wopiAbsolutePath;
     private readonly ILogger<WopiFileSystemProvider> logger;
 
-    /// <summary>
-    /// Reference to the root container.
-    /// </summary>
-    public IWopiFolder RootContainerPointer { get; }
+    /// <inheritdoc />
+    public IWopiFolder RootContainer { get; }
 
     /// <summary>
     /// Creates a new instance of the <see cref="WopiFileSystemProvider"/> based on the provided hosting environment and configuration.
@@ -53,7 +51,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         {
             throw new InvalidOperationException("Root directory not found.");
         }
-        RootContainerPointer = new WopiFolder(wopiAbsolutePath, rootId);
+        RootContainer = new WopiFolder(wopiAbsolutePath, rootId);
         LogProviderInitialized(this.logger, wopiAbsolutePath);
     }
 
@@ -75,11 +73,12 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
 
     /// <inheritdoc/>
     public async IAsyncEnumerable<IWopiFile> GetWopiFiles(
-        string? identifier = null,
+        string identifier,
         string? searchPattern = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var folderPath = fileIds.GetPath(identifier ?? RootContainerPointer.Identifier)
+        ArgumentNullException.ThrowIfNull(identifier);
+        var folderPath = fileIds.GetPath(identifier)
             ?? throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
 
         foreach (var path in Directory.GetFiles(Path.Combine(wopiAbsolutePath, folderPath), searchPattern ?? "*.*"))
@@ -96,10 +95,11 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
 
     /// <inheritdoc/>
     public async IAsyncEnumerable<IWopiFolder> GetWopiContainers(
-        string? identifier = null,
+        string identifier,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var folderPath = fileIds.GetPath(identifier ?? RootContainerPointer.Identifier)
+        ArgumentNullException.ThrowIfNull(identifier);
+        var folderPath = fileIds.GetPath(identifier)
             ?? throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
 
         foreach (var directory in Directory.GetDirectories(Path.Combine(wopiAbsolutePath, folderPath)))
@@ -133,7 +133,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
             result.Add(container);
         }
 
-        while (container.Identifier != RootContainerPointer.Identifier)
+        while (container.Identifier != RootContainer.Identifier)
         {
             var parentId = GetFolderParentIdentifier(container.Identifier);
             container = await GetWopiResource<IWopiFolder>(parentId, cancellationToken)
@@ -247,15 +247,16 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
 
     /// <inheritdoc/>
     public async Task<T?> CreateWopiChildResource<T>(
-        string? containerId,
+        string containerId,
         string name,
         CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
+        ArgumentNullException.ThrowIfNull(containerId);
         return typeof(T) switch
         {
-            { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => await CreateWopiFile(containerId ?? RootContainerPointer.Identifier, name, cancellationToken) as T,
-            { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => await CreateWopiChildContainer(containerId ?? RootContainerPointer.Identifier, name, cancellationToken) as T,
+            { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => await CreateWopiFile(containerId, name, cancellationToken) as T,
+            { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => await CreateWopiChildContainer(containerId, name, cancellationToken) as T,
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
     }

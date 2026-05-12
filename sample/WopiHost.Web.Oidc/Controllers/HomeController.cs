@@ -34,7 +34,7 @@ public class HomeController(
         try
         {
             var fileViewModels = new List<FileViewModel>();
-            await foreach (var file in storageProvider.GetWopiFiles(storageProvider.RootContainerPointer.Identifier))
+            await foreach (var file in storageProvider.GetWopiFiles(storageProvider.RootContainer.Identifier))
             {
                 fileViewModels.Add(new FileViewModel
                 {

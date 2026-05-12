@@ -24,7 +24,7 @@ public class EcosystemControllerTests
     {
         _root.SetupGet(f => f.Identifier).Returns("root-id");
         _root.SetupGet(f => f.Name).Returns("Root");
-        _storage.SetupGet(s => s.RootContainerPointer).Returns(_root.Object);
+        _storage.SetupGet(s => s.RootContainer).Returns(_root.Object);
         _storage
             .Setup(s => s.GetWopiResource<IWopiFolder>("root-id", It.IsAny<CancellationToken>()))
             .ReturnsAsync(_root.Object);

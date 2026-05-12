@@ -14,13 +14,17 @@ public interface IWopiWritableStorageProvider
     /// <summary>
     /// Creates a new Wopi resource (Container or File) in the specified container.
     /// </summary>
-    /// <param name="name">the new Container's name</param>
-    /// <param name="containerId">identifier of parent container (or null to use root)</param>
+    /// <param name="containerId">
+    /// Identifier of the parent container. Required. Pass
+    /// <c><see cref="IWopiStorageProvider.RootContainer"/>.Identifier</c> to create directly under
+    /// the root.
+    /// </param>
+    /// <param name="name">the new resource's name</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>identifier of new resource</returns>
     /// <remarks>creating a <see cref="WopiResourceType.File"/> always creates a 0-byte file</remarks>
     Task<T?> CreateWopiChildResource<T>(
-        string? containerId,
+        string containerId,
         string name,
         CancellationToken cancellationToken = default)
         where T : class, IWopiResource;
