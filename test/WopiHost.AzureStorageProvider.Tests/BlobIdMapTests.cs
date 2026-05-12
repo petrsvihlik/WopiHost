@@ -14,8 +14,8 @@ public class BlobIdMapTests
         var upper = BlobIdMap.IdFromPath("A/B/FILE.TXT");
 
         Assert.Equal(lower, upper);
-        // Hex MD5 — 32 lowercase hex chars.
-        Assert.Equal(32, lower.Length);
+        // Hex SHA-256 — 64 lowercase hex chars.
+        Assert.Equal(64, lower.Length);
         Assert.All(lower, c => Assert.True(char.IsAsciiHexDigitLower(c)));
     }
 

@@ -96,7 +96,6 @@ public class FilesControllerTests
         fileMock.SetupGet(f => f.Extension).Returns("txt");
         fileMock.SetupGet(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
         fileMock.SetupGet(f => f.Length).Returns(size);
-        fileMock.SetupGet(f => f.Size).Returns(size);
         fileMock.SetupGet(f => f.Exists).Returns(size > 0);
         fileMock.SetupGet(f => f.Identifier).Returns(fileId);
         fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());
@@ -455,16 +454,6 @@ public class FilesControllerTests
     #region DeleteFile
 
     [Fact]
-    public async Task DeleteFile_NoWritableStorageProvider()
-    {
-        controller = new FilesController(
-                    storageProviderMock.Object,
-                    memoryCache);
-        var result = await controller.DeleteFile("file_id");
-        Assert.IsType<NotImplementedResult>(result);
-    }
-
-    [Fact]
     public async Task DeleteFile_FileNotFound_ReturnsNotFound()
     {
         storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
@@ -541,19 +530,6 @@ public class FilesControllerTests
     #endregion
 
     #region RenameFile
-
-    [Fact]
-    public async Task RenameFile_NoWritableStorageProvider_ReturnsNotImplemented()
-    {
-        controller = new FilesController(storageProviderMock.Object, memoryCache)
-        {
-            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
-        };
-
-        var result = await controller.RenameFile("file_id", new UtfString());
-
-        Assert.IsType<NotImplementedResult>(result);
-    }
 
     [Fact]
     public async Task RenameFile_FileNotFound_ReturnsNotFound()
@@ -959,19 +935,6 @@ public class FilesControllerTests
     #endregion
 
     #region PutRelativeFile
-
-    [Fact]
-    public async Task PutRelativeFile_NoWritableStorageProvider_ReturnsNotImplemented()
-    {
-        controller = new FilesController(storageProviderMock.Object, memoryCache)
-        {
-            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
-        };
-
-        var result = await controller.PutRelativeFile("file_id");
-
-        Assert.IsType<NotImplementedResult>(result);
-    }
 
     [Fact]
     public async Task PutRelativeFile_FileNotFound_ReturnsNotFound()

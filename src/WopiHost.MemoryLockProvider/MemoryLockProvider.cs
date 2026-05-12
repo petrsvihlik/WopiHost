@@ -21,16 +21,29 @@ public partial class MemoryLockProvider : IWopiLockProvider
 
     private readonly ILogger<MemoryLockProvider> logger;
     private readonly IWopiLockComparer lockComparer;
+    private readonly TimeProvider timeProvider;
 
     /// <summary>
-    /// Creates the provider. <paramref name="lockComparer"/> defaults to
-    /// <see cref="OrdinalWopiLockComparer"/> when not supplied via DI; replace with a custom
-    /// comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>) to absorb known WOPI-client
-    /// lock-id mutations.
+    /// Creates the provider.
     /// </summary>
-    public MemoryLockProvider(ILogger<MemoryLockProvider> logger, IWopiLockComparer? lockComparer = null)
+    /// <param name="logger">Logger.</param>
+    /// <param name="timeProvider">
+    /// Clock source for lock timestamps and expiry. Defaults to <see cref="TimeProvider.System"/>
+    /// when not supplied via DI; inject a <c>FakeTimeProvider</c> (or any custom
+    /// <see cref="TimeProvider"/>) in tests to make expiry deterministic.
+    /// </param>
+    /// <param name="lockComparer">
+    /// Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/> when not supplied
+    /// via DI; replace with a custom comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>)
+    /// to absorb known WOPI-client lock-id mutations.
+    /// </param>
+    public MemoryLockProvider(
+        ILogger<MemoryLockProvider> logger,
+        TimeProvider? timeProvider = null,
+        IWopiLockComparer? lockComparer = null)
     {
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        this.timeProvider = timeProvider ?? TimeProvider.System;
         this.lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
     }
 
@@ -39,7 +52,7 @@ public partial class MemoryLockProvider : IWopiLockProvider
     {
         if (locks.TryGetValue(fileId, out var lockInfo))
         {
-            if (lockInfo.Expired)
+            if (lockInfo.IsExpiredAt(timeProvider.GetUtcNow()))
             {
                 _ = locks.TryRemove(fileId, out _);
                 LogLockExpired(logger, fileId, lockInfo.LockId);
@@ -57,7 +70,7 @@ public partial class MemoryLockProvider : IWopiLockProvider
         {
             FileId = fileId,
             LockId = lockId,
-            DateCreated = DateTimeOffset.UtcNow,
+            DateCreated = timeProvider.GetUtcNow(),
         };
         if (locks.TryAdd(fileId, lockInfo))
         {
@@ -80,7 +93,7 @@ public partial class MemoryLockProvider : IWopiLockProvider
         }
         var updated = existing with
         {
-            DateCreated = DateTimeOffset.UtcNow,
+            DateCreated = timeProvider.GetUtcNow(),
         };
         return locks.TryUpdate(fileId, updated, existing);
     }
@@ -103,7 +116,7 @@ public partial class MemoryLockProvider : IWopiLockProvider
         {
             return Task.FromResult(false);
         }
-        if (existing.Expired)
+        if (existing.IsExpiredAt(timeProvider.GetUtcNow()))
         {
             // Best-effort eviction; behave as if no lock exists.
             _ = locks.TryRemove(fileId, out _);
@@ -116,7 +129,7 @@ public partial class MemoryLockProvider : IWopiLockProvider
         }
         var updated = existing with
         {
-            DateCreated = DateTimeOffset.UtcNow,
+            DateCreated = timeProvider.GetUtcNow(),
             LockId = newLockId,
         };
         // TryUpdate is the atomic CAS: succeeds only if the dictionary's current value still

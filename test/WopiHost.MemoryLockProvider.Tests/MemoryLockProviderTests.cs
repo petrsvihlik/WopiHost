@@ -223,7 +223,7 @@ public class MemoryLockProviderTests
         // Same scenario, but with the tolerant comparer plugged in: the swap should succeed
         // because the OOS-style lock-id mutation only added a property; the underlying S-field
         // identity hasn't changed.
-        var provider = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance, new JsonShapedWopiLockComparer());
+        var provider = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance, lockComparer: new JsonShapedWopiLockComparer());
         var fileId = $"json-lock-tolerant-{Guid.NewGuid()}";
         var clientLock = """{"S":"abc-123","F":4}""";
         await provider.AddLockAsync(fileId, clientLock);
@@ -241,11 +241,67 @@ public class MemoryLockProviderTests
         Assert.Equal("next-lock", info.LockId);
     }
 
+    [Fact]
+    public async Task GetLockAsync_AdvancingInjectedTimeProviderPastExpiry_EvictsLock()
+    {
+        // Verifies the TimeProvider seam: lock expiry is observable purely by advancing the
+        // injected clock, with no reflection into the provider's internal state. The earlier
+        // ambient-DateTime.UtcNow design forced tests to mutate the static dictionary directly
+        // (see GetLockAsync_ExpiredLock_RemovesAndReturnsNull below) — this is the modern
+        // .NET 8+ replacement.
+        var clock = new ControllableTimeProvider(DateTimeOffset.UtcNow);
+        var provider = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance, clock);
+        var fileId = $"timeprovider-expire-{Guid.NewGuid()}";
+
+        var added = await provider.AddLockAsync(fileId, "lock");
+        Assert.NotNull(added);
+
+        // Within the window: still observable.
+        clock.Now = clock.Now.AddMinutes(WopiLockInfo.ExpirationMinutes - 1);
+        Assert.NotNull(await provider.GetLockAsync(fileId));
+
+        // One tick past the window: evicted.
+        clock.Now = clock.Now.AddMinutes(2);
+        Assert.Null(await provider.GetLockAsync(fileId));
+    }
+
+    [Fact]
+    public async Task RefreshLockAsync_AdvancingInjectedTimeProviderResetsExpiryClock()
+    {
+        // Same seam — confirms RefreshLockAsync writes back the *new* clock reading, not the
+        // original DateCreated, so a long-running session that keeps refreshing never expires.
+        var clock = new ControllableTimeProvider(DateTimeOffset.UtcNow);
+        var provider = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance, clock);
+        var fileId = $"timeprovider-refresh-{Guid.NewGuid()}";
+
+        await provider.AddLockAsync(fileId, "lock");
+
+        // Almost-expired, then refresh.
+        clock.Now = clock.Now.AddMinutes(WopiLockInfo.ExpirationMinutes - 1);
+        Assert.True(await provider.RefreshLockAsync(fileId));
+
+        // Another almost-expiry-window later: still alive because the refresh moved DateCreated.
+        clock.Now = clock.Now.AddMinutes(WopiLockInfo.ExpirationMinutes - 1);
+        Assert.NotNull(await provider.GetLockAsync(fileId));
+    }
+
     private static ConcurrentDictionary<string, WopiLockInfo> GetSharedLockDictionary()
     {
         var field = typeof(MemoryLockProvider)
             .GetField("locks", BindingFlags.Static | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("MemoryLockProvider.locks field not found");
         return (ConcurrentDictionary<string, WopiLockInfo>)field.GetValue(null)!;
+    }
+
+    /// <summary>
+    /// Minimal manually-driven <see cref="TimeProvider"/> used to make lock-expiry behaviour
+    /// deterministic in tests. Equivalent to <c>FakeTimeProvider</c> from
+    /// <c>Microsoft.Extensions.TimeProvider.Testing</c>, kept inline to avoid pulling the
+    /// extra package in just for this assembly.
+    /// </summary>
+    private sealed class ControllableTimeProvider(DateTimeOffset start) : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; } = start;
+        public override DateTimeOffset GetUtcNow() => Now;
     }
 }

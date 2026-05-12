@@ -102,7 +102,7 @@ public class FoldersController(IWopiStorageProvider storageProvider) : Controlle
             files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, Url.GetWopiSrc(WopiResourceType.File, wopiFile.Identifier))
             {
                 LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
-                Size = wopiFile.Size,
+                Size = wopiFile.Length,
                 Version = wopiFile.Version ?? wopiFile.LastWriteTimeUtc.ToString("s", CultureInfo.InvariantCulture)
             });
         }

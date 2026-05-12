@@ -97,19 +97,6 @@ public class ContainersControllerTests
     }
 
     [Fact]
-    public async Task CreateChildContainer_ReturnsNotImplemented_WhenWritableStorageProviderIsNull()
-    {
-        var controller = new ContainersController(
-            storageProviderMock.Object,
-            lockProviderMock.Object,
-            null);
-
-        var result = await controller.CreateChildContainer("id");
-
-        Assert.IsType<NotImplementedResult>(result);
-    }
-
-    [Fact]
     public async Task CreateChildContainer_ReturnsNotFound_WhenContainerDoesNotExist()
     {
         storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
@@ -215,16 +202,6 @@ public class ContainersControllerTests
 
         var jsonResult = Assert.IsType<JsonResult>(result);
         Assert.IsType<CreateChildContainerResponse>(jsonResult.Value);
-    }
-
-    [Fact]
-    public async Task CreateChildFile_ReturnsNotImplemented_WhenWritableStorageProviderIsNull()
-    {
-        var controller = new ContainersController(storageProviderMock.Object, lockProviderMock.Object, null);
-
-        var result = await controller.CreateChildFile("containerId");
-
-        Assert.IsType<NotImplementedResult>(result);
     }
 
     [Fact]
@@ -335,19 +312,6 @@ public class ContainersControllerTests
     }
 
     [Fact]
-    public async Task DeleteContainer_ReturnsNotImplemented_WhenWritableStorageProviderIsNull()
-    {
-        var controller = new ContainersController(
-            storageProviderMock.Object,
-            lockProviderMock.Object,
-            null);
-
-        var result = await controller.DeleteContainer("id");
-
-        Assert.IsType<NotImplementedResult>(result);
-    }
-
-    [Fact]
     public async Task DeleteContainer_ReturnsNotFound_WhenContainerDoesNotExist()
     {
         storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);
@@ -411,19 +375,6 @@ public class ContainersControllerTests
         var result = await _controller.DeleteContainer(containerId);
 
         Assert.IsType<ConflictResult>(result);
-    }
-
-    [Fact]
-    public async Task RenameContainer_ReturnsNotImplemented_WhenWritableStorageProviderIsNull()
-    {
-        var controller = new ContainersController(
-            storageProviderMock.Object,
-            lockProviderMock.Object,
-            null);
-
-        var result = await controller.RenameContainer("id", new UtfString());
-
-        Assert.IsType<NotImplementedResult>(result);
     }
 
     [Fact]
@@ -624,7 +575,7 @@ public class ContainersControllerTests
         fileMock.Setup(f => f.Name).Returns("file");
         fileMock.Setup(f => f.Extension).Returns("txt");
         fileMock.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-        fileMock.Setup(f => f.Size).Returns(123);
+        fileMock.Setup(f => f.Length).Returns(123);
         fileMock.Setup(f => f.Identifier).Returns("fileId");
 
         var folderMock = new Mock<IWopiFolder>();
@@ -650,14 +601,14 @@ public class ContainersControllerTests
         fileMock1.Setup(f => f.Name).Returns("file1");
         fileMock1.Setup(f => f.Extension).Returns("txt");
         fileMock1.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-        fileMock1.Setup(f => f.Size).Returns(123);
+        fileMock1.Setup(f => f.Length).Returns(123);
         fileMock1.Setup(f => f.Identifier).Returns("fileId1");
 
         var fileMock2 = new Mock<IWopiFile>();
         fileMock2.Setup(f => f.Name).Returns("file2");
         fileMock2.Setup(f => f.Extension).Returns("doc");
         fileMock2.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-        fileMock2.Setup(f => f.Size).Returns(456);
+        fileMock2.Setup(f => f.Length).Returns(456);
         fileMock2.Setup(f => f.Identifier).Returns("fileId2");
 
         storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);

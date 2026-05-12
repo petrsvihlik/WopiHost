@@ -136,10 +136,10 @@ public partial class Program
             app.MapControllers();
             app.MapGet("/", () => "This is just a WOPI server. You need a WOPI client to access it...").ShortCircuit(404);
 
-            // Map health check endpoints
-            app.MapHealthChecks("/health");
-
-            // Map default endpoints from Aspire
+            // Map default endpoints from Aspire — owns /health and /alive (Development only,
+            // per the security note in WopiHost.ServiceDefaults.MapDefaultEndpoints). Hosts that
+            // need health endpoints in non-Development should add their own MapHealthChecks call
+            // here, gated by authn/authz appropriate to the deployment environment.
             app.MapDefaultEndpoints();
 
             app.Run();

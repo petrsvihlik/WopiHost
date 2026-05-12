@@ -112,8 +112,22 @@ public record WopiLockInfo
     public DateTimeOffset DateCreated { get; init; }
 
     /// <summary>
-    /// Is this lock expired
+    /// Returns <see langword="true"/> if this lock is expired relative to the supplied
+    /// <paramref name="now"/>.
     /// </summary>
-    /// <remarks>See <see cref="ExpirationMinutes"/> for the spec-mandated 30-minute window.</remarks>
-    public bool Expired => DateCreated.AddMinutes(ExpirationMinutes) < DateTime.UtcNow;
+    /// <remarks>
+    /// <para>
+    /// Callers pass an explicit clock reading — typically
+    /// <see cref="TimeProvider.GetUtcNow"/> on a provider-injected <see cref="TimeProvider"/> —
+    /// instead of the record reading ambient time. This keeps <see cref="WopiLockInfo"/> a
+    /// pure value, makes expiry deterministic in tests (inject a <c>FakeTimeProvider</c> or
+    /// equivalent), and fixes the silent <see cref="DateTime"/>/<see cref="DateTimeOffset"/>
+    /// conversion that the previous ambient-clock property carried.
+    /// </para>
+    /// <para>
+    /// See <see cref="ExpirationMinutes"/> for the spec-mandated 30-minute window.
+    /// </para>
+    /// </remarks>
+    /// <param name="now">The current time, typically <c>timeProvider.GetUtcNow()</c>.</param>
+    public bool IsExpiredAt(DateTimeOffset now) => DateCreated.AddMinutes(ExpirationMinutes) < now;
 }

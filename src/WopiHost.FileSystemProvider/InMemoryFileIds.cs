@@ -117,7 +117,13 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// Creates a deterministic identifier from a file path so that the same path always
     /// produces the same identifier, even across process restarts or separate services.
     /// </summary>
+    /// <remarks>
+    /// Uses SHA-256 (not MD5) so the id-minting path is FIPS-compatible and silent under the
+    /// <c>CA5351</c> analyzer. The id is purely an opaque key; cryptographic strength isn't
+    /// required, but a non-weak primitive avoids policy/compliance friction on hosts that
+    /// disable broken algorithms entirely.
+    /// </remarks>
     private static string IdFromPath(string path) =>
-        Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
             Path.GetFullPath(path).ToUpperInvariant()))).ToLowerInvariant();
 }

@@ -16,7 +16,7 @@ namespace WopiHost.AzureStorageProvider;
 /// <see cref="WopiBlobFile"/> per request, which keeps cached state implicitly fresh.
 /// </para>
 /// <para>
-/// Identifiers are hex-MD5 of the lowercased blob path (see <see cref="BlobIdMap"/>). The blob's ETag is
+/// Identifiers are hex-SHA-256 of the lowercased blob path (see <see cref="BlobIdMap"/>). The blob's ETag is
 /// surfaced as <see cref="Version"/>; this is more meaningful than a timestamp because every byte-level
 /// change produces a new ETag.
 /// </para>
@@ -73,9 +73,6 @@ public class WopiBlobFile : IWopiFile
 
     /// <inheritdoc/>
     public long Length => properties?.ContentLength ?? 0;
-
-    /// <inheritdoc/>
-    public long Size => Length;
 
     /// <inheritdoc/>
     public DateTime LastWriteTimeUtc => properties?.LastModified.UtcDateTime ?? DateTime.MinValue;

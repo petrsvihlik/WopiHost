@@ -33,9 +33,6 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
     public ReadOnlyMemory<byte>? Checksum => null;
 
     /// <inheritdoc/>
-    public long Size => fileInfo.Length;
-
-    /// <inheritdoc/>
     public long Length => fileInfo.Length;
 
     /// <inheritdoc/>

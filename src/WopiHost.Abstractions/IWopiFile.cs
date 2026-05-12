@@ -16,7 +16,9 @@ public interface IWopiFile : IWopiResource
     bool Exists { get; }
 
     /// <summary>
-    /// Gets size of the file in bytes.
+    /// Size of the file in bytes. Matches the <c>Length</c> property on .NET filesystem types
+    /// (<see cref="System.IO.FileInfo.Length"/>, <see cref="System.IO.Stream.Length"/>) and feeds
+    /// the WOPI <c>CheckFileInfo.Size</c> response field on the wire.
     /// </summary>
     long Length { get; }
 
@@ -42,11 +44,6 @@ public interface IWopiFile : IWopiResource
     /// <c>byte[]</c> to <see cref="ReadOnlyMemory{T}"/>.
     /// </summary>
     ReadOnlyMemory<byte>? Checksum { get; }
-
-    /// <summary>
-    /// Size of the file.
-    /// </summary>
-    long Size { get; }
 
     /// <summary>
     /// Gets read-only stream.

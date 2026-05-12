@@ -10,10 +10,13 @@ namespace WopiHost.AzureStorageProvider;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Identifiers are deterministic hex-MD5 hashes of the lowercased blob path so the same blob always
-/// produces the same ID across process restarts and separate WopiHost instances. The mapping itself
-/// is held in memory and is rebuilt by <see cref="ScanAll"/> at startup; this matches the pattern used
-/// by <c>WopiHost.FileSystemProvider</c>'s <c>InMemoryFileIds</c>.
+/// Identifiers are deterministic hex-SHA-256 hashes of the lowercased blob path so the same blob
+/// always produces the same ID across process restarts and separate WopiHost instances. The
+/// mapping itself is held in memory and is rebuilt by <see cref="ScanAll"/> at startup; this
+/// matches the pattern used by <c>WopiHost.FileSystemProvider</c>'s <c>InMemoryFileIds</c>.
+/// SHA-256 is used (not MD5) so the id-minting path is FIPS-compatible and silent under the
+/// <c>CA5351</c> analyzer; the id is just an opaque key, cryptographic strength isn't needed,
+/// but a non-weak primitive avoids policy friction on hosts that disable broken algorithms.
 /// </para>
 /// <para>
 /// Folders are virtual: a path with no extension and no marker blob still appears in the map if any
@@ -121,5 +124,5 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
 
     /// <summary>Returns the deterministic id for a blob path.</summary>
     public static string IdFromPath(string path)
-        => Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(path.ToLowerInvariant()))).ToLowerInvariant();
+        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(path.ToLowerInvariant()))).ToLowerInvariant();
 }

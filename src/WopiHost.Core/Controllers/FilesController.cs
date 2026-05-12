@@ -148,16 +148,14 @@ public class FilesController(
     [Produces(MediaTypeNames.Application.Json)]
     [WopiOverrideHeader(WopiFileOperations.RenameFile)]
     [WopiAuthorize(WopiResourceType.File, Permission.Rename)]
+    [RequiresWritableStorage]
     public async Task<IActionResult> RenameFile(
         string id,
         [FromHeader(Name = WopiHeaders.REQUESTED_NAME)] UtfString requestedName,
         [FromHeader(Name = WopiHeaders.LOCK)] string? lockIdentifier = null,
         CancellationToken cancellationToken = default)
     {
-        if (writableStorageProvider is null)
-        {
-            return new NotImplementedResult();
-        }
+        ArgumentNullException.ThrowIfNull(writableStorageProvider);
         var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken);
         if (file is null)
         {
@@ -335,7 +333,7 @@ public class FilesController(
         if (string.IsNullOrEmpty(newLockIdentifier))
         {
             // If it's 0 bytes, the PutFile request should be considered valid and should proceed
-            if (file.Size == 0)
+            if (file.Length == 0)
             {
                 // copy new contents to storage
                 await HttpContext.CopyToWriteStream(file, cancellationToken);
@@ -444,6 +442,7 @@ public class FilesController(
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.PutRelativeFile)]
     [WopiAuthorize(WopiResourceType.File, Permission.Create)]
+    [RequiresWritableStorage]
     public async Task<IActionResult> PutRelativeFile(
         string id,
         [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget = null,
@@ -453,10 +452,7 @@ public class FilesController(
         [FromHeader(Name = WopiHeaders.SIZE)] long? declaredSize = null,
         CancellationToken cancellationToken = default)
     {
-        if (writableStorageProvider is null)
-        {
-            return new NotImplementedResult();
-        }
+        ArgumentNullException.ThrowIfNull(writableStorageProvider);
 
         var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken);
         if (file is null)
@@ -643,14 +639,12 @@ public class FilesController(
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.DeleteFile)]
     [WopiAuthorize(WopiResourceType.File, Permission.Delete)]
+    [RequiresWritableStorage]
     public async Task<IActionResult> DeleteFile(
         string id,
         CancellationToken cancellationToken = default)
     {
-        if (writableStorageProvider is null)
-        {
-            return new NotImplementedResult();
-        }
+        ArgumentNullException.ThrowIfNull(writableStorageProvider);
 
         // Get file
         var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken);

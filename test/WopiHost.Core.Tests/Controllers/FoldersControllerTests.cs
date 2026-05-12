@@ -184,7 +184,7 @@ public class FoldersControllerTests
         fileMock.Setup(f => f.Name).Returns("file");
         fileMock.Setup(f => f.Extension).Returns("one");
         fileMock.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-        fileMock.Setup(f => f.Size).Returns(1024);
+        fileMock.Setup(f => f.Length).Returns(1024);
         fileMock.Setup(f => f.Identifier).Returns("fileId");
 
         storageProviderMock
@@ -211,14 +211,14 @@ public class FoldersControllerTests
         fileMock1.Setup(f => f.Name).Returns("notebook1");
         fileMock1.Setup(f => f.Extension).Returns("one");
         fileMock1.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-        fileMock1.Setup(f => f.Size).Returns(1024);
+        fileMock1.Setup(f => f.Length).Returns(1024);
         fileMock1.Setup(f => f.Identifier).Returns("fileId1");
 
         var fileMock2 = new Mock<IWopiFile>();
         fileMock2.Setup(f => f.Name).Returns("document");
         fileMock2.Setup(f => f.Extension).Returns("docx");
         fileMock2.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-        fileMock2.Setup(f => f.Size).Returns(512);
+        fileMock2.Setup(f => f.Length).Returns(512);
         fileMock2.Setup(f => f.Identifier).Returns("fileId2");
 
         storageProviderMock
