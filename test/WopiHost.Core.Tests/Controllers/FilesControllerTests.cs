@@ -96,7 +96,6 @@ public class FilesControllerTests
         fileMock.SetupGet(f => f.Extension).Returns("txt");
         fileMock.SetupGet(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
         fileMock.SetupGet(f => f.Length).Returns(size);
-        fileMock.SetupGet(f => f.Size).Returns(size);
         fileMock.SetupGet(f => f.Exists).Returns(size > 0);
         fileMock.SetupGet(f => f.Identifier).Returns(fileId);
         fileMock.Setup(f => f.GetReadStream(It.IsAny<CancellationToken>())).ReturnsAsync(new System.IO.MemoryStream());

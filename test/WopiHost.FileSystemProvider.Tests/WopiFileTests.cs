@@ -42,9 +42,6 @@ public class WopiFileTests : IDisposable
     public void Checksum_DefaultsToNull() => Assert.Null(_sut.Checksum);
 
     [Fact]
-    public void Size_MatchesFileLength() => Assert.Equal(new FileInfo(_filePath).Length, _sut.Size);
-
-    [Fact]
     public void Length_MatchesFileLength() => Assert.Equal(new FileInfo(_filePath).Length, _sut.Length);
 
     [Fact]

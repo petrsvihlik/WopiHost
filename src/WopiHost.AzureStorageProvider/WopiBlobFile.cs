@@ -75,9 +75,6 @@ public class WopiBlobFile : IWopiFile
     public long Length => properties?.ContentLength ?? 0;
 
     /// <inheritdoc/>
-    public long Size => Length;
-
-    /// <inheritdoc/>
     public DateTime LastWriteTimeUtc => properties?.LastModified.UtcDateTime ?? DateTime.MinValue;
 
     /// <inheritdoc/>

@@ -335,7 +335,7 @@ public class FilesController(
         if (string.IsNullOrEmpty(newLockIdentifier))
         {
             // If it's 0 bytes, the PutFile request should be considered valid and should proceed
-            if (file.Size == 0)
+            if (file.Length == 0)
             {
                 // copy new contents to storage
                 await HttpContext.CopyToWriteStream(file, cancellationToken);

@@ -88,8 +88,8 @@ public class IndexModel(
                 FileId = file.Identifier,
                 FileName = file.Name + '.' + file.Extension,
                 LastModified = file.LastWriteTimeUtc.ToLocalTime(),
-                Size = file.Size,
-                FormattedSize = ConvertFileSize(file.Size),
+                Size = file.Length,
+                FormattedSize = ConvertFileSize(file.Length),
                 SupportsEdit = await discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.Edit),
                 SupportsView = await discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.View),
                 IconUri = await GetFileIcon(file)

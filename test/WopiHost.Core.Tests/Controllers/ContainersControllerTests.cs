@@ -624,7 +624,7 @@ public class ContainersControllerTests
         fileMock.Setup(f => f.Name).Returns("file");
         fileMock.Setup(f => f.Extension).Returns("txt");
         fileMock.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-        fileMock.Setup(f => f.Size).Returns(123);
+        fileMock.Setup(f => f.Length).Returns(123);
         fileMock.Setup(f => f.Identifier).Returns("fileId");
 
         var folderMock = new Mock<IWopiFolder>();
@@ -650,14 +650,14 @@ public class ContainersControllerTests
         fileMock1.Setup(f => f.Name).Returns("file1");
         fileMock1.Setup(f => f.Extension).Returns("txt");
         fileMock1.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-        fileMock1.Setup(f => f.Size).Returns(123);
+        fileMock1.Setup(f => f.Length).Returns(123);
         fileMock1.Setup(f => f.Identifier).Returns("fileId1");
 
         var fileMock2 = new Mock<IWopiFile>();
         fileMock2.Setup(f => f.Name).Returns("file2");
         fileMock2.Setup(f => f.Extension).Returns("doc");
         fileMock2.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-        fileMock2.Setup(f => f.Size).Returns(456);
+        fileMock2.Setup(f => f.Length).Returns(456);
         fileMock2.Setup(f => f.Identifier).Returns("fileId2");
 
         storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);

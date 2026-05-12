@@ -97,8 +97,8 @@ public class HomeController(
                     FileId = file.Identifier,
                     FileName = file.Name + "." + file.Extension,
                     LastModified = file.LastWriteTimeUtc.ToLocalTime(),
-                    Size = file.Size,
-                    FormattedSize = FormatFileSize(file.Size),
+                    Size = file.Length,
+                    FormattedSize = FormatFileSize(file.Length),
                     SupportsEdit = await discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.Edit),
                     SupportsView = await discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.View),
                     // Leading slash so the fallback resolves to /file.ico regardless of the

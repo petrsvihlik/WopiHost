@@ -24,7 +24,6 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
 
         Assert.False(file.Exists);
         Assert.Equal(0, file.Length);
-        Assert.Equal(0, file.Size);
         Assert.Equal(DateTime.MinValue, file.LastWriteTimeUtc);
         Assert.Null(file.Version);
         Assert.Equal(string.Empty, file.Owner);
