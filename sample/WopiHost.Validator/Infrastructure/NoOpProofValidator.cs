@@ -1,3 +1,4 @@
+using WopiHost.Abstractions;
 using WopiHost.Core.Security.Authentication;
 
 namespace WopiHost.Validator.Infrastructure;
