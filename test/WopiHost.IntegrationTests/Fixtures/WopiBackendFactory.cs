@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc.Testing;
-using WopiHost.Core.Security.Authentication;
+using WopiHost.Abstractions;
 
 namespace WopiHost.IntegrationTests.Fixtures;
 

@@ -2,7 +2,7 @@ using System.Net;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using WopiHost.Core.Security.Authentication;
+using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.Validator;
 using WopiHost.Validator.Infrastructure;
