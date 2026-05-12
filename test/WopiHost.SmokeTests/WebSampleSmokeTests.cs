@@ -16,12 +16,12 @@ public sealed class WebSampleSmokeTests(PlaywrightFixture playwright) : IAsyncLi
     private readonly WebSampleFactory _factory = new();
     private IBrowserContext _context = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _context = await playwright.Browser.NewContextAsync();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         await _context.CloseAsync();
         await _factory.DisposeAsync();

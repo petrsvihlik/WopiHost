@@ -34,7 +34,7 @@ public sealed class MockOidcServerFixture : IAsyncLifetime
     /// <summary>Authority URL passed to the OIDC client (issuer). Null when <see cref="IsAvailable"/> is false.</summary>
     public Uri? Authority => BaseUrl is null ? null : new Uri(BaseUrl, Issuer);
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         try
         {
@@ -57,7 +57,7 @@ public sealed class MockOidcServerFixture : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_container is not null)
         {
