@@ -184,16 +184,65 @@ public class WopiFileSystemProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task GetWopiFiles_WithSearchPattern_FiltersByPattern()
+    public async Task GetWopiFiles_WithSingleExtensionFilter_FiltersByExtension()
     {
         var files = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, searchPattern: "*.docx"))
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, new[] { ".docx" }))
         {
             files.Add(f);
         }
         Assert.Single(files);
         Assert.Equal("root", files[0].Name);
         Assert.Equal("docx", files[0].Extension);
+    }
+
+    [Fact]
+    public async Task GetWopiFiles_WithMultipleExtensionFilter_ReturnsUnionOfExtensions()
+    {
+        // The fixture writes root.txt + root.docx; both should come back when both extensions
+        // are requested. Confirms the SelectMany-over-extensions plumbing emits disjoint
+        // result sets without dropping any.
+        var files = new List<IWopiFile>();
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, new[] { ".docx", ".txt" }))
+        {
+            files.Add(f);
+        }
+        Assert.Equal(2, files.Count);
+        Assert.Contains(files, f => f.Extension == "docx");
+        Assert.Contains(files, f => f.Extension == "txt");
+    }
+
+    [Fact]
+    public async Task GetWopiFiles_WithExtensionFilter_IsCaseInsensitive()
+    {
+        // WOPI spec mandates case-insensitive extension matching. The provider enforces this
+        // explicitly via EnumerationOptions.MatchCasing — without it, Linux hosts would
+        // case-sensitively miss a request for ".DOCX" against a "root.docx" file.
+        var files = new List<IWopiFile>();
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, new[] { ".DOCX" }))
+        {
+            files.Add(f);
+        }
+        Assert.Single(files);
+        Assert.Equal("docx", files[0].Extension);
+    }
+
+    [Fact]
+    public async Task GetWopiFiles_WithEmptyExtensionFilter_ReturnsAllFiles()
+    {
+        // Per the contract: null OR empty = no filter.
+        var withNull = new List<IWopiFile>();
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, fileExtensions: null))
+        {
+            withNull.Add(f);
+        }
+        var withEmpty = new List<IWopiFile>();
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, Array.Empty<string>()))
+        {
+            withEmpty.Add(f);
+        }
+        Assert.Equal(2, withNull.Count); // root.txt + root.docx
+        Assert.Equal(2, withEmpty.Count);
     }
 
     [Fact]

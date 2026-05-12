@@ -74,14 +74,29 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     /// <inheritdoc/>
     public async IAsyncEnumerable<IWopiFile> GetWopiFiles(
         string identifier,
-        string? searchPattern = null,
+        IReadOnlyCollection<string>? fileExtensions = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(identifier);
         var folderPath = fileIds.GetPath(identifier)
             ?? throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
 
-        foreach (var path in Directory.GetFiles(Path.Combine(wopiAbsolutePath, folderPath), searchPattern ?? "*.*"))
+        var absolutePath = Path.Combine(wopiAbsolutePath, folderPath);
+
+        // Push the extension filter into the OS-level enumeration: one Directory.EnumerateFiles
+        // call per requested extension, each with its own glob. Distinct extensions produce
+        // disjoint result sets so no dedup is needed when we concatenate. With no filter, fall
+        // back to a single unfiltered enumeration.
+        //
+        // MatchCasing.CaseInsensitive is explicit because the EnumerationOptions default is
+        // PlatformDefault, which means case-sensitive matching on Linux. WOPI requires
+        // case-insensitive extension matching, so we force it here regardless of host OS.
+        var options = new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive };
+        var enumeration = (fileExtensions is { Count: > 0 })
+            ? fileExtensions.SelectMany(ext => Directory.EnumerateFiles(absolutePath, "*" + ext, options))
+            : Directory.EnumerateFiles(absolutePath, "*", options);
+
+        foreach (var path in enumeration)
         {
             var filePath = Path.Combine(folderPath, Path.GetFileName(path));
             if (fileIds.TryGetFileId(filePath, out var fileId))

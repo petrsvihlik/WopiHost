@@ -122,7 +122,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     }
 
     [Fact]
-    public async Task GetWopiFiles_SearchPattern_FiltersByExtension()
+    public async Task GetWopiFiles_SingleExtensionFilter_FiltersByExtension()
     {
         var (provider, container) = await CreateProviderAsync();
         await UploadAsync(container, "doc.docx");
@@ -130,7 +130,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
         await UploadAsync(container, "notes.txt");
 
         var matched = new List<string>();
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, searchPattern: "*.docx"))
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, new[] { ".docx" }))
         {
             matched.Add(f.Name + "." + f.Extension);
         }
@@ -140,41 +140,80 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     }
 
     [Fact]
-    public async Task GetWopiFiles_SearchPattern_QuestionMarkWildcard()
+    public async Task GetWopiFiles_MultipleExtensionFilter_ReturnsUnion()
     {
         var (provider, container) = await CreateProviderAsync();
-        await UploadAsync(container, "a.txt");
-        await UploadAsync(container, "ab.txt");
+        await UploadAsync(container, "doc.docx");
+        await UploadAsync(container, "sheet.xlsx");
+        await UploadAsync(container, "notes.txt");
 
         var matched = new List<string>();
-        // "?.txt" → exactly one char before .txt
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, searchPattern: "?.txt"))
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, new[] { ".docx", ".txt" }))
+        {
+            matched.Add(f.Name + "." + f.Extension);
+        }
+
+        Assert.Equal(2, matched.Count);
+        Assert.Contains("doc.docx", matched);
+        Assert.Contains("notes.txt", matched);
+    }
+
+    [Fact]
+    public async Task GetWopiFiles_ExtensionFilter_IsCaseInsensitive()
+    {
+        var (provider, container) = await CreateProviderAsync();
+        await UploadAsync(container, "doc.DOCX");
+        await UploadAsync(container, "notes.txt");
+
+        var matched = new List<string>();
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, new[] { ".docx" }))
         {
             matched.Add(f.Name + "." + f.Extension);
         }
 
         Assert.Single(matched);
-        Assert.Equal("a.txt", matched[0]);
     }
 
-    [Theory]
-    [InlineData("*")]
-    [InlineData("*.*")]
-    [InlineData(null)]
-    [InlineData("")]
-    public async Task GetWopiFiles_NoPatternOrWildcard_ReturnsEverything(string? pattern)
+    [Fact]
+    public async Task GetWopiFiles_ExtensionFilter_WildcardCharactersMatchedLiterally()
+    {
+        // WOPI spec forbids wildcards in the filter list. The provider treats any glob-looking
+        // character as a literal — passing "*.docx" matches only a file named literally "*.docx"
+        // (which Azure won't let us upload anyway), so the result is empty. This pin guards
+        // against anyone reintroducing a regex/glob translator on the assumption that the old
+        // semantic is still in effect.
+        var (provider, container) = await CreateProviderAsync();
+        await UploadAsync(container, "doc.docx");
+
+        var matched = new List<string>();
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, new[] { "*.docx" }))
+        {
+            matched.Add(f.Name + "." + f.Extension);
+        }
+
+        Assert.Empty(matched);
+    }
+
+    [Fact]
+    public async Task GetWopiFiles_NullOrEmptyExtensionFilter_ReturnsEverything()
     {
         var (provider, container) = await CreateProviderAsync();
         await UploadAsync(container, "a.txt");
         await UploadAsync(container, "b.docx");
 
-        var count = 0;
-        await foreach (var _ in provider.GetWopiFiles(provider.RootContainer.Identifier, pattern))
+        var nullCount = 0;
+        await foreach (var _ in provider.GetWopiFiles(provider.RootContainer.Identifier, fileExtensions: null))
         {
-            count++;
+            nullCount++;
+        }
+        var emptyCount = 0;
+        await foreach (var _ in provider.GetWopiFiles(provider.RootContainer.Identifier, Array.Empty<string>()))
+        {
+            emptyCount++;
         }
 
-        Assert.Equal(2, count);
+        Assert.Equal(2, nullCount);
+        Assert.Equal(2, emptyCount);
     }
 
     [Fact]

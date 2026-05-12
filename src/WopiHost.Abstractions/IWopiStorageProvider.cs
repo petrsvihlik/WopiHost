@@ -17,13 +17,29 @@ public interface IWopiStorageProvider
         where T : class, IWopiResource;
 
     /// <summary>
-    /// Returns all files contained by the container identified by <paramref name="identifier"/>.
-    /// Pass <c><see cref="RootContainer"/>.Identifier</c> to enumerate the root.
+    /// Returns the files contained by the container identified by <paramref name="identifier"/>,
+    /// optionally filtered by file extension. Pass <c><see cref="RootContainer"/>.Identifier</c>
+    /// to enumerate the root.
     /// </summary>
     /// <param name="identifier">Container identifier. Required.</param>
-    /// <param name="searchPattern">search pattern for files</param>
+    /// <param name="fileExtensions">
+    /// Optional list of file extensions to include in the result. Each element must be a
+    /// leading-dot extension (<c>".docx"</c>, not <c>"docx"</c>); matching is case-insensitive,
+    /// per the WOPI <c>X-WOPI-FileExtensionFilterList</c> spec. When <see langword="null"/> or
+    /// empty, every file in the container is returned. Wildcard characters in the elements
+    /// are matched literally — the parameter is not a glob.
+    /// </param>
     /// <param name="cancellationToken">cancellation token</param>
-    IAsyncEnumerable<IWopiFile> GetWopiFiles(string identifier, string? searchPattern = null, CancellationToken cancellationToken = default);
+    /// <remarks>
+    /// Implementations are expected to push filtering as close to the underlying storage as
+    /// the backend allows: the filesystem provider uses <c>Directory.EnumerateFiles</c> with a
+    /// per-extension glob so the OS handles selection; the Azure-blob provider filters each
+    /// item at the streaming-list boundary as items arrive from <c>GetBlobsByHierarchyAsync</c>,
+    /// since the Blob list API exposes only a prefix filter at the wire level. Callers should
+    /// not post-filter the returned <see cref="IAsyncEnumerable{T}"/> by extension — the
+    /// provider has already done it.
+    /// </remarks>
+    IAsyncEnumerable<IWopiFile> GetWopiFiles(string identifier, IReadOnlyCollection<string>? fileExtensions = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns all containers contained by the container identified by <paramref name="identifier"/>.
