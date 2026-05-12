@@ -29,7 +29,7 @@ public class WopiAzureLockProviderTests(AzuriteFixture azurite)
         Assert.NotNull(info);
         Assert.Equal("file-1", info.FileId);
         Assert.Equal("lock-A", info.LockId);
-        Assert.False(info.Expired);
+        Assert.False(info.IsExpiredAt(DateTimeOffset.UtcNow));
     }
 
     [Fact]

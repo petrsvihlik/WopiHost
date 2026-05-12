@@ -38,19 +38,34 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
     private readonly BlobContainerClient containerClient;
     private readonly ILogger<WopiAzureLockProvider> logger;
     private readonly IWopiLockComparer lockComparer;
+    private readonly TimeProvider timeProvider;
     private readonly SemaphoreSlim initLock = new(1, 1);
     private bool initialized;
 
     /// <summary>
-    /// Creates the provider. <paramref name="lockComparer"/> defaults to
-    /// <see cref="OrdinalWopiLockComparer"/> when not supplied via DI; replace with a custom
-    /// comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>) to absorb known WOPI-client
-    /// lock-id mutations.
+    /// Creates the provider.
     /// </summary>
-    public WopiAzureLockProvider(BlobContainerClient containerClient, ILogger<WopiAzureLockProvider> logger, IWopiLockComparer? lockComparer = null)
+    /// <param name="containerClient">Blob container that holds the per-fileId lock placeholders.</param>
+    /// <param name="logger">Logger.</param>
+    /// <param name="timeProvider">
+    /// Clock source for lock timestamps and expiry. Defaults to <see cref="TimeProvider.System"/>
+    /// when not supplied via DI; inject a <c>FakeTimeProvider</c> (or any custom
+    /// <see cref="TimeProvider"/>) in tests to make expiry deterministic.
+    /// </param>
+    /// <param name="lockComparer">
+    /// Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/> when not supplied
+    /// via DI; replace with a custom comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>)
+    /// to absorb known WOPI-client lock-id mutations.
+    /// </param>
+    public WopiAzureLockProvider(
+        BlobContainerClient containerClient,
+        ILogger<WopiAzureLockProvider> logger,
+        TimeProvider? timeProvider = null,
+        IWopiLockComparer? lockComparer = null)
     {
         this.containerClient = containerClient ?? throw new ArgumentNullException(nameof(containerClient));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        this.timeProvider = timeProvider ?? TimeProvider.System;
         this.lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
     }
 
@@ -64,7 +79,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         {
             return null;
         }
-        if (!info.Expired)
+        if (!info.IsExpiredAt(timeProvider.GetUtcNow()))
         {
             return info;
         }
@@ -88,7 +103,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         {
             if (TryReadLock(fileId, existing, out var existingInfo))
             {
-                if (!existingInfo.Expired)
+                if (!existingInfo.IsExpiredAt(timeProvider.GetUtcNow()))
                 {
                     LogLockAddRejected(logger, fileId, lockId, existingInfo.LockId);
                     return null;
@@ -117,7 +132,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         // ahead and we lost. Some Azure SDK paths surface 409 instead — we treat both as the
         // race-lost outcome.
         var leaseId = Guid.NewGuid().ToString();
-        var now = DateTimeOffset.UtcNow;
+        var now = timeProvider.GetUtcNow();
         var metadata = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [LockIdKey] = lockId,
@@ -171,7 +186,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         {
             return false;
         }
-        if (info.Expired)
+        if (info.IsExpiredAt(timeProvider.GetUtcNow()))
         {
             return false;
         }
@@ -195,7 +210,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
 
         var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal)
         {
-            [CreatedKey] = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture),
+            [CreatedKey] = timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture),
         };
         try
         {
@@ -221,7 +236,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         {
             return false;
         }
-        if (info.Expired || !lockComparer.AreEqual(info.LockId, expectedExistingLockId))
+        if (info.IsExpiredAt(timeProvider.GetUtcNow()) || !lockComparer.AreEqual(info.LockId, expectedExistingLockId))
         {
             return false;
         }
@@ -248,7 +263,7 @@ public partial class WopiAzureLockProvider : IWopiLockProvider
         var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal)
         {
             [LockIdKey] = newLockId,
-            [CreatedKey] = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture),
+            [CreatedKey] = timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture),
         };
         try
         {

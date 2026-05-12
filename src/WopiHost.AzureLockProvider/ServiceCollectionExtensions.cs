@@ -45,7 +45,11 @@ public static class ServiceCollectionExtensions
                 serviceClient = new BlobServiceClient(opts.ServiceUri!, credential);
             }
             var container = serviceClient.GetBlobContainerClient(opts.ContainerName);
-            return new WopiAzureLockProvider(container, sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WopiAzureLockProvider>>());
+            return new WopiAzureLockProvider(
+                container,
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WopiAzureLockProvider>>(),
+                sp.GetService<TimeProvider>(),
+                sp.GetService<IWopiLockComparer>());
         });
         services.AddSingleton<IWopiLockProvider>(sp => sp.GetRequiredService<WopiAzureLockProvider>());
 
