@@ -58,7 +58,7 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
 
         _apps = new AsyncExpiringLazy<IEnumerable<XElement>>(async _ =>
         {
-            var apps = (await discoveryFileProvider.GetDiscoveryXmlAsync())
+            var apps = (await discoveryFileProvider.GetDiscoveryXmlAsync().ConfigureAwait(false))
                 .Elements(ElementNetZone)
                 .Where(ValidateNetZone)
                 .Elements(ElementApp)
@@ -73,7 +73,7 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
 
         _proofKey = new AsyncExpiringLazy<XElement>(async _ =>
         {
-            var proofKey = (await discoveryFileProvider.GetDiscoveryXmlAsync())
+            var proofKey = (await discoveryFileProvider.GetDiscoveryXmlAsync().ConfigureAwait(false))
                 .Elements(ElementProofKey)
                 .FirstOrDefault() ?? new XElement(ElementProofKey);
             LogProofKeyRefreshed(_logger);
@@ -85,9 +85,9 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
         });
     }
 
-    internal async Task<IEnumerable<XElement>> GetAppsAsync() => await _apps.Value();
+    internal async Task<IEnumerable<XElement>> GetAppsAsync() => await _apps.Value().ConfigureAwait(false);
 
-    internal async Task<XElement> GetProofKeyAsync() => await _proofKey.Value();
+    internal async Task<XElement> GetProofKeyAsync() => await _proofKey.Value().ConfigureAwait(false);
 
     private bool ValidateNetZone(XElement e)
     {
@@ -104,7 +104,7 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
     ///<inheritdoc />
     public async Task<bool> SupportsExtensionAsync(string extension)
     {
-        var query = (await GetAppsAsync()).Elements()
+        var query = (await GetAppsAsync().ConfigureAwait(false)).Elements()
             .FirstOrDefault(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase));
         return query is not null;
     }
@@ -114,8 +114,8 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
     {
         var actionString = action.ToString().ToUpperInvariant();
 
-        var query = (await GetAppsAsync()).Elements()
-            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) && 
+        var query = (await GetAppsAsync().ConfigureAwait(false)).Elements()
+            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) &&
                 e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true);
 
         return query.Any();
@@ -126,7 +126,7 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
     {
         var actionString = action.ToString().ToUpperInvariant();
 
-        var query = (await GetAppsAsync()).Elements()
+        var query = (await GetAppsAsync().ConfigureAwait(false)).Elements()
             .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) &&
                 e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true)
             .Select(e => e.Attribute(AttrActionRequires)?.Value.Split(','));
@@ -138,8 +138,8 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
     public async Task<string?> GetUrlTemplateAsync(string extension, WopiActionEnum action)
     {
         var actionString = action.ToString().ToUpperInvariant();
-        var query = (await GetAppsAsync()).Elements()
-            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) && 
+        var query = (await GetAppsAsync().ConfigureAwait(false)).Elements()
+            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) &&
                 e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true)
             .Select(e => e.Attribute(AttrActionUrl)?.Value);
         return query.FirstOrDefault();
@@ -148,7 +148,7 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
     ///<inheritdoc />
     public async Task<string?> GetApplicationNameAsync(string extension)
     {
-        var query = (await GetAppsAsync())
+        var query = (await GetAppsAsync().ConfigureAwait(false))
             .Where(e => e.Descendants(ElementAction).Any(d => string.Equals(d.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase)))
             .Select(e => e.Attribute(AttrAppName)?.Value);
 
@@ -158,17 +158,17 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
     ///<inheritdoc />
     public async Task<Uri?> GetApplicationFavIconAsync(string extension)
     {
-        var query = (await GetAppsAsync())
+        var query = (await GetAppsAsync().ConfigureAwait(false))
             .Where(e => e.Descendants(ElementAction).Any(d => string.Equals(d.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase)))
             .Select(e => e.Attribute(AttrAppFavicon)?.Value);
         var result = query.FirstOrDefault();
         return result is not null ? new Uri(result) : null;
     }
-    
+
     ///<inheritdoc />
     public async Task<WopiProofKeys> GetProofKeysAsync()
     {
-        var proofKey = await GetProofKeyAsync();
+        var proofKey = await GetProofKeyAsync().ConfigureAwait(false);
 
         return new WopiProofKeys
         {

@@ -45,7 +45,7 @@ public class FoldersController(IWopiStorageProvider storageProvider) : Controlle
     [WopiAuthorize(WopiResourceType.Container, Permission.Read)]
     public async Task<IActionResult> CheckFolderInfo(string id, CancellationToken cancellationToken = default)
     {
-        var folder = await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken);
+        var folder = await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false);
         if (folder is null)
         {
             return NotFound();
@@ -59,7 +59,7 @@ public class FoldersController(IWopiStorageProvider storageProvider) : Controlle
         if (options is not null)
         {
             checkFolderInfo = await options.Value.OnCheckFolderInfo(
-                new WopiCheckFolderInfoContext(HttpContext.User, folder, checkFolderInfo));
+                new WopiCheckFolderInfoContext(HttpContext.User, folder, checkFolderInfo)).ConfigureAwait(false);
         }
         return new JsonResult<WopiCheckFolderInfo>(checkFolderInfo);
     }
@@ -85,14 +85,14 @@ public class FoldersController(IWopiStorageProvider storageProvider) : Controlle
         [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? fileExtensionFilterList = null,
         CancellationToken cancellationToken = default)
     {
-        if (await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken) is null)
+        if (await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false) is null)
         {
             return NotFound();
         }
 
         var files = new List<ChildFile>();
         var fileExtensions = fileExtensionFilterList?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        await foreach (var wopiFile in storageProvider.GetWopiFiles(id, cancellationToken: cancellationToken))
+        await foreach (var wopiFile in storageProvider.GetWopiFiles(id, cancellationToken: cancellationToken).ConfigureAwait(false))
         {
             // If included, the host must only return child files whose file extensions match the filter list, based on a case-insensitive match.
             if (fileExtensions?.Length > 0 && !fileExtensions.Contains('.' + wopiFile.Extension, StringComparer.OrdinalIgnoreCase))

@@ -62,7 +62,7 @@ public partial class WopiUrlBuilder(
         // values in the same URL.
         combinedUrlSettings[WopiUrlSettings.Placeholders.WopiSource] = wopiFileUrl.ToString();
 
-        var template = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
+        var template = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action).ConfigureAwait(false);
         if (string.IsNullOrEmpty(template))
         {
             LogTemplateNotFound(_logger, extension, action);

@@ -86,7 +86,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
             var filePath = Path.Combine(folderPath, Path.GetFileName(path));
             if (fileIds.TryGetFileId(filePath, out var fileId))
             {
-                var result = await GetWopiResource<IWopiFile>(fileId, cancellationToken)
+                var result = await GetWopiResource<IWopiFile>(fileId, cancellationToken).ConfigureAwait(false)
                     ?? throw new FileNotFoundException($"File '{fileId}' not found");
                 yield return result;
             }
@@ -106,12 +106,12 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         {
             if (fileIds.TryGetFileId(directory, out var folderId))
             {
-                var result = await GetWopiResource<IWopiFolder>(folderId, cancellationToken)
+                var result = await GetWopiResource<IWopiFolder>(folderId, cancellationToken).ConfigureAwait(false)
                     ?? throw new DirectoryNotFoundException($"Directory '{folderId}' not found");
                 yield return result;
             }
         }
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -124,7 +124,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         {
             identifier = GetFileParentIdentifier(identifier);
         }
-        var container = await GetWopiResource<IWopiFolder>(identifier, cancellationToken)
+        var container = await GetWopiResource<IWopiFolder>(identifier, cancellationToken).ConfigureAwait(false)
             ?? throw new DirectoryNotFoundException($"Directory '{identifier}' not found.");
         if (typeof(T) == typeof(IWopiFile))
         {
@@ -136,7 +136,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         while (container.Identifier != RootContainer.Identifier)
         {
             var parentId = GetFolderParentIdentifier(container.Identifier);
-            container = await GetWopiResource<IWopiFolder>(parentId, cancellationToken)
+            container = await GetWopiResource<IWopiFolder>(parentId, cancellationToken).ConfigureAwait(false)
                 ?? throw new DirectoryNotFoundException($"Directory '{parentId}' not found.");
             result.Add(container);
         }
@@ -161,8 +161,8 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
 
         T? result = typeof(T) switch
         {
-            { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => await GetWopiResource<IWopiFile>(nameId, cancellationToken) as T,
-            { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => await GetWopiResource<IWopiFolder>(nameId, cancellationToken) as T,
+            { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => await GetWopiResource<IWopiFile>(nameId, cancellationToken).ConfigureAwait(false) as T,
+            { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => await GetWopiResource<IWopiFolder>(nameId, cancellationToken).ConfigureAwait(false) as T,
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
         return result;
@@ -194,7 +194,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
-        if (!await CheckValidName<T>(name, cancellationToken))
+        if (!await CheckValidName<T>(name, cancellationToken).ConfigureAwait(false))
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(name));
         }
@@ -255,8 +255,8 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         ArgumentNullException.ThrowIfNull(containerId);
         return typeof(T) switch
         {
-            { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => await CreateWopiFile(containerId, name, cancellationToken) as T,
-            { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => await CreateWopiChildContainer(containerId, name, cancellationToken) as T,
+            { } wopiFileType when typeof(IWopiFile).IsAssignableFrom(wopiFileType) => await CreateWopiFile(containerId, name, cancellationToken).ConfigureAwait(false) as T,
+            { } wopiFolderType when typeof(IWopiFolder).IsAssignableFrom(wopiFolderType) => await CreateWopiChildContainer(containerId, name, cancellationToken).ConfigureAwait(false) as T,
             _ => throw new NotSupportedException("Unsupported resource type.")
         };
     }
@@ -365,7 +365,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     public async Task<bool> RenameWopiResource<T>(string identifier, string requestedName, CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
-        if (!await CheckValidName<T>(requestedName, cancellationToken))
+        if (!await CheckValidName<T>(requestedName, cancellationToken).ConfigureAwait(false))
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(requestedName));
         }

@@ -57,7 +57,7 @@ public class FileResult : ActionResult
         var targetStream = response.Body;
         if (Content is not null)
         {
-            await targetStream.WriteAsync(Content.AsMemory(0, Content.Length), ct);
+            await targetStream.WriteAsync(Content.AsMemory(0, Content.Length), ct).ConfigureAwait(false);
         }
         else
         {
@@ -68,7 +68,7 @@ public class FileResult : ActionResult
                 {
                     SourceStream.Seek(0, SeekOrigin.Begin);
                 }
-                await SourceStream.CopyToAsync(targetStream, ct);
+                await SourceStream.CopyToAsync(targetStream, ct).ConfigureAwait(false);
             }
         }
     }

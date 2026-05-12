@@ -35,8 +35,8 @@ public static class WopiExtensions
         var result = file.Checksum;
         if (result is null)
         {
-            using var stream = await file.GetReadStream(cancellationToken);
-            result = await SHA256.HashDataAsync(stream, cancellationToken);
+            using var stream = await file.GetReadStream(cancellationToken).ConfigureAwait(false);
+            result = await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);
         }
         return Convert.ToBase64String(result.Value.Span);
     }
@@ -98,7 +98,7 @@ public static class WopiExtensions
 
         var writableStorageProvider = httpContext.RequestServices.GetService<IWopiWritableStorageProvider>();
         checkFileInfo.FileNameMaxLength = writableStorageProvider?.FileNameMaxLength ?? 0;
-        checkFileInfo.Sha256 = await file.GetEncodedSha256(cancellationToken);
+        checkFileInfo.Sha256 = await file.GetEncodedSha256(cancellationToken).ConfigureAwait(false);
 
         if (httpContext.User?.Identity?.IsAuthenticated == true)
         {
@@ -108,7 +108,7 @@ public static class WopiExtensions
             checkFileInfo.UserPrincipalName = httpContext.User.FindFirst(ClaimTypes.Upn)?.Value;
 
             var permissionProvider = httpContext.RequestServices.GetRequiredService<IWopiPermissionProvider>();
-            var permissions = await permissionProvider.GetFilePermissionsAsync(httpContext.User, file, cancellationToken);
+            var permissions = await permissionProvider.GetFilePermissionsAsync(httpContext.User, file, cancellationToken).ConfigureAwait(false);
             checkFileInfo.ReadOnly = permissions.HasFlag(WopiFilePermissions.ReadOnly);
             checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiFilePermissions.RestrictedWebViewOnly);
             checkFileInfo.UserCanAttend = permissions.HasFlag(WopiFilePermissions.UserCanAttend);
@@ -166,7 +166,7 @@ public static class WopiExtensions
         var wopiHostOptions = httpContext.RequestServices.GetService<IOptions<WopiHostOptions>>();
         if (wopiHostOptions is not null)
         {
-            checkFileInfo = await wopiHostOptions.Value.OnCheckFileInfo(new WopiCheckFileInfoContext(httpContext.User, file, checkFileInfo));
+            checkFileInfo = await wopiHostOptions.Value.OnCheckFileInfo(new WopiCheckFileInfoContext(httpContext.User, file, checkFileInfo)).ConfigureAwait(false);
         }
 
         return checkFileInfo;
@@ -188,7 +188,7 @@ public static class WopiExtensions
         ArgumentNullException.ThrowIfNull(httpContext);
 
         var permissionProvider = httpContext.RequestServices.GetRequiredService<IWopiPermissionProvider>();
-        var permissions = await permissionProvider.GetContainerPermissionsAsync(httpContext.User, container, cancellationToken);
+        var permissions = await permissionProvider.GetContainerPermissionsAsync(httpContext.User, container, cancellationToken).ConfigureAwait(false);
 
         var checkContainerInfo = new WopiCheckContainerInfo()
         {
@@ -204,7 +204,7 @@ public static class WopiExtensions
         var wopiHostOptions = httpContext.RequestServices.GetService<IOptions<WopiHostOptions>>();
         if (wopiHostOptions is not null)
         {
-            checkContainerInfo = await wopiHostOptions.Value.OnCheckContainerInfo(new WopiCheckContainerInfoContext(httpContext.User, container, checkContainerInfo));
+            checkContainerInfo = await wopiHostOptions.Value.OnCheckContainerInfo(new WopiCheckContainerInfoContext(httpContext.User, container, checkContainerInfo)).ConfigureAwait(false);
         }
 
         return checkContainerInfo;

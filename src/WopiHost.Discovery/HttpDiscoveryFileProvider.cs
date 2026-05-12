@@ -23,7 +23,7 @@ public partial class HttpDiscoveryFileProvider(HttpClient httpClient, ILogger<Ht
         var sw = Stopwatch.StartNew();
         try
         {
-            var stream = await _httpClient.GetStreamAsync(new Uri("/hosting/discovery", UriKind.Relative));
+            var stream = await _httpClient.GetStreamAsync(new Uri("/hosting/discovery", UriKind.Relative)).ConfigureAwait(false);
             var xml = XElement.Load(stream);
             LogDiscoveryFetched(_logger, _httpClient.BaseAddress, sw.ElapsedMilliseconds);
             return xml;
