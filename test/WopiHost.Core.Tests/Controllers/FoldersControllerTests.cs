@@ -204,8 +204,12 @@ public class FoldersControllerTests
     }
 
     [Fact]
-    public async Task EnumerateChildren_FiltersFilesByExtension()
+    public async Task EnumerateChildren_ForwardsExtensionFilterToProvider()
     {
+        // The controller forwards X-WOPI-FileExtensionFilterList — parsed into a typed list —
+        // to the provider; the provider filters at the storage layer. This test pins both
+        // halves: the parsed [".one"] reaches the provider, and the controller materializes
+        // whatever it returned without any in-memory post-filter.
         var folderId = "folder";
         var fileMock1 = new Mock<IWopiFile>();
         fileMock1.Setup(f => f.Name).Returns("notebook1");
@@ -214,19 +218,15 @@ public class FoldersControllerTests
         fileMock1.Setup(f => f.Length).Returns(1024);
         fileMock1.Setup(f => f.Identifier).Returns("fileId1");
 
-        var fileMock2 = new Mock<IWopiFile>();
-        fileMock2.Setup(f => f.Name).Returns("document");
-        fileMock2.Setup(f => f.Extension).Returns("docx");
-        fileMock2.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-        fileMock2.Setup(f => f.Length).Returns(512);
-        fileMock2.Setup(f => f.Identifier).Returns("fileId2");
-
         storageProviderMock
             .Setup(sp => sp.GetWopiResource<IWopiFolder>(folderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Mock<IWopiFolder>().Object);
         storageProviderMock
-            .Setup(sp => sp.GetWopiFiles(folderId, null, It.IsAny<CancellationToken>()))
-            .Returns(new[] { fileMock1.Object, fileMock2.Object }.ToAsyncEnumerable());
+            .Setup(sp => sp.GetWopiFiles(
+                folderId,
+                It.Is<IReadOnlyCollection<string>?>(exts => exts != null && exts.SequenceEqual(new[] { ".one" })),
+                It.IsAny<CancellationToken>()))
+            .Returns(new[] { fileMock1.Object }.ToAsyncEnumerable());
 
         var result = await _controller.EnumerateChildren(folderId, ".one") as JsonResult;
 

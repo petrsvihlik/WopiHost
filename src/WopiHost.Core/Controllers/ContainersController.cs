@@ -468,14 +468,12 @@ public class ContainersController(
 
         var files = new List<ChildFile>();
         var containers = new List<ChildContainer>();
+        // Parse the WOPI wire format once and hand the typed list to the provider, which is
+        // responsible for filtering at (or as close as possible to) the storage layer. See
+        // IWopiStorageProvider.GetWopiFiles for the contract on extension matching.
         var fileExtensions = fileExtensionFilterList?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        await foreach (var wopiFile in storageProvider.GetWopiFiles(id, cancellationToken: cancellationToken).ConfigureAwait(false))
+        await foreach (var wopiFile in storageProvider.GetWopiFiles(id, fileExtensions, cancellationToken).ConfigureAwait(false))
         {
-            // If included, the host must only return child files whose file extensions match the filter list, based on a case-insensitive match.
-            if (fileExtensions?.Length > 0 && !fileExtensions.Contains('.' + wopiFile.Extension, StringComparer.OrdinalIgnoreCase))
-            {
-                continue;
-            }
             files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, Url.GetWopiSrc(WopiResourceType.File, wopiFile.Identifier))
             {
                 LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),

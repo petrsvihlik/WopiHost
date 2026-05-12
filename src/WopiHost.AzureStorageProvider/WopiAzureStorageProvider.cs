@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -107,7 +106,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
     /// <inheritdoc/>
     public async IAsyncEnumerable<IWopiFile> GetWopiFiles(
         string identifier,
-        string? searchPattern = null,
+        IReadOnlyCollection<string>? fileExtensions = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(identifier);
@@ -115,7 +114,14 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
         var folderPath = ResolveFolderPath(identifier);
         var prefix = string.IsNullOrEmpty(folderPath) ? null : folderPath + "/";
 
-        var matcher = BuildSearchMatcher(searchPattern);
+        // Azure Blob Storage's list API exposes only a prefix filter at the wire level — no
+        // suffix / extension / regex support — so the extension filter is applied at the
+        // streaming-list boundary inside the loop. Each non-matching blob is dropped before
+        // we allocate a WopiBlobFile for it. The hashset (OrdinalIgnoreCase) gives us O(1)
+        // membership checks regardless of how many extensions the caller asked for.
+        var extensionFilter = (fileExtensions is { Count: > 0 })
+            ? new HashSet<string>(fileExtensions, StringComparer.OrdinalIgnoreCase)
+            : null;
 
         await foreach (var item in containerClient.GetBlobsByHierarchyAsync(traits: BlobTraits.None, states: BlobStates.None, delimiter: "/", prefix: prefix, cancellationToken: cancellationToken).ConfigureAwait(false))
         {
@@ -131,7 +137,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
                 continue;
             }
             var fileName = name[(name.LastIndexOf('/') + 1)..];
-            if (matcher is not null && !matcher(fileName))
+            if (extensionFilter is not null && !extensionFilter.Contains(Path.GetExtension(fileName)))
             {
                 continue;
             }
@@ -491,17 +497,5 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
         var stem = name[..dot];
         var ext = name[dot..];
         return $"{stem} ({counter.ToString(CultureInfo.InvariantCulture)}){ext}";
-    }
-
-    private static Func<string, bool>? BuildSearchMatcher(string? searchPattern)
-    {
-        if (string.IsNullOrEmpty(searchPattern) || searchPattern == "*" || searchPattern == "*.*")
-        {
-            return null;
-        }
-        // Translate the simple glob (FileSystemProvider semantics) into a regex anchored to full names.
-        var escaped = Regex.Escape(searchPattern).Replace("\\*", ".*").Replace("\\?", ".");
-        var regex = new Regex("^" + escaped + "$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        return name => regex.IsMatch(name);
     }
 }

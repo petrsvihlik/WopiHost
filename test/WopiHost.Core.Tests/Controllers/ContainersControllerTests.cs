@@ -594,8 +594,14 @@ public class ContainersControllerTests
     }
 
     [Fact]
-    public async Task EnumerateChildren_FiltersFilesByExtension()
+    public async Task EnumerateChildren_ForwardsExtensionFilterToProvider()
     {
+        // The controller's only job here is to parse X-WOPI-FileExtensionFilterList into a
+        // typed list and hand it to the provider — the provider does the actual filtering at
+        // the storage layer. This test pins both halves of that contract:
+        //   1) the controller forwards the parsed [".txt"] (not the raw header) to the provider;
+        //   2) the controller materializes whatever the provider returned, no in-memory filter.
+        // The mock returns only file1 (the .txt match) — what a real filtering provider would.
         var containerId = "container";
         var fileMock1 = new Mock<IWopiFile>();
         fileMock1.Setup(f => f.Name).Returns("file1");
@@ -604,15 +610,13 @@ public class ContainersControllerTests
         fileMock1.Setup(f => f.Length).Returns(123);
         fileMock1.Setup(f => f.Identifier).Returns("fileId1");
 
-        var fileMock2 = new Mock<IWopiFile>();
-        fileMock2.Setup(f => f.Name).Returns("file2");
-        fileMock2.Setup(f => f.Extension).Returns("doc");
-        fileMock2.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-        fileMock2.Setup(f => f.Length).Returns(456);
-        fileMock2.Setup(f => f.Identifier).Returns("fileId2");
-
         storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
-        storageProviderMock.Setup(sp => sp.GetWopiFiles(containerId, null, It.IsAny<CancellationToken>())).Returns(new[] { fileMock1.Object, fileMock2.Object }.ToAsyncEnumerable());
+        storageProviderMock
+            .Setup(sp => sp.GetWopiFiles(
+                containerId,
+                It.Is<IReadOnlyCollection<string>?>(exts => exts != null && exts.SequenceEqual(new[] { ".txt" })),
+                It.IsAny<CancellationToken>()))
+            .Returns(new[] { fileMock1.Object }.ToAsyncEnumerable());
         storageProviderMock.Setup(sp => sp.GetWopiContainers(containerId, It.IsAny<CancellationToken>())).Returns(AsyncEnumerable.Empty<IWopiFolder>());
 
         var result = await _controller.EnumerateChildren(containerId, ".txt") as JsonResult;
