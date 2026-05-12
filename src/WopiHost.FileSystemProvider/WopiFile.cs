@@ -14,38 +14,38 @@ namespace WopiHost.FileSystemProvider;
 /// <param name="fileIdentifier">Identifier of a file.</param>
 public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
 {
-    private readonly FileInfo fileInfo = new(filePath);
-    private readonly FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(filePath);
+    private readonly FileInfo _fileInfo = new(filePath);
+    private readonly FileVersionInfo _fileVersionInfo = FileVersionInfo.GetVersionInfo(filePath);
 
     /// <inheritdoc/>
     public string Identifier { get; } = fileIdentifier;
 
     /// <inheritdoc />
-    public bool Exists => fileInfo.Exists;
+    public bool Exists => _fileInfo.Exists;
 
     /// <inheritdoc/>
-    public string Extension => fileInfo.Extension.TrimStart('.');
+    public string Extension => _fileInfo.Extension.TrimStart('.');
 
     /// <inheritdoc/>
-    public string? Version => fileVersionInfo.FileVersion ?? fileInfo.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);
+    public string? Version => _fileVersionInfo.FileVersion ?? _fileInfo.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public ReadOnlyMemory<byte>? Checksum => null;
 
     /// <inheritdoc/>
-    public long Length => fileInfo.Length;
+    public long Length => _fileInfo.Length;
 
     /// <inheritdoc/>
-    public string Name => Path.GetFileNameWithoutExtension(fileInfo.Name);
+    public string Name => Path.GetFileNameWithoutExtension(_fileInfo.Name);
 
     /// <inheritdoc/>
-    public DateTime LastWriteTimeUtc => fileInfo.LastWriteTimeUtc;
+    public DateTime LastWriteTimeUtc => _fileInfo.LastWriteTimeUtc;
 
     /// <inheritdoc/>
-    public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) => Task.FromResult<Stream>(fileInfo.OpenRead());
+    public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) => Task.FromResult<Stream>(_fileInfo.OpenRead());
 
     /// <inheritdoc/>
-    public Task<Stream> OpenWriteAsync(CancellationToken cancellationToken = default) => Task.FromResult<Stream>(fileInfo.Open(FileMode.Truncate));
+    public Task<Stream> OpenWriteAsync(CancellationToken cancellationToken = default) => Task.FromResult<Stream>(_fileInfo.Open(FileMode.Truncate));
 
     /// <summary>
     /// A string that uniquely identifies the owner of the file.
@@ -61,11 +61,11 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
         {
             if (OperatingSystem.IsWindows())
             {
-                return fileInfo.GetAccessControl().GetOwner(typeof(NTAccount))?.ToString() ?? string.Empty;
+                return _fileInfo.GetAccessControl().GetOwner(typeof(NTAccount))?.ToString() ?? string.Empty;
             }
             if (OperatingSystem.IsLinux())
             {
-                return LinuxFileOwner.GetOwnerName(fileInfo.FullName);
+                return LinuxFileOwner.GetOwnerName(_fileInfo.FullName);
             }
             throw new PlatformNotSupportedException(
                 "WopiFile.Owner is only supported on Windows and Linux.");

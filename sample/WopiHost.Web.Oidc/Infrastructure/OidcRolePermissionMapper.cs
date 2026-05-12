@@ -30,7 +30,7 @@ public static class OidcRolePermissionMapper
     /// <summary>Role string that grants read-only access.</summary>
     public const string ViewerRole = "wopi.viewer";
 
-    private static readonly WopiFilePermissions EditorPermissions =
+    private static readonly WopiFilePermissions s_editorPermissions =
         WopiFilePermissions.UserCanWrite |
         WopiFilePermissions.UserCanRename |
         WopiFilePermissions.UserCanAttend |
@@ -56,7 +56,7 @@ public static class OidcRolePermissionMapper
 
         if (roles.Any(r => string.Equals(r, EditorRole, StringComparison.OrdinalIgnoreCase)))
         {
-            return EditorPermissions;
+            return s_editorPermissions;
         }
         if (roles.Any(r => string.Equals(r, ViewerRole, StringComparison.OrdinalIgnoreCase)))
         {

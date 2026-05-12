@@ -29,10 +29,10 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
     /// <param name="LastActivity">When this session was last refreshed.</param>
     public record EditorSession(string UserId, string UserName, DateTimeOffset LastActivity);
 
-    private static readonly TimeSpan SessionTimeout = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan s_sessionTimeout = TimeSpan.FromMinutes(30);
 
     // fileId → (userId → session) — static so state is shared across all CobaltHostLockingStore instances
-    private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, EditorSession>> Sessions = new();
+    private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, EditorSession>> s_sessions = new();
 
     /// <summary>
     /// Registers or refreshes a user's editing session for the given file.
@@ -40,9 +40,9 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
     /// </summary>
     public void AddOrRefreshSession(string fileId, string userId, string userName)
     {
-        var fileSessions = Sessions.GetOrAdd(fileId, _ => new ConcurrentDictionary<string, EditorSession>());
-        var added = !fileSessions.ContainsKey(userId);
-        fileSessions[userId] = new EditorSession(userId, userName, DateTimeOffset.UtcNow);
+        var files_sessions = s_sessions.GetOrAdd(fileId, _ => new ConcurrentDictionary<string, EditorSession>());
+        var added = !files_sessions.ContainsKey(userId);
+        files_sessions[userId] = new EditorSession(userId, userName, DateTimeOffset.UtcNow);
         if (added)
         {
             LogEditorJoined(_logger, userId, userName, fileId);
@@ -54,16 +54,16 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
     /// </summary>
     public void RemoveSession(string fileId, string userId)
     {
-        if (Sessions.TryGetValue(fileId, out var fileSessions))
+        if (s_sessions.TryGetValue(fileId, out var files_sessions))
         {
-            if (fileSessions.TryRemove(userId, out _))
+            if (files_sessions.TryRemove(userId, out _))
             {
                 LogEditorLeft(_logger, userId, fileId);
             }
             // Clean up empty file entries
-            if (fileSessions.IsEmpty)
+            if (files_sessions.IsEmpty)
             {
-                Sessions.TryRemove(fileId, out _);
+                s_sessions.TryRemove(fileId, out _);
             }
         }
     }
@@ -73,13 +73,13 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
     /// </summary>
     public int GetActiveEditorCount(string fileId)
     {
-        if (!Sessions.TryGetValue(fileId, out var fileSessions))
+        if (!s_sessions.TryGetValue(fileId, out var files_sessions))
         {
             return 0;
         }
 
-        var cutoff = DateTimeOffset.UtcNow - SessionTimeout;
-        return fileSessions.Values.Count(s => s.LastActivity > cutoff);
+        var cutoff = DateTimeOffset.UtcNow - s_sessionTimeout;
+        return files_sessions.Values.Count(s => s.LastActivity > cutoff);
     }
 
     /// <summary>
@@ -87,13 +87,13 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
     /// </summary>
     public bool IsAlone(string fileId, string userId)
     {
-        if (!Sessions.TryGetValue(fileId, out var fileSessions))
+        if (!s_sessions.TryGetValue(fileId, out var files_sessions))
         {
             return true;
         }
 
-        var cutoff = DateTimeOffset.UtcNow - SessionTimeout;
-        var activeEditors = fileSessions.Values
+        var cutoff = DateTimeOffset.UtcNow - s_sessionTimeout;
+        var activeEditors = files_sessions.Values
             .Where(s => s.LastActivity > cutoff)
             .ToList();
 
@@ -114,17 +114,17 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
     public EditorsTable GetEditorsTable(string fileId)
     {
         var result = new EditorsTable();
-        if (!Sessions.TryGetValue(fileId, out var fileSessions))
+        if (!s_sessions.TryGetValue(fileId, out var files_sessions))
         {
             return result;
         }
 
-        var cutoff = DateTimeOffset.UtcNow - SessionTimeout;
-        foreach (var session in fileSessions.Values.Where(s => s.LastActivity > cutoff))
+        var cutoff = DateTimeOffset.UtcNow - s_sessionTimeout;
+        foreach (var session in files_sessions.Values.Where(s => s.LastActivity > cutoff))
         {
             var clientId = DeriveClientId(session.UserId);
             result[clientId] = new EditorsTableEntryNew(
-                dtTimeout: session.LastActivity.UtcDateTime + SessionTimeout,
+                dtTimeout: session.LastActivity.UtcDateTime + s_sessionTimeout,
                 clientId: clientId,
                 userName: session.UserName,
                 userLogin: session.UserId,

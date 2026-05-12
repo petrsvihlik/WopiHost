@@ -44,7 +44,7 @@ public class FilesController(
     ICobaltProcessor? cobaltProcessor = null,
     IWopiLockComparer? lockComparer = null) : ControllerBase
 {
-    private readonly IWopiLockComparer lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
+    private readonly IWopiLockComparer _lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
     private WopiHostCapabilities HostCapabilities => new()
     {
         SupportsCobalt = cobaltProcessor is not null,
@@ -168,7 +168,7 @@ public class FilesController(
         if (lockProvider is not null)
         {
             var existingLock = await lockProvider.GetLockAsync(id, cancellationToken).ConfigureAwait(false);
-            if (existingLock is not null && !lockComparer.AreEqual(existingLock.LockId, lockIdentifier))
+            if (existingLock is not null && !_lockComparer.AreEqual(existingLock.LockId, lockIdentifier))
             {
                 return new LockMismatchResult(Response, existingLock.LockId);
             }
@@ -813,7 +813,7 @@ public class FilesController(
         {
             return new LockMismatchResult(Response, reason: "File not locked");
         }
-        if (!lockComparer.AreEqual(existingLock.LockId, oldLockIdentifier))
+        if (!_lockComparer.AreEqual(existingLock.LockId, oldLockIdentifier))
         {
             return new LockMismatchResult(Response, existingLock.LockId);
         }
@@ -839,7 +839,7 @@ public class FilesController(
         {
             return new LockMismatchResult(Response, reason: "File not locked");
         }
-        if (!lockComparer.AreEqual(existingLock.LockId, newLockIdentifier))
+        if (!_lockComparer.AreEqual(existingLock.LockId, newLockIdentifier))
         {
             return new LockMismatchResult(Response, existingLock.LockId);
         }
@@ -865,7 +865,7 @@ public class FilesController(
     private async Task<IActionResult> LockOrRefresh(string newLock, WopiLockInfo existingLock, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(lockProvider);
-        if (!lockComparer.AreEqual(existingLock.LockId, newLock))
+        if (!_lockComparer.AreEqual(existingLock.LockId, newLock))
         {
             // The existing lock doesn't match the requested one (someone else might have locked the file). Return a lock mismatch error along with the current lock
             return new LockMismatchResult(Response, existingLock.LockId);

@@ -32,7 +32,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
     /// <summary>How long a session may go without traffic before it is disposed.</summary>
     public static TimeSpan SessionIdleTimeout { get; } = TimeSpan.FromMinutes(60);
 
-    private static readonly TimeSpan CleanupInterval = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan s_cleanupInterval = TimeSpan.FromMinutes(5);
 
     private readonly ILogger<CobaltProcessor> _logger;
     private readonly CoauthoringSessionTracker _sessionTracker;
@@ -44,7 +44,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _sessionTracker = new CoauthoringSessionTracker(trackerLogger ?? throw new ArgumentNullException(nameof(trackerLogger)));
-        _cleanupTimer = new Timer(_ => EvictIdleSessions(), state: null, CleanupInterval, CleanupInterval);
+        _cleanupTimer = new Timer(_ => EvictIdleSessions(), state: null, s_cleanupInterval, s_cleanupInterval);
     }
 
     /// <inheritdoc/>

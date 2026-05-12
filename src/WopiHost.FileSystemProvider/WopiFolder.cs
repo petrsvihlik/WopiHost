@@ -11,10 +11,10 @@ namespace WopiHost.FileSystemProvider;
 public class WopiFolder(string path, string folderIdentifier) : IWopiFolder
 {
     /// <inheritdoc/>
-    private readonly DirectoryInfo FolderInfo = new(path);
+    private readonly DirectoryInfo _folderInfo = new(path);
 
 	/// <inheritdoc/>
-	public string Name => FolderInfo.Name;
+	public string Name => _folderInfo.Name;
 
     /// <inheritdoc/>
     public string Identifier { get; } = folderIdentifier;

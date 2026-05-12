@@ -28,8 +28,8 @@ namespace WopiHost.Core.Infrastructure;
 /// </remarks>
 public sealed class WopiLockAwareWritableStorageProvider : IWopiWritableStorageProvider
 {
-    private readonly IWopiWritableStorageProvider inner;
-    private readonly IWopiLockProvider lockProvider;
+    private readonly IWopiWritableStorageProvider _inner;
+    private readonly IWopiLockProvider _lockProvider;
 
     /// <summary>
     /// Creates a new lock-aware decorator over an existing writable storage provider.
@@ -38,27 +38,27 @@ public sealed class WopiLockAwareWritableStorageProvider : IWopiWritableStorageP
     /// <param name="lockProvider">the lock provider consulted before mutating writes.</param>
     public WopiLockAwareWritableStorageProvider(IWopiWritableStorageProvider inner, IWopiLockProvider lockProvider)
     {
-        this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
-        this.lockProvider = lockProvider ?? throw new ArgumentNullException(nameof(lockProvider));
+        _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        _lockProvider = lockProvider ?? throw new ArgumentNullException(nameof(lockProvider));
     }
 
     /// <inheritdoc />
-    public int FileNameMaxLength => inner.FileNameMaxLength;
+    public int FileNameMaxLength => _inner.FileNameMaxLength;
 
     /// <inheritdoc />
     public Task<T?> CreateWopiChildResource<T>(string containerId, string name, CancellationToken cancellationToken = default)
         where T : class, IWopiResource
-        => inner.CreateWopiChildResource<T>(containerId, name, cancellationToken);
+        => _inner.CreateWopiChildResource<T>(containerId, name, cancellationToken);
 
     /// <inheritdoc />
     public Task<bool> CheckValidName<T>(string name, CancellationToken cancellationToken = default)
         where T : class, IWopiResource
-        => inner.CheckValidName<T>(name, cancellationToken);
+        => _inner.CheckValidName<T>(name, cancellationToken);
 
     /// <inheritdoc />
     public Task<string> GetSuggestedName<T>(string containerId, string name, CancellationToken cancellationToken = default)
         where T : class, IWopiResource
-        => inner.GetSuggestedName<T>(containerId, name, cancellationToken);
+        => _inner.GetSuggestedName<T>(containerId, name, cancellationToken);
 
     /// <inheritdoc />
     public async Task<bool> DeleteWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
@@ -66,23 +66,23 @@ public sealed class WopiLockAwareWritableStorageProvider : IWopiWritableStorageP
     {
         // Inlined lock probe: pulled out of a private async helper because Infer# can't see
         // through cross-method async calls and flags the returned Task as potentially null.
-        var existing = await lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
+        var existing = await _lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
         if (existing is not null)
         {
             throw new WopiResourceLockedException(identifier, existing.LockId);
         }
-        return await inner.DeleteWopiResource<T>(identifier, cancellationToken).ConfigureAwait(false);
+        return await _inner.DeleteWopiResource<T>(identifier, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task<bool> RenameWopiResource<T>(string identifier, string requestedName, CancellationToken cancellationToken = default)
         where T : class, IWopiResource
     {
-        var existing = await lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
+        var existing = await _lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
         if (existing is not null)
         {
             throw new WopiResourceLockedException(identifier, existing.LockId);
         }
-        return await inner.RenameWopiResource<T>(identifier, requestedName, cancellationToken).ConfigureAwait(false);
+        return await _inner.RenameWopiResource<T>(identifier, requestedName, cancellationToken).ConfigureAwait(false);
     }
 }

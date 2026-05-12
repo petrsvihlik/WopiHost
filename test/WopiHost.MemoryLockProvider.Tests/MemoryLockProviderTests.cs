@@ -288,8 +288,8 @@ public class MemoryLockProviderTests
     private static ConcurrentDictionary<string, WopiLockInfo> GetSharedLockDictionary()
     {
         var field = typeof(MemoryLockProvider)
-            .GetField("locks", BindingFlags.Static | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("MemoryLockProvider.locks field not found");
+            .GetField("s_locks", BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("MemoryLockProvider.s_locks field not found");
         return (ConcurrentDictionary<string, WopiLockInfo>)field.GetValue(null)!;
     }
 
