@@ -26,7 +26,8 @@ builder.Services.AddWopi(o =>
 // Required in production: pin the access-token signing key.
 builder.Services.ConfigureWopiSecurity(o =>
 {
-    o.SigningKey = Convert.FromBase64String(builder.Configuration["Wopi:Security:SigningKey"]!);
+    o.SigningKey = Convert.FromBase64String(
+        builder.Configuration[$"{WopiSecurityOptions.SectionName}:{nameof(WopiSecurityOptions.SigningKey)}"]!);
 });
 
 var app = builder.Build();
@@ -140,7 +141,7 @@ services.AddWopi(o => { o.ClientUrl = ...; o.StorageProviderAssemblyName = ...; 
 services.AddSingleton<IWopiPermissionProvider, MyAclPermissionProvider>();
 services.ConfigureWopiSecurity(o =>
 {
-    o.SigningKey = Convert.FromBase64String(Configuration["Wopi:Security:SigningKey"]!);
+    o.SigningKey = Convert.FromBase64String(Configuration[$"{WopiSecurityOptions.SectionName}:{nameof(WopiSecurityOptions.SigningKey)}"]!);
     o.DefaultTokenLifetime = TimeSpan.FromMinutes(10);
 });
 ```

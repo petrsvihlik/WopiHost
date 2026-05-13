@@ -1,3 +1,5 @@
+using WopiHost.Core.Security;
+
 namespace WopiHost.IntegrationTests.Fixtures;
 
 /// <summary>
@@ -23,7 +25,7 @@ internal static class OidcSampleTestConfig
         ["Wopi:Discovery:NetZone"] = "ExternalHttps",
         ["Wopi:Discovery:RefreshInterval"] = "12:00:00",
         ["Wopi:StorageProvider:RootPath"] = TestPaths.WopiDocsRoot,
-        ["Wopi:Security:SigningKey"] = Convert.ToBase64String(SigningKeyBytes(wopiSigningSecret)),
+        [$"{WopiSecurityOptions.SectionName}:{nameof(WopiSecurityOptions.SigningKey)}"] = Convert.ToBase64String(SigningKeyBytes(wopiSigningSecret)),
         ["Oidc:Authority"] = oidcAuthority,
         ["Oidc:ClientId"] = TestClientId,
         ["Oidc:ClientSecret"] = TestClientSecret,

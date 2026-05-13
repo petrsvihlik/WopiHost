@@ -41,7 +41,7 @@ public static class ServiceCollectionExtensions
 
         services
             .AddOptions<WopiAzureStorageProviderOptions>()
-            .Bind(configuration.GetSection(WopiConfigurationSections.STORAGE_OPTIONS))
+            .Bind(configuration.GetSection(WopiAzureStorageProviderOptions.SectionName))
             .Validate(o => !string.IsNullOrWhiteSpace(o.ContainerName), "Wopi:StorageProvider:ContainerName is required.")
             .Validate(o => !string.IsNullOrWhiteSpace(o.ConnectionString) || o.ServiceUri is not null,
                 "Either Wopi:StorageProvider:ConnectionString or Wopi:StorageProvider:ServiceUri must be set.")

@@ -53,7 +53,7 @@ public sealed class WebSampleFactory : IDisposable, IAsyncDisposable
 
         builder.Services
             .AddOptionsWithValidateOnStart<WopiOptions>()
-            .Bind(builder.Configuration.GetRequiredSection(WopiConfigurationSections.WOPI_ROOT))
+            .Bind(builder.Configuration.GetRequiredSection(WopiOptions.SectionName))
             .ValidateDataAnnotations();
 
         // Faked discoverer instead of AddWopiDiscovery — avoids HTTP fetch from ClientUrl.

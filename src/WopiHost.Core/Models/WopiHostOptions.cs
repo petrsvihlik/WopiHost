@@ -11,6 +11,12 @@ namespace WopiHost.Core.Models;
 public class WopiHostOptions : IDiscoveryOptions
 {
     /// <summary>
+    /// Default configuration section path this options class binds to. Use with
+    /// <c>builder.Configuration.GetSection(WopiHostOptions.SectionName)</c>.
+    /// </summary>
+    public const string SectionName = "Wopi";
+
+    /// <summary>
     /// Determines whether the MS-FSSHTTP should be enabled or not.
     /// </summary>
     public bool UseCobalt { get; set; }

@@ -19,11 +19,11 @@ builder.Services.AddControllersWithViews();
 // Configuration
 builder.Services
     .AddOptionsWithValidateOnStart<WopiOptions>()
-    .Bind(builder.Configuration.GetRequiredSection(WopiConfigurationSections.WOPI_ROOT))
+    .Bind(builder.Configuration.GetRequiredSection(WopiOptions.SectionName))
     .ValidateDataAnnotations();
 
 builder.Services.AddWopiDiscovery<WopiOptions>(
-    options => builder.Configuration.GetSection(WopiConfigurationSections.DISCOVERY_OPTIONS).Bind(options));
+    options => builder.Configuration.GetSection(DiscoveryOptions.SectionName).Bind(options));
 
 builder.Services.AddSingleton<InMemoryFileIds>();
 builder.Services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();

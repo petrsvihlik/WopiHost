@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using WopiHost.Abstractions;
+using WopiHost.Core.Security;
 
 namespace WopiHost.IntegrationTests.Fixtures;
 
@@ -24,7 +25,7 @@ public sealed class WopiBackendFactory(string wopiSigningSecret) : WebApplicatio
                 ["Wopi:ClientUrl"] = "https://office.example.test",
                 ["Wopi:Discovery:NetZone"] = "ExternalHttps",
                 ["Wopi:Discovery:RefreshInterval"] = "12:00:00",
-                ["Wopi:Security:SigningKey"] = Convert.ToBase64String(OidcSampleTestConfig.SigningKeyBytes(wopiSigningSecret)),
+                [$"{WopiSecurityOptions.SectionName}:{nameof(WopiSecurityOptions.SigningKey)}"] = Convert.ToBase64String(OidcSampleTestConfig.SigningKeyBytes(wopiSigningSecret)),
             });
         });
 

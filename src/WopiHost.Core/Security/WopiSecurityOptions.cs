@@ -9,7 +9,7 @@ namespace WopiHost.Core.Security;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Bind from configuration via <c>services.Configure&lt;WopiSecurityOptions&gt;(config.GetSection("Wopi:Security"))</c>
+/// Bind from configuration via <c>services.Configure&lt;WopiSecurityOptions&gt;(config.GetSection(WopiSecurityOptions.SectionName))</c>
 /// or configure inline via the <c>AddWopi(o =&gt; ...)</c> overload.
 /// </para>
 /// <para>
@@ -19,6 +19,12 @@ namespace WopiHost.Core.Security;
 /// </remarks>
 public class WopiSecurityOptions
 {
+    /// <summary>
+    /// Default configuration section path this options class binds to. Use with
+    /// <c>builder.Configuration.GetSection(WopiSecurityOptions.SectionName)</c>.
+    /// </summary>
+    public const string SectionName = "Wopi:Security";
+
     /// <summary>
     /// HMAC signing key bytes. Must be at least 32 bytes (256 bits) when using the default
     /// <see cref="SecurityAlgorithms.HmacSha256"/> algorithm.
@@ -76,4 +82,17 @@ public class WopiSecurityOptions
     /// over <see cref="SigningKey"/>.
     /// </summary>
     public SecurityKey? SecurityKey { get; set; }
+
+    /// <summary>
+    /// <strong>Development-only.</strong> When <see langword="true"/>, the host replaces
+    /// <see cref="Abstractions.IWopiProofValidator"/> with a no-op so WOPI callbacks are accepted
+    /// without proof-key verification. Required for WOPI clients (notably Collabora Online) that
+    /// do not sign callbacks with proof keys — those are an OOS / M365-for-the-Web feature.
+    /// </summary>
+    /// <remarks>
+    /// The sample host refuses to honor this flag outside the <c>Development</c> environment so a
+    /// stray production config cannot silently disable signature checking. Library consumers
+    /// reading this property directly should enforce the same invariant.
+    /// </remarks>
+    public bool DisableProofValidation { get; set; }
 }

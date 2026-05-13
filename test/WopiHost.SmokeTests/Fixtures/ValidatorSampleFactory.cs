@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using WopiHost.Abstractions;
+using WopiHost.Core.Security;
 using WopiHost.Discovery;
 using WopiHost.Validator;
 using WopiHost.Validator.Infrastructure;
@@ -38,8 +39,8 @@ public sealed class ValidatorSampleFactory : IDisposable, IAsyncDisposable
             ["Wopi:Discovery:NetZone"] = "ExternalHttps",
             ["Wopi:Discovery:RefreshInterval"] = "12:00:00",
             ["Wopi:UserId"] = "Anonymous",
-            ["Wopi:Security:DisableProofValidation"] = "true",
-            ["Wopi:Security:SigningKey"] = Convert.ToBase64String(new byte[64]),
+            [$"{WopiSecurityOptions.SectionName}:{nameof(WopiSecurityOptions.DisableProofValidation)}"] = "true",
+            [$"{WopiSecurityOptions.SectionName}:{nameof(WopiSecurityOptions.SigningKey)}"] = Convert.ToBase64String(new byte[64]),
         });
 
         // Same as WebSampleFactory: register the sample's assembly with MVC so its controllers /

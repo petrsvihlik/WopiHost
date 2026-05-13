@@ -11,6 +11,12 @@ namespace WopiHost.Web.Oidc.Models;
 /// </remarks>
 public class OidcOptions
 {
+    /// <summary>
+    /// Default configuration section path this options class binds to. Use with
+    /// <c>builder.Configuration.GetSection(OidcOptions.SectionName)</c>.
+    /// </summary>
+    public const string SectionName = "Oidc";
+
     /// <summary>OIDC issuer URL. Discovery document is fetched from <c>{Authority}/.well-known/openid-configuration</c>.</summary>
     [Required]
     public required string Authority { get; set; }

@@ -6,6 +6,12 @@
 public class DiscoveryOptions
 {
     /// <summary>
+    /// Default configuration section path this options class binds to. Use with
+    /// <c>builder.Configuration.GetSection(DiscoveryOptions.SectionName)</c>.
+    /// </summary>
+    public const string SectionName = "Wopi:Discovery";
+
+    /// <summary>
     /// Default discovery refresh cadence (24 hours). Office Online publishes a new discovery
     /// XML at most once a day, so refreshing more often produces no useful change.
     /// </summary>
