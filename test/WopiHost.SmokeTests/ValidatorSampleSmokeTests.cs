@@ -30,7 +30,7 @@ public sealed class ValidatorSampleSmokeTests(PlaywrightFixture playwright) : IA
     public async Task Index_renders()
     {
         var page = await _context.NewPageAsync();
-        var response = await page.GotoAsync(_factory.ServerUrl);
+        var response = await page.GotoAsync(_factory.ServerUrl.AbsoluteUri);
 
         Assert.NotNull(response);
         Assert.True(response.Ok, $"Expected 2xx, got {response.Status}");
