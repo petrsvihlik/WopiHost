@@ -22,8 +22,13 @@ namespace WopiHost.Core.Security.Authorization;
 /// </para>
 /// <para>
 /// If you need stricter per-resource enforcement (e.g. compliance), register an additional
-/// <see cref="IAuthorizationHandler"/> that compares the route id with the claim and fails
-/// the requirement on mismatch.
+/// <see cref="IAuthorizationHandler"/> that fails the requirement on mismatch. Read the
+/// per-request resource id from the resource <see cref="HttpContext"/> the framework hands
+/// to your handler — specifically <c>httpContext.Request.RouteValues["id"]</c> — and compare
+/// it against the <see cref="WopiClaimTypes.ResourceId"/> claim on the principal. Do not read
+/// it from the requirement: requirements are policy declarations cached on the action
+/// descriptor and shared across all concurrent requests, so they must never carry
+/// per-request state.
 /// </para>
 /// </remarks>
 public partial class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)
@@ -32,10 +37,11 @@ public partial class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> 
     /// <inheritdoc/>
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, WopiAuthorizeAttribute requirement, HttpContext resource)
     {
-        if (resource.Request.RouteValues.TryGetValue("id", out var fileIdRaw) && fileIdRaw is not null)
-        {
-            requirement.ResourceId = fileIdRaw.ToString();
-        }
+        // Per-request resource id stays in a local — never written onto the (shared) requirement.
+        // See class doc and #380 items 2.5 / 5.3.
+        var routeResourceId = resource.Request.RouteValues.TryGetValue("id", out var fileIdRaw)
+            ? fileIdRaw?.ToString()
+            : null;
 
         var user = context.User;
         if (user.Identity?.IsAuthenticated != true)
@@ -44,7 +50,7 @@ public partial class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> 
             return Task.CompletedTask;
         }
 
-        WarnIfResourceBindingMismatch(user, requirement);
+        WarnIfResourceBindingMismatch(user, routeResourceId);
 
         if (!HasRequiredPermission(user, requirement))
         {
@@ -56,13 +62,13 @@ public partial class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> 
         return Task.CompletedTask;
     }
 
-    private void WarnIfResourceBindingMismatch(ClaimsPrincipal user, WopiAuthorizeAttribute requirement)
+    private void WarnIfResourceBindingMismatch(ClaimsPrincipal user, string? routeResourceId)
     {
-        if (string.IsNullOrEmpty(requirement.ResourceId)) return;
+        if (string.IsNullOrEmpty(routeResourceId)) return;
         var ridClaim = user.FindFirstValue(WopiClaimTypes.ResourceId);
-        if (!string.IsNullOrEmpty(ridClaim) && !string.Equals(ridClaim, requirement.ResourceId, StringComparison.Ordinal))
+        if (!string.IsNullOrEmpty(ridClaim) && !string.Equals(ridClaim, routeResourceId, StringComparison.Ordinal))
         {
-            LogResourceBindingMismatch(logger, ridClaim, requirement.ResourceId);
+            LogResourceBindingMismatch(logger, ridClaim, routeResourceId);
         }
     }
 

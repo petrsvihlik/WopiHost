@@ -14,10 +14,10 @@ namespace WopiHost.Core.Security.Authorization;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
 public class WopiAuthorizeAttribute(
     WopiResourceType resourceType,
-    Permission permission) : AuthorizeAttribute, IWopiAuthorizationRequirement,  IAuthorizationRequirement, IAuthorizationRequirementData
+    Permission permission) : AuthorizeAttribute, IWopiAuthorizationRequirement, IAuthorizationRequirement, IAuthorizationRequirementData
 {
     /// <summary>
-    /// Gets a permissions required for a given combination of resource, user, and action.
+    /// Gets the permission required for a given combination of resource, user, and action.
     /// </summary>
     public Permission Permission { get; } = permission;
 
@@ -27,14 +27,8 @@ public class WopiAuthorizeAttribute(
     public WopiResourceType ResourceType { get; } = resourceType;
 
     /// <summary>
-    /// Gets or sets the identifier of the resource.
-    /// </summary>
-    public string? ResourceId { get; set; }
-    
-    /// <summary>
     /// Gets the requirements.
     /// </summary>
-    /// <returns></returns>
     public IEnumerable<IAuthorizationRequirement> GetRequirements()
     {
         yield return this;
