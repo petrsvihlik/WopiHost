@@ -45,12 +45,12 @@ This is a modular **WOPI protocol host** implementation that integrates custom d
 
 ### Core Libraries (src/)
 
-- **WopiHost.Abstractions** — Interfaces and contracts: `IWopiStorageProvider`, `IWopiWritableStorageProvider`, `IWopiLockProvider`, `IWopiSecurityHandler`, `IDiscoverer`. All other projects depend on this.
+- **WopiHost.Abstractions** — Interfaces and contracts: `IWopiStorageProvider`, `IWopiWritableStorageProvider`, `IWopiLockProvider`, `IWopiAccessTokenService`, `IWopiProofValidator`, `IWopiPermissionProvider`, `IDiscoverer`. All other projects depend on this.
 - **WopiHost.Core** — WOPI REST endpoint controllers (`FilesController`, `ContainersController`, `FoldersController`), security (JWT auth, WOPI proof validation), and request infrastructure. This is the main server library.
 - **WopiHost.Discovery** — Discovers WOPI client capabilities from Office Online Server XML.
 - **WopiHost.Url** — Generates WOPI URLs for file/container actions.
 - **WopiHost.Cobalt** — Optional MS-FSSHTTP (Cobalt) protocol support for co-authoring.
-- **WopiHost.FileSystemProvider** — Default file-system-based storage provider (uses base64-encoded paths as identifiers).
+- **WopiHost.FileSystemProvider** — Default file-system-based storage provider. Resource identifiers are deterministic SHA-256 hashes of the path (see `WopiResourceId.FromCanonicalPath`); the in-memory id↔path map is rebuilt on startup.
 - **WopiHost.MemoryLockProvider** — Default in-memory lock provider (ConcurrentDictionary, 30-min expiry).
 - **WopiHost.AzureStorageProvider** — Azure Blob storage provider (alternative to FileSystemProvider). See its README for the connection-string config flow.
 - **WopiHost.AzureLockProvider** — Azure-blob-backed distributed lock provider (alternative to MemoryLockProvider).
@@ -73,7 +73,7 @@ Storage and lock providers are loaded **dynamically by assembly name** from conf
 
 ### Infrastructure (infra/)
 
-- **WopiHost.AppHost** — .NET Aspire orchestrator for local development (backend :5000, frontend :6000, validator :7000).
+- **WopiHost.AppHost** — .NET Aspire orchestrator for local development. The backend is pinned at `:5000` (the WOPI host URL is referenced by Collabora's `host.docker.internal:5000`); the frontend and validator use `WithHttpsEndpoint()` so Aspire allocates their ports from the OS's free pool — the dashboard shows whatever was bound.
 - **WopiHost.ServiceDefaults** — Shared service configuration: OpenTelemetry, health checks, HTTP resilience, service discovery.
 
 ### Sample Apps (sample/)
@@ -99,7 +99,7 @@ Never commit `appsettings.Development.json` with these flags enabled — they im
 
 - WOPI operations are distinguished by `X-WOPI-Override` header values (LOCK, UNLOCK, PUT, DELETE, RENAME, etc.).
 - `X-WOPI-Proof` headers provide cryptographic request validation from the WOPI client.
-- File/container identifiers are opaque strings (the filesystem provider uses base64-encoded paths).
+- File/container identifiers are opaque strings. The filesystem and Azure providers both derive ids via `WopiResourceId.FromCanonicalPath` (SHA-256 of a provider-canonicalized path, lower-case hex). Each provider canonicalizes its input the way the underlying store compares names — FS case-folds with `Path.GetFullPath(...).ToUpperInvariant()` because filesystems on Windows/macOS are case-insensitive; Azure passes the blob path as-is because Azure Blob Storage is case-sensitive.
 - Locks auto-expire after 30 minutes per the WOPI spec.
 
 ## Sample-frontend conventions
