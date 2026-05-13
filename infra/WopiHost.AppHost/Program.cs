@@ -2,19 +2,19 @@ using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Visual Studio injects two env vars into the AppHost process when you start debugging:
-//   - ASPNETCORE_HOSTINGSTARTUPASSEMBLIES=Microsoft.WebTools.ApiEndpointDiscovery
-//   - DOTNET_ADDITIONAL_DEPS=<path to a VS-private deps file that makes the DLL above resolvable>
-// The first is what powers VS's Endpoints Explorer / Connected Services. Aspire spawns each
-// child project as its own process; the hosting-startup name is inherited but the additional-deps
-// path that makes the DLL findable is not, so child startup throws FileNotFoundException for
-// Microsoft.WebTools.ApiEndpointDiscovery. The error is non-fatal but loud on every VS launch.
-// Forward DOTNET_ADDITIONAL_DEPS explicitly so children can resolve the DLL too — VS keeps
-// working and the warning goes away. From a CLI launch (dotnet run) neither var is set, so the
-// helper is a no-op and nothing changes.
-var vsAdditionalDeps = Environment.GetEnvironmentVariable("DOTNET_ADDITIONAL_DEPS");
-IResourceBuilder<ProjectResource> ForwardVsHostingStartup(IResourceBuilder<ProjectResource> p) =>
-    string.IsNullOrEmpty(vsAdditionalDeps) ? p : p.WithEnvironment("DOTNET_ADDITIONAL_DEPS", vsAdditionalDeps);
+// Visual Studio injects ASPNETCORE_HOSTINGSTARTUPASSEMBLIES=Microsoft.WebTools.ApiEndpointDiscovery
+// on every ASP.NET Core process it debugs — that's how it powers the Endpoints Explorer /
+// Connected Services panel. Aspire spawns each child project as its own process and the var
+// is inherited, but the DLL that satisfies the load is delivered out-of-band by VS in a way
+// that doesn't reach the children. Result: child startup throws FileNotFoundException for the
+// discovery assembly. Non-fatal but loud, and only under VS — CLI launches never see it.
+// We tried forwarding DOTNET_ADDITIONAL_DEPS (the var that's supposed to make the DLL findable);
+// that did not help on this machine, so we strip the hosting-startup name instead. An empty
+// string is the documented "no hosting-startup assemblies" value. VS's Endpoints Explorer
+// won't enumerate the WOPI children anymore — Aspire's dashboard + the Scalar URL already
+// cover that role for this dev loop.
+static IResourceBuilder<ProjectResource> StripVsHostingStartup(IResourceBuilder<ProjectResource> p) =>
+    p.WithEnvironment("ASPNETCORE_HOSTINGSTARTUPASSEMBLIES", "");
 
 // WOPI backend.
 //
@@ -44,7 +44,7 @@ IResourceBuilder<ProjectResource> ForwardVsHostingStartup(IResourceBuilder<Proje
 // load-bearing setting — ASPNETCORE_ENVIRONMENT=Development — explicitly, because
 // sample/WopiHost's Program.cs refuses to honour Wopi:Security:DisableProofValidation
 // outside Development (and the Collabora block below flips that flag on).
-var wopiHost = ForwardVsHostingStartup(builder.AddProject<Projects.WopiHost>("wopihost", launchProfileName: null))
+var wopiHost = StripVsHostingStartup(builder.AddProject<Projects.WopiHost>("wopihost", launchProfileName: null))
                       .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
                       .WithHttpEndpoint(name: "wopihost-http", port: 5050, isProxied: false)
                       .WithUrlForEndpoint("wopihost-http", url =>
@@ -88,7 +88,7 @@ var wopiBackendHostForFrontends = useCollabora ? "host.docker.internal" : "local
 // from IConfiguration — so we ALSO inject Wopi__HostUrl pointing at the same backend port. That
 // way the AppHost owns the URL end-to-end and the frontend's appsettings.json HostUrl entry is
 // only the production default.
-var wopiHostWeb = ForwardVsHostingStartup(builder.AddProject<Projects.WopiHost_Web>("wopihost-web", launchProfileName: null))
+var wopiHostWeb = StripVsHostingStartup(builder.AddProject<Projects.WopiHost_Web>("wopihost-web", launchProfileName: null))
        .WithReference(wopiHost)
        .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{wopiBackendHostForFrontends}:{wopiBackendPort}"))
        .WithHttpsEndpoint()
@@ -96,7 +96,7 @@ var wopiHostWeb = ForwardVsHostingStartup(builder.AddProject<Projects.WopiHost_W
 
 // Validator: same wiring pattern as the Web frontend. The validator never runs against Collabora
 // (it's a WOPI protocol checker), so localhost is the right reach.
-ForwardVsHostingStartup(builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator", launchProfileName: null))
+StripVsHostingStartup(builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator", launchProfileName: null))
        .WithReference(wopiHost)
        .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://localhost:{wopiBackendPort}"))
        .WithHttpsEndpoint()
@@ -112,7 +112,7 @@ if (builder.Configuration.GetValue<bool>("AppHost:IncludeOidcSample"))
     // an allowed redirect URI on the IdP side, so dynamic allocation does mean re-registering
     // the redirect URI at the IdP after each port change. If that's painful in your setup,
     // pin via WithHttpsEndpoint(port: 6101).
-    ForwardVsHostingStartup(builder.AddProject<Projects.WopiHost_Web_Oidc>("wopihost-web-oidc", launchProfileName: null))
+    StripVsHostingStartup(builder.AddProject<Projects.WopiHost_Web_Oidc>("wopihost-web-oidc", launchProfileName: null))
            .WithReference(wopiHost)
            .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{wopiBackendHostForFrontends}:{wopiBackendPort}"))
            .WithHttpsEndpoint()
