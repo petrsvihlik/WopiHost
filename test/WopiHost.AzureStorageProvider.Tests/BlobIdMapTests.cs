@@ -8,15 +8,35 @@ public class BlobIdMapTests
     private static BlobIdMap NewMap() => new(NullLogger<BlobIdMap>.Instance);
 
     [Fact]
-    public void IdFromPath_DeterministicAndCaseInsensitive()
+    public void IdFromPath_DeterministicAndCaseSensitive()
     {
         var lower = BlobIdMap.IdFromPath("a/b/file.txt");
         var upper = BlobIdMap.IdFromPath("A/B/FILE.TXT");
 
-        Assert.Equal(lower, upper);
+        // Azure blob names are case-sensitive — distinct casings must produce distinct ids,
+        // otherwise the in-memory map would silently merge two real blobs onto a single id.
+        Assert.NotEqual(lower, upper);
+
+        // Same path twice still hashes to the same id (determinism).
+        Assert.Equal(lower, BlobIdMap.IdFromPath("a/b/file.txt"));
+
         // Hex SHA-256 — 64 lowercase hex chars.
         Assert.Equal(64, lower.Length);
         Assert.All(lower, c => Assert.True(char.IsAsciiHexDigitLower(c)));
+    }
+
+    [Fact]
+    public void ScanAll_BlobsDifferingOnlyByCase_RegistersBoth()
+    {
+        // Regression test: previously BlobIdMap case-folded the path before hashing, which
+        // collapsed Foo/file.txt and foo/file.txt onto the same id and silently dropped one
+        // from the map. Azure stores them as distinct blobs — the provider must too.
+        var map = NewMap();
+        map.ScanAll(["Foo/file.txt", "foo/file.txt"]);
+
+        Assert.True(map.TryGetFileId("Foo/file.txt", out var upperId));
+        Assert.True(map.TryGetFileId("foo/file.txt", out var lowerId));
+        Assert.NotEqual(upperId, lowerId);
     }
 
     [Fact]
