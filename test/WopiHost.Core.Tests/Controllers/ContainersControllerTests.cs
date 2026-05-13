@@ -16,6 +16,10 @@ namespace WopiHost.Core.Tests.Controllers;
 
 public class ContainersControllerTests
 {
+    // Hoisted to satisfy CA1861 — the Moq predicate captures this array every time the test runs;
+    // a single static instance avoids per-invocation allocation and keeps the SequenceEqual stable.
+    private static readonly string[] s_txtFilter = [".txt"];
+
     private readonly Mock<IWopiStorageProvider> _storageProviderMock;
     private readonly Mock<IWopiLockProvider> _lockProviderMock;
     private readonly Mock<IWopiWritableStorageProvider> _writableStorageProviderMock;
@@ -614,7 +618,7 @@ public class ContainersControllerTests
         _storageProviderMock
             .Setup(sp => sp.GetWopiFiles(
                 containerId,
-                It.Is<IReadOnlyCollection<string>?>(exts => exts != null && exts.SequenceEqual(new[] { ".txt" })),
+                It.Is<IReadOnlyCollection<string>?>(exts => exts != null && exts.SequenceEqual(s_txtFilter)),
                 It.IsAny<CancellationToken>()))
             .Returns(new[] { fileMock1.Object }.ToAsyncEnumerable());
         _storageProviderMock.Setup(sp => sp.GetWopiContainers(containerId, It.IsAny<CancellationToken>())).Returns(AsyncEnumerable.Empty<IWopiFolder>());

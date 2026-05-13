@@ -403,7 +403,7 @@ public class FilesController(
     /// limit; whichever is largest decides. Returns <see langword="null"/> when the request is
     /// within budget or no limit is configured.
     /// </summary>
-    private IActionResult? CheckMaxFileSize(long? declaredSize = null)
+    private StatusCodeResult? CheckMaxFileSize(long? declaredSize = null)
     {
         // RequestServices can be null when the controller is invoked without a configured
         // ServiceProvidersFeature (some unit-test paths). Treat that as "no options resolved" so

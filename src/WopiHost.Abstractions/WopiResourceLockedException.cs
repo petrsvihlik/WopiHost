@@ -8,25 +8,18 @@ namespace WopiHost.Abstractions;
 /// layer, so this exception only surfaces when a non-WOPI code path or future controller
 /// regression bypasses that check.
 /// </summary>
-public class WopiResourceLockedException : InvalidOperationException
+/// <param name="resourceIdentifier">Identifier of the resource the caller tried to mutate.</param>
+/// <param name="lockId">The lock id currently held on the resource.</param>
+public class WopiResourceLockedException(string resourceIdentifier, string lockId)
+    : InvalidOperationException($"Resource '{resourceIdentifier}' is locked (lock id '{lockId}'); refusing write through lock-aware storage decorator.")
 {
     /// <summary>
     /// Identifier of the resource the caller tried to mutate.
     /// </summary>
-    public string ResourceIdentifier { get; }
+    public string ResourceIdentifier { get; } = resourceIdentifier;
 
     /// <summary>
     /// The lock id currently held on the resource.
     /// </summary>
-    public string LockId { get; }
-
-    /// <summary>
-    /// Creates a new <see cref="WopiResourceLockedException"/>.
-    /// </summary>
-    public WopiResourceLockedException(string resourceIdentifier, string lockId)
-        : base($"Resource '{resourceIdentifier}' is locked (lock id '{lockId}'); refusing write through lock-aware storage decorator.")
-    {
-        ResourceIdentifier = resourceIdentifier;
-        LockId = lockId;
-    }
+    public string LockId { get; } = lockId;
 }

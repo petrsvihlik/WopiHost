@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
@@ -27,6 +28,8 @@ public sealed class WebSampleFactory : IDisposable, IAsyncDisposable
     private readonly WebApplication _app;
 
     /// <summary>Loopback URL the listener bound to.</summary>
+    [SuppressMessage("Design", "CA1056:URI-like properties should not be strings",
+        Justification = "The only consumer is Playwright's GotoAsync(string), which takes a string. Wrapping as Uri here just to ToString() at every call site adds noise without a security or correctness benefit — the loopback address is a trusted, internally-generated test seam.")]
     public string ServerUrl { get; }
 
     public WebSampleFactory()

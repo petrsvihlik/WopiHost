@@ -26,21 +26,14 @@ namespace WopiHost.Core.Infrastructure;
 /// and <see cref="GetSuggestedName{T}"/> are read-only.
 /// </para>
 /// </remarks>
-public sealed class WopiLockAwareWritableStorageProvider : IWopiWritableStorageProvider
+/// <param name="inner">the underlying writable storage provider being decorated.</param>
+/// <param name="lockProvider">the lock provider consulted before mutating writes.</param>
+public sealed class WopiLockAwareWritableStorageProvider(
+    IWopiWritableStorageProvider inner,
+    IWopiLockProvider lockProvider) : IWopiWritableStorageProvider
 {
-    private readonly IWopiWritableStorageProvider _inner;
-    private readonly IWopiLockProvider _lockProvider;
-
-    /// <summary>
-    /// Creates a new lock-aware decorator over an existing writable storage provider.
-    /// </summary>
-    /// <param name="inner">the underlying writable storage provider being decorated.</param>
-    /// <param name="lockProvider">the lock provider consulted before mutating writes.</param>
-    public WopiLockAwareWritableStorageProvider(IWopiWritableStorageProvider inner, IWopiLockProvider lockProvider)
-    {
-        _inner = inner ?? throw new ArgumentNullException(nameof(inner));
-        _lockProvider = lockProvider ?? throw new ArgumentNullException(nameof(lockProvider));
-    }
+    private readonly IWopiWritableStorageProvider _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+    private readonly IWopiLockProvider _lockProvider = lockProvider ?? throw new ArgumentNullException(nameof(lockProvider));
 
     /// <inheritdoc />
     public int FileNameMaxLength => _inner.FileNameMaxLength;
