@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
 using WopiHost.Abstractions;
-using WopiHost.Core.Security;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.ServiceDefaults;
@@ -35,16 +34,17 @@ builder.Services.AddWopiDiscovery<WopiOptions>(
 builder.Services.AddSingleton<InMemoryFileIds>();
 builder.Services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
 
-// WOPI access-token signer must use the same key as the WOPI backend. We bind the same
-// WopiSecurityOptions section the backend uses so the SigningKey value travels via one
-// IConfiguration path with one typed property — no per-key magic strings.
+// WOPI access-token signer must use the same key as the WOPI backend. Bind a project-local
+// WopiSigningOptions pointed at the same configuration path (Wopi:Security) — pure frontends
+// don't take a project reference on WopiHost.Core, so we keep our own typed shape for the
+// shared key.
 builder.Services
-    .AddOptions<WopiSecurityOptions>()
-    .Bind(builder.Configuration.GetSection(WopiSecurityOptions.SectionName));
+    .AddOptions<WopiSigningOptions>()
+    .Bind(builder.Configuration.GetSection(WopiSigningOptions.SectionName));
 
 builder.Services.AddSingleton(sp =>
 {
-    var opts = sp.GetRequiredService<IOptions<WopiSecurityOptions>>().Value;
+    var opts = sp.GetRequiredService<IOptions<WopiSigningOptions>>().Value;
     return opts.SigningKey is { Length: > 0 } key
         ? new WopiAccessTokenMinter(key)
         : WopiAccessTokenMinter.FromSecret(WopiAccessTokenMinter.DefaultDevSecret);
