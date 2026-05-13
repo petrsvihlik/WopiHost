@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="src/WopiHost.Abstractions/WopiHost.Abstractions.csproj" />
+  <Project Path="src/WopiHost.Abstractions.Testing/WopiHost.Abstractions.Testing.csproj" />
   <Project Path="src/WopiHost.AzureLockProvider/WopiHost.AzureLockProvider.csproj" />
   <Project Path="src/WopiHost.AzureStorageProvider/WopiHost.AzureStorageProvider.csproj" />
   <Project Path="src/WopiHost.Cobalt/WopiHost.Cobalt.csproj" />

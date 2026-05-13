@@ -4,6 +4,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\WopiHost.AzureLockProvider\WopiHost.AzureLockProvider.csproj" />
+		<ProjectReference Include="..\..\src\WopiHost.Abstractions.Testing\WopiHost.Abstractions.Testing.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Testcontainers.Azurite" />

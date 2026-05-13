@@ -22,6 +22,13 @@
     <PackageVersion Include="Scrutor" Version="7.0.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.6.0" />
+    <!-- WopiHost.Abstractions.Testing exposes abstract [Fact]-annotated conformance test classes
+         for downstream IWopiLockProvider authors. extensibility.core gives us attributes without
+         the v3 runner/MTP wiring (which the xunit.v3 metapackage mandates and which would force
+         the project to OutputType=Exe). assert ships the Assert class. Both kept aligned with
+         the xunit.v3 version in test/Directory.Packages.props. -->
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.2" />
+    <PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.8" />

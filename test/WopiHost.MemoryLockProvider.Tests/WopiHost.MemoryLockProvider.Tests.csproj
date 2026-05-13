@@ -4,6 +4,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\..\src\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj" />
+	  <ProjectReference Include="..\..\src\WopiHost.Abstractions.Testing\WopiHost.Abstractions.Testing.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 	  <PackageReference Update="coverlet.collector">
