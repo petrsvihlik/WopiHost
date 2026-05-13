@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Extensions.Logging;
+using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider;
 
@@ -118,12 +117,12 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// produces the same identifier, even across process restarts or separate services.
     /// </summary>
     /// <remarks>
-    /// Uses SHA-256 (not MD5) so the id-minting path is FIPS-compatible and silent under the
-    /// <c>CA5351</c> analyzer. The id is purely an opaque key; cryptographic strength isn't
-    /// required, but a non-weak primitive avoids policy/compliance friction on hosts that
-    /// disable broken algorithms entirely.
+    /// Case-folds with <see cref="string.ToUpperInvariant"/> before delegating to
+    /// <see cref="WopiResourceId.FromCanonicalPath"/>: Windows and macOS filesystems compare
+    /// names case-insensitively, so two casings of the same file must produce one stable id.
+    /// On case-sensitive Linux filesystems this is conservative but harmless — the same path
+    /// still hashes to the same id.
     /// </remarks>
     private static string IdFromPath(string path) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
-            Path.GetFullPath(path).ToUpperInvariant()))).ToLowerInvariant();
+        WopiResourceId.FromCanonicalPath(Path.GetFullPath(path).ToUpperInvariant());
 }
