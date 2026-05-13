@@ -93,7 +93,13 @@ var wopiBackendHostForFrontends = useCollabora ? "host.docker.internal" : "local
 // from IConfiguration — so we ALSO inject Wopi__HostUrl pointing at the same backend port. That
 // way the AppHost owns the URL end-to-end and the frontend's appsettings.json HostUrl entry is
 // only the production default.
+//
+// ASPNETCORE_ENVIRONMENT=Development is re-injected here for the same reason as the backend:
+// launchProfileName: null bypasses each frontend's Properties/launchSettings.json which was
+// otherwise contributing the Development env var. Without it the frontends default to Production
+// in the dev loop — detailed errors hidden, appsettings.Development.json ignored, etc.
 var wopiHostWeb = ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost_Web>("wopihost-web", launchProfileName: null))
+       .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
        .WithReference(wopiHost)
        .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{wopiBackendHostForFrontends}:{wopiBackendPort}"))
        .WithHttpsEndpoint()
@@ -102,6 +108,7 @@ var wopiHostWeb = ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost_
 // Validator: same wiring pattern as the Web frontend. The validator never runs against Collabora
 // (it's a WOPI protocol checker), so localhost is the right reach.
 ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator", launchProfileName: null))
+       .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
        .WithReference(wopiHost)
        .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://localhost:{wopiBackendPort}"))
        .WithHttpsEndpoint()
@@ -118,6 +125,7 @@ if (builder.Configuration.GetValue<bool>("AppHost:IncludeOidcSample"))
     // the redirect URI at the IdP after each port change. If that's painful in your setup,
     // pin via WithHttpsEndpoint(port: 6101).
     ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost_Web_Oidc>("wopihost-web-oidc", launchProfileName: null))
+           .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
            .WithReference(wopiHost)
            .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{wopiBackendHostForFrontends}:{wopiBackendPort}"))
            .WithHttpsEndpoint()
