@@ -4,18 +4,26 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // WOPI backend.
 //
-// Port: pinned to 5000. Kestrel binds directly (isProxied: false) so the URL we hand other
+// Port: pinned to 5050. Kestrel binds directly (isProxied: false) so the URL we hand other
 // resources is the real host-side TCP socket. Direct binding matters for the Collabora dev
-// loop specifically — Collabora-in-Docker reaches the backend via host.docker.internal:5000,
+// loop specifically — Collabora-in-Docker reaches the backend via host.docker.internal:5050,
 // and that has to be a port the host kernel is actually listening on (Aspire's reverse proxy
 // doesn't help because the container can't see Aspire's internal allocator).
 //
-// Why pin the port rather than let Aspire allocate? In Aspire 13.x, WithHttpEndpoint with
-// isProxied: false and no port silently hangs the AppHost during graph construction — the
-// dashboard's web server never starts. Reproduced cleanly: removing port: 5000 here leaves
+// Why 5050 and not 5000? On Windows, port 5000 sits inside the kernel-level excluded-port
+// range that Hyper-V / WinNAT / WSL2 reserve for their NAT pool. Kestrel fails to bind with
+// `SocketException 10013 (WSAEACCES) — An attempt was made to access a socket in a way
+// forbidden by its access permissions`, even though `netstat` shows nothing listening. Check
+// the local exclusions with `netsh int ipv4 show excludedportrange protocol=tcp` if 5050 is
+// also unavailable on your machine; move to another free port and update Collabora's "domain"
+// regex below in lockstep.
+//
+// Why pin the port at all rather than let Aspire allocate? In Aspire 13.x, WithHttpEndpoint
+// with isProxied: false and no port silently hangs the AppHost during graph construction —
+// the dashboard's web server never starts. Reproduced cleanly: removing port: here leaves
 // startup stuck after "Application host directory is: …" with no further output. Pinning a
 // port is the only working combo today. Downstream consumers still read this through a
-// ReferenceExpression so the literal 5000 only appears once in the codebase.
+// ReferenceExpression so the literal port only appears in two colocated places.
 //
 // We deliberately do NOT pass launchProfileName: null here: the backend's launchSettings.json
 // "WopiHost" profile carries `ASPNETCORE_ENVIRONMENT=Development`, which is load-bearing for
@@ -25,7 +33,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 // harmless — Aspire overrides ASPNETCORE_URLS with the WithHttpEndpoint config above. So we
 // let the launch profile contribute the env var and Aspire wins on the URL.
 var wopiHost = builder.AddProject<Projects.WopiHost>("wopihost")
-                      .WithHttpEndpoint(name: "wopihost-http", port: 5000, isProxied: false)
+                      .WithHttpEndpoint(name: "wopihost-http", port: 5050, isProxied: false)
                       .WithUrlForEndpoint("wopihost-http", url =>
                       {
                           url.DisplayText = "Scalar (HTTP)";
@@ -82,11 +90,11 @@ if (useCollabora)
     // appear to wedge Aspire 13.x container startup in the "Starting" state indefinitely (the
     // container never reaches the health-check phase). Project-level env vars below use
     // ReferenceExpression fine; only the container case hangs. Since wopihost's port is pinned
-    // to 5000 just above (Aspire requires it for isProxied:false), the two literals are
+    // to 5050 just above (Aspire requires it for isProxied:false), the two literals are
     // colocated and a future port change is a two-line edit, not a worse drift hazard than
     // the original pre-Aspire wiring.
     collabora = builder.AddContainer("collabora", "collabora/code")
-           .WithEnvironment("domain", "host\\.docker\\.internal:5000")
+           .WithEnvironment("domain", "host\\.docker\\.internal:5050")
            .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false")
            .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
            .WithHttpHealthCheck("/hosting/discovery", endpointName: "collabora");
