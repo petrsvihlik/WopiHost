@@ -72,8 +72,17 @@ if (useCollabora)
     // seconds to bind to 9980 even after the TCP listener accepts. Without this, dependents
     // would race ahead and Polly's Standard-Retry pipeline logs "ResponseEnded" / 10s timeouts
     // on the first page load. WaitFor below blocks dependents until this returns 200.
+    //
+    // The "domain" regex stays a literal string rather than a ReferenceExpression interpolating
+    // wopiBackendPort: container env vars that reference a project endpoint's Property(Port)
+    // appear to wedge Aspire 13.x container startup in the "Starting" state indefinitely (the
+    // container never reaches the health-check phase). Project-level env vars below use
+    // ReferenceExpression fine; only the container case hangs. Since wopihost's port is pinned
+    // to 5000 just above (Aspire requires it for isProxied:false), the two literals are
+    // colocated and a future port change is a two-line edit, not a worse drift hazard than
+    // the original pre-Aspire wiring.
     collabora = builder.AddContainer("collabora", "collabora/code")
-           .WithEnvironment("domain", ReferenceExpression.Create($"host\\.docker\\.internal:{wopiBackendPort}"))
+           .WithEnvironment("domain", "host\\.docker\\.internal:5000")
            .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false")
            .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
            .WithHttpHealthCheck("/hosting/discovery", endpointName: "collabora");
