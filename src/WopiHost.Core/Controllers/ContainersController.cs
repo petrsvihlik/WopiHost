@@ -290,10 +290,15 @@ public class ContainersController(
             {
                 return Ok();
             }
+            // Provider returns false when the identifier no longer resolves to a resource — the
+            // pre-check above passed but a concurrent delete won the race. Map to 404, same as
+            // the throw-based path below (#380 item 4.2).
+            return NotFound();
         }
         catch (DirectoryNotFoundException)
         {
-            // 404 Not Found – Resource not found/user unauthorized
+            // 404 Not Found – defensive catch for third-party providers that still throw on
+            // missing resource (the in-tree providers now return false; see item 4.2).
             return NotFound();
         }
         catch (InvalidOperationException)
@@ -301,7 +306,6 @@ public class ContainersController(
             // 409 Conflict – Container has child files/containers
             return new ConflictResult();
         }
-        return new InternalServerErrorResult();
     }
 
     /// <summary>
@@ -346,6 +350,8 @@ public class ContainersController(
                 // Name(string) - The name of the renamed container.
                 return new JsonResult(new { container.Name });
             }
+            // false → missing resource (race with concurrent delete). Map to 404. (#380 item 4.2)
+            return NotFound();
         }
         catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
         {
@@ -358,7 +364,7 @@ public class ContainersController(
         }
         catch (DirectoryNotFoundException)
         {
-            // 404 Not Found – Resource not found/user unauthorized
+            // 404 Not Found – defensive catch for third-party providers that still throw.
             return NotFound();
         }
         catch (InvalidOperationException)
@@ -370,7 +376,6 @@ public class ContainersController(
         {
             return new InternalServerErrorResult();
         }
-        return new InternalServerErrorResult();
     }
 
     /// <summary>

@@ -165,9 +165,11 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         string name,
         CancellationToken cancellationToken = default) where T : class, IWopiResource
     {
+        // Missing parent: return null (#380 item 4.2). Azure storage provider already behaves
+        // this way; throwing was a FileSystemProvider-only quirk that leaked through callers.
         if (!_fileIds.TryGetPath(containerId, out var dirPath))
         {
-            throw new DirectoryNotFoundException($"Directory '{containerId}' not found.");
+            return default;
         }
         if (!_fileIds.TryGetFileId(Path.Combine(dirPath, name), out var nameId))
         {
@@ -342,13 +344,11 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
 
     private bool DeleteWopiContainer(string identifier)
     {
-        if (!_fileIds.TryGetPath(identifier, out var fullPath))
+        // Missing identifier → return false (#380 item 4.2). The non-empty case still throws —
+        // that's the WOPI 409 path, distinct from 404.
+        if (!_fileIds.TryGetPath(identifier, out var fullPath) || !Directory.Exists(fullPath))
         {
-            throw new DirectoryNotFoundException($"Directory '{identifier}' not found.");
-        }
-        if (!Directory.Exists(fullPath))
-        {
-            throw new DirectoryNotFoundException($"Directory '{fullPath}' not found");
+            return false;
         }
         if (Directory.EnumerateFileSystemEntries(fullPath).Any())
         {
@@ -362,13 +362,10 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
 
     private bool DeleteWopiFile(string identifier)
     {
-        if (!_fileIds.TryGetPath(identifier, out var fullPath))
+        // Missing identifier → return false (#380 item 4.2).
+        if (!_fileIds.TryGetPath(identifier, out var fullPath) || !File.Exists(fullPath))
         {
-            throw new FileNotFoundException($"File '{identifier}' not found.");
-        }
-        if (!File.Exists(fullPath))
-        {
-            throw new FileNotFoundException($"File '{fullPath}' not found");
+            return false;
         }
         File.Delete(fullPath);
         _fileIds.RemoveId(identifier);
@@ -387,9 +384,11 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
 
         if (typeof(T) == typeof(IWopiFile))
         {
-            if (!_fileIds.TryGetPath(identifier, out var fullPath))
+            // Missing identifier → return false (#380 item 4.2). The target-already-exists
+            // case still throws — that's the WOPI 409 / X-WOPI-InvalidFileNameError path.
+            if (!_fileIds.TryGetPath(identifier, out var fullPath) || !File.Exists(fullPath))
             {
-                throw new FileNotFoundException($"File '{identifier}' not found.");
+                return false;
             }
             var parentPath = Path.GetDirectoryName(fullPath)
                 ?? throw new DirectoryNotFoundException("Parent directory not found");
@@ -404,9 +403,10 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         }
         else if (typeof(T) == typeof(IWopiFolder))
         {
-            if (!_fileIds.TryGetPath(identifier, out var fullPath))
+            // Missing identifier → return false (#380 item 4.2).
+            if (!_fileIds.TryGetPath(identifier, out var fullPath) || !Directory.Exists(fullPath))
             {
-                throw new DirectoryNotFoundException($"Directory '{identifier}' not found.");
+                return false;
             }
             var parentPath = Path.GetDirectoryName(fullPath)
                 ?? throw new DirectoryNotFoundException("Parent directory not found");

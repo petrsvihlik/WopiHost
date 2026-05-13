@@ -196,6 +196,8 @@ public class FilesController(
                 // Name (string) - The name of the renamed file without a path or file extension.
                 return new JsonResult(new { Name = Path.GetFileNameWithoutExtension(newName) });
             }
+            // false → missing resource (race with concurrent delete). Map to 404. (#380 item 4.2)
+            return NotFound();
         }
         catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
         {
@@ -208,7 +210,8 @@ public class FilesController(
         }
         catch (FileNotFoundException)
         {
-            // 404 Not Found – Resource not found/user unauthorized
+            // 404 Not Found – defensive catch for third-party providers / GetSuggestedName paths
+            // that still throw on missing resource.
             return NotFound();
         }
         catch (InvalidOperationException)
@@ -220,7 +223,6 @@ public class FilesController(
         {
             return new InternalServerErrorResult();
         }
-        return new InternalServerErrorResult();
     }
 
     /// <summary>
@@ -670,6 +672,8 @@ public class FilesController(
             {
                 return Ok();
             }
+            // false → missing resource (race with concurrent delete). Map to 404. (#380 item 4.2)
+            return NotFound();
         }
 
         return new InternalServerErrorResult();
@@ -870,8 +874,13 @@ public class FilesController(
             // The existing lock doesn't match the requested one (someone else might have locked the file). Return a lock mismatch error along with the current lock
             return new LockMismatchResult(Response, existingLock.LockId);
         }
-        // File is currently locked and the lock ids match, refresh lock (extend the lock timeout)
-        return await lockProvider.RefreshLockAsync(existingLock.FileId, cancellationToken: cancellationToken).ConfigureAwait(false)
+        // File is currently locked and the lock ids match, refresh lock (extend the lock timeout).
+        // The provider receives the expected lock id and performs an atomic compare-and-refresh:
+        // if a concurrent UnlockAndRelock swapped the stored id between our existingLock snapshot
+        // (captured upstream in ProcessLock via GetLockAsync) and this call, the refresh aborts
+        // cleanly. Pre-fix this was a check-then-act race: the controller checked the snapshot
+        // and the provider blindly bumped the timestamp on whatever id was now stored.
+        return await lockProvider.RefreshLockAsync(existingLock.FileId, newLock, cancellationToken).ConfigureAwait(false)
             ? Ok()
             : new LockMismatchResult(Response, reason: "Could not refresh lock");
     }

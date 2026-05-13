@@ -209,9 +209,10 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
         where T : class, IWopiResource
     {
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
+        // Missing parent → return null (#380 item 4.2 — same contract as FileSystemProvider now).
         if (!_idMap.TryGetPath(containerId, out var folderPath))
         {
-            throw new DirectoryNotFoundException($"Container '{containerId}' not found.");
+            return null;
         }
         var combined = string.IsNullOrEmpty(folderPath) ? name : folderPath + "/" + name;
 

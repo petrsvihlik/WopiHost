@@ -72,12 +72,20 @@ public interface IWopiStorageProvider
         where T : class, IWopiResource;
 
     /// <summary>
-    /// Returns a Wopi resource by its name.
+    /// Returns a Wopi resource by its name within a parent container.
     /// </summary>
+    /// <remarks>
+    /// Returns <see langword="null"/> when either the parent container itself does not exist
+    /// or the child name is not present under it. Consistent with <see cref="GetWopiResource{T}"/>'s
+    /// null-on-missing behaviour (#380 item 4.2): the two providers used to disagree —
+    /// FileSystemProvider threw <see cref="DirectoryNotFoundException"/> on a missing parent;
+    /// AzureStorageProvider returned null — and the inconsistency leaked through to callers
+    /// (PutRelative resolution in particular).
+    /// </remarks>
     /// <param name="containerId">parent containerId to search within</param>
     /// <param name="name">the exact name to look for</param>
     /// <param name="cancellationToken">cancellation token</param>
-    /// <returns>either <see cref="IWopiFile"/> or <see cref="IWopiFolder"/>, null if not found</returns>
+    /// <returns>either <see cref="IWopiFile"/> or <see cref="IWopiFolder"/>, <see langword="null"/> if either the parent or the child is not present</returns>
     Task<T?> GetWopiResourceByName<T>(string containerId, string name, CancellationToken cancellationToken = default)
         where T : class, IWopiResource;
 }

@@ -19,13 +19,36 @@ public interface IWopiLockProvider
     Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Extend an existing lock's expiration time. Does not change the stored lock id — use
-    /// <see cref="TryUnlockAndRelockAsync"/> for atomic swap semantics.
+    /// Extend an existing lock's expiration time — but only if the stored lock id matches
+    /// <paramref name="expectedExistingLockId"/>. Implements the WOPI <c>RefreshLock</c>
+    /// operation, which the spec requires the host to honour only when the caller's lock id
+    /// matches the one currently stored on the file.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Implementations MUST perform a true compare-and-swap (e.g. <c>ConcurrentDictionary.TryUpdate</c>
+    /// against a snapshot, or an ETag-conditional metadata write on a remote store). A naive
+    /// "Get + Refresh" pair is racy: a concurrent <c>UnlockAndRelock</c> between the read and the
+    /// write would silently extend the wrong lock.
+    /// </para>
+    /// <para>
+    /// The previous signature took only <c>fileId</c> and left the controller layer to compare
+    /// the requested vs. stored lock id between a <see cref="GetLockAsync"/> and this call. That
+    /// is the textbook check-then-act race and violated the spec's atomicity requirement; the
+    /// argument now flows through to the provider so the comparison and the extension are part
+    /// of a single transaction.
+    /// </para>
+    /// <para>
+    /// Spec: <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/refreshlock"/>.
+    /// </para>
+    /// </remarks>
     /// <param name="fileId">the fileId to refresh the lock for.</param>
+    /// <param name="expectedExistingLockId">the lock id the caller observed; the refresh aborts
+    /// if the stored lock id no longer matches this value (or no lock is held).</param>
     /// <param name="cancellationToken">cancellation token</param>
-    /// <returns>true if the lock was successfully refreshed</returns>
-    Task<bool> RefreshLockAsync(string fileId, CancellationToken cancellationToken = default);
+    /// <returns>true if the lock was refreshed; false if the lock was missing, expired, or the
+    /// existing id no longer matches.</returns>
+    Task<bool> RefreshLockAsync(string fileId, string expectedExistingLockId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Create a new lock.

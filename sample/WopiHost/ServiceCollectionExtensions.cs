@@ -3,6 +3,7 @@ using WopiHost.Abstractions;
 using WopiHost.AzureLockProvider;
 using WopiHost.AzureStorageProvider;
 using WopiHost.FileSystemProvider;
+using WopiHost.RedisLockProvider;
 
 namespace WopiHost;
 
@@ -56,6 +57,10 @@ public static class ServiceCollectionExtensions
 
             case "WopiHost.AzureLockProvider":
                 services.AddAzureLockProvider(configuration);
+                return;
+
+            case "WopiHost.RedisLockProvider":
+                services.AddRedisLockProvider(configuration);
                 return;
 
             default:

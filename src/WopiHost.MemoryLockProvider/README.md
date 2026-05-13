@@ -42,7 +42,7 @@ The interface is **asynchronous** so out-of-process implementations (Azure Blob,
 ```csharp
 Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken ct = default);
 Task<WopiLockInfo?> AddLockAsync(string fileId, string lockId, CancellationToken ct = default);
-Task<bool>          RefreshLockAsync(string fileId, CancellationToken ct = default);
+Task<bool>          RefreshLockAsync(string fileId, string expectedExistingLockId, CancellationToken ct = default);
 Task<bool>          RemoveLockAsync(string fileId, CancellationToken ct = default);
 Task<bool>          TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken ct = default);
 ```

@@ -380,10 +380,13 @@ public class WopiFileSystemProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task GetWopiResourceByName_MissingContainer_Throws()
+    public async Task GetWopiResourceByName_MissingContainer_ReturnsNull()
     {
-        await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
-            _sut.GetWopiResourceByName<IWopiFile>("missing-id", "root.txt"));
+        // Aligned with WopiAzureStorageProvider's behaviour (#380 item 4.2). Was previously
+        // a FileSystem-only throw — the interface now mandates null on missing parent.
+        var result = await _sut.GetWopiResourceByName<IWopiFile>("missing-id", "root.txt");
+
+        Assert.Null(result);
     }
 
     [Fact]
@@ -592,20 +595,26 @@ public class WopiFileSystemProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task DeleteWopiResource_FileMissingId_Throws()
+    public async Task DeleteWopiResource_FileMissingId_ReturnsFalse()
     {
-        await Assert.ThrowsAsync<FileNotFoundException>(() =>
-            _sut.DeleteWopiResource<IWopiFile>("missing"));
+        // #380 item 4.2 — return false for missing identifier (was throw FileNotFoundException),
+        // matching WopiAzureStorageProvider and letting the controller map cleanly to 404.
+        var ok = await _sut.DeleteWopiResource<IWopiFile>("missing");
+
+        Assert.False(ok);
     }
 
     [Fact]
-    public async Task DeleteWopiResource_FileIdMappedButFileDeleted_Throws()
+    public async Task DeleteWopiResource_FileIdMappedButFileDeleted_ReturnsFalse()
     {
+        // Edge case: the id-map still knows the path but the underlying file was deleted
+        // out-of-band. Treat the same as a missing id — return false rather than throwing.
         Assert.True(_fileIds.TryGetFileId(_rootTxtPath, out var fileId));
         File.Delete(_rootTxtPath);
 
-        await Assert.ThrowsAsync<FileNotFoundException>(() =>
-            _sut.DeleteWopiResource<IWopiFile>(fileId));
+        var ok = await _sut.DeleteWopiResource<IWopiFile>(fileId);
+
+        Assert.False(ok);
     }
 
     [Fact]
@@ -629,20 +638,24 @@ public class WopiFileSystemProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task DeleteWopiResource_FolderMissingId_Throws()
+    public async Task DeleteWopiResource_FolderMissingId_ReturnsFalse()
     {
-        await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
-            _sut.DeleteWopiResource<IWopiFolder>("missing"));
+        // #380 item 4.2 — missing identifier returns false, matching WopiAzureStorageProvider.
+        var ok = await _sut.DeleteWopiResource<IWopiFolder>("missing");
+
+        Assert.False(ok);
     }
 
     [Fact]
-    public async Task DeleteWopiResource_FolderIdMappedButDirGone_Throws()
+    public async Task DeleteWopiResource_FolderIdMappedButDirGone_ReturnsFalse()
     {
+        // Same as the file variant: id-map stale, treat as missing.
         Assert.True(_fileIds.TryGetFileId(_empty.FullName, out var folderId));
         _empty.Delete(recursive: true);
 
-        await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
-            _sut.DeleteWopiResource<IWopiFolder>(folderId));
+        var ok = await _sut.DeleteWopiResource<IWopiFolder>(folderId);
+
+        Assert.False(ok);
     }
 
     [Fact]
@@ -676,10 +689,12 @@ public class WopiFileSystemProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task RenameWopiResource_FileMissingId_Throws()
+    public async Task RenameWopiResource_FileMissingId_ReturnsFalse()
     {
-        await Assert.ThrowsAsync<FileNotFoundException>(() =>
-            _sut.RenameWopiResource<IWopiFile>("missing", "x.txt"));
+        // #380 item 4.2.
+        var ok = await _sut.RenameWopiResource<IWopiFile>("missing", "x.txt");
+
+        Assert.False(ok);
     }
 
     [Fact]
@@ -704,10 +719,12 @@ public class WopiFileSystemProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task RenameWopiResource_FolderMissingId_Throws()
+    public async Task RenameWopiResource_FolderMissingId_ReturnsFalse()
     {
-        await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
-            _sut.RenameWopiResource<IWopiFolder>("missing", "x"));
+        // #380 item 4.2.
+        var ok = await _sut.RenameWopiResource<IWopiFolder>("missing", "x");
+
+        Assert.False(ok);
     }
 
     [Fact]

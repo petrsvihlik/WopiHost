@@ -340,8 +340,11 @@ public class ContainersControllerTests
     }
 
     [Fact]
-    public async Task DeleteContainer_ReturnsInternalServerError_WhenDeleteFails()
+    public async Task DeleteContainer_ReturnsNotFound_WhenDeleteReturnsFalse()
     {
+        // #380 item 4.2: false return from the provider means the resource is gone (lost race
+        // with concurrent delete). The controller pre-check passed but the underlying store no
+        // longer holds it — semantically identical to the missing-resource path, so 404.
         var containerId = "existing-container";
         var container = new Mock<IWopiFolder>();
         _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(containerId, It.IsAny<CancellationToken>())).ReturnsAsync(container.Object);
@@ -350,7 +353,7 @@ public class ContainersControllerTests
 
         var result = await _controller.DeleteContainer(containerId);
 
-        Assert.IsType<InternalServerErrorResult>(result);
+        Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]

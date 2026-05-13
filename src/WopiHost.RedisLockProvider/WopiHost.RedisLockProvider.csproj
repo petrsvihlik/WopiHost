@@ -1,15 +1,15 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
-		<Description>WopiHost.Abstractions Class Library</Description>
+		<Description>WopiHost.RedisLockProvider Class Library — distributed lock provider backed by Redis, with atomic compare-and-swap via Lua scripts and TTL-driven WOPI expiry. Best-effort against a single Redis instance; deliberately does not implement Redlock — see the README for the rationale.</Description>
 		<Authors>Petr Svihlik</Authors>
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-		<AssemblyName>WopiHost.Abstractions</AssemblyName>
-		<PackageId>WopiHost.Abstractions</PackageId>
+		<AssemblyName>WopiHost.RedisLockProvider</AssemblyName>
+		<PackageId>WopiHost.RedisLockProvider</PackageId>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<PackageIcon>logo.png</PackageIcon>
-		<PackageTags>WOPI;MS-WOPI;MS-FSSHTTP;Office Online Server;Office Web Apps;Web Application Open Platform Interface</PackageTags>
+		<PackageTags>WOPI;Redis;Lock;Office Online Server;Office Web Apps;Web Application Open Platform Interface</PackageTags>
 		<RepositoryType>git</RepositoryType>
 		<RepositoryUrl>https://github.com/petrsvihlik/WopiHost.git</RepositoryUrl>
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
@@ -18,11 +18,8 @@
 		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
 		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
 		<GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-		<!-- Deliberate binary-breaking change in #380 item 1.6: IWopiLockProvider.RefreshLockAsync
-		     gained a required string parameter so the WOPI spec's "refresh only if id matches"
-		     atomicity guarantee can actually be honoured (the previous signature forced a racy
-		     compare-then-act in the controller layer). The next release bumps the major version
-		     and re-enables validation against the new baseline. -->
+		<!-- New package; no prior release to validate against. Mirror the pattern used by the
+		     other newest packages (AzureStorageProvider, AzureLockProvider) until a baseline exists. -->
 		<EnablePackageValidation>false</EnablePackageValidation>
 	</PropertyGroup>
 
@@ -40,14 +37,18 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+		<PackageReference Include="StackExchange.Redis" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Options" />
 		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
-		<PackageReference Include="Microsoft.SourceLink.GitHub">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-		<PackageReference Include="Microsoft.AspNetCore.Authorization" />
-		<PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
-		<PackageReference Include="Microsoft.IdentityModel.Tokens" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\WopiHost.Abstractions\WopiHost.Abstractions.csproj" />
 	</ItemGroup>
 
 </Project>

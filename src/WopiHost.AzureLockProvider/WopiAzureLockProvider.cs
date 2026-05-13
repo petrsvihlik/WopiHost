@@ -165,7 +165,7 @@ public partial class WopiAzureLockProvider(
     }
 
     /// <inheritdoc />
-    public async Task<bool> RefreshLockAsync(string fileId, CancellationToken cancellationToken = default)
+    public async Task<bool> RefreshLockAsync(string fileId, string expectedExistingLockId, CancellationToken cancellationToken = default)
     {
         await EnsureContainerAsync(cancellationToken).ConfigureAwait(false);
         var blobClient = GetLockBlob(fileId);
@@ -174,7 +174,7 @@ public partial class WopiAzureLockProvider(
         {
             return false;
         }
-        if (info.IsExpiredAt(_timeProvider.GetUtcNow()))
+        if (info.IsExpiredAt(_timeProvider.GetUtcNow()) || !_lockComparer.AreEqual(info.LockId, expectedExistingLockId))
         {
             return false;
         }
@@ -183,8 +183,12 @@ public partial class WopiAzureLockProvider(
             return false;
         }
 
-        // Renew the lease so the holder semantic stays alive (no-op for infinite leases but still
-        // confirms the lease is still ours), then bump the WOPI-level timestamp.
+        // Snapshot the ETag at read time. If anything mutates the blob between our compare and
+        // the SetMetadata write (concurrent UnlockAndRelock, Remove, even another concurrent
+        // Refresh), the IfMatch condition fails with 412 and the refresh is reported as
+        // not-applied. Same atomicity guarantee as TryUnlockAndRelockAsync, just without the id
+        // swap.
+        var etag = props.ETag;
         var leaseClient = blobClient.GetBlobLeaseClient(leaseId);
         try
         {
@@ -203,9 +207,15 @@ public partial class WopiAzureLockProvider(
         try
         {
             await blobClient.SetMetadataAsync(updated,
-                conditions: new BlobRequestConditions { LeaseId = leaseId },
+                conditions: new BlobRequestConditions { LeaseId = leaseId, IfMatch = etag },
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             return true;
+        }
+        catch (RequestFailedException ex) when (ex.Status == 412 || ex.Status == 409)
+        {
+            // 412 = ETag changed (concurrent swap). 409 = lease conflict. Either way, refresh aborted.
+            LogLockMetadataUpdateFailed(_logger, ex, fileId);
+            return false;
         }
         catch (RequestFailedException ex)
         {
