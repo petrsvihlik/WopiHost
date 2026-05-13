@@ -4,18 +4,24 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // WOPI backend.
 //
-// Port allocation: Aspire picks the port from the OS's free pool; Kestrel binds directly
-// (isProxied: false) so the URL we hand other resources is the real host-side TCP socket.
-// Direct binding matters for the Collabora dev loop specifically — Collabora-in-Docker
-// reaches the backend via host.docker.internal:<port>, and that "<port>" has to be a port
-// the host kernel is actually listening on (Aspire's reverse proxy doesn't help because
-// the container can't see Aspire's internal allocator).
+// Port: pinned to 5000. Kestrel binds directly (isProxied: false) so the URL we hand other
+// resources is the real host-side TCP socket. Direct binding matters for the Collabora dev
+// loop specifically — Collabora-in-Docker reaches the backend via host.docker.internal:5000,
+// and that has to be a port the host kernel is actually listening on (Aspire's reverse proxy
+// doesn't help because the container can't see Aspire's internal allocator).
+//
+// Why pin the port rather than let Aspire allocate? In Aspire 13.x, WithHttpEndpoint with
+// isProxied: false and no port silently hangs the AppHost during graph construction — the
+// dashboard's web server never starts. Reproduced cleanly: removing port: 5000 here leaves
+// startup stuck after "Application host directory is: …" with no further output. Pinning a
+// port is the only working combo today. Downstream consumers still read this through a
+// ReferenceExpression so the literal 5000 only appears once in the codebase.
 //
 // launchProfileName: null tells Aspire to ignore sample/WopiHost/Properties/launchSettings.json
 // — the AppHost is the sole owner of port + URL configuration. Without this, launchSettings
 // silently contributes endpoint hints that drift from what WithEndpoint declares.
 var wopiHost = builder.AddProject<Projects.WopiHost>("wopihost", launchProfileName: null)
-                      .WithHttpEndpoint(name: "wopihost-http", isProxied: false)
+                      .WithHttpEndpoint(name: "wopihost-http", port: 5000, isProxied: false)
                       .WithUrlForEndpoint("wopihost-http", url =>
                       {
                           url.DisplayText = "Scalar (HTTP)";
