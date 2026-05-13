@@ -27,7 +27,7 @@ public sealed class WebSampleFactory : IDisposable, IAsyncDisposable
     private readonly WebApplication _app;
 
     /// <summary>Loopback URL the listener bound to.</summary>
-    public string ServerUrl { get; }
+    public Uri ServerUrl { get; }
 
     public WebSampleFactory()
     {
@@ -72,8 +72,9 @@ public sealed class WebSampleFactory : IDisposable, IAsyncDisposable
         _app.StartAsync().GetAwaiter().GetResult();
 
         var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>();
-        ServerUrl = addresses?.Addresses.FirstOrDefault()
+        var bound = addresses?.Addresses.FirstOrDefault()
             ?? throw new InvalidOperationException("No address bound — Kestrel didn't start as expected.");
+        ServerUrl = new Uri(bound);
     }
 
     public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();

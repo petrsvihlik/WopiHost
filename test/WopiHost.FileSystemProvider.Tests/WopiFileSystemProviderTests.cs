@@ -8,6 +8,12 @@ namespace WopiHost.FileSystemProvider.Tests;
 
 public class WopiFileSystemProviderTests : IDisposable
 {
+    // Filter arrays hoisted to static readonly to satisfy CA1861 (single allocation reused across
+    // Theory iterations) and IDE0300 (collection-expression initializer).
+    private static readonly string[] s_docxFilter = [".docx"];
+    private static readonly string[] s_docxAndTxtFilter = [".docx", ".txt"];
+    private static readonly string[] s_docxUpperFilter = [".DOCX"];
+
     private readonly DirectoryInfo _root;
     private readonly DirectoryInfo _sub;
     private readonly DirectoryInfo _empty;
@@ -187,7 +193,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task GetWopiFiles_WithSingleExtensionFilter_FiltersByExtension()
     {
         var files = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, new[] { ".docx" }))
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, s_docxFilter))
         {
             files.Add(f);
         }
@@ -203,7 +209,7 @@ public class WopiFileSystemProviderTests : IDisposable
         // are requested. Confirms the SelectMany-over-extensions plumbing emits disjoint
         // result sets without dropping any.
         var files = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, new[] { ".docx", ".txt" }))
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, s_docxAndTxtFilter))
         {
             files.Add(f);
         }
@@ -219,7 +225,7 @@ public class WopiFileSystemProviderTests : IDisposable
         // explicitly via EnumerationOptions.MatchCasing — without it, Linux hosts would
         // case-sensitively miss a request for ".DOCX" against a "root.docx" file.
         var files = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, new[] { ".DOCX" }))
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, s_docxUpperFilter))
         {
             files.Add(f);
         }
@@ -237,7 +243,7 @@ public class WopiFileSystemProviderTests : IDisposable
             withNull.Add(f);
         }
         var withEmpty = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, Array.Empty<string>()))
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, []))
         {
             withEmpty.Add(f);
         }

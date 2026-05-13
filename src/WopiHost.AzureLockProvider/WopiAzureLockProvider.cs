@@ -28,46 +28,34 @@ namespace WopiHost.AzureLockProvider;
 /// observes the WOPI-expiry has passed and explicitly breaks the lease in <see cref="GetLockAsync"/>.
 /// </para>
 /// </remarks>
-/// <summary>Create the provider from a configured <see cref="BlobContainerClient"/>.</summary>
-public partial class WopiAzureLockProvider : IWopiLockProvider
+/// <param name="containerClient">Blob container that holds the per-fileId lock placeholders.</param>
+/// <param name="logger">Logger.</param>
+/// <param name="timeProvider">
+/// Clock source for lock timestamps and expiry. Defaults to <see cref="TimeProvider.System"/>
+/// when not supplied via DI; inject a <c>FakeTimeProvider</c> (or any custom
+/// <see cref="TimeProvider"/>) in tests to make expiry deterministic.
+/// </param>
+/// <param name="lockComparer">
+/// Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/> when not supplied
+/// via DI; replace with a custom comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>)
+/// to absorb known WOPI-client lock-id mutations.
+/// </param>
+public partial class WopiAzureLockProvider(
+    BlobContainerClient containerClient,
+    ILogger<WopiAzureLockProvider> logger,
+    TimeProvider? timeProvider = null,
+    IWopiLockComparer? lockComparer = null) : IWopiLockProvider
 {
     internal const string LockIdKey = "wopi_lock_id";
     internal const string LeaseIdKey = "wopi_lease_id";
     internal const string CreatedKey = "wopi_created";
 
-    private readonly BlobContainerClient _containerClient;
-    private readonly ILogger<WopiAzureLockProvider> _logger;
-    private readonly IWopiLockComparer _lockComparer;
-    private readonly TimeProvider _timeProvider;
+    private readonly BlobContainerClient _containerClient = containerClient ?? throw new ArgumentNullException(nameof(containerClient));
+    private readonly ILogger<WopiAzureLockProvider> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly IWopiLockComparer _lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     private readonly SemaphoreSlim _initLock = new(1, 1);
     private bool _initialized;
-
-    /// <summary>
-    /// Creates the provider.
-    /// </summary>
-    /// <param name="containerClient">Blob container that holds the per-fileId lock placeholders.</param>
-    /// <param name="logger">Logger.</param>
-    /// <param name="timeProvider">
-    /// Clock source for lock timestamps and expiry. Defaults to <see cref="TimeProvider.System"/>
-    /// when not supplied via DI; inject a <c>FakeTimeProvider</c> (or any custom
-    /// <see cref="TimeProvider"/>) in tests to make expiry deterministic.
-    /// </param>
-    /// <param name="lockComparer">
-    /// Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/> when not supplied
-    /// via DI; replace with a custom comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>)
-    /// to absorb known WOPI-client lock-id mutations.
-    /// </param>
-    public WopiAzureLockProvider(
-        BlobContainerClient containerClient,
-        ILogger<WopiAzureLockProvider> logger,
-        TimeProvider? timeProvider = null,
-        IWopiLockComparer? lockComparer = null)
-    {
-        _containerClient = containerClient ?? throw new ArgumentNullException(nameof(containerClient));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _timeProvider = timeProvider ?? TimeProvider.System;
-        _lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
-    }
 
     /// <inheritdoc />
     public async Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default)

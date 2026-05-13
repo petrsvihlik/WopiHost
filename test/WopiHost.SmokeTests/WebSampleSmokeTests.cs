@@ -31,7 +31,7 @@ public sealed class WebSampleSmokeTests(PlaywrightFixture playwright) : IAsyncLi
     public async Task Index_renders_breadcrumb_and_file_table()
     {
         var page = await _context.NewPageAsync();
-        var response = await page.GotoAsync(_factory.ServerUrl);
+        var response = await page.GotoAsync(_factory.ServerUrl.AbsoluteUri);
 
         Assert.NotNull(response);
         Assert.True(response.Ok, $"Expected 2xx, got {response.Status}");
@@ -55,7 +55,7 @@ public sealed class WebSampleSmokeTests(PlaywrightFixture playwright) : IAsyncLi
     public async Task Action_links_carry_id_and_wopiaction_route_values()
     {
         var page = await _context.NewPageAsync();
-        await page.GotoAsync(_factory.ServerUrl);
+        await page.GotoAsync(_factory.ServerUrl.AbsoluteUri);
 
         // The View / Edit columns render as <a href="/Home/Detail/{id}?wopiaction=View|Edit">.
         var editAnchor = page.Locator("table.files tbody tr a[title='Edit']").First;
@@ -80,7 +80,7 @@ public sealed class WebSampleSmokeTests(PlaywrightFixture playwright) : IAsyncLi
         // controller stamps the "disabledIcon" class on action anchors whose action isn't
         // supported for that file's extension.
         var page = await _context.NewPageAsync();
-        await page.GotoAsync(_factory.ServerUrl);
+        await page.GotoAsync(_factory.ServerUrl.AbsoluteUri);
 
         // Find the row for test.html and assert both action anchors have disabledIcon.
         var htmlRow = page.Locator("table.files tbody tr").Filter(new() { HasText = "test.html" }).First;
@@ -105,7 +105,7 @@ public sealed class WebSampleSmokeTests(PlaywrightFixture playwright) : IAsyncLi
         var pageErrors = new List<string>();
         page.PageError += (_, error) => pageErrors.Add(error);
 
-        await page.GotoAsync(_factory.ServerUrl, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+        await page.GotoAsync(_factory.ServerUrl.AbsoluteUri, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
         Assert.True(pageErrors.Count == 0, "Page errors:\n" + string.Join("\n", pageErrors));
     }

@@ -21,7 +21,8 @@ public sealed class ValidatorSampleFactory : IDisposable, IAsyncDisposable
 {
     private readonly WebApplication _app;
 
-    public string ServerUrl { get; }
+    /// <summary>Loopback URL the listener bound to (Kestrel-allocated port).</summary>
+    public Uri ServerUrl { get; }
 
     public ValidatorSampleFactory()
     {
@@ -71,8 +72,9 @@ public sealed class ValidatorSampleFactory : IDisposable, IAsyncDisposable
         _app.StartAsync().GetAwaiter().GetResult();
 
         var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>();
-        ServerUrl = addresses?.Addresses.FirstOrDefault()
+        var bound = addresses?.Addresses.FirstOrDefault()
             ?? throw new InvalidOperationException("No address bound — Kestrel didn't start as expected.");
+        ServerUrl = new Uri(bound);
     }
 
     public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();

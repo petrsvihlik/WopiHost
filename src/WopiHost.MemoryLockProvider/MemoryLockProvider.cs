@@ -12,40 +12,30 @@ namespace WopiHost.MemoryLockProvider;
 /// the lifetime of the process but not multi-instance deployments or restarts. Operations are
 /// inherently synchronous and are wrapped in <see cref="Task.FromResult{T}"/> to satisfy the async contract.
 /// </remarks>
-public partial class MemoryLockProvider : IWopiLockProvider
+/// <param name="logger">Logger.</param>
+/// <param name="timeProvider">
+/// Clock source for lock timestamps and expiry. Defaults to <see cref="TimeProvider.System"/>
+/// when not supplied via DI; inject a <c>FakeTimeProvider</c> (or any custom
+/// <see cref="TimeProvider"/>) in tests to make expiry deterministic.
+/// </param>
+/// <param name="lockComparer">
+/// Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/> when not supplied
+/// via DI; replace with a custom comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>)
+/// to absorb known WOPI-client lock-id mutations.
+/// </param>
+public partial class MemoryLockProvider(
+    ILogger<MemoryLockProvider> logger,
+    TimeProvider? timeProvider = null,
+    IWopiLockComparer? lockComparer = null) : IWopiLockProvider
 {
     /// <summary>
     /// keyed with fileId
     /// </summary>
     private static readonly ConcurrentDictionary<string, WopiLockInfo> s_locks = [];
 
-    private readonly ILogger<MemoryLockProvider> _logger;
-    private readonly IWopiLockComparer _lockComparer;
-    private readonly TimeProvider _timeProvider;
-
-    /// <summary>
-    /// Creates the provider.
-    /// </summary>
-    /// <param name="logger">Logger.</param>
-    /// <param name="timeProvider">
-    /// Clock source for lock timestamps and expiry. Defaults to <see cref="TimeProvider.System"/>
-    /// when not supplied via DI; inject a <c>FakeTimeProvider</c> (or any custom
-    /// <see cref="TimeProvider"/>) in tests to make expiry deterministic.
-    /// </param>
-    /// <param name="lockComparer">
-    /// Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/> when not supplied
-    /// via DI; replace with a custom comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>)
-    /// to absorb known WOPI-client lock-id mutations.
-    /// </param>
-    public MemoryLockProvider(
-        ILogger<MemoryLockProvider> logger,
-        TimeProvider? timeProvider = null,
-        IWopiLockComparer? lockComparer = null)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _timeProvider = timeProvider ?? TimeProvider.System;
-        _lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
-    }
+    private readonly ILogger<MemoryLockProvider> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly IWopiLockComparer _lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
     /// <inheritdoc />
     public Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default)

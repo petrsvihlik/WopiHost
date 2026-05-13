@@ -12,6 +12,12 @@ namespace WopiHost.AzureStorageProvider.Tests;
 [Collection(AzuriteCollection.Name)]
 public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
 {
+    // Filter arrays hoisted to static readonly to satisfy CA1861 (single allocation reused across
+    // Theory iterations) and IDE0300 (collection-expression initializer).
+    private static readonly string[] s_docxFilter = [".docx"];
+    private static readonly string[] s_docxAndTxtFilter = [".docx", ".txt"];
+    private static readonly string[] s_wildcardDocxFilter = ["*.docx"];
+
     private async Task<(WopiAzureStorageProvider provider, BlobContainerClient container)> CreateProviderAsync()
     {
         var serviceClient = azurite.CreateBlobServiceClient();
@@ -130,7 +136,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
         await UploadAsync(container, "notes.txt");
 
         var matched = new List<string>();
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, new[] { ".docx" }))
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, s_docxFilter))
         {
             matched.Add(f.Name + "." + f.Extension);
         }
@@ -148,7 +154,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
         await UploadAsync(container, "notes.txt");
 
         var matched = new List<string>();
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, new[] { ".docx", ".txt" }))
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, s_docxAndTxtFilter))
         {
             matched.Add(f.Name + "." + f.Extension);
         }
@@ -166,7 +172,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
         await UploadAsync(container, "notes.txt");
 
         var matched = new List<string>();
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, new[] { ".docx" }))
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, s_docxFilter))
         {
             matched.Add(f.Name + "." + f.Extension);
         }
@@ -186,7 +192,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
         await UploadAsync(container, "doc.docx");
 
         var matched = new List<string>();
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, new[] { "*.docx" }))
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, s_wildcardDocxFilter))
         {
             matched.Add(f.Name + "." + f.Extension);
         }
@@ -207,7 +213,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
             nullCount++;
         }
         var emptyCount = 0;
-        await foreach (var _ in provider.GetWopiFiles(provider.RootContainer.Identifier, Array.Empty<string>()))
+        await foreach (var _ in provider.GetWopiFiles(provider.RootContainer.Identifier, []))
         {
             emptyCount++;
         }

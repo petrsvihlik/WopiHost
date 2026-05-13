@@ -13,6 +13,10 @@ namespace WopiHost.Core.Tests.Controllers;
 
 public class FoldersControllerTests
 {
+    // Hoisted to satisfy CA1861 — the Moq predicate captures this array every time the test runs;
+    // a single static instance avoids per-invocation allocation and keeps the SequenceEqual stable.
+    private static readonly string[] s_oneFilter = [".one"];
+
     private readonly Mock<IWopiStorageProvider> _storageProviderMock;
     private readonly FoldersController _controller;
 
@@ -224,7 +228,7 @@ public class FoldersControllerTests
         _storageProviderMock
             .Setup(sp => sp.GetWopiFiles(
                 folderId,
-                It.Is<IReadOnlyCollection<string>?>(exts => exts != null && exts.SequenceEqual(new[] { ".one" })),
+                It.Is<IReadOnlyCollection<string>?>(exts => exts != null && exts.SequenceEqual(s_oneFilter)),
                 It.IsAny<CancellationToken>()))
             .Returns(new[] { fileMock1.Object }.ToAsyncEnumerable());
 
