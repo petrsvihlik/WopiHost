@@ -22,9 +22,15 @@ var wopiHost = builder.AddProject<Projects.WopiHost>("wopihost", launchProfileNa
                           url.Url = "/scalar";
                       });
 
-// Resolved at runtime by Aspire's endpoint allocator — readable inside any WithEnvironment
-// callback once the dependency graph has reached the env-var-resolution phase.
-var wopiBackendEndpoint = wopiHost.GetEndpoint("wopihost-http");
+// Reference expression to the backend's allocated port. Embedding this in interpolated
+// string arguments to WithEnvironment / ReferenceExpression.Create:
+//   (1) defers resolution to Aspire's endpoint-allocation phase, and
+//   (2) auto-declares the dependency, so the consumer's resource doesn't try to compute
+//       its env vars before the producer's endpoint has been allocated.
+// (The older WithEnvironment(ctx => ... endpoint.Port) callback form looks the same but
+//  does NOT carry the dependency, so it throws "endpoint not allocated" if the consumer
+//  happens to resolve env vars first.)
+var wopiBackendPort = wopiHost.GetEndpoint("wopihost-http").Property(EndpointProperty.Port);
 
 // Optional: Azure Blob Storage backend via Azurite emulator. Opt-in via "AppHost:UseAzureStorage"=true
 // so the default flow keeps using the file-system provider out of the box. When enabled, the Azurite
@@ -43,7 +49,7 @@ if (builder.Configuration.GetValue<bool>("AppHost:UseAzureStorage"))
 // a development substitute for Office Online Server / M365 for the Web (discovery output and
 // supported features differ — do NOT treat a green Collabora run as M365 conformance).
 //
-// Wiring (now dynamic — every URL flows from wopiBackendEndpoint.Port):
+// Wiring (port-independent — every URL flows from wopiBackendPort):
 //  - Browser reaches Collabora at http://localhost:9980 (Collabora's port stays pinned at 9980).
 //  - Collabora (in Docker) reaches the WOPI backend via host.docker.internal:<dynamic-port>,
 //    where <dynamic-port> = the Aspire-allocated port for the wopihost project. On Linux Docker,
@@ -61,10 +67,7 @@ if (useCollabora)
     // would race ahead and Polly's Standard-Retry pipeline logs "ResponseEnded" / 10s timeouts
     // on the first page load. WaitFor below blocks dependents until this returns 200.
     collabora = builder.AddContainer("collabora", "collabora/code")
-           .WithEnvironment(ctx =>
-           {
-               ctx.EnvironmentVariables["domain"] = $"host\\.docker\\.internal:{wopiBackendEndpoint.Port}";
-           })
+           .WithEnvironment("domain", ReferenceExpression.Create($"host\\.docker\\.internal:{wopiBackendPort}"))
            .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false")
            .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
            .WithHttpHealthCheck("/hosting/discovery", endpointName: "collabora");
@@ -90,13 +93,11 @@ if (useCollabora)
 // then fetched by Collabora-in-Docker — so it must use host.docker.internal, not localhost. In
 // non-Collabora mode there's no in-Docker WOPI client (the real OOS/M365 WOPI clients live
 // outside the dev loop and configure their own URL), so localhost is fine for the dev dashboard.
+var wopiBackendHostForFrontends = useCollabora ? "host.docker.internal" : "localhost";
+
 var wopiHostWeb = builder.AddProject<Projects.WopiHost_Web>("wopihost-web", launchProfileName: null)
        .WithReference(wopiHost)
-       .WithEnvironment(ctx =>
-       {
-           var host = useCollabora ? "host.docker.internal" : "localhost";
-           ctx.EnvironmentVariables["Wopi__HostUrl"] = $"http://{host}:{wopiBackendEndpoint.Port}";
-       })
+       .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{wopiBackendHostForFrontends}:{wopiBackendPort}"))
        .WithHttpsEndpoint()
        .WithExternalHttpEndpoints();
 
@@ -104,9 +105,10 @@ if (useCollabora)
 {
     // The frontend embeds Collabora; the iframe URL must come from Collabora's discovery, and
     // the WopiSrc it carries must resolve from inside the Collabora container (host.docker.internal,
-    // injected above). Collabora's discovery XML emits a single <net-zone name="external-http">
-    // only — defaulting to ExternalHttps (as appsettings does for OOS/M365) silently filters every
-    // action and icon out, so files render with the generic icon and edit/view buttons stay disabled.
+    // injected via Wopi__HostUrl above). Collabora's discovery XML emits a single
+    // <net-zone name="external-http"> only — defaulting to ExternalHttps (as appsettings does for
+    // OOS/M365) silently filters every action and icon out, so files render with the generic icon
+    // and edit/view buttons stay disabled.
     wopiHostWeb.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
                .WithEnvironment("Wopi__Discovery__NetZone", "ExternalHttp")
                .WaitFor(collabora!);
@@ -116,10 +118,7 @@ if (useCollabora)
 // (it's a WOPI protocol checker), so localhost is the right reach.
 builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator", launchProfileName: null)
        .WithReference(wopiHost)
-       .WithEnvironment(ctx =>
-       {
-           ctx.EnvironmentVariables["Wopi__HostUrl"] = $"http://localhost:{wopiBackendEndpoint.Port}";
-       })
+       .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://localhost:{wopiBackendPort}"))
        .WithHttpsEndpoint()
        .WithExternalHttpEndpoints();
 
@@ -135,11 +134,7 @@ if (builder.Configuration.GetValue<bool>("AppHost:IncludeOidcSample"))
     // pin via WithHttpsEndpoint(port: 6101).
     builder.AddProject<Projects.WopiHost_Web_Oidc>("wopihost-web-oidc", launchProfileName: null)
            .WithReference(wopiHost)
-           .WithEnvironment(ctx =>
-           {
-               var host = useCollabora ? "host.docker.internal" : "localhost";
-               ctx.EnvironmentVariables["Wopi__HostUrl"] = $"http://{host}:{wopiBackendEndpoint.Port}";
-           })
+           .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{wopiBackendHostForFrontends}:{wopiBackendPort}"))
            .WithHttpsEndpoint()
            .WithExternalHttpEndpoints();
 }
