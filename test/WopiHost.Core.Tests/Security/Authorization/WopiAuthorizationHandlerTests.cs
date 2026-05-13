@@ -1,6 +1,8 @@
+using System.Collections.Concurrent;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using WopiHost.Abstractions;
 using WopiHost.Core.Security.Authorization;
@@ -61,8 +63,73 @@ public class WopiAuthorizationHandlerTests
         await _handler.HandleAsync(ctx);
 
         Assert.True(ctx.HasSucceeded);
-        // The handler also assigns the route id onto the requirement for downstream consumers.
-        Assert.Equal("fileId", requirement.ResourceId);
+    }
+
+    [Fact]
+    public async Task Concurrent_Requests_Sharing_Attribute_Do_Not_Race_On_Audit_Log()
+    {
+        // Regression test for #380 items 2.5 / 5.3: [Authorize] attribute instances are cached
+        // on the action descriptor and shared by every concurrent request hitting the endpoint.
+        // The previous handler wrote requirement.ResourceId = routeId, then read it back into
+        // an audit log — two interleaved requests would cross-contaminate, logging the wrong
+        // file id (and inviting any custom handler that read the property to make wrong
+        // authorization decisions). After the fix the route id stays in a local; this test
+        // hammers the same shared requirement from many concurrent tasks with distinct route
+        // ids and asserts every captured log line pairs the right route id with the right
+        // claim id.
+        var requirement = new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Read);
+        var captures = new ConcurrentBag<(string TokenRid, string? RouteId)>();
+        var handler = new WopiAuthorizationHandler(new CapturingLogger(captures));
+
+        const int parallelism = 64;
+        await Task.WhenAll(Enumerable.Range(0, parallelism).Select(i => Task.Run(async () =>
+        {
+            var routeId = $"file-{i}";
+            var tokenRid = $"token-rid-{i}"; // distinct from routeId — triggers the mismatch log
+            var ctx = BuildContext(requirement, routeId,
+                Authenticated(new Claim(WopiClaimTypes.ResourceId, tokenRid)));
+            await handler.HandleAsync(ctx);
+            Assert.True(ctx.HasSucceeded); // mismatch is logged-only, never fails the requirement
+        })));
+
+        Assert.Equal(parallelism, captures.Count);
+        foreach (var (tokenRid, routeId) in captures)
+        {
+            // The {tokenRid} log argument is "token-rid-N" and the {routeId} argument is
+            // "file-N" — they must agree on N. Pre-fix this would fail because both fields
+            // could be plucked from any in-flight request.
+            var tokenIndex = tokenRid["token-rid-".Length..];
+            var routeIndex = routeId!["file-".Length..];
+            Assert.Equal(tokenIndex, routeIndex);
+        }
+    }
+
+    /// <summary>
+    /// Test-only logger that captures the two structured arguments passed to
+    /// <c>LogResourceBindingMismatch</c> (tokenRid, routeId). Lets the regression test verify
+    /// that the two fields are read coherently — never crossed between in-flight requests.
+    /// </summary>
+    private sealed class CapturingLogger(ConcurrentBag<(string TokenRid, string? RouteId)> bag)
+        : ILogger<WopiAuthorizationHandler>
+    {
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
+            Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            // LoggerMessage source generator yields IReadOnlyList<KeyValuePair<string, object?>>.
+            if (state is IReadOnlyList<KeyValuePair<string, object?>> kvps)
+            {
+                string? tokenRid = null;
+                string? routeId = null;
+                foreach (var kv in kvps)
+                {
+                    if (kv.Key == "tokenRid") tokenRid = kv.Value?.ToString();
+                    else if (kv.Key == "routeId") routeId = kv.Value?.ToString();
+                }
+                if (tokenRid is not null) bag.Add((tokenRid, routeId));
+            }
+        }
     }
 
     [Fact]
