@@ -25,14 +25,13 @@ var builder = DistributedApplication.CreateBuilder(args);
 // port is the only working combo today. Downstream consumers still read this through a
 // ReferenceExpression so the literal port only appears in two colocated places.
 //
-// We deliberately do NOT pass launchProfileName: null here: the backend's launchSettings.json
-// "WopiHost" profile carries `ASPNETCORE_ENVIRONMENT=Development`, which is load-bearing for
-// the dev loop because sample/WopiHost's Program.cs refuses to honour
-// Wopi:Security:DisableProofValidation in any non-Development environment (and AppHost flips
-// that flag on when Collabora is enabled). The profile's `ASPNETCORE_URLS=http://*:5000` is
-// harmless — Aspire overrides ASPNETCORE_URLS with the WithHttpEndpoint config above. So we
-// let the launch profile contribute the env var and Aspire wins on the URL.
-var wopiHost = builder.AddProject<Projects.WopiHost>("wopihost")
+// launchProfileName: null bypasses sample/WopiHost/Properties/launchSettings.json so the
+// AppHost is the single source of truth for backend configuration. We re-inject the one
+// load-bearing setting — ASPNETCORE_ENVIRONMENT=Development — explicitly, because
+// sample/WopiHost's Program.cs refuses to honour Wopi:Security:DisableProofValidation
+// outside Development (and the Collabora block below flips that flag on).
+var wopiHost = builder.AddProject<Projects.WopiHost>("wopihost", launchProfileName: null)
+                      .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
                       .WithHttpEndpoint(name: "wopihost-http", port: 5050, isProxied: false)
                       .WithUrlForEndpoint("wopihost-http", url =>
                       {
@@ -62,84 +61,24 @@ if (builder.Configuration.GetValue<bool>("AppHost:UseAzureStorage"))
     wopiHost.WithReference(blobs);
 }
 
-// Optional: Collabora Online Development Edition (CODE) as a real WOPI client for end-to-end
-// editing. Opt-in via "AppHost:UseCollabora"=true. CODE is free and Docker-distributable; it is
-// a development substitute for Office Online Server / M365 for the Web (discovery output and
-// supported features differ — do NOT treat a green Collabora run as M365 conformance).
-//
-// Wiring (port-independent — every URL flows from wopiBackendPort):
-//  - Browser reaches Collabora at http://localhost:9980 (Collabora's port stays pinned at 9980).
-//  - Collabora (in Docker) reaches the WOPI backend via host.docker.internal:<dynamic-port>,
-//    where <dynamic-port> = the Aspire-allocated port for the wopihost project. On Linux Docker,
-//    run with --add-host=host.docker.internal:host-gateway.
-//  - "domain" is a regex (escape dots) of WOPI hosts Collabora is allowed to call back to; a
-//    mismatch with the WopiSrc query param yields a silent 401. We compose it dynamically from
-//    the backend port so port changes don't desync the allow-list.
-//  - SSL is disabled for local dev only.
+// Collabora-mode toggle. When enabled (see the dedicated block at the bottom of this file),
+// the frontend's Wopi:HostUrl must use host.docker.internal so the URL it bakes into WopiSrc
+// resolves from inside the Collabora container. In non-Collabora mode there's no in-Docker
+// WOPI client (real OOS/M365 WOPI clients live outside the dev loop and configure their own
+// URL), so localhost is fine for the dashboard.
 var useCollabora = builder.Configuration.GetValue<bool>("AppHost:UseCollabora");
-IResourceBuilder<ContainerResource>? collabora = null;
-if (useCollabora)
-{
-    // Health check on /hosting/discovery: the loolwsd process inside the container takes a few
-    // seconds to bind to 9980 even after the TCP listener accepts. Without this, dependents
-    // would race ahead and Polly's Standard-Retry pipeline logs "ResponseEnded" / 10s timeouts
-    // on the first page load. WaitFor below blocks dependents until this returns 200.
-    //
-    // The "domain" regex stays a literal string rather than a ReferenceExpression interpolating
-    // wopiBackendPort: container env vars that reference a project endpoint's Property(Port)
-    // appear to wedge Aspire 13.x container startup in the "Starting" state indefinitely (the
-    // container never reaches the health-check phase). Project-level env vars below use
-    // ReferenceExpression fine; only the container case hangs. Since wopihost's port is pinned
-    // to 5050 just above (Aspire requires it for isProxied:false), the two literals are
-    // colocated and a future port change is a two-line edit, not a worse drift hazard than
-    // the original pre-Aspire wiring.
-    collabora = builder.AddContainer("collabora", "collabora/code")
-           .WithEnvironment("domain", "host\\.docker\\.internal:5050")
-           .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false")
-           .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
-           .WithHttpHealthCheck("/hosting/discovery", endpointName: "collabora");
-
-    // Backend fetches /hosting/discovery from Collabora at startup. Collabora does not sign WOPI
-    // callbacks with proof keys (those are an OOS / M365-for-the-Web feature) and emits no
-    // <proof-key> element in discovery, so the default WopiProofValidator rejects every request
-    // and CheckFileInfo 500s — the editor loads but the document never appears. The sample WOPI
-    // host honours Wopi:Security:DisableProofValidation in Development to swap in a no-op
-    // validator; refuse to run in non-Development if the flag is set.
-    wopiHost.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
-            .WithEnvironment("Wopi__Security__DisableProofValidation", "true")
-            .WaitFor(collabora);
-}
+var wopiBackendHostForFrontends = useCollabora ? "host.docker.internal" : "localhost";
 
 // Frontends: project references via WithReference give Aspire's service-discovery env vars
 // (services__wopihost__http__0=...), but the existing frontend code reads Wopi:HostUrl directly
 // from IConfiguration — so we ALSO inject Wopi__HostUrl pointing at the same backend port. That
 // way the AppHost owns the URL end-to-end and the frontend's appsettings.json HostUrl entry is
 // only the production default.
-//
-// Collabora mode is special: the frontend's HostUrl is the URL that goes into WopiSrc, which is
-// then fetched by Collabora-in-Docker — so it must use host.docker.internal, not localhost. In
-// non-Collabora mode there's no in-Docker WOPI client (the real OOS/M365 WOPI clients live
-// outside the dev loop and configure their own URL), so localhost is fine for the dev dashboard.
-var wopiBackendHostForFrontends = useCollabora ? "host.docker.internal" : "localhost";
-
 var wopiHostWeb = builder.AddProject<Projects.WopiHost_Web>("wopihost-web", launchProfileName: null)
        .WithReference(wopiHost)
        .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{wopiBackendHostForFrontends}:{wopiBackendPort}"))
        .WithHttpsEndpoint()
        .WithExternalHttpEndpoints();
-
-if (useCollabora)
-{
-    // The frontend embeds Collabora; the iframe URL must come from Collabora's discovery, and
-    // the WopiSrc it carries must resolve from inside the Collabora container (host.docker.internal,
-    // injected via Wopi__HostUrl above). Collabora's discovery XML emits a single
-    // <net-zone name="external-http"> only — defaulting to ExternalHttps (as appsettings does for
-    // OOS/M365) silently filters every action and icon out, so files render with the generic icon
-    // and edit/view buttons stay disabled.
-    wopiHostWeb.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
-               .WithEnvironment("Wopi__Discovery__NetZone", "ExternalHttp")
-               .WaitFor(collabora!);
-}
 
 // Validator: same wiring pattern as the Web frontend. The validator never runs against Collabora
 // (it's a WOPI protocol checker), so localhost is the right reach.
@@ -164,6 +103,60 @@ if (builder.Configuration.GetValue<bool>("AppHost:IncludeOidcSample"))
            .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{wopiBackendHostForFrontends}:{wopiBackendPort}"))
            .WithHttpsEndpoint()
            .WithExternalHttpEndpoints();
+}
+
+// Optional: Collabora Online Development Edition (CODE) as a real WOPI client for end-to-end
+// editing. Opt-in via "AppHost:UseCollabora"=true. CODE is free and Docker-distributable; it is
+// a development substitute for Office Online Server / M365 for the Web (discovery output and
+// supported features differ — do NOT treat a green Collabora run as M365 conformance).
+//
+// Wiring (port-independent for the project side — every project URL flows from wopiBackendPort):
+//  - Browser reaches Collabora at http://localhost:9980 (Collabora's port stays pinned at 9980).
+//  - Collabora (in Docker) reaches the WOPI backend via host.docker.internal:5050. On Linux
+//    Docker, run with --add-host=host.docker.internal:host-gateway.
+//  - "domain" is a regex (escape dots) of WOPI hosts Collabora is allowed to call back to; a
+//    mismatch with the WopiSrc query param yields a silent 401.
+//  - SSL is disabled for local dev only.
+//
+// Everything Collabora-specific lives in this one block: the container, the backend env vars
+// that only make sense in Collabora mode, and the frontend env vars that point the iframe at
+// Collabora's discovery. WaitFor on both backend and frontend blocks them until Collabora's
+// /hosting/discovery returns 200 — otherwise Polly's Standard-Retry pipeline logs noisy
+// "ResponseEnded" / 10s timeouts on the first page load while loolwsd is still binding.
+if (useCollabora)
+{
+    // The "domain" regex stays a literal string rather than a ReferenceExpression interpolating
+    // wopiBackendPort: container env vars that reference a project endpoint's Property(Port)
+    // appear to wedge Aspire 13.x container startup in the "Starting" state indefinitely (the
+    // container never reaches the health-check phase). Project-level env vars above use
+    // ReferenceExpression fine; only the container case hangs. Since wopihost's port is pinned
+    // to 5050 at the top of this file (Aspire requires it for isProxied:false), the two
+    // literals are colocated and a future port change is a two-line edit.
+    var collabora = builder.AddContainer("collabora", "collabora/code")
+           .WithEnvironment("domain", "host\\.docker\\.internal:5050")
+           .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false")
+           .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
+           .WithHttpHealthCheck("/hosting/discovery", endpointName: "collabora");
+
+    // Backend: fetches /hosting/discovery from Collabora at startup. Collabora does not sign WOPI
+    // callbacks with proof keys (those are an OOS / M365-for-the-Web feature) and emits no
+    // <proof-key> element in discovery, so the default WopiProofValidator rejects every request
+    // and CheckFileInfo 500s — the editor loads but the document never appears. The sample WOPI
+    // host honours Wopi:Security:DisableProofValidation in Development to swap in a no-op
+    // validator; refuse to run in non-Development if the flag is set.
+    wopiHost.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
+            .WithEnvironment("Wopi__Security__DisableProofValidation", "true")
+            .WaitFor(collabora);
+
+    // Frontend: embeds Collabora; the iframe URL must come from Collabora's discovery, and the
+    // WopiSrc it carries must resolve from inside the Collabora container (host.docker.internal,
+    // already injected via Wopi__HostUrl above thanks to wopiBackendHostForFrontends). Collabora's
+    // discovery XML emits a single <net-zone name="external-http"> only — defaulting to
+    // ExternalHttps (as appsettings does for OOS/M365) silently filters every action and icon
+    // out, so files render with the generic icon and edit/view buttons stay disabled.
+    wopiHostWeb.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
+               .WithEnvironment("Wopi__Discovery__NetZone", "ExternalHttp")
+               .WaitFor(collabora);
 }
 
 builder.Build().Run();
