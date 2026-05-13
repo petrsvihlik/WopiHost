@@ -17,10 +17,14 @@ var builder = DistributedApplication.CreateBuilder(args);
 // port is the only working combo today. Downstream consumers still read this through a
 // ReferenceExpression so the literal 5000 only appears once in the codebase.
 //
-// launchProfileName: null tells Aspire to ignore sample/WopiHost/Properties/launchSettings.json
-// — the AppHost is the sole owner of port + URL configuration. Without this, launchSettings
-// silently contributes endpoint hints that drift from what WithEndpoint declares.
-var wopiHost = builder.AddProject<Projects.WopiHost>("wopihost", launchProfileName: null)
+// We deliberately do NOT pass launchProfileName: null here: the backend's launchSettings.json
+// "WopiHost" profile carries `ASPNETCORE_ENVIRONMENT=Development`, which is load-bearing for
+// the dev loop because sample/WopiHost's Program.cs refuses to honour
+// Wopi:Security:DisableProofValidation in any non-Development environment (and AppHost flips
+// that flag on when Collabora is enabled). The profile's `ASPNETCORE_URLS=http://*:5000` is
+// harmless — Aspire overrides ASPNETCORE_URLS with the WithHttpEndpoint config above. So we
+// let the launch profile contribute the env var and Aspire wins on the URL.
+var wopiHost = builder.AddProject<Projects.WopiHost>("wopihost")
                       .WithHttpEndpoint(name: "wopihost-http", port: 5000, isProxied: false)
                       .WithUrlForEndpoint("wopihost-http", url =>
                       {
