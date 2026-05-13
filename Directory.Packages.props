@@ -3,7 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.203" PrivateAssets="All" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.300" PrivateAssets="All" />
     <PackageVersion Include="System.IO.FileSystem.AccessControl" Version="5.0.0" />
     <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.18.0" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
