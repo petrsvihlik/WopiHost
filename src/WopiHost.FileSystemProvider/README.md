@@ -25,7 +25,7 @@ dotnet add package WopiHost.FileSystemProvider
 }
 ```
 
-`RootPath` is bound from the `Wopi:StorageProvider` section (`WopiConfigurationSections.STORAGE_OPTIONS`).
+`RootPath` is bound from the `Wopi:StorageProvider` section (`WopiFileSystemProviderOptions.SectionName`).
 
 ## Register
 

@@ -8,6 +8,12 @@ namespace WopiHost.Web.Oidc.Models;
 /// </summary>
 public class WopiOptions : IDiscoveryOptions
 {
+    /// <summary>
+    /// Default configuration section path this options class binds to. Use with
+    /// <c>builder.Configuration.GetSection(WopiOptions.SectionName)</c>.
+    /// </summary>
+    public const string SectionName = "Wopi";
+
     /// <summary>Base URI of the WOPI Host server.</summary>
     [Required]
     public required Uri HostUrl { get; set; }

@@ -35,7 +35,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         ArgumentNullException.ThrowIfNull(configuration);
         _fileIds = fileIds ?? throw new ArgumentNullException(nameof(fileIds));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        var fileSystemProviderOptions = configuration.GetSection(WopiConfigurationSections.STORAGE_OPTIONS)?
+        var fileSystemProviderOptions = configuration.GetSection(WopiFileSystemProviderOptions.SectionName)?
             .Get<WopiFileSystemProviderOptions>() ?? throw new ArgumentNullException(nameof(configuration));
 
         var wopiRootPath = fileSystemProviderOptions.RootPath;

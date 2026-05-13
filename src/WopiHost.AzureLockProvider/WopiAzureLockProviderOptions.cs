@@ -10,6 +10,12 @@ namespace WopiHost.AzureLockProvider;
 /// </remarks>
 public class WopiAzureLockProviderOptions
 {
+    /// <summary>
+    /// Default configuration section path this options class binds to. Use with
+    /// <c>builder.Configuration.GetSection(WopiAzureLockProviderOptions.SectionName)</c>.
+    /// </summary>
+    public const string SectionName = "Wopi:LockProvider";
+
     /// <summary>Storage account connection string. Use <c>UseDevelopmentStorage=true</c> for Azurite.</summary>
     public string? ConnectionString { get; set; }
 

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
 using WopiHost.Abstractions;
+using WopiHost.Core.Security;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.ServiceDefaults;
@@ -20,27 +21,33 @@ builder.Services.AddControllersWithViews();
 
 builder.Services
     .AddOptionsWithValidateOnStart<WopiOptions>()
-    .Bind(builder.Configuration.GetRequiredSection(WopiConfigurationSections.WOPI_ROOT))
+    .Bind(builder.Configuration.GetRequiredSection(WopiOptions.SectionName))
     .ValidateDataAnnotations();
 
 builder.Services
     .AddOptionsWithValidateOnStart<OidcOptions>()
-    .Bind(builder.Configuration.GetRequiredSection("Oidc"))
+    .Bind(builder.Configuration.GetRequiredSection(OidcOptions.SectionName))
     .ValidateDataAnnotations();
 
 builder.Services.AddWopiDiscovery<WopiOptions>(
-    options => builder.Configuration.GetSection(WopiConfigurationSections.DISCOVERY_OPTIONS).Bind(options));
+    options => builder.Configuration.GetSection(DiscoveryOptions.SectionName).Bind(options));
 
 builder.Services.AddSingleton<InMemoryFileIds>();
 builder.Services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
 
-// WOPI access-token signer must use the same key as the WOPI backend.
-builder.Services.AddSingleton(_ =>
+// WOPI access-token signer must use the same key as the WOPI backend. We bind the same
+// WopiSecurityOptions section the backend uses so the SigningKey value travels via one
+// IConfiguration path with one typed property — no per-key magic strings.
+builder.Services
+    .AddOptions<WopiSecurityOptions>()
+    .Bind(builder.Configuration.GetSection(WopiSecurityOptions.SectionName));
+
+builder.Services.AddSingleton(sp =>
 {
-    var configured = builder.Configuration["Wopi:Security:SigningKey"];
-    return string.IsNullOrEmpty(configured)
-        ? WopiAccessTokenMinter.FromSecret(WopiAccessTokenMinter.DefaultDevSecret)
-        : new WopiAccessTokenMinter(Convert.FromBase64String(configured));
+    var opts = sp.GetRequiredService<IOptions<WopiSecurityOptions>>().Value;
+    return opts.SigningKey is { Length: > 0 } key
+        ? new WopiAccessTokenMinter(key)
+        : WopiAccessTokenMinter.FromSecret(WopiAccessTokenMinter.DefaultDevSecret);
 });
 
 // Don't rename inbound JWT claim names — keeps the role/email/name claims usable by their

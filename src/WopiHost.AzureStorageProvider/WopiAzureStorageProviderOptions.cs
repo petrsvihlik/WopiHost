@@ -15,6 +15,12 @@ namespace WopiHost.AzureStorageProvider;
 public class WopiAzureStorageProviderOptions
 {
     /// <summary>
+    /// Default configuration section path this options class binds to. Use with
+    /// <c>builder.Configuration.GetSection(WopiAzureStorageProviderOptions.SectionName)</c>.
+    /// </summary>
+    public const string SectionName = "Wopi:StorageProvider";
+
+    /// <summary>
     /// Storage account connection string. Use <c>UseDevelopmentStorage=true</c> for Azurite, or a full
     /// shared-key connection string for production.
     /// Mutually exclusive with <see cref="ServiceUri"/>; takes precedence if both are set.

@@ -52,7 +52,7 @@ public class WopiFileSystemProviderTests : IDisposable
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [$"{WopiConfigurationSections.STORAGE_OPTIONS}:RootPath"] = rootPath,
+                [$"{WopiFileSystemProviderOptions.SectionName}:{nameof(WopiFileSystemProviderOptions.RootPath)}"] = rootPath,
             })
             .Build();
         return new WopiFileSystemProvider(ids ?? _fileIds, env ?? _env, config, NullLogger<WopiFileSystemProvider>.Instance);
@@ -73,7 +73,7 @@ public class WopiFileSystemProviderTests : IDisposable
         var config = new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?>
             {
-                [$"{WopiConfigurationSections.STORAGE_OPTIONS}:RootPath"] = _root.FullName,
+                [$"{WopiFileSystemProviderOptions.SectionName}:{nameof(WopiFileSystemProviderOptions.RootPath)}"] = _root.FullName,
             }).Build();
 
         Assert.Throws<ArgumentNullException>(() =>

@@ -36,7 +36,7 @@ public static class ServiceCollectionExtensions
         // ------ add Wopi Server .Core services
 
         // Configuration
-        services.Configure<WopiHostOptions>(configuration.GetSection(WopiConfigurationSections.WOPI_ROOT));
+        services.Configure<WopiHostOptions>(configuration.GetSection(WopiHostOptions.SectionName));
         // Add file provider
         services.AddSingleton<InMemoryFileIds>();
         services.AddSingleton<IWopiStorageProvider, WopiFileSystemProvider>();
@@ -63,8 +63,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddWopiHostPages(this IServiceCollection services, IConfiguration configuration)
     {
         // ------- add Wopi Host services
-        services.Configure<DiscoveryOptions>(configuration.GetSection(WopiConfigurationSections.DISCOVERY_OPTIONS));
-        services.Configure<WopiOptions>(configuration.GetSection(WopiConfigurationSections.WOPI_ROOT));
+        services.Configure<DiscoveryOptions>(configuration.GetSection(DiscoveryOptions.SectionName));
+        services.Configure<WopiOptions>(configuration.GetSection(WopiOptions.SectionName));
 
         services.AddHttpClient<IDiscoveryFileProvider, HttpDiscoveryFileProvider>((sp, client) =>
         {

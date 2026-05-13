@@ -25,7 +25,7 @@ public static class ServiceCollectionExtensions
 
         services
             .AddOptions<WopiAzureLockProviderOptions>()
-            .Bind(configuration.GetSection(WopiConfigurationSections.LOCK_OPTIONS))
+            .Bind(configuration.GetSection(WopiAzureLockProviderOptions.SectionName))
             .Validate(o => !string.IsNullOrWhiteSpace(o.ContainerName), "Wopi:LockProvider:ContainerName is required.")
             .Validate(o => !string.IsNullOrWhiteSpace(o.ConnectionString) || o.ServiceUri is not null,
                 "Either Wopi:LockProvider:ConnectionString or Wopi:LockProvider:ServiceUri must be set.")

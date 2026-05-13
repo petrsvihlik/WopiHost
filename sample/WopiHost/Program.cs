@@ -5,6 +5,7 @@ using WopiHost.Abstractions;
 using WopiHost.Core.Models;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
+using WopiHost.Core.Security;
 using WopiHost.Core.Security.Authentication;
 using WopiHost.Discovery;
 using WopiHost.ServiceDefaults;
@@ -48,7 +49,7 @@ public partial class Program
 
             // Configuration
             // this makes sure that the configuration exists and is valid
-            var wopiHostOptionsSection = builder.Configuration.GetRequiredSection(WopiConfigurationSections.WOPI_ROOT);
+            var wopiHostOptionsSection = builder.Configuration.GetRequiredSection(WopiHostOptions.SectionName);
             builder.Services
                 .AddOptionsWithValidateOnStart<WopiHostOptions>()
                 .BindConfiguration(wopiHostOptionsSection.Path)
@@ -63,7 +64,7 @@ public partial class Program
 
             // Add Discovery services
             builder.Services.AddWopiDiscovery<WopiHostOptions>(
-                options => builder.Configuration.GetSection(WopiConfigurationSections.DISCOVERY_OPTIONS).Bind(options));
+                options => builder.Configuration.GetSection(DiscoveryOptions.SectionName).Bind(options));
 
             // Add Cobalt support
             if (wopiHostOptions.UseCobalt)
@@ -83,12 +84,21 @@ public partial class Program
             // Signing key for WOPI access tokens. MUST match whatever the URL-generating
             // frontend (sample/WopiHost.Web) uses or every token will fail validation.
             // In production: load from a managed secret store, never hard-code.
-            builder.Services.ConfigureWopiSecurity(o =>
+            //
+            // Two-step binding: first read the configured values via Bind (gets SigningKey,
+            // DisableProofValidation, etc.), then PostConfigure to apply the dev-key fallback
+            // *after* configuration has been read — keeps the fallback out of the hot path of
+            // every option read and makes the precedence explicit.
+            builder.Services
+                .AddOptions<WopiSecurityOptions>()
+                .Bind(builder.Configuration.GetSection(WopiSecurityOptions.SectionName));
+
+            builder.Services.PostConfigure<WopiSecurityOptions>(o =>
             {
-                var configured = builder.Configuration["Wopi:Security:SigningKey"];
-                o.SigningKey = string.IsNullOrEmpty(configured)
-                    ? JwtAccessTokenService.DeriveHmacKey("wopi-sample-shared-dev-key")
-                    : Convert.FromBase64String(configured);
+                if (o.SigningKey is null || o.SigningKey.Length == 0)
+                {
+                    o.SigningKey = JwtAccessTokenService.DeriveHmacKey("wopi-sample-shared-dev-key");
+                }
             });
 
             // Dev-only escape hatch for WOPI clients that do not sign requests with proof keys
@@ -96,12 +106,16 @@ public partial class Program
             // this, every WOPI callback 500s in WopiOriginValidationActionFilter because
             // sourceProofKeys.Value is null. Refuses to enable outside Development so a stray
             // production config cannot silently disable signature checking.
-            if (builder.Configuration.GetValue<bool>("Wopi:Security:DisableProofValidation"))
+            var bootSecurityOptions = builder.Configuration
+                .GetSection(WopiSecurityOptions.SectionName)
+                .Get<WopiSecurityOptions>();
+            if (bootSecurityOptions?.DisableProofValidation == true)
             {
                 if (!builder.Environment.IsDevelopment())
                 {
                     throw new InvalidOperationException(
-                        "Wopi:Security:DisableProofValidation can only be enabled in the Development environment.");
+                        $"{WopiSecurityOptions.SectionName}:{nameof(WopiSecurityOptions.DisableProofValidation)} " +
+                        "can only be enabled in the Development environment.");
                 }
                 Log.Warning("WOPI proof validation is DISABLED. This is a development-only setting.");
                 builder.Services.RemoveAll<IWopiProofValidator>();
@@ -159,9 +173,9 @@ public partial class Program
 }
 
 /// <summary>
-/// Dev-only no-op proof validator used when <c>Wopi:Security:DisableProofValidation</c> is set
-/// (typically with the AppHost's <c>UseCollabora</c> flag, since Collabora does not sign WOPI
-/// callbacks with proof keys). Real hosts must keep <c>WopiProofValidator</c>.
+/// Dev-only no-op proof validator used when <see cref="WopiSecurityOptions.DisableProofValidation"/>
+/// is set (typically with the AppHost's <c>UseCollabora</c> flag, since Collabora does not sign
+/// WOPI callbacks with proof keys). Real hosts must keep <c>WopiProofValidator</c>.
 /// </summary>
 internal sealed class NoOpProofValidator : IWopiProofValidator
 {
