@@ -218,6 +218,40 @@ public abstract class LockProviderConformanceTests
     }
 
     [Fact]
+    public async Task RefreshLockAsync_AfterClockAdvancesPastExpiry_ReturnsFalseAndEvicts()
+    {
+        // Conformance flip-side of RefreshLockAsync_AdvancingClockPastExpiry_ResetsClock: a
+        // caller that misses the refresh window must see false (and providers should evict the
+        // stale record). Important even when the lock-id still matches — expiry shouldn't be
+        // bypassable by a caller who happens to know the right id.
+        var clock = new ControllableTimeProvider(DateTimeOffset.UtcNow);
+        var sut = await CreateSutAsync(clock);
+        var fileId = $"refresh-past-expiry-{Guid.NewGuid()}";
+        await sut.AddLockAsync(fileId, "lock-A");
+
+        clock.Now = clock.Now.AddMinutes(WopiLockInfo.ExpirationMinutes + 1);
+
+        Assert.False(await sut.RefreshLockAsync(fileId, expectedExistingLockId: "lock-A"));
+        Assert.Null(await sut.GetLockAsync(fileId));
+    }
+
+    [Fact]
+    public async Task TryUnlockAndRelockAsync_AfterClockAdvancesPastExpiry_ReturnsFalse()
+    {
+        // Same flip-side for the swap path: a stale UnlockAndRelock attempt that arrives past
+        // the WOPI 30-minute window must NOT succeed, even with the right expected lock id.
+        var clock = new ControllableTimeProvider(DateTimeOffset.UtcNow);
+        var sut = await CreateSutAsync(clock);
+        var fileId = $"swap-past-expiry-{Guid.NewGuid()}";
+        await sut.AddLockAsync(fileId, "old-lock");
+
+        clock.Now = clock.Now.AddMinutes(WopiLockInfo.ExpirationMinutes + 1);
+
+        Assert.False(await sut.TryUnlockAndRelockAsync(fileId, "new-lock", expectedExistingLockId: "old-lock"));
+        Assert.Null(await sut.GetLockAsync(fileId));
+    }
+
+    [Fact]
     public async Task RemoveLockAsync_ClearsLock()
     {
         var sut = await CreateSutAsync();

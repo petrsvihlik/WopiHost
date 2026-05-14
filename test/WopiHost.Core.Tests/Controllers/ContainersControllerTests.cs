@@ -420,6 +420,21 @@ public class ContainersControllerTests
     }
 
     [Fact]
+    public async Task RenameContainer_ReturnsNotFound_WhenRenameReturnsFalse()
+    {
+        // #380 item 4.2: false return from the provider means the resource is gone (lost race
+        // with concurrent delete). Same 404 mapping as the throw-based path below.
+        _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _writableStorageProviderMock.Setup(wsp => wsp.RenameWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await _controller.RenameContainer("containerId", UtfString.FromDecoded("renamedTo"));
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
     public async Task RenameContainer_ReturnsNotFound_WhenDirectoryNotFoundException()
     {
         _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
