@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<AssemblyName>WopiHost.Abstractions.Testing</AssemblyName>
+		<!-- This is a class library that exposes abstract xUnit test classes for downstream
+		     IWopiLockProvider implementers; it is NOT itself a test project. Override the
+		     test/Directory.Build.props default of OutputType=Exe (which xunit.v3's MTP entry
+		     point would otherwise require) and opt out of being picked up by `dotnet test`. -->
+		<OutputType>Library</OutputType>
+		<IsTestProject>false</IsTestProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\WopiHost.Abstractions\WopiHost.Abstractions.csproj" />
+	</ItemGroup>
+
+	<!-- test/Directory.Build.props auto-includes packages that only test runners need. Strip them
+	     from this library so the assembly stays a plain class library (no Microsoft.NET.Test.Sdk
+	     entry point, no xunit.v3 metapackage that forces OutputType=Exe, no runner / coverage
+	     / mocking dependencies). The attribute and Assert types arrive instead via the
+	     runner-free xunit.v3.extensibility.core and xunit.v3.assert packages declared below —
+	     this is the documented split xUnit ships for exactly this use case
+	     (https://xunit.net/docs/v3-architecture/extensibility). -->
+	<ItemGroup>
+		<PackageReference Remove="Microsoft.NET.Test.Sdk" />
+		<PackageReference Remove="xunit.v3" />
+		<PackageReference Remove="xunit.runner.visualstudio" />
+		<PackageReference Remove="FakeItEasy" />
+		<PackageReference Remove="coverlet.collector" />
+		<PackageReference Remove="coverlet.msbuild" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xunit.v3.extensibility.core" />
+		<PackageReference Include="xunit.v3.assert" />
+	</ItemGroup>
+
+</Project>
