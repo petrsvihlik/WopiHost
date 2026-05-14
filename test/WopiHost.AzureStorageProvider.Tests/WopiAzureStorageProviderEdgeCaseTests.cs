@@ -1,6 +1,5 @@
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Logging.Abstractions;
-using WopiHost.Abstractions;
 using Xunit;
 
 namespace WopiHost.AzureStorageProvider.Tests;
@@ -25,7 +24,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
         var idMap = new BlobIdMap(NullLogger<BlobIdMap>.Instance);
         var provider = new WopiAzureStorageProvider(container, idMap, NullLogger<WopiAzureStorageProvider>.Instance);
         // Force init.
-        _ = await provider.GetWopiResource<IWopiFolder>(provider.RootContainer.Identifier);
+        _ = await provider.GetWopiContainer(provider.RootContainer.Identifier);
         return (provider, container);
     }
 
@@ -52,25 +51,12 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     }
 
     [Fact]
-    public async Task GetWopiResource_UnsupportedType_Throws()
-    {
-        var (provider, container) = await CreateProviderAsync();
-        await UploadAsync(container, "x.txt");
-        // Drain GetWopiFiles to populate the id map for the blob.
-        await foreach (var _ in provider.GetWopiFiles(provider.RootContainer.Identifier)) { }
-        var anyId = BlobIdMap.IdFromPath("x.txt");
-
-        await Assert.ThrowsAsync<NotSupportedException>(
-            () => provider.GetWopiResource<UnsupportedResource>(anyId));
-    }
-
-    [Fact]
     public async Task GetWopiResource_Folder_RoundTripsViaIdentifier()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "folder1"))!;
+        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "folder1"))!;
 
-        var fetched = await provider.GetWopiResource<IWopiFolder>(folder.Identifier);
+        var fetched = await provider.GetWopiContainer(folder.Identifier);
 
         Assert.NotNull(fetched);
         Assert.Equal("folder1", fetched.Name);
@@ -82,7 +68,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
         // #380 item 4.2 — missing parent returns null, consistent with WopiFileSystemProvider.
         // Was previously the only impl that returned null here; this pins the contract for both.
         var (provider, _) = await CreateProviderAsync();
-        var result = await provider.GetWopiResourceByName<IWopiFile>("does-not-exist", "anything.txt");
+        var result = await provider.GetWopiFileByName("does-not-exist", "anything.txt");
 
         Assert.Null(result);
     }
@@ -91,23 +77,15 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     public async Task GetWopiResourceByName_Folder_FoundAndMissing()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "subA"))!;
+        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "subA"))!;
         // The folder marker blob makes the folder discoverable.
 
-        var found = await provider.GetWopiResourceByName<IWopiFolder>(provider.RootContainer.Identifier, "subA");
+        var found = await provider.GetWopiContainerByName(provider.RootContainer.Identifier, "subA");
         Assert.NotNull(found);
         Assert.Equal(folder.Identifier, found.Identifier);
 
-        var missing = await provider.GetWopiResourceByName<IWopiFolder>(provider.RootContainer.Identifier, "nope");
+        var missing = await provider.GetWopiContainerByName(provider.RootContainer.Identifier, "nope");
         Assert.Null(missing);
-    }
-
-    [Fact]
-    public async Task GetWopiResourceByName_UnsupportedType_Throws()
-    {
-        var (provider, _) = await CreateProviderAsync();
-        await Assert.ThrowsAsync<NotSupportedException>(
-            () => provider.GetWopiResourceByName<UnsupportedResource>(provider.RootContainer.Identifier, "x"));
     }
 
     [Fact]
@@ -115,16 +93,16 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
         await Assert.ThrowsAsync<DirectoryNotFoundException>(
-            () => provider.GetAncestors<IWopiFile>("not-real"));
+            () => provider.GetFileAncestors("not-real"));
     }
 
     [Fact]
     public async Task GetAncestors_Folder_TopLevel_ReturnsRootOnly()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "topfolder"))!;
+        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "topfolder"))!;
 
-        var ancestors = await provider.GetAncestors<IWopiFolder>(folder.Identifier);
+        var ancestors = await provider.GetContainerAncestors(folder.Identifier);
 
         Assert.Single(ancestors);
         Assert.Equal(provider.RootContainer.Identifier, ancestors[0].Identifier);
@@ -229,25 +207,17 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     public async Task CreateWopiChildResource_Folder_DuplicateName_Throws()
     {
         var (provider, _) = await CreateProviderAsync();
-        _ = await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "dup-folder");
+        _ = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "dup-folder");
 
         await Assert.ThrowsAsync<ArgumentException>(
-            () => provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "dup-folder"));
-    }
-
-    [Fact]
-    public async Task CreateWopiChildResource_UnsupportedType_Throws()
-    {
-        var (provider, _) = await CreateProviderAsync();
-        await Assert.ThrowsAsync<NotSupportedException>(
-            () => provider.CreateWopiChildResource<UnsupportedResource>(provider.RootContainer.Identifier, "x"));
+            () => provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "dup-folder"));
     }
 
     [Fact]
     public async Task DeleteWopiResource_UnknownIdentifier_ReturnsFalse()
     {
         var (provider, _) = await CreateProviderAsync();
-        var deleted = await provider.DeleteWopiResource<IWopiFile>("not-mapped");
+        var deleted = await provider.DeleteWopiFile("not-mapped");
         Assert.False(deleted);
     }
 
@@ -256,33 +226,24 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => provider.DeleteWopiResource<IWopiFolder>(provider.RootContainer.Identifier));
-    }
-
-    [Fact]
-    public async Task DeleteWopiResource_UnsupportedType_Throws()
-    {
-        var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "for-delete-unsupported"))!;
-        await Assert.ThrowsAsync<NotSupportedException>(
-            () => provider.DeleteWopiResource<UnsupportedResource>(folder.Identifier));
+            () => provider.DeleteWopiContainer(provider.RootContainer.Identifier));
     }
 
     [Fact]
     public async Task RenameWopiResource_InvalidName_Throws()
     {
         var (provider, _) = await CreateProviderAsync();
-        var file = (await provider.CreateWopiChildResource<IWopiFile>(provider.RootContainer.Identifier, "rn-invalid.txt"))!;
+        var file = (await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "rn-invalid.txt"))!;
 
         await Assert.ThrowsAsync<ArgumentException>(
-            () => provider.RenameWopiResource<IWopiFile>(file.Identifier, "bad/name.txt"));
+            () => provider.RenameWopiFile(file.Identifier, "bad/name.txt"));
     }
 
     [Fact]
     public async Task RenameWopiResource_UnknownIdentifier_ReturnsFalse()
     {
         var (provider, _) = await CreateProviderAsync();
-        var renamed = await provider.RenameWopiResource<IWopiFile>("not-mapped", "ok.txt");
+        var renamed = await provider.RenameWopiFile("not-mapped", "ok.txt");
         Assert.False(renamed);
     }
 
@@ -291,35 +252,26 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => provider.RenameWopiResource<IWopiFolder>(provider.RootContainer.Identifier, "newroot"));
-    }
-
-    [Fact]
-    public async Task RenameWopiResource_UnsupportedType_Throws()
-    {
-        var (provider, _) = await CreateProviderAsync();
-        var file = (await provider.CreateWopiChildResource<IWopiFile>(provider.RootContainer.Identifier, "rn-unsupported.txt"))!;
-        await Assert.ThrowsAsync<NotSupportedException>(
-            () => provider.RenameWopiResource<UnsupportedResource>(file.Identifier, "x"));
+            () => provider.RenameWopiContainer(provider.RootContainer.Identifier, "newroot"));
     }
 
     [Fact]
     public async Task RenameWopiResource_Folder_PreservesId_AndMovesChildren()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "rn-folder"))!;
+        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "rn-folder"))!;
         var originalId = folder.Identifier;
-        var child = (await provider.CreateWopiChildResource<IWopiFile>(folder.Identifier, "child.txt"))!;
+        var child = (await provider.CreateWopiChildFile(folder.Identifier, "child.txt"))!;
 
-        var renamed = await provider.RenameWopiResource<IWopiFolder>(originalId, "renamed-folder");
+        var renamed = await provider.RenameWopiContainer(originalId, "renamed-folder");
         Assert.True(renamed);
 
-        var refreshed = await provider.GetWopiResource<IWopiFolder>(originalId);
+        var refreshed = await provider.GetWopiContainer(originalId);
         Assert.NotNull(refreshed);
         Assert.Equal("renamed-folder", refreshed.Name);
 
         // The child file's identifier should still resolve, now under the new prefix.
-        var movedChild = await provider.GetWopiResource<IWopiFile>(child.Identifier);
+        var movedChild = await provider.GetWopiFile(child.Identifier);
         Assert.NotNull(movedChild);
         Assert.Equal("child", movedChild.Name);
     }
@@ -329,7 +281,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
         await Assert.ThrowsAsync<ArgumentException>(
-            () => provider.GetSuggestedName<IWopiFile>(provider.RootContainer.Identifier, "bad/name"));
+            () => provider.GetSuggestedFileName(provider.RootContainer.Identifier, "bad/name"));
     }
 
     [Fact]
@@ -337,16 +289,16 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
         await Assert.ThrowsAsync<DirectoryNotFoundException>(
-            () => provider.GetSuggestedName<IWopiFile>("not-real", "fresh.txt"));
+            () => provider.GetSuggestedFileName("not-real", "fresh.txt"));
     }
 
     [Fact]
     public async Task GetSuggestedName_Folder_AppendsCounter_WhenExists()
     {
         var (provider, _) = await CreateProviderAsync();
-        _ = await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "dup");
+        _ = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "dup");
 
-        var suggested = await provider.GetSuggestedName<IWopiFolder>(
+        var suggested = await provider.GetSuggestedContainerName(
             provider.RootContainer.Identifier, "dup");
 
         Assert.Equal("dup (1)", suggested);
@@ -356,9 +308,9 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     public async Task GetSuggestedName_File_NoExtension_AppendsCounter()
     {
         var (provider, _) = await CreateProviderAsync();
-        _ = await provider.CreateWopiChildResource<IWopiFile>(provider.RootContainer.Identifier, "noext");
+        _ = await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "noext");
 
-        var suggested = await provider.GetSuggestedName<IWopiFile>(
+        var suggested = await provider.GetSuggestedFileName(
             provider.RootContainer.Identifier, "noext");
 
         Assert.Equal("noext (1)", suggested);
@@ -376,19 +328,19 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
 
-        Assert.False(await provider.CheckValidName<IWopiFile>("foobar"));
-        Assert.False(await provider.CheckValidName<IWopiFile>(new string('x', 251)));
+        Assert.False(await provider.CheckValidFileName("foobar"));
+        Assert.False(await provider.CheckValidFileName(new string('x', 251)));
     }
 
     [Fact]
     public async Task GetWopiContainers_FromRoot_ListsTopLevelFoldersOnly()
     {
         var (provider, _) = await CreateProviderAsync();
-        _ = await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "alpha");
-        _ = await provider.CreateWopiChildResource<IWopiFolder>(provider.RootContainer.Identifier, "beta");
+        _ = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "alpha");
+        _ = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "beta");
         // A nested folder shouldn't appear in the top-level listing.
-        var alphaId = (await provider.GetWopiResourceByName<IWopiFolder>(provider.RootContainer.Identifier, "alpha"))!.Identifier;
-        _ = await provider.CreateWopiChildResource<IWopiFolder>(alphaId, "alpha-inner");
+        var alphaId = (await provider.GetWopiContainerByName(provider.RootContainer.Identifier, "alpha"))!.Identifier;
+        _ = await provider.CreateWopiChildContainer(alphaId, "alpha-inner");
 
         var names = new List<string>();
         await foreach (var f in provider.GetWopiContainers(provider.RootContainer.Identifier))
@@ -405,15 +357,8 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     public async Task RootContainer_IsAddressableViaItsIdentifier()
     {
         var (provider, _) = await CreateProviderAsync();
-        var root = await provider.GetWopiResource<IWopiFolder>(provider.RootContainer.Identifier);
+        var root = await provider.GetWopiContainer(provider.RootContainer.Identifier);
         Assert.NotNull(root);
         Assert.Equal(string.Empty, root.Name);
-    }
-
-    /// <summary>An <see cref="IWopiResource"/> that is neither a file nor a folder.</summary>
-    public sealed class UnsupportedResource : IWopiResource
-    {
-        public string Name => string.Empty;
-        public string Identifier => string.Empty;
     }
 }

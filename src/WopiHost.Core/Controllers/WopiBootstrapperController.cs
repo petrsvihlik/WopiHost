@@ -86,7 +86,7 @@ public class WopiBootstrapperController(
         var ecosystemToken = await accessTokenService.IssueAsync(BuildEcosystemTokenRequest(userId), cancellationToken).ConfigureAwait(false);
         var bootstrap = BuildBootstrapInfo(userId, ecosystemToken);
 
-        var rootContainer = await storageProvider.GetWopiResource<IWopiFolder>(storageProvider.RootContainer.Identifier, cancellationToken).ConfigureAwait(false);
+        var rootContainer = await storageProvider.GetWopiContainer(storageProvider.RootContainer.Identifier, cancellationToken).ConfigureAwait(false);
         if (rootContainer is null)
         {
             return NotFound();
@@ -122,7 +122,7 @@ public class WopiBootstrapperController(
 
         if (resourceType == WopiResourceType.File)
         {
-            var file = await storageProvider.GetWopiResource<IWopiFile>(resourceId, cancellationToken).ConfigureAwait(false);
+            var file = await storageProvider.GetWopiFile(resourceId, cancellationToken).ConfigureAwait(false);
             // Spec: "must only provide a WOPI access token if the requested WopiSrc exists
             // and the user is authorized to access it."
             if (file is null)
@@ -133,7 +133,7 @@ public class WopiBootstrapperController(
         }
         else
         {
-            var container = await storageProvider.GetWopiResource<IWopiFolder>(resourceId, cancellationToken).ConfigureAwait(false);
+            var container = await storageProvider.GetWopiContainer(resourceId, cancellationToken).ConfigureAwait(false);
             if (container is null)
             {
                 return NotFound();
@@ -196,7 +196,7 @@ public class WopiBootstrapperController(
         }, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<WopiAccessToken> IssueContainerTokenAsync(IWopiFolder container, CancellationToken cancellationToken)
+    private async Task<WopiAccessToken> IssueContainerTokenAsync(IWopiContainer container, CancellationToken cancellationToken)
     {
         var perms = await permissionProvider.GetContainerPermissionsAsync(User, container, cancellationToken).ConfigureAwait(false);
         return await accessTokenService.IssueAsync(BuildRequest(container.Identifier, WopiResourceType.Container) with

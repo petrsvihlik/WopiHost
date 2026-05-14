@@ -28,6 +28,9 @@ namespace WopiHost.Core.Controllers;
 /// <param name="extensions">Host-customization seam invoked from PutFile / PutRelativeFile.</param>
 /// <param name="options">Host options — surface configuration like <see cref="WopiHostOptions.MaxFileSize"/>
 /// and <see cref="WopiHostOptions.EmptyLockHeaderValue"/>.</param>
+/// <param name="newChildFileNegotiator">Runs the WOPI suggested-target / relative-target /
+/// overwrite-relative-target name-negotiation protocol shared with
+/// <see cref="ContainersController.CreateChildFile"/>.</param>
 /// <param name="writableStorageProvider">Storage provider instance for writing files and folders.</param>
 /// <param name="lockProvider">An instance of the lock provider.</param>
 /// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
@@ -46,6 +49,7 @@ public class FilesController(
     ICheckFileInfoBuilder checkFileInfoBuilder,
     IWopiHostExtensions extensions,
     IOptions<WopiHostOptions> options,
+    IWopiNewChildFileNegotiator newChildFileNegotiator,
     IWopiWritableStorageProvider? writableStorageProvider = null,
     IWopiLockProvider? lockProvider = null,
     ICobaltProcessor? cobaltProcessor = null,
@@ -75,7 +79,7 @@ public class FilesController(
     public async Task<IActionResult> CheckFileInfo(string id, CancellationToken cancellationToken = default)
     {
         // Get file
-        var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null)
         {
             return NotFound();
@@ -114,7 +118,7 @@ public class FilesController(
         CancellationToken cancellationToken = default)
     {
         // Get file
-        var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null)
         {
             return NotFound();
@@ -163,7 +167,7 @@ public class FilesController(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(writableStorageProvider);
-        var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         IActionResult result;
         if (file is null)
         {
@@ -177,9 +181,13 @@ public class FilesController(
             // 409 Conflict – the host should return X-WOPI-Lock with the value of the current lock
             result = new LockMismatchResult(Response, existingLock.LockId);
         }
-        else if (!await writableStorageProvider.CheckValidName<IWopiFolder>(requestedName, cancellationToken).ConfigureAwait(false))
+        else if (!await writableStorageProvider.CheckValidFileName(requestedName, cancellationToken).ConfigureAwait(false))
         {
-            // 400 Bad Request – Specified name is illegal
+            // 400 Bad Request – Specified name is illegal. The pre-#420-item-1.1 code mistakenly
+            // called CheckValidName<IWopiContainer> on this file-rename path (validating against
+            // folder-name rules — more permissive than file-name rules on Windows because
+            // GetInvalidPathChars omits the path separators that GetInvalidFileNameChars
+            // forbids). The typed-API split made the mismatch obvious and we use the file rule.
             Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
             result = new BadRequestResult();
         }
@@ -210,8 +218,8 @@ public class FilesController(
         {
             // If the host can't rename the file because the name requested is invalid or conflicts with an existing file,
             // the host should try to generate a different name based on the requested name that meets the file name requirements
-            var newName = await writableStorageProvider!.GetSuggestedName<IWopiFile>(id, requestedName + '.' + file.Extension, cancellationToken).ConfigureAwait(false);
-            if (await writableStorageProvider.RenameWopiResource<IWopiFile>(id, newName, cancellationToken).ConfigureAwait(false))
+            var newName = await writableStorageProvider!.GetSuggestedFileName(id, requestedName + '.' + file.Extension, cancellationToken).ConfigureAwait(false);
+            if (await writableStorageProvider.RenameWopiFile(id, newName, cancellationToken).ConfigureAwait(false))
             {
                 // The response to a RenameFile call is JSON containing a single required property
                 // Name (string) - The name of the renamed file without a path or file extension.
@@ -264,7 +272,7 @@ public class FilesController(
         CancellationToken cancellationToken = default)
     {
         // Get file
-        var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null)
         {
             return NotFound();
@@ -304,13 +312,13 @@ public class FilesController(
     public async Task<IActionResult> EnumerateAncestors(string id, CancellationToken cancellationToken = default)
     {
         // Get file
-        var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null)
         {
             return NotFound();
         }
 
-        var ancestors = await storageProvider.GetAncestors<IWopiFile>(id, cancellationToken).ConfigureAwait(false);
+        var ancestors = await storageProvider.GetFileAncestors(id, cancellationToken).ConfigureAwait(false);
         return new JsonResult(
             new EnumerateAncestorsResponse(ancestors
                 .Select(a => new ChildContainer(a.Name, Url.GetWopiSrc(WopiResourceType.Container, a.Identifier)))
@@ -332,6 +340,7 @@ public class FilesController(
     [HttpPut("{id}/contents")]
     [HttpPost("{id}/contents")]
     [WopiAuthorize(WopiResourceType.File, Permission.Update)]
+    [RequiresWritableStorage]
     public async Task<IActionResult> PutFile(
         string id,
         [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null,
@@ -339,7 +348,11 @@ public class FilesController(
         CancellationToken cancellationToken = default)
     {
         // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
-        var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false);
+        // Fetch through the writable storage provider — PutFile mutates content, so we need
+        // the IWopiWritableFile gate (#420 item 1.2). [RequiresWritableStorage] above already
+        // ensures writableStorageProvider is non-null before this action is reached.
+        ArgumentNullException.ThrowIfNull(writableStorageProvider);
+        var file = await writableStorageProvider.GetWritableFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null)
         {
             return NotFound();
@@ -468,7 +481,7 @@ public class FilesController(
     {
         ArgumentNullException.ThrowIfNull(writableStorageProvider);
 
-        var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null)
         {
             return NotFound();
@@ -490,101 +503,36 @@ public class FilesController(
         }
 
         // find target container id based on the relative file specified by id
-        var ancestors = await storageProvider.GetAncestors<IWopiFile>(id, cancellationToken).ConfigureAwait(false);
+        var ancestors = await storageProvider.GetFileAncestors(id, cancellationToken).ConfigureAwait(false);
         var parentContainer = ancestors.LastOrDefault()
             ?? throw new ArgumentException("Cannot find parent container", nameof(id));
 
-        IWopiFile? newFile;
-
-        // "specific mode" - The host must not modify the name to fulfill the request.
-        if (!string.IsNullOrWhiteSpace(relativeTarget))
+        // Suggested-target / relative-target negotiation — protocol shared with CreateChildFile.
+        // PutRelativeFile keeps the original file's name as the stem for the extension-only fallback.
+        var negotiation = await newChildFileNegotiator.NegotiateAsync(new WopiNewChildFileRequest(
+            ContainerId: parentContainer.Identifier,
+            SuggestedTarget: suggestedTarget,
+            RelativeTarget: relativeTarget,
+            OverwriteRelativeTarget: overwriteRelativeTarget ?? false,
+            SuggestedExtensionFallbackStem: file.Name), cancellationToken).ConfigureAwait(false);
+        if (negotiation.ToErrorActionResult(Response) is { } error)
         {
-            // If the specified name is illegal, the host must respond with a 400 Bad Request.
-            if (!await writableStorageProvider.CheckValidName<IWopiFile>(relativeTarget, cancellationToken).ConfigureAwait(false))
-            {
-                return new BadRequestResult();
-            }
-
-            // check if such file already exists
-            newFile = await storageProvider.GetWopiResourceByName<IWopiFile>(parentContainer.Identifier, relativeTarget, cancellationToken).ConfigureAwait(false);
-
-            // If a file with the specified name already exists
-            if (newFile is not null)
-            {
-                // unless the X-WOPI-OverwriteRelativeTarget request header is set to true...
-                if (overwriteRelativeTarget == false)
-                {
-                    // the host might include an X-WOPI-ValidRelativeTarget specifying a file name that's valid
-                    var suggestedName = await writableStorageProvider.GetSuggestedName<IWopiFile>(id, relativeTarget, cancellationToken).ConfigureAwait(false);
-                    Response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(suggestedName).ToString(true);
-                    // the host must respond with a 409 Conflict
-                    return new ConflictResult();
-                }
-                else
-                {
-                    // a file matching the target name might be locked
-                    var existingLock = lockProvider is null
-                        ? null
-                        : await lockProvider.GetLockAsync(newFile.Identifier, cancellationToken).ConfigureAwait(false);
-                    if (existingLock is not null)
-                    {
-                        // the host must respond with a 409 Conflict and include a X-WOPI-Lock response header
-                        return new LockMismatchResult(Response, existingLock.LockId, reason: "File already exists and is currently locked");
-                    }
-                }
-            }
-            else
-            {
-                newFile = await writableStorageProvider.CreateWopiChildResource<IWopiFile>(
-                    parentContainer.Identifier,
-                    relativeTarget,
-                    cancellationToken).ConfigureAwait(false);
-            }
-        }
-        else if (!string.IsNullOrWhiteSpace(suggestedTarget))
-        {
-            var suggestedTargetString = suggestedTarget.ToString()!;
-            // If only the extension is provided, the name of the initial file without extension should be combined with the extension to create the proposed name
-            if (suggestedTargetString.StartsWith(".", StringComparison.OrdinalIgnoreCase))
-            {
-                suggestedTargetString = file.Name + suggestedTargetString;
-            }
-            // If the specified name is illegal, the host must respond with a 400 Bad Request.
-            else if (!await writableStorageProvider.CheckValidName<IWopiFile>(suggestedTargetString, cancellationToken).ConfigureAwait(false))
-            {
-                return new BadRequestResult();
-            }
-
-            var newName = await writableStorageProvider.GetSuggestedName<IWopiFile>(parentContainer.Identifier, suggestedTargetString, cancellationToken).ConfigureAwait(false);
-            newFile = await writableStorageProvider.CreateWopiChildResource<IWopiFile>(
-                parentContainer.Identifier,
-                newName,
-                cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            // the two headers are mutually exclusive.
-            // If neither header is present, we return BadRequest
-            return new BadRequestResult();
+            return error;
         }
 
-        if (newFile is not null)
-        {
-            // copy new contents to storage
-            await HttpContext.CopyToWriteStream(newFile, cancellationToken).ConfigureAwait(false);
-            await InvokePutRelativeFileCallbackAsync(file, newFile, fileConversion, declaredSize, cancellationToken).ConfigureAwait(false);
-            var checkFileInfo = await checkFileInfoBuilder.BuildAsync(newFile, HttpContext, HostCapabilities, cancellationToken: cancellationToken).ConfigureAwait(false);
-            return new JsonResult(
-                new ChildFile(
-                    newFile.Name + '.' + newFile.Extension,
-                    Url.GetWopiSrc(WopiResourceType.File, newFile.Identifier))
-                {
-                    HostEditUrl = checkFileInfo.HostEditUrl,
-                    HostViewUrl = checkFileInfo.HostViewUrl,
-                });
-        }
-
-        return new InternalServerErrorResult();
+        var newFile = negotiation.File!;
+        // copy new contents to storage
+        await HttpContext.CopyToWriteStream(newFile, cancellationToken).ConfigureAwait(false);
+        await InvokePutRelativeFileCallbackAsync(file, newFile, fileConversion, declaredSize, cancellationToken).ConfigureAwait(false);
+        var checkFileInfo = await checkFileInfoBuilder.BuildAsync(newFile, HttpContext, HostCapabilities, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return new JsonResult(
+            new ChildFile(
+                newFile.Name + '.' + newFile.Extension,
+                Url.GetWopiSrc(WopiResourceType.File, newFile.Identifier))
+            {
+                HostEditUrl = checkFileInfo.HostEditUrl,
+                HostViewUrl = checkFileInfo.HostViewUrl,
+            });
     }
 
     /// <summary>
@@ -618,7 +566,7 @@ public class FilesController(
         CancellationToken cancellationToken = default)
     {
         // Get file
-        var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null)
         {
             return NotFound();
@@ -656,7 +604,7 @@ public class FilesController(
         ArgumentNullException.ThrowIfNull(writableStorageProvider);
 
         // Get file
-        var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false);
+        var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null)
         {
             return NotFound();
@@ -673,7 +621,7 @@ public class FilesController(
             }
         }
 
-        if (await writableStorageProvider.DeleteWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false))
+        if (await writableStorageProvider.DeleteWopiFile(id, cancellationToken).ConfigureAwait(false))
         {
             return Ok();
         }
@@ -698,14 +646,19 @@ public class FilesController(
     /// <param name="cancellationToken">cancellation token</param>
     [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.Cobalt)]
     [WopiAuthorize(WopiResourceType.File, Permission.Update)]
+    [RequiresWritableStorage]
     public async Task<IActionResult> ProcessCobalt(
         string id,
         [FromHeader(Name = WopiHeaders.CORRELATION_ID)] string? correlationId = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(cobaltProcessor);
+        // Cobalt mutates content as part of the MS-FSSHTTP round-trip — fetch through the
+        // writable interface for the #420 item 1.2 gate. [RequiresWritableStorage] above
+        // already ensures writableStorageProvider is non-null.
+        ArgumentNullException.ThrowIfNull(writableStorageProvider);
 
-        var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false)
+        var file = await writableStorageProvider.GetWritableFile(id, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("File not found");
 
         var responseBytes = await cobaltProcessor.ProcessCobalt(file, User, await HttpContext.Request.Body.ReadBytesAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
@@ -761,7 +714,7 @@ public class FilesController(
             return BadRequest();
         }
 
-        var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false)
+        var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false)
                    ?? throw new InvalidOperationException("File not found");
         Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
 

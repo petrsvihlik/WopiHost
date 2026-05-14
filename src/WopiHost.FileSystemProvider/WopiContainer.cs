@@ -1,14 +1,14 @@
-﻿using WopiHost.Abstractions;
+using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider;
 
 /// <inheritdoc/>
 /// <summary>
-/// Creates an instance of <see cref="WopiFolder"/>.
+/// Creates an instance of <see cref="WopiContainer"/>.
 /// </summary>
 /// <param name="path">Path on the file system the folder is located in.</param>
 /// <param name="folderIdentifier">A unique identifier of a folder.</param>
-public class WopiFolder(string path, string folderIdentifier) : IWopiFolder
+public class WopiContainer(string path, string folderIdentifier) : IWopiContainer
 {
     /// <inheritdoc/>
     private readonly DirectoryInfo _folderInfo = new(path);

@@ -82,7 +82,7 @@ public class FoldersControllerTests
     public async Task CheckFolderInfo_ReturnsNotFound_WhenFolderDoesNotExist()
     {
         _storageProviderMock
-            .Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(sp => sp.GetWopiContainer(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         var result = await _controller.CheckFolderInfo("nonexistent");
@@ -93,10 +93,10 @@ public class FoldersControllerTests
     [Fact]
     public async Task CheckFolderInfo_ReturnsFolderInfo_WhenFolderExists()
     {
-        var folder = new Mock<IWopiFolder>();
+        var folder = new Mock<IWopiContainer>();
         folder.Setup(f => f.Name).Returns("TestFolder");
         _storageProviderMock
-            .Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(sp => sp.GetWopiContainer(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => folder.Object);
 
         var result = await _controller.CheckFolderInfo("existing");
@@ -112,10 +112,10 @@ public class FoldersControllerTests
         // Moved here from WopiExtensionsTests.GetWopiCheckFolderInfo_CallsOnCheckFolderInfoEvent
         // when the OnCheckFolderInfo callback firing moved from the extension method to the
         // controller as part of resolving #363.
-        var folder = new Mock<IWopiFolder>();
+        var folder = new Mock<IWopiContainer>();
         folder.Setup(f => f.Name).Returns("MyFolder");
         _storageProviderMock
-            .Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(sp => sp.GetWopiContainer(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => folder.Object);
 
         var eventFired = false;
@@ -171,7 +171,7 @@ public class FoldersControllerTests
     public async Task EnumerateChildren_ReturnsNotFound_WhenFolderDoesNotExist()
     {
         _storageProviderMock
-            .Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(sp => sp.GetWopiContainer(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         var result = await _controller.EnumerateChildren("nonexistent");
@@ -184,8 +184,8 @@ public class FoldersControllerTests
     {
         var folderId = "folder";
         _storageProviderMock
-            .Setup(sp => sp.GetWopiResource<IWopiFolder>(folderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Mock<IWopiFolder>().Object);
+            .Setup(sp => sp.GetWopiContainer(folderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Mock<IWopiContainer>().Object);
         _storageProviderMock
             .Setup(sp => sp.GetWopiFiles(folderId, null, It.IsAny<CancellationToken>()))
             .Returns(AsyncEnumerable.Empty<IWopiFile>());
@@ -211,8 +211,8 @@ public class FoldersControllerTests
         fileMock.Setup(f => f.Identifier).Returns("fileId");
 
         _storageProviderMock
-            .Setup(sp => sp.GetWopiResource<IWopiFolder>(folderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Mock<IWopiFolder>().Object);
+            .Setup(sp => sp.GetWopiContainer(folderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Mock<IWopiContainer>().Object);
         _storageProviderMock
             .Setup(sp => sp.GetWopiFiles(folderId, null, It.IsAny<CancellationToken>()))
             .Returns(new[] { fileMock.Object }.ToAsyncEnumerable());
@@ -242,8 +242,8 @@ public class FoldersControllerTests
         fileMock1.Setup(f => f.Identifier).Returns("fileId1");
 
         _storageProviderMock
-            .Setup(sp => sp.GetWopiResource<IWopiFolder>(folderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Mock<IWopiFolder>().Object);
+            .Setup(sp => sp.GetWopiContainer(folderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Mock<IWopiContainer>().Object);
         _storageProviderMock
             .Setup(sp => sp.GetWopiFiles(
                 folderId,

@@ -1,20 +1,46 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 
 namespace WopiHost.Abstractions;
 
 /// <summary>
 /// Implementation of read operations for an external storage provider.
 /// </summary>
+/// <remarks>
+/// Per #420 item 1.1, file and container access points are exposed as distinct typed methods
+/// rather than a single generic <c>GetWopiResource&lt;T&gt;</c> that used <c>typeof(T)</c> as a
+/// runtime discriminator. Each method returns the precise resource interface; there are no
+/// scenarios where a caller wants the union of both.
+/// </remarks>
 public interface IWopiStorageProvider
 {
     /// <summary>
-    /// Returns a concrete instance of <see cref="IWopiFile"/> or <see cref="IWopiFolder"/>
+    /// The root container of this storage provider. Use <see cref="IWopiResource.Identifier"/>
+    /// to refer to the root in any API that takes a container identifier; use
+    /// <see cref="IWopiResource.Name"/> for UI surfaces (breadcrumbs etc.).
     /// </summary>
-    /// <param name="identifier">Generic string identifier of the Wopi resource.</param>
-    /// <param name="cancellationToken">cancellation token</param>
-    /// <returns>Instance of a file.</returns>
-    Task<T?> GetWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource;
+    /// <remarks>
+    /// The single canonical way to address the root. Earlier revisions also accepted a <see langword="null"/>
+    /// container identifier as "root" on <see cref="GetWopiFiles"/> / <see cref="GetWopiContainers"/> /
+    /// <see cref="IWopiWritableStorageProvider.CreateWopiChildFile"/>; that sugar was removed
+    /// in favour of this property to keep one obvious way to spell the same thing.
+    /// </remarks>
+    IWopiContainer RootContainer { get; }
+
+    /// <summary>
+    /// Returns the file identified by <paramref name="identifier"/>, or <see langword="null"/>
+    /// if no file with that id exists.
+    /// </summary>
+    /// <param name="identifier">File identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<IWopiFile?> GetWopiFile(string identifier, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the container identified by <paramref name="identifier"/>, or <see langword="null"/>
+    /// if no container with that id exists.
+    /// </summary>
+    /// <param name="identifier">Container identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<IWopiContainer?> GetWopiContainer(string identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the files contained by the container identified by <paramref name="identifier"/>,
@@ -29,7 +55,7 @@ public interface IWopiStorageProvider
     /// empty, every file in the container is returned. Wildcard characters in the elements
     /// are matched literally — the parameter is not a glob.
     /// </param>
-    /// <param name="cancellationToken">cancellation token</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <remarks>
     /// Implementations are expected to push filtering as close to the underlying storage as
     /// the backend allows: the filesystem provider uses <c>Directory.EnumerateFiles</c> with a
@@ -46,46 +72,60 @@ public interface IWopiStorageProvider
     /// Pass <c><see cref="RootContainer"/>.Identifier</c> to enumerate the root.
     /// </summary>
     /// <param name="identifier">Container identifier. Required.</param>
-    /// <param name="cancellationToken">cancellation token</param>
-    IAsyncEnumerable<IWopiFolder> GetWopiContainers(string identifier, CancellationToken cancellationToken = default);
+    /// <param name="cancellationToken">Cancellation token.</param>
+    IAsyncEnumerable<IWopiContainer> GetWopiContainers(string identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// The root container of this storage provider. Use <see cref="IWopiResource.Identifier"/>
-    /// to refer to the root in any API that takes a container identifier; use
-    /// <see cref="IWopiResource.Name"/> for UI surfaces (breadcrumbs etc.).
+    /// Returns the ancestor containers of the file identified by <paramref name="fileId"/>,
+    /// root-first, <em>including the immediate parent</em>, excluding the file itself.
     /// </summary>
     /// <remarks>
-    /// The single canonical way to address the root. Earlier revisions also accepted a <see langword="null"/>
-    /// container identifier as "root" on <see cref="GetWopiFiles"/> / <see cref="GetWopiContainers"/> /
-    /// <see cref="IWopiWritableStorageProvider.CreateWopiChildResource{T}"/>; that sugar was removed
-    /// in favour of this property to keep one obvious way to spell the same thing.
+    /// Matches the WOPI <c>AncestorsWithRootFirst</c> contract for the
+    /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/enumerateancestors">files EnumerateAncestors</see>
+    /// operation: <c>/root/grandparent/parent/myfile.docx</c> returns
+    /// <c>[root, grandparent, parent]</c>.
     /// </remarks>
-    IWopiFolder RootContainer { get; }
+    /// <param name="fileId">File identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<ReadOnlyCollection<IWopiContainer>> GetFileAncestors(string fileId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Returns the ancestors of the given container or file.
+    /// Returns the ancestor containers of the container identified by <paramref name="containerId"/>,
+    /// root-first, <em>including the immediate parent</em>, excluding the container itself.
     /// </summary>
-    /// <param name="identifier">Container/File identifier.</param>
-    /// <param name="cancellationToken">cancellation token</param>
-    /// <returns>list of containers top-down excluding the specified identifier</returns>
-    Task<ReadOnlyCollection<IWopiFolder>> GetAncestors<T>(string identifier, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource;
+    /// <remarks>
+    /// Matches the WOPI <c>AncestorsWithRootFirst</c> contract for the
+    /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/enumerateancestors">containers EnumerateAncestors</see>
+    /// operation: <c>/root/grandparent/parent/mycontainer</c> returns
+    /// <c>[root, grandparent, parent]</c>. Returns an empty collection when called on the root.
+    /// </remarks>
+    /// <param name="containerId">Container identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<ReadOnlyCollection<IWopiContainer>> GetContainerAncestors(string containerId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Returns a Wopi resource by its name within a parent container.
+    /// Returns the file by name within <paramref name="containerId"/>.
     /// </summary>
     /// <remarks>
     /// Returns <see langword="null"/> when either the parent container itself does not exist
-    /// or the child name is not present under it. Consistent with <see cref="GetWopiResource{T}"/>'s
-    /// null-on-missing behaviour (#380 item 4.2): the two providers used to disagree —
-    /// FileSystemProvider threw <see cref="DirectoryNotFoundException"/> on a missing parent;
-    /// AzureStorageProvider returned null — and the inconsistency leaked through to callers
-    /// (PutRelative resolution in particular).
+    /// or the file is not present under it. Consistent with <see cref="GetWopiFile"/>'s
+    /// null-on-missing behaviour (#380 item 4.2).
     /// </remarks>
-    /// <param name="containerId">parent containerId to search within</param>
-    /// <param name="name">the exact name to look for</param>
-    /// <param name="cancellationToken">cancellation token</param>
-    /// <returns>either <see cref="IWopiFile"/> or <see cref="IWopiFolder"/>, <see langword="null"/> if either the parent or the child is not present</returns>
-    Task<T?> GetWopiResourceByName<T>(string containerId, string name, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource;
+    /// <param name="containerId">Parent container id to search within.</param>
+    /// <param name="name">The exact name to look for.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<IWopiFile?> GetWopiFileByName(string containerId, string name, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the container by name within <paramref name="containerId"/>.
+    /// </summary>
+    /// <remarks>
+    /// Returns <see langword="null"/> when either the parent container itself does not exist
+    /// or the child container is not present under it. Consistent with <see cref="GetWopiContainer"/>'s
+    /// null-on-missing behaviour (#380 item 4.2).
+    /// </remarks>
+    /// <param name="containerId">Parent container id to search within.</param>
+    /// <param name="name">The exact name to look for.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<IWopiContainer?> GetWopiContainerByName(string containerId, string name, CancellationToken cancellationToken = default);
 }

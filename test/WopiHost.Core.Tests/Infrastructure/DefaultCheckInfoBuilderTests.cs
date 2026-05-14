@@ -22,7 +22,7 @@ public class DefaultCheckInfoBuilderTests
             .Setup(_ => _.GetFilePermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFile>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WopiFilePermissions.None);
         permissionProvider
-            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiContainer>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WopiContainerPermissions.None);
         return permissionProvider;
     }
@@ -286,7 +286,7 @@ public class DefaultCheckInfoBuilderTests
     [Fact]
     public void BuildCheckFolderInfo_ReturnsAnonymousUser_WhenNotAuthenticated()
     {
-        var mockFolder = new Mock<IWopiFolder>();
+        var mockFolder = new Mock<IWopiContainer>();
         mockFolder.Setup(f => f.Name).Returns("MyFolder");
         var httpContext = new DefaultHttpContext();
 
@@ -302,7 +302,7 @@ public class DefaultCheckInfoBuilderTests
     [Fact]
     public void BuildCheckFolderInfo_WithAuthenticatedUser()
     {
-        var mockFolder = new Mock<IWopiFolder>();
+        var mockFolder = new Mock<IWopiContainer>();
         mockFolder.Setup(f => f.Name).Returns("MyFolder");
         var httpContext = new DefaultHttpContext()
         {
@@ -329,11 +329,11 @@ public class DefaultCheckInfoBuilderTests
     [Fact]
     public async Task GetWopiCheckContainerInfo_CallsOnCheckContainerInfoEvent()
     {
-        var mockFolder = new Mock<IWopiFolder>();
+        var mockFolder = new Mock<IWopiContainer>();
         mockFolder.Setup(f => f.Name).Returns("test");
         var mockSecurityHandler = new Mock<IWopiPermissionProvider>();
         mockSecurityHandler
-            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiContainer>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WopiContainerPermissions.None);
         var eventFired = false;
         var extensions = new RewritingExtensions
@@ -352,11 +352,11 @@ public class DefaultCheckInfoBuilderTests
     [Fact]
     public async Task GetWopiCheckContainerInfo_WithAllPermissions_ReturnsAllTrue()
     {
-        var mockFolder = new Mock<IWopiFolder>();
+        var mockFolder = new Mock<IWopiContainer>();
         mockFolder.Setup(f => f.Name).Returns("MyContainer");
         var mockSecurityHandler = new Mock<IWopiPermissionProvider>();
         mockSecurityHandler
-            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiContainer>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 WopiContainerPermissions.UserCanCreateChildContainer |
                 WopiContainerPermissions.UserCanCreateChildFile |
@@ -378,11 +378,11 @@ public class DefaultCheckInfoBuilderTests
     [Fact]
     public async Task GetWopiCheckContainerInfo_WithNoPermissions_ReturnsAllFalse()
     {
-        var mockFolder = new Mock<IWopiFolder>();
+        var mockFolder = new Mock<IWopiContainer>();
         mockFolder.Setup(f => f.Name).Returns("RestrictedContainer");
         var mockSecurityHandler = new Mock<IWopiPermissionProvider>();
         mockSecurityHandler
-            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiContainer>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WopiContainerPermissions.None);
         var httpContext = new DefaultHttpContext();
 
@@ -399,11 +399,11 @@ public class DefaultCheckInfoBuilderTests
     [Fact]
     public async Task GetWopiCheckContainerInfo_WithPartialPermissions_ReturnsCorrectFlags()
     {
-        var mockFolder = new Mock<IWopiFolder>();
+        var mockFolder = new Mock<IWopiContainer>();
         mockFolder.Setup(f => f.Name).Returns("PartialContainer");
         var mockSecurityHandler = new Mock<IWopiPermissionProvider>();
         mockSecurityHandler
-            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiContainer>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WopiContainerPermissions.UserCanCreateChildFile | WopiContainerPermissions.UserCanRename);
         var httpContext = new DefaultHttpContext();
 
@@ -467,7 +467,7 @@ public class DefaultCheckInfoBuilderTests
     [Fact]
     public async Task GetWopiCheckContainerInfo_ThrowsOnNullContainer()
     {
-        IWopiFolder? container = null;
+        IWopiContainer? container = null;
         var httpContext = new DefaultHttpContext();
 
         var builder = new DefaultCheckContainerInfoBuilder(CreatePermissionProvider().Object, new WopiHostExtensions());
@@ -477,7 +477,7 @@ public class DefaultCheckInfoBuilderTests
     [Fact]
     public async Task GetWopiCheckContainerInfo_ThrowsOnNullHttpContext()
     {
-        var mockFolder = new Mock<IWopiFolder>();
+        var mockFolder = new Mock<IWopiContainer>();
 
         var builder = new DefaultCheckContainerInfoBuilder(CreatePermissionProvider().Object, new WopiHostExtensions());
         await Assert.ThrowsAsync<ArgumentNullException>(() => builder.BuildAsync(mockFolder.Object, null!));

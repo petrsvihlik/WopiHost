@@ -60,7 +60,7 @@ public class DefaultWopiPermissionProviderTests
             [new Claim(WopiClaimTypes.ContainerPermissions, perms.ToString())],
             "test"));
 
-        var actual = await provider.GetContainerPermissionsAsync(user, new Mock<IWopiFolder>().Object);
+        var actual = await provider.GetContainerPermissionsAsync(user, new Mock<IWopiContainer>().Object);
 
         Assert.Equal(perms, actual);
     }
@@ -77,7 +77,7 @@ public class DefaultWopiPermissionProviderTests
         var provider = Build(options);
         var user = new ClaimsPrincipal(new ClaimsIdentity());
 
-        var actual = await provider.GetContainerPermissionsAsync(user, new Mock<IWopiFolder>().Object);
+        var actual = await provider.GetContainerPermissionsAsync(user, new Mock<IWopiContainer>().Object);
 
         Assert.Equal(WopiContainerPermissions.UserCanDelete, actual);
     }

@@ -56,11 +56,17 @@ To layer behavior — versioning, audit, soft-delete — wrap the provider via c
 public class AuditingStorageProvider(IWopiWritableStorageProvider inner, IAuditLog audit)
     : IWopiWritableStorageProvider
 {
-    public Task<bool> DeleteWopiResource<T>(string id, CancellationToken ct = default)
-        where T : class, IWopiResource
+    public async Task<bool> DeleteWopiFile(string id, CancellationToken ct = default)
     {
-        var deleted = inner.DeleteWopiResource<T>(id, ct);
-        _ = deleted.ContinueWith(t => { if (t.Result) audit.Log($"deleted {id}"); }, ct);
+        var deleted = await inner.DeleteWopiFile(id, ct);
+        if (deleted) audit.Log($"deleted file {id}");
+        return deleted;
+    }
+
+    public async Task<bool> DeleteWopiContainer(string id, CancellationToken ct = default)
+    {
+        var deleted = await inner.DeleteWopiContainer(id, ct);
+        if (deleted) audit.Log($"deleted container {id}");
         return deleted;
     }
 

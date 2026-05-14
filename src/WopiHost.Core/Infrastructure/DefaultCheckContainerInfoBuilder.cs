@@ -14,7 +14,7 @@ public class DefaultCheckContainerInfoBuilder(
 {
     /// <inheritdoc />
     public async Task<WopiCheckContainerInfo> BuildAsync(
-        IWopiFolder container,
+        IWopiContainer container,
         HttpContext httpContext,
         CancellationToken cancellationToken = default)
     {

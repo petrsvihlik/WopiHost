@@ -32,7 +32,7 @@ public class DefaultWopiPermissionProvider(IOptionsMonitor<WopiHostOptions> opti
     }
 
     /// <inheritdoc/>
-    public Task<WopiContainerPermissions> GetContainerPermissionsAsync(ClaimsPrincipal user, IWopiFolder container, CancellationToken cancellationToken = default)
+    public Task<WopiContainerPermissions> GetContainerPermissionsAsync(ClaimsPrincipal user, IWopiContainer container, CancellationToken cancellationToken = default)
     {
         var claim = user.FindFirst(WopiClaimTypes.ContainerPermissions)?.Value;
         if (!string.IsNullOrEmpty(claim) && Enum.TryParse<WopiContainerPermissions>(claim, ignoreCase: true, out var fromClaim))

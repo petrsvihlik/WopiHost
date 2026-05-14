@@ -49,7 +49,7 @@ public class HomeController(
         {
             // Default to the storage provider's root when no container is specified.
             containerId ??= storageProvider.RootContainer.Identifier;
-            var current = await storageProvider.GetWopiResource<IWopiFolder>(containerId, cancellationToken)
+            var current = await storageProvider.GetWopiContainer(containerId, cancellationToken)
                 ?? throw new DirectoryNotFoundException($"Container '{containerId}' not found.");
 
             var model = new BrowseViewModel
@@ -62,7 +62,7 @@ public class HomeController(
             // and recover the parent container id when the URL didn't supply one.
             if (containerId != storageProvider.RootContainer.Identifier)
             {
-                var ancestors = await storageProvider.GetAncestors<IWopiFolder>(containerId, cancellationToken);
+                var ancestors = await storageProvider.GetContainerAncestors(containerId, cancellationToken);
                 for (var i = 0; i < ancestors.Count; i++)
                 {
                     var ancestor = ancestors[i];
@@ -80,7 +80,7 @@ public class HomeController(
             // Show ".." entry when there's somewhere to go up to.
             if (!string.IsNullOrWhiteSpace(parentContainerId))
             {
-                var parent = await storageProvider.GetWopiResource<IWopiFolder>(parentContainerId, cancellationToken)
+                var parent = await storageProvider.GetWopiContainer(parentContainerId, cancellationToken)
                     ?? throw new DirectoryNotFoundException($"Parent container '{parentContainerId}' not found.");
                 model.Containers.Add(new ContainerViewModel { ContainerId = parent.Identifier, Name = ".." });
             }
@@ -136,7 +136,7 @@ public class HomeController(
     public async Task<ActionResult> Detail(string id, string wopiAction)
     {
         var actionEnum = Enum.Parse<WopiActionEnum>(wopiAction);
-        var file = await storageProvider.GetWopiResource<IWopiFile>(id)
+        var file = await storageProvider.GetWopiFile(id)
             ?? throw new FileNotFoundException($"File with ID '{id}' not found.");
 
         var (token, expiresAt) = MintAccessToken("Anonymous", file.Identifier, actionEnum);

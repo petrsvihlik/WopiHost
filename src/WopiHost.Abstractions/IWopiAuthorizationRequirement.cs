@@ -10,7 +10,7 @@ public enum WopiResourceType
     /// </summary>
     File,
     /// <summary>
-    /// <see cref="IWopiFolder"/>
+    /// <see cref="IWopiContainer"/>
     /// </summary>
     Container
 }

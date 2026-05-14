@@ -55,7 +55,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
     // brittle and high-maintenance. The argument-validation and dispose contract above
     // and below are unit-tested in CobaltProcessorTests.
     [ExcludeFromCodeCoverage(Justification = "Binary protocol; covered by integration tests")]
-    public async Task<byte[]> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent, CancellationToken cancellationToken = default)
+    public async Task<byte[]> ProcessCobalt(IWopiWritableFile file, ClaimsPrincipal principal, byte[] newContent, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(file);
@@ -116,7 +116,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
     }
 
     [ExcludeFromCodeCoverage(Justification = "Cache + retry around CreateSessionEntry; reachable only via the binary-protocol ProcessCobalt path")]
-    private async Task<CobaltSessionEntry> GetOrCreateSession(IWopiFile file, CancellationToken cancellationToken)
+    private async Task<CobaltSessionEntry> GetOrCreateSession(IWopiWritableFile file, CancellationToken cancellationToken)
     {
         var freshEntry = false;
         var lazy = _sessions.GetOrAdd(
@@ -148,7 +148,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
     }
 
     [ExcludeFromCodeCoverage(Justification = "Instantiates CobaltFile / LocalHostBlobStore / Atom from CobaltCore; verified end-to-end by the validator + sample apps")]
-    private async Task<CobaltSessionEntry> CreateSessionEntry(IWopiFile file, CancellationToken cancellationToken)
+    private async Task<CobaltSessionEntry> CreateSessionEntry(IWopiWritableFile file, CancellationToken cancellationToken)
     {
         var disposal = new DisposalEscrow(file.Owner);
 

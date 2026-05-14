@@ -20,10 +20,10 @@ namespace WopiHost.Core.Infrastructure;
 ///   catches it instead of silently corrupting state.</item>
 /// </list>
 /// <para>
-/// Only the mutating, single-resource methods (<see cref="DeleteWopiResource{T}"/>,
-/// <see cref="RenameWopiResource{T}"/>) are guarded. <see cref="CreateWopiChildResource{T}"/>
-/// targets a parent container and the new resource has no prior lock; <see cref="CheckValidName{T}"/>
-/// and <see cref="GetSuggestedName{T}"/> are read-only.
+/// Only the mutating, single-resource methods (<see cref="DeleteWopiFile"/>,
+/// <see cref="DeleteWopiContainer"/>, <see cref="RenameWopiFile"/>, <see cref="RenameWopiContainer"/>)
+/// are guarded. The create methods target a parent container and the new resource has no prior
+/// lock; the validation / suggested-name methods are read-only.
 /// </para>
 /// </remarks>
 /// <param name="inner">the underlying writable storage provider being decorated.</param>
@@ -39,43 +39,81 @@ public sealed class WopiLockAwareWritableStorageProvider(
     public int FileNameMaxLength => _inner.FileNameMaxLength;
 
     /// <inheritdoc />
-    public Task<T?> CreateWopiChildResource<T>(string containerId, string name, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource
-        => _inner.CreateWopiChildResource<T>(containerId, name, cancellationToken);
+    public Task<IWopiWritableFile?> CreateWopiChildFile(string containerId, string name, CancellationToken cancellationToken = default)
+        => _inner.CreateWopiChildFile(containerId, name, cancellationToken);
 
     /// <inheritdoc />
-    public Task<bool> CheckValidName<T>(string name, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource
-        => _inner.CheckValidName<T>(name, cancellationToken);
+    public Task<IWopiWritableFile?> GetWritableFile(string identifier, CancellationToken cancellationToken = default)
+        => _inner.GetWritableFile(identifier, cancellationToken);
 
     /// <inheritdoc />
-    public Task<string> GetSuggestedName<T>(string containerId, string name, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource
-        => _inner.GetSuggestedName<T>(containerId, name, cancellationToken);
+    public Task<IWopiContainer?> CreateWopiChildContainer(string containerId, string name, CancellationToken cancellationToken = default)
+        => _inner.CreateWopiChildContainer(containerId, name, cancellationToken);
 
     /// <inheritdoc />
-    public async Task<bool> DeleteWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource
+    public Task<bool> CheckValidFileName(string name, CancellationToken cancellationToken = default)
+        => _inner.CheckValidFileName(name, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<bool> CheckValidContainerName(string name, CancellationToken cancellationToken = default)
+        => _inner.CheckValidContainerName(name, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<string> GetSuggestedFileName(string containerId, string name, CancellationToken cancellationToken = default)
+        => _inner.GetSuggestedFileName(containerId, name, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<string> GetSuggestedContainerName(string containerId, string name, CancellationToken cancellationToken = default)
+        => _inner.GetSuggestedContainerName(containerId, name, cancellationToken);
+
+    // The lock probe (GetLockAsync + throw-if-locked) is inlined into each of the four
+    // mutating methods below rather than extracted into a private async helper. Infer# can't
+    // see through cross-method async calls and flags the helper's returned Task as potentially
+    // null at every caller (verified again on PR #424 — 4 NULLPTR_DEREFERENCE findings when
+    // the four bodies shared a `private async Task GuardLockAsync(...)`). Same trade-off the
+    // codebase made earlier for the lock provider — see #363, #412.
+
+    /// <inheritdoc />
+    public async Task<bool> DeleteWopiFile(string identifier, CancellationToken cancellationToken = default)
     {
-        // Inlined lock probe: pulled out of a private async helper because Infer# can't see
-        // through cross-method async calls and flags the returned Task as potentially null.
         var existing = await _lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
         if (existing is not null)
         {
             throw new WopiResourceLockedException(identifier, existing.LockId);
         }
-        return await _inner.DeleteWopiResource<T>(identifier, cancellationToken).ConfigureAwait(false);
+        return await _inner.DeleteWopiFile(identifier, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public async Task<bool> RenameWopiResource<T>(string identifier, string requestedName, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource
+    public async Task<bool> DeleteWopiContainer(string identifier, CancellationToken cancellationToken = default)
     {
         var existing = await _lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
         if (existing is not null)
         {
             throw new WopiResourceLockedException(identifier, existing.LockId);
         }
-        return await _inner.RenameWopiResource<T>(identifier, requestedName, cancellationToken).ConfigureAwait(false);
+        return await _inner.DeleteWopiContainer(identifier, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> RenameWopiFile(string identifier, string requestedName, CancellationToken cancellationToken = default)
+    {
+        var existing = await _lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
+        if (existing is not null)
+        {
+            throw new WopiResourceLockedException(identifier, existing.LockId);
+        }
+        return await _inner.RenameWopiFile(identifier, requestedName, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> RenameWopiContainer(string identifier, string requestedName, CancellationToken cancellationToken = default)
+    {
+        var existing = await _lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
+        if (existing is not null)
+        {
+            throw new WopiResourceLockedException(identifier, existing.LockId);
+        }
+        return await _inner.RenameWopiContainer(identifier, requestedName, cancellationToken).ConfigureAwait(false);
     }
 }

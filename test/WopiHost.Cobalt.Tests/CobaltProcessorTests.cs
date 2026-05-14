@@ -42,7 +42,7 @@ public class CobaltProcessorTests
     public async Task ProcessCobalt_NullContent_ThrowsArgumentNullException()
     {
         using var processor = new CobaltProcessor(NullLogger<CobaltProcessor>.Instance, NullLogger<CoauthoringSessionTracker>.Instance);
-        var file = A.Fake<IWopiFile>();
+        var file = A.Fake<IWopiWritableFile>();
 
         await Assert.ThrowsAsync<ArgumentNullException>(
             () => processor.ProcessCobalt(file, new ClaimsPrincipal(), null!, CancellationToken.None));
@@ -55,7 +55,7 @@ public class CobaltProcessorTests
         processor.Dispose();
 
         await Assert.ThrowsAsync<ObjectDisposedException>(
-            () => processor.ProcessCobalt(A.Fake<IWopiFile>(), new ClaimsPrincipal(), [], CancellationToken.None));
+            () => processor.ProcessCobalt(A.Fake<IWopiWritableFile>(), new ClaimsPrincipal(), [], CancellationToken.None));
     }
 
     [Fact]

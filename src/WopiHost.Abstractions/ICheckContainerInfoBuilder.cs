@@ -23,7 +23,7 @@ public interface ICheckContainerInfoBuilder
     /// and access to per-request services.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task<WopiCheckContainerInfo> BuildAsync(
-        IWopiFolder container,
+        IWopiContainer container,
         HttpContext httpContext,
         CancellationToken cancellationToken = default);
 }

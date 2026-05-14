@@ -1,6 +1,6 @@
 namespace WopiHost.FileSystemProvider.Tests;
 
-public class WopiFolderTests : IDisposable
+public class WopiContainerTests : IDisposable
 {
     private readonly DirectoryInfo _tempDir = Directory.CreateTempSubdirectory("WopiFolderTest_");
 
@@ -14,14 +14,14 @@ public class WopiFolderTests : IDisposable
     [Fact]
     public void Identifier_ReturnsConstructorValue()
     {
-        var sut = new WopiFolder(_tempDir.FullName, "folder-id");
+        var sut = new WopiContainer(_tempDir.FullName, "folder-id");
         Assert.Equal("folder-id", sut.Identifier);
     }
 
     [Fact]
     public void Name_ReturnsLeafDirectoryName()
     {
-        var sut = new WopiFolder(_tempDir.FullName, "folder-id");
+        var sut = new WopiContainer(_tempDir.FullName, "folder-id");
         Assert.Equal(_tempDir.Name, sut.Name);
     }
 }

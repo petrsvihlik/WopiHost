@@ -14,7 +14,7 @@ namespace WopiHost.Core.Infrastructure;
 public class DefaultCheckFolderInfoBuilder : ICheckFolderInfoBuilder
 {
     /// <inheritdoc />
-    public WopiCheckFolderInfo Build(IWopiFolder folder, HttpContext httpContext)
+    public WopiCheckFolderInfo Build(IWopiContainer folder, HttpContext httpContext)
     {
         ArgumentNullException.ThrowIfNull(folder);
         ArgumentNullException.ThrowIfNull(httpContext);
