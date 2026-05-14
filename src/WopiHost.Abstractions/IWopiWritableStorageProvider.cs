@@ -130,9 +130,12 @@ public interface IWopiWritableStorageProvider
 
     /// <summary>
     /// Checks whether <paramref name="name"/> is acceptable as a file name. The name must be a
-    /// single segment — no path separators (<c>/</c> or <c>\</c>), no path-nav components
-    /// (<c>.</c>, <c>..</c>) — non-empty, free of control characters, and at most
-    /// <see cref="FileNameMaxLength"/> characters long.
+    /// single segment — at minimum non-empty, free of <c>/</c> and any control characters, not
+    /// the path-nav components <c>.</c> or <c>..</c>, and at most <see cref="FileNameMaxLength"/>
+    /// characters long. Providers MAY apply additional constraints (the file-system provider
+    /// rejects whatever <c>Path.GetInvalidFileNameChars()</c> reports for the current OS —
+    /// which on Windows includes <c>\</c> and other reserved characters; the Azure provider
+    /// rejects <c>\</c> on every platform for portability).
     /// </summary>
     /// <param name="name">Candidate file name.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -140,7 +143,7 @@ public interface IWopiWritableStorageProvider
 
     /// <summary>
     /// Checks whether <paramref name="name"/> is acceptable as a container name. Same length
-    /// and path-separator constraints as <see cref="CheckValidFileName"/>; the only legitimate
+    /// and single-segment constraints as <see cref="CheckValidFileName"/>; the only legitimate
     /// reason for a provider to diverge between the two is extension-rule differences (e.g. a
     /// host that bans leading-dot file names but allows leading-dot directory names).
     /// </summary>

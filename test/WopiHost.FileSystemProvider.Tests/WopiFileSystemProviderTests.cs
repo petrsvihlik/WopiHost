@@ -437,15 +437,17 @@ public class WopiFileSystemProviderTests : IDisposable
     }
 
     [Theory]
-    [InlineData("sub/sub")]      // POSIX separator — never legal in a single-segment name
-    [InlineData("foo\\bar")]    // Windows separator
+    [InlineData("sub/sub")]      // `/` is in GetInvalidFileNameChars on both Windows and POSIX
     [InlineData(".")]
     [InlineData("..")]
     public async Task CheckValidName_FolderNameWithPathSeparatorOrNav_ReturnsFalse(string name)
     {
         // Pre-fix CheckValidContainerName used Path.GetInvalidPathChars(), which omits the
         // separators GetInvalidFileNameChars forbids — so a "container name" containing a path
-        // separator passed validation and silently broke the storage layer.
+        // separator passed validation and silently broke the storage layer. We deliberately
+        // don't assert on `"foo\\bar"` here: on Linux, `\` is a legal filename character (not
+        // a separator) and the FS provider correctly follows the OS — the OS-agnostic
+        // backslash rejection lives in the Azure provider instead.
         Assert.False(await _sut.CheckValidContainerName(name));
     }
 
