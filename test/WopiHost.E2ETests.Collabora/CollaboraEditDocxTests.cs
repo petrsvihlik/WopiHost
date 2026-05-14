@@ -175,10 +175,18 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         }
         catch (PlaywrightException)
         {
-            var iframeHtml = await officeFrame.Owner.InnerHTMLAsync();
+            // FrameLocator.Owner.InnerHTMLAsync returns the iframe ELEMENT's innerHTML on the
+            // parent page (always empty — iframes have no DOM children outside their content
+            // document). To get the actual rendered HTML inside Collabora we have to traverse
+            // via Page.Frames and evaluate against the inner document.
+            var collaboraFrame = page.Frames.FirstOrDefault(f => f.Name == "office_frame");
+            var iframeHtml = collaboraFrame is null
+                ? "<office_frame not in page.Frames>"
+                : await collaboraFrame.EvaluateAsync<string>("() => document.documentElement.outerHTML");
+            var iframeUrl = collaboraFrame?.Url ?? "<unknown>";
             throw new Xunit.Sdk.XunitException(
                 $"#document-canvas did not become visible inside the office_frame iframe within " +
-                $"{s_iframeReadyTimeout.TotalSeconds}s. Iframe content was:\n{iframeHtml}");
+                $"{s_iframeReadyTimeout.TotalSeconds}s.\nIframe URL: {iframeUrl}\nIframe content:\n{iframeHtml}");
         }
     }
 
