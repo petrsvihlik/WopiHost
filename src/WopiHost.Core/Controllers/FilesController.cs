@@ -195,9 +195,9 @@ public class FilesController(
         IWopiFile file,
         CancellationToken cancellationToken)
     {
-        // Same result-variable pattern as ContainersController.TryRenameContainerAsync —
-        // each branch assigns to a single `result`, one `return` at the bottom. qlty's
-        // return-count threshold is ≤5; the multi-return shape was at 6.
+        // See TryRenameContainerAsync for the rationale on the missing `catch (Exception)`
+        // arm — same #380 item 5.6 cleanup: unexpected exceptions bubble to the ASP.NET Core
+        // exception middleware, which returns 500 with proper logging + telemetry context.
         IActionResult result;
         try
         {
@@ -235,10 +235,6 @@ public class FilesController(
         {
             // 409 Conflict – requestedName already exists
             result = new ConflictResult();
-        }
-        catch (Exception)
-        {
-            result = new InternalServerErrorResult();
         }
         return result;
     }
@@ -684,17 +680,18 @@ public class FilesController(
             }
         }
 
-        if (await writableStorageProvider.CheckValidName<IWopiFile>(id, cancellationToken).ConfigureAwait(false))
+        if (await writableStorageProvider.DeleteWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false))
         {
-            if (await writableStorageProvider.DeleteWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false))
-            {
-                return Ok();
-            }
-            // false → missing resource (race with concurrent delete). Map to 404. (#380 item 4.2)
-            return NotFound();
+            return Ok();
         }
-
-        return new InternalServerErrorResult();
+        // false → missing resource (race with concurrent delete). Map to 404. (#380 item 4.2)
+        // Pre-#380-item-5.6 the path was wrapped in a `CheckValidName(id)` gate with a
+        // trailing `return new InternalServerErrorResult();` for the false branch — but `id`
+        // is a route parameter (an opaque, URL-safe resource identifier), not a user-typed
+        // filename, so running it through the writable-name validator was structurally wrong
+        // and the 500-fallback was unreachable for every realistic id format. Now mirrors
+        // DeleteContainer's straight-line shape.
+        return NotFound();
     }
 
     /// <summary>

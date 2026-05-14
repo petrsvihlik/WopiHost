@@ -363,10 +363,15 @@ public class ContainersController(
         IWopiFolder container,
         CancellationToken cancellationToken)
     {
-        // Result-variable pattern: each branch (success / false / 4 typed-exception catches)
-        // assigns to a single `result` so the method has just one `return`. qlty's return-count
-        // threshold is ≤5; the multi-return shape (6 returns: success, false, ArgumentException,
-        // DirectoryNotFoundException, InvalidOperationException, Exception) was over the limit.
+        // Result-variable pattern: each branch assigns to a single `result` so the method has
+        // just one `return`. The pre-#380-item-5.6 version had a `catch (Exception) { result =
+        // new InternalServerErrorResult(); }` at the end — removed because it was actively
+        // harmful: ASP.NET Core's framework exception middleware already converts uncaught
+        // exceptions to 500 with proper ILogger + OpenTelemetry context (and DeveloperExceptionPage
+        // in dev / ProblemDetails JSON in prod), and catching them here swallowed the stack
+        // trace, broke telemetry-tag correlation, and silently absorbed OperationCanceledException.
+        // The wire behavior the WOPI client sees is identical — 500 with no body either way —
+        // but the operational side is strictly better when we let unexpected exceptions bubble.
         IActionResult result;
         try
         {
@@ -400,10 +405,6 @@ public class ContainersController(
         {
             // 409 Conflict – requestedName already exists
             result = new ConflictResult();
-        }
-        catch (Exception)
-        {
-            result = new InternalServerErrorResult();
         }
         return result;
     }
