@@ -164,8 +164,22 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // refresh, and confirms Collabora got past the "blank shell" state into actual
         // document rendering. Two-step assertion (#document-container then #document-canvas)
         // gives clearer failure diagnostics than a single locator.
-        await Assertions.Expect(officeFrame.Locator("#document-canvas")).ToBeVisibleAsync(
-            new() { Timeout = (float)s_iframeReadyTimeout.TotalMilliseconds });
+        //
+        // On failure, dump the iframe's HTML — Collabora's selector IDs drift between versions
+        // and stuck-loader states have no error overlay. The HTML tells us whether the canvas
+        // is genuinely missing, mis-named, or behind an error UI we should be matching on.
+        try
+        {
+            await Assertions.Expect(officeFrame.Locator("#document-canvas")).ToBeVisibleAsync(
+                new() { Timeout = (float)s_iframeReadyTimeout.TotalMilliseconds });
+        }
+        catch (PlaywrightException)
+        {
+            var iframeHtml = await officeFrame.Owner.InnerHTMLAsync();
+            throw new Xunit.Sdk.XunitException(
+                $"#document-canvas did not become visible inside the office_frame iframe within " +
+                $"{s_iframeReadyTimeout.TotalSeconds}s. Iframe content was:\n{iframeHtml}");
+        }
     }
 
     [Fact]
