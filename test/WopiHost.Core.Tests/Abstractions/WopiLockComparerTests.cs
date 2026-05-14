@@ -94,5 +94,15 @@ public class WopiLockComparerTests
             Assert.True(_sut.AreEqual(noS, noS));
             Assert.False(_sut.AreEqual(noS, """{"F":2}"""));
         }
+
+        [Fact]
+        public void OneNullInput_AreNotEqual()
+        {
+            // The fast-path ordinal equality returns true only when both inputs match exactly,
+            // so (null, null) is handled there. Asymmetric null inputs must short-circuit to
+            // false before the JSON-parse path attempts to dereference either string.
+            Assert.False(_sut.AreEqual(null, """{"S":"abc"}"""));
+            Assert.False(_sut.AreEqual("""{"S":"abc"}""", null));
+        }
     }
 }

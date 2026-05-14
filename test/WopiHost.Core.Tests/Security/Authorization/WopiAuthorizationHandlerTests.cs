@@ -365,4 +365,37 @@ public class WopiAuthorizationHandlerTests
 
         Assert.False(ctx.HasSucceeded);
     }
+
+    [Fact]
+    public async Task Unknown_ResourceType_Falls_Through_To_False_Arm()
+    {
+        // The switch over WopiResourceType is exhaustive at compile time but the handler keeps
+        // a `_ => false` guard for future enum additions / hand-crafted attribute instances.
+        // Cast an out-of-range integer onto the enum to exercise it. The user is otherwise
+        // fully authenticated so the only thing left to reject the request is the default arm.
+        var requirement = new WopiAuthorizeAttribute((WopiResourceType)999, Permission.Read);
+        var ctx = BuildContext(requirement, "any-id",
+            Authenticated(new Claim(WopiClaimTypes.ResourceId, "any-id")));
+
+        await _handler.HandleAsync(ctx);
+
+        Assert.False(ctx.HasSucceeded);
+    }
+
+    [Fact]
+    public async Task Unknown_Permission_On_File_Falls_Through_To_False_Arm()
+    {
+        // Same guard, one level deeper — HasFilePermission's switch also has a `_ => false`
+        // arm. Exercise it with an out-of-range Permission value. Use UserCanWrite so we get
+        // past the early Read-implies-true and ReadOnly checks.
+        var requirement = new WopiAuthorizeAttribute(WopiResourceType.File, (Permission)999);
+        var ctx = BuildContext(requirement, "fileId",
+            Authenticated(
+                new Claim(WopiClaimTypes.ResourceId, "fileId"),
+                new Claim(WopiClaimTypes.FilePermissions, WopiFilePermissions.UserCanWrite.ToString())));
+
+        await _handler.HandleAsync(ctx);
+
+        Assert.False(ctx.HasSucceeded);
+    }
 }

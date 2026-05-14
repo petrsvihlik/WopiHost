@@ -96,6 +96,27 @@ public partial class WopiUrlGeneratorTests
     }
 
     [Fact]
+    public async Task GetFileUrlAsync_MethodArgUrlSettings_OverrideConstructorArgUrlSettings()
+    {
+        // Both the constructor and the method accept a WopiUrlSettings. When both supply the same
+        // key the method-arg wins — the per-call value is intentionally the override seam.
+        var constructorSettings = new WopiUrlSettings { UiLlcc = new CultureInfo("en-US") };
+        var methodSettings = new WopiUrlSettings { UiLlcc = new CultureInfo("cs-CZ") };
+
+        var urlGenerator = new WopiUrlBuilder(_discoverer, NullLogger<WopiUrlBuilder>.Instance, constructorSettings);
+
+        var result = await urlGenerator.GetFileUrlAsync(
+            "xlsx",
+            new Uri("http://wopihost:5000/wopi/files/test.xlsx"),
+            WopiActionEnum.Edit,
+            methodSettings);
+
+        Assert.NotNull(result);
+        Assert.Contains("ui=cs-CZ", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("ui=en-US", result, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GetFileUrlAsync_CallerProvidedWopiSourceSetting_IsOverriddenByFileUrlParameter()
     {
         // Defensive: even if a caller leaks WOPI_SOURCE into urlSettings, the wopiFileUrl
