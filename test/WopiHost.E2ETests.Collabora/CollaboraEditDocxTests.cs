@@ -206,7 +206,25 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             // the .NET TimeoutException. Either way: no modal → proceed.
         }
 
-        // Step 2: focus the document area. The actual document tiles are rendered to internal
+        // Step 2: Collabora opens the doc in "Viewing" mode by default even when the WOPI host
+        // sends UserCanWrite=true (#document-container carries class="readonly"). The view-mode
+        // dropdown in the notebookbar has the toggle; clicking it once and then picking the
+        // "Editing" entry switches the doc into edit mode so subsequent typing actually
+        // mutates content. Wrapped in try/catch because the dropdown id has changed between
+        // CODE versions before — on miss we just continue and let the save assertion below
+        // surface the real symptom.
+        try
+        {
+            await officeFrame.Locator("#viewModeDropdownButton-button").ClickAsync(new() { Timeout = 5_000 });
+            await officeFrame.Locator("text=Editing").First.ClickAsync(new() { Timeout = 5_000 });
+        }
+        catch (PlaywrightException)
+        {
+            // View-mode dropdown not where we expect — fall through, the save assertion will
+            // catch any resulting no-op write.
+        }
+
+        // Step 3: focus the document area. The actual document tiles are rendered to internal
         // canvas / <div> elements that swallow pointer events; clicking the container is
         // enough to put input focus on the editor (Collabora intercepts the synthetic mouse
         // event and routes it through loolwsd's tile pipeline).
