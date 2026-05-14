@@ -121,7 +121,11 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
         // requests. Under DistributedApplicationTestingBuilder, DCP can remap the host port
         // even when the AppHost asks for a specific one — `app.GetEndpoint("collabora")` is
         // the only source of truth that survives that remap.
-        var collaboraEndpoint = _app.GetEndpoint("collabora");
+        // The endpoint name "collabora" is the one passed to WithHttpEndpoint(..., name: "collabora")
+        // in the AppHost. GetEndpoint(resourceName) alone defaults to an empty-string endpoint
+        // name and fails with "Endpoint '' for resource 'collabora' not found" — the resource
+        // and endpoint happen to share the name "collabora" here.
+        var collaboraEndpoint = _app.GetEndpoint("collabora", "collabora");
         var discoveryUrl = new Uri(collaboraEndpoint, "/hosting/discovery");
 
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
