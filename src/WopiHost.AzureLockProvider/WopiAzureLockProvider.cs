@@ -165,87 +165,63 @@ public partial class WopiAzureLockProvider(
     }
 
     /// <inheritdoc />
-    public async Task<bool> RefreshLockAsync(string fileId, string expectedExistingLockId, CancellationToken cancellationToken = default)
-    {
-        await EnsureContainerAsync(cancellationToken).ConfigureAwait(false);
-        var blobClient = GetLockBlob(fileId);
-        var props = await TryGetPropertiesAsync(blobClient, cancellationToken).ConfigureAwait(false);
-        if (props is null || !TryReadLock(fileId, props, out var info))
-        {
-            return false;
-        }
-        if (info.IsExpiredAt(_timeProvider.GetUtcNow()) || !_lockComparer.AreEqual(info.LockId, expectedExistingLockId))
-        {
-            return false;
-        }
-        if (!props.Metadata.TryGetValue(LeaseIdKey, out var leaseId) || string.IsNullOrEmpty(leaseId))
-        {
-            return false;
-        }
-
-        // Snapshot the ETag at read time. If anything mutates the blob between our compare and
-        // the SetMetadata write (concurrent UnlockAndRelock, Remove, even another concurrent
-        // Refresh), the IfMatch condition fails with 412 and the refresh is reported as
-        // not-applied. Same atomicity guarantee as TryUnlockAndRelockAsync, just without the id
-        // swap.
-        var etag = props.ETag;
-        var leaseClient = blobClient.GetBlobLeaseClient(leaseId);
-        try
-        {
-            await leaseClient.RenewAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-        catch (RequestFailedException ex)
-        {
-            LogLeaseRenewFailed(_logger, ex, fileId);
-            return false;
-        }
-
-        var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal)
-        {
-            [CreatedKey] = _timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture),
-        };
-        try
-        {
-            await blobClient.SetMetadataAsync(updated,
-                conditions: new BlobRequestConditions { LeaseId = leaseId, IfMatch = etag },
-                cancellationToken: cancellationToken).ConfigureAwait(false);
-            return true;
-        }
-        catch (RequestFailedException ex) when (ex.Status == 412 || ex.Status == 409)
-        {
-            // 412 = ETag changed (concurrent swap). 409 = lease conflict. Either way, refresh aborted.
-            LogLockMetadataUpdateFailed(_logger, ex, fileId);
-            return false;
-        }
-        catch (RequestFailedException ex)
-        {
-            LogLockMetadataUpdateFailed(_logger, ex, fileId);
-            return false;
-        }
-    }
+    public Task<bool> RefreshLockAsync(string fileId, string expectedExistingLockId, CancellationToken cancellationToken = default)
+        => TryAtomicMetadataMutationAsync(fileId, expectedExistingLockId, BumpCreatedTimestamp, cancellationToken);
 
     /// <inheritdoc />
-    public async Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default)
+    public Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default)
+        => TryAtomicMetadataMutationAsync(fileId, expectedExistingLockId, m => SwapLockIdAndBumpTimestamp(m, newLockId), cancellationToken);
+
+    private void BumpCreatedTimestamp(Dictionary<string, string> metadata)
+        => metadata[CreatedKey] = _timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture);
+
+    private void SwapLockIdAndBumpTimestamp(Dictionary<string, string> metadata, string newLockId)
+    {
+        metadata[LockIdKey] = newLockId;
+        BumpCreatedTimestamp(metadata);
+    }
+
+    /// <summary>
+    /// Shared "load → validate → renew lease → SetMetadata under ETag" flow that
+    /// <see cref="RefreshLockAsync"/> and <see cref="TryUnlockAndRelockAsync"/> both need. They
+    /// differ only in <em>which</em> metadata fields the mutation step writes; the load /
+    /// expected-lock-id check / lease renewal / ETag-conditional write / failure-handling
+    /// scaffolding is identical, so it lives here as a single transaction instead of being
+    /// duplicated across both methods.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Atomicity: the ETag captured before lease renewal is the snapshot the
+    /// <c>SetMetadataAsync</c> writes against (<c>IfMatch=etag</c>). Any concurrent mutation
+    /// between our load and our write — a sibling <c>UnlockAndRelock</c>, a <c>Remove</c>, even
+    /// another <c>Refresh</c> — changes the blob's ETag and Azure replies 412; we report
+    /// not-applied. Same atomicity guarantee in both call sites.
+    /// </para>
+    /// <para>
+    /// Returns <see langword="false"/> on any abort condition: blob missing, malformed
+    /// metadata, expired record, lock-id mismatch, missing or stale Azure lease, ETag race, or
+    /// any other <see cref="RequestFailedException"/> on the SetMetadata write.
+    /// </para>
+    /// </remarks>
+    private async Task<bool> TryAtomicMetadataMutationAsync(
+        string fileId,
+        string expectedExistingLockId,
+        Action<Dictionary<string, string>> mutateMetadata,
+        CancellationToken cancellationToken)
     {
         await EnsureContainerAsync(cancellationToken).ConfigureAwait(false);
         var blobClient = GetLockBlob(fileId);
         var props = await TryGetPropertiesAsync(blobClient, cancellationToken).ConfigureAwait(false);
-        if (props is null || !TryReadLock(fileId, props, out var info))
-        {
-            return false;
-        }
-        if (info.IsExpiredAt(_timeProvider.GetUtcNow()) || !_lockComparer.AreEqual(info.LockId, expectedExistingLockId))
-        {
-            return false;
-        }
-        if (!props.Metadata.TryGetValue(LeaseIdKey, out var leaseId) || string.IsNullOrEmpty(leaseId))
+        if (props is null
+            || !TryReadLock(fileId, props, out var info)
+            || info.IsExpiredAt(_timeProvider.GetUtcNow())
+            || !_lockComparer.AreEqual(info.LockId, expectedExistingLockId)
+            || !props.Metadata.TryGetValue(LeaseIdKey, out var leaseId)
+            || string.IsNullOrEmpty(leaseId))
         {
             return false;
         }
 
-        // Snapshot the ETag at read time. If anything mutates the blob (another swap, refresh, or
-        // remove) before our SetMetadata lands, the IfMatch condition fails with 412 and the swap
-        // is correctly reported as not-applied.
         var etag = props.ETag;
         var leaseClient = blobClient.GetBlobLeaseClient(leaseId);
         try
@@ -258,11 +234,8 @@ public partial class WopiAzureLockProvider(
             return false;
         }
 
-        var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal)
-        {
-            [LockIdKey] = newLockId,
-            [CreatedKey] = _timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture),
-        };
+        var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal);
+        mutateMetadata(updated);
         try
         {
             await blobClient.SetMetadataAsync(updated,
@@ -270,14 +243,12 @@ public partial class WopiAzureLockProvider(
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             return true;
         }
-        catch (RequestFailedException ex) when (ex.Status == 412 || ex.Status == 409)
-        {
-            // 412 = ETag changed (concurrent swap). 409 = lease conflict. Either way, swap aborted.
-            LogLockMetadataUpdateFailed(_logger, ex, fileId);
-            return false;
-        }
         catch (RequestFailedException ex)
         {
+            // 412 = ETag changed (concurrent mutation). 409 = lease conflict. Other = network /
+            // auth / etc. The previous code split 412/409 from "other" into two `catch` arms but
+            // both did the same thing (log + return false); the `when` filter was structurally
+            // redundant. Collapse to a single arm.
             LogLockMetadataUpdateFailed(_logger, ex, fileId);
             return false;
         }
