@@ -195,7 +195,14 @@ if (useCollabora)
            // and the document canvas stays blank. On Docker Desktop the explicit entry is a
            // no-op (or equivalent override), so it's safe to set unconditionally.
            .WithContainerRuntimeArgs("--add-host", "host.docker.internal:host-gateway")
-           .WithEnvironment("domain", "host\\.docker\\.internal:5050")
+           // The "domain" regex matches against the WOPI host's *hostname only* — port goes
+           // through a separate check, NOT this regex. Including `:5050` here makes the regex
+           // unmatchable (Collabora never sees a "host.docker.internal:5050" string to match
+           // against — only the hostname). Empirical: until this commit Collabora's first
+           // Action_Load_Resp came back with
+           //   {errorType:"websocketunauthorized", errorMsg:"Unauthorized WOPI host"}
+           // because the regex never matched. Dropping the port turns the document load green.
+           .WithEnvironment("domain", "host\\.docker\\.internal")
            .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false")
            .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
            .WithHttpHealthCheck("/hosting/discovery", endpointName: "collabora");

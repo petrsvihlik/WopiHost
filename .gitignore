@@ -214,6 +214,7 @@ coverage.json
 # Claude Code
 .claude/worktrees/
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 # WOPI validator local logs (see scripts/run-validator.sh)
 /host.log

@@ -119,6 +119,21 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
 
         var page = await _context.NewPageAsync();
 
+        // Listen for Collabora's postMessages from the very first navigation. Critical because
+        // #document-container being visible is NOT proof the document loaded — Collabora paints
+        // the shell even when its WebSocket auth fails (errorType:"websocketunauthorized"). The
+        // only durable proof of a successful handshake is Collabora emitting
+        // Action_Load_Resp{success:true} OR App_LoadingStatus{Status:"Document_Loaded"}.
+        await page.AddInitScriptAsync(@"
+            window.__collaboraMessages = [];
+            window.addEventListener('message', (e) => {
+                try {
+                    var data = typeof e.data === 'string' ? e.data : JSON.stringify(e.data);
+                    window.__collaboraMessages.push({ t: Date.now(), origin: e.origin, data: data });
+                } catch { /* ignore */ }
+            });
+        ");
+
         // Step 1: navigate to the frontend Index and click the Edit link for test.docx.
         // Going via the UI rather than constructing the /Home/Detail URL directly means the
         // file-id (SHA-256 hash) and access-token are produced by the actual sample code path
@@ -152,20 +167,61 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         var officeFrameElement = page.Locator("iframe[name='office_frame']");
         await Assertions.Expect(officeFrameElement).ToBeAttachedAsync(new() { Timeout = 10_000 });
 
-        // Step 3: get the iframe handle and wait inside it for Collabora's document area.
-        // #document-container is Collabora's editor shell — appears after the WebSocket
-        // handshake + initial render. Its presence proves the WOPI handshake worked end-to-end:
-        // if CheckFileInfo / GetFile had failed Collabora would show an error overlay or stay
-        // blank, and #document-container wouldn't be visible.
-        //
-        // Earlier iterations of this test also waited on #document-canvas, but CODE 25.04+ no
-        // longer paints with that id — the actual rendering element name and presence varies by
-        // editor mode. Asserting on #document-container is the most version-stable proof of
-        // "WOPI handshake completed". The save round-trip test below proves the *editing* path
-        // actually works.
+        // Step 3: get the iframe handle and wait for Collabora's editor shell to attach. Note
+        // that #document-container is visible even when the WebSocket auth fails (the shell
+        // paints, the document area shows an error overlay) — so seeing it visible is necessary
+        // but NOT sufficient.
         var officeFrame = page.FrameLocator("iframe[name='office_frame']");
         await Assertions.Expect(officeFrame.Locator("#document-container")).ToBeVisibleAsync(
             new() { Timeout = (float)s_iframeReadyTimeout.TotalMilliseconds });
+
+        // Step 4: opt in to Collabora's postMessage protocol. Collabora is silent until the
+        // host page sends Host_PostmessageReady; once that lands it starts emitting
+        // App_LoadingStatus, Action_Load_Resp, Document_LoadedSuccessfully, etc.
+        await page.EvaluateAsync(@"() => {
+            var frame = document.querySelector('iframe[name=""office_frame""]');
+            frame.contentWindow.postMessage(JSON.stringify({
+                MessageId: 'Host_PostmessageReady',
+                SendTime: Date.now(),
+                Values: {}
+            }), '*');
+        }");
+
+        // Step 5: poll the captured postMessages until we see proof the document actually
+        // loaded. Action_Load_Resp{success:false} is the failure-mode signal we explicitly
+        // look for to fast-fail with a useful message instead of timing out blind.
+        var loadDeadline = DateTime.UtcNow + s_iframeReadyTimeout;
+        string? failureReason = null;
+        while (DateTime.UtcNow < loadDeadline)
+        {
+            var messages = await page.EvaluateAsync<string>(
+                "() => JSON.stringify(window.__collaboraMessages || [])");
+            if (messages.Contains("\"MessageId\":\"Action_Load_Resp\"", StringComparison.Ordinal))
+            {
+                if (messages.Contains("\"success\":true", StringComparison.Ordinal))
+                {
+                    return; // GREEN — handshake completed.
+                }
+                if (messages.Contains("\"success\":false", StringComparison.Ordinal))
+                {
+                    failureReason = messages;
+                    break;
+                }
+            }
+            // App_LoadingStatus with Status:"Document_Loaded" is also a success signal.
+            if (messages.Contains("\"Status\":\"Document_Loaded\"", StringComparison.Ordinal))
+            {
+                return;
+            }
+            await Task.Delay(500);
+        }
+
+        var finalMessages = failureReason
+            ?? await page.EvaluateAsync<string>(
+                "() => JSON.stringify(window.__collaboraMessages || [], null, 2)");
+        throw new Xunit.Sdk.XunitException(
+            $"Collabora did not emit a successful load event within {s_iframeReadyTimeout.TotalSeconds}s.\n" +
+            $"Captured postMessages:\n{finalMessages}");
     }
 
     [Fact]
