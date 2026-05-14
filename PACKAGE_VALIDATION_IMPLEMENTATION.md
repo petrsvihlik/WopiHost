@@ -13,7 +13,7 @@ WopiHost validates the public API surface of its NuGet packages on two layers.
 </PropertyGroup>
 ```
 
-This runs after `dotnet pack` and **fails the release build** if the new package introduces breaking changes versus `PackageValidationBaselineVersion` on NuGet.org. It also enforces that all TFMs (`net8.0`, `net9.0`, `net10.0`) expose the same public surface.
+This runs after `dotnet pack` and **fails the release build** if the new package introduces breaking changes versus `PackageValidationBaselineVersion` on NuGet.org. The libraries target `net10.0`; the v8 line was the last to multi-target `net8.0`/`net9.0`.
 
 `PackageValidationBaselineVersion` is auto-bumped to the latest stable release by [`.github/workflows/release.yml`](.github/workflows/release.yml) — after a successful publish-to-NuGet, that workflow opens a PR updating the value.
 

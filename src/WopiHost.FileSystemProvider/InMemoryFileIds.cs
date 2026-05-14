@@ -27,7 +27,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
 {
     private readonly ConcurrentDictionary<string, string> _idToPath = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> _pathToId = new(StringComparer.Ordinal);
-    private readonly object _writeLock = new();
+    private readonly Lock _writeLock = new();
 
     /// <summary>
     /// Gets a value indicating whether any files have been scanned.

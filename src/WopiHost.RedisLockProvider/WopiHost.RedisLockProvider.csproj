@@ -4,7 +4,7 @@
 		<Nullable>enable</Nullable>
 		<Description>WopiHost.RedisLockProvider Class Library — distributed lock provider backed by Redis, with atomic compare-and-swap via Lua scripts and TTL-driven WOPI expiry. Best-effort against a single Redis instance; deliberately does not implement Redlock — see the README for the rationale.</Description>
 		<Authors>Petr Svihlik</Authors>
-		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<TargetFramework>net10.0</TargetFramework>
 		<AssemblyName>WopiHost.RedisLockProvider</AssemblyName>
 		<PackageId>WopiHost.RedisLockProvider</PackageId>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
