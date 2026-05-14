@@ -409,6 +409,16 @@ public class WopiFileSystemProviderTests : IDisposable
     }
 
     [Fact]
+    public async Task CheckValidName_FileNameAtMaxLength_ReturnsTrue()
+    {
+        // Documented contract is "length up to FileNameMaxLength" — inclusive. Pre-fix the
+        // implementation used `<` so a name of exactly 250 chars was rejected; the unified
+        // single-segment validator now matches the contract (and the Azure provider).
+        var atLimit = new string('a', _sut.FileNameMaxLength);
+        Assert.True(await _sut.CheckValidFileName(atLimit));
+    }
+
+    [Fact]
     public async Task CheckValidName_FileNameWithInvalidChar_ReturnsFalse()
     {
         Assert.False(await _sut.CheckValidFileName("bad\0name.txt"));
@@ -424,6 +434,36 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task CheckValidName_FolderNameWithInvalidChar_ReturnsFalse()
     {
         Assert.False(await _sut.CheckValidContainerName("bad\0path"));
+    }
+
+    [Theory]
+    [InlineData("sub/sub")]      // POSIX separator — never legal in a single-segment name
+    [InlineData("foo\\bar")]    // Windows separator
+    [InlineData(".")]
+    [InlineData("..")]
+    public async Task CheckValidName_FolderNameWithPathSeparatorOrNav_ReturnsFalse(string name)
+    {
+        // Pre-fix CheckValidContainerName used Path.GetInvalidPathChars(), which omits the
+        // separators GetInvalidFileNameChars forbids — so a "container name" containing a path
+        // separator passed validation and silently broke the storage layer.
+        Assert.False(await _sut.CheckValidContainerName(name));
+    }
+
+    [Fact]
+    public async Task CheckValidName_FolderNameTooLong_ReturnsFalse()
+    {
+        // Pre-fix CheckValidContainerName had no length cap, so a 10K-char container name passed.
+        var longName = new string('a', _sut.FileNameMaxLength + 1);
+        Assert.False(await _sut.CheckValidContainerName(longName));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task CheckValidName_EmptyOrWhitespace_ReturnsFalse(string name)
+    {
+        Assert.False(await _sut.CheckValidFileName(name));
+        Assert.False(await _sut.CheckValidContainerName(name));
     }
 
     // ---------- GetSuggestedFileName / GetSuggestedContainerName ----------

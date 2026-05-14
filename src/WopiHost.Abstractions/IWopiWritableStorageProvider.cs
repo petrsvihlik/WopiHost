@@ -129,16 +129,20 @@ public interface IWopiWritableStorageProvider
     Task<bool> RenameWopiContainer(string identifier, string requestedName, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Checks whether <paramref name="name"/> is acceptable as a file name (allowed characters,
-    /// length up to <see cref="FileNameMaxLength"/>, no path separators).
+    /// Checks whether <paramref name="name"/> is acceptable as a file name. The name must be a
+    /// single segment — no path separators (<c>/</c> or <c>\</c>), no path-nav components
+    /// (<c>.</c>, <c>..</c>) — non-empty, free of control characters, and at most
+    /// <see cref="FileNameMaxLength"/> characters long.
     /// </summary>
     /// <param name="name">Candidate file name.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task<bool> CheckValidFileName(string name, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Checks whether <paramref name="name"/> is acceptable as a container name. Validation
-    /// rules differ from file names (e.g. extension constraints don't apply).
+    /// Checks whether <paramref name="name"/> is acceptable as a container name. Same length
+    /// and path-separator constraints as <see cref="CheckValidFileName"/>; the only legitimate
+    /// reason for a provider to diverge between the two is extension-rule differences (e.g. a
+    /// host that bans leading-dot file names but allows leading-dot directory names).
     /// </summary>
     /// <param name="name">Candidate container name.</param>
     /// <param name="cancellationToken">Cancellation token.</param>

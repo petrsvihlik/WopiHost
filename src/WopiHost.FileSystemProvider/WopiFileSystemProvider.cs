@@ -226,11 +226,23 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
 
     /// <inheritdoc/>
     public Task<bool> CheckValidFileName(string name, CancellationToken cancellationToken = default)
-        => Task.FromResult(name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && name.Length < FileNameMaxLength);
+        => Task.FromResult(IsValidSingleSegmentName(name));
 
     /// <inheritdoc/>
     public Task<bool> CheckValidContainerName(string name, CancellationToken cancellationToken = default)
-        => Task.FromResult(name.IndexOfAny(Path.GetInvalidPathChars()) < 0);
+        => Task.FromResult(IsValidSingleSegmentName(name));
+
+    // Unified validation for files and containers — on a file-system store the two share the
+    // same namespace (a directory entry is a directory entry) and the same constraints. Pre-fix
+    // CheckValidContainerName used Path.GetInvalidPathChars(), which omits the path separators
+    // GetInvalidFileNameChars() forbids — so "sub/sub" or "foo\bar" passed and broke downstream;
+    // and CheckValidFileName used `< FileNameMaxLength` (strict), rejecting names exactly at the
+    // documented limit. This implementation mirrors WopiBlobContainer's IsValidSingleSegmentName.
+    private bool IsValidSingleSegmentName(string name) =>
+        !string.IsNullOrWhiteSpace(name)
+        && name.Length <= FileNameMaxLength
+        && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0
+        && name != "." && name != "..";
 
     /// <inheritdoc/>
     public async Task<string> GetSuggestedFileName(string containerId, string name, CancellationToken cancellationToken = default)
