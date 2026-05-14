@@ -187,6 +187,14 @@ if (useCollabora)
     // to 5050 at the top of this file (Aspire requires it for isProxied:false), the two
     // literals are colocated and a future port change is a two-line edit.
     var collabora = builder.AddContainer("collabora", "collabora/code")
+           // host.docker.internal needs an explicit --add-host=host.docker.internal:host-gateway
+           // on Linux Docker Engine — Docker Desktop on Mac/Windows wires it implicitly, but the
+           // Linux daemon doesn't. Without this, Collabora's WOPI callbacks from inside the
+           // container can't reach the backend at host.docker.internal:5050: the editor shell
+           // loads (Collabora doesn't need WOPI for that), but CheckFileInfo + GetFile time out
+           // and the document canvas stays blank. On Docker Desktop the explicit entry is a
+           // no-op (or equivalent override), so it's safe to set unconditionally.
+           .WithContainerRuntimeArgs("--add-host", "host.docker.internal:host-gateway")
            .WithEnvironment("domain", "host\\.docker\\.internal:5050")
            .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false")
            .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
