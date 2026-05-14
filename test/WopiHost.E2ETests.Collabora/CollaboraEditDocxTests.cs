@@ -193,7 +193,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // (already seen on a previous CI run). The OK button is well-named and stable across
         // CODE versions.
         var sessionModalOk = officeFrame.Locator("#response-ok-button");
-        if (await sessionModalOk.IsVisibleAsync().ConfigureAwait(false))
+        if (await sessionModalOk.IsVisibleAsync())
         {
             await sessionModalOk.ClickAsync();
         }
