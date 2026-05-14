@@ -23,11 +23,9 @@
     <PackageVersion Include="Scrutor" Version="7.0.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.6.0" />
-    <!-- WopiHost.RedisLockProvider client. Aspire.Hosting.Redis (registered in the net10.0 group
-         further down) is what wires the Redis container into the AppHost. -->
+    <!-- WopiHost.RedisLockProvider client. Aspire.Hosting.Redis (below) is what wires the
+         Redis container into the AppHost. -->
     <PackageVersion Include="StackExchange.Redis" Version="2.9.32" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.8" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.8" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
@@ -38,7 +36,7 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.3.2" />
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.3.2" />
-    <!-- Aspire integration for the Redis lock provider opt-in. Only the AppHost (net10) needs it. -->
+    <!-- Aspire integration for the Redis lock provider opt-in. Only the AppHost needs it. -->
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.3.2" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />
   </ItemGroup>

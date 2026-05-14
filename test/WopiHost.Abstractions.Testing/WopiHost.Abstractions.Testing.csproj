@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
-		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<TargetFramework>net10.0</TargetFramework>
 		<AssemblyName>WopiHost.Abstractions.Testing</AssemblyName>
 		<!-- This is a class library that exposes abstract xUnit test classes for downstream
 		     IWopiLockProvider implementers; it is NOT itself a test project. Override the

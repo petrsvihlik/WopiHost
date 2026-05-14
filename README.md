@@ -39,7 +39,7 @@ A modular **WOPI host** implementation for .NET that lets you plug your own data
 
 ### Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (the AppHost requires it; libraries also target net8.0 and net9.0)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop) (used by .NET Aspire for container resources)
 - Recommended: [Visual Studio 2026](https://visualstudio.microsoft.com/vs/) with the .NET Aspire workload, or [VS Code](https://code.visualstudio.com/) with the C# Dev Kit
 
