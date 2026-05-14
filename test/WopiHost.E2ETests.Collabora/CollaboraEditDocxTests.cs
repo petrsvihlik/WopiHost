@@ -171,35 +171,6 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
     [Fact]
     public async Task SaveAfterEdit_WritesNewBytesToDisk()
     {
-        // Skipped pending follow-up: under CODE 25.04 on this AppHost wiring, the doc opens in
-        // "Viewing" mode despite the WOPI host returning UserCanWrite=true (CheckFileInfo +
-        // claim layout verified end-to-end). Typing into the canvas then has no effect on the
-        // document model and Action_Save round-trips a no-op — the file's mtime / length don't
-        // change and the assertion below times out as a false negative.
-        //
-        // What we tried, in order of escalating intrusiveness:
-        //   1. Hardcoded localhost:9980 for Collabora           → Aspire test mode remaps the port; fixed via app.GetEndpoint.
-        //   2. Linux Docker host-resolution                     → fixed via --add-host=host.docker.internal:host-gateway.
-        //   3. #document-canvas selector                        → not present in CODE 25.04; switched to #document-container.
-        //   4. "Your session will expire" modal blocked clicks  → dismissed via #response-ok-button + Force-click.
-        //   5. View-mode dropdown click                         → either didn't fire or doesn't change the WOPI-side perm.
-        //
-        // Hypotheses for the remaining read-only behaviour (need backend logs from a CI run to
-        // distinguish): (a) CheckFileInfo response is missing UserCanWrite even though the JWT
-        // claim has it — would need to inspect the wire response, not just the claim handler;
-        // (b) Collabora's notebookbar UI mode opens new sessions read-only regardless of WOPI
-        // perms and requires a Host_PostmessageReady → Action_EditMode handshake to flip;
-        // (c) some CODE 25.04-specific config flag we're not setting in `extra_params`.
-        //
-        // Test 1 (OpensDocxInCollabora_RendersDocumentArea) already proves the WOPI handshake
-        // works end-to-end up to and including Collabora rendering the doc — CheckFileInfo +
-        // GetFile both succeed against the backend, the iframe loads, the editor shell paints.
-        // The save round-trip is the missing piece tracked under #357.
-        Assert.Skip(
-            "Save round-trip blocked by Collabora opening the doc in read-only/viewing mode " +
-            "despite UserCanWrite=true. See the comment block in this test for the full triage " +
-            "trail and the three remaining hypotheses. Tracking under issue #357.");
-
         Assert.SkipUnless(app.IsDockerAvailable, "Docker is not available — skipping Collabora e2e.");
 
         var docxPath = Path.Combine(app.WopiDocsPath, SampleDocxName);
@@ -207,6 +178,22 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         var modifiedBefore = File.GetLastWriteTimeUtc(docxPath);
 
         var page = await _context.NewPageAsync();
+
+        // Install a postMessage capture on EVERY page (host page + iframe contentWindow) before
+        // any navigation, so we see Collabora's host-integration events (App_LoadingStatus,
+        // Document_LoadedSuccessfully, Action_Save_Resp, etc.) from their first emission. The
+        // events are JSON-encoded; we keep raw text and timestamp so the eventual diagnostic
+        // dump is self-explanatory.
+        await page.AddInitScriptAsync(@"
+            window.__collaboraMessages = [];
+            window.addEventListener('message', (e) => {
+                try {
+                    var data = typeof e.data === 'string' ? e.data : JSON.stringify(e.data);
+                    window.__collaboraMessages.push({ t: Date.now(), origin: e.origin, data: data });
+                } catch { /* ignore */ }
+            });
+        ");
+
         await page.GotoAsync(app.WebFrontendUrl.AbsoluteUri);
         await page.Locator($"table.files tbody tr:has-text('{SampleDocxName}') a[title='Edit']").First.ClickAsync();
 
@@ -301,10 +288,30 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             await Task.Delay(250);
         }
 
-        Assert.True(
-            changed,
-            $"Expected {SampleDocxName} to be re-written by Collabora's Action_Save within 30s. " +
-            $"LastWrite before: {modifiedBefore:O}, after: {File.GetLastWriteTimeUtc(docxPath):O}; " +
-            $"size before: {sizeBefore}, after: {new FileInfo(docxPath).Length}.");
+        if (!changed)
+        {
+            // Pull the postMessage trail + the editor's read-only state to disambiguate WHY the
+            // save was a no-op. Three classes of failure mode we expect to be able to read off
+            // the captured events:
+            //   - Document_LoadedSuccessfully with permissions != edit  → CheckFileInfo wire content not granting UserCanWrite.
+            //   - Action_Save_Resp with success: false                  → host-side save handler failed (lock conflict, IO error).
+            //   - No Action_Save_Resp at all                            → Collabora ignored our save trigger (doc in view mode).
+            var messages = await page.EvaluateAsync<object>("() => window.__collaboraMessages || []");
+            string? containerClass = null;
+            try
+            {
+                containerClass = await officeFrame.Locator("#document-container").GetAttributeAsync("class");
+            }
+            catch { /* selector may have died if Collabora unmounted */ }
+
+            throw new Xunit.Sdk.XunitException(
+                $"Expected {SampleDocxName} to be re-written by Collabora's Action_Save within 30s.\n" +
+                $"  LastWrite before: {modifiedBefore:O}\n" +
+                $"  LastWrite after:  {File.GetLastWriteTimeUtc(docxPath):O}\n" +
+                $"  Size before: {sizeBefore}\n" +
+                $"  Size after:  {new FileInfo(docxPath).Length}\n" +
+                $"  #document-container class: {containerClass ?? "<unresolved>"}\n" +
+                $"  Captured Collabora postMessages (newest last):\n{messages}");
+        }
     }
 }
