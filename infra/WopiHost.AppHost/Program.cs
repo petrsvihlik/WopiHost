@@ -195,15 +195,18 @@ if (useCollabora)
            // and the document canvas stays blank. On Docker Desktop the explicit entry is a
            // no-op (or equivalent override), so it's safe to set unconditionally.
            .WithContainerRuntimeArgs("--add-host", "host.docker.internal:host-gateway")
-           // The "domain" regex matches against the WOPI host's *hostname only* — port goes
-           // through a separate check, NOT this regex. Including `:5050` here makes the regex
-           // unmatchable (Collabora never sees a "host.docker.internal:5050" string to match
-           // against — only the hostname). Empirical: until this commit Collabora's first
-           // Action_Load_Resp came back with
-           //   {errorType:"websocketunauthorized", errorMsg:"Unauthorized WOPI host"}
-           // because the regex never matched. Dropping the port turns the document load green.
-           .WithEnvironment("domain", "host\\.docker\\.internal")
-           .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false")
+           // Allow any WOPI host hostname. Earlier iterations tried "host\.docker\.internal"
+           // and "host\.docker\.internal:5050" and Collabora still came back with
+           //   Action_Load_Resp { errorType: "websocketunauthorized", errorMsg: "Unauthorized WOPI host" }
+           // Going fully permissive while we figure out which canonicalised form coolwsd
+           // expects. If `.*` still produces the same error, the issue isn't the regex at
+           // all — it's a different auth path (capabilities probe, user_auth, …).
+           .WithEnvironment("domain", ".*")
+           // --o:logging.level=trace so the container log shows the actual host string being
+           // matched against (and why the match fails). The CI workflow captures container
+           // logs on failure, so a future run with this trace level will surface coolwsd's
+           // own diagnosis instead of leaving us guessing.
+           .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false --o:logging.level=trace --o:logging.protocol=true")
            .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
            .WithHttpHealthCheck("/hosting/discovery", endpointName: "collabora");
 

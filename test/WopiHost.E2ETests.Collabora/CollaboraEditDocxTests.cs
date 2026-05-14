@@ -219,9 +219,11 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         var finalMessages = failureReason
             ?? await page.EvaluateAsync<string>(
                 "() => JSON.stringify(window.__collaboraMessages || [], null, 2)");
+        var collaboraLogs = await app.CaptureCollaboraLogsAsync();
         throw new Xunit.Sdk.XunitException(
             $"Collabora did not emit a successful load event within {s_iframeReadyTimeout.TotalSeconds}s.\n" +
-            $"Captured postMessages:\n{finalMessages}");
+            $"Captured postMessages:\n{finalMessages}\n" +
+            $"\nCollabora container logs (last 400 lines):\n{collaboraLogs}");
     }
 
     [Fact]
@@ -385,6 +387,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             }
             catch { /* selector may have died if Collabora unmounted */ }
 
+            var collaboraLogs = await app.CaptureCollaboraLogsAsync();
             throw new Xunit.Sdk.XunitException(
                 $"Expected {SampleDocxName} to be re-written by Collabora's Action_Save within 60s.\n" +
                 $"  LastWrite before: {modifiedBefore:O}\n" +
@@ -392,7 +395,8 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
                 $"  Size before: {sizeBefore}\n" +
                 $"  Size after:  {new FileInfo(docxPath).Length}\n" +
                 $"  #document-container class: {containerClass ?? "<unresolved>"}\n" +
-                $"  Captured Collabora postMessages (newest last):\n{messages}");
+                $"  Captured Collabora postMessages (newest last):\n{messages}\n" +
+                $"\nCollabora container logs (last 400 lines):\n{collaboraLogs}");
         }
     }
 }

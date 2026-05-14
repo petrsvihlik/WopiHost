@@ -192,6 +192,65 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
         }
     }
 
+    /// <summary>
+    /// Captures the most recent stdout/stderr from the running Collabora container so failure
+    /// diagnostics include coolwsd's own logs. Used by both tests to surface auth / WOPI
+    /// rejection reasons that aren't visible from the iframe's postMessage trail.
+    /// </summary>
+    public async Task<string> CaptureCollaboraLogsAsync(int tailLines = 400)
+    {
+        try
+        {
+            // First find the container name. Aspire names containers after the resource with a
+            // hash suffix; match any "collabora*" we have running. Defensive fallback: if name
+            // discovery fails, dump *all* running containers' logs (only one in our setup).
+            using var psProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "docker",
+                Arguments = "ps --filter ancestor=collabora/code --format {{.Names}}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+            if (psProcess is null)
+            {
+                return "<docker not available>";
+            }
+            var names = (await psProcess.StandardOutput.ReadToEndAsync().ConfigureAwait(false)).Trim();
+            await psProcess.WaitForExitAsync().ConfigureAwait(false);
+            if (string.IsNullOrEmpty(names))
+            {
+                return "<no running collabora/code container>";
+            }
+            var containerName = names.Split('\n')[0].Trim();
+
+            using var logsProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "docker",
+                Arguments = $"logs --tail {tailLines} {containerName}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+            if (logsProcess is null)
+            {
+                return $"<failed to start `docker logs {containerName}`>";
+            }
+            // Collabora writes most diagnostics to stderr, so merge both streams.
+            var stdoutTask = logsProcess.StandardOutput.ReadToEndAsync();
+            var stderrTask = logsProcess.StandardError.ReadToEndAsync();
+            await logsProcess.WaitForExitAsync().ConfigureAwait(false);
+            return $"=== {containerName} stdout ===\n{await stdoutTask.ConfigureAwait(false)}\n" +
+                   $"=== {containerName} stderr ===\n{await stderrTask.ConfigureAwait(false)}";
+        }
+        catch (Exception ex)
+        {
+            return $"<CaptureCollaboraLogsAsync threw: {ex.GetType().Name}: {ex.Message}>";
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_app is not null)
