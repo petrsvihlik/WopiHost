@@ -317,7 +317,11 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             //   - Document_LoadedSuccessfully with permissions != edit  → CheckFileInfo wire content not granting UserCanWrite.
             //   - Action_Save_Resp with success: false                  → host-side save handler failed (lock conflict, IO error).
             //   - No Action_Save_Resp at all                            → Collabora ignored our save trigger (doc in view mode).
-            var messages = await page.EvaluateAsync<object>("() => window.__collaboraMessages || []");
+            // Stringify on the JS side. `EvaluateAsync<object>` over an array returns a boxed
+            // JS array whose .ToString() is "System.Object[]" — useless. JSON.stringify with
+            // indentation gives a readable, copy-pasteable diagnostic.
+            var messages = await page.EvaluateAsync<string>(
+                "() => JSON.stringify(window.__collaboraMessages || [], null, 2)");
             string? containerClass = null;
             try
             {
@@ -326,7 +330,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             catch { /* selector may have died if Collabora unmounted */ }
 
             throw new Xunit.Sdk.XunitException(
-                $"Expected {SampleDocxName} to be re-written by Collabora's Action_Save within 30s.\n" +
+                $"Expected {SampleDocxName} to be re-written by Collabora's Action_Save within 60s.\n" +
                 $"  LastWrite before: {modifiedBefore:O}\n" +
                 $"  LastWrite after:  {File.GetLastWriteTimeUtc(docxPath):O}\n" +
                 $"  Size before: {sizeBefore}\n" +
