@@ -234,8 +234,20 @@ if (useCollabora)
     // and CheckFileInfo 500s — the editor loads but the document never appears. The sample WOPI
     // host honours Wopi:Security:DisableProofValidation in Development to swap in a no-op
     // validator; refuse to run in non-Development if the flag is set.
+    //
+    // ASPNETCORE_URLS=http://0.0.0.0:5050 is the load-bearing line for the Collabora dev loop on
+    // any Docker setup that uses a bridge network (Linux Docker Engine — GitHub Actions, native
+    // Linux dev box). Without it, Kestrel binds to localhost:5050 (Aspire's default for an
+    // isProxied:false endpoint), and `host.docker.internal` from inside the container resolves
+    // to the docker0 bridge host IP — which has nothing listening on 5050 → immediate ECONNREFUSED
+    // on every CheckFileInfo callback. The container shows up as a websocketunauthorized error in
+    // the iframe's postMessage trail (Collabora's catch-all for "I couldn't reach your WOPI
+    // host"), so the symptom is misleading. On Docker Desktop (Mac/Windows) the explicit bind
+    // is a no-op (Desktop's port-forwarder reaches localhost-bound services anyway), so it's safe
+    // to set unconditionally.
     wopiHost.WithEnvironment("Wopi__ClientUrl", collaboraUrl)
             .WithEnvironment("Wopi__Security__DisableProofValidation", "true")
+            .WithEnvironment("ASPNETCORE_URLS", "http://0.0.0.0:5050")
             .WaitFor(collabora);
 
     // Frontend: embeds Collabora; the iframe URL must come from Collabora's discovery, and the
