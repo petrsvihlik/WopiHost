@@ -321,7 +321,7 @@ public class FilesController(
         var ancestors = await storageProvider.GetFileAncestors(id, cancellationToken).ConfigureAwait(false);
         return new JsonResult(
             new EnumerateAncestorsResponse(ancestors
-                .Select(a => new ChildContainer(a.Name, Url.GetWopiSrc(WopiResourceType.Container, a.Identifier)))
+                .Select(a => new ChildContainer(a.Name, Url.GetWopiSrc(a)))
             ));
     }
 
@@ -528,7 +528,7 @@ public class FilesController(
         return new JsonResult(
             new ChildFile(
                 newFile.Name + '.' + newFile.Extension,
-                Url.GetWopiSrc(WopiResourceType.File, newFile.Identifier))
+                Url.GetWopiSrc(newFile))
             {
                 HostEditUrl = checkFileInfo.HostEditUrl,
                 HostViewUrl = checkFileInfo.HostViewUrl,
@@ -572,15 +572,19 @@ public class FilesController(
             return NotFound();
         }
 
-        // The UserInfo string should be associated with a particular user,
-        // and should be passed back to the WOPI client in subsequent CheckFileInfo responses in the UserInfo property.
-        // we store indefinitely in memoryCache to avoid the need for a persistence model - it's called anyway by the Wopi client on every start
+        // The UserInfo string should be associated with a particular user, and should be passed
+        // back to the WOPI client in subsequent CheckFileInfo responses in the UserInfo property.
+        // Per #425 item 2.7, we bound the entry with an absolute expiry (default 24h, see
+        // WopiHostOptions.UserInfoCacheLifetime) instead of the prior Priority.NeverRemove +
+        // no-expiry combo that pinned per-user data indefinitely. The WOPI client calls
+        // PutUserInfo on every start, so a missed entry just means a one-time round-trip
+        // rather than data loss.
         memoryCache.Set(
-            $"{UserInfoCacheKeyPrefix}{User.GetUserId()}", 
-            userInfo, 
+            $"{UserInfoCacheKeyPrefix}{User.GetUserId()}",
+            userInfo,
             new MemoryCacheEntryOptions
             {
-                Priority = CacheItemPriority.NeverRemove,
+                AbsoluteExpirationRelativeToNow = options.Value.UserInfoCacheLifetime,
             });
 
         return Ok();

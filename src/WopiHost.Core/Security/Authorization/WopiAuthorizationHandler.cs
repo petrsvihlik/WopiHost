@@ -74,6 +74,11 @@ public partial class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> 
 
     private static bool HasRequiredPermission(ClaimsPrincipal user, WopiAuthorizeAttribute requirement)
     {
+        // Exhaustive over WopiResourceType — extend both arms when adding a new enum value.
+        // Unlike the resource-route dispatch (Extensions.GetWopiSrc), this site can't route
+        // through IWopiResource.Kind because the resource type comes from the
+        // [WopiAuthorize(...)] attribute (compile-time metadata), not from a resolved
+        // resource instance. The explicit switch is the right shape here (#420 item 2.11).
         return requirement.ResourceType switch
         {
             WopiResourceType.File => HasFilePermission(user, requirement.Permission),
