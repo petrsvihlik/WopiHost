@@ -195,6 +195,10 @@ public class FilesController(
         IWopiFile file,
         CancellationToken cancellationToken)
     {
+        // Same result-variable pattern as ContainersController.TryRenameContainerAsync —
+        // each branch assigns to a single `result`, one `return` at the bottom. qlty's
+        // return-count threshold is ≤5; the multi-return shape was at 6.
+        IActionResult result;
         try
         {
             // If the host can't rename the file because the name requested is invalid or conflicts with an existing file,
@@ -204,10 +208,13 @@ public class FilesController(
             {
                 // The response to a RenameFile call is JSON containing a single required property
                 // Name (string) - The name of the renamed file without a path or file extension.
-                return new JsonResult(new { Name = Path.GetFileNameWithoutExtension(newName) });
+                result = new JsonResult(new { Name = Path.GetFileNameWithoutExtension(newName) });
             }
-            // false → missing resource (race with concurrent delete). Map to 404. (#380 item 4.2)
-            return NotFound();
+            else
+            {
+                // false → missing resource (race with concurrent delete). Map to 404. (#380 item 4.2)
+                result = NotFound();
+            }
         }
         catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
         {
@@ -216,23 +223,24 @@ public class FilesController(
             // This header should only be included when the response code is 400 Bad Request.
             // This string is only used for logging purposes.
             Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
-            return new BadRequestResult();
+            result = new BadRequestResult();
         }
         catch (FileNotFoundException)
         {
             // 404 Not Found – defensive catch for third-party providers / GetSuggestedName paths
             // that still throw on missing resource.
-            return NotFound();
+            result = NotFound();
         }
         catch (InvalidOperationException)
         {
             // 409 Conflict – requestedName already exists
-            return new ConflictResult();
+            result = new ConflictResult();
         }
         catch (Exception)
         {
-            return new InternalServerErrorResult();
+            result = new InternalServerErrorResult();
         }
+        return result;
     }
 
     /// <summary>

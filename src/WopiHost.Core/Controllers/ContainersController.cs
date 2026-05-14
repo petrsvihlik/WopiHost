@@ -363,16 +363,24 @@ public class ContainersController(
         IWopiFolder container,
         CancellationToken cancellationToken)
     {
+        // Result-variable pattern: each branch (success / false / 4 typed-exception catches)
+        // assigns to a single `result` so the method has just one `return`. qlty's return-count
+        // threshold is ≤5; the multi-return shape (6 returns: success, false, ArgumentException,
+        // DirectoryNotFoundException, InvalidOperationException, Exception) was over the limit.
+        IActionResult result;
         try
         {
             if (await writableStorageProvider!.RenameWopiResource<IWopiFolder>(id, requestedName, cancellationToken).ConfigureAwait(false))
             {
                 // The response to a RenameContainer call is JSON containing the following required property:
                 // Name(string) - The name of the renamed container.
-                return new JsonResult(new { container.Name });
+                result = new JsonResult(new { container.Name });
             }
-            // false → missing resource (race with concurrent delete). Map to 404. (#380 item 4.2)
-            return NotFound();
+            else
+            {
+                // false → missing resource (race with concurrent delete). Map to 404. (#380 item 4.2)
+                result = NotFound();
+            }
         }
         catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
         {
@@ -381,22 +389,23 @@ public class ContainersController(
             // This header should only be included when the response code is 400 Bad Request.
             // This string is only used for logging purposes.
             Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
-            return new BadRequestResult();
+            result = new BadRequestResult();
         }
         catch (DirectoryNotFoundException)
         {
             // 404 Not Found – defensive catch for third-party providers that still throw.
-            return NotFound();
+            result = NotFound();
         }
         catch (InvalidOperationException)
         {
             // 409 Conflict – requestedName already exists
-            return new ConflictResult();
+            result = new ConflictResult();
         }
         catch (Exception)
         {
-            return new InternalServerErrorResult();
+            result = new InternalServerErrorResult();
         }
+        return result;
     }
 
     /// <summary>

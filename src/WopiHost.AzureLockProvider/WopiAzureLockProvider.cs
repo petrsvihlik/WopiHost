@@ -212,53 +212,78 @@ public partial class WopiAzureLockProvider(
         await EnsureContainerAsync(cancellationToken).ConfigureAwait(false);
         var blobClient = GetLockBlob(fileId);
         var props = await TryGetPropertiesAsync(blobClient, cancellationToken).ConfigureAwait(false);
-        // Split the validation into three guards (was previously one large combined `if` — qlty
-        // flagged it as a too-complex boolean expression). Each guard fails fast with the same
-        // "not applicable" outcome, but the conditions group naturally: missing-or-malformed
-        // record / expired-or-mismatched / no-lease-id-recoverable-from-metadata.
+        // Three short-circuiting guards collapsed into one if/else-if/else chain that assigns a
+        // single `result` and exits through one `return`. The earlier multi-return shape tripped
+        // qlty's return-count threshold (≤5); the combined-if shape tripped its boolean-logic
+        // threshold. The if/else-if/else preserves the short-circuit semantics with no compound
+        // boolean (each branch carries at most one `||`).
+        bool result;
         if (props is null || !TryReadLock(fileId, props, out var info))
         {
-            return false;
+            result = false;
         }
-        if (info.IsExpiredAt(_timeProvider.GetUtcNow()) || !_lockComparer.AreEqual(info.LockId, expectedExistingLockId))
+        else if (info.IsExpiredAt(_timeProvider.GetUtcNow()) || !_lockComparer.AreEqual(info.LockId, expectedExistingLockId))
         {
-            return false;
+            result = false;
         }
-        if (!props.Metadata.TryGetValue(LeaseIdKey, out var leaseId) || string.IsNullOrEmpty(leaseId))
+        else if (!props.Metadata.TryGetValue(LeaseIdKey, out var leaseId) || string.IsNullOrEmpty(leaseId))
         {
-            return false;
+            result = false;
         }
+        else
+        {
+            result = await ExecuteMutationAsync(blobClient, props, leaseId, fileId, mutateMetadata, cancellationToken).ConfigureAwait(false);
+        }
+        return result;
+    }
 
-        var etag = props.ETag;
+    /// <summary>
+    /// Inner step of the atomic-metadata-mutation: with a validated lease id in hand, renews the
+    /// lease and writes the mutated metadata under <c>IfMatch=etag</c> + the lease id. Lifted
+    /// out so the outer validation path and the renew/write path each have a single return —
+    /// qlty's return-count threshold is ≤5, and the combined version exceeded it.
+    /// </summary>
+    /// <remarks>
+    /// A <c>renewed</c> flag tracks which phase the exception fired in so the two failure modes
+    /// stay distinguishable for telemetry: <see cref="LogLeaseRenewFailed"/> means the existing
+    /// lease was externally broken (bad state); <see cref="LogLockMetadataUpdateFailed"/> means
+    /// the SetMetadata write failed (typically 412 = concurrent mutation, 409 = lease conflict).
+    /// </remarks>
+    private async Task<bool> ExecuteMutationAsync(
+        BlobClient blobClient,
+        BlobProperties props,
+        string leaseId,
+        string fileId,
+        Action<Dictionary<string, string>> mutateMetadata,
+        CancellationToken cancellationToken)
+    {
+        bool result;
         var leaseClient = blobClient.GetBlobLeaseClient(leaseId);
+        var renewed = false;
         try
         {
             await leaseClient.RenewAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-        catch (RequestFailedException ex)
-        {
-            LogLeaseRenewFailed(_logger, ex, fileId);
-            return false;
-        }
-
-        var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal);
-        mutateMetadata(updated);
-        try
-        {
+            renewed = true;
+            var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal);
+            mutateMetadata(updated);
             await blobClient.SetMetadataAsync(updated,
-                conditions: new BlobRequestConditions { LeaseId = leaseId, IfMatch = etag },
+                conditions: new BlobRequestConditions { LeaseId = leaseId, IfMatch = props.ETag },
                 cancellationToken: cancellationToken).ConfigureAwait(false);
-            return true;
+            result = true;
         }
         catch (RequestFailedException ex)
         {
-            // 412 = ETag changed (concurrent mutation). 409 = lease conflict. Other = network /
-            // auth / etc. The previous code split 412/409 from "other" into two `catch` arms but
-            // both did the same thing (log + return false); the `when` filter was structurally
-            // redundant. Collapse to a single arm.
-            LogLockMetadataUpdateFailed(_logger, ex, fileId);
-            return false;
+            if (renewed)
+            {
+                LogLockMetadataUpdateFailed(_logger, ex, fileId);
+            }
+            else
+            {
+                LogLeaseRenewFailed(_logger, ex, fileId);
+            }
+            result = false;
         }
+        return result;
     }
 
     /// <inheritdoc />
