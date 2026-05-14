@@ -47,6 +47,7 @@ namespace WopiHost.E2ETests.Collabora;
 /// </para>
 /// </remarks>
 [Collection(CollaboraFixtureCollection.Name)]
+[Trait("Category", "E2E")]
 public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFixture playwright) : IAsyncLifetime
 {
     private const string SampleDocxName = "test.docx";
