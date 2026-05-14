@@ -448,16 +448,19 @@ public class ContainersControllerTests
     }
 
     [Fact]
-    public async Task RenameContainer_ReturnsInternalServerError_WhenUnexpectedErrorOccurs()
+    public async Task RenameContainer_UnexpectedException_BubblesToFramework()
     {
+        // #380 item 5.6: the controller no longer catches generic Exception and converts it to
+        // InternalServerErrorResult itself. Unexpected exceptions bubble up to the ASP.NET Core
+        // exception middleware, which is the right path for 500 ProblemDetails + framework
+        // logging + telemetry. Wire behavior the WOPI client sees is identical (500 either way).
         _storageProviderMock.Setup(sp => sp.GetWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new Mock<IWopiFolder>().Object);
         _writableStorageProviderMock.Setup(wsp => wsp.CheckValidName<IWopiFolder>(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _writableStorageProviderMock.Setup(wsp => wsp.RenameWopiResource<IWopiFolder>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception());
+            .ThrowsAsync(new InvalidProgramException("simulated unexpected"));
 
-        var result = await _controller.RenameContainer("containerId", UtfString.FromDecoded("newName"));
-
-        Assert.IsType<InternalServerErrorResult>(result);
+        await Assert.ThrowsAsync<InvalidProgramException>(
+            () => _controller.RenameContainer("containerId", UtfString.FromDecoded("newName")));
     }
 
     [Fact]

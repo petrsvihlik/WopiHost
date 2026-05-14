@@ -495,9 +495,6 @@ public class FilesControllerTests
             .ReturnsAsync(fileMock.Object);
         _lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         _writableStorageProviderMock
-            .Setup(w => w.CheckValidName<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-        _writableStorageProviderMock
             .Setup(w => w.DeleteWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
@@ -516,9 +513,6 @@ public class FilesControllerTests
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
         _lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
-        _writableStorageProviderMock
-            .Setup(w => w.CheckValidName<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
         _writableStorageProviderMock
             .Setup(w => w.DeleteWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -694,8 +688,13 @@ public class FilesControllerTests
     }
 
     [Fact]
-    public async Task RenameFile_UnexpectedException_ReturnsInternalServerError()
+    public async Task RenameFile_UnexpectedException_BubblesToFramework()
     {
+        // #380 item 5.6: the controller no longer catches generic Exception. Unexpected
+        // exceptions bubble to the ASP.NET Core exception middleware (500 ProblemDetails +
+        // framework logging + telemetry). Same wire-level 500 the WOPI spec mandates;
+        // strictly better operationally because the stack trace and OpenTelemetry context
+        // aren't swallowed.
         var fileId = "testFileId";
         var fileMock = CreateFileMock(fileId);
         _storageProviderMock
@@ -707,11 +706,10 @@ public class FilesControllerTests
             .ReturnsAsync(true);
         _writableStorageProviderMock
             .Setup(w => w.GetSuggestedName<IWopiFile>(fileId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception("unexpected"));
+            .ThrowsAsync(new InvalidProgramException("simulated unexpected"));
 
-        var result = await _controller.RenameFile(fileId, UtfString.FromDecoded("newName"));
-
-        Assert.IsType<InternalServerErrorResult>(result);
+        await Assert.ThrowsAsync<InvalidProgramException>(
+            () => _controller.RenameFile(fileId, UtfString.FromDecoded("newName")));
     }
 
     #endregion
