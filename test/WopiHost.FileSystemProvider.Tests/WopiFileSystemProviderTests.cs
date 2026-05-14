@@ -687,5 +687,4 @@ public class WopiFileSystemProviderTests : IDisposable
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _sut.RenameWopiContainer(folderId, "sub"));
     }
-
 }

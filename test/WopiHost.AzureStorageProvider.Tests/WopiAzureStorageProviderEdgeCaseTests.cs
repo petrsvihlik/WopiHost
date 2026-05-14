@@ -361,5 +361,4 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
         Assert.NotNull(root);
         Assert.Equal(string.Empty, root.Name);
     }
-
 }
