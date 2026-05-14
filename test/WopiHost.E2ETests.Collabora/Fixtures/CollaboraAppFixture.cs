@@ -113,17 +113,24 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
         await notifications.WaitForResourceAsync("wopihost", KnownResourceStates.Running, cts.Token).ConfigureAwait(false);
         await notifications.WaitForResourceAsync("wopihost-web", KnownResourceStates.Running, cts.Token).ConfigureAwait(false);
 
-        // Belt-and-braces probe: poll Collabora's /hosting/discovery directly until it serves
-        // a 200, or fail the fixture with a diagnostic message that beats waiting through the
-        // downstream Playwright timeout. Pinned to localhost:9980 — the AppHost binds the
-        // Collabora endpoint there.
+        // Belt-and-braces probe: poll Collabora's /hosting/discovery until it serves a 200,
+        // or fail the fixture with a diagnostic message that beats waiting through the
+        // downstream Playwright timeout.
+        //
+        // Use the Aspire-discovered endpoint, NOT the hardcoded localhost:9980 the AppHost
+        // requests. Under DistributedApplicationTestingBuilder, DCP can remap the host port
+        // even when the AppHost asks for a specific one — `app.GetEndpoint("collabora")` is
+        // the only source of truth that survives that remap.
+        var collaboraEndpoint = _app.GetEndpoint("collabora");
+        var discoveryUrl = new Uri(collaboraEndpoint, "/hosting/discovery");
+
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
         var collaboraDeadline = DateTime.UtcNow + TimeSpan.FromMinutes(2);
         while (DateTime.UtcNow < collaboraDeadline)
         {
             try
             {
-                using var response = await http.GetAsync("http://localhost:9980/hosting/discovery", cts.Token).ConfigureAwait(false);
+                using var response = await http.GetAsync(discoveryUrl, cts.Token).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
                     break;
@@ -143,13 +150,42 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
         if (DateTime.UtcNow >= collaboraDeadline)
         {
             throw new InvalidOperationException(
-                "Collabora's /hosting/discovery did not respond 200 within 2 minutes. The container is in the resource graph " +
-                "and Aspire reported it as Running, but the HTTP endpoint never accepted traffic. Most likely causes: " +
-                "Docker Desktop is not in Linux-container mode; port 9980 is already bound on the host; or the Collabora image " +
-                "failed to start (check `docker ps -a` for an exited collabora-* container).");
+                $"Collabora's /hosting/discovery did not respond 200 within 2 minutes.\n" +
+                $"Aspire-discovered endpoint: {collaboraEndpoint}\n" +
+                $"Probed URL:                 {discoveryUrl}\n" +
+                $"Containers visible to docker:\n{await CaptureDockerPsAsync().ConfigureAwait(false)}\n" +
+                "If `docker ps -a` shows no collabora-* row, DCP isn't actually starting containers " +
+                "in this test-mode run. If it shows a row with status 'Exited', inspect its logs.");
         }
 
         WebFrontendUrl = new Uri(_app.GetEndpoint("wopihost-web", "https").ToString());
+    }
+
+    private static async Task<string> CaptureDockerPsAsync()
+    {
+        try
+        {
+            using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "docker",
+                Arguments = "ps -a --format {{.Names}}\\t{{.Image}}\\t{{.Status}}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+            if (process is null)
+            {
+                return "<docker process failed to start>";
+            }
+            var stdout = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+            await process.WaitForExitAsync().ConfigureAwait(false);
+            return stdout.Trim().Length == 0 ? "<no containers>" : stdout;
+        }
+        catch (Exception ex)
+        {
+            return $"<docker ps failed: {ex.GetType().Name}: {ex.Message}>";
+        }
     }
 
     public async ValueTask DisposeAsync()
