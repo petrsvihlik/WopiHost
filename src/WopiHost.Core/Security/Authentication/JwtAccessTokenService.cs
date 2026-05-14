@@ -24,7 +24,20 @@ public partial class JwtAccessTokenService(
     // MapInboundClaims maps short JWT names back to long ClaimTypes.* on validation, so
     // downstream code (e.g. ClaimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)) keeps working.
     private readonly JwtSecurityTokenHandler _handler = new() { MapInboundClaims = true };
-    private SymmetricSecurityKey? _ephemeralDevKey;
+
+    // Lazy<T> default is LazyThreadSafetyMode.ExecutionAndPublication: exactly one factory
+    // invocation across all threads, the rest block on the result. Pre-#409-item-2.4 the
+    // null-check + assignment in GetSigningKey raced on first request, so concurrent first
+    // callers each minted a *different* random key and tokens signed during the race window
+    // would fail validation under whichever key lost the publish (the log line also fired
+    // multiple times). Field-initializer form keeps the factory cold until first read so the
+    // production path (SecurityKey / SigningKey configured) never pays the entropy cost.
+    private readonly Lazy<SymmetricSecurityKey> _ephemeralDevKey = new(() =>
+    {
+        var keyBytes = RandomNumberGenerator.GetBytes(64);
+        LogEphemeralSigningKey(logger);
+        return new SymmetricSecurityKey(keyBytes);
+    });
 
     /// <inheritdoc/>
     public Task<WopiAccessToken> IssueAsync(WopiAccessTokenRequest request, CancellationToken cancellationToken = default)
@@ -151,15 +164,9 @@ public partial class JwtAccessTokenService(
         {
             return new SymmetricSecurityKey(opts.SigningKey);
         }
-        // No key configured: generate a per-process random key. Loud warning so this is
-        // never silently used in production.
-        if (_ephemeralDevKey is null)
-        {
-            var keyBytes = RandomNumberGenerator.GetBytes(64);
-            _ephemeralDevKey = new SymmetricSecurityKey(keyBytes);
-            LogEphemeralSigningKey(logger);
-        }
-        return _ephemeralDevKey;
+        // No key configured: hand out the lazily-materialized per-process random key. The Lazy
+        // value-factory logs the loud-development-only warning the first time it runs.
+        return _ephemeralDevKey.Value;
     }
 
     /// <summary>
