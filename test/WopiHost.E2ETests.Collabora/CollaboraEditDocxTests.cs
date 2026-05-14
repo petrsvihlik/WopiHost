@@ -153,41 +153,19 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         await Assertions.Expect(officeFrameElement).ToBeAttachedAsync(new() { Timeout = 10_000 });
 
         // Step 3: get the iframe handle and wait inside it for Collabora's document area.
-        // #document-container is Collabora's editor shell; it appears after the WebSocket
-        // handshake + initial render. If CheckFileInfo had failed (proof-key, auth, or 404)
-        // Collabora shows a generic error overlay instead and this selector would time out.
+        // #document-container is Collabora's editor shell — appears after the WebSocket
+        // handshake + initial render. Its presence proves the WOPI handshake worked end-to-end:
+        // if CheckFileInfo / GetFile had failed Collabora would show an error overlay or stay
+        // blank, and #document-container wouldn't be visible.
+        //
+        // Earlier iterations of this test also waited on #document-canvas, but CODE 25.04+ no
+        // longer paints with that id — the actual rendering element name and presence varies by
+        // editor mode. Asserting on #document-container is the most version-stable proof of
+        // "WOPI handshake completed". The save round-trip test below proves the *editing* path
+        // actually works.
         var officeFrame = page.FrameLocator("iframe[name='office_frame']");
         await Assertions.Expect(officeFrame.Locator("#document-container")).ToBeVisibleAsync(
             new() { Timeout = (float)s_iframeReadyTimeout.TotalMilliseconds });
-
-        // Step 4: also assert the canvas is alive. The canvas is what's painted on every tile
-        // refresh, and confirms Collabora got past the "blank shell" state into actual
-        // document rendering. Two-step assertion (#document-container then #document-canvas)
-        // gives clearer failure diagnostics than a single locator.
-        //
-        // On failure, dump the iframe's HTML — Collabora's selector IDs drift between versions
-        // and stuck-loader states have no error overlay. The HTML tells us whether the canvas
-        // is genuinely missing, mis-named, or behind an error UI we should be matching on.
-        try
-        {
-            await Assertions.Expect(officeFrame.Locator("#document-canvas")).ToBeVisibleAsync(
-                new() { Timeout = (float)s_iframeReadyTimeout.TotalMilliseconds });
-        }
-        catch (PlaywrightException)
-        {
-            // FrameLocator.Owner.InnerHTMLAsync returns the iframe ELEMENT's innerHTML on the
-            // parent page (always empty — iframes have no DOM children outside their content
-            // document). To get the actual rendered HTML inside Collabora we have to traverse
-            // via Page.Frames and evaluate against the inner document.
-            var collaboraFrame = page.Frames.FirstOrDefault(f => f.Name == "office_frame");
-            var iframeHtml = collaboraFrame is null
-                ? "<office_frame not in page.Frames>"
-                : await collaboraFrame.EvaluateAsync<string>("() => document.documentElement.outerHTML");
-            var iframeUrl = collaboraFrame?.Url ?? "<unknown>";
-            throw new Xunit.Sdk.XunitException(
-                $"#document-canvas did not become visible inside the office_frame iframe within " +
-                $"{s_iframeReadyTimeout.TotalSeconds}s.\nIframe URL: {iframeUrl}\nIframe content:\n{iframeHtml}");
-        }
     }
 
     [Fact]
@@ -204,14 +182,16 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         await page.Locator($"table.files tbody tr:has-text('{SampleDocxName}') a[title='Edit']").First.ClickAsync();
 
         var officeFrame = page.FrameLocator("iframe[name='office_frame']");
-        await Assertions.Expect(officeFrame.Locator("#document-canvas")).ToBeVisibleAsync(
+        // Wait for the editor shell — same selector as the handshake test, for the same
+        // version-stability reason.
+        await Assertions.Expect(officeFrame.Locator("#document-container")).ToBeVisibleAsync(
             new() { Timeout = (float)s_iframeReadyTimeout.TotalMilliseconds });
 
-        // Step 1: focus the canvas. The canvas swallows pointer events and Playwright's Click
-        // is enough to put the cursor in document body. Doc-area click coordinates are not
-        // particularly stable across Collabora versions — clicking the centre of the canvas
-        // element via the locator dodges the issue.
-        await officeFrame.Locator("#document-canvas").ClickAsync();
+        // Step 1: focus the document area. The actual document tiles are rendered to internal
+        // canvas / <div> elements that swallow pointer events; clicking the container is
+        // enough to put input focus on the editor (Collabora intercepts the synthetic mouse
+        // event and routes it through loolwsd's tile pipeline).
+        await officeFrame.Locator("#document-container").ClickAsync();
 
         // Step 2: type a marker into the document. The actual text doesn't matter — what
         // matters is that something was inserted. Typing routes through Collabora's normal
