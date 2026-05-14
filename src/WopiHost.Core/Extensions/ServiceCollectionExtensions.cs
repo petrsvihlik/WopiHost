@@ -53,6 +53,16 @@ public static class ServiceCollectionExtensions
         // IWopiLockComparer (JsonShapedWopiLockComparer ships as one option).
         services.TryAddSingleton<IWopiLockComparer, OrdinalWopiLockComparer>();
 
+        // Host-customization seam. Pass-through default; hosts register a subclass of
+        // WopiHostExtensions to plug in audit, telemetry, response mutations, etc.
+        services.TryAddSingleton<IWopiHostExtensions, WopiHostExtensions>();
+
+        // CheckXxxInfo response builders. Scoped to match controller lifetime — the writable
+        // storage provider may be scoped, and the builders capture it.
+        services.TryAddScoped<ICheckFileInfoBuilder, DefaultCheckFileInfoBuilder>();
+        services.TryAddScoped<ICheckContainerInfoBuilder, DefaultCheckContainerInfoBuilder>();
+        services.TryAddScoped<ICheckFolderInfoBuilder, DefaultCheckFolderInfoBuilder>();
+
         services.AddOptions<WopiHostOptions>()
             .Configure(o =>
             {

@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
-using Microsoft.Extensions.Options;
 using Moq;
 using WopiHost.Abstractions;
 using WopiHost.Core.Controllers;
+using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
 
@@ -18,16 +18,33 @@ public class FoldersControllerTests
     private static readonly string[] s_oneFilter = [".one"];
 
     private readonly Mock<IWopiStorageProvider> _storageProviderMock;
-    private readonly FoldersController _controller;
+    private readonly Mock<IUrlHelper> _urlMock;
+    private CapturingExtensions _extensions = new();
+    private FoldersController _controller;
+
+    /// <summary>
+    /// Capturing <see cref="IWopiHostExtensions"/> used by tests to observe the
+    /// <c>OnCheckFolderInfoAsync</c> hook. Replaces the per-callback delegate that previously
+    /// lived on <see cref="WopiHostOptions"/>.
+    /// </summary>
+    private sealed class CapturingExtensions : WopiHostExtensions
+    {
+        public Func<WopiCheckFolderInfoContext, CancellationToken, Task<WopiCheckFolderInfo>>? CheckFolderInfoHandler { get; set; }
+
+        public override Task<WopiCheckFolderInfo> OnCheckFolderInfoAsync(WopiCheckFolderInfoContext context, CancellationToken cancellationToken = default)
+            => CheckFolderInfoHandler is null
+                ? base.OnCheckFolderInfoAsync(context, cancellationToken)
+                : CheckFolderInfoHandler(context, cancellationToken);
+    }
 
     public FoldersControllerTests()
     {
         _storageProviderMock = new Mock<IWopiStorageProvider>();
-        var url = new Mock<IUrlHelper>();
-        url
+        _urlMock = new Mock<IUrlHelper>();
+        _urlMock
             .Setup(_ => _.RouteUrl(It.IsAny<UrlRouteContext>()))
             .Returns("https://localhost");
-        url
+        _urlMock
             .Setup(_ => _.ActionContext)
             .Returns(new ActionContext
             {
@@ -36,9 +53,21 @@ public class FoldersControllerTests
                     ServiceScopeFactory = TestUtils.CreateServiceScope(new Mock<IAuthenticationService>().Object),
                 }
             });
-        _controller = new FoldersController(_storageProviderMock.Object)
+        _controller = BuildController();
+    }
+
+    private FoldersController BuildController(CapturingExtensions? extensions = null)
+    {
+        if (extensions is not null)
         {
-            Url = url.Object,
+            _extensions = extensions;
+        }
+        return new FoldersController(
+            _storageProviderMock.Object,
+            new DefaultCheckFolderInfoBuilder(),
+            _extensions)
+        {
+            Url = _urlMock.Object,
             ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext()
@@ -96,11 +125,9 @@ public class FoldersControllerTests
         var fileSharingUrl = new Uri("https://host/share");
         var brandUrl = new Uri("https://brand.example.com");
         var folderUrl = new Uri("https://host/parent");
-        var wopiHostOptions = Options.Create(new WopiHostOptions
+        _controller = BuildController(new CapturingExtensions
         {
-            StorageProviderAssemblyName = "test",
-            ClientUrl = new Uri("http://localhost:5000"),
-            OnCheckFolderInfo = context =>
+            CheckFolderInfoHandler = (context, _) =>
             {
                 eventFired = true;
                 Assert.Equal("MyFolder", context.CheckFolderInfo.FolderName);
@@ -118,16 +145,8 @@ public class FoldersControllerTests
                 context.CheckFolderInfo.DisablePrint = true;
                 context.CheckFolderInfo.CloseButtonClosesWindow = true;
                 return Task.FromResult(context.CheckFolderInfo);
-            }
+            },
         });
-
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext
-            {
-                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(wopiHostOptions),
-            }
-        };
 
         var result = await _controller.CheckFolderInfo("folder");
 

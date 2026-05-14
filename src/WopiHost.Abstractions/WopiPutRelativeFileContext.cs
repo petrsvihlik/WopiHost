@@ -1,7 +1,6 @@
 using System.Security.Claims;
-using WopiHost.Abstractions;
 
-namespace WopiHost.Core.Models;
+namespace WopiHost.Abstractions;
 
 /// <summary>
 /// Context for the <c>PutRelativeFile</c> operation, raised after the host has successfully
@@ -19,7 +18,7 @@ namespace WopiHost.Core.Models;
 /// Hosts that want to handle binary document conversions specially (suppress notifications,
 /// bypass quota, mark the resulting file as derived) read <see cref="IsFileConversion"/> from
 /// this callback. Hosts that need an early size-budget check pre-write should instead enforce
-/// <see cref="WopiHostOptions"/>-level limits on the actual stream length.
+/// host-options-level limits on the actual stream length.
 /// </para>
 /// <para>
 /// The callback runs after the write has completed but before the controller emits the response.

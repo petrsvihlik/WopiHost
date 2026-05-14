@@ -42,7 +42,8 @@ namespace WopiHost.Core.Controllers;
 public class WopiBootstrapperController(
     IWopiStorageProvider storageProvider,
     IWopiAccessTokenService accessTokenService,
-    IWopiPermissionProvider permissionProvider) : ControllerBase
+    IWopiPermissionProvider permissionProvider,
+    ICheckContainerInfoBuilder checkContainerInfoBuilder) : ControllerBase
 {
     /// <summary>
     /// Bootstrap operation. Returns the bare <see cref="BootstrapInfo"/> needed for the WOPI
@@ -100,7 +101,7 @@ public class WopiBootstrapperController(
                 ContainerPointer = new ChildContainer(
                     rootContainer.Name,
                     Url.GetWopiSrc(WopiResourceType.Container, rootContainer.Identifier, token.Token)),
-                ContainerInfo = await rootContainer.GetWopiCheckContainerInfo(HttpContext, cancellationToken).ConfigureAwait(false),
+                ContainerInfo = await checkContainerInfoBuilder.BuildAsync(rootContainer, HttpContext, cancellationToken).ConfigureAwait(false),
             },
         });
     }

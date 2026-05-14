@@ -43,11 +43,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IWopiWritableStorageProvider, WopiFileSystemProvider>();
         // Add lock provider
         services.AddSingleton<IWopiLockProvider, MemoryLockProvider.MemoryLockProvider>();
-        // Add WOPI
-        services.AddWopi(o =>
-        {
-            o.OnCheckFileInfo = WopiEvents.OnGetWopiCheckFileInfo;
-        });
+        // Add WOPI; the validator plugs in its own IWopiHostExtensions to populate the
+        // optional CheckFileInfo URLs the Microsoft validator probes for.
+        services.AddSingleton<IWopiHostExtensions, WopiValidatorExtensions>();
+        services.AddWopi();
         // Validator runs against a known fixed signing key so tests are reproducible across restarts.
         services.ConfigureWopiSecurity(o =>
         {

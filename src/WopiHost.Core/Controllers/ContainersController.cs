@@ -20,6 +20,10 @@ namespace WopiHost.Core.Controllers;
 /// Creates an instance of <see cref="ContainersController"/>.
 /// </remarks>
 /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
+/// <param name="checkContainerInfoBuilder">Builds the <see cref="WopiCheckContainerInfo"/> response
+/// and fires the configured <see cref="IWopiHostExtensions.OnCheckContainerInfoAsync"/> hook.</param>
+/// <param name="checkFileInfoBuilder">Builds <see cref="WopiCheckFileInfo"/> responses for newly
+/// created child files in <see cref="CreateChildFile"/>.</param>
 /// <param name="lockProvider">An instance of the lock provider.</param>
 /// <param name="writableStorageProvider">Storage provider instance for writing files and folders.</param>
 [Authorize]
@@ -29,6 +33,8 @@ namespace WopiHost.Core.Controllers;
 [ServiceFilter(typeof(WopiTelemetryActionFilter))]
 public class ContainersController(
     IWopiStorageProvider storageProvider,
+    ICheckContainerInfoBuilder checkContainerInfoBuilder,
+    ICheckFileInfoBuilder checkFileInfoBuilder,
     IWopiLockProvider? lockProvider = null,
     IWopiWritableStorageProvider? writableStorageProvider = null)
     : ControllerBase
@@ -51,7 +57,7 @@ public class ContainersController(
         {
             return NotFound();
         }
-        var checkContainerInfo = await container.GetWopiCheckContainerInfo(HttpContext, cancellationToken).ConfigureAwait(false);
+        var checkContainerInfo = await checkContainerInfoBuilder.BuildAsync(container, HttpContext, cancellationToken).ConfigureAwait(false);
         return new JsonResult<WopiCheckContainerInfo>(checkContainerInfo);
     }
 
@@ -127,7 +133,7 @@ public class ContainersController(
 
         if (newFolder is not null)
         {
-            var checkContainerInfo = await newFolder.GetWopiCheckContainerInfo(HttpContext, cancellationToken).ConfigureAwait(false);
+            var checkContainerInfo = await checkContainerInfoBuilder.BuildAsync(newFolder, HttpContext, cancellationToken).ConfigureAwait(false);
             return new JsonResult(
                 new CreateChildContainerResponse(
                     new(newFolder.Name, Url.GetWopiSrc(WopiResourceType.Container, newFolder.Identifier)),
@@ -251,7 +257,7 @@ public class ContainersController(
 
         if (newFile is not null)
         {
-            var checkFileInfo = await newFile.GetWopiCheckFileInfo(HttpContext, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var checkFileInfo = await checkFileInfoBuilder.BuildAsync(newFile, HttpContext, cancellationToken: cancellationToken).ConfigureAwait(false);
             return new JsonResult(
                 new ChildFile(
                     newFile.Name + '.' + newFile.Extension,

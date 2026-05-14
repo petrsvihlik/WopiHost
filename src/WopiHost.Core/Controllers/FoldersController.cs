@@ -2,8 +2,6 @@ using System.Globalization;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
@@ -25,12 +23,17 @@ namespace WopiHost.Core.Controllers;
 /// Creates an instance of <see cref="FoldersController"/>.
 /// </remarks>
 /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
+/// <param name="checkFolderInfoBuilder">Builds the default <see cref="WopiCheckFolderInfo"/> response.</param>
+/// <param name="extensions">Host-customization seam for <see cref="IWopiHostExtensions.OnCheckFolderInfoAsync"/>.</param>
 [Authorize]
 [ApiController]
 [Route("wopi/[controller]")]
 [ServiceFilter(typeof(WopiOriginValidationActionFilter))]
 [ServiceFilter(typeof(WopiTelemetryActionFilter))]
-public class FoldersController(IWopiStorageProvider storageProvider) : ControllerBase
+public class FoldersController(
+    IWopiStorageProvider storageProvider,
+    ICheckFolderInfoBuilder checkFolderInfoBuilder,
+    IWopiHostExtensions extensions) : ControllerBase
 {
     /// <summary>
     /// Returns the metadata about a folder specified by an identifier.
@@ -51,16 +54,13 @@ public class FoldersController(IWopiStorageProvider storageProvider) : Controlle
             return NotFound();
         }
 
-        // Build the default response synchronously, then fire the host-supplied callback
-        // (when configured) here — keeps the only `await` on a direct interface/delegate call,
-        // avoiding the Infer# false positive tracked by #363.
-        var checkFolderInfo = folder.BuildCheckFolderInfo(HttpContext);
-        var options = HttpContext.RequestServices.GetService<IOptions<WopiHostOptions>>();
-        if (options is not null)
-        {
-            checkFolderInfo = await options.Value.OnCheckFolderInfo(
-                new WopiCheckFolderInfoContext(HttpContext.User, folder, checkFolderInfo)).ConfigureAwait(false);
-        }
+        // Build the default response synchronously, then fire the host-customization hook here —
+        // keeps the only `await` on a direct interface call, avoiding the Infer# false positive
+        // tracked by #363.
+        var checkFolderInfo = checkFolderInfoBuilder.Build(folder, HttpContext);
+        checkFolderInfo = await extensions.OnCheckFolderInfoAsync(
+            new WopiCheckFolderInfoContext(HttpContext.User, folder, checkFolderInfo),
+            cancellationToken).ConfigureAwait(false);
         return new JsonResult<WopiCheckFolderInfo>(checkFolderInfo);
     }
 
