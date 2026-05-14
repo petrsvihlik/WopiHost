@@ -1,0 +1,72 @@
+name: E2E (Collabora)
+
+# End-to-end check against the full distributed app with a real Collabora container in the
+# loop. Spins up the AppHost via Aspire.Hosting.Testing, drives the Web frontend with
+# Playwright + Chromium, opens a .docx in Collabora and validates the WOPI handshake + save
+# round-trip. Tracking: https://github.com/petrsvihlik/WopiHost/issues/357 Approach B.
+#
+# NOT a per-PR gate. The Collabora flow is by design flakier than the unit / smoke suites
+# (canvas-based editor, WebSocket handshake, container cold-start), and gating PRs on it
+# would cause more friction than it'd catch. Runs nightly to catch upstream regressions
+# (Collabora image drift, CODE UI changes) and workflow_dispatch for ad-hoc verification.
+#
+# Linux-only because Collabora ships Linux containers and ubuntu-latest is the only
+# GitHub-hosted runner that runs them without nested-virtualisation gymnastics.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 03:17 UTC nightly. Off-the-hour so we're not competing with every other "0 3 * * *"
+    # cron in the world for shared GitHub Actions capacity.
+    - cron: '17 3 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Collabora end-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 30 # Generous: Collabora image pull on a clean cache + Playwright install.
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET 10.0
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Set Cobalt packages token
+        run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Restore
+        run: dotnet restore test/WopiHost.E2ETests.Collabora/WopiHost.E2ETests.Collabora.csproj
+
+      - name: Build
+        run: dotnet build test/WopiHost.E2ETests.Collabora/WopiHost.E2ETests.Collabora.csproj --no-restore /p:ContinuousIntegrationBuild=true
+
+      - name: Install Playwright browsers
+        # --with-deps installs the apt packages Chromium needs on a fresh ubuntu-latest. The
+        # build emits playwright.ps1 next to the test assembly under artifacts/bin/ (the repo
+        # uses UseArtifactsOutput); the path mirrors test/WopiHost.SmokeTests's CI step.
+        run: pwsh artifacts/bin/WopiHost.E2ETests.Collabora/debug/playwright.ps1 install --with-deps chromium
+
+      - name: Pre-pull Collabora image
+        # Pre-pulling outside the test makes the test's WaitForResourceHealthyAsync timeout
+        # bound the runtime cost rather than the image-pull cost. CODE's tag floats, so pin
+        # the same image string the AppHost uses (collabora/code) — Aspire defaults to :latest
+        # when no tag is supplied.
+        run: docker pull collabora/code:latest
+
+      - name: Run e2e
+        run: dotnet test test/WopiHost.E2ETests.Collabora/WopiHost.E2ETests.Collabora.csproj --no-build --verbosity normal --logger "console;verbosity=detailed"
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: |
+            artifacts/bin/WopiHost.E2ETests.Collabora/**/test-results/**
+            artifacts/bin/WopiHost.E2ETests.Collabora/**/playwright-report/**
+          if-no-files-found: ignore
