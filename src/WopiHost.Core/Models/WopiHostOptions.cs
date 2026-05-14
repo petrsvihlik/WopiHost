@@ -70,6 +70,27 @@ public class WopiHostOptions : IDiscoveryOptions
     public long? MaxFileSize { get; set; }
 
     /// <summary>
+    /// TTL applied to per-user UserInfo cache entries (stored by <c>PutUserInfo</c> and read
+    /// back by <c>CheckFileInfo</c>). Defaults to 24 hours.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Resolves #425 item 2.7: pre-fix the entries were stored with
+    /// <see cref="Microsoft.Extensions.Caching.Memory.CacheItemPriority.NeverRemove"/> and no
+    /// expiry, pinning per-user data indefinitely — unbounded memory in any host that sees
+    /// many distinct users. With an absolute expiry, total memory is bounded by
+    /// <c>UserInfoCacheLifetime × distinct-active-users</c>.
+    /// </para>
+    /// <para>
+    /// Tighten for memory-constrained hosts with many users; extend for hosts with stable
+    /// user populations where users would prefer their <c>UserInfo</c> to survive longer
+    /// idle gaps. 24 hours is a balance: long enough that mid-session re-entry isn't a
+    /// concern, short enough that an idle user's row eventually falls off.
+    /// </para>
+    /// </remarks>
+    public TimeSpan UserInfoCacheLifetime { get; set; } = TimeSpan.FromHours(24);
+
+    /// <summary>
     /// Base URI of the WOPI Client server (Office Online Server / Office Web Apps).
     /// </summary>
     [Required]
