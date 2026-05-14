@@ -14,7 +14,6 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" />
-		<PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -30,15 +29,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.Url\WopiHost.Url.csproj" />
-		<ProjectReference Include="..\..\src\WopiHost.Discovery\WopiHost.Discovery.csproj" />
 		<ProjectReference Include="..\..\infra\WopiHost.ServiceDefaults\WopiHost.ServiceDefaults.csproj" />
 	</ItemGroup>
-
-	<Target Name="PrepublishScript" BeforeTargets="PrepareForPublish">
-		<Exec Command="npm install" />
-		<Exec Command="bower install" />
-		<Exec Command="gulp clean" />
-		<Exec Command="gulp min" />
-	</Target>
 
 </Project>

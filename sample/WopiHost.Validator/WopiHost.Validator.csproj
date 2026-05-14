@@ -8,9 +8,7 @@
 
   <ItemGroup>
 	<PackageReference Include="Serilog.AspNetCore" />
-    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
     <ProjectReference Include="..\..\src\WopiHost.Core\WopiHost.Core.csproj" />
-    <ProjectReference Include="..\..\src\WopiHost.Discovery\WopiHost.Discovery.csproj" />
     <ProjectReference Include="..\..\src\WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj" />
     <ProjectReference Include="..\..\src\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj" />
     <ProjectReference Include="..\..\src\WopiHost.Url\WopiHost.Url.csproj" />
