@@ -7,7 +7,6 @@
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Testcontainers.Azurite" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
 	</ItemGroup>
 	<ItemGroup>
 	  <PackageReference Update="coverlet.collector">
