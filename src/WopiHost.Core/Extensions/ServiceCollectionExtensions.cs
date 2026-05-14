@@ -63,6 +63,11 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<ICheckContainerInfoBuilder, DefaultCheckContainerInfoBuilder>();
         services.TryAddScoped<ICheckFolderInfoBuilder, DefaultCheckFolderInfoBuilder>();
 
+        // Suggested-target / relative-target name-negotiation for PutRelativeFile and
+        // CreateChildFile — the spec defines the protocol identically for both, so it lives
+        // in one place.
+        services.TryAddScoped<IWopiNewChildFileNegotiator, DefaultWopiNewChildFileNegotiator>();
+
         services.AddOptions<WopiHostOptions>()
             .Configure(o =>
             {

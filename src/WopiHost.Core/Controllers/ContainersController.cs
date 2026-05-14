@@ -24,7 +24,11 @@ namespace WopiHost.Core.Controllers;
 /// and fires the configured <see cref="IWopiHostExtensions.OnCheckContainerInfoAsync"/> hook.</param>
 /// <param name="checkFileInfoBuilder">Builds <see cref="WopiCheckFileInfo"/> responses for newly
 /// created child files in <see cref="CreateChildFile"/>.</param>
-/// <param name="lockProvider">An instance of the lock provider.</param>
+/// <param name="newChildFileNegotiator">Runs the WOPI suggested-target / relative-target /
+/// overwrite-relative-target name-negotiation protocol shared with <see cref="FilesController.PutRelativeFile"/>.
+/// The negotiator owns the lock probe on the overwrite path; the controller no longer takes
+/// <see cref="IWopiLockProvider"/> directly. Delete / Rename paths rely on
+/// <see cref="WopiLockAwareWritableStorageProvider"/> via the writable storage decorator.</param>
 /// <param name="writableStorageProvider">Storage provider instance for writing files and folders.</param>
 [Authorize]
 [ApiController]
@@ -35,7 +39,7 @@ public class ContainersController(
     IWopiStorageProvider storageProvider,
     ICheckContainerInfoBuilder checkContainerInfoBuilder,
     ICheckFileInfoBuilder checkFileInfoBuilder,
-    IWopiLockProvider? lockProvider = null,
+    IWopiNewChildFileNegotiator newChildFileNegotiator,
     IWopiWritableStorageProvider? writableStorageProvider = null)
     : ControllerBase
 {
@@ -181,27 +185,20 @@ public class ContainersController(
             return new NotImplementedResult();
         }
 
-        // Shared name-resolution + create dance with FilesController.PutRelativeFile (the WOPI
-        // spec defines the X-WOPI-SuggestedTarget / X-WOPI-RelativeTarget / X-WOPI-Overwrite-
-        // RelativeTarget semantics identically across both operations). CreateChildFile has no
-        // source file in scope, so its extension-only-suggested-target fallback uses a fresh GUID.
-        var resolution = await WopiChildFileResolver.ResolveAsync(
-            storageProvider,
-            writableStorageProvider,
-            lockProvider,
-            Response,
-            container.Identifier,
-            suggestedTarget,
-            relativeTarget,
-            overwriteRelativeTarget ?? false,
-            suggestedExtensionFallbackStem: Guid.NewGuid().ToString("N"),
-            cancellationToken).ConfigureAwait(false);
-        if (resolution.Error is not null)
+        // Suggested-target / relative-target negotiation — protocol shared with PutRelativeFile.
+        // CreateChildFile has no source file in scope, so its extension-only fallback uses a fresh GUID.
+        var negotiation = await newChildFileNegotiator.NegotiateAsync(new WopiNewChildFileRequest(
+            ContainerId: container.Identifier,
+            SuggestedTarget: suggestedTarget,
+            RelativeTarget: relativeTarget,
+            OverwriteRelativeTarget: overwriteRelativeTarget ?? false,
+            SuggestedExtensionFallbackStem: Guid.NewGuid().ToString("N")), cancellationToken).ConfigureAwait(false);
+        if (negotiation.ToErrorActionResult(Response) is { } error)
         {
-            return resolution.Error;
+            return error;
         }
 
-        var newFile = resolution.NewFile!;
+        var newFile = negotiation.File!;
         var checkFileInfo = await checkFileInfoBuilder.BuildAsync(newFile, HttpContext, cancellationToken: cancellationToken).ConfigureAwait(false);
         return new JsonResult(
             new ChildFile(

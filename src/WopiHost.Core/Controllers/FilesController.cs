@@ -28,6 +28,9 @@ namespace WopiHost.Core.Controllers;
 /// <param name="extensions">Host-customization seam invoked from PutFile / PutRelativeFile.</param>
 /// <param name="options">Host options — surface configuration like <see cref="WopiHostOptions.MaxFileSize"/>
 /// and <see cref="WopiHostOptions.EmptyLockHeaderValue"/>.</param>
+/// <param name="newChildFileNegotiator">Runs the WOPI suggested-target / relative-target /
+/// overwrite-relative-target name-negotiation protocol shared with
+/// <see cref="ContainersController.CreateChildFile"/>.</param>
 /// <param name="writableStorageProvider">Storage provider instance for writing files and folders.</param>
 /// <param name="lockProvider">An instance of the lock provider.</param>
 /// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
@@ -46,6 +49,7 @@ public class FilesController(
     ICheckFileInfoBuilder checkFileInfoBuilder,
     IWopiHostExtensions extensions,
     IOptions<WopiHostOptions> options,
+    IWopiNewChildFileNegotiator newChildFileNegotiator,
     IWopiWritableStorageProvider? writableStorageProvider = null,
     IWopiLockProvider? lockProvider = null,
     ICobaltProcessor? cobaltProcessor = null,
@@ -498,27 +502,20 @@ public class FilesController(
         var parentContainer = ancestors.LastOrDefault()
             ?? throw new ArgumentException("Cannot find parent container", nameof(id));
 
-        // Shared name-resolution + create dance with ContainersController.CreateChildFile (the
-        // WOPI spec defines the X-WOPI-SuggestedTarget / X-WOPI-RelativeTarget / X-WOPI-Overwrite-
-        // RelativeTarget semantics identically across both operations). PutRelativeFile keeps
-        // the original file's name as the stem for the extension-only suggested-target fallback.
-        var resolution = await WopiChildFileResolver.ResolveAsync(
-            storageProvider,
-            writableStorageProvider,
-            lockProvider,
-            Response,
-            parentContainer.Identifier,
-            suggestedTarget,
-            relativeTarget,
-            overwriteRelativeTarget ?? false,
-            suggestedExtensionFallbackStem: file.Name,
-            cancellationToken).ConfigureAwait(false);
-        if (resolution.Error is not null)
+        // Suggested-target / relative-target negotiation — protocol shared with CreateChildFile.
+        // PutRelativeFile keeps the original file's name as the stem for the extension-only fallback.
+        var negotiation = await newChildFileNegotiator.NegotiateAsync(new WopiNewChildFileRequest(
+            ContainerId: parentContainer.Identifier,
+            SuggestedTarget: suggestedTarget,
+            RelativeTarget: relativeTarget,
+            OverwriteRelativeTarget: overwriteRelativeTarget ?? false,
+            SuggestedExtensionFallbackStem: file.Name), cancellationToken).ConfigureAwait(false);
+        if (negotiation.ToErrorActionResult(Response) is { } error)
         {
-            return resolution.Error;
+            return error;
         }
 
-        var newFile = resolution.NewFile!;
+        var newFile = negotiation.File!;
         // copy new contents to storage
         await HttpContext.CopyToWriteStream(newFile, cancellationToken).ConfigureAwait(false);
         await InvokePutRelativeFileCallbackAsync(file, newFile, fileConversion, declaredSize, cancellationToken).ConfigureAwait(false);

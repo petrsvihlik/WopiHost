@@ -30,6 +30,7 @@ public class FilesControllerTests
     private readonly Mock<IWopiLockProvider> _lockProviderMock;
     private readonly Mock<IUrlHelper> _urlMock;
     private readonly DefaultCheckFileInfoBuilder _checkFileInfoBuilder;
+    private readonly DefaultWopiNewChildFileNegotiator _newChildFileNegotiator;
     private FilesController _controller;
 
     /// <summary>
@@ -100,12 +101,18 @@ public class FilesControllerTests
             _extensions,
             _writableStorageProviderMock.Object);
 
+        _newChildFileNegotiator = new DefaultWopiNewChildFileNegotiator(
+            _storageProviderMock.Object,
+            _writableStorageProviderMock.Object,
+            _lockProviderMock.Object);
+
         _controller = new FilesController(
             _storageProviderMock.Object,
             _memoryCache,
             _checkFileInfoBuilder,
             _extensions,
             _wopiHostOptionsMock.Object,
+            _newChildFileNegotiator,
             _writableStorageProviderMock.Object,
             _lockProviderMock.Object)
         {
@@ -144,6 +151,7 @@ public class FilesControllerTests
             builder,
             _extensions,
             options ?? _wopiHostOptionsMock.Object,
+            _newChildFileNegotiator,
             useNullWritableStorageProvider ? null : (writableStorageProvider ?? _writableStorageProviderMock.Object),
             useNullLockProvider ? null : (lockProvider ?? _lockProviderMock.Object))
         {

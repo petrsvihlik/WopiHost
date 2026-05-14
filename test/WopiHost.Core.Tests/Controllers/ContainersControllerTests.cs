@@ -57,11 +57,17 @@ public class ContainersControllerTests
         var extensions = new WopiHostExtensions();
         var checkContainerInfoBuilder = new DefaultCheckContainerInfoBuilder(_permissionProviderMock.Object, extensions);
         var checkFileInfoBuilder = new DefaultCheckFileInfoBuilder(_permissionProviderMock.Object, extensions, _writableStorageProviderMock.Object);
+        // Real negotiator wired with the same mocks so the CreateChildFile integration tests
+        // exercise the actual protocol logic rather than a mocked-out negotiator.
+        var newChildFileNegotiator = new DefaultWopiNewChildFileNegotiator(
+            _storageProviderMock.Object,
+            _writableStorageProviderMock.Object,
+            _lockProviderMock.Object);
         _controller = new ContainersController(
             _storageProviderMock.Object,
             checkContainerInfoBuilder,
             checkFileInfoBuilder,
-            _lockProviderMock.Object,
+            newChildFileNegotiator,
             _writableStorageProviderMock.Object)
         {
             Url = _urlMock.Object,
