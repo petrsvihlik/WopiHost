@@ -22,6 +22,12 @@
     <PackageVersion Include="Testcontainers" Version="4.11.0" />
     <PackageVersion Include="Testcontainers.Azurite" Version="4.11.0" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <!-- Runner-free packages used only by WopiHost.Abstractions.Testing — the shared conformance
+         library is a class library, not a test project, so it can't pull in the xunit.v3
+         metapackage (which would force OutputType=Exe via the MTP entry point). Keep these
+         aligned with xunit.v3 above. -->
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.2" />
+    <PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>

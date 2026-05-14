@@ -1,9 +1,0 @@
-# WopiHost.Abstractions.Testing exposes abstract xUnit test classes; the assembly is only ever
-# loaded inside a test runner (xunit v3 under Microsoft.Testing.Platform), which does not
-# install a SynchronizationContext. The src/.editorconfig CA2007 rule guards against accidental
-# SyncContext-aware library code reaching production hosts (WinForms / WPF / Blazor Server);
-# that risk does not apply here, and `.ConfigureAwait(false)` on every conformance-test await
-# would add noise without correctness benefit. Mirror the root .editorconfig's stance for this
-# project so the library reads like the test code it is.
-[*.cs]
-dotnet_diagnostic.CA2007.severity = none
