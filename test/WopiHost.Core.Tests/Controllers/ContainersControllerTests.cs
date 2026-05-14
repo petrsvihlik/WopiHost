@@ -490,6 +490,43 @@ public class ContainersControllerTests
     }
 
     [Fact]
+    public async Task RenameContainer_IllegalName_ReturnsBadRequestWithInvalidNameHeader()
+    {
+        // Providers signal an illegal name post-validation by throwing ArgumentException with
+        // ParamName=requestedName. The controller maps this to 400 + the WOPI-spec
+        // X-WOPI-InvalidContainerName response header (logging-only per the spec).
+        var controller = _controller;
+        _storageProviderMock.Setup(sp => sp.GetWopiContainer(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Mock<IWopiContainer>().Object);
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidContainerName(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _writableStorageProviderMock.Setup(wsp => wsp.RenameWopiContainer(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ArgumentException("illegal", paramName: "requestedName"));
+        var httpCtx = new DefaultHttpContext();
+        controller.ControllerContext = new ControllerContext { HttpContext = httpCtx };
+
+        var result = await controller.RenameContainer("containerId", UtfString.FromDecoded("bogus"));
+
+        Assert.IsType<BadRequestResult>(result);
+        Assert.Equal("Specified name is illegal", httpCtx.Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME].ToString());
+    }
+
+    [Fact]
+    public async Task RenameContainer_UnrelatedArgumentException_BubblesToFramework()
+    {
+        // The `when (ae.ParamName == nameof(requestedName))` filter must NOT swallow other
+        // ArgumentExceptions — they signal a different bug class and should bubble to the
+        // framework exception middleware. This guards against the filter losing its specificity.
+        _storageProviderMock.Setup(sp => sp.GetWopiContainer(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Mock<IWopiContainer>().Object);
+        _writableStorageProviderMock.Setup(wsp => wsp.CheckValidContainerName(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _writableStorageProviderMock.Setup(wsp => wsp.RenameWopiContainer(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ArgumentException("not the renamed-name param", paramName: "somethingElse"));
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => _controller.RenameContainer("containerId", UtfString.FromDecoded("newName")));
+    }
+
+    [Fact]
     public async Task GetEcosystem_ReturnsNotFound_WhenContainerDoesNotExist()
     {
         _storageProviderMock.Setup(sp => sp.GetWopiContainer(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => null);

@@ -729,4 +729,57 @@ public class WopiFileSystemProviderTests : IDisposable
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _sut.RenameWopiContainer(folderId, "sub"));
     }
+
+    [Fact]
+    public async Task RenameWopiContainer_InvalidName_Throws()
+    {
+        // Mirror of RenameWopiResource_InvalidName_Throws but for the container variant —
+        // the existing test only exercises the file path, so the container's invalid-name
+        // guard (ArgumentException) was previously uncovered.
+        Assert.True(_fileIds.TryGetFileId(_empty.FullName, out var folderId));
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _sut.RenameWopiContainer(folderId, "bad\0name"));
+    }
+
+    [Fact]
+    public async Task GetSuggestedContainerName_InvalidName_Throws()
+    {
+        // The file-name variant is tested via GetSuggestedName_InvalidName_Throws; the
+        // container path uses CheckValidContainerName instead and was missed.
+        Assert.True(_fileIds.TryGetFileId(_root.FullName, out var rootId));
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _sut.GetSuggestedContainerName(rootId, "bad\0name"));
+    }
+
+    [Fact]
+    public async Task GetWritableFile_UnknownId_ReturnsNull()
+    {
+        // GetWritableFile is the writable-side counterpart of GetWopiFile; on miss it must
+        // return null (not throw) so PutRelativeFile can map to 404.
+        var result = await _sut.GetWritableFile("does-not-exist");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetWopiContainerByName_UnknownContainer_ReturnsNull()
+    {
+        // Mirrors GetWopiFileByName's missing-container behavior — the parent-container miss
+        // returns null per the #380 item 4.2 null-on-missing contract.
+        var result = await _sut.GetWopiContainerByName("missing-container-id", "anything");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetWopiContainerByName_UnknownName_ReturnsNull()
+    {
+        Assert.True(_fileIds.TryGetFileId(_root.FullName, out var rootId));
+
+        var result = await _sut.GetWopiContainerByName(rootId, "does-not-exist");
+
+        Assert.Null(result);
+    }
 }
