@@ -56,7 +56,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static IConnectionMultiplexer BuildOwnedMultiplexer(WopiRedisLockProviderOptions opts)
+    private static ConnectionMultiplexer BuildOwnedMultiplexer(WopiRedisLockProviderOptions opts)
     {
         if (string.IsNullOrWhiteSpace(opts.ConnectionString))
         {
