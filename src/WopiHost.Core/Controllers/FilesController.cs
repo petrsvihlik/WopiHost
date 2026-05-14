@@ -321,7 +321,7 @@ public class FilesController(
         var ancestors = await storageProvider.GetFileAncestors(id, cancellationToken).ConfigureAwait(false);
         return new JsonResult(
             new EnumerateAncestorsResponse(ancestors
-                .Select(a => new ChildContainer(a.Name, Url.GetWopiSrc(WopiResourceType.Container, a.Identifier)))
+                .Select(a => new ChildContainer(a.Name, Url.GetWopiSrc(a)))
             ));
     }
 
@@ -528,7 +528,7 @@ public class FilesController(
         return new JsonResult(
             new ChildFile(
                 newFile.Name + '.' + newFile.Extension,
-                Url.GetWopiSrc(WopiResourceType.File, newFile.Identifier))
+                Url.GetWopiSrc(newFile))
             {
                 HostEditUrl = checkFileInfo.HostEditUrl,
                 HostViewUrl = checkFileInfo.HostViewUrl,

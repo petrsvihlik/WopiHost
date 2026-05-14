@@ -70,7 +70,7 @@ public class EcosystemController(
         {
             ContainerPointer = new ChildContainer(
                 root.Name,
-                Url.GetWopiSrc(WopiResourceType.Container, root.Identifier, token.Token)),
+                Url.GetWopiSrc(root, token.Token)),
             // The spec strongly recommends including ContainerInfo so the WOPI client
             // does not have to round-trip back to CheckContainerInfo.
             ContainerInfo = await checkContainerInfoBuilder.BuildAsync(root, HttpContext, cancellationToken).ConfigureAwait(false),

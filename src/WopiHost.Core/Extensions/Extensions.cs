@@ -96,13 +96,44 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Creates an absolute URL to access a WOPI resource.
+    /// Creates an absolute URL to access a file resource. Preferred over the enum overload
+    /// when the caller already holds an <see cref="IWopiFile"/> instance — the resource kind
+    /// is implied by the static type, no switch on <see cref="WopiResourceType"/> at the call
+    /// site.
+    /// </summary>
+    public static Uri GetWopiSrc(this IUrlHelper url, IWopiFile file, string? accessToken = null)
+    {
+        ArgumentNullException.ThrowIfNull(url);
+        ArgumentNullException.ThrowIfNull(file);
+        return url.GetWopiSrc(WopiRouteNames.CheckFileInfo, file.Identifier, accessToken);
+    }
+
+    /// <summary>
+    /// Creates an absolute URL to access a container resource. Preferred over the enum overload
+    /// when the caller already holds an <see cref="IWopiContainer"/> instance.
+    /// </summary>
+    public static Uri GetWopiSrc(this IUrlHelper url, IWopiContainer container, string? accessToken = null)
+    {
+        ArgumentNullException.ThrowIfNull(url);
+        ArgumentNullException.ThrowIfNull(container);
+        return url.GetWopiSrc(WopiRouteNames.CheckContainerInfo, container.Identifier, accessToken);
+    }
+
+    /// <summary>
+    /// Creates an absolute URL to access a WOPI resource by its kind + identifier.
     /// </summary>
     /// <param name="url">url helper</param>
     /// <param name="resourceType">which Wopi resource to access</param>
     /// <param name="identifier">resource unique identifier</param>
     /// <param name="accessToken">Access token to use for authentication for the given controller.</param>
     /// <returns>https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#wopisrc</returns>
+    /// <remarks>
+    /// Prefer the typed overloads (<see cref="GetWopiSrc(IUrlHelper, IWopiFile, string?)"/> /
+    /// <see cref="GetWopiSrc(IUrlHelper, IWopiContainer, string?)"/>) when an instance is in
+    /// scope (#420 item 2.11 — the resource kind comes from the static type, not from a runtime
+    /// dispatch). This enum overload stays for the bootstrap / attribute paths where only the
+    /// enum value is available.
+    /// </remarks>
     public static Uri GetWopiSrc(this IUrlHelper url, WopiResourceType resourceType, string? identifier = null, string? accessToken = null)
     {
         ArgumentNullException.ThrowIfNull(url);
@@ -111,6 +142,10 @@ internal static class Extensions
             {
                 WopiResourceType.File => WopiRouteNames.CheckFileInfo,
                 WopiResourceType.Container => WopiRouteNames.CheckContainerInfo,
+                // Exhaustive over WopiResourceType — extend both arms (and the typed overloads
+                // above) when adding a new value. The throw is the idiomatic C# guard against
+                // future enum extension since the language doesn't enforce exhaustive matching
+                // on enums.
                 _ => throw new ArgumentOutOfRangeException(nameof(resourceType), resourceType, null)
             }, identifier, accessToken);
     }

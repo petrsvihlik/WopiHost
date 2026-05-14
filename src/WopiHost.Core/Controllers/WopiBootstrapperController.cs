@@ -100,7 +100,7 @@ public class WopiBootstrapperController(
             {
                 ContainerPointer = new ChildContainer(
                     rootContainer.Name,
-                    Url.GetWopiSrc(WopiResourceType.Container, rootContainer.Identifier, token.Token)),
+                    Url.GetWopiSrc(rootContainer, token.Token)),
                 ContainerInfo = await checkContainerInfoBuilder.BuildAsync(rootContainer, HttpContext, cancellationToken).ConfigureAwait(false),
             },
         });

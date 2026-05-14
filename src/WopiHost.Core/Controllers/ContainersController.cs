@@ -140,7 +140,7 @@ public class ContainersController(
             var checkContainerInfo = await checkContainerInfoBuilder.BuildAsync(newFolder, HttpContext, cancellationToken).ConfigureAwait(false);
             return new JsonResult(
                 new CreateChildContainerResponse(
-                    new(newFolder.Name, Url.GetWopiSrc(WopiResourceType.Container, newFolder.Identifier)),
+                    new(newFolder.Name, Url.GetWopiSrc(newFolder)),
                     checkContainerInfo));
         }
 
@@ -203,7 +203,7 @@ public class ContainersController(
         return new JsonResult(
             new ChildFile(
                 newFile.Name + '.' + newFile.Extension,
-                Url.GetWopiSrc(WopiResourceType.File, newFile.Identifier))
+                Url.GetWopiSrc(newFile))
             {
                 HostEditUrl = checkFileInfo.HostEditUrl,
                 HostViewUrl = checkFileInfo.HostViewUrl,
@@ -418,7 +418,7 @@ public class ContainersController(
         var ancestors = await storageProvider.GetContainerAncestors(id, cancellationToken).ConfigureAwait(false);
         return new JsonResult(
             new EnumerateAncestorsResponse(ancestors
-                .Select(a => new ChildContainer(a.Name, Url.GetWopiSrc(WopiResourceType.Container, a.Identifier))
+                .Select(a => new ChildContainer(a.Name, Url.GetWopiSrc(a))
             )));
     }
 
@@ -455,7 +455,7 @@ public class ContainersController(
         var fileExtensions = fileExtensionFilterList?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         await foreach (var wopiFile in storageProvider.GetWopiFiles(id, fileExtensions, cancellationToken).ConfigureAwait(false))
         {
-            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, Url.GetWopiSrc(WopiResourceType.File, wopiFile.Identifier))
+            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, Url.GetWopiSrc(wopiFile))
             {
                 LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
                 Size = wopiFile.Length,
@@ -466,7 +466,7 @@ public class ContainersController(
         await foreach (var wopiContainer in storageProvider.GetWopiContainers(id, cancellationToken).ConfigureAwait(false))
         {
             containers.Add(
-                new ChildContainer(wopiContainer.Name, Url.GetWopiSrc(WopiResourceType.Container, wopiContainer.Identifier)));
+                new ChildContainer(wopiContainer.Name, Url.GetWopiSrc(wopiContainer)));
         }
 
         var container = new Container
