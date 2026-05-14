@@ -181,94 +181,36 @@ public class ContainersController(
             return new NotImplementedResult();
         }
 
-        IWopiFile? newFile;
-
-        // "specific mode" - The host must not modify the name to fulfill the request.
-        if (!string.IsNullOrWhiteSpace(relativeTarget))
+        // Shared name-resolution + create dance with FilesController.PutRelativeFile (the WOPI
+        // spec defines the X-WOPI-SuggestedTarget / X-WOPI-RelativeTarget / X-WOPI-Overwrite-
+        // RelativeTarget semantics identically across both operations). CreateChildFile has no
+        // source file in scope, so its extension-only-suggested-target fallback uses a fresh GUID.
+        var resolution = await WopiChildFileResolver.ResolveAsync(
+            storageProvider,
+            writableStorageProvider,
+            lockProvider,
+            Response,
+            container.Identifier,
+            suggestedTarget,
+            relativeTarget,
+            overwriteRelativeTarget ?? false,
+            suggestedExtensionFallbackStem: Guid.NewGuid().ToString("N"),
+            cancellationToken).ConfigureAwait(false);
+        if (resolution.Error is not null)
         {
-            // If the specified name is illegal, the host must respond with a 400 Bad Request.
-            if (!await writableStorageProvider.CheckValidFileName(relativeTarget, cancellationToken).ConfigureAwait(false))
-            {
-                return new BadRequestResult();
-            }
-
-            // check if such file already exists
-            newFile = await storageProvider.GetWopiFileByName(id, relativeTarget, cancellationToken).ConfigureAwait(false);
-
-            // If a file with the specified name already exists
-            if (newFile is not null)
-            {
-                // unless the X-WOPI-OverwriteRelativeTarget request header is set to true...
-                if (overwriteRelativeTarget == false)
-                {
-                    // the host might include an X-WOPI-ValidRelativeTarget specifying a file name that's valid
-                    var suggestedName = await writableStorageProvider.GetSuggestedFileName(id, relativeTarget, cancellationToken).ConfigureAwait(false);
-                    Response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(suggestedName).ToString(true);
-                    // the host must respond with a 409 Conflict
-                    return new ConflictResult();
-                }
-                else
-                {
-                    // a file matching the target name might be locked
-                    var existingLock = lockProvider is null
-                        ? null
-                        : await lockProvider.GetLockAsync(newFile.Identifier, cancellationToken).ConfigureAwait(false);
-                    if (existingLock is not null)
-                    {
-                        // the host must respond with a 409 Conflict and include a X-WOPI-Lock response header
-                        return new LockMismatchResult(Response, existingLock.LockId, reason: "File already exists and is currently locked");
-                    }
-                }
-            }
-            else
-            {
-                newFile = await writableStorageProvider.CreateWopiChildFile(
-                    container.Identifier,
-                    relativeTarget,
-                    cancellationToken).ConfigureAwait(false);
-            }
-        }
-        else if (!string.IsNullOrWhiteSpace(suggestedTarget))
-        {
-            var suggestedTargetString = suggestedTarget.ToString()!;
-            // If only the extension is provided, the name of the initial file without extension should be combined with the extension to create the proposed name
-            if (suggestedTargetString.StartsWith(".", StringComparison.OrdinalIgnoreCase))
-            {
-                suggestedTargetString = Guid.NewGuid().ToString("N") + suggestedTargetString;
-            }
-            // If the specified name is illegal, the host must respond with a 400 Bad Request.
-            else if (!await writableStorageProvider.CheckValidFileName(suggestedTargetString, cancellationToken).ConfigureAwait(false))
-            {
-                return new BadRequestResult();
-            }
-
-            var newName = await writableStorageProvider.GetSuggestedFileName(container.Identifier, suggestedTargetString, cancellationToken).ConfigureAwait(false);
-            newFile = await writableStorageProvider.CreateWopiChildFile(
-                container.Identifier,
-                newName,
-                cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            // the two headers are mutually exclusive.
-            // If neither header is present, we return BadRequest
-            return new BadRequestResult();
+            return resolution.Error;
         }
 
-        if (newFile is not null)
-        {
-            var checkFileInfo = await checkFileInfoBuilder.BuildAsync(newFile, HttpContext, cancellationToken: cancellationToken).ConfigureAwait(false);
-            return new JsonResult(
-                new ChildFile(
-                    newFile.Name + '.' + newFile.Extension,
-                    Url.GetWopiSrc(WopiResourceType.File, newFile.Identifier))
-                {
-                    HostEditUrl = checkFileInfo.HostEditUrl,
-                    HostViewUrl = checkFileInfo.HostViewUrl,
-                });
-        }
-
-        return new InternalServerErrorResult();
+        var newFile = resolution.NewFile!;
+        var checkFileInfo = await checkFileInfoBuilder.BuildAsync(newFile, HttpContext, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return new JsonResult(
+            new ChildFile(
+                newFile.Name + '.' + newFile.Extension,
+                Url.GetWopiSrc(WopiResourceType.File, newFile.Identifier))
+            {
+                HostEditUrl = checkFileInfo.HostEditUrl,
+                HostViewUrl = checkFileInfo.HostViewUrl,
+            });
     }
 
     /// <summary>
