@@ -16,6 +16,14 @@ End-to-end tests that exercise the full WopiHost ↔ Collabora editing loop. Tra
 - **WOPI protocol conformance** — that's what [`microsoft/wopi-validator-core`](https://github.com/microsoft/wopi-validator-core) is for. Issue #357 calls it out as a separate workstream.
 - **Office Online Server / M365 for the Web** — CODE is a *development substitute* with a different feature surface. A green Collabora run is not M365 conformance.
 
+## Why this project is intentionally NOT in `WOPI.slnx`
+
+Per-PR `Build & Test` runs `dotnet test` from the repo root, which discovers test projects via `WOPI.slnx`. If the E2E project were in the slnx, every PR would try (and fail) to run it.
+
+The exclusion has to live in the slnx, not in the workflow, because the per-PR workflow uses `pull_request_target`. With that trigger GitHub reads the workflow YAML from **the target branch** (master), not the PR head — so a `--filter` added on a feature branch only takes effect *after* the PR merges. Same constraint we hit on the infersharp staging step a few PRs back.
+
+The dedicated [`e2e-collabora.yml`](../../.github/workflows/e2e-collabora.yml) workflow targets this project explicitly by csproj path, so it doesn't depend on the slnx entry to discover or build it.
+
 ## Why this is a separate project (not in `WopiHost.SmokeTests`)
 
 Two reasons:

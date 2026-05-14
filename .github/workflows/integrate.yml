@@ -34,10 +34,7 @@ jobs:
     - name: Install Playwright browsers (for sample-app smoke tests)
       run: pwsh artifacts/bin/WopiHost.SmokeTests/debug/playwright.ps1 install --with-deps chromium
     - name: Test
-      # The "E2E" category covers tests in WopiHost.E2ETests.Collabora — they require Docker
-      # + a real Collabora container and are run from .github/workflows/e2e-collabora.yml on a
-      # nightly cron, never per-PR (issue #357 Approach B).
-      run: dotnet test --no-build --verbosity normal --filter "Category!=E2E" /p:CollectCoverage=true /p:CoverletOutputFormat=lcov
+      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=lcov
     - name: Upload coverage to Qlty
       uses: qltysh/qlty-action/coverage@v2
       with:
