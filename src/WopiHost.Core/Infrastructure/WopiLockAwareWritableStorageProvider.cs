@@ -112,5 +112,4 @@ public sealed class WopiLockAwareWritableStorageProvider(
         }
         return await _inner.RenameWopiContainer(identifier, requestedName, cancellationToken).ConfigureAwait(false);
     }
-
 }
