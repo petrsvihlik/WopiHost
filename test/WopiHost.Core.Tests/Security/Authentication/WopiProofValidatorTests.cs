@@ -197,6 +197,52 @@ public class WopiProofValidatorTests
         Assert.False(result);
     }
 
+    [Fact]
+    public async Task Returns_false_when_request_proof_is_not_base64()
+    {
+        // VerifyProof Convert.FromBase64String's the request-side proof. Non-base64 input
+        // throws FormatException, which the validator's defensive catch maps to "not valid".
+        // Hosts must not 500 on malformed headers — just reject the request.
+        using var current = new RSACryptoServiceProvider(2048);
+        using var old = new RSACryptoServiceProvider(2048);
+        SetupDiscovery(current, old);
+
+        var ticks = _time.GetUtcNow().UtcDateTime.Ticks;
+        var ctx = BuildHttpContext(timestampOverride: ticks.ToString(CultureInfo.InvariantCulture));
+        // Embedded space + '@' is not valid base64 → FormatException inside VerifyProof.
+        ctx.Request.Headers[WopiHeaders.PROOF] = "not valid base64@@@@";
+
+        var validator = CreateValidator();
+        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task Returns_false_when_discovery_key_is_garbage_csp_blob()
+    {
+        // VerifyProof calls ImportCspBlob on the discovery key. A base64-decodable string whose
+        // bytes aren't a valid CSP blob raises CryptographicException; the defensive catch maps
+        // it to "not valid". Covers the second catch arm of VerifyProof.
+        _discoverer
+            .Setup(d => d.GetProofKeysAsync())
+            .ReturnsAsync(new WopiProofKeys
+            {
+                // 16 zero bytes is well-formed base64 but doesn't deserialize as an RSA CSP blob.
+                Value = Convert.ToBase64String(new byte[16]),
+                OldValue = Convert.ToBase64String(new byte[16]),
+            });
+
+        var ticks = _time.GetUtcNow().UtcDateTime.Ticks;
+        var ctx = BuildHttpContext(timestampOverride: ticks.ToString(CultureInfo.InvariantCulture));
+        ctx.Request.Headers[WopiHeaders.PROOF] = Convert.ToBase64String(new byte[256]);
+
+        var validator = CreateValidator();
+        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+
+        Assert.False(result);
+    }
+
     private WopiProofValidator CreateValidator()
         => new(_discoverer.Object, NullLogger<WopiProofValidator>.Instance, _time);
 

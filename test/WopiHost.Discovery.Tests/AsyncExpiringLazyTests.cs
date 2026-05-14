@@ -199,4 +199,20 @@ public class AsyncExpiringLazyTests
         await sut.Value();
         Assert.Equal(2, calls);
     }
+
+    [Fact]
+    public void Dispose_IsIdempotent()
+    {
+        // Double-Dispose must short-circuit on the second call — the inner SemaphoreSlim is
+        // disposed exactly once. Hits the `_disposed = true` early-return branch on the second
+        // invocation; previously uncovered because nothing in the discovery flow disposes twice.
+        var sut = CreateSut(_ => Task.FromResult(new TemporaryValue<string>
+        {
+            Result = "x",
+            ValidUntil = DateTimeOffset.UtcNow.AddHours(1),
+        }));
+
+        sut.Dispose();
+        sut.Dispose();
+    }
 }

@@ -147,6 +147,86 @@ public sealed class WopiTelemetryActionFilterTests : IDisposable
         Assert.Equal(WopiTelemetry.Outcomes.Conflict, activity.GetTagItem(WopiTelemetry.Tags.Outcome));
     }
 
+    [Theory]
+    [InlineData(StatusCodes.Status200OK, WopiTelemetry.Outcomes.Success)]
+    [InlineData(StatusCodes.Status204NoContent, WopiTelemetry.Outcomes.Success)]
+    [InlineData(StatusCodes.Status400BadRequest, WopiTelemetry.Outcomes.BadRequest)]
+    [InlineData(StatusCodes.Status412PreconditionFailed, WopiTelemetry.Outcomes.PreconditionFailed)]
+    [InlineData(StatusCodes.Status501NotImplemented, WopiTelemetry.Outcomes.NotImplemented)]
+    [InlineData(StatusCodes.Status500InternalServerError, WopiTelemetry.Outcomes.Error)]
+    public async Task MapStatusCode_ClassifiesViaRawStatusCodeResult(int statusCode, string expectedOutcome)
+    {
+        // Covers the MapStatusCode branches that the typed-result Theory doesn't reach. The
+        // controller returns a bare StatusCodeResult — there's no typed *Result MVC wrapper for
+        // these status codes (200, 204, 400, 412, 501, 500) — so the filter falls through to
+        // MapStatusCode for classification.
+        var (_, activity) = await RunFilterAsync(
+            controller: new FilesController(null!, null!, null!, null!, null!, null!),
+            result: new StatusCodeResult(statusCode));
+
+        Assert.NotNull(activity);
+        Assert.Equal(expectedOutcome, activity.GetTagItem(WopiTelemetry.Tags.Outcome));
+    }
+
+    [Fact]
+    public async Task Cancellation_ClassifiedAsCancelled_NotError()
+    {
+        // Client-side disconnect: next() faults with an OperationCanceledException and the
+        // request's CancellationToken has fired. The filter must record "Cancelled" instead of
+        // "Error" — a stopped browser tab is not an application failure.
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+        var ctx = new DefaultHttpContext { RequestAborted = cts.Token };
+
+        var (_, activity) = await RunFilterAsync(
+            controller: new FilesController(null!, null!, null!, null!, null!, null!),
+            result: null,
+            httpContext: ctx,
+            exception: new OperationCanceledException(cts.Token));
+
+        Assert.NotNull(activity);
+        Assert.Equal(WopiTelemetry.Outcomes.Cancelled, activity.GetTagItem(WopiTelemetry.Tags.Outcome));
+    }
+
+    [Fact]
+    public async Task Cancellation_FromAggregateOfOCEs_AlsoClassifiedAsCancelled()
+    {
+        // Task.WhenAll wraps an observed OCE into an AggregateException whose only inner is the
+        // OCE. The filter unwraps that shape to keep the Cancelled classification stable across
+        // both forms.
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+        var ctx = new DefaultHttpContext { RequestAborted = cts.Token };
+        var agg = new AggregateException(new OperationCanceledException(cts.Token), new OperationCanceledException(cts.Token));
+
+        var (_, activity) = await RunFilterAsync(
+            controller: new FilesController(null!, null!, null!, null!, null!, null!),
+            result: null,
+            httpContext: ctx,
+            exception: agg);
+
+        Assert.NotNull(activity);
+        Assert.Equal(WopiTelemetry.Outcomes.Cancelled, activity.GetTagItem(WopiTelemetry.Tags.Outcome));
+    }
+
+    [Fact]
+    public async Task OperationCanceledException_WithoutTokenFiring_ClassifiedAsError()
+    {
+        // OCE thrown without the request actually being aborted = real bug (someone canceled
+        // an internal CTS by mistake). Don't whitewash that as "client disconnect".
+        var ctx = new DefaultHttpContext();
+        Assert.False(ctx.RequestAborted.IsCancellationRequested);
+
+        var (_, activity) = await RunFilterAsync(
+            controller: new FilesController(null!, null!, null!, null!, null!, null!),
+            result: null,
+            httpContext: ctx,
+            exception: new OperationCanceledException());
+
+        Assert.NotNull(activity);
+        Assert.Equal(WopiTelemetry.Outcomes.Error, activity.GetTagItem(WopiTelemetry.Tags.Outcome));
+    }
+
     private static async Task<(ActionExecutingContext executing, Activity? activity)> RunFilterAsync(
         ControllerBase controller,
         IActionResult? result,

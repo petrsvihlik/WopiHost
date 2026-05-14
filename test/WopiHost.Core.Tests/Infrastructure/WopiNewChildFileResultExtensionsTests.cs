@@ -1,0 +1,101 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
+using WopiHost.Abstractions;
+using WopiHost.Core.Infrastructure;
+using WopiHost.Core.Results;
+
+namespace WopiHost.Core.Tests.Infrastructure;
+
+/// <summary>
+/// Tests for the WOPI-spec response-mapping in <see cref="WopiNewChildFileResultExtensions.ToErrorActionResult"/>.
+/// Translates the negotiator's <see cref="WopiNewChildFileResult"/> into the appropriate
+/// <see cref="IActionResult"/> plus the spec-mandated response-header side effects.
+/// </summary>
+public class WopiNewChildFileResultExtensionsTests
+{
+    private readonly HttpResponse _response = new DefaultHttpContext().Response;
+
+    [Fact]
+    public void Success_ReturnsNull()
+    {
+        // Null is the explicit "no error result — controller should proceed with result.File" signal.
+        var result = WopiNewChildFileResult.Success(Mock.Of<IWopiWritableFile>());
+
+        Assert.Null(result.ToErrorActionResult(_response));
+    }
+
+    [Fact]
+    public void BadRequest_ReturnsBadRequestResult_WithoutHeaders()
+    {
+        var result = WopiNewChildFileResult.BadRequest();
+
+        var actionResult = result.ToErrorActionResult(_response);
+
+        Assert.IsType<BadRequestResult>(actionResult);
+        Assert.Empty(_response.Headers);
+    }
+
+    [Fact]
+    public void Conflict_WritesValidRelativeTargetHeader_AndReturnsConflictResult()
+    {
+        var result = WopiNewChildFileResult.Conflict("Report (1).docx");
+
+        var actionResult = result.ToErrorActionResult(_response);
+
+        Assert.IsType<ConflictResult>(actionResult);
+        Assert.True(_response.Headers.ContainsKey(WopiHeaders.VALID_RELATIVE_TARGET));
+        // Header value is UTF-7 encoded per the WOPI spec — the round-trip is asserted in
+        // UtfStringTests; here we only check the header was set with non-empty content.
+        Assert.NotEmpty(_response.Headers[WopiHeaders.VALID_RELATIVE_TARGET].ToString());
+    }
+
+    [Fact]
+    public void Locked_ReturnsLockMismatchResult_WithExistingLockHeader()
+    {
+        var result = WopiNewChildFileResult.Locked("active-lock-id");
+
+        var actionResult = result.ToErrorActionResult(_response);
+
+        Assert.IsType<LockMismatchResult>(actionResult);
+        Assert.Equal("active-lock-id", _response.Headers[WopiHeaders.LOCK].ToString());
+    }
+
+    [Fact]
+    public void InternalError_ReturnsInternalServerErrorResult()
+    {
+        var result = WopiNewChildFileResult.InternalError();
+
+        var actionResult = result.ToErrorActionResult(_response);
+
+        Assert.IsType<InternalServerErrorResult>(actionResult);
+    }
+
+    [Fact]
+    public void UnknownOutcome_Throws()
+    {
+        // The switch is exhaustive at compile time but uses a `default: throw` arm as a guard
+        // for future enum additions or hand-crafted instances. Construct an out-of-range
+        // outcome via the property init and verify the throw fires.
+        var result = new WopiNewChildFileResult { Outcome = (WopiNewChildFileOutcome)999 };
+
+        var ex = Assert.Throws<InvalidOperationException>(() => result.ToErrorActionResult(_response));
+        Assert.Contains("999", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NullResult_Throws()
+    {
+        WopiNewChildFileResult result = null!;
+
+        Assert.Throws<ArgumentNullException>(() => result.ToErrorActionResult(_response));
+    }
+
+    [Fact]
+    public void NullResponse_Throws()
+    {
+        var result = WopiNewChildFileResult.BadRequest();
+
+        Assert.Throws<ArgumentNullException>(() => result.ToErrorActionResult(null!));
+    }
+}

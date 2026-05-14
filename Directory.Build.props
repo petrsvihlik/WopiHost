@@ -25,13 +25,20 @@
 		<NoWarn>$(NoWarn);CS1591</NoWarn>
 	</PropertyGroup>
 
-	<!-- Package Validation Configuration for NuGet packages -->
-	<!-- Baseline is auto-bumped by .github/workflows/release.yml after each stable release. -->
+	<!-- Package Validation Configuration for NuGet packages.
+
+	     PackageValidationBaselineVersion is the last NuGet-published version we validate the
+	     current public surface against. It is auto-managed by the bump-baseline job in
+	     .github/workflows/release.yml — DO NOT bump it manually in a feature PR. Manual bumps
+	     have a nasty interaction with the release flow: the bump job runs immediately after
+	     the package upload, and if master already shows the new value at that moment it skips
+	     (because the value already matches the just-released version). A revert merging shortly
+	     after the release then leaves the baseline at the wrong version with no auto-bump PR
+	     queued. If you genuinely need to override the baseline (e.g. to skip a buggy release),
+	     do it in its own dedicated PR, not bundled with API changes. -->
 	<PropertyGroup Condition="$(IsPackable) == 'true' AND $(PackageId) != ''">
 		<EnablePackageValidation>true</EnablePackageValidation>
-		<!-- Baseline used to detect public-API breaks against the last released version.
-		     Bump this in lockstep with releases. -->
-		<PackageValidationBaselineVersion>7.0.0</PackageValidationBaselineVersion>
+		<PackageValidationBaselineVersion>8.0.0</PackageValidationBaselineVersion>
 	</PropertyGroup>
 	
 	<ItemGroup Condition="!$(MSBuildProjectName.EndsWith('Tests'))">
