@@ -170,6 +170,45 @@ public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
     }
 
     [Fact]
+    public async Task Dispose_AfterDisposeAsync_IsNoOp()
+    {
+        // #409 item 2.12: a caller that does `await using` followed by an explicit sync Dispose
+        // (or any other cross-method redispose) must not retrigger the inner-stream close, the
+        // hasher finalization, or the metadata write. The `_disposed` flag at the top of both
+        // paths is what guarantees that — pin it cross-method.
+        var (blob, _) = await CreateBlobAsync();
+        const string payload = "cross-method-async-first";
+        var bytes = Encoding.UTF8.GetBytes(payload);
+
+        var s = await OpenWrapperAsync(blob);
+        await s.WriteAsync(bytes);
+        await s.DisposeAsync();
+
+        s.Dispose(); // must be a clean no-op; would have thrown if it tried to re-dispose inner
+        var props = await blob.GetPropertiesAsync();
+        Assert.Equal(payload.Length, props.Value.ContentLength);
+        Assert.Equal(ExpectedSha256(payload), props.Value.Metadata[WopiBlobFile.Sha256MetadataKey]);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_AfterDispose_IsNoOp()
+    {
+        // Mirror of the above for the sync-first ordering.
+        var (blob, _) = await CreateBlobAsync();
+        const string payload = "cross-method-sync-first";
+        var bytes = Encoding.UTF8.GetBytes(payload);
+
+        var s = await OpenWrapperAsync(blob);
+        s.Write(bytes, 0, bytes.Length);
+        s.Dispose();
+
+        await s.DisposeAsync(); // must be a clean no-op
+        var props = await blob.GetPropertiesAsync();
+        Assert.Equal(payload.Length, props.Value.ContentLength);
+        Assert.Equal(ExpectedSha256(payload), props.Value.Metadata[WopiBlobFile.Sha256MetadataKey]);
+    }
+
+    [Fact]
     public async Task PreservedMetadata_RoundTrips_AlongsideHash()
     {
         // Caller-provided metadata (e.g. the previous wopi_owner) should survive the write.

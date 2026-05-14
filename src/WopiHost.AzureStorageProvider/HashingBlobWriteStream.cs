@@ -67,12 +67,12 @@ internal sealed class HashingBlobWriteStream(Stream inner, BlobClient blobClient
 
         // Closing/disposing the inner Azure write stream is what actually commits the blob.
         await inner.DisposeAsync().ConfigureAwait(false);
-
-        var hash = _hasher.GetCurrentHash();
-        _hasher.Dispose();
-        _metadataToWrite[WopiBlobFile.Sha256MetadataKey] = Convert.ToHexString(hash).ToLowerInvariant();
-
+        FinalizeMetadataPayload();
         await blobClient.SetMetadataAsync(_metadataToWrite).ConfigureAwait(false);
+
+        // Stream has a finalizer; skip it now that DisposeAsync has done the work. The sync
+        // Stream.Dispose() base already calls SuppressFinalize, but the async path is on us.
+        GC.SuppressFinalize(this);
     }
 
     protected override void Dispose(bool disposing)
@@ -88,9 +88,19 @@ internal sealed class HashingBlobWriteStream(Stream inner, BlobClient blobClient
         _disposed = true;
 
         inner.Dispose();
+        FinalizeMetadataPayload();
+        blobClient.SetMetadata(_metadataToWrite);
+    }
+
+    /// <summary>
+    /// Finalizes the SHA-256 hasher and stores the lowercase-hex digest under the blob metadata
+    /// key. Shared between <see cref="Dispose(bool)"/> and <see cref="DisposeAsync"/> so the
+    /// two paths can never drift on the hex/casing/metadata-key contract (#409 item 2.12).
+    /// </summary>
+    private void FinalizeMetadataPayload()
+    {
         var hash = _hasher.GetCurrentHash();
         _hasher.Dispose();
         _metadataToWrite[WopiBlobFile.Sha256MetadataKey] = Convert.ToHexString(hash).ToLowerInvariant();
-        blobClient.SetMetadata(_metadataToWrite);
     }
 }
