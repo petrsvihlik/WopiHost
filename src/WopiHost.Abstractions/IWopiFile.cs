@@ -1,8 +1,16 @@
-﻿namespace WopiHost.Abstractions;
+namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Representation of a file.
+/// Read-side view of a WOPI file. Fetched from <see cref="IWopiStorageProvider.GetWopiFile"/>
+/// when the caller only needs to enumerate metadata or stream content out.
 /// </summary>
+/// <remarks>
+/// Per #420 item 1.2, the write seam is split off into <see cref="IWopiWritableFile"/> so a
+/// read-only flow can't accidentally call <c>OpenWriteAsync</c> on a file it fetched read-only.
+/// Callers that need to mutate file content fetch via
+/// <see cref="IWopiWritableStorageProvider.GetWritableFile"/> or take the writable file directly
+/// from <see cref="IWopiWritableStorageProvider.CreateWopiChildFile"/>.
+/// </remarks>
 public interface IWopiFile : IWopiResource
 {
     /// <summary>
@@ -61,17 +69,4 @@ public interface IWopiFile : IWopiResource
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A read-positioned <see cref="Stream"/> owned by the caller.</returns>
     Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Opens the file for writing. Ownership of the returned <see cref="Stream"/> is transferred
-    /// to the caller, who must dispose it when done — typically via
-    /// <c>await using var stream = await file.OpenWriteAsync(ct);</c>. Disposing the stream is
-    /// what commits the write on most providers.
-    /// </summary>
-    /// <remarks>
-    /// See <see cref="OpenReadAsync"/> for the naming/ownership rationale.
-    /// </remarks>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A writable <see cref="Stream"/> owned by the caller.</returns>
-    Task<Stream> OpenWriteAsync(CancellationToken cancellationToken = default);
 }

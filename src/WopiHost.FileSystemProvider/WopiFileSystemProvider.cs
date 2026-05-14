@@ -66,6 +66,19 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     }
 
     /// <inheritdoc/>
+    public Task<IWopiWritableFile?> GetWritableFile(string identifier, CancellationToken cancellationToken = default)
+    {
+        // Same WopiFile instance the read-side returns — the concrete class implements
+        // IWopiWritableFile (which extends IWopiFile), so the choice between read and writable
+        // is purely about the static type the caller sees.
+        if (_fileIds.TryGetPath(identifier, out var fullPath))
+        {
+            return Task.FromResult<IWopiWritableFile?>(new WopiFile(fullPath, identifier));
+        }
+        return Task.FromResult<IWopiWritableFile?>(null);
+    }
+
+    /// <inheritdoc/>
     public Task<IWopiContainer?> GetWopiContainer(string identifier, CancellationToken cancellationToken = default)
     {
         if (_fileIds.TryGetPath(identifier, out var fullPath))
@@ -266,7 +279,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     }
 
     /// <inheritdoc/>
-    public async Task<IWopiFile?> CreateWopiChildFile(
+    public async Task<IWopiWritableFile?> CreateWopiChildFile(
         string containerId,
         string name,
         CancellationToken cancellationToken = default)
@@ -286,7 +299,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
 
         var newFileId = _fileIds.AddFile(newPath);
         LogFileCreated(_logger, newFileId, newPath);
-        return await GetWopiFile(newFileId, cancellationToken).ConfigureAwait(false);
+        return await GetWritableFile(newFileId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>

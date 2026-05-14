@@ -15,9 +15,11 @@ public sealed class WopiNewChildFileResult
     /// <summary>
     /// The file the caller should proceed with — newly created or an existing file the
     /// caller asked to overwrite. Non-null exactly when <see cref="Outcome"/> is
-    /// <see cref="WopiNewChildFileOutcome.Success"/>.
+    /// <see cref="WopiNewChildFileOutcome.Success"/>. Typed as <see cref="IWopiWritableFile"/>
+    /// because callers always proceed by either writing contents (PutRelativeFile) or returning
+    /// metadata for a file that will accept a subsequent PutFile (CreateChildFile).
     /// </summary>
-    public IWopiFile? File { get; init; }
+    public IWopiWritableFile? File { get; init; }
 
     /// <summary>
     /// The host-suggested alternative name to advertise via the
@@ -33,7 +35,7 @@ public sealed class WopiNewChildFileResult
     public string? ExistingLockId { get; init; }
 
     /// <summary>Shorthand factory for the success path.</summary>
-    public static WopiNewChildFileResult Success(IWopiFile file) =>
+    public static WopiNewChildFileResult Success(IWopiWritableFile file) =>
         new() { Outcome = WopiNewChildFileOutcome.Success, File = file };
 
     /// <summary>Shorthand factory for the 400-bad-request path.</summary>

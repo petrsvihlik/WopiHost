@@ -303,7 +303,7 @@ public class ContainersControllerTests
     [Fact]
     public async Task CreateChildFile_ReturnsJsonResult_WhenFileIsCreated()
     {
-        var fileMock = new Mock<IWopiFile>();
+        var fileMock = new Mock<IWopiWritableFile>();
         fileMock.SetupGet(f => f.Owner).Returns("ownerId");
         fileMock.SetupGet(f => f.Version).Returns("1.0");
         fileMock.SetupGet(f => f.Name).Returns("test");

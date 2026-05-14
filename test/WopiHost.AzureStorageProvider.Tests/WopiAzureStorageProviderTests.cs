@@ -84,7 +84,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
         const string payload = "the quick brown fox";
         var expectedHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(payload))).ToLowerInvariant();
 
-        var writable = (await provider.GetWopiFile(created.Identifier))!;
+        var writable = (await provider.GetWritableFile(created.Identifier))!;
         await using (var s = await writable.OpenWriteAsync())
         {
             await s.WriteAsync(System.Text.Encoding.UTF8.GetBytes(payload));

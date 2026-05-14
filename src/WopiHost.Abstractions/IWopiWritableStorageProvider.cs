@@ -18,7 +18,8 @@ public interface IWopiWritableStorageProvider
     int FileNameMaxLength { get; }
 
     /// <summary>
-    /// Creates a new 0-byte file under the specified container.
+    /// Creates a new 0-byte file under the specified container. Returned as
+    /// <see cref="IWopiWritableFile"/> so the caller can immediately stream content into it.
     /// </summary>
     /// <param name="containerId">
     /// Identifier of the parent container. Required. Pass
@@ -27,10 +28,26 @@ public interface IWopiWritableStorageProvider
     /// </param>
     /// <param name="name">The new file's name (including extension).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task<IWopiFile?> CreateWopiChildFile(
+    Task<IWopiWritableFile?> CreateWopiChildFile(
         string containerId,
         string name,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns a writable handle to the file identified by <paramref name="identifier"/>, or
+    /// <see langword="null"/> if no file with that id exists. The writable interface is the
+    /// gate for mutating an existing file's contents — read-only consumers should call
+    /// <see cref="IWopiStorageProvider.GetWopiFile"/> instead.
+    /// </summary>
+    /// <remarks>
+    /// Resolves the #420 item 1.2 leak: pre-fix the read-side <c>GetWopiFile</c> returned a
+    /// file that also exposed <c>OpenWriteAsync</c>, letting any caller mutate a file
+    /// they'd fetched in a read-only flow. After the split, writes require a deliberate
+    /// fetch through the writable storage provider.
+    /// </remarks>
+    /// <param name="identifier">File identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<IWopiWritableFile?> GetWritableFile(string identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new empty child container under the specified container.

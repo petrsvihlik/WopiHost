@@ -21,7 +21,7 @@ namespace WopiHost.AzureStorageProvider;
 /// change produces a new ETag.
 /// </para>
 /// </remarks>
-public class WopiBlobFile : IWopiFile
+public class WopiBlobFile : IWopiWritableFile
 {
     /// <summary>Blob metadata key that holds the file's owner identifier (free-form).</summary>
     public const string OwnerMetadataKey = "wopi_owner";

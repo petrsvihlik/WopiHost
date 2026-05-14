@@ -12,7 +12,7 @@ namespace WopiHost.FileSystemProvider;
 /// </summary>
 /// <param name="filePath">Path on the file system the file is located in.</param>
 /// <param name="fileIdentifier">Identifier of a file.</param>
-public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
+public class WopiFile(string filePath, string fileIdentifier) : IWopiWritableFile
 {
     private readonly FileInfo _fileInfo = new(filePath);
     private readonly FileVersionInfo _fileVersionInfo = FileVersionInfo.GetVersionInfo(filePath);

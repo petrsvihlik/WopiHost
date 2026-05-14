@@ -122,7 +122,7 @@ internal static class Extensions
     /// <param name="file">the existing WopiFile</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns></returns>
-    public static async Task CopyToWriteStream(this HttpContext httpContext, IWopiFile file, CancellationToken cancellationToken = default)
+    public static async Task CopyToWriteStream(this HttpContext httpContext, IWopiWritableFile file, CancellationToken cancellationToken = default)
     {
         using var stream = await file.OpenWriteAsync(cancellationToken).ConfigureAwait(false);
         await httpContext.Request.Body.CopyToAsync(

@@ -39,8 +39,12 @@ public sealed class WopiLockAwareWritableStorageProvider(
     public int FileNameMaxLength => _inner.FileNameMaxLength;
 
     /// <inheritdoc />
-    public Task<IWopiFile?> CreateWopiChildFile(string containerId, string name, CancellationToken cancellationToken = default)
+    public Task<IWopiWritableFile?> CreateWopiChildFile(string containerId, string name, CancellationToken cancellationToken = default)
         => _inner.CreateWopiChildFile(containerId, name, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IWopiWritableFile?> GetWritableFile(string identifier, CancellationToken cancellationToken = default)
+        => _inner.GetWritableFile(identifier, cancellationToken);
 
     /// <inheritdoc />
     public Task<IWopiContainer?> CreateWopiChildContainer(string containerId, string name, CancellationToken cancellationToken = default)

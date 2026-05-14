@@ -340,6 +340,7 @@ public class FilesController(
     [HttpPut("{id}/contents")]
     [HttpPost("{id}/contents")]
     [WopiAuthorize(WopiResourceType.File, Permission.Update)]
+    [RequiresWritableStorage]
     public async Task<IActionResult> PutFile(
         string id,
         [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier = null,
@@ -347,7 +348,11 @@ public class FilesController(
         CancellationToken cancellationToken = default)
     {
         // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/createnew
-        var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
+        // Fetch through the writable storage provider — PutFile mutates content, so we need
+        // the IWopiWritableFile gate (#420 item 1.2). [RequiresWritableStorage] above already
+        // ensures writableStorageProvider is non-null before this action is reached.
+        ArgumentNullException.ThrowIfNull(writableStorageProvider);
+        var file = await writableStorageProvider.GetWritableFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null)
         {
             return NotFound();
@@ -641,14 +646,19 @@ public class FilesController(
     /// <param name="cancellationToken">cancellation token</param>
     [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.Cobalt)]
     [WopiAuthorize(WopiResourceType.File, Permission.Update)]
+    [RequiresWritableStorage]
     public async Task<IActionResult> ProcessCobalt(
         string id,
         [FromHeader(Name = WopiHeaders.CORRELATION_ID)] string? correlationId = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(cobaltProcessor);
+        // Cobalt mutates content as part of the MS-FSSHTTP round-trip — fetch through the
+        // writable interface for the #420 item 1.2 gate. [RequiresWritableStorage] above
+        // already ensures writableStorageProvider is non-null.
+        ArgumentNullException.ThrowIfNull(writableStorageProvider);
 
-        var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false)
+        var file = await writableStorageProvider.GetWritableFile(id, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("File not found");
 
         var responseBytes = await cobaltProcessor.ProcessCobalt(file, User, await HttpContext.Request.Body.ReadBytesAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);

@@ -76,9 +76,14 @@ public sealed class DefaultWopiNewChildFileNegotiator(
             }
         }
 
-        // Overwrite-allowed + unlocked — caller proceeds with the existing file (PutRelativeFile
-        // writes the request body over it; CreateChildFile just returns its metadata).
-        return WopiNewChildFileResult.Success(existing);
+        // Overwrite-allowed + unlocked — upgrade the existing file (fetched via the read-side
+        // interface as IWopiFile) to IWopiWritableFile so the caller can mutate it. After
+        // #420 item 1.2 the write seam is gated by the writable interface; the read-side
+        // GetWopiFileByName intentionally returns the narrower IWopiFile.
+        var writableExisting = await writable.GetWritableFile(existing.Identifier, cancellationToken).ConfigureAwait(false);
+        return writableExisting is not null
+            ? WopiNewChildFileResult.Success(writableExisting)
+            : WopiNewChildFileResult.InternalError();
     }
 
     private async Task<WopiNewChildFileResult> NegotiateSuggestedAsync(WopiNewChildFileRequest request, CancellationToken cancellationToken)

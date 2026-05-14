@@ -94,6 +94,21 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
     }
 
     /// <inheritdoc/>
+    public async Task<IWopiWritableFile?> GetWritableFile(string identifier, CancellationToken cancellationToken = default)
+    {
+        // Same WopiBlobFile instance the read-side returns — the concrete class implements
+        // IWopiWritableFile (extends IWopiFile), so the choice is purely about the static
+        // type the caller sees.
+        await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
+        if (!_idMap.TryGetPath(identifier, out var path))
+        {
+            return null;
+        }
+        var blobClient = _containerClient.GetBlobClient(path);
+        return await WopiBlobFile.CreateAsync(blobClient, path, identifier, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
     public async Task<IWopiContainer?> GetWopiContainer(string identifier, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
@@ -325,7 +340,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
     }
 
     /// <inheritdoc/>
-    public async Task<IWopiFile?> CreateWopiChildFile(string containerId, string name, CancellationToken cancellationToken = default)
+    public async Task<IWopiWritableFile?> CreateWopiChildFile(string containerId, string name, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(containerId);
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);

@@ -71,7 +71,7 @@ public class WopiLockAwareWritableStorageProviderTests
     {
         // The new resource doesn't have a prior lock; lock check is unnecessary and we should
         // pass straight through. (Verifies the decorator doesn't accidentally guard creation.)
-        var newFile = new Mock<IWopiFile>().Object;
+        var newFile = new Mock<IWopiWritableFile>().Object;
         _innerMock.Setup(x => x.CreateWopiChildFile("parent", "newfile.txt", It.IsAny<CancellationToken>()))
             .ReturnsAsync(newFile);
 
