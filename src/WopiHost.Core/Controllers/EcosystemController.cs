@@ -3,7 +3,6 @@ using System.Net.Mime;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
@@ -20,7 +19,10 @@ namespace WopiHost.Core.Controllers;
 /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
 /// <param name="accessTokenService">Issues per-resource WOPI access tokens.</param>
 /// <param name="permissionProvider">Computes the permissions to bake into freshly issued tokens.</param>
-/// <param name="wopiHostOptions">Host configuration, including the <see cref="WopiHostOptions.OnCheckEcosystem"/> hook.</param>
+/// <param name="checkContainerInfoBuilder">Builds the <see cref="WopiCheckContainerInfo"/> response
+/// for the root container included with <c>GetRootContainer</c>.</param>
+/// <param name="extensions">Host-customization seam for
+/// <see cref="IWopiHostExtensions.OnCheckEcosystemAsync"/>.</param>
 [Authorize]
 [ApiController]
 [Route("wopi/[controller]")]
@@ -30,7 +32,8 @@ public class EcosystemController(
     IWopiStorageProvider storageProvider,
     IWopiAccessTokenService accessTokenService,
     IWopiPermissionProvider permissionProvider,
-    IOptions<WopiHostOptions> wopiHostOptions) : ControllerBase
+    ICheckContainerInfoBuilder checkContainerInfoBuilder,
+    IWopiHostExtensions extensions) : ControllerBase
 {
     /// <summary>
     /// The GetRootContainer operation returns the root container. A WOPI client can use this
@@ -70,7 +73,7 @@ public class EcosystemController(
                 Url.GetWopiSrc(WopiResourceType.Container, root.Identifier, token.Token)),
             // The spec strongly recommends including ContainerInfo so the WOPI client
             // does not have to round-trip back to CheckContainerInfo.
-            ContainerInfo = await root.GetWopiCheckContainerInfo(HttpContext, cancellationToken).ConfigureAwait(false),
+            ContainerInfo = await checkContainerInfoBuilder.BuildAsync(root, HttpContext, cancellationToken).ConfigureAwait(false),
         };
         return new JsonResult(rc);
     }
@@ -117,7 +120,7 @@ public class EcosystemController(
     /// </summary>
     [HttpGet(Name = WopiRouteNames.CheckEcosystem)]
     [Produces(MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> CheckEcosystem()
+    public async Task<IActionResult> CheckEcosystem(CancellationToken cancellationToken = default)
     {
         // Mirror the capability flags surfaced via CheckFileInfo. The spec says
         // SupportsContainers here "should match" the CheckFileInfo value.
@@ -127,10 +130,10 @@ public class EcosystemController(
             SupportsContainers = capabilities.SupportsContainers,
         };
 
-        // Allow the host to override before returning, mirroring OnCheckFileInfo /
-        // OnCheckContainerInfo / OnCheckFolderInfo.
-        checkEcosystem = await wopiHostOptions.Value.OnCheckEcosystem(
-            new WopiCheckEcosystemContext(User, checkEcosystem)).ConfigureAwait(false);
+        // Allow the host to override before returning, mirroring OnCheckFileInfoAsync /
+        // OnCheckContainerInfoAsync / OnCheckFolderInfoAsync.
+        checkEcosystem = await extensions.OnCheckEcosystemAsync(
+            new WopiCheckEcosystemContext(User, checkEcosystem), cancellationToken).ConfigureAwait(false);
 
         return new JsonResult(checkEcosystem);
     }

@@ -1,7 +1,6 @@
-﻿using System.Security.Claims;
-using WopiHost.Abstractions;
+using System.Security.Claims;
 
-namespace WopiHost.Core.Models;
+namespace WopiHost.Abstractions;
 
 /// <summary>
 /// Context for the CheckContainerInfo operation.

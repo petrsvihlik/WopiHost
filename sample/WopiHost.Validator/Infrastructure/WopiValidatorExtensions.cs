@@ -1,17 +1,19 @@
-﻿using WopiHost.Abstractions;
-using WopiHost.Core.Models;
+using WopiHost.Abstractions;
 
 namespace WopiHost.Validator.Infrastructure;
 
-public static class WopiEvents
+/// <summary>
+/// Validator-specific <see cref="IWopiHostExtensions"/>. The Microsoft WOPI-Validator suite
+/// checks for several optional CheckFileInfo URLs (<c>HostEditUrl</c>, <c>BreadcrumbBrandUrl</c>,
+/// etc.) on the canonical <c>.wopitest</c> probe file; populating them here keeps the test
+/// matrix green.
+/// </summary>
+public class WopiValidatorExtensions : WopiHostExtensions
 {
-    /// <summary>
-    /// Custom handling of CheckFileInfo results for WOPI-Validator
-    /// </summary>
-    /// <param name="context"></param>
-    /// <returns></returns>
-    public static Task<WopiCheckFileInfo> OnGetWopiCheckFileInfo(WopiCheckFileInfoContext context)
+    /// <inheritdoc />
+    public override Task<WopiCheckFileInfo> OnCheckFileInfoAsync(WopiCheckFileInfoContext context, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(context);
         var wopiCheckFileInfo = context.CheckFileInfo;
         wopiCheckFileInfo.AllowAdditionalMicrosoftServices = true;
         wopiCheckFileInfo.AllowErrorReportPrompt = true;

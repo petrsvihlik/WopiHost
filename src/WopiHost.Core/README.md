@@ -218,57 +218,55 @@ services.AddAuthentication()
 
 Skip this section if you are not exposing the bootstrapper. See [Bootstrap endpoint](https://github.com/petrsvihlik/WopiHost/wiki/Bootstrap-Endpoint) on the wiki for the WWW-Authenticate challenge and the three operations.
 
-## Customizing CheckFileInfo / CheckContainerInfo / CheckEcosystem
+## Customizing CheckFileInfo / CheckContainerInfo / CheckFolderInfo / CheckEcosystem
 
-Use the option callbacks to layer your own properties or override defaults:
+`IWopiHostExtensions` is the single host-customization seam. The shipped [`WopiHostExtensions`](../WopiHost.Abstractions/WopiHostExtensions.cs) base class is pass-through — subclass it and override only the hooks you care about, then register your subclass with DI.
 
 ```csharp
-services.AddWopi(o =>
+public class MyHostExtensions(IAuditLog audit, ITelemetry telemetry) : WopiHostExtensions
 {
-    o.ClientUrl                  = ...;
-    o.StorageProviderAssemblyName = "...";
-
-    o.OnCheckFileInfo = async ctx =>
+    public override Task<WopiCheckFileInfo> OnCheckFileInfoAsync(WopiCheckFileInfoContext ctx, CancellationToken ct = default)
     {
         ctx.CheckFileInfo.IsAnonymousUser = false;
-        return ctx.CheckFileInfo;
-    };
+        return Task.FromResult(ctx.CheckFileInfo);
+    }
 
     // Spec: SupportsContainers should match the value returned from CheckFileInfo.
-    o.OnCheckEcosystem = ctx =>
+    public override Task<WopiCheckEcosystem> OnCheckEcosystemAsync(WopiCheckEcosystemContext ctx, CancellationToken ct = default)
     {
         ctx.CheckEcosystem.SupportsContainers = false;
         return Task.FromResult(ctx.CheckEcosystem);
-    };
-});
-```
+    }
 
-## Hooks for PutFile / PutRelativeFile
-
-Both write paths fire a callback after a successful write so hosts can record audit trails, last-touch metadata, or react to binary-conversion uploads. Defaults are no-ops.
-
-```csharp
-services.AddWopi(o =>
-{
     // Fired after a successful PutFile. Editors comes from X-WOPI-Editors —
     // a comma-delimited list of UserId values for users who contributed
     // changes in this PutFile request.
-    o.OnPutFile = async ctx =>
+    public override async Task OnPutFileAsync(WopiPutFileContext ctx, CancellationToken ct = default)
     {
-        await audit.RecordEditAsync(ctx.File, ctx.Editors, ctx.User);
-    };
+        await audit.RecordEditAsync(ctx.File, ctx.Editors, ctx.User, ct);
+    }
 
     // Fired after a successful PutRelativeFile. IsFileConversion reflects
     // X-WOPI-FileConversion (presence-only); DeclaredSize reflects X-WOPI-Size.
-    o.OnPutRelativeFile = ctx =>
+    public override Task OnPutRelativeFileAsync(WopiPutRelativeFileContext ctx, CancellationToken ct = default)
     {
         if (ctx.IsFileConversion) telemetry.Conversion(ctx.NewFile);
         return Task.CompletedTask;
-    };
+    }
+}
+
+// Register BEFORE or AFTER AddWopi — TryAddSingleton respects either order.
+services.AddSingleton<IWopiHostExtensions, MyHostExtensions>();
+services.AddWopi(o =>
+{
+    o.ClientUrl                   = ...;
+    o.StorageProviderAssemblyName = "...";
 });
 ```
 
-Throwing inside these callbacks turns the response into a 500 — for best-effort bookkeeping, catch exceptions inside the handler.
+Throwing inside any hook turns the response into a 500 — for best-effort bookkeeping (audit log, last-edit telemetry), catch exceptions inside the override.
+
+If the customization needs scoped services that don't fit the hook's context shape — or you want to replace the entire response generation — register a custom [`ICheckFileInfoBuilder`](../WopiHost.Abstractions/ICheckFileInfoBuilder.cs) / [`ICheckContainerInfoBuilder`](../WopiHost.Abstractions/ICheckContainerInfoBuilder.cs) / [`ICheckFolderInfoBuilder`](../WopiHost.Abstractions/ICheckFolderInfoBuilder.cs). The default builders in `WopiHost.Core` fire the matching `IWopiHostExtensions` hook before returning; custom builders own that responsibility themselves.
 
 ## Upload-size budget
 

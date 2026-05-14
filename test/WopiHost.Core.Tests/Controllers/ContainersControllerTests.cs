@@ -54,8 +54,13 @@ public class ContainersControllerTests
                     ServiceScopeFactory = TestUtils.CreateServiceScope(new Mock<IAuthenticationService>().Object),
                 }
             });
+        var extensions = new WopiHostExtensions();
+        var checkContainerInfoBuilder = new DefaultCheckContainerInfoBuilder(_permissionProviderMock.Object, extensions);
+        var checkFileInfoBuilder = new DefaultCheckFileInfoBuilder(_permissionProviderMock.Object, extensions, _writableStorageProviderMock.Object);
         _controller = new ContainersController(
             _storageProviderMock.Object,
+            checkContainerInfoBuilder,
+            checkFileInfoBuilder,
             _lockProviderMock.Object,
             _writableStorageProviderMock.Object)
         {

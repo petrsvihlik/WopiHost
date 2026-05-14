@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using WopiHost.Abstractions;
 using WopiHost.Core.Controllers;
+using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
 
@@ -19,6 +20,21 @@ public class EcosystemControllerTests
     private readonly Mock<IWopiAccessTokenService> _tokens = new();
     private readonly Mock<IWopiPermissionProvider> _permissions = new();
     private readonly Mock<IWopiFolder> _root = new();
+
+    /// <summary>
+    /// Capturing <see cref="IWopiHostExtensions"/> used by tests to observe the
+    /// <c>OnCheckEcosystemAsync</c> hook. Replaces the per-callback delegate that previously
+    /// lived on <see cref="WopiHostOptions"/>.
+    /// </summary>
+    private sealed class CapturingExtensions : WopiHostExtensions
+    {
+        public Func<WopiCheckEcosystemContext, CancellationToken, Task<WopiCheckEcosystem>>? CheckEcosystemHandler { get; set; }
+
+        public override Task<WopiCheckEcosystem> OnCheckEcosystemAsync(WopiCheckEcosystemContext context, CancellationToken cancellationToken = default)
+            => CheckEcosystemHandler is null
+                ? base.OnCheckEcosystemAsync(context, cancellationToken)
+                : CheckEcosystemHandler(context, cancellationToken);
+    }
 
     public EcosystemControllerTests()
     {
@@ -40,10 +56,10 @@ public class EcosystemControllerTests
 
     private EcosystemController BuildController(
         ClaimsPrincipal? user = null,
-        WopiHostOptions? options = null,
+        IWopiHostExtensions? extensions = null,
         UrlRouteContext? captureUrlRouteContext = null)
     {
-        var optionsObj = Options.Create(options ?? DefaultOptions());
+        var optionsObj = Options.Create(DefaultOptions());
 
         var auth = new Mock<IAuthenticationService>();
         auth.Setup(a => a.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()))
@@ -75,7 +91,10 @@ public class EcosystemControllerTests
         }
         url.Setup(u => u.ActionContext).Returns(new ActionContext { HttpContext = ctx });
 
-        return new EcosystemController(_storage.Object, _tokens.Object, _permissions.Object, optionsObj)
+        var hostExtensions = extensions ?? new WopiHostExtensions();
+        var containerInfoBuilder = new DefaultCheckContainerInfoBuilder(_permissions.Object, hostExtensions);
+
+        return new EcosystemController(_storage.Object, _tokens.Object, _permissions.Object, containerInfoBuilder, hostExtensions)
         {
             Url = url.Object,
             ControllerContext = new ControllerContext { HttpContext = ctx },
@@ -202,15 +221,17 @@ public class EcosystemControllerTests
     public async Task CheckEcosystem_RunsThroughOnCheckEcosystemHook()
     {
         var hookCalled = false;
-        var options = DefaultOptions();
-        options.OnCheckEcosystem = ctx =>
+        var extensions = new CapturingExtensions
         {
-            hookCalled = true;
-            ctx.CheckEcosystem.SupportsContainers = false;
-            return Task.FromResult(ctx.CheckEcosystem);
+            CheckEcosystemHandler = (ctx, _) =>
+            {
+                hookCalled = true;
+                ctx.CheckEcosystem.SupportsContainers = false;
+                return Task.FromResult(ctx.CheckEcosystem);
+            },
         };
 
-        var result = await BuildController(options: options).CheckEcosystem();
+        var result = await BuildController(extensions: extensions).CheckEcosystem();
 
         var dto = Assert.IsType<WopiCheckEcosystem>(((JsonResult)result).Value);
         Assert.True(hookCalled);
@@ -221,14 +242,16 @@ public class EcosystemControllerTests
     public async Task CheckEcosystem_HookReceivesCurrentUser()
     {
         ClaimsPrincipal? observed = null;
-        var options = DefaultOptions();
-        options.OnCheckEcosystem = ctx =>
+        var extensions = new CapturingExtensions
         {
-            observed = ctx.User;
-            return Task.FromResult(ctx.CheckEcosystem);
+            CheckEcosystemHandler = (ctx, _) =>
+            {
+                observed = ctx.User;
+                return Task.FromResult(ctx.CheckEcosystem);
+            },
         };
 
-        await BuildController(options: options).CheckEcosystem();
+        await BuildController(extensions: extensions).CheckEcosystem();
 
         Assert.NotNull(observed);
         Assert.Equal("alice", observed!.FindFirst(ClaimTypes.NameIdentifier)?.Value);

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Routing;
 using Moq;
 using WopiHost.Abstractions;
 using WopiHost.Core.Controllers;
+using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
 
@@ -52,7 +53,9 @@ public class WopiBootstrapperControllerTests
             HttpContext = new DefaultHttpContext { ServiceScopeFactory = serviceScope }
         });
 
-        return new WopiBootstrapperController(_storage.Object, _tokens.Object, _permissions.Object)
+        var extensions = new WopiHostExtensions();
+        var containerInfoBuilder = new DefaultCheckContainerInfoBuilder(_permissions.Object, extensions);
+        return new WopiBootstrapperController(_storage.Object, _tokens.Object, _permissions.Object, containerInfoBuilder)
         {
             Url = _url.Object,
             ControllerContext = new ControllerContext

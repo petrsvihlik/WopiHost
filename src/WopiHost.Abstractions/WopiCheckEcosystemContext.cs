@@ -1,7 +1,6 @@
 using System.Security.Claims;
-using WopiHost.Abstractions;
 
-namespace WopiHost.Core.Models;
+namespace WopiHost.Abstractions;
 
 /// <summary>
 /// Context for the CheckEcosystem operation.

@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
@@ -24,6 +23,11 @@ namespace WopiHost.Core.Controllers;
 /// </summary>
 /// <param name="storageProvider">Storage provider instance for retrieving files and folders.</param>
 /// <param name="memoryCache">An instance of the memory cache.</param>
+/// <param name="checkFileInfoBuilder">Builds the <see cref="WopiCheckFileInfo"/> response and
+/// fires the configured <see cref="IWopiHostExtensions.OnCheckFileInfoAsync"/> hook.</param>
+/// <param name="extensions">Host-customization seam invoked from PutFile / PutRelativeFile.</param>
+/// <param name="options">Host options — surface configuration like <see cref="WopiHostOptions.MaxFileSize"/>
+/// and <see cref="WopiHostOptions.EmptyLockHeaderValue"/>.</param>
 /// <param name="writableStorageProvider">Storage provider instance for writing files and folders.</param>
 /// <param name="lockProvider">An instance of the lock provider.</param>
 /// <param name="cobaltProcessor">An instance of a MS-FSSHTTP processor.</param>
@@ -39,6 +43,9 @@ namespace WopiHost.Core.Controllers;
 public class FilesController(
     IWopiStorageProvider storageProvider,
     IMemoryCache memoryCache,
+    ICheckFileInfoBuilder checkFileInfoBuilder,
+    IWopiHostExtensions extensions,
+    IOptions<WopiHostOptions> options,
     IWopiWritableStorageProvider? writableStorageProvider = null,
     IWopiLockProvider? lockProvider = null,
     ICobaltProcessor? cobaltProcessor = null,
@@ -77,8 +84,8 @@ public class FilesController(
         // The UserInfo ... should be passed back to the WOPI client in subsequent CheckFileInfo responses in the UserInfo property.
         _ = memoryCache.TryGetValue($"{UserInfoCacheKeyPrefix}{User.GetUserId()}", out string? userInfo);
 
-        // build default checkFileInfo
-        var checkFileInfo = await file.GetWopiCheckFileInfo(HttpContext, HostCapabilities, userInfo, cancellationToken).ConfigureAwait(false);
+        // build default checkFileInfo (builder fires the configured host-extension hook before returning)
+        var checkFileInfo = await checkFileInfoBuilder.BuildAsync(file, HttpContext, HostCapabilities, userInfo, cancellationToken).ConfigureAwait(false);
 
         // instead of JsonResult we must .Serialize<object>() to support properties that
         // might be defined on custom WopiCheckFileInfo objects
@@ -319,7 +326,7 @@ public class FilesController(
     /// <param name="newLockIdentifier">new lockId</param>
     /// <param name="editors">Optional <c>X-WOPI-Editors</c> request header — a comma-delimited
     /// list of <see cref="WopiCheckFileInfo.UserId"/> values for users who contributed to this
-    /// PutFile. Surfaced via <see cref="WopiHostOptions.OnPutFile"/>.</param>
+    /// PutFile. Surfaced via <see cref="IWopiHostExtensions.OnPutFileAsync"/>.</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPut("{id}/contents")]
@@ -357,7 +364,7 @@ public class FilesController(
                 {
                     Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
                 }
-                await InvokePutFileCallbackAsync(file, editors).ConfigureAwait(false);
+                await InvokePutFileCallbackAsync(file, editors, cancellationToken).ConfigureAwait(false);
                 return Ok();
             }
             else // If ... missing altogether, the host should respond with a 409 Conflict
@@ -379,27 +386,22 @@ public class FilesController(
             {
                 Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
             }
-            await InvokePutFileCallbackAsync(file, editors).ConfigureAwait(false);
+            await InvokePutFileCallbackAsync(file, editors, cancellationToken).ConfigureAwait(false);
             return Ok();
         }
         return lockResult;
     }
 
     /// <summary>
-    /// Resolves the configured <see cref="WopiHostOptions.OnPutFile"/> callback (if any) and
-    /// invokes it with the parsed <c>X-WOPI-Editors</c> contributor list. The header is a
-    /// comma-delimited list per WOPI <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see>;
+    /// Invokes <see cref="IWopiHostExtensions.OnPutFileAsync"/> with the parsed
+    /// <c>X-WOPI-Editors</c> contributor list. The header is a comma-delimited list per WOPI
+    /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see>;
     /// blank entries (extra commas, leading/trailing whitespace) are dropped.
     /// </summary>
-    private async Task InvokePutFileCallbackAsync(IWopiFile file, string? editorsHeader)
+    private async Task InvokePutFileCallbackAsync(IWopiFile file, string? editorsHeader, CancellationToken cancellationToken)
     {
-        var options = HttpContext.RequestServices?.GetService<IOptions<WopiHostOptions>>();
-        if (options is null)
-        {
-            return;
-        }
         var editors = ParseEditorsHeader(editorsHeader);
-        await options.Value.OnPutFile(new WopiPutFileContext(User, file, editors)).ConfigureAwait(false);
+        await extensions.OnPutFileAsync(new WopiPutFileContext(User, file, editors), cancellationToken).ConfigureAwait(false);
     }
 
     private static ReadOnlyCollection<string> ParseEditorsHeader(string? header)
@@ -421,11 +423,7 @@ public class FilesController(
     /// </summary>
     private StatusCodeResult? CheckMaxFileSize(long? declaredSize = null)
     {
-        // RequestServices can be null when the controller is invoked without a configured
-        // ServiceProvidersFeature (some unit-test paths). Treat that as "no options resolved" so
-        // the limit just doesn't apply, instead of NRE-ing through the size check.
-        var options = HttpContext.RequestServices?.GetService<IOptions<WopiHostOptions>>();
-        var max = options?.Value.MaxFileSize;
+        var max = options.Value.MaxFileSize;
         if (max is null)
         {
             return null;
@@ -451,9 +449,9 @@ public class FilesController(
     /// <param name="overwriteRelativeTarget">A Boolean value that specifies whether the host must overwrite the file name if it exists. The default value is false.</param>
     /// <param name="fileConversion">Optional <c>X-WOPI-FileConversion</c> header. When present
     /// (any value), signals that the request is part of a binary document conversion. Surfaced
-    /// via <see cref="WopiHostOptions.OnPutRelativeFile"/>.</param>
+    /// via <see cref="IWopiHostExtensions.OnPutRelativeFileAsync"/>.</param>
     /// <param name="declaredSize">Optional <c>X-WOPI-Size</c> header announcing the file size in
-    /// bytes. Surfaced via <see cref="WopiHostOptions.OnPutRelativeFile"/>.</param>
+    /// bytes. Surfaced via <see cref="IWopiHostExtensions.OnPutRelativeFileAsync"/>.</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>Returns <see cref="StatusCodes.Status200OK"/> if succeeded.</returns>
     [HttpPost("{id}"), WopiOverrideHeader(WopiFileOperations.PutRelativeFile)]
@@ -574,8 +572,8 @@ public class FilesController(
         {
             // copy new contents to storage
             await HttpContext.CopyToWriteStream(newFile, cancellationToken).ConfigureAwait(false);
-            await InvokePutRelativeFileCallbackAsync(file, newFile, fileConversion, declaredSize).ConfigureAwait(false);
-            var checkFileInfo = await newFile.GetWopiCheckFileInfo(HttpContext, HostCapabilities, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await InvokePutRelativeFileCallbackAsync(file, newFile, fileConversion, declaredSize, cancellationToken).ConfigureAwait(false);
+            var checkFileInfo = await checkFileInfoBuilder.BuildAsync(newFile, HttpContext, HostCapabilities, cancellationToken: cancellationToken).ConfigureAwait(false);
             return new JsonResult(
                 new ChildFile(
                     newFile.Name + '.' + newFile.Extension,
@@ -590,23 +588,18 @@ public class FilesController(
     }
 
     /// <summary>
-    /// Resolves the configured <see cref="WopiHostOptions.OnPutRelativeFile"/> callback (if any)
-    /// and invokes it with the parsed <c>X-WOPI-FileConversion</c> presence flag and
-    /// <c>X-WOPI-Size</c> declared-size value.
+    /// Invokes <see cref="IWopiHostExtensions.OnPutRelativeFileAsync"/> with the parsed
+    /// <c>X-WOPI-FileConversion</c> presence flag and <c>X-WOPI-Size</c> declared-size value.
     /// </summary>
-    private async Task InvokePutRelativeFileCallbackAsync(IWopiFile originalFile, IWopiFile newFile, string? fileConversion, long? declaredSize)
+    private async Task InvokePutRelativeFileCallbackAsync(IWopiFile originalFile, IWopiFile newFile, string? fileConversion, long? declaredSize, CancellationToken cancellationToken)
     {
-        var options = HttpContext.RequestServices?.GetService<IOptions<WopiHostOptions>>();
-        if (options is null)
-        {
-            return;
-        }
         // Per spec, X-WOPI-FileConversion is presence-only; the value is irrelevant. Treat any
         // bound value (including the empty string) as "header was present."
         var isConversion = fileConversion is not null
             || HttpContext.Request.Headers.ContainsKey(WopiHeaders.FILE_CONVERSION);
-        await options.Value.OnPutRelativeFile(
-            new WopiPutRelativeFileContext(User, originalFile, newFile, isConversion, declaredSize)).ConfigureAwait(false);
+        await extensions.OnPutRelativeFileAsync(
+            new WopiPutRelativeFileContext(User, originalFile, newFile, isConversion, declaredSize),
+            cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -789,12 +782,9 @@ public class FilesController(
 
     private OkResult HandleGetLock(WopiLockInfo? existingLock)
     {
-        var emptyValue = HttpContext.RequestServices?
-            .GetService<IOptions<WopiHostOptions>>()?.Value.EmptyLockHeaderValue
-            ?? WopiHeaders.EMPTY_LOCK_VALUE;
         Response.Headers[WopiHeaders.LOCK] = existingLock is not null
             ? existingLock.LockId
-            : emptyValue;
+            : options.Value.EmptyLockHeaderValue;
         return Ok();
     }
 

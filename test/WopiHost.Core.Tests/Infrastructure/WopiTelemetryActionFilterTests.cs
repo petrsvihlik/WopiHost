@@ -47,7 +47,7 @@ public sealed class WopiTelemetryActionFilterTests : IDisposable
     {
         var result = (IActionResult)Activator.CreateInstance(resultType)!;
 
-        var (_, recordedActivity) = await RunFilterAsync(controller: new FilesController(null!, null!), result);
+        var (_, recordedActivity) = await RunFilterAsync(controller: new FilesController(null!, null!, null!, null!, null!), result);
 
         Assert.NotNull(recordedActivity);
         Assert.Equal(expectedOutcome, recordedActivity.GetTagItem(WopiTelemetry.Tags.Outcome));
@@ -60,7 +60,7 @@ public sealed class WopiTelemetryActionFilterTests : IDisposable
         var ctx = new DefaultHttpContext();
         var result = new LockMismatchResult(ctx.Response, existingLock: "abc");
 
-        var (_, activity) = await RunFilterAsync(controller: new FilesController(null!, null!), result, httpContext: ctx);
+        var (_, activity) = await RunFilterAsync(controller: new FilesController(null!, null!, null!, null!, null!), result, httpContext: ctx);
 
         Assert.NotNull(activity);
         Assert.Equal(WopiTelemetry.Outcomes.LockMismatch, activity.GetTagItem(WopiTelemetry.Tags.Outcome));
@@ -70,7 +70,7 @@ public sealed class WopiTelemetryActionFilterTests : IDisposable
     public async Task ContainerController_TagsContainerId()
     {
         var (_, activity) = await RunFilterAsync(
-            controller: new ContainersController(null!),
+            controller: new ContainersController(null!, null!, null!),
             new OkResult(),
             actionArguments: new() { ["id"] = "container-7" });
 
@@ -87,7 +87,7 @@ public sealed class WopiTelemetryActionFilterTests : IDisposable
         ctx.Request.Headers[WopiHeaders.LOCK] = "lock-id-1";
 
         var (_, activity) = await RunFilterAsync(
-            controller: new FilesController(null!, null!),
+            controller: new FilesController(null!, null!, null!, null!, null!),
             new OkResult(),
             actionArguments: new() { ["id"] = "file-7" },
             httpContext: ctx);
@@ -101,7 +101,7 @@ public sealed class WopiTelemetryActionFilterTests : IDisposable
     public async Task UnhandledException_ClassifiedAsError()
     {
         var (_, activity) = await RunFilterAsync(
-            controller: new FilesController(null!, null!),
+            controller: new FilesController(null!, null!, null!, null!, null!),
             result: null,
             exception: new InvalidOperationException("boom"));
 
@@ -114,7 +114,7 @@ public sealed class WopiTelemetryActionFilterTests : IDisposable
     public async Task NoIdRouteValue_DoesNotAddResourceTag()
     {
         var (_, activity) = await RunFilterAsync(
-            controller: new FilesController(null!, null!),
+            controller: new FilesController(null!, null!, null!, null!, null!),
             new OkResult());
 
         Assert.NotNull(activity);
@@ -125,7 +125,7 @@ public sealed class WopiTelemetryActionFilterTests : IDisposable
     public async Task FallsBackToHttpStatusCode_WhenResultIsRawStatusCodeResult()
     {
         var (_, activity) = await RunFilterAsync(
-            controller: new FilesController(null!, null!),
+            controller: new FilesController(null!, null!, null!, null!, null!),
             result: new StatusCodeResult(StatusCodes.Status404NotFound));
 
         Assert.NotNull(activity);
@@ -139,7 +139,7 @@ public sealed class WopiTelemetryActionFilterTests : IDisposable
         ctx.Response.StatusCode = StatusCodes.Status409Conflict;
 
         var (_, activity) = await RunFilterAsync(
-            controller: new FilesController(null!, null!),
+            controller: new FilesController(null!, null!, null!, null!, null!),
             result: null,
             httpContext: ctx);
 

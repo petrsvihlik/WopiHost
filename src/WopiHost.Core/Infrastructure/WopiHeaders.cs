@@ -46,7 +46,7 @@ public static class WopiHeaders
     /// <summary>
     /// A comma-delimited string of <c>UserId</c> values representing all the users who contributed
     /// changes to the document in this <c>PutFile</c> request. Optional; surfaced via
-    /// <see cref="WopiHost.Core.Models.WopiHostOptions.OnPutFile"/>.
+    /// <see cref="WopiHost.Abstractions.IWopiHostExtensions.OnPutFileAsync"/>.
     /// </summary>
     public const string EDITORS = "X-WOPI-Editors";
 
@@ -54,13 +54,13 @@ public static class WopiHeaders
     /// Marker request header on <c>PutRelativeFile</c> whose <em>presence</em> indicates the call
     /// is being made in the context of a binary document conversion. The header value itself is
     /// not significant per the spec — only its presence. Surfaced via
-    /// <see cref="WopiHost.Core.Models.WopiHostOptions.OnPutRelativeFile"/>.
+    /// <see cref="WopiHost.Abstractions.IWopiHostExtensions.OnPutRelativeFileAsync"/>.
     /// </summary>
     public const string FILE_CONVERSION = "X-WOPI-FileConversion";
 
     /// <summary>
     /// Optional integer request header on <c>PutRelativeFile</c> announcing the size in bytes of
-    /// the file being uploaded. Surfaced via <see cref="WopiHost.Core.Models.WopiHostOptions.OnPutRelativeFile"/>.
+    /// the file being uploaded. Surfaced via <see cref="WopiHost.Abstractions.IWopiHostExtensions.OnPutRelativeFileAsync"/>.
     /// </summary>
     public const string SIZE = "X-WOPI-Size";
 

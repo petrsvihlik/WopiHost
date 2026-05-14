@@ -1,8 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Security.Claims;
-using WopiHost.Abstractions;
 
-namespace WopiHost.Core.Models;
+namespace WopiHost.Abstractions;
 
 /// <summary>
 /// Context for the <c>PutFile</c> operation, raised after the host has successfully written

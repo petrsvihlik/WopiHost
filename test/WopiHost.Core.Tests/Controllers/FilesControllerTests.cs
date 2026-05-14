@@ -29,7 +29,33 @@ public class FilesControllerTests
     private readonly IMemoryCache _memoryCache;
     private readonly Mock<IWopiLockProvider> _lockProviderMock;
     private readonly Mock<IUrlHelper> _urlMock;
+    private readonly DefaultCheckFileInfoBuilder _checkFileInfoBuilder;
     private FilesController _controller;
+
+    /// <summary>
+    /// Capturing <see cref="IWopiHostExtensions"/> used by tests to observe and override the
+    /// PutFile / PutRelativeFile hook callbacks. Replaces the per-callback delegate properties
+    /// that previously lived on <see cref="WopiHostOptions"/>.
+    /// </summary>
+    private sealed class CapturingExtensions : WopiHostExtensions
+    {
+        public Func<WopiPutFileContext, CancellationToken, Task>? PutFileHandler { get; set; }
+        public Func<WopiPutRelativeFileContext, CancellationToken, Task>? PutRelativeFileHandler { get; set; }
+        public Func<WopiCheckFileInfoContext, CancellationToken, Task<WopiCheckFileInfo>>? CheckFileInfoHandler { get; set; }
+
+        public override Task OnPutFileAsync(WopiPutFileContext context, CancellationToken cancellationToken = default)
+            => PutFileHandler is null ? Task.CompletedTask : PutFileHandler(context, cancellationToken);
+
+        public override Task OnPutRelativeFileAsync(WopiPutRelativeFileContext context, CancellationToken cancellationToken = default)
+            => PutRelativeFileHandler is null ? Task.CompletedTask : PutRelativeFileHandler(context, cancellationToken);
+
+        public override Task<WopiCheckFileInfo> OnCheckFileInfoAsync(WopiCheckFileInfoContext context, CancellationToken cancellationToken = default)
+            => CheckFileInfoHandler is null
+                ? base.OnCheckFileInfoAsync(context, cancellationToken)
+                : CheckFileInfoHandler(context, cancellationToken);
+    }
+
+    private CapturingExtensions _extensions = new();
 
     public FilesControllerTests()
     {
@@ -46,7 +72,6 @@ public class FilesControllerTests
             {
                 StorageProviderAssemblyName = "test",
                 LockProviderAssemblyName = "test",
-                OnCheckFileInfo = o => Task.FromResult(o.CheckFileInfo),
                 ClientUrl = new Uri("http://localhost:5000"),
             });
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
@@ -70,11 +95,57 @@ public class FilesControllerTests
                 }
             });
 
+        _checkFileInfoBuilder = new DefaultCheckFileInfoBuilder(
+            _permissionProviderMock.Object,
+            _extensions,
+            _writableStorageProviderMock.Object);
+
         _controller = new FilesController(
             _storageProviderMock.Object,
             _memoryCache,
+            _checkFileInfoBuilder,
+            _extensions,
+            _wopiHostOptionsMock.Object,
             _writableStorageProviderMock.Object,
             _lockProviderMock.Object)
+        {
+            Url = _urlMock.Object,
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
+        };
+    }
+
+    /// <summary>
+    /// Rebuilds the controller with optional overrides. Used by tests that previously poked
+    /// callbacks via <c>WopiHostOptions</c> (now <see cref="IWopiHostExtensions"/>) or replaced
+    /// the options/lock provider.
+    /// </summary>
+    private void RebuildController(
+        CapturingExtensions? extensions = null,
+        IOptions<WopiHostOptions>? options = null,
+        IWopiWritableStorageProvider? writableStorageProvider = null,
+        IWopiLockProvider? lockProvider = null,
+        bool useNullLockProvider = false,
+        bool useNullWritableStorageProvider = false)
+    {
+        if (extensions is not null)
+        {
+            _extensions = extensions;
+        }
+        var builder = new DefaultCheckFileInfoBuilder(
+            _permissionProviderMock.Object,
+            _extensions,
+            useNullWritableStorageProvider ? null : (writableStorageProvider ?? _writableStorageProviderMock.Object));
+        _controller = new FilesController(
+            _storageProviderMock.Object,
+            _memoryCache,
+            builder,
+            _extensions,
+            options ?? _wopiHostOptionsMock.Object,
+            useNullWritableStorageProvider ? null : (writableStorageProvider ?? _writableStorageProviderMock.Object),
+            useNullLockProvider ? null : (lockProvider ?? _lockProviderMock.Object))
         {
             Url = _urlMock.Object,
             ControllerContext = new ControllerContext
@@ -776,11 +847,7 @@ public class FilesControllerTests
             .Setup(s => s.GetWopiResource<IWopiFile>(fileId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileMock.Object);
 
-        _controller = new FilesController(_storageProviderMock.Object, _memoryCache)
-        {
-            Url = _urlMock.Object,
-            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
-        };
+        RebuildController(useNullLockProvider: true);
 
         var result = await _controller.PutFile(fileId, newLockIdentifier: "lock-id");
 
@@ -824,20 +891,10 @@ public class FilesControllerTests
             .ReturnsAsync(fileMock.Object);
 
         WopiPutFileContext? captured = null;
-        var optionsWithCallback = Options.Create(new WopiHostOptions
+        RebuildController(extensions: new CapturingExtensions
         {
-            StorageProviderAssemblyName = "test",
-            ClientUrl = new Uri("http://localhost:5000"),
-            OnPutFile = ctx => { captured = ctx; return Task.CompletedTask; },
+            PutFileHandler = (ctx, _) => { captured = ctx; return Task.CompletedTask; },
         });
-
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext
-            {
-                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithCallback),
-            }
-        };
 
         var result = await _controller.PutFile(fileId, newLockIdentifier: null, editors: " alice , bob ,, charlie");
 
@@ -859,20 +916,10 @@ public class FilesControllerTests
             .ReturnsAsync(fileMock.Object);
 
         WopiPutFileContext? captured = null;
-        var optionsWithCallback = Options.Create(new WopiHostOptions
+        RebuildController(extensions: new CapturingExtensions
         {
-            StorageProviderAssemblyName = "test",
-            ClientUrl = new Uri("http://localhost:5000"),
-            OnPutFile = ctx => { captured = ctx; return Task.CompletedTask; },
+            PutFileHandler = (ctx, _) => { captured = ctx; return Task.CompletedTask; },
         });
-
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext
-            {
-                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithCallback),
-            }
-        };
 
         var result = await _controller.PutFile(fileId, newLockIdentifier: null, editors: null);
 
@@ -896,14 +943,8 @@ public class FilesControllerTests
             ClientUrl = new Uri("http://localhost:5000"),
             MaxFileSize = 1024,
         });
-
-        var httpContext = new DefaultHttpContext
-        {
-            ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithLimit),
-        };
-        httpContext.Request.ContentLength = 4096;
-
-        _controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+        RebuildController(options: optionsWithLimit);
+        _controller.ControllerContext.HttpContext.Request.ContentLength = 4096;
 
         var result = await _controller.PutFile(fileId, newLockIdentifier: null);
 
@@ -1129,14 +1170,7 @@ public class FilesControllerTests
             ClientUrl = new Uri("http://localhost:5000"),
             MaxFileSize = 1024,
         });
-
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext
-            {
-                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithLimit),
-            }
-        };
+        RebuildController(options: optionsWithLimit);
 
         // X-WOPI-Size declares 4096, MaxFileSize is 1024 → 413 short-circuits before write.
         var result = await _controller.PutRelativeFile(
@@ -1175,20 +1209,10 @@ public class FilesControllerTests
             .ReturnsAsync(newFileMock.Object);
 
         WopiPutRelativeFileContext? captured = null;
-        var optionsWithCallback = Options.Create(new WopiHostOptions
+        RebuildController(extensions: new CapturingExtensions
         {
-            StorageProviderAssemblyName = "test",
-            ClientUrl = new Uri("http://localhost:5000"),
-            OnPutRelativeFile = ctx => { captured = ctx; return Task.CompletedTask; },
+            PutRelativeFileHandler = (ctx, _) => { captured = ctx; return Task.CompletedTask; },
         });
-
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext
-            {
-                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithCallback),
-            }
-        };
 
         var result = await _controller.PutRelativeFile(
             fileId,
@@ -1231,20 +1255,10 @@ public class FilesControllerTests
             .ReturnsAsync(newFileMock.Object);
 
         WopiPutRelativeFileContext? captured = null;
-        var optionsWithCallback = Options.Create(new WopiHostOptions
+        RebuildController(extensions: new CapturingExtensions
         {
-            StorageProviderAssemblyName = "test",
-            ClientUrl = new Uri("http://localhost:5000"),
-            OnPutRelativeFile = ctx => { captured = ctx; return Task.CompletedTask; },
+            PutRelativeFileHandler = (ctx, _) => { captured = ctx; return Task.CompletedTask; },
         });
-
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext
-            {
-                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(optionsWithCallback),
-            }
-        };
 
         var result = await _controller.PutRelativeFile(
             fileId,
@@ -1343,15 +1357,7 @@ public class FilesControllerTests
         var fileId = "test-file-id";
         SetupFileMock(fileId);
 
-        _controller = new FilesController(
-            _storageProviderMock.Object,
-            _memoryCache)
-        {
-            ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext()
-            }
-        };
+        RebuildController(useNullLockProvider: true);
 
         var wopiOverrideHeader = WopiFileOperations.Lock;
 
@@ -1456,7 +1462,7 @@ public class FilesControllerTests
     {
         // Hosts running under IIS in-process opt back into the single-space workaround for
         // empty X-WOPI-Lock values via WopiHostOptions.EmptyLockHeaderValue. Verify the option
-        // flows through HandleGetLock at request time.
+        // flows through HandleGetLock.
         var fileId = "test-file-id";
         SetupFileMock(fileId);
         _lockProviderMock.Setup(x => x.GetLockAsync(fileId, It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
@@ -1467,13 +1473,9 @@ public class FilesControllerTests
             ClientUrl = new Uri("http://localhost:5000"),
             EmptyLockHeaderValue = " ",
         });
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext
-            {
-                ServiceScopeFactory = TestUtils.CreateServiceScope<IOptions<WopiHostOptions>>(customOptions),
-            }
-        };
+        // HandleGetLock reads EmptyLockHeaderValue from the constructor-injected IOptions
+        // (not HttpContext.RequestServices) — rebuild the controller so the override flows in.
+        RebuildController(options: customOptions);
 
         var result = await _controller.ProcessLock(fileId, WopiFileOperations.GetLock);
 
