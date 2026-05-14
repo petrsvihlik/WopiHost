@@ -112,6 +112,36 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         }
     }
 
+    /// <summary>
+    /// Init script installed on every test page to capture Collabora's postMessage stream.
+    /// We unwrap <c>e.data</c> (always a JSON string from Collabora) into structured fields
+    /// so the subsequent C# searches don't have to deal with JSON-in-JSON escaping.
+    /// Without the unwrap, <c>JSON.stringify(window.__collaboraMessages)</c> turns
+    /// <c>{"MessageId":"Action_Load_Resp"}</c> into <c>"{\"MessageId\":\"Action_Load_Resp\"}"</c>
+    /// in C# memory — every backslash-escaped — and the test's <c>Contains</c> on a literal
+    /// <c>"MessageId":"Action_Load_Resp"</c> silently never matches.
+    /// </summary>
+    private const string CollaboraMessageCaptureScript = @"
+        window.__collaboraMessages = [];
+        window.addEventListener('message', (e) => {
+            try {
+                var raw = typeof e.data === 'string' ? e.data : null;
+                var parsed = null;
+                if (raw) { try { parsed = JSON.parse(raw); } catch { /* not JSON */ } }
+                window.__collaboraMessages.push({
+                    t: Date.now(),
+                    origin: e.origin,
+                    messageId: parsed && parsed.MessageId,
+                    status:    parsed && parsed.Values && parsed.Values.Status,
+                    success:   parsed && parsed.Values && parsed.Values.success,
+                    errorType: parsed && parsed.Values && parsed.Values.errorType,
+                    errorMsg:  parsed && parsed.Values && parsed.Values.errorMsg,
+                    raw: raw
+                });
+            } catch { /* ignore */ }
+        });
+    ";
+
     [Fact]
     public async Task OpensDocxInCollabora_RendersDocumentArea()
     {
@@ -124,15 +154,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // the shell even when its WebSocket auth fails (errorType:"websocketunauthorized"). The
         // only durable proof of a successful handshake is Collabora emitting
         // Action_Load_Resp{success:true} OR App_LoadingStatus{Status:"Document_Loaded"}.
-        await page.AddInitScriptAsync(@"
-            window.__collaboraMessages = [];
-            window.addEventListener('message', (e) => {
-                try {
-                    var data = typeof e.data === 'string' ? e.data : JSON.stringify(e.data);
-                    window.__collaboraMessages.push({ t: Date.now(), origin: e.origin, data: data });
-                } catch { /* ignore */ }
-            });
-        ");
+        await page.AddInitScriptAsync(CollaboraMessageCaptureScript);
 
         // Step 1: navigate to the frontend Index and click the Edit link for test.docx.
         // Going via the UI rather than constructing the /Home/Detail URL directly means the
@@ -190,35 +212,37 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // Step 5: poll the captured postMessages until we see proof the document actually
         // loaded. Action_Load_Resp{success:false} is the failure-mode signal we explicitly
         // look for to fast-fail with a useful message instead of timing out blind.
+        //
+        // The capture script unwraps Collabora's JSON-in-JSON envelope into top-level
+        // `messageId`/`status`/`success` fields on each entry, so the JS-side filtering uses
+        // straight property comparisons (no string-escape gymnastics). We do the find on the
+        // JS side and pass back a single boolean per loop iteration to keep the round-trip
+        // tiny and the C# code obvious.
         var loadDeadline = DateTime.UtcNow + s_iframeReadyTimeout;
-        string? failureReason = null;
         while (DateTime.UtcNow < loadDeadline)
         {
-            var messages = await page.EvaluateAsync<string>(
-                "() => JSON.stringify(window.__collaboraMessages || [])");
-            if (messages.Contains("\"MessageId\":\"Action_Load_Resp\"", StringComparison.Ordinal))
+            var verdict = await page.EvaluateAsync<string>(@"
+                () => {
+                    var arr = window.__collaboraMessages || [];
+                    if (arr.some(m => m.messageId === 'Action_Load_Resp' && m.success === true)) return 'success';
+                    if (arr.some(m => m.messageId === 'Action_Load_Resp' && m.success === false)) return 'failed';
+                    if (arr.some(m => m.messageId === 'App_LoadingStatus' && m.status === 'Document_Loaded')) return 'success';
+                    return 'pending';
+                }
+            ");
+            if (verdict == "success")
             {
-                if (messages.Contains("\"success\":true", StringComparison.Ordinal))
-                {
-                    return; // GREEN — handshake completed.
-                }
-                if (messages.Contains("\"success\":false", StringComparison.Ordinal))
-                {
-                    failureReason = messages;
-                    break;
-                }
+                return; // GREEN — handshake completed.
             }
-            // App_LoadingStatus with Status:"Document_Loaded" is also a success signal.
-            if (messages.Contains("\"Status\":\"Document_Loaded\"", StringComparison.Ordinal))
+            if (verdict == "failed")
             {
-                return;
+                break;
             }
             await Task.Delay(500);
         }
 
-        var finalMessages = failureReason
-            ?? await page.EvaluateAsync<string>(
-                "() => JSON.stringify(window.__collaboraMessages || [], null, 2)");
+        var finalMessages = await page.EvaluateAsync<string>(
+            "() => JSON.stringify(window.__collaboraMessages || [], null, 2)");
         var collaboraLogs = await app.CaptureCollaboraLogsAsync();
         throw new Xunit.Sdk.XunitException(
             $"Collabora did not emit a successful load event within {s_iframeReadyTimeout.TotalSeconds}s.\n" +
@@ -240,17 +264,9 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // Install a postMessage capture on EVERY page (host page + iframe contentWindow) before
         // any navigation, so we see Collabora's host-integration events (App_LoadingStatus,
         // Document_LoadedSuccessfully, Action_Save_Resp, etc.) from their first emission. The
-        // events are JSON-encoded; we keep raw text and timestamp so the eventual diagnostic
-        // dump is self-explanatory.
-        await page.AddInitScriptAsync(@"
-            window.__collaboraMessages = [];
-            window.addEventListener('message', (e) => {
-                try {
-                    var data = typeof e.data === 'string' ? e.data : JSON.stringify(e.data);
-                    window.__collaboraMessages.push({ t: Date.now(), origin: e.origin, data: data });
-                } catch { /* ignore */ }
-            });
-        ");
+        // events are JSON-encoded; the shared capture script parses them into structured fields
+        // so subsequent C# searches don't have to deal with JSON-in-JSON escaping.
+        await page.AddInitScriptAsync(CollaboraMessageCaptureScript);
 
         await page.GotoAsync(app.WebFrontendUrl.AbsoluteUri);
         await page.Locator($"table.files tbody tr:has-text('{SampleDocxName}') a[title='Edit']").First.ClickAsync();
@@ -281,36 +297,47 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // race the modal's arrival. Use Playwright's auto-wait by trying to click the OK button
         // with a short timeout; on miss (modal genuinely didn't show), swallow the timeout and
         // proceed. The button id is well-named and stable across CODE versions.
-        try
-        {
-            await officeFrame.Locator("#response-ok-button").ClickAsync(new() { Timeout = 10_000 });
-        }
-        catch (TimeoutException)
-        {
-            // No modal — fine, proceed.
-        }
-        catch (PlaywrightException)
-        {
-            // Same idea — older Playwright wraps the timeout in PlaywrightException rather than
-            // the .NET TimeoutException. Either way: no modal → proceed.
-        }
+        await TryDismissAsync(officeFrame.Locator("#response-ok-button"), timeoutMs: 5_000);
+
+        // Step 1a: dismiss Collabora's "welcome" iframe overlay (CODE 25.04+ shows it on first
+        // open). The wrapper is a <div class="iframe-welcome-wrap"> with an .iframe-welcome
+        // child whose pointer-events sit ON TOP of the notebookbar. Until it's dismissed, every
+        // click into the toolbar (including the view-mode dropdown below) gets swallowed with
+        // "subtree intercepts pointer events" — Playwright then times out at 5 s.
+        //
+        // The dialog's close affordance has varied across CODE versions: 25.04 ships an
+        // <button class="iframe-welcome-close">, older versions had a "Close" link. We try
+        // each in turn, fall back to pressing Escape on the iframe contentWindow (Collabora's
+        // dialog manager closes on Esc), and finally just remove the wrapper from the DOM if
+        // we're confident it's a welcome overlay (defensive against further selector drift).
+        await TryDismissAsync(officeFrame.Locator(".iframe-welcome-close"), timeoutMs: 3_000);
+        await TryDismissAsync(officeFrame.Locator(".iframe-welcome-wrap button:has-text('Close')"), timeoutMs: 1_500);
+        await page.EvaluateAsync(@"() => {
+            try {
+                var frame = document.querySelector('iframe[name=""office_frame""]');
+                var wrap = frame && frame.contentDocument && frame.contentDocument.querySelector('.iframe-welcome-wrap');
+                if (wrap) { wrap.remove(); }
+            } catch (_) { /* same-origin policy or no wrap — both fine, fall through */ }
+        }");
 
         // Step 2: Collabora opens the doc in "Viewing" mode by default even when the WOPI host
         // sends UserCanWrite=true (#document-container carries class="readonly"). The view-mode
         // dropdown in the notebookbar has the toggle; clicking it once and then picking the
         // "Editing" entry switches the doc into edit mode so subsequent typing actually
-        // mutates content. Wrapped in try/catch because the dropdown id has changed between
-        // CODE versions before — on miss we just continue and let the save assertion below
-        // surface the real symptom.
+        // mutates content. Wrapped to swallow any failure (selector drift, leftover overlay,
+        // timeout) because the save assertion below is the real test — if Collabora kept the
+        // doc read-only, the write won't happen and we'll get a useful diagnostic dump.
+        // We catch the broad Exception bucket here because Playwright's timeout surfaces as
+        // System.TimeoutException (from WrapApiCallAsync), NOT as a PlaywrightException.
         try
         {
             await officeFrame.Locator("#viewModeDropdownButton-button").ClickAsync(new() { Timeout = 5_000 });
             await officeFrame.Locator("text=Editing").First.ClickAsync(new() { Timeout = 5_000 });
         }
-        catch (PlaywrightException)
+        catch (Exception ex) when (ex is PlaywrightException or TimeoutException)
         {
-            // View-mode dropdown not where we expect — fall through, the save assertion will
-            // catch any resulting no-op write.
+            // View-mode dropdown not where we expect, or the click was intercepted. Fall
+            // through — the save assertion below will catch any resulting no-op write.
         }
 
         // Step 3: focus the document area. The actual document tiles are rendered to internal
@@ -365,6 +392,21 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
                 break;
             }
             await Task.Delay(250);
+        }
+
+        // (helper) — `static` would be nicer but the class is sealed and the locator is an
+        // instance arg, so a private instance method keeps the call sites clean.
+        static async Task TryDismissAsync(ILocator locator, int timeoutMs)
+        {
+            try
+            {
+                await locator.ClickAsync(new() { Timeout = timeoutMs });
+            }
+            catch (Exception ex) when (ex is PlaywrightException or TimeoutException)
+            {
+                // Modal genuinely didn't appear (or its selector drifted across CODE versions).
+                // Caller treats this as a best-effort dismissal — proceed regardless.
+            }
         }
 
         if (!changed)
