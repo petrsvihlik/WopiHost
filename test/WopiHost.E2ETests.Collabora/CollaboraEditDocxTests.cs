@@ -187,22 +187,34 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         await Assertions.Expect(officeFrame.Locator("#document-container")).ToBeVisibleAsync(
             new() { Timeout = (float)s_iframeReadyTimeout.TotalMilliseconds });
 
-        // Step 1: dismiss Collabora's "session will expire" modal if it surfaced while we were
-        // waiting. The modal's overlay intercepts pointer events on the document area, so a
-        // click on #document-container two lines below would otherwise retry-loop and time out
-        // (already seen on a previous CI run). The OK button is well-named and stable across
-        // CODE versions.
-        var sessionModalOk = officeFrame.Locator("#response-ok-button");
-        if (await sessionModalOk.IsVisibleAsync())
+        // Step 1: dismiss Collabora's "session will expire" modal. It appears asynchronously a
+        // few seconds after the editor renders, so a one-shot IsVisible check at this point can
+        // race the modal's arrival. Use Playwright's auto-wait by trying to click the OK button
+        // with a short timeout; on miss (modal genuinely didn't show), swallow the timeout and
+        // proceed. The button id is well-named and stable across CODE versions.
+        try
         {
-            await sessionModalOk.ClickAsync();
+            await officeFrame.Locator("#response-ok-button").ClickAsync(new() { Timeout = 10_000 });
+        }
+        catch (TimeoutException)
+        {
+            // No modal — fine, proceed.
+        }
+        catch (PlaywrightException)
+        {
+            // Same idea — older Playwright wraps the timeout in PlaywrightException rather than
+            // the .NET TimeoutException. Either way: no modal → proceed.
         }
 
         // Step 2: focus the document area. The actual document tiles are rendered to internal
         // canvas / <div> elements that swallow pointer events; clicking the container is
         // enough to put input focus on the editor (Collabora intercepts the synthetic mouse
         // event and routes it through loolwsd's tile pipeline).
-        await officeFrame.Locator("#document-container").ClickAsync();
+        // Force=true skips the visible/enabled/stable check so a *second* modal popping up
+        // mid-click (e.g. the "Welcome" dialog on a fresh session) doesn't make the click
+        // retry-loop and time out. We don't need pointer-event semantics for this test — we
+        // only need focus + subsequent keyboard input, both of which work under Force.
+        await officeFrame.Locator("#document-container").ClickAsync(new() { Force = true });
 
         // Step 2: type a marker into the document. The actual text doesn't matter — what
         // matters is that something was inserted. Typing routes through Collabora's normal
