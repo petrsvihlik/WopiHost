@@ -206,7 +206,13 @@ if (useCollabora)
            // matched against (and why the match fails). The CI workflow captures container
            // logs on failure, so a future run with this trace level will surface coolwsd's
            // own diagnosis instead of leaving us guessing.
-           .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false --o:logging.level=trace --o:logging.protocol=true")
+           //
+           // Earlier iteration also set --o:logging.protocol=true. That flag traces HTTP
+           // request and response bodies, including the /hosting/discovery response — which
+           // is ~600+ lines of <app>/<action> XML. With docker logs --tail set to anything
+           // reasonable, the XML pushed coolwsd's own WebSocket-auth log lines off the tail
+           // and left us blind. Trace level alone is enough to surface the matching attempt.
+           .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false --o:logging.level=trace")
            .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
            .WithHttpHealthCheck("/hosting/discovery", endpointName: "collabora");
 

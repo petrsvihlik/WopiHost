@@ -197,7 +197,19 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
     /// diagnostics include coolwsd's own logs. Used by both tests to surface auth / WOPI
     /// rejection reasons that aren't visible from the iframe's postMessage trail.
     /// </summary>
-    public async Task<string> CaptureCollaboraLogsAsync(int tailLines = 400)
+    /// <remarks>
+    /// The output is shaped as two sections:
+    /// <list type="bullet">
+    /// <item>A <b>filtered</b> view that keeps only lines whose content matches one of the
+    /// diagnostic keywords (WOPI / WebSocket / auth / reject / etc.). This is the section that
+    /// answers "why was the request denied?" without being drowned out by Collabora's per-tile
+    /// trace spam.</item>
+    /// <item>The <b>full tail</b> of the container's combined output, capped at
+    /// <paramref name="tailLines"/>. Kept as a fallback for cases where the filter misses the
+    /// signal (e.g. an unrecognised error string).</item>
+    /// </list>
+    /// </remarks>
+    public async Task<string> CaptureCollaboraLogsAsync(int tailLines = 2000)
     {
         try
         {
@@ -242,8 +254,57 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
             var stdoutTask = logsProcess.StandardOutput.ReadToEndAsync();
             var stderrTask = logsProcess.StandardError.ReadToEndAsync();
             await logsProcess.WaitForExitAsync().ConfigureAwait(false);
-            return $"=== {containerName} stdout ===\n{await stdoutTask.ConfigureAwait(false)}\n" +
-                   $"=== {containerName} stderr ===\n{await stderrTask.ConfigureAwait(false)}";
+            var stdout = await stdoutTask.ConfigureAwait(false);
+            var stderr = await stderrTask.ConfigureAwait(false);
+
+            // Lines we care about for diagnosing websocket / WOPI-host rejection:
+            //   - "WOPI" / "wopi" — matches host strings, allowed-host checks, WopiSrc parsing
+            //   - "WebSocket" / "websocket" — handshake + upgrade
+            //   - "Unauthorized" / "unauthoriz" — coolwsd's literal denial message
+            //   - "domain" — the regex it's matching against
+            //   - "host" — host header parsing (case-sensitive to avoid matching every URL)
+            //   - "ERR" / "WRN" — coolwsd's own severity tags
+            //   - "Reject" / "reject" — generic denial
+            //   - "isWopiHostAllowed" / "FrameAncestors" — specific check names from coolwsd
+            // Keep narrow on purpose; the full tail below catches anything we missed.
+            var filterKeywords = new[]
+            {
+                "WOPI", "wopi", "WebSocket", "websocket", "Unauthorized", "unauthoriz",
+                "ERR", "WRN", "Reject", "reject", "isWopiHostAllowed", "FrameAncestors",
+                "frame-ancestors", "allowed", "Allow", "denied", "Denied",
+            };
+
+            static IEnumerable<string> Filter(string text, string[] keywords)
+            {
+                foreach (var line in text.Split('\n'))
+                {
+                    foreach (var kw in keywords)
+                    {
+                        if (line.Contains(kw, StringComparison.Ordinal))
+                        {
+                            yield return line;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            var filteredStdout = string.Join("\n", Filter(stdout, filterKeywords));
+            var filteredStderr = string.Join("\n", Filter(stderr, filterKeywords));
+
+            // Truncate the full-tail dump to a budget that fits in xUnit's failure message
+            // without truncating off the more useful filtered section. xUnit truncates messages
+            // ~around 32 KB by default; budget ~6 KB per stream for the raw tail.
+            static string TailBudget(string text, int maxChars)
+            {
+                if (text.Length <= maxChars) return text;
+                return "…(truncated)…\n" + text[^maxChars..];
+            }
+
+            return $"=== {containerName} filtered stdout ===\n{filteredStdout}\n" +
+                   $"=== {containerName} filtered stderr ===\n{filteredStderr}\n" +
+                   $"=== {containerName} stdout tail ({tailLines} max) ===\n{TailBudget(stdout, 6000)}\n" +
+                   $"=== {containerName} stderr tail ({tailLines} max) ===\n{TailBudget(stderr, 6000)}";
         }
         catch (Exception ex)
         {
