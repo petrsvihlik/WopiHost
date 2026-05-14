@@ -34,7 +34,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
     private bool _initialized;
 
     /// <inheritdoc/>
-    public IWopiFolder RootContainer { get; }
+    public IWopiContainer RootContainer { get; }
 
     /// <summary>Create the provider from a configured <see cref="BlobContainerClient"/>.</summary>
     public WopiAzureStorageProvider(
@@ -46,7 +46,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
         _idMap = idMap ?? throw new ArgumentNullException(nameof(idMap));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         var rootId = BlobIdMap.IdFromPath(string.Empty);
-        RootContainer = new WopiBlobFolder(string.Empty, rootId);
+        RootContainer = new WopiBlobContainer(string.Empty, rootId);
     }
 
     private async Task EnsureInitializedAsync(CancellationToken cancellationToken)
@@ -94,14 +94,14 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
     }
 
     /// <inheritdoc/>
-    public async Task<IWopiFolder?> GetWopiContainer(string identifier, CancellationToken cancellationToken = default)
+    public async Task<IWopiContainer?> GetWopiContainer(string identifier, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
         if (!_idMap.TryGetPath(identifier, out var path))
         {
             return null;
         }
-        return new WopiBlobFolder(path, identifier);
+        return new WopiBlobContainer(path, identifier);
     }
 
     /// <inheritdoc/>
@@ -149,7 +149,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
     }
 
     /// <inheritdoc/>
-    public async IAsyncEnumerable<IWopiFolder> GetWopiContainers(
+    public async IAsyncEnumerable<IWopiContainer> GetWopiContainers(
         string identifier,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -166,51 +166,51 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
             }
             var subPrefix = item.Prefix.TrimEnd('/');
             var id = _idMap.TryGetFileId(subPrefix, out var existingId) ? existingId : _idMap.Add(subPrefix);
-            yield return new WopiBlobFolder(subPrefix, id);
+            yield return new WopiBlobContainer(subPrefix, id);
         }
     }
 
     /// <inheritdoc/>
-    public async Task<ReadOnlyCollection<IWopiFolder>> GetFileAncestors(string fileId, CancellationToken cancellationToken = default)
+    public async Task<ReadOnlyCollection<IWopiContainer>> GetFileAncestors(string fileId, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
         if (!_idMap.TryGetPath(fileId, out var path))
         {
             throw new DirectoryNotFoundException($"Resource '{fileId}' not found.");
         }
-        var result = new List<IWopiFolder>();
+        var result = new List<IWopiContainer>();
         // Always include the immediate parent for files (matches the WOPI EnumerateAncestors
         // example: /root/.../parent/myfile.docx → [root, ..., parent]).
         var parentPath = GetParentPath(path);
         var parentId = _idMap.TryGetFileId(parentPath, out var existingId) ? existingId : _idMap.Add(parentPath);
-        result.Add(new WopiBlobFolder(parentPath, parentId));
+        result.Add(new WopiBlobContainer(parentPath, parentId));
         WalkAncestors(parentPath, result);
         result.Reverse();
         return result.AsReadOnly();
     }
 
     /// <inheritdoc/>
-    public async Task<ReadOnlyCollection<IWopiFolder>> GetContainerAncestors(string containerId, CancellationToken cancellationToken = default)
+    public async Task<ReadOnlyCollection<IWopiContainer>> GetContainerAncestors(string containerId, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
         if (!_idMap.TryGetPath(containerId, out var path))
         {
             throw new DirectoryNotFoundException($"Resource '{containerId}' not found.");
         }
-        var result = new List<IWopiFolder>();
+        var result = new List<IWopiContainer>();
         WalkAncestors(path, result);
         result.Reverse();
         return result.AsReadOnly();
     }
 
-    private void WalkAncestors(string startPath, List<IWopiFolder> result)
+    private void WalkAncestors(string startPath, List<IWopiContainer> result)
     {
         var path = startPath;
         while (!string.IsNullOrEmpty(path))
         {
             path = GetParentPath(path);
             var ancestorId = _idMap.TryGetFileId(path, out var existingId) ? existingId : _idMap.Add(path);
-            result.Add(new WopiBlobFolder(path, ancestorId));
+            result.Add(new WopiBlobContainer(path, ancestorId));
             if (string.IsNullOrEmpty(path))
             {
                 break;
@@ -241,7 +241,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
     }
 
     /// <inheritdoc/>
-    public async Task<IWopiFolder?> GetWopiContainerByName(string containerId, string name, CancellationToken cancellationToken = default)
+    public async Task<IWopiContainer?> GetWopiContainerByName(string containerId, string name, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
         if (!_idMap.TryGetPath(containerId, out var folderPath))
@@ -253,7 +253,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
         await foreach (var _ in _containerClient.GetBlobsAsync(traits: BlobTraits.None, states: BlobStates.None, prefix: combined + "/", cancellationToken: cancellationToken).ConfigureAwait(false))
         {
             var id = _idMap.TryGetFileId(combined, out var existingId) ? existingId : _idMap.Add(combined);
-            return new WopiBlobFolder(combined, id);
+            return new WopiBlobContainer(combined, id);
         }
         return null;
     }
@@ -351,7 +351,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
     }
 
     /// <inheritdoc/>
-    public async Task<IWopiFolder?> CreateWopiChildContainer(string containerId, string name, CancellationToken cancellationToken = default)
+    public async Task<IWopiContainer?> CreateWopiChildContainer(string containerId, string name, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(containerId);
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
@@ -374,7 +374,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
         }
         var id = _idMap.Add(path);
         LogFolderCreated(_logger, id, path);
-        return new WopiBlobFolder(path, id);
+        return new WopiBlobContainer(path, id);
     }
 
     /// <inheritdoc/>

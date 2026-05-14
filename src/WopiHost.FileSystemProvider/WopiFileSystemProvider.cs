@@ -17,7 +17,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     private readonly ILogger<WopiFileSystemProvider> _logger;
 
     /// <inheritdoc />
-    public IWopiFolder RootContainer { get; }
+    public IWopiContainer RootContainer { get; }
 
     /// <summary>
     /// Creates a new instance of the <see cref="WopiFileSystemProvider"/> based on the provided hosting environment and configuration.
@@ -51,7 +51,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         {
             throw new InvalidOperationException("Root directory not found.");
         }
-        RootContainer = new WopiFolder(_wopiAbsolutePath, rootId);
+        RootContainer = new WopiContainer(_wopiAbsolutePath, rootId);
         LogProviderInitialized(_logger, _wopiAbsolutePath);
     }
 
@@ -66,13 +66,13 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     }
 
     /// <inheritdoc/>
-    public Task<IWopiFolder?> GetWopiContainer(string identifier, CancellationToken cancellationToken = default)
+    public Task<IWopiContainer?> GetWopiContainer(string identifier, CancellationToken cancellationToken = default)
     {
         if (_fileIds.TryGetPath(identifier, out var fullPath))
         {
-            return Task.FromResult<IWopiFolder?>(new WopiFolder(fullPath, identifier));
+            return Task.FromResult<IWopiContainer?>(new WopiContainer(fullPath, identifier));
         }
-        return Task.FromResult<IWopiFolder?>(null);
+        return Task.FromResult<IWopiContainer?>(null);
     }
 
     /// <inheritdoc/>
@@ -113,7 +113,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     }
 
     /// <inheritdoc/>
-    public async IAsyncEnumerable<IWopiFolder> GetWopiContainers(
+    public async IAsyncEnumerable<IWopiContainer> GetWopiContainers(
         string identifier,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -134,11 +134,11 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     }
 
     /// <inheritdoc/>
-    public async Task<ReadOnlyCollection<IWopiFolder>> GetFileAncestors(string fileId, CancellationToken cancellationToken = default)
+    public async Task<ReadOnlyCollection<IWopiContainer>> GetFileAncestors(string fileId, CancellationToken cancellationToken = default)
     {
         // Convert file identifier to its parent container's identifier, then walk up.
         var parentId = GetFileParentIdentifier(fileId);
-        var result = new List<IWopiFolder>();
+        var result = new List<IWopiContainer>();
         var container = await GetWopiContainer(parentId, cancellationToken).ConfigureAwait(false)
             ?? throw new DirectoryNotFoundException($"Directory '{parentId}' not found.");
         // For files, the immediate parent container is always part of the ancestor list (whether
@@ -150,9 +150,9 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     }
 
     /// <inheritdoc/>
-    public async Task<ReadOnlyCollection<IWopiFolder>> GetContainerAncestors(string containerId, CancellationToken cancellationToken = default)
+    public async Task<ReadOnlyCollection<IWopiContainer>> GetContainerAncestors(string containerId, CancellationToken cancellationToken = default)
     {
-        var result = new List<IWopiFolder>();
+        var result = new List<IWopiContainer>();
         var container = await GetWopiContainer(containerId, cancellationToken).ConfigureAwait(false)
             ?? throw new DirectoryNotFoundException($"Directory '{containerId}' not found.");
         await WalkAncestorsAsync(container, result, cancellationToken).ConfigureAwait(false);
@@ -160,7 +160,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         return result.AsReadOnly();
     }
 
-    private async Task WalkAncestorsAsync(IWopiFolder container, List<IWopiFolder> result, CancellationToken cancellationToken)
+    private async Task WalkAncestorsAsync(IWopiContainer container, List<IWopiContainer> result, CancellationToken cancellationToken)
     {
         while (container.Identifier != RootContainer.Identifier)
         {
@@ -190,7 +190,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     }
 
     /// <inheritdoc/>
-    public async Task<IWopiFolder?> GetWopiContainerByName(
+    public async Task<IWopiContainer?> GetWopiContainerByName(
         string containerId,
         string name,
         CancellationToken cancellationToken = default)
@@ -290,7 +290,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     }
 
     /// <inheritdoc/>
-    public async Task<IWopiFolder?> CreateWopiChildContainer(
+    public async Task<IWopiContainer?> CreateWopiChildContainer(
         string containerId,
         string name,
         CancellationToken cancellationToken = default)

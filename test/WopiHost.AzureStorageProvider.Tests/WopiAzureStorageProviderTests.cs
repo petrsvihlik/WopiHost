@@ -131,7 +131,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
         Assert.NotNull(folder);
         Assert.Equal("subfolder", folder.Name);
 
-        var folders = new List<IWopiFolder>();
+        var folders = new List<IWopiContainer>();
         await foreach (var f in provider.GetWopiContainers(provider.RootContainer.Identifier))
         {
             folders.Add(f);

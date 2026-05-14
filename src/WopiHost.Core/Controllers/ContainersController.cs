@@ -101,7 +101,7 @@ public class ContainersController(
             return new BadRequestResult();
         }
 
-        IWopiFolder? newFolder;
+        IWopiContainer? newFolder;
 
         // "specific mode" - The host must not modify the name to fulfill the request.
         if (!string.IsNullOrWhiteSpace(relativeTarget))
@@ -308,7 +308,7 @@ public class ContainersController(
     private async Task<IActionResult> TryRenameContainerAsync(
         string id,
         string requestedName,
-        IWopiFolder container,
+        IWopiContainer container,
         CancellationToken cancellationToken)
     {
         // Result-variable pattern: each branch assigns to a single `result` so the method has

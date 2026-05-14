@@ -196,7 +196,7 @@ public class WopiBootstrapperController(
         }, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<WopiAccessToken> IssueContainerTokenAsync(IWopiFolder container, CancellationToken cancellationToken)
+    private async Task<WopiAccessToken> IssueContainerTokenAsync(IWopiContainer container, CancellationToken cancellationToken)
     {
         var perms = await permissionProvider.GetContainerPermissionsAsync(User, container, cancellationToken).ConfigureAwait(false);
         return await accessTokenService.IssueAsync(BuildRequest(container.Identifier, WopiResourceType.Container) with

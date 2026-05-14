@@ -24,7 +24,7 @@ public interface IWopiStorageProvider
     /// <see cref="IWopiWritableStorageProvider.CreateWopiChildFile"/>; that sugar was removed
     /// in favour of this property to keep one obvious way to spell the same thing.
     /// </remarks>
-    IWopiFolder RootContainer { get; }
+    IWopiContainer RootContainer { get; }
 
     /// <summary>
     /// Returns the file identified by <paramref name="identifier"/>, or <see langword="null"/>
@@ -40,7 +40,7 @@ public interface IWopiStorageProvider
     /// </summary>
     /// <param name="identifier">Container identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task<IWopiFolder?> GetWopiContainer(string identifier, CancellationToken cancellationToken = default);
+    Task<IWopiContainer?> GetWopiContainer(string identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the files contained by the container identified by <paramref name="identifier"/>,
@@ -73,7 +73,7 @@ public interface IWopiStorageProvider
     /// </summary>
     /// <param name="identifier">Container identifier. Required.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    IAsyncEnumerable<IWopiFolder> GetWopiContainers(string identifier, CancellationToken cancellationToken = default);
+    IAsyncEnumerable<IWopiContainer> GetWopiContainers(string identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the ancestor containers of the file identified by <paramref name="fileId"/>,
@@ -87,7 +87,7 @@ public interface IWopiStorageProvider
     /// </remarks>
     /// <param name="fileId">File identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task<ReadOnlyCollection<IWopiFolder>> GetFileAncestors(string fileId, CancellationToken cancellationToken = default);
+    Task<ReadOnlyCollection<IWopiContainer>> GetFileAncestors(string fileId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the ancestor containers of the container identified by <paramref name="containerId"/>,
@@ -101,7 +101,7 @@ public interface IWopiStorageProvider
     /// </remarks>
     /// <param name="containerId">Container identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task<ReadOnlyCollection<IWopiFolder>> GetContainerAncestors(string containerId, CancellationToken cancellationToken = default);
+    Task<ReadOnlyCollection<IWopiContainer>> GetContainerAncestors(string containerId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the file by name within <paramref name="containerId"/>.
@@ -127,5 +127,5 @@ public interface IWopiStorageProvider
     /// <param name="containerId">Parent container id to search within.</param>
     /// <param name="name">The exact name to look for.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task<IWopiFolder?> GetWopiContainerByName(string containerId, string name, CancellationToken cancellationToken = default);
+    Task<IWopiContainer?> GetWopiContainerByName(string containerId, string name, CancellationToken cancellationToken = default);
 }

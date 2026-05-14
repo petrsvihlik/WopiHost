@@ -451,10 +451,10 @@ public class FilesControllerTests
     {
         var fileId = "testFileId";
         var fileMock = CreateFileMock(fileId);
-        var folderMock = new Mock<IWopiFolder>();
+        var folderMock = new Mock<IWopiContainer>();
         folderMock.SetupGet(f => f.Name).Returns("parentFolder");
         folderMock.SetupGet(f => f.Identifier).Returns("parentFolderId");
-        var ancestors = new ReadOnlyCollection<IWopiFolder>([folderMock.Object]);
+        var ancestors = new ReadOnlyCollection<IWopiContainer>([folderMock.Object]);
 
         _storageProviderMock
             .Setup(s => s.GetWopiFile(fileId, It.IsAny<CancellationToken>()))
@@ -1025,9 +1025,9 @@ public class FilesControllerTests
     {
         var fileId = "testFileId";
         var fileMock = CreateFileMock(fileId);
-        var parentFolder = new Mock<IWopiFolder>();
+        var parentFolder = new Mock<IWopiContainer>();
         parentFolder.SetupGet(f => f.Identifier).Returns("parentId");
-        var ancestors = new ReadOnlyCollection<IWopiFolder>([parentFolder.Object]);
+        var ancestors = new ReadOnlyCollection<IWopiContainer>([parentFolder.Object]);
 
         _storageProviderMock
             .Setup(s => s.GetWopiFile(fileId, It.IsAny<CancellationToken>()))
@@ -1049,9 +1049,9 @@ public class FilesControllerTests
     {
         var fileId = "testFileId";
         var fileMock = CreateFileMock(fileId);
-        var parentFolder = new Mock<IWopiFolder>();
+        var parentFolder = new Mock<IWopiContainer>();
         parentFolder.SetupGet(f => f.Identifier).Returns("parentId");
-        var ancestors = new ReadOnlyCollection<IWopiFolder>([parentFolder.Object]);
+        var ancestors = new ReadOnlyCollection<IWopiContainer>([parentFolder.Object]);
         var existingFile = CreateFileMock("existingFileId");
 
         _storageProviderMock
@@ -1083,9 +1083,9 @@ public class FilesControllerTests
     {
         var fileId = "testFileId";
         var fileMock = CreateFileMock(fileId);
-        var parentFolder = new Mock<IWopiFolder>();
+        var parentFolder = new Mock<IWopiContainer>();
         parentFolder.SetupGet(f => f.Identifier).Returns("parentId");
-        var ancestors = new ReadOnlyCollection<IWopiFolder>([parentFolder.Object]);
+        var ancestors = new ReadOnlyCollection<IWopiContainer>([parentFolder.Object]);
         var existingFile = CreateFileMock("existingFileId");
         var lockInfo = new WopiLockInfo { LockId = "existingLock", FileId = "existingFileId" };
 
@@ -1118,9 +1118,9 @@ public class FilesControllerTests
     {
         var fileId = "testFileId";
         var fileMock = CreateFileMock(fileId);
-        var parentFolder = new Mock<IWopiFolder>();
+        var parentFolder = new Mock<IWopiContainer>();
         parentFolder.SetupGet(f => f.Identifier).Returns("parentId");
-        var ancestors = new ReadOnlyCollection<IWopiFolder>([parentFolder.Object]);
+        var ancestors = new ReadOnlyCollection<IWopiContainer>([parentFolder.Object]);
         var newFileMock = CreateFileMock("newFileId");
 
         _storageProviderMock
@@ -1187,9 +1187,9 @@ public class FilesControllerTests
     {
         var fileId = "testFileId";
         var fileMock = CreateFileMock(fileId);
-        var parentFolder = new Mock<IWopiFolder>();
+        var parentFolder = new Mock<IWopiContainer>();
         parentFolder.SetupGet(f => f.Identifier).Returns("parentId");
-        var ancestors = new ReadOnlyCollection<IWopiFolder>([parentFolder.Object]);
+        var ancestors = new ReadOnlyCollection<IWopiContainer>([parentFolder.Object]);
         var newFileMock = CreateFileMock("newFileId");
 
         _storageProviderMock
@@ -1233,9 +1233,9 @@ public class FilesControllerTests
     {
         var fileId = "testFileId";
         var fileMock = CreateFileMock(fileId);
-        var parentFolder = new Mock<IWopiFolder>();
+        var parentFolder = new Mock<IWopiContainer>();
         parentFolder.SetupGet(f => f.Identifier).Returns("parentId");
-        var ancestors = new ReadOnlyCollection<IWopiFolder>([parentFolder.Object]);
+        var ancestors = new ReadOnlyCollection<IWopiContainer>([parentFolder.Object]);
         var newFileMock = CreateFileMock("newFileId");
 
         _storageProviderMock
@@ -1275,9 +1275,9 @@ public class FilesControllerTests
     {
         var fileId = "testFileId";
         var fileMock = CreateFileMock(fileId);
-        var parentFolder = new Mock<IWopiFolder>();
+        var parentFolder = new Mock<IWopiContainer>();
         parentFolder.SetupGet(f => f.Identifier).Returns("parentId");
-        var ancestors = new ReadOnlyCollection<IWopiFolder>([parentFolder.Object]);
+        var ancestors = new ReadOnlyCollection<IWopiContainer>([parentFolder.Object]);
         var newFileMock = CreateFileMock("newFileId");
 
         _storageProviderMock
@@ -1315,9 +1315,9 @@ public class FilesControllerTests
     {
         var fileId = "testFileId";
         var fileMock = CreateFileMock(fileId);
-        var parentFolder = new Mock<IWopiFolder>();
+        var parentFolder = new Mock<IWopiContainer>();
         parentFolder.SetupGet(f => f.Identifier).Returns("parentId");
-        var ancestors = new ReadOnlyCollection<IWopiFolder>([parentFolder.Object]);
+        var ancestors = new ReadOnlyCollection<IWopiContainer>([parentFolder.Object]);
 
         _storageProviderMock
             .Setup(s => s.GetWopiFile(fileId, It.IsAny<CancellationToken>()))

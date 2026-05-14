@@ -19,7 +19,7 @@ public class EcosystemControllerTests
     private readonly Mock<IWopiStorageProvider> _storage = new();
     private readonly Mock<IWopiAccessTokenService> _tokens = new();
     private readonly Mock<IWopiPermissionProvider> _permissions = new();
-    private readonly Mock<IWopiFolder> _root = new();
+    private readonly Mock<IWopiContainer> _root = new();
 
     /// <summary>
     /// Capturing <see cref="IWopiHostExtensions"/> used by tests to observe the
@@ -46,7 +46,7 @@ public class EcosystemControllerTests
             .ReturnsAsync(_root.Object);
 
         _permissions
-            .Setup(p => p.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiContainer>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WopiContainerPermissions.UserCanCreateChildFile);
 
         _tokens
@@ -138,7 +138,7 @@ public class EcosystemControllerTests
     public async Task GetRootContainer_ContainerInfo_PropagatesUserCanFlagsFromPermissionProvider()
     {
         _permissions
-            .Setup(p => p.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiContainer>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WopiContainerPermissions.UserCanCreateChildFile | WopiContainerPermissions.UserCanRename);
 
         var result = await BuildController().GetRootContainer();
@@ -187,7 +187,7 @@ public class EcosystemControllerTests
     {
         _storage
             .Setup(s => s.GetWopiContainer("root-id", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IWopiFolder?)null);
+            .ReturnsAsync((IWopiContainer?)null);
 
         var result = await BuildController().GetRootContainer();
 

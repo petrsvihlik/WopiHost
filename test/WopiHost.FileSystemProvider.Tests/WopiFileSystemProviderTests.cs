@@ -269,7 +269,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetWopiContainers_DefaultRoot_EnumeratesSubfolders()
     {
-        var containers = new List<IWopiFolder>();
+        var containers = new List<IWopiContainer>();
         await foreach (var c in _sut.GetWopiContainers(_sut.RootContainer.Identifier))
         {
             containers.Add(c);

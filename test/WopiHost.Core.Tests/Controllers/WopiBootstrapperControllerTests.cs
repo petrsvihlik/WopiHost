@@ -18,7 +18,7 @@ public class WopiBootstrapperControllerTests
     private readonly Mock<IWopiStorageProvider> _storage = new();
     private readonly Mock<IWopiAccessTokenService> _tokens = new();
     private readonly Mock<IWopiPermissionProvider> _permissions = new();
-    private readonly Mock<IWopiFolder> _rootFolder = new();
+    private readonly Mock<IWopiContainer> _rootFolder = new();
     private readonly Mock<IUrlHelper> _url = new();
 
     public WopiBootstrapperControllerTests()
@@ -34,7 +34,7 @@ public class WopiBootstrapperControllerTests
             .Setup(p => p.GetFilePermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFile>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WopiFilePermissions.UserCanWrite);
         _permissions
-            .Setup(p => p.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFolder>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiContainer>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(WopiContainerPermissions.UserCanCreateChildFile);
 
         // Default token issuance returns a deterministic value so tests can spot the
@@ -153,7 +153,7 @@ public class WopiBootstrapperControllerTests
     {
         _storage
             .Setup(s => s.GetWopiContainer("root-id", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IWopiFolder?)null);
+            .ReturnsAsync((IWopiContainer?)null);
 
         var result = await BuildController().ExecuteEcosystemOperation(ecosystemOperation: "GET_ROOT_CONTAINER");
 
@@ -217,7 +217,7 @@ public class WopiBootstrapperControllerTests
     [Fact]
     public async Task ExecuteEcosystemOperation_GET_NEW_ACCESS_TOKEN_Container_ReturnsAccessTokenInfo()
     {
-        var folder = new Mock<IWopiFolder>();
+        var folder = new Mock<IWopiContainer>();
         folder.SetupGet(f => f.Identifier).Returns("container-7");
         _storage.Setup(s => s.GetWopiContainer("container-7", It.IsAny<CancellationToken>())).ReturnsAsync(folder.Object);
 
@@ -299,7 +299,7 @@ public class WopiBootstrapperControllerTests
     {
         _storage
             .Setup(s => s.GetWopiContainer("missing", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IWopiFolder?)null);
+            .ReturnsAsync((IWopiContainer?)null);
 
         var result = await BuildController().ExecuteEcosystemOperation(
             ecosystemOperation: "GET_NEW_ACCESS_TOKEN",

@@ -134,7 +134,7 @@ public class MyAclPermissionProvider : IWopiPermissionProvider
         ClaimsPrincipal user, IWopiFile file, CancellationToken ct = default) { /* your ACL lookup */ }
 
     public Task<WopiContainerPermissions> GetContainerPermissionsAsync(
-        ClaimsPrincipal user, IWopiFolder container, CancellationToken ct = default) { /* ... */ }
+        ClaimsPrincipal user, IWopiContainer container, CancellationToken ct = default) { /* ... */ }
 }
 
 services.AddWopi(o => { o.ClientUrl = ...; o.StorageProviderAssemblyName = ...; });

@@ -126,7 +126,7 @@ public class ServiceCollectionExtensionsTests
     {
         public Task<WopiFilePermissions> GetFilePermissionsAsync(System.Security.Claims.ClaimsPrincipal user, IWopiFile file, CancellationToken cancellationToken = default)
             => Task.FromResult(WopiFilePermissions.None);
-        public Task<WopiContainerPermissions> GetContainerPermissionsAsync(System.Security.Claims.ClaimsPrincipal user, IWopiFolder container, CancellationToken cancellationToken = default)
+        public Task<WopiContainerPermissions> GetContainerPermissionsAsync(System.Security.Claims.ClaimsPrincipal user, IWopiContainer container, CancellationToken cancellationToken = default)
             => Task.FromResult(WopiContainerPermissions.None);
     }
 }

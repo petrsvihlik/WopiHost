@@ -27,5 +27,5 @@ public interface ICheckFolderInfoBuilder
     /// </summary>
     /// <param name="folder">The folder the response describes.</param>
     /// <param name="httpContext">The current request context. Used for the authenticated principal.</param>
-    WopiCheckFolderInfo Build(IWopiFolder folder, HttpContext httpContext);
+    WopiCheckFolderInfo Build(IWopiContainer folder, HttpContext httpContext);
 }

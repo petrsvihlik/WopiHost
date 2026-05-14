@@ -180,7 +180,7 @@ public class FilesController(
         else if (!await writableStorageProvider.CheckValidFileName(requestedName, cancellationToken).ConfigureAwait(false))
         {
             // 400 Bad Request – Specified name is illegal. The pre-#420-item-1.1 code mistakenly
-            // called CheckValidName<IWopiFolder> on this file-rename path (validating against
+            // called CheckValidName<IWopiContainer> on this file-rename path (validating against
             // folder-name rules — more permissive than file-name rules on Windows because
             // GetInvalidPathChars omits the path separators that GetInvalidFileNameChars
             // forbids). The typed-API split made the mismatch obvious and we use the file rule.

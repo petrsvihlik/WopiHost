@@ -6,7 +6,7 @@ namespace WopiHost.AzureStorageProvider;
 /// Virtual folder backed by a blob-name prefix. Plain Blob Storage has no folder objects, so a folder
 /// is just a logical grouping of blobs that share a <c>/</c>-delimited prefix.
 /// </summary>
-public class WopiBlobFolder(string prefix, string identifier) : IWopiFolder
+public class WopiBlobContainer(string prefix, string identifier) : IWopiContainer
 {
     /// <summary>Blob-name prefix this folder represents (no leading or trailing slash).</summary>
     public string Prefix { get; } = prefix;

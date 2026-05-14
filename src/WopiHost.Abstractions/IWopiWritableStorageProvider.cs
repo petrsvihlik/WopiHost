@@ -38,7 +38,7 @@ public interface IWopiWritableStorageProvider
     /// <param name="containerId">Identifier of the parent container. Required.</param>
     /// <param name="name">The new container's name.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task<IWopiFolder?> CreateWopiChildContainer(
+    Task<IWopiContainer?> CreateWopiChildContainer(
         string containerId,
         string name,
         CancellationToken cancellationToken = default);

@@ -33,5 +33,5 @@ public interface IWopiPermissionProvider
     /// <summary>
     /// Returns the permissions <paramref name="user"/> has on <paramref name="container"/>.
     /// </summary>
-    Task<WopiContainerPermissions> GetContainerPermissionsAsync(ClaimsPrincipal user, IWopiFolder container, CancellationToken cancellationToken = default);
+    Task<WopiContainerPermissions> GetContainerPermissionsAsync(ClaimsPrincipal user, IWopiContainer container, CancellationToken cancellationToken = default);
 }

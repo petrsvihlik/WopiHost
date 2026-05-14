@@ -43,7 +43,7 @@ public sealed class WopiLockAwareWritableStorageProvider(
         => _inner.CreateWopiChildFile(containerId, name, cancellationToken);
 
     /// <inheritdoc />
-    public Task<IWopiFolder?> CreateWopiChildContainer(string containerId, string name, CancellationToken cancellationToken = default)
+    public Task<IWopiContainer?> CreateWopiChildContainer(string containerId, string name, CancellationToken cancellationToken = default)
         => _inner.CreateWopiChildContainer(containerId, name, cancellationToken);
 
     /// <inheritdoc />
