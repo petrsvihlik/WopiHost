@@ -166,11 +166,11 @@ public partial class WopiAzureLockProvider(
 
     /// <inheritdoc />
     public Task<bool> RefreshLockAsync(string fileId, string expectedExistingLockId, CancellationToken cancellationToken = default)
-        => TryAtomicMetadataMutationAsync(fileId, expectedExistingLockId, BumpCreatedTimestamp, cancellationToken);
+        => TryAtomicLockUpdateAsync(fileId, expectedExistingLockId, BumpCreatedTimestamp, cancellationToken);
 
     /// <inheritdoc />
     public Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default)
-        => TryAtomicMetadataMutationAsync(fileId, expectedExistingLockId, m => SwapLockIdAndBumpTimestamp(m, newLockId), cancellationToken);
+        => TryAtomicLockUpdateAsync(fileId, expectedExistingLockId, m => SwapLockIdAndBumpTimestamp(m, newLockId), cancellationToken);
 
     private void BumpCreatedTimestamp(Dictionary<string, string> metadata)
         => metadata[CreatedKey] = _timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture);
@@ -203,7 +203,7 @@ public partial class WopiAzureLockProvider(
     /// any other <see cref="RequestFailedException"/> on the SetMetadata write.
     /// </para>
     /// </remarks>
-    private async Task<bool> TryAtomicMetadataMutationAsync(
+    private async Task<bool> TryAtomicLockUpdateAsync(
         string fileId,
         string expectedExistingLockId,
         Action<Dictionary<string, string>> mutateMetadata,
@@ -250,10 +250,10 @@ public partial class WopiAzureLockProvider(
         string FileId);
 
     /// <summary>
-    /// Inner step of the atomic-metadata-mutation: with a validated lease id in hand, renews the
-    /// lease and writes the mutated metadata under <c>IfMatch=etag</c> + the lease id. Lifted
-    /// out so the outer validation path and the renew/write path each have a single return —
-    /// qlty's return-count threshold is ≤5, and the combined version exceeded it.
+    /// Inner step of <see cref="TryAtomicLockUpdateAsync"/>: with a validated lease id in hand,
+    /// renews the lease and writes the mutated metadata under <c>IfMatch=etag</c> + the lease id.
+    /// Lifted out so the outer validation path and the renew/write path each have a single
+    /// return — qlty's return-count threshold is ≤5, and the combined version exceeded it.
     /// </summary>
     /// <remarks>
     /// A <c>renewed</c> flag tracks which phase the exception fired in so the two failure modes
