@@ -94,7 +94,7 @@ The Aspire AppHost reads a few `AppHost:*` flags from configuration so the defau
 | Flag | Adds |
 |---|---|
 | `AppHost:UseAzureStorage` | Azurite emulator + `BlobStorage` connection string forwarded to the WOPI host. |
-| `AppHost:UseRedisLocks` | Redis container + the WOPI host swaps `LockProviderAssemblyName` to `WopiHost.RedisLockProvider` and receives the Aspire-allocated connection string via `Wopi:LockProvider:ConnectionString`. Default is `WopiHost.MemoryLockProvider` (single-process). |
+| `AppHost:UseRedisLocks` | **Default: `true` when launched via the AppHost.** Adds a Redis container; the WOPI host swaps `LockProviderAssemblyName` to `WopiHost.RedisLockProvider` and receives the Aspire-allocated connection string via `Wopi:LockProvider:ConnectionString`. Set to `false` to fall back to `WopiHost.MemoryLockProvider` (single-process) — useful on contributor machines without Docker. Aspire already manages Docker resources, so the realistic distributed-lock backend is the right default for the orchestrated dev loop. |
 | `AppHost:UseCollabora` | `collabora/code` container as a real WOPI client for end-to-end editing. Auto-overrides `Wopi:ClientUrl`, `Wopi:HostUrl`, `Wopi:Discovery:NetZone`, and `Wopi:Security:DisableProofValidation` on the affected projects. See the **End-to-end editing with Collabora Online** section in the root README for the full wiring (`host.docker.internal:5000`, NetZone gotcha, proof-key gotcha). |
 | `AppHost:IncludeOidcSample` | `WopiHost.Web.Oidc` frontend (requires IdP setup — see its README). |
 

@@ -329,22 +329,43 @@ public class ContainersController(
     {
         ArgumentNullException.ThrowIfNull(writableStorageProvider);
         var container = await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false);
+        IActionResult result;
         if (container is null)
         {
             // 404 Not Found – Resource not found/user unauthorized
-            return NotFound();
+            result = NotFound();
         }
-        if (!await writableStorageProvider.CheckValidName<IWopiFolder>(requestedName, cancellationToken).ConfigureAwait(false))
+        else if (!await writableStorageProvider.CheckValidName<IWopiFolder>(requestedName, cancellationToken).ConfigureAwait(false))
         {
             // 400 Bad Request – Specified name is illegal
             // A string describing the reason the rename operation couldn't be completed.
             // This header should only be included when the response code is 400 Bad Request
             Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
-            return new BadRequestResult();
+            result = new BadRequestResult();
         }
+        else
+        {
+            result = await TryRenameContainerAsync(id, requestedName, container, cancellationToken).ConfigureAwait(false);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Inner body of <see cref="RenameContainer"/>: actually attempts the rename and maps each
+    /// provider outcome (success / false / typed exceptions) to its WOPI HTTP status. Lifted out
+    /// of the public action method so the action's return-statement count stays below qlty's
+    /// complexity threshold; pre-fix the inline version had 8 returns scattered across the
+    /// pre-checks, the try block, and the catch arms.
+    /// </summary>
+    private async Task<IActionResult> TryRenameContainerAsync(
+        string id,
+        string requestedName,
+        IWopiFolder container,
+        CancellationToken cancellationToken)
+    {
         try
         {
-            if (await writableStorageProvider.RenameWopiResource<IWopiFolder>(id, requestedName, cancellationToken).ConfigureAwait(false))
+            if (await writableStorageProvider!.RenameWopiResource<IWopiFolder>(id, requestedName, cancellationToken).ConfigureAwait(false))
             {
                 // The response to a RenameContainer call is JSON containing the following required property:
                 // Name(string) - The name of the renamed container.

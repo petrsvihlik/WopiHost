@@ -212,12 +212,19 @@ public partial class WopiAzureLockProvider(
         await EnsureContainerAsync(cancellationToken).ConfigureAwait(false);
         var blobClient = GetLockBlob(fileId);
         var props = await TryGetPropertiesAsync(blobClient, cancellationToken).ConfigureAwait(false);
-        if (props is null
-            || !TryReadLock(fileId, props, out var info)
-            || info.IsExpiredAt(_timeProvider.GetUtcNow())
-            || !_lockComparer.AreEqual(info.LockId, expectedExistingLockId)
-            || !props.Metadata.TryGetValue(LeaseIdKey, out var leaseId)
-            || string.IsNullOrEmpty(leaseId))
+        // Split the validation into three guards (was previously one large combined `if` — qlty
+        // flagged it as a too-complex boolean expression). Each guard fails fast with the same
+        // "not applicable" outcome, but the conditions group naturally: missing-or-malformed
+        // record / expired-or-mismatched / no-lease-id-recoverable-from-metadata.
+        if (props is null || !TryReadLock(fileId, props, out var info))
+        {
+            return false;
+        }
+        if (info.IsExpiredAt(_timeProvider.GetUtcNow()) || !_lockComparer.AreEqual(info.LockId, expectedExistingLockId))
+        {
+            return false;
+        }
+        if (!props.Metadata.TryGetValue(LeaseIdKey, out var leaseId) || string.IsNullOrEmpty(leaseId))
         {
             return false;
         }

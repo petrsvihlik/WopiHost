@@ -80,12 +80,18 @@ if (builder.Configuration.GetValue<bool>("AppHost:UseAzureStorage"))
     wopiHost.WithReference(blobs);
 }
 
-// Optional: Redis-backed distributed lock provider. Opt-in via "AppHost:UseRedisLocks"=true so the
-// default flow keeps using MemoryLockProvider (single-process; perfect for the smoke-test dev loop).
-// When enabled, an Aspire Redis container resource is added and the WopiHost backend is reconfigured
-// to load WopiHost.RedisLockProvider with the Aspire-allocated connection string. WaitFor ensures
-// the WOPI backend doesn't try to acquire a lock before Redis is accepting connections.
-if (builder.Configuration.GetValue<bool>("AppHost:UseRedisLocks"))
+// Redis-backed distributed lock provider. Default ON when starting via Aspire — when the
+// AppHost orchestrates the wopihost-web frontend, Aspire is already managing Docker resources
+// and Redis is the realistic lock backend a real deployment would use; running the dev loop
+// against the same provider catches divergences early. Opt out via "AppHost:UseRedisLocks"=false
+// (e.g., on a contributor machine without Docker, or for the unit-test loop where
+// MemoryLockProvider is sufficient).
+//
+// When enabled, an Aspire Redis container resource is added and the WopiHost backend is
+// reconfigured to load WopiHost.RedisLockProvider with the Aspire-allocated connection string.
+// WaitFor ensures the WOPI backend doesn't try to acquire a lock before Redis is accepting
+// connections.
+if (builder.Configuration.GetValue("AppHost:UseRedisLocks", defaultValue: true))
 {
     var redis = builder.AddRedis("wopi-locks")
                        .WithLifetime(ContainerLifetime.Persistent);

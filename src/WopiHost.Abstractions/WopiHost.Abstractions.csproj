@@ -18,12 +18,6 @@
 		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
 		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
 		<GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-		<!-- Deliberate binary-breaking change in #380 item 1.6: IWopiLockProvider.RefreshLockAsync
-		     gained a required string parameter so the WOPI spec's "refresh only if id matches"
-		     atomicity guarantee can actually be honoured (the previous signature forced a racy
-		     compare-then-act in the controller layer). The next release bumps the major version
-		     and re-enables validation against the new baseline. -->
-		<EnablePackageValidation>false</EnablePackageValidation>
 	</PropertyGroup>
 
 	<ItemGroup>

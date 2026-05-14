@@ -18,9 +18,6 @@
 		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
 		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
 		<GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-		<!-- New package; no prior release to validate against. Mirror the pattern used by the
-		     other newest packages (AzureStorageProvider, AzureLockProvider) until a baseline exists. -->
-		<EnablePackageValidation>false</EnablePackageValidation>
 	</PropertyGroup>
 
 	<ItemGroup>

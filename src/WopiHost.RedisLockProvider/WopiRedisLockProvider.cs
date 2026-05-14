@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
@@ -9,8 +8,9 @@ namespace WopiHost.RedisLockProvider;
 /// <summary>
 /// <see cref="IWopiLockProvider"/> backed by Redis. Each WOPI lock is a string key whose value is
 /// a JSON-serialized <see cref="WopiLockInfo"/>; Redis's TTL handles the spec-mandated 30-minute
-/// expiry without polling, and all compare-and-swap operations run as Lua scripts so the
-/// "match-then-mutate" steps are atomic on the server.
+/// expiry without polling, and compare-and-swap operations run as a transaction
+/// (<c>WATCH</c> + <c>MULTI/EXEC</c> via StackExchange.Redis's <c>Condition.StringEqual</c>) so
+/// the "match-then-mutate" steps are atomic with respect to other clients.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -22,12 +22,19 @@ namespace WopiHost.RedisLockProvider;
 /// coordinated exclusion through Azure's distributed lease infrastructure).
 /// </para>
 /// <para>
-/// <b>Atomicity.</b> Each non-trivial operation is a Lua script evaluated on the Redis server:
-/// EVAL runs to completion without interleaving with other commands, so the compare and the
-/// mutation land as a single observable step. The <c>RefreshLockAsync</c> race captured by the
-/// conformance suite's <c>RefreshLockAsync_ConcurrentSwapBetweenObservationAndCAS_DoesNotRefresh</c>
-/// test is impossible against this provider — a stale caller's expected lock id no longer
-/// matches the Redis-resident value at the time the script runs.
+/// <b>Atomicity.</b> Refresh and Unlock-and-relock use <c>IDatabase.CreateTransaction()</c> with
+/// an <c>AddCondition(Condition.StringEqual(key, snapshot))</c> guard — Redis's <c>WATCH</c>
+/// primitive aborts the <c>MULTI/EXEC</c> if the key's value changed between our read and our
+/// write. The conformance suite's
+/// <c>RefreshLockAsync_ConcurrentSwapBetweenObservationAndCAS_DoesNotRefresh</c> case (and the
+/// <c>TryUnlockAndRelockAsync</c> equivalent) exercise this path: a stale caller's snapshot
+/// no longer matches the resident value, so the transaction aborts and we return false.
+/// </para>
+/// <para>
+/// An earlier implementation used Lua scripts (<c>EVAL</c>) to do the compare+set in one
+/// round-trip. The transaction shape costs one extra round-trip (GET, then MULTI/EXEC) but
+/// keeps the implementation in C#, removes the embedded scripting language, and reads more like
+/// the rest of the codebase. The WOPI lock path isn't hot enough to care about the extra hop.
 /// </para>
 /// </remarks>
 /// <param name="multiplexer">StackExchange.Redis connection multiplexer.</param>
@@ -36,15 +43,16 @@ namespace WopiHost.RedisLockProvider;
 /// <param name="timeProvider">
 /// Clock source for lock timestamps. Defaults to <see cref="TimeProvider.System"/> when not
 /// supplied via DI; inject a <c>FakeTimeProvider</c> in tests to make
-/// <see cref="WopiLockInfo.DateCreated"/> deterministic. The TTL itself is still computed in
-/// Redis seconds via this clock so refresh-extends-expiry semantics line up with the in-memory
-/// representation tests advance.
+/// <see cref="WopiLockInfo.DateCreated"/> deterministic. The TTL itself is still computed via
+/// this clock so refresh-extends-expiry semantics line up with the in-memory representation
+/// tests advance.
 /// </param>
 /// <param name="lockComparer">
-/// Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/> when not supplied via DI;
-/// however, note that the Lua compare runs server-side and uses byte-exact equality on the
-/// LockId field — see <see cref="TryUnlockAndRelockAsync"/> for how the .NET-side
-/// <see cref="IWopiLockComparer"/> layer fits in.
+/// Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/> when not supplied via DI.
+/// The .NET-side comparer drives the snapshot match (so <see cref="JsonShapedWopiLockComparer"/>
+/// and friends can absorb known client-side lock-id mutations); the Redis transaction's CAS
+/// always compares the full stored value byte-for-byte, so any concurrent mutation aborts the
+/// CAS regardless of comparer choice.
 /// </param>
 public sealed partial class WopiRedisLockProvider(
     IConnectionMultiplexer multiplexer,
@@ -65,55 +73,18 @@ public sealed partial class WopiRedisLockProvider(
 
     private static readonly JsonSerializerOptions s_json = new() { IncludeFields = false };
 
-    /// <summary>
-    /// Lua: get stored value; if absent → return nil. The 30-minute TTL means Redis evicts
-    /// expired keys for us, but we still also evict server-side here as defense-in-depth in case
-    /// the caller advanced a fake clock without the TTL having "really" elapsed (Lua sees the
-    /// stored DateCreated, not the Redis EXPIRE clock).
-    /// </summary>
-    private const string GetScript = """
-        local v = redis.call('GET', KEYS[1])
-        if v == false then return nil end
-        return v
-        """;
-
-    /// <summary>
-    /// Lua refresh: GET → check lock-id match → SET with bumped DateCreated + reset TTL.
-    /// Returns 1 if refreshed, 0 if lock missing or mismatch.
-    /// ARGV[1] = expected lock id; ARGV[2] = new value (JSON); ARGV[3] = TTL seconds.
-    /// </summary>
-    private const string RefreshScript = """
-        local v = redis.call('GET', KEYS[1])
-        if v == false then return 0 end
-        if cjson.decode(v).LockId ~= ARGV[1] then return 0 end
-        redis.call('SET', KEYS[1], ARGV[2], 'EX', tonumber(ARGV[3]))
-        return 1
-        """;
-
-    /// <summary>
-    /// Lua swap: GET → check lock-id match → SET new value (new LockId + bumped DateCreated) +
-    /// reset TTL. Returns 1 on success, 0 if lock missing or mismatch.
-    /// </summary>
-    private const string SwapScript = """
-        local v = redis.call('GET', KEYS[1])
-        if v == false then return 0 end
-        if cjson.decode(v).LockId ~= ARGV[1] then return 0 end
-        redis.call('SET', KEYS[1], ARGV[2], 'EX', tonumber(ARGV[3]))
-        return 1
-        """;
-
     /// <inheritdoc />
     public async Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default)
     {
-        var raw = (string?)await Db.ScriptEvaluateAsync(GetScript, [Key(fileId)]).ConfigureAwait(false);
-        if (string.IsNullOrEmpty(raw))
+        var raw = await Db.StringGetAsync(Key(fileId)).ConfigureAwait(false);
+        if (!raw.HasValue)
         {
             return null;
         }
-        var info = Deserialize(raw);
-        // Even though we set EX on every write, the fake-clock conformance test advances time
-        // without the Redis server clock moving. Re-check expiry against the injected
-        // TimeProvider so deterministic tests pass and we evict stale state for free.
+        var info = Deserialize(raw!);
+        // Even though we set EX on every write, the fake-clock conformance test advances the
+        // injected TimeProvider without the Redis server clock moving. Re-check expiry against
+        // the .NET-side clock so deterministic tests pass and we evict stale state for free.
         if (info.IsExpiredAt(_timeProvider.GetUtcNow()))
         {
             _ = await Db.KeyDeleteAsync(Key(fileId)).ConfigureAwait(false);
@@ -142,12 +113,11 @@ public sealed partial class WopiRedisLockProvider(
             LockId = lockId,
             DateCreated = _timeProvider.GetUtcNow(),
         };
-        var json = Serialize(info);
         var ttl = TimeSpan.FromMinutes(WopiLockInfo.ExpirationMinutes);
 
         // SET ... NX EX <ttl> — atomic create-if-not-exists with TTL. Returns true only if a
         // sibling AddLock didn't race us.
-        var ok = await Db.StringSetAsync(Key(fileId), json, ttl, When.NotExists).ConfigureAwait(false);
+        var ok = await Db.StringSetAsync(Key(fileId), Serialize(info), ttl, When.NotExists).ConfigureAwait(false);
         if (!ok)
         {
             // Lost the race. Re-read to surface the winner's lock id for telemetry, then bail.
@@ -160,32 +130,14 @@ public sealed partial class WopiRedisLockProvider(
     }
 
     /// <inheritdoc />
-    public async Task<bool> RefreshLockAsync(string fileId, string expectedExistingLockId, CancellationToken cancellationToken = default)
-    {
-        // Snapshot current state via GetLockAsync for the .NET-side IWopiLockComparer check (so
-        // JsonShapedWopiLockComparer-style tolerant matching works). The Lua script then re-checks
-        // byte-exact equality against the stored value: if a concurrent UnlockAndRelock won the
-        // race between our read and the script's GET, the Lua compare fails and we return false.
-        var snapshot = await GetLockAsync(fileId, cancellationToken).ConfigureAwait(false);
-        if (snapshot is null)
-        {
-            return false;
-        }
-        if (!_lockComparer.AreEqual(snapshot.LockId, expectedExistingLockId))
-        {
-            return false;
-        }
+    public Task<bool> RefreshLockAsync(string fileId, string expectedExistingLockId, CancellationToken cancellationToken = default)
+        => TryAtomicCasAsync(fileId, expectedExistingLockId,
+            snapshot => snapshot with { DateCreated = _timeProvider.GetUtcNow() }, cancellationToken);
 
-        var refreshed = snapshot with { DateCreated = _timeProvider.GetUtcNow() };
-        var ttl = (int)TimeSpan.FromMinutes(WopiLockInfo.ExpirationMinutes).TotalSeconds;
-        // Lua compare uses the *stored* lock id (snapshot.LockId), not the caller's potentially
-        // tolerant-equal value, so the CAS is byte-exact and consistent regardless of comparer.
-        var result = (long)await Db.ScriptEvaluateAsync(
-            RefreshScript,
-            [Key(fileId)],
-            [snapshot.LockId, Serialize(refreshed), ttl.ToString(CultureInfo.InvariantCulture)]).ConfigureAwait(false);
-        return result == 1;
-    }
+    /// <inheritdoc />
+    public Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default)
+        => TryAtomicCasAsync(fileId, expectedExistingLockId,
+            snapshot => snapshot with { DateCreated = _timeProvider.GetUtcNow(), LockId = newLockId }, cancellationToken);
 
     /// <inheritdoc />
     public async Task<bool> RemoveLockAsync(string fileId, CancellationToken cancellationToken = default)
@@ -198,16 +150,35 @@ public sealed partial class WopiRedisLockProvider(
         return removed;
     }
 
-    /// <inheritdoc />
-    public async Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Shared "GET snapshot → validate caller's lock-id → MULTI/EXEC under WATCH" flow that
+    /// <see cref="RefreshLockAsync"/> and <see cref="TryUnlockAndRelockAsync"/> both need. They
+    /// differ only in <em>how</em> the snapshot is transformed before being written back; the
+    /// load, expected-id check, and CAS scaffolding is identical.
+    /// </summary>
+    /// <remarks>
+    /// The transaction's <c>AddCondition(StringEqual(key, raw))</c> compares the
+    /// <em>byte-exact</em> resident value against the snapshot we read. If anything mutated
+    /// the value between our read and the EXEC (a sibling refresh, swap, remove, or expiry),
+    /// the condition fails and the transaction aborts. The .NET-side <see cref="IWopiLockComparer"/>
+    /// is consulted only for the caller's <paramref name="expectedExistingLockId"/> against the
+    /// snapshot's <c>LockId</c>, so tolerant comparers (e.g. <see cref="JsonShapedWopiLockComparer"/>)
+    /// still work without weakening the CAS.
+    /// </remarks>
+    private async Task<bool> TryAtomicCasAsync(
+        string fileId,
+        string expectedExistingLockId,
+        Func<WopiLockInfo, WopiLockInfo> mutate,
+        CancellationToken cancellationToken)
     {
-        // Same shape as RefreshLockAsync: comparer-driven snapshot check on the .NET side; Lua CAS
-        // against the byte-exact stored id on the server side. After this combination, a tolerant
-        // comparer still wins the snapshot check, but any concurrent mutation between snapshot
-        // and the Lua run causes the Lua compare to fail (it always uses the stored id), so the
-        // swap aborts cleanly without producing a "ghost" relock.
-        var snapshot = await GetLockAsync(fileId, cancellationToken).ConfigureAwait(false);
-        if (snapshot is null)
+        var key = Key(fileId);
+        var raw = await Db.StringGetAsync(key).ConfigureAwait(false);
+        if (!raw.HasValue)
+        {
+            return false;
+        }
+        var snapshot = Deserialize(raw!);
+        if (snapshot.IsExpiredAt(_timeProvider.GetUtcNow()))
         {
             return false;
         }
@@ -215,17 +186,13 @@ public sealed partial class WopiRedisLockProvider(
         {
             return false;
         }
-        var swapped = snapshot with
-        {
-            DateCreated = _timeProvider.GetUtcNow(),
-            LockId = newLockId,
-        };
-        var ttl = (int)TimeSpan.FromMinutes(WopiLockInfo.ExpirationMinutes).TotalSeconds;
-        var result = (long)await Db.ScriptEvaluateAsync(
-            SwapScript,
-            [Key(fileId)],
-            [snapshot.LockId, Serialize(swapped), ttl.ToString(CultureInfo.InvariantCulture)]).ConfigureAwait(false);
-        return result == 1;
+
+        var updated = mutate(snapshot);
+        var ttl = TimeSpan.FromMinutes(WopiLockInfo.ExpirationMinutes);
+        var tx = Db.CreateTransaction();
+        tx.AddCondition(Condition.StringEqual(key, raw));
+        _ = tx.StringSetAsync(key, Serialize(updated), ttl);
+        return await tx.ExecuteAsync().ConfigureAwait(false);
     }
 
     private static string Serialize(WopiLockInfo info) => JsonSerializer.Serialize(info, s_json);

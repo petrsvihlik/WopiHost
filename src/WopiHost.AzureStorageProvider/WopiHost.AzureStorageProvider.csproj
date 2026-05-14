@@ -18,8 +18,6 @@
 		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
 		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
 		<GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-		<!-- This is a brand new package; no prior released version to validate against. -->
-		<EnablePackageValidation>false</EnablePackageValidation>
 	</PropertyGroup>
 
 	<ItemGroup>
