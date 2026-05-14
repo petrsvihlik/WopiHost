@@ -119,7 +119,7 @@ public abstract class LockProviderConformanceTests
     }
 
     [Fact]
-    public async Task RefreshLockAsync_UpdatesTimestamp_PreservingLockId()
+    public async Task RefreshLockAsync_MatchingExpectedLock_UpdatesTimestamp_PreservingLockId()
     {
         var clock = new ControllableTimeProvider(DateTimeOffset.UtcNow);
         var sut = await CreateSutAsync(clock);
@@ -128,7 +128,7 @@ public abstract class LockProviderConformanceTests
         Assert.NotNull(original);
 
         clock.Now = clock.Now.AddMinutes(1);
-        var refreshed = await sut.RefreshLockAsync(fileId);
+        var refreshed = await sut.RefreshLockAsync(fileId, expectedExistingLockId: "lock-A");
 
         Assert.True(refreshed);
         var info = await sut.GetLockAsync(fileId);
@@ -139,13 +139,63 @@ public abstract class LockProviderConformanceTests
     }
 
     [Fact]
+    public async Task RefreshLockAsync_MismatchedExpectedLock_ReturnsFalseAndDoesNotMutate()
+    {
+        // Spec: RefreshLock honours the caller's lock id only when it matches the stored id.
+        // Pre-#1.6 the abstraction couldn't enforce this — the controller had to compare ids
+        // separately, racing against any concurrent UnlockAndRelock. Now the provider performs
+        // an atomic compare-and-refresh; a stale caller observes false here and the stored id
+        // / timestamp are untouched.
+        var clock = new ControllableTimeProvider(DateTimeOffset.UtcNow);
+        var sut = await CreateSutAsync(clock);
+        var fileId = $"refresh-mismatch-{Guid.NewGuid()}";
+        var original = await sut.AddLockAsync(fileId, "current-lock");
+        Assert.NotNull(original);
+
+        clock.Now = clock.Now.AddMinutes(1);
+        var refreshed = await sut.RefreshLockAsync(fileId, expectedExistingLockId: "stale-cached-lock");
+
+        Assert.False(refreshed);
+        var info = await sut.GetLockAsync(fileId);
+        Assert.NotNull(info);
+        Assert.Equal("current-lock", info.LockId);
+        // Timestamp must not have moved on a mismatch — otherwise a stale caller could keep a
+        // lock alive past its 30-minute window without ever proving ownership.
+        Assert.Equal(original.DateCreated, info.DateCreated);
+    }
+
+    [Fact]
     public async Task RefreshLockAsync_NoExistingLock_ReturnsFalse()
     {
         var sut = await CreateSutAsync();
 
-        var result = await sut.RefreshLockAsync($"missing-{Guid.NewGuid()}");
+        var result = await sut.RefreshLockAsync($"missing-{Guid.NewGuid()}", expectedExistingLockId: "anything");
 
         Assert.False(result);
+    }
+
+    [Fact]
+    public async Task RefreshLockAsync_ConcurrentSwapBetweenObservationAndCAS_DoesNotRefresh()
+    {
+        // Same race as TryUnlockAndRelockAsync's CAS test, but for Refresh: caller A reads the
+        // lock as "old-lock", is about to refresh. Before A's refresh lands, caller B swaps the
+        // lock id to "B-new" (legit UnlockAndRelock). A's refresh must NOT bump the timestamp on
+        // "B-new" — the spec is that A's stale id no longer matches what's stored.
+        var sut = await CreateSutAsync();
+        var fileId = $"refresh-race-{Guid.NewGuid()}";
+        await sut.AddLockAsync(fileId, "old-lock");
+
+        // B swaps first.
+        var bSwapped = await sut.TryUnlockAndRelockAsync(fileId, "B-new", expectedExistingLockId: "old-lock");
+        Assert.True(bSwapped);
+
+        // A still believes the lock is "old-lock" — refresh must fail.
+        var aRefreshed = await sut.RefreshLockAsync(fileId, expectedExistingLockId: "old-lock");
+        Assert.False(aRefreshed);
+
+        var info = await sut.GetLockAsync(fileId);
+        Assert.NotNull(info);
+        Assert.Equal("B-new", info.LockId);
     }
 
     [Fact]
@@ -158,13 +208,47 @@ public abstract class LockProviderConformanceTests
         var fileId = $"refresh-extend-{Guid.NewGuid()}";
         await sut.AddLockAsync(fileId, "lock-A");
 
-        // Almost-expired, then refresh.
+        // Almost-expired, then refresh with the matching lock id.
         clock.Now = clock.Now.AddMinutes(WopiLockInfo.ExpirationMinutes - 1);
-        Assert.True(await sut.RefreshLockAsync(fileId));
+        Assert.True(await sut.RefreshLockAsync(fileId, expectedExistingLockId: "lock-A"));
 
         // Another almost-expiry-window later: still alive because the refresh moved DateCreated.
         clock.Now = clock.Now.AddMinutes(WopiLockInfo.ExpirationMinutes - 1);
         Assert.NotNull(await sut.GetLockAsync(fileId));
+    }
+
+    [Fact]
+    public async Task RefreshLockAsync_AfterClockAdvancesPastExpiry_ReturnsFalseAndEvicts()
+    {
+        // Conformance flip-side of RefreshLockAsync_AdvancingClockPastExpiry_ResetsClock: a
+        // caller that misses the refresh window must see false (and providers should evict the
+        // stale record). Important even when the lock-id still matches — expiry shouldn't be
+        // bypassable by a caller who happens to know the right id.
+        var clock = new ControllableTimeProvider(DateTimeOffset.UtcNow);
+        var sut = await CreateSutAsync(clock);
+        var fileId = $"refresh-past-expiry-{Guid.NewGuid()}";
+        await sut.AddLockAsync(fileId, "lock-A");
+
+        clock.Now = clock.Now.AddMinutes(WopiLockInfo.ExpirationMinutes + 1);
+
+        Assert.False(await sut.RefreshLockAsync(fileId, expectedExistingLockId: "lock-A"));
+        Assert.Null(await sut.GetLockAsync(fileId));
+    }
+
+    [Fact]
+    public async Task TryUnlockAndRelockAsync_AfterClockAdvancesPastExpiry_ReturnsFalse()
+    {
+        // Same flip-side for the swap path: a stale UnlockAndRelock attempt that arrives past
+        // the WOPI 30-minute window must NOT succeed, even with the right expected lock id.
+        var clock = new ControllableTimeProvider(DateTimeOffset.UtcNow);
+        var sut = await CreateSutAsync(clock);
+        var fileId = $"swap-past-expiry-{Guid.NewGuid()}";
+        await sut.AddLockAsync(fileId, "old-lock");
+
+        clock.Now = clock.Now.AddMinutes(WopiLockInfo.ExpirationMinutes + 1);
+
+        Assert.False(await sut.TryUnlockAndRelockAsync(fileId, "new-lock", expectedExistingLockId: "old-lock"));
+        Assert.Null(await sut.GetLockAsync(fileId));
     }
 
     [Fact]

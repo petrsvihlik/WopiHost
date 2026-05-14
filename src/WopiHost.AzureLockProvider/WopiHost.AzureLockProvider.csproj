@@ -18,7 +18,6 @@
 		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
 		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
 		<GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-		<EnablePackageValidation>false</EnablePackageValidation>
 	</PropertyGroup>
 
 	<ItemGroup>

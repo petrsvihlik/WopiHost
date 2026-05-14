@@ -157,44 +157,63 @@ public class FilesController(
     {
         ArgumentNullException.ThrowIfNull(writableStorageProvider);
         var file = await storageProvider.GetWopiResource<IWopiFile>(id, cancellationToken).ConfigureAwait(false);
+        IActionResult result;
         if (file is null)
         {
             // 404 Not Found – Resource not found/user unauthorized
-            return NotFound();
+            result = NotFound();
         }
-
-        // If the file is currently locked, the host should return a 409 Conflict
-        // and include an X-WOPI-Lock response header containing the value of the current lock on the file
-        if (lockProvider is not null)
+        else if (lockProvider is not null
+            && await lockProvider.GetLockAsync(id, cancellationToken).ConfigureAwait(false) is { } existingLock
+            && !_lockComparer.AreEqual(existingLock.LockId, lockIdentifier))
         {
-            var existingLock = await lockProvider.GetLockAsync(id, cancellationToken).ConfigureAwait(false);
-            if (existingLock is not null && !_lockComparer.AreEqual(existingLock.LockId, lockIdentifier))
-            {
-                return new LockMismatchResult(Response, existingLock.LockId);
-            }
+            // 409 Conflict – the host should return X-WOPI-Lock with the value of the current lock
+            result = new LockMismatchResult(Response, existingLock.LockId);
         }
-
-        // If the host can't rename the file because the name requested is invalid ... it should return an HTTP status code 400 Bad Request.
-        // The response must include an X-WOPI-InvalidFileNameError header that describes why the file name was invalid
-        if (!await writableStorageProvider.CheckValidName<IWopiFolder>(requestedName, cancellationToken).ConfigureAwait(false))
+        else if (!await writableStorageProvider.CheckValidName<IWopiFolder>(requestedName, cancellationToken).ConfigureAwait(false))
         {
             // 400 Bad Request – Specified name is illegal
-            // A string describing the reason the rename operation couldn't be completed.
-            // This header should only be included when the response code is 400 Bad Request
             Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
-            return new BadRequestResult();
+            result = new BadRequestResult();
         }
+        else
+        {
+            result = await TryRenameFileAsync(id, requestedName, file, cancellationToken).ConfigureAwait(false);
+        }
+        return result;
+    }
 
+    /// <summary>
+    /// Inner body of <see cref="RenameFile"/>: actually attempts the rename and maps each
+    /// provider outcome (success / false / typed exceptions) to its WOPI HTTP status. Lifted out
+    /// of the public action so the action's return-statement count stays low; pre-fix the inline
+    /// version had 9 returns scattered across pre-checks, the try block, and four catch arms.
+    /// </summary>
+    private async Task<IActionResult> TryRenameFileAsync(
+        string id,
+        string requestedName,
+        IWopiFile file,
+        CancellationToken cancellationToken)
+    {
+        // Same result-variable pattern as ContainersController.TryRenameContainerAsync —
+        // each branch assigns to a single `result`, one `return` at the bottom. qlty's
+        // return-count threshold is ≤5; the multi-return shape was at 6.
+        IActionResult result;
         try
         {
             // If the host can't rename the file because the name requested is invalid or conflicts with an existing file,
             // the host should try to generate a different name based on the requested name that meets the file name requirements
-            var newName = await writableStorageProvider.GetSuggestedName<IWopiFile>(id, requestedName + '.' + file.Extension, cancellationToken).ConfigureAwait(false);
+            var newName = await writableStorageProvider!.GetSuggestedName<IWopiFile>(id, requestedName + '.' + file.Extension, cancellationToken).ConfigureAwait(false);
             if (await writableStorageProvider.RenameWopiResource<IWopiFile>(id, newName, cancellationToken).ConfigureAwait(false))
             {
                 // The response to a RenameFile call is JSON containing a single required property
                 // Name (string) - The name of the renamed file without a path or file extension.
-                return new JsonResult(new { Name = Path.GetFileNameWithoutExtension(newName) });
+                result = new JsonResult(new { Name = Path.GetFileNameWithoutExtension(newName) });
+            }
+            else
+            {
+                // false → missing resource (race with concurrent delete). Map to 404. (#380 item 4.2)
+                result = NotFound();
             }
         }
         catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
@@ -204,23 +223,24 @@ public class FilesController(
             // This header should only be included when the response code is 400 Bad Request.
             // This string is only used for logging purposes.
             Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
-            return new BadRequestResult();
+            result = new BadRequestResult();
         }
         catch (FileNotFoundException)
         {
-            // 404 Not Found – Resource not found/user unauthorized
-            return NotFound();
+            // 404 Not Found – defensive catch for third-party providers / GetSuggestedName paths
+            // that still throw on missing resource.
+            result = NotFound();
         }
         catch (InvalidOperationException)
         {
             // 409 Conflict – requestedName already exists
-            return new ConflictResult();
+            result = new ConflictResult();
         }
         catch (Exception)
         {
-            return new InternalServerErrorResult();
+            result = new InternalServerErrorResult();
         }
-        return new InternalServerErrorResult();
+        return result;
     }
 
     /// <summary>
@@ -670,6 +690,8 @@ public class FilesController(
             {
                 return Ok();
             }
+            // false → missing resource (race with concurrent delete). Map to 404. (#380 item 4.2)
+            return NotFound();
         }
 
         return new InternalServerErrorResult();
@@ -870,8 +892,13 @@ public class FilesController(
             // The existing lock doesn't match the requested one (someone else might have locked the file). Return a lock mismatch error along with the current lock
             return new LockMismatchResult(Response, existingLock.LockId);
         }
-        // File is currently locked and the lock ids match, refresh lock (extend the lock timeout)
-        return await lockProvider.RefreshLockAsync(existingLock.FileId, cancellationToken: cancellationToken).ConfigureAwait(false)
+        // File is currently locked and the lock ids match, refresh lock (extend the lock timeout).
+        // The provider receives the expected lock id and performs an atomic compare-and-refresh:
+        // if a concurrent UnlockAndRelock swapped the stored id between our existingLock snapshot
+        // (captured upstream in ProcessLock via GetLockAsync) and this call, the refresh aborts
+        // cleanly. Pre-fix this was a check-then-act race: the controller checked the snapshot
+        // and the provider blindly bumped the timestamp on whatever id was now stored.
+        return await lockProvider.RefreshLockAsync(existingLock.FileId, newLock, cancellationToken).ConfigureAwait(false)
             ? Ok()
             : new LockMismatchResult(Response, reason: "Could not refresh lock");
     }

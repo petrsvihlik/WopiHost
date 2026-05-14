@@ -77,11 +77,14 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     }
 
     [Fact]
-    public async Task GetWopiResourceByName_UnknownContainer_Throws()
+    public async Task GetWopiResourceByName_UnknownContainer_ReturnsNull()
     {
+        // #380 item 4.2 — missing parent returns null, consistent with WopiFileSystemProvider.
+        // Was previously the only impl that returned null here; this pins the contract for both.
         var (provider, _) = await CreateProviderAsync();
-        await Assert.ThrowsAsync<DirectoryNotFoundException>(
-            () => provider.GetWopiResourceByName<IWopiFile>("does-not-exist", "anything.txt"));
+        var result = await provider.GetWopiResourceByName<IWopiFile>("does-not-exist", "anything.txt");
+
+        Assert.Null(result);
     }
 
     [Fact]

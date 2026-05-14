@@ -290,10 +290,15 @@ public class ContainersController(
             {
                 return Ok();
             }
+            // Provider returns false when the identifier no longer resolves to a resource — the
+            // pre-check above passed but a concurrent delete won the race. Map to 404, same as
+            // the throw-based path below (#380 item 4.2).
+            return NotFound();
         }
         catch (DirectoryNotFoundException)
         {
-            // 404 Not Found – Resource not found/user unauthorized
+            // 404 Not Found – defensive catch for third-party providers that still throw on
+            // missing resource (the in-tree providers now return false; see item 4.2).
             return NotFound();
         }
         catch (InvalidOperationException)
@@ -301,7 +306,6 @@ public class ContainersController(
             // 409 Conflict – Container has child files/containers
             return new ConflictResult();
         }
-        return new InternalServerErrorResult();
     }
 
     /// <summary>
@@ -325,26 +329,57 @@ public class ContainersController(
     {
         ArgumentNullException.ThrowIfNull(writableStorageProvider);
         var container = await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false);
+        IActionResult result;
         if (container is null)
         {
             // 404 Not Found – Resource not found/user unauthorized
-            return NotFound();
+            result = NotFound();
         }
-        if (!await writableStorageProvider.CheckValidName<IWopiFolder>(requestedName, cancellationToken).ConfigureAwait(false))
+        else if (!await writableStorageProvider.CheckValidName<IWopiFolder>(requestedName, cancellationToken).ConfigureAwait(false))
         {
             // 400 Bad Request – Specified name is illegal
             // A string describing the reason the rename operation couldn't be completed.
             // This header should only be included when the response code is 400 Bad Request
             Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
-            return new BadRequestResult();
+            result = new BadRequestResult();
         }
+        else
+        {
+            result = await TryRenameContainerAsync(id, requestedName, container, cancellationToken).ConfigureAwait(false);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Inner body of <see cref="RenameContainer"/>: actually attempts the rename and maps each
+    /// provider outcome (success / false / typed exceptions) to its WOPI HTTP status. Lifted out
+    /// of the public action method so the action's return-statement count stays below qlty's
+    /// complexity threshold; pre-fix the inline version had 8 returns scattered across the
+    /// pre-checks, the try block, and the catch arms.
+    /// </summary>
+    private async Task<IActionResult> TryRenameContainerAsync(
+        string id,
+        string requestedName,
+        IWopiFolder container,
+        CancellationToken cancellationToken)
+    {
+        // Result-variable pattern: each branch (success / false / 4 typed-exception catches)
+        // assigns to a single `result` so the method has just one `return`. qlty's return-count
+        // threshold is ≤5; the multi-return shape (6 returns: success, false, ArgumentException,
+        // DirectoryNotFoundException, InvalidOperationException, Exception) was over the limit.
+        IActionResult result;
         try
         {
-            if (await writableStorageProvider.RenameWopiResource<IWopiFolder>(id, requestedName, cancellationToken).ConfigureAwait(false))
+            if (await writableStorageProvider!.RenameWopiResource<IWopiFolder>(id, requestedName, cancellationToken).ConfigureAwait(false))
             {
                 // The response to a RenameContainer call is JSON containing the following required property:
                 // Name(string) - The name of the renamed container.
-                return new JsonResult(new { container.Name });
+                result = new JsonResult(new { container.Name });
+            }
+            else
+            {
+                // false → missing resource (race with concurrent delete). Map to 404. (#380 item 4.2)
+                result = NotFound();
             }
         }
         catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
@@ -354,23 +389,23 @@ public class ContainersController(
             // This header should only be included when the response code is 400 Bad Request.
             // This string is only used for logging purposes.
             Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
-            return new BadRequestResult();
+            result = new BadRequestResult();
         }
         catch (DirectoryNotFoundException)
         {
-            // 404 Not Found – Resource not found/user unauthorized
-            return NotFound();
+            // 404 Not Found – defensive catch for third-party providers that still throw.
+            result = NotFound();
         }
         catch (InvalidOperationException)
         {
             // 409 Conflict – requestedName already exists
-            return new ConflictResult();
+            result = new ConflictResult();
         }
         catch (Exception)
         {
-            return new InternalServerErrorResult();
+            result = new InternalServerErrorResult();
         }
-        return new InternalServerErrorResult();
+        return result;
     }
 
     /// <summary>

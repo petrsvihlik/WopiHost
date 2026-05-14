@@ -80,6 +80,31 @@ if (builder.Configuration.GetValue<bool>("AppHost:UseAzureStorage"))
     wopiHost.WithReference(blobs);
 }
 
+// Redis-backed distributed lock provider. Default ON when starting via Aspire — when the
+// AppHost orchestrates the wopihost-web frontend, Aspire is already managing Docker resources
+// and Redis is the realistic lock backend a real deployment would use; running the dev loop
+// against the same provider catches divergences early. Opt out via "AppHost:UseRedisLocks"=false
+// (e.g., on a contributor machine without Docker, or for the unit-test loop where
+// MemoryLockProvider is sufficient).
+//
+// When enabled, an Aspire Redis container resource is added and the WopiHost backend is
+// reconfigured to load WopiHost.RedisLockProvider with the Aspire-allocated connection string.
+// WaitFor ensures the WOPI backend doesn't try to acquire a lock before Redis is accepting
+// connections.
+if (builder.Configuration.GetValue("AppHost:UseRedisLocks", defaultValue: true))
+{
+    var redis = builder.AddRedis("wopi-locks")
+                       .WithLifetime(ContainerLifetime.Persistent);
+    wopiHost
+        // Switch the backend's lock-provider assembly name so AddLockProvider() dispatches to Redis.
+        .WithEnvironment("Wopi__LockProviderAssemblyName", "WopiHost.RedisLockProvider")
+        // sample/WopiHost binds Wopi:LockProvider:ConnectionString to WopiRedisLockProviderOptions;
+        // route Aspire's connection-string reference through this key so the provider sees it
+        // without needing a separate ConnectionStrings:wopi-locks fallback path.
+        .WithEnvironment("Wopi__LockProvider__ConnectionString", redis.Resource.ConnectionStringExpression)
+        .WaitFor(redis);
+}
+
 // Collabora-mode toggle. When enabled (see the dedicated block at the bottom of this file),
 // the frontend's Wopi:HostUrl must use host.docker.internal so the URL it bakes into WopiSrc
 // resolves from inside the Collabora container. In non-Collabora mode there's no in-Docker

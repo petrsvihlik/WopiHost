@@ -19,6 +19,7 @@
 	<ItemGroup>
 		<!--ProjectReference Include="..\WopiHost.Cobalt\WopiHost.Cobalt.csproj" /-->
 		<ProjectReference Include="..\..\src\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj" />
+		<ProjectReference Include="..\..\src\WopiHost.RedisLockProvider\WopiHost.RedisLockProvider.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.AzureStorageProvider\WopiHost.AzureStorageProvider.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.AzureLockProvider\WopiHost.AzureLockProvider.csproj" />

@@ -51,9 +51,11 @@ This is a modular **WOPI protocol host** implementation that integrates custom d
 - **WopiHost.Url** — Generates WOPI URLs for file/container actions.
 - **WopiHost.Cobalt** — Optional MS-FSSHTTP (Cobalt) protocol support for co-authoring.
 - **WopiHost.FileSystemProvider** — Default file-system-based storage provider. Resource identifiers are deterministic SHA-256 hashes of the path (see `WopiResourceId.FromCanonicalPath`); the in-memory id↔path map is rebuilt on startup.
-- **WopiHost.MemoryLockProvider** — Default in-memory lock provider (ConcurrentDictionary, 30-min expiry).
+- **WopiHost.MemoryLockProvider** — Default in-memory lock provider (per-instance `ConcurrentDictionary`, 30-min expiry). Single-process only.
 - **WopiHost.AzureStorageProvider** — Azure Blob storage provider (alternative to FileSystemProvider). See its README for the connection-string config flow.
-- **WopiHost.AzureLockProvider** — Azure-blob-backed distributed lock provider (alternative to MemoryLockProvider).
+- **WopiHost.AzureLockProvider** — Azure-blob-backed distributed lock provider (alternative to MemoryLockProvider). Strongest cross-instance exclusion via Azure blob leases.
+- **WopiHost.RedisLockProvider** — Redis-backed distributed lock provider. Best-effort, single-Redis (does not implement Redlock — see its README for rationale). Atomicity via Lua scripts; TTL-driven WOPI expiry.
+- **WopiHost.Abstractions.Testing** — Shared `LockProviderConformanceTests` xUnit class that every `IWopiLockProvider` implementation runs through. Provider-specific test projects derive a sealed subclass and supply a factory; xUnit picks up the inherited `[Fact]` tests automatically. Adding a future provider = one more conformance subclass.
 
 ### Dependency Chain
 
@@ -64,7 +66,9 @@ Abstractions ← FileSystemProvider
 Abstractions ← AzureStorageProvider
 Abstractions ← MemoryLockProvider
 Abstractions ← AzureLockProvider
+Abstractions ← RedisLockProvider
 Abstractions ← Cobalt
+Abstractions ← Abstractions.Testing (test-helper library; depends on xunit)
 ```
 
 ### Provider Model
@@ -90,6 +94,7 @@ The Aspire AppHost reads a few `AppHost:*` flags from configuration so the defau
 | Flag | Adds |
 |---|---|
 | `AppHost:UseAzureStorage` | Azurite emulator + `BlobStorage` connection string forwarded to the WOPI host. |
+| `AppHost:UseRedisLocks` | **Default: `true` when launched via the AppHost.** Adds a Redis container; the WOPI host swaps `LockProviderAssemblyName` to `WopiHost.RedisLockProvider` and receives the Aspire-allocated connection string via `Wopi:LockProvider:ConnectionString`. Set to `false` to fall back to `WopiHost.MemoryLockProvider` (single-process) — useful on contributor machines without Docker. Aspire already manages Docker resources, so the realistic distributed-lock backend is the right default for the orchestrated dev loop. |
 | `AppHost:UseCollabora` | `collabora/code` container as a real WOPI client for end-to-end editing. Auto-overrides `Wopi:ClientUrl`, `Wopi:HostUrl`, `Wopi:Discovery:NetZone`, and `Wopi:Security:DisableProofValidation` on the affected projects. See the **End-to-end editing with Collabora Online** section in the root README for the full wiring (`host.docker.internal:5000`, NetZone gotcha, proof-key gotcha). |
 | `AppHost:IncludeOidcSample` | `WopiHost.Web.Oidc` frontend (requires IdP setup — see its README). |
 

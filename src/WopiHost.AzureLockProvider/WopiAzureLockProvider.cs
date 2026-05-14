@@ -165,112 +165,134 @@ public partial class WopiAzureLockProvider(
     }
 
     /// <inheritdoc />
-    public async Task<bool> RefreshLockAsync(string fileId, CancellationToken cancellationToken = default)
-    {
-        await EnsureContainerAsync(cancellationToken).ConfigureAwait(false);
-        var blobClient = GetLockBlob(fileId);
-        var props = await TryGetPropertiesAsync(blobClient, cancellationToken).ConfigureAwait(false);
-        if (props is null || !TryReadLock(fileId, props, out var info))
-        {
-            return false;
-        }
-        if (info.IsExpiredAt(_timeProvider.GetUtcNow()))
-        {
-            return false;
-        }
-        if (!props.Metadata.TryGetValue(LeaseIdKey, out var leaseId) || string.IsNullOrEmpty(leaseId))
-        {
-            return false;
-        }
-
-        // Renew the lease so the holder semantic stays alive (no-op for infinite leases but still
-        // confirms the lease is still ours), then bump the WOPI-level timestamp.
-        var leaseClient = blobClient.GetBlobLeaseClient(leaseId);
-        try
-        {
-            await leaseClient.RenewAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-        catch (RequestFailedException ex)
-        {
-            LogLeaseRenewFailed(_logger, ex, fileId);
-            return false;
-        }
-
-        var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal)
-        {
-            [CreatedKey] = _timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture),
-        };
-        try
-        {
-            await blobClient.SetMetadataAsync(updated,
-                conditions: new BlobRequestConditions { LeaseId = leaseId },
-                cancellationToken: cancellationToken).ConfigureAwait(false);
-            return true;
-        }
-        catch (RequestFailedException ex)
-        {
-            LogLockMetadataUpdateFailed(_logger, ex, fileId);
-            return false;
-        }
-    }
+    public Task<bool> RefreshLockAsync(string fileId, string expectedExistingLockId, CancellationToken cancellationToken = default)
+        => TryAtomicLockUpdateAsync(fileId, expectedExistingLockId, BumpCreatedTimestamp, cancellationToken);
 
     /// <inheritdoc />
-    public async Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default)
+    public Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default)
+        => TryAtomicLockUpdateAsync(fileId, expectedExistingLockId, m => SwapLockIdAndBumpTimestamp(m, newLockId), cancellationToken);
+
+    private void BumpCreatedTimestamp(Dictionary<string, string> metadata)
+        => metadata[CreatedKey] = _timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture);
+
+    private void SwapLockIdAndBumpTimestamp(Dictionary<string, string> metadata, string newLockId)
+    {
+        metadata[LockIdKey] = newLockId;
+        BumpCreatedTimestamp(metadata);
+    }
+
+    /// <summary>
+    /// Shared "load → validate → renew lease → SetMetadata under ETag" flow that
+    /// <see cref="RefreshLockAsync"/> and <see cref="TryUnlockAndRelockAsync"/> both need. They
+    /// differ only in <em>which</em> metadata fields the mutation step writes; the load /
+    /// expected-lock-id check / lease renewal / ETag-conditional write / failure-handling
+    /// scaffolding is identical, so it lives here as a single transaction instead of being
+    /// duplicated across both methods.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Atomicity: the ETag captured before lease renewal is the snapshot the
+    /// <c>SetMetadataAsync</c> writes against (<c>IfMatch=etag</c>). Any concurrent mutation
+    /// between our load and our write — a sibling <c>UnlockAndRelock</c>, a <c>Remove</c>, even
+    /// another <c>Refresh</c> — changes the blob's ETag and Azure replies 412; we report
+    /// not-applied. Same atomicity guarantee in both call sites.
+    /// </para>
+    /// <para>
+    /// Returns <see langword="false"/> on any abort condition: blob missing, malformed
+    /// metadata, expired record, lock-id mismatch, missing or stale Azure lease, ETag race, or
+    /// any other <see cref="RequestFailedException"/> on the SetMetadata write.
+    /// </para>
+    /// </remarks>
+    private async Task<bool> TryAtomicLockUpdateAsync(
+        string fileId,
+        string expectedExistingLockId,
+        Action<Dictionary<string, string>> mutateMetadata,
+        CancellationToken cancellationToken)
     {
         await EnsureContainerAsync(cancellationToken).ConfigureAwait(false);
         var blobClient = GetLockBlob(fileId);
         var props = await TryGetPropertiesAsync(blobClient, cancellationToken).ConfigureAwait(false);
+        // Three short-circuiting guards collapsed into one if/else-if/else chain that assigns a
+        // single `result` and exits through one `return`. The earlier multi-return shape tripped
+        // qlty's return-count threshold (≤5); the combined-if shape tripped its boolean-logic
+        // threshold. The if/else-if/else preserves the short-circuit semantics with no compound
+        // boolean (each branch carries at most one `||`).
+        bool result;
         if (props is null || !TryReadLock(fileId, props, out var info))
         {
-            return false;
+            result = false;
         }
-        if (info.IsExpiredAt(_timeProvider.GetUtcNow()) || !_lockComparer.AreEqual(info.LockId, expectedExistingLockId))
+        else if (info.IsExpiredAt(_timeProvider.GetUtcNow()) || !_lockComparer.AreEqual(info.LockId, expectedExistingLockId))
         {
-            return false;
+            result = false;
         }
-        if (!props.Metadata.TryGetValue(LeaseIdKey, out var leaseId) || string.IsNullOrEmpty(leaseId))
+        else if (!props.Metadata.TryGetValue(LeaseIdKey, out var leaseId) || string.IsNullOrEmpty(leaseId))
         {
-            return false;
+            result = false;
         }
+        else
+        {
+            var context = new MutationContext(blobClient, props, leaseId, fileId);
+            result = await ExecuteMutationAsync(context, mutateMetadata, cancellationToken).ConfigureAwait(false);
+        }
+        return result;
+    }
 
-        // Snapshot the ETag at read time. If anything mutates the blob (another swap, refresh, or
-        // remove) before our SetMetadata lands, the IfMatch condition fails with 412 and the swap
-        // is correctly reported as not-applied.
-        var etag = props.ETag;
-        var leaseClient = blobClient.GetBlobLeaseClient(leaseId);
+    /// <summary>
+    /// Bundled "what to write to" inputs for <see cref="ExecuteMutationAsync"/>. Exists so that
+    /// helper can stay below qlty's 5-parameter threshold; passing four positional args plus the
+    /// mutation delegate and the cancellation token would otherwise put it at 6.
+    /// </summary>
+    private readonly record struct MutationContext(
+        BlobClient BlobClient,
+        BlobProperties Props,
+        string LeaseId,
+        string FileId);
+
+    /// <summary>
+    /// Inner step of <see cref="TryAtomicLockUpdateAsync"/>: with a validated lease id in hand,
+    /// renews the lease and writes the mutated metadata under <c>IfMatch=etag</c> + the lease id.
+    /// Lifted out so the outer validation path and the renew/write path each have a single
+    /// return — qlty's return-count threshold is ≤5, and the combined version exceeded it.
+    /// </summary>
+    /// <remarks>
+    /// A <c>renewed</c> flag tracks which phase the exception fired in so the two failure modes
+    /// stay distinguishable for telemetry: <see cref="LogLeaseRenewFailed"/> means the existing
+    /// lease was externally broken (bad state); <see cref="LogLockMetadataUpdateFailed"/> means
+    /// the SetMetadata write failed (typically 412 = concurrent mutation, 409 = lease conflict).
+    /// </remarks>
+    private async Task<bool> ExecuteMutationAsync(
+        MutationContext context,
+        Action<Dictionary<string, string>> mutateMetadata,
+        CancellationToken cancellationToken)
+    {
+        bool result;
+        var leaseClient = context.BlobClient.GetBlobLeaseClient(context.LeaseId);
+        var renewed = false;
         try
         {
             await leaseClient.RenewAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-        catch (RequestFailedException ex)
-        {
-            LogLeaseRenewFailed(_logger, ex, fileId);
-            return false;
-        }
-
-        var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal)
-        {
-            [LockIdKey] = newLockId,
-            [CreatedKey] = _timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture),
-        };
-        try
-        {
-            await blobClient.SetMetadataAsync(updated,
-                conditions: new BlobRequestConditions { LeaseId = leaseId, IfMatch = etag },
+            renewed = true;
+            var updated = new Dictionary<string, string>(context.Props.Metadata, StringComparer.Ordinal);
+            mutateMetadata(updated);
+            await context.BlobClient.SetMetadataAsync(updated,
+                conditions: new BlobRequestConditions { LeaseId = context.LeaseId, IfMatch = context.Props.ETag },
                 cancellationToken: cancellationToken).ConfigureAwait(false);
-            return true;
-        }
-        catch (RequestFailedException ex) when (ex.Status == 412 || ex.Status == 409)
-        {
-            // 412 = ETag changed (concurrent swap). 409 = lease conflict. Either way, swap aborted.
-            LogLockMetadataUpdateFailed(_logger, ex, fileId);
-            return false;
+            result = true;
         }
         catch (RequestFailedException ex)
         {
-            LogLockMetadataUpdateFailed(_logger, ex, fileId);
-            return false;
+            if (renewed)
+            {
+                LogLockMetadataUpdateFailed(_logger, ex, context.FileId);
+            }
+            else
+            {
+                LogLeaseRenewFailed(_logger, ex, context.FileId);
+            }
+            result = false;
         }
+        return result;
     }
 
     /// <inheritdoc />

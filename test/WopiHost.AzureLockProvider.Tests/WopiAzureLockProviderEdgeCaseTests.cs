@@ -46,7 +46,7 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
             [WopiAzureLockProvider.CreatedKey] = DateTimeOffset.UtcNow.AddHours(-2).ToString("O"),
         });
 
-        var refreshed = await provider.RefreshLockAsync("file-expired-refresh");
+        var refreshed = await provider.RefreshLockAsync("file-expired-refresh", expectedExistingLockId: "ancient");
 
         Assert.False(refreshed);
     }
@@ -67,7 +67,7 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
             // No LeaseIdKey
         });
 
-        var refreshed = await provider.RefreshLockAsync("file-no-leaseid");
+        var refreshed = await provider.RefreshLockAsync("file-no-leaseid", expectedExistingLockId: "lock-A");
 
         Assert.False(refreshed);
     }
@@ -85,7 +85,7 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         var lockBlob = GetLockBlob(provider, "file-broken-lease");
         await lockBlob.GetBlobLeaseClient().BreakAsync(breakPeriod: TimeSpan.Zero);
 
-        var refreshed = await provider.RefreshLockAsync("file-broken-lease");
+        var refreshed = await provider.RefreshLockAsync("file-broken-lease", expectedExistingLockId: "lock-A");
 
         Assert.False(refreshed);
     }
