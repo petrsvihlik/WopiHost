@@ -203,6 +203,21 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         await Assertions.Expect(officeFrame.Locator("#document-container")).ToBeVisibleAsync(
             new() { Timeout = (float)s_iframeReadyTimeout.TotalMilliseconds });
 
+        // Step 0: send Host_PostmessageReady to opt the host page into Collabora's postMessage
+        // protocol. Without this, CODE 25.04 sends nothing back to the parent window — including
+        // App_LoadingStatus, Document_LoadedSuccessfully, and (critically) Action_Save_Resp.
+        // The previous run captured zero postMessages from Collabora, which is what tipped me off
+        // that the host integration was untriggered. This is documented at
+        // https://sdk.collaboraonline.com/docs/postmessage_api.html (the host MUST initiate).
+        await page.EvaluateAsync(@"() => {
+            var frame = document.querySelector('iframe[name=""office_frame""]');
+            frame.contentWindow.postMessage(JSON.stringify({
+                MessageId: 'Host_PostmessageReady',
+                SendTime: Date.now(),
+                Values: {}
+            }), '*');
+        }");
+
         // Step 1: dismiss Collabora's "session will expire" modal. It appears asynchronously a
         // few seconds after the editor renders, so a one-shot IsVisible check at this point can
         // race the modal's arrival. Use Playwright's auto-wait by trying to click the OK button
@@ -255,6 +270,11 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // input path: keystroke → loolwsd → tile invalidate → write-on-save.
         await page.Keyboard.TypeAsync("wopihost-e2e-marker", new KeyboardTypeOptions { Delay = 30 });
 
+        // Give Collabora's WebSocket pipeline a moment to settle so the document model is
+        // marked dirty before we ask it to save. Without this, Action_Save can race the typing
+        // and be a no-op (loolwsd hasn't yet processed the keystrokes into a model change).
+        await Task.Delay(TimeSpan.FromSeconds(2));
+
         // Step 3: trigger save via the host-postMessage API. Collabora documents this as a
         // first-class integration channel (https://sdk.collaboraonline.com/docs/postmessage_api.html#Action_Save),
         // so it's much more stable than poking the toolbar Save icon — that icon's DOM id
@@ -273,8 +293,9 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
 
         // Step 4: poll for the on-disk write. The PutFile request travels Collabora → host
         // backend → file-system provider; even after Action_Save returns, the writeback can
-        // take a few seconds. We give it up to 30 s with a 250 ms poll cadence.
-        var saveDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+        // take a few seconds. We give it up to 60 s with a 250 ms poll cadence — the previous
+        // 30 s budget was sometimes too tight given Collabora's autosave debouncing on CI.
+        var saveDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(60);
         var changed = false;
         while (DateTime.UtcNow < saveDeadline)
         {
