@@ -18,22 +18,11 @@ dotnet add package WopiHost.MemoryLockProvider
 
 ## Register
 
-The provider is loaded by assembly name from `WopiHostOptions`, so the only thing the host has to do is reference the package and point at it:
-
-```jsonc
-// appsettings.json
-"Wopi": {
-  "LockProviderAssemblyName": "WopiHost.MemoryLockProvider"
-}
-```
-
-If you prefer manual registration:
-
 ```csharp
-services.AddSingleton<IWopiLockProvider, MemoryLockProvider>();
+services.AddMemoryLockProvider();
 ```
 
-`MemoryLockProvider` keeps state in a `static` field — register it once, lifetime doesn't matter.
+`AddMemoryLockProvider` registers `MemoryLockProvider` as the singleton `IWopiLockProvider`. Singleton lifetime ensures every request in the process shares the same in-memory lock dictionary — anything narrower would let concurrent requests see independent stores and silently break exclusion.
 
 ## API
 

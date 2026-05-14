@@ -19,9 +19,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddWopi(o =>
 {
     o.ClientUrl = new Uri("https://your-office-online-server.com");
-    o.StorageProviderAssemblyName = "WopiHost.FileSystemProvider";
-    o.LockProviderAssemblyName    = "WopiHost.MemoryLockProvider";
 });
+
+// Reference one storage provider package + one lock provider package and call their
+// typed registration extensions. Each provider's options bind from the configuration
+// section it documents (Wopi:StorageProvider / Wopi:LockProvider).
+builder.Services.AddFileSystemStorageProvider(builder.Configuration);
+builder.Services.AddMemoryLockProvider();
 
 // Required in production: pin the access-token signing key.
 builder.Services.ConfigureWopiSecurity(o =>
@@ -39,19 +43,31 @@ app.Run();
 
 `AddWopi()` registers controllers, the access-token authentication scheme, the proof-key validator, default `IWopiAccessTokenService` (signed JWT), and default `IWopiPermissionProvider` (reads from token claims). Override either by registering your own implementation — the defaults are added with `TryAdd*` so a custom registration wins regardless of order. See [the runnable sample](../../sample/WopiHost/Program.cs).
 
+The bundled provider packages each ship a typed `Add{Provider}{StorageOrLock}Provider(...)` extension — pick the one you want and reference its package. Available extensions:
+
+| Provider package | Extension |
+|---|---|
+| `WopiHost.FileSystemProvider` | `services.AddFileSystemStorageProvider(IConfiguration)` |
+| `WopiHost.AzureStorageProvider` | `services.AddAzureStorageProvider(IConfiguration)` |
+| `WopiHost.MemoryLockProvider` | `services.AddMemoryLockProvider()` |
+| `WopiHost.AzureLockProvider` | `services.AddAzureLockProvider(IConfiguration)` |
+| `WopiHost.RedisLockProvider` | `services.AddRedisLockProvider(IConfiguration)` |
+
+Third-party providers register themselves the same way — implement `IWopiStorageProvider` / `IWopiWritableStorageProvider` (or `IWopiLockProvider`) and expose a typed extension on `IServiceCollection`.
+
 ## Configuration
 
 ```jsonc
 {
   "Wopi": {
     "ClientUrl": "https://your-office-online-server.com",
-    "StorageProviderAssemblyName": "WopiHost.FileSystemProvider",
-    "LockProviderAssemblyName":    "WopiHost.MemoryLockProvider",
     "UseCobalt": false,
     "Discovery": {
       "NetZone":         "ExternalHttps",
       "RefreshInterval": "12:00:00"
     }
+    // Provider-specific options bind under "Wopi:StorageProvider" and "Wopi:LockProvider" —
+    // see each provider's README.
   }
 }
 ```
@@ -137,7 +153,8 @@ public class MyAclPermissionProvider : IWopiPermissionProvider
         ClaimsPrincipal user, IWopiContainer container, CancellationToken ct = default) { /* ... */ }
 }
 
-services.AddWopi(o => { o.ClientUrl = ...; o.StorageProviderAssemblyName = ...; });
+services.AddWopi(o => { o.ClientUrl = ...; });
+services.AddFileSystemStorageProvider(Configuration);   // or any other storage provider
 services.AddSingleton<IWopiPermissionProvider, MyAclPermissionProvider>();
 services.ConfigureWopiSecurity(o =>
 {
@@ -259,9 +276,9 @@ public class MyHostExtensions(IAuditLog audit, ITelemetry telemetry) : WopiHostE
 services.AddSingleton<IWopiHostExtensions, MyHostExtensions>();
 services.AddWopi(o =>
 {
-    o.ClientUrl                   = ...;
-    o.StorageProviderAssemblyName = "...";
+    o.ClientUrl = ...;
 });
+services.AddFileSystemStorageProvider(Configuration);   // or any other storage provider
 ```
 
 Throwing inside any hook turns the response into a 500 — for best-effort bookkeeping (audit log, last-edit telemetry), catch exceptions inside the override.
@@ -314,8 +331,8 @@ Or register your own `IWopiLockComparer` implementation tailored to the specific
 
 ```csharp
 services.AddWopi(...);
-services.AddStorageProvider("WopiHost.AzureStorageProvider");
-services.AddLockProvider("WopiHost.AzureLockProvider");
+services.AddAzureStorageProvider(Configuration);
+services.AddAzureLockProvider(Configuration);
 services.AddWopiLockAwareWritableStorage();   // must run after the storage + lock providers are registered
 ```
 

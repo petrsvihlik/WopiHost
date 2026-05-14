@@ -96,8 +96,10 @@ if (builder.Configuration.GetValue("AppHost:UseRedisLocks", defaultValue: true))
     var redis = builder.AddRedis("wopi-locks")
                        .WithLifetime(ContainerLifetime.Persistent);
     wopiHost
-        // Switch the backend's lock-provider assembly name so AddLockProvider() dispatches to Redis.
-        .WithEnvironment("Wopi__LockProviderAssemblyName", "WopiHost.RedisLockProvider")
+        // Flip the sample's lock-provider discriminator so AddSampleLockProvider() dispatches to
+        // Redis. Sample:LockProvider lives in the sample's appsettings (not WopiHost.Core's
+        // public options surface) — see sample/WopiHost/ServiceCollectionExtensions.cs.
+        .WithEnvironment("Sample__LockProvider", "Redis")
         // sample/WopiHost binds Wopi:LockProvider:ConnectionString to WopiRedisLockProviderOptions;
         // route Aspire's connection-string reference through this key so the provider sees it
         // without needing a separate ConnectionStrings:wopi-locks fallback path.

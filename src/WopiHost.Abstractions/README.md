@@ -25,7 +25,7 @@ dotnet add package WopiHost.Abstractions
 | [`IWopiHostExtensions`](IWopiHostExtensions.cs) | Single host-customization seam for `CheckFileInfo` / `CheckContainerInfo` / `CheckFolderInfo` / `CheckEcosystem` / `PutFile` / `PutRelativeFile`. | `WopiHostExtensions` (pass-through) | Subclass when you want to layer custom properties, rewrite URLs, or hook write-completion telemetry. |
 | [`ICheckFileInfoBuilder`](ICheckFileInfoBuilder.cs) / [`ICheckContainerInfoBuilder`](ICheckContainerInfoBuilder.cs) / [`ICheckFolderInfoBuilder`](ICheckFolderInfoBuilder.cs) | Build the corresponding response shapes. The default implementations fire the matching `IWopiHostExtensions` hook. | `DefaultCheck*InfoBuilder` (in `WopiHost.Core`) | Replace when you need scoped services that don't fit in the host-extensions seam, or to short-circuit the default population entirely. |
 
-The defaults ship in `WopiHost.Core`, `WopiHost.FileSystemProvider`, `WopiHost.MemoryLockProvider`, `WopiHost.AzureStorageProvider`, and `WopiHost.AzureLockProvider` — selected via `WopiHostOptions.StorageProviderAssemblyName` / `LockProviderAssemblyName`.
+The defaults ship in `WopiHost.Core`, `WopiHost.FileSystemProvider`, `WopiHost.MemoryLockProvider`, `WopiHost.AzureStorageProvider`, `WopiHost.AzureLockProvider`, and `WopiHost.RedisLockProvider`. Each provider package exposes a typed `services.Add{Provider}{StorageOrLock}Provider(...)` extension — reference the package you want and call its extension.
 
 ## Resource model
 
@@ -161,7 +161,7 @@ public class AzureBlobStorageProvider(BlobContainerClient container)
 }
 ```
 
-Once registered, `services.AddWopi()` discovers it via `WopiHostOptions.StorageProviderAssemblyName`. See [WopiHost.FileSystemProvider](../WopiHost.FileSystemProvider/README.md) for a working reference implementation.
+Expose a typed `services.AddMy…Provider(IConfiguration?)` extension on your provider assembly that registers your implementation against `IWopiStorageProvider` / `IWopiWritableStorageProvider`. Consumers reference your package and call the extension directly — no reflection, no string-name probing. See [WopiHost.FileSystemProvider](../WopiHost.FileSystemProvider/README.md) for a working reference implementation.
 
 ## License
 

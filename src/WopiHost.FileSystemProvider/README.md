@@ -18,7 +18,6 @@ dotnet add package WopiHost.FileSystemProvider
 ```jsonc
 // appsettings.json
 "Wopi": {
-  "StorageProviderAssemblyName": "WopiHost.FileSystemProvider",
   "StorageProvider": {
     "RootPath": "./wopi-docs"   // absolute or relative to ContentRootPath
   }
@@ -30,17 +29,14 @@ dotnet add package WopiHost.FileSystemProvider
 ## Register
 
 ```csharp
-builder.Services.AddSingleton<InMemoryFileIds>();
-builder.Services.AddScoped<IWopiStorageProvider,         WopiFileSystemProvider>();
-builder.Services.AddScoped<IWopiWritableStorageProvider, WopiFileSystemProvider>();
+builder.Services.AddFileSystemStorageProvider(builder.Configuration);
 builder.Services.AddWopi(o =>
 {
-    o.ClientUrl                   = new Uri("https://your-office-online-server.com");
-    o.StorageProviderAssemblyName = "WopiHost.FileSystemProvider";
+    o.ClientUrl = new Uri("https://your-office-online-server.com");
 });
 ```
 
-If you use the sample's assembly-name loader (`AddStorageProvider`), the two `AddScoped` lines are not needed — the sample reflectively scans the assembly and registers anything that implements `IWopiStorageProvider` / `IWopiWritableStorageProvider`. See [`sample/WopiHost/Program.cs`](../../sample/WopiHost/Program.cs).
+`AddFileSystemStorageProvider` registers `WopiFileSystemProvider` as both `IWopiStorageProvider` and `IWopiWritableStorageProvider` (one shared instance per scope) plus the singleton `InMemoryFileIds` map the provider uses for path↔id round-tripping. The runnable sample drives all of this through a sample-local `Sample:StorageProvider` discriminator — see [`sample/WopiHost/Program.cs`](../../sample/WopiHost/Program.cs).
 
 ## How identifiers work
 

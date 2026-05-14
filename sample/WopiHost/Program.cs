@@ -57,10 +57,15 @@ public partial class Program
 
             var wopiHostOptions = wopiHostOptionsSection.Get<WopiHostOptions>();
 
-            // Add file provider (registers required dependencies based on which assembly is configured)
-            builder.Services.AddStorageProvider(builder.Configuration, wopiHostOptions.StorageProviderAssemblyName);
-            // Add lock provider
-            builder.Services.AddLockProvider(builder.Configuration, wopiHostOptions.LockProviderAssemblyName);
+            // Provider selection lives in the sample's own config section (Sample:*), not in
+            // WopiHost.Core's WopiHostOptions — choosing between bundled providers is composition-
+            // root concern. Real hosts reference one provider package and call its typed extension
+            // directly (services.AddFileSystemStorageProvider(cfg), etc.); the sample retains a
+            // small switch so the AppHost flag flow can flip providers at runtime.
+            var sampleStorage = builder.Configuration.GetValue("Sample:StorageProvider", ServiceCollectionExtensions.SampleStorageProvider.FileSystem);
+            var sampleLock = builder.Configuration.GetValue("Sample:LockProvider", ServiceCollectionExtensions.SampleLockProvider.Memory);
+            builder.Services.AddSampleStorageProvider(builder.Configuration, sampleStorage);
+            builder.Services.AddSampleLockProvider(builder.Configuration, sampleLock);
 
             // Add Discovery services
             builder.Services.AddWopiDiscovery<WopiHostOptions>(
