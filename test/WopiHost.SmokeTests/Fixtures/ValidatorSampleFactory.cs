@@ -32,9 +32,9 @@ public sealed class ValidatorSampleFactory : IDisposable, IAsyncDisposable
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Wopi:UseCobalt"] = "false",
-            ["Wopi:StorageProviderAssemblyName"] = "WopiHost.FileSystemProvider",
+            ["Sample:StorageProvider"] = "FileSystem",
+            ["Sample:LockProvider"] = "Memory",
             ["Wopi:StorageProvider:RootPath"] = TestPaths.WopiDocsRoot,
-            ["Wopi:LockProviderAssemblyName"] = "WopiHost.MemoryLockProvider",
             ["Wopi:HostUrl"] = "http://localhost",
             ["Wopi:ClientUrl"] = "https://office.example.test",
             ["Wopi:Discovery:NetZone"] = "ExternalHttps",

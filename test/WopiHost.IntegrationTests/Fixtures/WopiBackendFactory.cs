@@ -19,8 +19,8 @@ public sealed class WopiBackendFactory(string wopiSigningSecret) : WebApplicatio
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Wopi:UseCobalt"] = "false",
-                ["Wopi:StorageProviderAssemblyName"] = "WopiHost.FileSystemProvider",
-                ["Wopi:LockProviderAssemblyName"] = "WopiHost.MemoryLockProvider",
+                ["Sample:StorageProvider"] = "FileSystem",
+                ["Sample:LockProvider"] = "Memory",
                 ["Wopi:StorageProvider:RootPath"] = TestPaths.WopiDocsRoot,
                 ["Wopi:ClientUrl"] = "https://office.example.test",
                 ["Wopi:Discovery:NetZone"] = "ExternalHttps",

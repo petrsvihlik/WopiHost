@@ -71,8 +71,6 @@ public class FilesControllerTests
             .SetupGet(o => o.Value)
             .Returns(new WopiHostOptions()
             {
-                StorageProviderAssemblyName = "test",
-                LockProviderAssemblyName = "test",
                 ClientUrl = new Uri("http://localhost:5000"),
             });
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
@@ -951,7 +949,6 @@ public class FilesControllerTests
 
         var optionsWithLimit = Options.Create(new WopiHostOptions
         {
-            StorageProviderAssemblyName = "test",
             ClientUrl = new Uri("http://localhost:5000"),
             MaxFileSize = 1024,
         });
@@ -1182,7 +1179,6 @@ public class FilesControllerTests
 
         var optionsWithLimit = Options.Create(new WopiHostOptions
         {
-            StorageProviderAssemblyName = "test",
             ClientUrl = new Uri("http://localhost:5000"),
             MaxFileSize = 1024,
         });
@@ -1485,7 +1481,6 @@ public class FilesControllerTests
 
         var customOptions = Options.Create(new WopiHostOptions
         {
-            StorageProviderAssemblyName = "test",
             ClientUrl = new Uri("http://localhost:5000"),
             EmptyLockHeaderValue = " ",
         });
@@ -1511,7 +1506,6 @@ public class FilesControllerTests
 
         var customOptions = Options.Create(new WopiHostOptions
         {
-            StorageProviderAssemblyName = "test",
             ClientUrl = new Uri("http://localhost:5000"),
             EmptyLockHeaderValue = " ",
         });

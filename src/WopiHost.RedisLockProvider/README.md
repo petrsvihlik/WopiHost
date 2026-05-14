@@ -26,11 +26,11 @@ Each non-trivial operation is a Lua script evaluated on the Redis server with `E
 
 ## Registration
 
-The sample's `AddLockProvider` helper recognises `"WopiHost.RedisLockProvider"` and dispatches to `services.AddRedisLockProvider(configuration)`. Direct registration:
-
 ```csharp
 services.AddRedisLockProvider(builder.Configuration);
 ```
+
+The runnable sample's `Sample:LockProvider` discriminator (`Memory` / `Azure` / `Redis`) dispatches to the typed extension above — see [`sample/WopiHost/ServiceCollectionExtensions.cs`](../../sample/WopiHost/ServiceCollectionExtensions.cs).
 
 Reads `Wopi:LockProvider:ConnectionString` for the StackExchange.Redis connection string. If an `IConnectionMultiplexer` is already registered in DI (e.g. via Aspire's `builder.AddRedisClient("wopi-locks")`), that wins so a single multiplexer is reused across the process.
 

@@ -103,7 +103,6 @@ public class EcosystemControllerTests
 
     private static WopiHostOptions DefaultOptions() => new()
     {
-        StorageProviderAssemblyName = "Test",
         ClientUrl = new Uri("http://localhost"),
     };
 

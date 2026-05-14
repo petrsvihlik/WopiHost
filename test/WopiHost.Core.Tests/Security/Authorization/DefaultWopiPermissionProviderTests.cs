@@ -14,7 +14,6 @@ public class DefaultWopiPermissionProviderTests
         options ??= new WopiHostOptions
         {
             ClientUrl = new Uri("http://localhost"),
-            StorageProviderAssemblyName = "x",
         };
         var monitor = new Mock<IOptionsMonitor<WopiHostOptions>>();
         monitor.SetupGet(m => m.CurrentValue).Returns(options);
@@ -40,7 +39,6 @@ public class DefaultWopiPermissionProviderTests
         var options = new WopiHostOptions
         {
             ClientUrl = new Uri("http://localhost"),
-            StorageProviderAssemblyName = "x",
             DefaultFilePermissions = WopiFilePermissions.UserCanWrite,
         };
         var provider = Build(options);
@@ -71,7 +69,6 @@ public class DefaultWopiPermissionProviderTests
         var options = new WopiHostOptions
         {
             ClientUrl = new Uri("http://localhost"),
-            StorageProviderAssemblyName = "x",
             DefaultContainerPermissions = WopiContainerPermissions.UserCanDelete,
         };
         var provider = Build(options);
@@ -88,7 +85,6 @@ public class DefaultWopiPermissionProviderTests
         var options = new WopiHostOptions
         {
             ClientUrl = new Uri("http://localhost"),
-            StorageProviderAssemblyName = "x",
             DefaultFilePermissions = WopiFilePermissions.UserCanWrite,
         };
         var provider = Build(options);

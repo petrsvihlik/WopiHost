@@ -73,7 +73,7 @@ Abstractions ← Abstractions.Testing (test-helper library; depends on xunit)
 
 ### Provider Model
 
-Storage and lock providers are loaded **dynamically by assembly name** from configuration (`StorageProviderAssemblyName`, `LockProviderAssemblyName` in `WopiHostOptions`). Custom providers implement `IWopiStorageProvider`/`IWopiLockProvider` and are registered via `services.AddStorageProvider(assemblyName)` / `services.AddLockProvider(assemblyName)`.
+Each storage / lock provider package exposes a typed `services.Add{Provider}{StorageOrLock}Provider(...)` extension. The composition root references the provider package(s) it wants and calls the extension directly — no reflection, no assembly-name strings. Available extensions: `AddFileSystemStorageProvider(cfg)`, `AddAzureStorageProvider(cfg)`, `AddMemoryLockProvider()`, `AddAzureLockProvider(cfg)`, `AddRedisLockProvider(cfg)`. The sample retains a small sample-local discriminator (`Sample:StorageProvider`, `Sample:LockProvider`) so the AppHost flag flow can flip providers at runtime — see [sample/WopiHost/ServiceCollectionExtensions.cs](sample/WopiHost/ServiceCollectionExtensions.cs).
 
 ### Infrastructure (infra/)
 
@@ -94,7 +94,7 @@ The Aspire AppHost reads a few `AppHost:*` flags from configuration so the defau
 | Flag | Adds |
 |---|---|
 | `AppHost:UseAzureStorage` | Azurite emulator + `BlobStorage` connection string forwarded to the WOPI host. |
-| `AppHost:UseRedisLocks` | **Default: `true` when launched via the AppHost.** Adds a Redis container; the WOPI host swaps `LockProviderAssemblyName` to `WopiHost.RedisLockProvider` and receives the Aspire-allocated connection string via `Wopi:LockProvider:ConnectionString`. Set to `false` to fall back to `WopiHost.MemoryLockProvider` (single-process) — useful on contributor machines without Docker. Aspire already manages Docker resources, so the realistic distributed-lock backend is the right default for the orchestrated dev loop. |
+| `AppHost:UseRedisLocks` | **Default: `true` when launched via the AppHost.** Adds a Redis container; the WOPI host swaps `Sample:LockProvider` to `Redis` (so `AddSampleLockProvider` dispatches to `AddRedisLockProvider`) and receives the Aspire-allocated connection string via `Wopi:LockProvider:ConnectionString`. Set to `false` to fall back to `Memory` (single-process) — useful on contributor machines without Docker. Aspire already manages Docker resources, so the realistic distributed-lock backend is the right default for the orchestrated dev loop. |
 | `AppHost:UseCollabora` | `collabora/code` container as a real WOPI client for end-to-end editing. Auto-overrides `Wopi:ClientUrl`, `Wopi:HostUrl`, `Wopi:Discovery:NetZone`, and `Wopi:Security:DisableProofValidation` on the affected projects. See the **End-to-end editing with Collabora Online** section in the root README for the full wiring (`host.docker.internal:5000`, NetZone gotcha, proof-key gotcha). |
 | `AppHost:IncludeOidcSample` | `WopiHost.Web.Oidc` frontend (requires IdP setup — see its README). |
 

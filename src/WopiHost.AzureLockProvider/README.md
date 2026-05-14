@@ -15,7 +15,6 @@ dotnet add package WopiHost.AzureLockProvider
 
 ```jsonc
 "Wopi": {
-  "LockProviderAssemblyName": "WopiHost.AzureLockProvider",
   "LockProvider": {
     "ConnectionString": "UseDevelopmentStorage=true",
     "ContainerName": "wopi-locks"
@@ -25,7 +24,6 @@ dotnet add package WopiHost.AzureLockProvider
 
 ```jsonc
 "Wopi": {
-  "LockProviderAssemblyName": "WopiHost.AzureLockProvider",
   "LockProvider": {
     "ServiceUri": "https://my-account.blob.core.windows.net",
     "ContainerName": "wopi-locks"
@@ -41,11 +39,11 @@ The lock container is dedicated and separate from your content blobs — that ke
 builder.Services.AddAzureLockProvider(builder.Configuration);
 builder.Services.AddWopi(o =>
 {
-    o.LockProviderAssemblyName = "WopiHost.AzureLockProvider";
+    o.ClientUrl = new Uri("https://your-office-online-server.com");
 });
 ```
 
-The sample's [`AddLockProvider`](../../sample/WopiHost/ServiceCollectionExtensions.cs) helper recognises `"WopiHost.AzureLockProvider"` and dispatches to the call above.
+The runnable sample exposes a small `Sample:LockProvider` discriminator (`Memory` / `Azure` / `Redis`) and dispatches to the chosen provider's typed extension — see [`sample/WopiHost/ServiceCollectionExtensions.cs`](../../sample/WopiHost/ServiceCollectionExtensions.cs).
 
 ## How it works
 

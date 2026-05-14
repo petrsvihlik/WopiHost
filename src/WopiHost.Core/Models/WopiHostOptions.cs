@@ -25,17 +25,6 @@ public class WopiHostOptions : IDiscoveryOptions
     public bool UseCobalt { get; set; }
 
     /// <summary>
-    /// Name of the assembly containing the implementation of the <see cref="Abstractions.IWopiStorageProvider"/>.
-    /// </summary>
-    [Required]
-    public required string StorageProviderAssemblyName { get; set; }
-
-    /// <summary>
-    /// Name of the assembly containing the implementation of the <see cref="Abstractions.IWopiLockProvider"/>
-    /// </summary>
-    public string? LockProviderAssemblyName { get; set; }
-
-    /// <summary>
     /// Value written to the <c>X-WOPI-Lock</c> response header when the file is unlocked but the
     /// spec requires the header to be present (notably <c>GetLock</c> on an unlocked file and
     /// <c>PutFile</c> on a non-empty unlocked file).

@@ -20,7 +20,6 @@ Two authentication modes — connection string (Azurite, dev) and `TokenCredenti
 ```jsonc
 // appsettings.json — connection string
 "Wopi": {
-  "StorageProviderAssemblyName": "WopiHost.AzureStorageProvider",
   "StorageProvider": {
     "ConnectionString": "UseDevelopmentStorage=true",
     "ContainerName": "wopi-files"
@@ -31,7 +30,6 @@ Two authentication modes — connection string (Azurite, dev) and `TokenCredenti
 ```jsonc
 // appsettings.json — DefaultAzureCredential
 "Wopi": {
-  "StorageProviderAssemblyName": "WopiHost.AzureStorageProvider",
   "StorageProvider": {
     "ServiceUri": "https://my-account.blob.core.windows.net",
     "ContainerName": "wopi-files"
@@ -53,12 +51,11 @@ The container is created on first use if it doesn't exist.
 builder.Services.AddAzureStorageProvider(builder.Configuration);
 builder.Services.AddWopi(o =>
 {
-    o.ClientUrl                   = new Uri("https://your-office-online-server.com");
-    o.StorageProviderAssemblyName = "WopiHost.AzureStorageProvider";
+    o.ClientUrl = new Uri("https://your-office-online-server.com");
 });
 ```
 
-The sample's [`AddStorageProvider`](../../sample/WopiHost/ServiceCollectionExtensions.cs) helper recognises `"WopiHost.AzureStorageProvider"` and dispatches to the call above, so a single config-driven registration works there too.
+The runnable sample exposes a small `Sample:StorageProvider` discriminator (`FileSystem` / `Azure`) and dispatches to the chosen provider's typed extension — see [`sample/WopiHost/ServiceCollectionExtensions.cs`](../../sample/WopiHost/ServiceCollectionExtensions.cs).
 
 ## How it maps to Blob Storage
 
