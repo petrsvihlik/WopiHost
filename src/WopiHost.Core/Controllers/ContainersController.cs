@@ -52,7 +52,7 @@ public class ContainersController(
     [WopiAuthorize(WopiResourceType.Container, Permission.Read)]
     public async Task<IActionResult> CheckContainerInfo(string id, CancellationToken cancellationToken = default)
     {
-        var container = await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false);
+        var container = await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false);
         if (container is null)
         {
             return NotFound();
@@ -84,7 +84,7 @@ public class ContainersController(
     {
         ArgumentNullException.ThrowIfNull(writableStorageProvider);
 
-        if (await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false) is null)
+        if (await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false) is null)
         {
             return NotFound();
         }
@@ -96,7 +96,7 @@ public class ContainersController(
             return new NotImplementedResult();
         }
         // If the specified name is illegal, the host must respond with a 400 Bad Request.
-        if (!await writableStorageProvider.CheckValidName<IWopiFolder>((suggestedTarget ?? relativeTarget)!, cancellationToken).ConfigureAwait(false))
+        if (!await writableStorageProvider.CheckValidContainerName((suggestedTarget ?? relativeTarget)!, cancellationToken).ConfigureAwait(false))
         {
             return new BadRequestResult();
         }
@@ -106,25 +106,25 @@ public class ContainersController(
         // "specific mode" - The host must not modify the name to fulfill the request.
         if (!string.IsNullOrWhiteSpace(relativeTarget))
         {
-            newFolder = await storageProvider.GetWopiResourceByName<IWopiFolder>(id, relativeTarget, cancellationToken).ConfigureAwait(false);
+            newFolder = await storageProvider.GetWopiContainerByName(id, relativeTarget, cancellationToken).ConfigureAwait(false);
             // If a container with the specified name already exists
             if (newFolder is not null)
             {
                 // the host may include an X-WOPI-ValidRelativeTarget specifying a container name that is valid
-                var suggestedName = await writableStorageProvider.GetSuggestedName<IWopiFolder>(id, relativeTarget, cancellationToken).ConfigureAwait(false);
+                var suggestedName = await writableStorageProvider.GetSuggestedContainerName(id, relativeTarget, cancellationToken).ConfigureAwait(false);
                 Response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(suggestedName).ToString(true);
                 // the host must respond with a 409 Conflict
                 return new ConflictResult();
             }
             else
             {
-                newFolder = await writableStorageProvider.CreateWopiChildResource<IWopiFolder>(id, relativeTarget, cancellationToken).ConfigureAwait(false);
+                newFolder = await writableStorageProvider.CreateWopiChildContainer(id, relativeTarget, cancellationToken).ConfigureAwait(false);
             }
         }
         else if (!string.IsNullOrWhiteSpace(suggestedTarget))
         {
-            var newName = await writableStorageProvider.GetSuggestedName<IWopiFolder>(id, suggestedTarget, cancellationToken).ConfigureAwait(false);
-            newFolder = await writableStorageProvider.CreateWopiChildResource<IWopiFolder>(id, newName, cancellationToken).ConfigureAwait(false);
+            var newName = await writableStorageProvider.GetSuggestedContainerName(id, suggestedTarget, cancellationToken).ConfigureAwait(false);
+            newFolder = await writableStorageProvider.CreateWopiChildContainer(id, newName, cancellationToken).ConfigureAwait(false);
         }
         else
         {
@@ -168,7 +168,7 @@ public class ContainersController(
     {
         ArgumentNullException.ThrowIfNull(writableStorageProvider);
 
-        var container = await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false);
+        var container = await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false);
         if (container is null)
         {
             return NotFound();
@@ -187,13 +187,13 @@ public class ContainersController(
         if (!string.IsNullOrWhiteSpace(relativeTarget))
         {
             // If the specified name is illegal, the host must respond with a 400 Bad Request.
-            if (!await writableStorageProvider.CheckValidName<IWopiFile>(relativeTarget, cancellationToken).ConfigureAwait(false))
+            if (!await writableStorageProvider.CheckValidFileName(relativeTarget, cancellationToken).ConfigureAwait(false))
             {
                 return new BadRequestResult();
             }
 
             // check if such file already exists
-            newFile = await storageProvider.GetWopiResourceByName<IWopiFile>(id, relativeTarget, cancellationToken).ConfigureAwait(false);
+            newFile = await storageProvider.GetWopiFileByName(id, relativeTarget, cancellationToken).ConfigureAwait(false);
 
             // If a file with the specified name already exists
             if (newFile is not null)
@@ -202,7 +202,7 @@ public class ContainersController(
                 if (overwriteRelativeTarget == false)
                 {
                     // the host might include an X-WOPI-ValidRelativeTarget specifying a file name that's valid
-                    var suggestedName = await writableStorageProvider.GetSuggestedName<IWopiFile>(id, relativeTarget, cancellationToken).ConfigureAwait(false);
+                    var suggestedName = await writableStorageProvider.GetSuggestedFileName(id, relativeTarget, cancellationToken).ConfigureAwait(false);
                     Response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(suggestedName).ToString(true);
                     // the host must respond with a 409 Conflict
                     return new ConflictResult();
@@ -222,7 +222,7 @@ public class ContainersController(
             }
             else
             {
-                newFile = await writableStorageProvider.CreateWopiChildResource<IWopiFile>(
+                newFile = await writableStorageProvider.CreateWopiChildFile(
                     container.Identifier,
                     relativeTarget,
                     cancellationToken).ConfigureAwait(false);
@@ -237,13 +237,13 @@ public class ContainersController(
                 suggestedTargetString = Guid.NewGuid().ToString("N") + suggestedTargetString;
             }
             // If the specified name is illegal, the host must respond with a 400 Bad Request.
-            else if (!await writableStorageProvider.CheckValidName<IWopiFile>(suggestedTargetString, cancellationToken).ConfigureAwait(false))
+            else if (!await writableStorageProvider.CheckValidFileName(suggestedTargetString, cancellationToken).ConfigureAwait(false))
             {
                 return new BadRequestResult();
             }
 
-            var newName = await writableStorageProvider.GetSuggestedName<IWopiFile>(container.Identifier, suggestedTargetString, cancellationToken).ConfigureAwait(false);
-            newFile = await writableStorageProvider.CreateWopiChildResource<IWopiFile>(
+            var newName = await writableStorageProvider.GetSuggestedFileName(container.Identifier, suggestedTargetString, cancellationToken).ConfigureAwait(false);
+            newFile = await writableStorageProvider.CreateWopiChildFile(
                 container.Identifier,
                 newName,
                 cancellationToken).ConfigureAwait(false);
@@ -286,13 +286,13 @@ public class ContainersController(
     public async Task<IActionResult> DeleteContainer(string id, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(writableStorageProvider);
-        if (await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false) is null)
+        if (await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false) is null)
         {
             return NotFound();
         }
         try
         {
-            if (await writableStorageProvider.DeleteWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false))
+            if (await writableStorageProvider.DeleteWopiContainer(id, cancellationToken).ConfigureAwait(false))
             {
                 return Ok();
             }
@@ -334,14 +334,14 @@ public class ContainersController(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(writableStorageProvider);
-        var container = await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false);
+        var container = await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false);
         IActionResult result;
         if (container is null)
         {
             // 404 Not Found – Resource not found/user unauthorized
             result = NotFound();
         }
-        else if (!await writableStorageProvider.CheckValidName<IWopiFolder>(requestedName, cancellationToken).ConfigureAwait(false))
+        else if (!await writableStorageProvider.CheckValidContainerName(requestedName, cancellationToken).ConfigureAwait(false))
         {
             // 400 Bad Request – Specified name is illegal
             // A string describing the reason the rename operation couldn't be completed.
@@ -381,7 +381,7 @@ public class ContainersController(
         IActionResult result;
         try
         {
-            if (await writableStorageProvider!.RenameWopiResource<IWopiFolder>(id, requestedName, cancellationToken).ConfigureAwait(false))
+            if (await writableStorageProvider!.RenameWopiContainer(id, requestedName, cancellationToken).ConfigureAwait(false))
             {
                 // The response to a RenameContainer call is JSON containing the following required property:
                 // Name(string) - The name of the renamed container.
@@ -432,7 +432,7 @@ public class ContainersController(
         [FromServices] IWopiAccessTokenService accessTokenService,
         CancellationToken cancellationToken = default)
     {
-        var container = await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false);
+        var container = await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false);
         if (container is null)
         {
             return NotFound();
@@ -471,12 +471,12 @@ public class ContainersController(
     [Produces(MediaTypeNames.Application.Json)]
     public async Task<IActionResult> EnumerateAncestors(string id, CancellationToken cancellationToken = default)
     {
-        if (await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false) is null)
+        if (await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false) is null)
         {
             return NotFound();
         }
 
-        var ancestors = await storageProvider.GetAncestors<IWopiFolder>(id, cancellationToken).ConfigureAwait(false);
+        var ancestors = await storageProvider.GetContainerAncestors(id, cancellationToken).ConfigureAwait(false);
         return new JsonResult(
             new EnumerateAncestorsResponse(ancestors
                 .Select(a => new ChildContainer(a.Name, Url.GetWopiSrc(WopiResourceType.Container, a.Identifier))
@@ -503,7 +503,7 @@ public class ContainersController(
         [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? fileExtensionFilterList = null,
         CancellationToken cancellationToken = default)
     {
-        if (await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false) is null)
+        if (await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false) is null)
         {
             return NotFound();
         }

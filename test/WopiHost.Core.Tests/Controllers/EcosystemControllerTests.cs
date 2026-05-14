@@ -42,7 +42,7 @@ public class EcosystemControllerTests
         _root.SetupGet(f => f.Name).Returns("Root");
         _storage.SetupGet(s => s.RootContainer).Returns(_root.Object);
         _storage
-            .Setup(s => s.GetWopiResource<IWopiFolder>("root-id", It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWopiContainer("root-id", It.IsAny<CancellationToken>()))
             .ReturnsAsync(_root.Object);
 
         _permissions
@@ -186,7 +186,7 @@ public class EcosystemControllerTests
     public async Task GetRootContainer_ReturnsNotFound_WhenStorageReturnsNull()
     {
         _storage
-            .Setup(s => s.GetWopiResource<IWopiFolder>("root-id", It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWopiContainer("root-id", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IWopiFolder?)null);
 
         var result = await BuildController().GetRootContainer();

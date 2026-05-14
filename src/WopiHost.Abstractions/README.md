@@ -130,39 +130,34 @@ A real storage provider implements the read interface and, if writable, the writ
 public class AzureBlobStorageProvider(BlobContainerClient container)
     : IWopiStorageProvider, IWopiWritableStorageProvider
 {
-    public IWopiFolder RootContainerPointer { get; } = new BlobFolder(container, "/");
+    public IWopiFolder RootContainer { get; } = new BlobFolder(container, "/");
 
-    public async Task<T?> GetWopiResource<T>(string identifier, CancellationToken ct = default)
-        where T : class, IWopiResource
-    {
-        // Resolve identifier → BlobClient or virtual folder, then return as T.
-    }
+    // IWopiStorageProvider — typed file/container pairs (no generic discriminator).
+    public Task<IWopiFile?>    GetWopiFile     (string identifier, CancellationToken ct = default) => /* ... */;
+    public Task<IWopiFolder?>  GetWopiContainer(string identifier, CancellationToken ct = default) => /* ... */;
 
-    public IAsyncEnumerable<IWopiFile> GetWopiFiles(
-        string? identifier = null, string? searchPattern = null, CancellationToken ct = default) => /* ... */;
+    public IAsyncEnumerable<IWopiFile>   GetWopiFiles     (string identifier, IReadOnlyCollection<string>? fileExtensions = null, CancellationToken ct = default) => /* ... */;
+    public IAsyncEnumerable<IWopiFolder> GetWopiContainers(string identifier, CancellationToken ct = default) => /* ... */;
 
-    public IAsyncEnumerable<IWopiFolder> GetWopiContainers(
-        string? identifier = null, CancellationToken ct = default) => /* ... */;
+    public Task<ReadOnlyCollection<IWopiFolder>> GetFileAncestors     (string fileId,      CancellationToken ct = default) => /* ... */;
+    public Task<ReadOnlyCollection<IWopiFolder>> GetContainerAncestors(string containerId, CancellationToken ct = default) => /* ... */;
 
-    public Task<ReadOnlyCollection<IWopiFolder>> GetAncestors<T>(
-        string identifier, CancellationToken ct = default) where T : class, IWopiResource => /* ... */;
+    public Task<IWopiFile?>   GetWopiFileByName     (string containerId, string name, CancellationToken ct = default) => /* ... */;
+    public Task<IWopiFolder?> GetWopiContainerByName(string containerId, string name, CancellationToken ct = default) => /* ... */;
 
-    public Task<T?> GetWopiResourceByName<T>(
-        string containerId, string name, CancellationToken ct = default)
-        where T : class, IWopiResource => /* ... */;
-
-    // IWopiWritableStorageProvider
+    // IWopiWritableStorageProvider — same pattern: file and container methods split apart so
+    // implementations don't need to runtime-switch on a type parameter.
     public int FileNameMaxLength => 250;
-    public Task<T?> CreateWopiChildResource<T>(string? containerId, string name, CancellationToken ct = default)
-        where T : class, IWopiResource => /* ... */;
-    public Task<bool> DeleteWopiResource<T>(string identifier, CancellationToken ct = default)
-        where T : class, IWopiResource => /* ... */;
-    public Task<bool> RenameWopiResource<T>(string identifier, string requestedName, CancellationToken ct = default)
-        where T : class, IWopiResource => /* ... */;
-    public Task<bool> CheckValidName<T>(string name, CancellationToken ct = default)
-        where T : class, IWopiResource => /* ... */;
-    public Task<string> GetSuggestedName<T>(string containerId, string name, CancellationToken ct = default)
-        where T : class, IWopiResource => /* ... */;
+    public Task<IWopiFile?>   CreateWopiChildFile     (string containerId, string name, CancellationToken ct = default) => /* ... */;
+    public Task<IWopiFolder?> CreateWopiChildContainer(string containerId, string name, CancellationToken ct = default) => /* ... */;
+    public Task<bool> DeleteWopiFile     (string identifier, CancellationToken ct = default) => /* ... */;
+    public Task<bool> DeleteWopiContainer(string identifier, CancellationToken ct = default) => /* ... */;
+    public Task<bool> RenameWopiFile     (string identifier, string requestedName, CancellationToken ct = default) => /* ... */;
+    public Task<bool> RenameWopiContainer(string identifier, string requestedName, CancellationToken ct = default) => /* ... */;
+    public Task<bool> CheckValidFileName     (string name, CancellationToken ct = default) => /* ... */;
+    public Task<bool> CheckValidContainerName(string name, CancellationToken ct = default) => /* ... */;
+    public Task<string> GetSuggestedFileName     (string containerId, string name, CancellationToken ct = default) => /* ... */;
+    public Task<string> GetSuggestedContainerName(string containerId, string name, CancellationToken ct = default) => /* ... */;
 }
 ```
 

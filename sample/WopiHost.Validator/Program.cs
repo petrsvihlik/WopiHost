@@ -60,7 +60,7 @@ app.MapGet("/_test/issue-token/{fileId}", async (
     IOptions<WopiOptions> options,
     CancellationToken ct) =>
 {
-    var file = await storage.GetWopiResource<IWopiFile>(fileId, ct);
+    var file = await storage.GetWopiFile(fileId, ct);
     if (file is null)
     {
         return Results.NotFound();

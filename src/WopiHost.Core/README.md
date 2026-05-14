@@ -162,7 +162,7 @@ The host's frontend (often a separate process) hands the user a URL embedding an
 ```csharp
 public async Task<IActionResult> Open(string fileId)
 {
-    var file  = await _storage.GetWopiResource<IWopiFile>(fileId);
+    var file  = await _storage.GetWopiFile(fileId);
     var perms = await _permissions.GetFilePermissionsAsync(User, file);
     var token = await _tokens.IssueAsync(new WopiAccessTokenRequest
     {
@@ -307,7 +307,7 @@ Or register your own `IWopiLockComparer` implementation tailored to the specific
 
 ## Lock-aware writable storage (defense in depth)
 
-`services.AddWopiLockAwareWritableStorage()` wraps the registered `IWopiWritableStorageProvider` so that `DeleteWopiResource` and `RenameWopiResource` consult `IWopiLockProvider` first and throw `WopiResourceLockedException` when the target is locked. The WOPI controllers already short-circuit on locks before reaching the storage layer, so on the hot path this decorator is redundant — it earns its keep when:
+`services.AddWopiLockAwareWritableStorage()` wraps the registered `IWopiWritableStorageProvider` so that the delete/rename pairs (`DeleteWopiFile`, `DeleteWopiContainer`, `RenameWopiFile`, `RenameWopiContainer`) consult `IWopiLockProvider` first and throw `WopiResourceLockedException` when the target is locked. The WOPI controllers already short-circuit on locks before reaching the storage layer, so on the hot path this decorator is redundant — it earns its keep when:
 
 - non-WOPI code paths in the same host (admin tools, batch jobs, REST APIs) resolve `IWopiWritableStorageProvider` directly and would otherwise clobber a locked file
 - a future controller refactor accidentally drops the lock check
@@ -319,7 +319,7 @@ services.AddLockProvider("WopiHost.AzureLockProvider");
 services.AddWopiLockAwareWritableStorage();   // must run after the storage + lock providers are registered
 ```
 
-The decorator only guards single-resource mutations; `CreateWopiChildResource` (no prior lock to check) and the read-only members pass through unchanged.
+The decorator only guards single-resource mutations; the create methods (`CreateWopiChildFile`, `CreateWopiChildContainer` — no prior lock to check) and the read-only members pass through unchanged.
 
 ## License
 

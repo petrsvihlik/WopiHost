@@ -48,7 +48,7 @@ public class FoldersController(
     [WopiAuthorize(WopiResourceType.Container, Permission.Read)]
     public async Task<IActionResult> CheckFolderInfo(string id, CancellationToken cancellationToken = default)
     {
-        var folder = await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false);
+        var folder = await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false);
         if (folder is null)
         {
             return NotFound();
@@ -85,7 +85,7 @@ public class FoldersController(
         [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? fileExtensionFilterList = null,
         CancellationToken cancellationToken = default)
     {
-        if (await storageProvider.GetWopiResource<IWopiFolder>(id, cancellationToken).ConfigureAwait(false) is null)
+        if (await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false) is null)
         {
             return NotFound();
         }

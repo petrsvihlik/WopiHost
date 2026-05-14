@@ -35,8 +35,9 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
     /// <remarks>
     /// Plain Azure Blob Storage has no concept of an empty directory. To keep parity with
     /// <c>WopiFileSystemProvider</c>'s ability to create an empty folder via
-    /// <c>CreateWopiChildResource&lt;IWopiFolder&gt;</c>, we drop a 0-byte blob with this name into the
-    /// folder. The provider hides marker blobs from listings so callers never see them.
+    /// <see cref="IWopiWritableStorageProvider.CreateWopiChildContainer"/>, we drop a 0-byte
+    /// blob with this name into the folder. The provider hides marker blobs from listings so
+    /// callers never see them.
     /// </remarks>
     public const string FolderMarker = ".wopi.folder";
 

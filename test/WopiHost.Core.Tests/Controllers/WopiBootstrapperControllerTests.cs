@@ -27,7 +27,7 @@ public class WopiBootstrapperControllerTests
         _rootFolder.SetupGet(f => f.Name).Returns("Root");
         _storage.SetupGet(s => s.RootContainer).Returns(_rootFolder.Object);
         _storage
-            .Setup(s => s.GetWopiResource<IWopiFolder>("root-id", It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWopiContainer("root-id", It.IsAny<CancellationToken>()))
             .ReturnsAsync(_rootFolder.Object);
 
         _permissions
@@ -152,7 +152,7 @@ public class WopiBootstrapperControllerTests
     public async Task ExecuteEcosystemOperation_GET_ROOT_CONTAINER_ReturnsNotFound_WhenRootMissing()
     {
         _storage
-            .Setup(s => s.GetWopiResource<IWopiFolder>("root-id", It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWopiContainer("root-id", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IWopiFolder?)null);
 
         var result = await BuildController().ExecuteEcosystemOperation(ecosystemOperation: "GET_ROOT_CONTAINER");
@@ -187,7 +187,7 @@ public class WopiBootstrapperControllerTests
     {
         var file = new Mock<IWopiFile>();
         file.SetupGet(f => f.Identifier).Returns("file-99");
-        _storage.Setup(s => s.GetWopiResource<IWopiFile>("file-99", It.IsAny<CancellationToken>())).ReturnsAsync(file.Object);
+        _storage.Setup(s => s.GetWopiFile("file-99", It.IsAny<CancellationToken>())).ReturnsAsync(file.Object);
 
         var expires = DateTimeOffset.UtcNow.AddMinutes(10);
         var capturedRequests = new List<WopiAccessTokenRequest>();
@@ -219,7 +219,7 @@ public class WopiBootstrapperControllerTests
     {
         var folder = new Mock<IWopiFolder>();
         folder.SetupGet(f => f.Identifier).Returns("container-7");
-        _storage.Setup(s => s.GetWopiResource<IWopiFolder>("container-7", It.IsAny<CancellationToken>())).ReturnsAsync(folder.Object);
+        _storage.Setup(s => s.GetWopiContainer("container-7", It.IsAny<CancellationToken>())).ReturnsAsync(folder.Object);
 
         var capturedRequests = new List<WopiAccessTokenRequest>();
         _tokens
@@ -242,14 +242,14 @@ public class WopiBootstrapperControllerTests
     [Fact]
     public async Task ExecuteEcosystemOperation_GET_NEW_ACCESS_TOKEN_StripsQueryAndDecodesIdFromWopiSrc()
     {
-        _storage.Setup(s => s.GetWopiResource<IWopiFile>("some file", It.IsAny<CancellationToken>())).ReturnsAsync(Mock.Of<IWopiFile>());
+        _storage.Setup(s => s.GetWopiFile("some file", It.IsAny<CancellationToken>())).ReturnsAsync(Mock.Of<IWopiFile>());
 
         var result = await BuildController().ExecuteEcosystemOperation(
             ecosystemOperation: "GET_NEW_ACCESS_TOKEN",
             wopiSrc: "https://wopi.example.com/wopi/files/some%20file?access_token=ignored");
 
         Assert.IsType<JsonResult>(result);
-        _storage.Verify(s => s.GetWopiResource<IWopiFile>("some file", It.IsAny<CancellationToken>()), Times.Once);
+        _storage.Verify(s => s.GetWopiFile("some file", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -279,7 +279,7 @@ public class WopiBootstrapperControllerTests
     {
         // Spec: "must only provide a WOPI access token if the requested WopiSrc exists"
         _storage
-            .Setup(s => s.GetWopiResource<IWopiFile>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWopiFile(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IWopiFile?)null);
 
         var result = await BuildController().ExecuteEcosystemOperation(
@@ -298,7 +298,7 @@ public class WopiBootstrapperControllerTests
     public async Task ExecuteEcosystemOperation_GET_NEW_ACCESS_TOKEN_ReturnsNotFound_WhenContainerMissing()
     {
         _storage
-            .Setup(s => s.GetWopiResource<IWopiFolder>("missing", It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetWopiContainer("missing", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IWopiFolder?)null);
 
         var result = await BuildController().ExecuteEcosystemOperation(

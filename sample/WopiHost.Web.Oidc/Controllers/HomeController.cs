@@ -60,7 +60,7 @@ public class HomeController(
     public async Task<ActionResult> Detail(string id, string wopiAction)
     {
         var actionEnum = Enum.Parse<WopiActionEnum>(wopiAction);
-        var file = await storageProvider.GetWopiResource<IWopiFile>(id)
+        var file = await storageProvider.GetWopiFile(id)
             ?? throw new FileNotFoundException($"File with ID '{id}' not found.");
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
