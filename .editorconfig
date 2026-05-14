@@ -1,12 +1,22 @@
 ﻿[*.cs]
 
 # CA2007: Consider calling ConfigureAwait on the awaited task
+# ASP.NET Core has no SynchronizationContext, so ConfigureAwait(false) is noise on the
+# request path. We do still use ConfigureAwait(false) in library code where it matters
+# (e.g. inside providers) — the analyzer just doesn't earn its keep project-wide.
 dotnet_diagnostic.CA2007.severity = none
 
 # CA1707: Identifiers should not contain underscores
+# Test methods follow xunit's `Method_Scenario_Expectation` convention. Because xunit's
+# discovery scope spans src/ and test/ and the analyzer can't condition on test-class
+# membership, the disable is broader than ideal — production code is held to the convention
+# by review.
 dotnet_diagnostic.CA1707.severity = none
 
 # CA1822: Mark members as static
+# Several legitimate instance-member shapes (controller actions, virtual customization hooks,
+# extension-method targets used through `this`) trip this analyzer with no real win.
+# Silent so the IDE still surfaces it as a hint without blocking the build.
 dotnet_diagnostic.CA1822.severity = silent
 
 
