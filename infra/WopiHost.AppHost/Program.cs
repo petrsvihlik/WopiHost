@@ -192,13 +192,25 @@ if (useCollabora)
            .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
            .WithHttpHealthCheck("/hosting/discovery", endpointName: "collabora");
 
+    // Project-side env vars consume Collabora's endpoint via ReferenceExpression — NOT a
+    // literal "http://localhost:9980". The literal happens to work when launching normally
+    // (Aspire honors the `port: 9980` request from WithHttpEndpoint above, so DCP binds 9980
+    // → 9980 on the host), but under Aspire.Hosting.Testing, DCP allocates a different host
+    // port even though the AppHost asks for 9980. With a reference, the URL the projects see
+    // tracks whatever Aspire actually allocated, in both normal and test runs.
+    //
+    // This is the OPPOSITE direction of the documented "container env var → project endpoint
+    // port reference wedges Aspire 13.x" footgun (the `domain` literal above). Here we're
+    // referencing a container endpoint from a project env var, which works fine.
+    var collaboraUrl = collabora.GetEndpoint("collabora");
+
     // Backend: fetches /hosting/discovery from Collabora at startup. Collabora does not sign WOPI
     // callbacks with proof keys (those are an OOS / M365-for-the-Web feature) and emits no
     // <proof-key> element in discovery, so the default WopiProofValidator rejects every request
     // and CheckFileInfo 500s — the editor loads but the document never appears. The sample WOPI
     // host honours Wopi:Security:DisableProofValidation in Development to swap in a no-op
     // validator; refuse to run in non-Development if the flag is set.
-    wopiHost.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
+    wopiHost.WithEnvironment("Wopi__ClientUrl", collaboraUrl)
             .WithEnvironment("Wopi__Security__DisableProofValidation", "true")
             .WaitFor(collabora);
 
@@ -208,7 +220,7 @@ if (useCollabora)
     // discovery XML emits a single <net-zone name="external-http"> only — defaulting to
     // ExternalHttps (as appsettings does for OOS/M365) silently filters every action and icon
     // out, so files render with the generic icon and edit/view buttons stay disabled.
-    wopiHostWeb.WithEnvironment("Wopi__ClientUrl", "http://localhost:9980")
+    wopiHostWeb.WithEnvironment("Wopi__ClientUrl", collaboraUrl)
                .WithEnvironment("Wopi__Discovery__NetZone", "ExternalHttp")
                .WaitFor(collabora);
 }
