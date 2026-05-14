@@ -58,14 +58,16 @@ jobs:
       - name: Build (Release, no warnings-as-errors for analysis-only build)
         run: dotnet build --no-restore -c Release /p:ContinuousIntegrationBuild=true
 
-      - name: Stage src/ libraries (net10.0)
+      - name: Stage src/ libraries
         run: |
           # UseArtifactsOutput (#313) centralizes outputs under
-          # artifacts/bin/<Project>/<config>_<tfm>/ — replaces the legacy
-          # src/<Project>/bin/Release/net10.0/ paths.
+          # artifacts/bin/<Project>/<config>/ — replaces the legacy
+          # src/<Project>/bin/Release/net10.0/ paths. The previous
+          # release_net10.0 suffix only appeared while we multi-targeted; now
+          # that net10 is the sole TFM, the SDK drops the suffix.
           mkdir -p infer-staging
           for proj in WopiHost.Abstractions WopiHost.Core WopiHost.Discovery WopiHost.Url WopiHost.Cobalt WopiHost.FileSystemProvider WopiHost.MemoryLockProvider; do
-            cp "artifacts/bin/$proj/release_net10.0/$proj.dll" "artifacts/bin/$proj/release_net10.0/$proj.pdb" infer-staging/
+            cp "artifacts/bin/$proj/release/$proj.dll" "artifacts/bin/$proj/release/$proj.pdb" infer-staging/
           done
           ls -la infer-staging/
 
