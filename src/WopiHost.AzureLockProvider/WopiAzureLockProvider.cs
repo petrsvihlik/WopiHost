@@ -232,10 +232,22 @@ public partial class WopiAzureLockProvider(
         }
         else
         {
-            result = await ExecuteMutationAsync(blobClient, props, leaseId, fileId, mutateMetadata, cancellationToken).ConfigureAwait(false);
+            var context = new MutationContext(blobClient, props, leaseId, fileId);
+            result = await ExecuteMutationAsync(context, mutateMetadata, cancellationToken).ConfigureAwait(false);
         }
         return result;
     }
+
+    /// <summary>
+    /// Bundled "what to write to" inputs for <see cref="ExecuteMutationAsync"/>. Exists so that
+    /// helper can stay below qlty's 5-parameter threshold; passing four positional args plus the
+    /// mutation delegate and the cancellation token would otherwise put it at 6.
+    /// </summary>
+    private readonly record struct MutationContext(
+        BlobClient BlobClient,
+        BlobProperties Props,
+        string LeaseId,
+        string FileId);
 
     /// <summary>
     /// Inner step of the atomic-metadata-mutation: with a validated lease id in hand, renews the
@@ -250,24 +262,21 @@ public partial class WopiAzureLockProvider(
     /// the SetMetadata write failed (typically 412 = concurrent mutation, 409 = lease conflict).
     /// </remarks>
     private async Task<bool> ExecuteMutationAsync(
-        BlobClient blobClient,
-        BlobProperties props,
-        string leaseId,
-        string fileId,
+        MutationContext context,
         Action<Dictionary<string, string>> mutateMetadata,
         CancellationToken cancellationToken)
     {
         bool result;
-        var leaseClient = blobClient.GetBlobLeaseClient(leaseId);
+        var leaseClient = context.BlobClient.GetBlobLeaseClient(context.LeaseId);
         var renewed = false;
         try
         {
             await leaseClient.RenewAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             renewed = true;
-            var updated = new Dictionary<string, string>(props.Metadata, StringComparer.Ordinal);
+            var updated = new Dictionary<string, string>(context.Props.Metadata, StringComparer.Ordinal);
             mutateMetadata(updated);
-            await blobClient.SetMetadataAsync(updated,
-                conditions: new BlobRequestConditions { LeaseId = leaseId, IfMatch = props.ETag },
+            await context.BlobClient.SetMetadataAsync(updated,
+                conditions: new BlobRequestConditions { LeaseId = context.LeaseId, IfMatch = context.Props.ETag },
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             result = true;
         }
@@ -275,11 +284,11 @@ public partial class WopiAzureLockProvider(
         {
             if (renewed)
             {
-                LogLockMetadataUpdateFailed(_logger, ex, fileId);
+                LogLockMetadataUpdateFailed(_logger, ex, context.FileId);
             }
             else
             {
-                LogLeaseRenewFailed(_logger, ex, fileId);
+                LogLeaseRenewFailed(_logger, ex, context.FileId);
             }
             result = false;
         }
