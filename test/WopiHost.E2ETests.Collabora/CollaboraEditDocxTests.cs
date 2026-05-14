@@ -187,7 +187,18 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         await Assertions.Expect(officeFrame.Locator("#document-container")).ToBeVisibleAsync(
             new() { Timeout = (float)s_iframeReadyTimeout.TotalMilliseconds });
 
-        // Step 1: focus the document area. The actual document tiles are rendered to internal
+        // Step 1: dismiss Collabora's "session will expire" modal if it surfaced while we were
+        // waiting. The modal's overlay intercepts pointer events on the document area, so a
+        // click on #document-container two lines below would otherwise retry-loop and time out
+        // (already seen on a previous CI run). The OK button is well-named and stable across
+        // CODE versions.
+        var sessionModalOk = officeFrame.Locator("#response-ok-button");
+        if (await sessionModalOk.IsVisibleAsync().ConfigureAwait(false))
+        {
+            await sessionModalOk.ClickAsync();
+        }
+
+        // Step 2: focus the document area. The actual document tiles are rendered to internal
         // canvas / <div> elements that swallow pointer events; clicking the container is
         // enough to put input focus on the editor (Collabora intercepts the synthetic mouse
         // event and routes it through loolwsd's tile pipeline).
