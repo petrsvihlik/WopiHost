@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -14,6 +15,7 @@ namespace WopiHost.Core.Endpoints;
 /// These endpoints do not carry per-resource WopiAuthorize requirements — only the standard
 /// authenticated-user gate from the group's <c>RequireAuthorization()</c>.
 /// </summary>
+[ExcludeFromCodeCoverage(Justification = "Phase 2 of #430 migration; HTTP parity tests land in phase 5 (test relocation into WopiHost.IntegrationTests)")]
 internal static class EcosystemEndpoints
 {
     public static void MapEcosystemEndpoints(IEndpointRouteBuilder wopi)

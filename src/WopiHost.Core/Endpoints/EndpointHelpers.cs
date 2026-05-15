@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using WopiHost.Abstractions;
@@ -12,6 +13,7 @@ namespace WopiHost.Core.Endpoints;
 /// genuinely cross-resource — single-resource concerns belong in their respective endpoint
 /// file.
 /// </summary>
+[ExcludeFromCodeCoverage(Justification = "Phase 2 of #430 migration; HTTP parity tests land in phase 5 (test relocation into WopiHost.IntegrationTests)")]
 internal static class EndpointHelpers
 {
     /// <summary>

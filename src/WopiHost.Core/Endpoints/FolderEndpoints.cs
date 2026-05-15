@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -16,6 +17,7 @@ namespace WopiHost.Core.Endpoints;
 /// <c>FoldersController</c>. Folders are containers from a permissions standpoint
 /// (<see cref="WopiResourceType.Container"/>) but expose only the legacy folder shape.
 /// </summary>
+[ExcludeFromCodeCoverage(Justification = "Phase 2 of #430 migration; HTTP parity tests land in phase 5 (test relocation into WopiHost.IntegrationTests)")]
 internal static class FolderEndpoints
 {
     public static void MapFolderEndpoints(IEndpointRouteBuilder wopi)

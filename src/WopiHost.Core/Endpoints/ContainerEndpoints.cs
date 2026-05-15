@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -15,6 +16,7 @@ namespace WopiHost.Core.Endpoints;
 /// Read-only Minimal-API endpoints for WOPI container resources. Mirrors the GET surface of
 /// <c>ContainersController</c>.
 /// </summary>
+[ExcludeFromCodeCoverage(Justification = "Phase 2 of #430 migration; HTTP parity tests land in phase 5 (test relocation into WopiHost.IntegrationTests)")]
 internal static class ContainerEndpoints
 {
     public static void MapContainerEndpoints(IEndpointRouteBuilder wopi)
