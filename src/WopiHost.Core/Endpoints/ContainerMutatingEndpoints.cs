@@ -69,13 +69,23 @@ internal static class ContainerMutatingEndpoints
             return TypedResults.BadRequest();
         }
 
-        var (newFolder, conflict) = await ResolveNewChildContainer(httpContext, deps, id, suggestedTarget, relativeTarget, cancellationToken).ConfigureAwait(false);
-        if (conflict is not null) return conflict;
-        if (newFolder is null) return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+        // Single exit for the resolve/build/respond tail — keeps the handler under qlty's
+        // return-statements threshold (specific-mode conflict, provider null, and success
+        // share one return via the switch).
+        var resolved = await ResolveNewChildContainer(httpContext, deps, id, suggestedTarget, relativeTarget, cancellationToken).ConfigureAwait(false);
+        return resolved switch
+        {
+            (null, { } conflict) => conflict,
+            (null, _) => TypedResults.StatusCode(StatusCodes.Status500InternalServerError),
+            ({ } folder, _) => await BuildCreateChildContainerResponse(httpContext, deps.ContainerInfoBuilder, folder, cancellationToken).ConfigureAwait(false),
+        };
+    }
 
-        var info = await deps.ContainerInfoBuilder.BuildAsync(newFolder, httpContext, cancellationToken).ConfigureAwait(false);
+    private static async Task<IResult> BuildCreateChildContainerResponse(HttpContext httpContext, ICheckContainerInfoBuilder builder, IWopiContainer folder, CancellationToken cancellationToken)
+    {
+        var info = await builder.BuildAsync(folder, httpContext, cancellationToken).ConfigureAwait(false);
         var url = httpContext.GetUrlHelper();
-        return TypedResults.Json(new CreateChildContainerResponse(new(newFolder.Name, url.GetWopiSrc(newFolder)), info));
+        return TypedResults.Json(new CreateChildContainerResponse(new(folder.Name, url.GetWopiSrc(folder)), info));
     }
 
     /// <summary>
