@@ -199,5 +199,4 @@ internal static class BootstrapEndpoints
         user.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? user.FindFirstValue(ClaimTypes.Upn)
         ?? throw new InvalidOperationException("Bootstrap principal lacks an identifier claim.");
-
 }
