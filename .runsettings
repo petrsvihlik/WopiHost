@@ -8,9 +8,10 @@
   cold-start + Playwright; running it on every PR would burn CI minutes and gate PRs on a
   flaky integration whose failures are mostly upstream.
 
-  To opt back in for a single run, pass `-p:RunSettingsFilePath=` to bypass this file. CLI
-  `--filter` does NOT work as an override because dotnet test ANDs the CLI filter with the
-  runsettings filter (yielding (Category!=E2E)&(Category=E2E), which matches zero tests).
+  To opt back in for a single run, pass an MSBuild property that clears
+  RunSettingsFilePath, which bypasses this file. Be aware that a CLI test filter does NOT
+  work as an override here, because dotnet test ANDs the CLI filter with the runsettings
+  filter (yielding (Category!=E2E)&(Category=E2E), which matches zero tests).
   See test/WopiHost.E2ETests.Collabora/README.md for the full local-run command.
 -->
 <RunSettings>
