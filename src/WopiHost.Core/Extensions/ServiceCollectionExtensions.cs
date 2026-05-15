@@ -29,6 +29,12 @@ public static class ServiceCollectionExtensions
         // AddAuthorization (not AddAuthorizationCore) — middleware-tier services for
         // app.UseAuthorization() were previously brought in by AddControllers.
         services.AddAuthorization();
+        // IUrlHelperFactory is the MVC URL-generation seam used by GetWopiSrc(IUrlHelper, …)
+        // via HttpContextExtensions.GetUrlHelper. AddControllers used to register it; with the
+        // controllers gone we register it directly so the endpoint handlers can build proxy-
+        // aware WOPI URLs. The companion Microsoft.AspNetCore.Mvc.Routing.IUrlHelper factory
+        // is constructed per-request inside the helper.
+        services.TryAddSingleton<Microsoft.AspNetCore.Mvc.Routing.IUrlHelperFactory, Microsoft.AspNetCore.Mvc.Routing.UrlHelperFactory>();
 
         services.AddSingleton<IAuthorizationHandler, WopiAuthorizationHandler>();
 
