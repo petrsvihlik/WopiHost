@@ -16,13 +16,19 @@ End-to-end tests that exercise the full WopiHost ↔ Collabora editing loop. Tra
 - **WOPI protocol conformance** — that's what [`microsoft/wopi-validator-core`](https://github.com/microsoft/wopi-validator-core) is for. Issue #357 calls it out as a separate workstream.
 - **Office Online Server / M365 for the Web** — CODE is a *development substitute* with a different feature surface. A green Collabora run is not M365 conformance.
 
-## Why this project is intentionally NOT in `WOPI.slnx`
+## How the slnx / runsettings split works
 
-Per-PR `Build & Test` runs `dotnet test` from the repo root, which discovers test projects via `WOPI.slnx`. If the E2E project were in the slnx, every PR would try (and fail) to run it.
+This project IS in `WOPI.slnx` so PR builds compile it (build-error coverage), but it's filtered out of `dotnet test` execution by default.
 
-The exclusion has to live in the slnx, not in the workflow, because the per-PR workflow uses `pull_request_target`. With that trigger GitHub reads the workflow YAML from **the target branch** (master), not the PR head — so a `--filter` added on a feature branch only takes effect *after* the PR merges. Same constraint we hit on the infersharp staging step a few PRs back.
+The filter lives in [`/.runsettings`](../../.runsettings) at the repo root:
 
-The dedicated [`e2e-collabora.yml`](../../.github/workflows/e2e-collabora.yml) workflow targets this project explicitly by csproj path, so it doesn't depend on the slnx entry to discover or build it.
+```xml
+<TestCaseFilter>Category!=E2E</TestCaseFilter>
+```
+
+…which the [`Directory.Build.props`](../../Directory.Build.props) auto-loads via `<RunSettingsFilePath>` (dotnet test does NOT auto-discover runsettings by convention). Tests in this project all carry `[Trait("Category", "E2E")]`, so they're skipped by `dotnet test` and `dotnet test WOPI.slnx`.
+
+The dedicated [`e2e-collabora.yml`](../../.github/workflows/e2e-collabora.yml) workflow opts back in by passing `-p:RunSettingsFilePath=` to bypass the autoloaded runsettings entirely. (CLI `--filter` would seem like the obvious answer, but dotnet test ANDs the CLI filter with the runsettings filter — `(Category!=E2E)&(Category=E2E)` matches zero tests. Clearing the autoload property is the cleaner override.)
 
 ## Why this is a separate project (not in `WopiHost.SmokeTests`)
 
@@ -51,11 +57,30 @@ pwsh artifacts/bin/WopiHost.E2ETests.Collabora/debug/playwright.ps1 install chro
 # 3. (Optional, speeds up the first run) Pre-pull Collabora
 docker pull collabora/code
 
-# 4. Run
-dotnet test test/WopiHost.E2ETests.Collabora
+# 4. Run — -p:RunSettingsFilePath= clears the repo-root .runsettings autoload. Without it,
+#    dotnet test inherits the Category!=E2E filter and runs zero tests in this project.
+#    NB: don't use --filter "Category=E2E" — CLI filter ANDs with runsettings, not overrides.
+dotnet test test/WopiHost.E2ETests.Collabora -p:RunSettingsFilePath=
 ```
 
 Without Docker, both tests log `Docker is not available — skipping Collabora e2e` and pass-as-skipped. No red on contributor machines that just want to run the unit suite.
+
+### Future improvement: make `dotnet test test/WopiHost.E2ETests.Collabora` work without a filter
+
+The asymmetry above ("explicit `--filter` needed when running the project directly") could be removed by adding a context-sensitive override in this project's csproj:
+
+```xml
+<PropertyGroup Condition="'$(SolutionPath)' == '' Or '$(SolutionPath)' == '*Undefined*'">
+  <VSTestTestCaseFilter>Category=E2E</VSTestTestCaseFilter>
+</PropertyGroup>
+```
+
+`$(SolutionPath)` is set by MSBuild when the entry point is a solution (`dotnet test WOPI.slnx`) and empty/`*Undefined*` when the entry is a single project (`dotnet test test/WopiHost.E2ETests.Collabora`). The conditional flips on only in the standalone case, so:
+
+- `dotnet test WOPI.slnx` → solution context → condition false → root runsettings filter applies → E2E skipped ✓
+- `dotnet test test/WopiHost.E2ETests.Collabora` → no solution → override kicks in → E2E runs ✓
+
+Not adopted today because `$(SolutionPath)` behaviour varies between `dotnet test`, IDEs (VS / Rider), and `--no-build` paths, and a wrong evaluation in either direction breaks the wrong CI surface silently. If someone wants to revisit this with the time to enumerate the IDE matrix, the conditional itself is one-liner-cheap.
 
 ## How the fixture is wired
 

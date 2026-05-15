@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Repo-wide test run settings. Auto-loaded via the RunSettingsFilePath property in
+  Directory.Build.props; dotnet test does NOT auto-discover .runsettings by convention.
+
+  TestCaseFilter excludes tests carrying the "E2E" trait so plain `dotnet test` skips the
+  Collabora end-to-end suite by default. That suite needs Docker + a real Collabora container
+  cold-start + Playwright; running it on every PR would burn CI minutes and gate PRs on a
+  flaky integration whose failures are mostly upstream.
+
+  To opt back in for a single run, pass `-p:RunSettingsFilePath=` to bypass this file. CLI
+  `--filter` does NOT work as an override because dotnet test ANDs the CLI filter with the
+  runsettings filter (yielding (Category!=E2E)&(Category=E2E), which matches zero tests).
+  See test/WopiHost.E2ETests.Collabora/README.md for the full local-run command.
+-->
+<RunSettings>
+  <RunConfiguration>
+    <TestCaseFilter>Category!=E2E</TestCaseFilter>
+  </RunConfiguration>
+</RunSettings>

@@ -59,7 +59,13 @@ jobs:
         run: docker pull collabora/code:latest
 
       - name: Run e2e
-        run: dotnet test test/WopiHost.E2ETests.Collabora/WopiHost.E2ETests.Collabora.csproj --no-build --verbosity normal --logger "console;verbosity=detailed"
+        # -p:RunSettingsFilePath= clears the repo-root .runsettings autoloaded via
+        # Directory.Build.props. That runsettings filters out Category=E2E so per-PR
+        # `dotnet test` skips this suite; we need to undo that filter for the dedicated
+        # workflow. We do NOT use --filter "Category=E2E" because dotnet test ANDs the CLI
+        # filter with the runsettings filter, yielding (Category!=E2E)&(Category=E2E) which
+        # matches zero tests. Bypassing the runsettings entirely is the cleanest opt-in.
+        run: dotnet test test/WopiHost.E2ETests.Collabora/WopiHost.E2ETests.Collabora.csproj --no-build -p:RunSettingsFilePath= --verbosity normal --logger "console;verbosity=detailed"
 
       - name: Upload Playwright traces on failure
         if: failure()
