@@ -118,6 +118,138 @@ public class WopiTelemetryEndpointFilterTests
         Assert.Equal(opName, captured.Activity?.GetTagItem(WopiTelemetry.Tags.Operation));
     }
 
+    [Fact]
+    public async Task Without_Endpoint_Operation_Defaults_To_Unknown()
+    {
+        const string opName = "Unknown";
+        using var captured = CaptureActivity(opName);
+        var filter = new WopiTelemetryEndpointFilter(NullLogger<WopiTelemetryEndpointFilter>.Instance);
+        // No endpoint set on HttpContext.
+        var httpContext = new DefaultHttpContext();
+        var ctx = new DefaultEndpointFilterInvocationContext(httpContext);
+
+        await filter.InvokeAsync(ctx, _ => ValueTask.FromResult<object?>(null));
+
+        Assert.Equal(opName, captured.Activity?.OperationName);
+    }
+
+    [Fact]
+    public async Task Without_DisplayName_Or_Name_Falls_Back_To_Unknown()
+    {
+        const string opName = "Unknown";
+        using var captured = CaptureActivity(opName);
+        var filter = new WopiTelemetryEndpointFilter(NullLogger<WopiTelemetryEndpointFilter>.Instance);
+        // Endpoint with metadata that doesn't include EndpointNameMetadata, no display name either.
+        var endpoint = new RouteEndpoint(
+            _ => Task.CompletedTask,
+            RoutePatternFactory.Parse("/test"),
+            order: 0,
+            new EndpointMetadataCollection(),
+            displayName: null);
+        var httpContext = new DefaultHttpContext();
+        httpContext.SetEndpoint(endpoint);
+        var ctx = new DefaultEndpointFilterInvocationContext(httpContext);
+
+        await filter.InvokeAsync(ctx, _ => ValueTask.FromResult<object?>(null));
+
+        Assert.Equal(opName, captured.Activity?.OperationName);
+    }
+
+    [Fact]
+    public async Task DisplayName_Used_When_EndpointName_Absent()
+    {
+        const string opName = "Op_FromDisplayName";
+        using var captured = CaptureActivity(opName);
+        var filter = new WopiTelemetryEndpointFilter(NullLogger<WopiTelemetryEndpointFilter>.Instance);
+        var endpoint = new RouteEndpoint(
+            _ => Task.CompletedTask,
+            RoutePatternFactory.Parse("/test"),
+            order: 0,
+            new EndpointMetadataCollection(),
+            displayName: opName);
+        var httpContext = new DefaultHttpContext();
+        httpContext.SetEndpoint(endpoint);
+        var ctx = new DefaultEndpointFilterInvocationContext(httpContext);
+
+        await filter.InvokeAsync(ctx, _ => ValueTask.FromResult<object?>(null));
+
+        Assert.Equal(opName, captured.Activity?.OperationName);
+    }
+
+    [Fact]
+    public async Task Headers_And_User_Claims_Populate_Scope_Tags()
+    {
+        const string opName = "Op_HeadersAndClaims";
+        using var captured = CaptureActivity(opName);
+        var filter = new WopiTelemetryEndpointFilter(NullLogger<WopiTelemetryEndpointFilter>.Instance);
+        var ctx = CreateContext(opName, c =>
+        {
+            c.Request.RouteValues["id"] = "abc";
+            c.Request.Headers[WopiHeaders.WOPI_OVERRIDE] = "LOCK";
+            c.Request.Headers[WopiHeaders.LOCK] = "lock-token";
+            c.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    [new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "alice")],
+                    "test"));
+        });
+
+        await filter.InvokeAsync(ctx, _ => ValueTask.FromResult<object?>(null));
+
+        // Override / lock id flow into the activity tags via StartActivity.
+        Assert.Equal("LOCK", captured.Activity?.GetTagItem(WopiTelemetry.Tags.Override));
+        // Lock id and user id only land on the log scope, not the activity tag. The fact that the
+        // call returned successfully without throwing (e.g., a null-reference reading the claim)
+        // is the assertion we care about — exercises the `lockId/userId is not null` branches.
+        Assert.Equal("abc", captured.Activity?.GetTagItem(WopiTelemetry.Tags.FileId));
+    }
+
+    [Fact]
+    public async Task Missing_Headers_And_Anonymous_User_Skip_Scope_Adds()
+    {
+        const string opName = "Op_Missing";
+        using var captured = CaptureActivity(opName);
+        var filter = new WopiTelemetryEndpointFilter(NullLogger<WopiTelemetryEndpointFilter>.Instance);
+        // No headers, no route id, no user — exercises the `is null` branches that skip the
+        // conditional scope adds and the override/resource tags on the activity.
+        var ctx = CreateContext(opName);
+
+        await filter.InvokeAsync(ctx, _ => ValueTask.FromResult<object?>(null));
+
+        Assert.Null(captured.Activity?.GetTagItem(WopiTelemetry.Tags.Override));
+        Assert.Null(captured.Activity?.GetTagItem(WopiTelemetry.Tags.FileId));
+        Assert.Null(captured.Activity?.GetTagItem(WopiTelemetry.Tags.ContainerId));
+    }
+
+    [Fact]
+    public async Task AggregateException_With_Cancellation_Classified_As_Cancelled()
+    {
+        const string opName = "Op_AggregateCancel";
+        using var captured = CaptureActivity(opName);
+        var filter = new WopiTelemetryEndpointFilter(NullLogger<WopiTelemetryEndpointFilter>.Instance);
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+        var ctx = CreateContext(opName, c => c.RequestAborted = cts.Token);
+        var aggregate = new AggregateException(new OperationCanceledException(cts.Token), new OperationCanceledException(cts.Token));
+
+        await Assert.ThrowsAsync<AggregateException>(() => filter.InvokeAsync(ctx, _ => throw aggregate).AsTask());
+
+        Assert.Equal(WopiTelemetry.Outcomes.Cancelled, captured.Activity?.GetTagItem(WopiTelemetry.Tags.Outcome));
+    }
+
+    [Fact]
+    public async Task OperationCanceled_Without_RequestAborted_Classified_As_Error()
+    {
+        const string opName = "Op_LooseOCE";
+        using var captured = CaptureActivity(opName);
+        var filter = new WopiTelemetryEndpointFilter(NullLogger<WopiTelemetryEndpointFilter>.Instance);
+        // RequestAborted not cancelled → OperationCanceledException is treated as a real error.
+        var ctx = CreateContext(opName);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => filter.InvokeAsync(ctx, _ => throw new OperationCanceledException()).AsTask());
+
+        Assert.Equal(WopiTelemetry.Outcomes.Error, captured.Activity?.GetTagItem(WopiTelemetry.Tags.Outcome));
+    }
+
     private static DefaultEndpointFilterInvocationContext CreateContext(
         string operationName,
         Action<HttpContext>? httpContext = null,
