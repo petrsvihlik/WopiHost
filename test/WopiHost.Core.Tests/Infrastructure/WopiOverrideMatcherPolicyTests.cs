@@ -149,6 +149,91 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, authBResp.StatusCode);
     }
 
+    public sealed class MetadataConstructor
+    {
+        [Fact]
+        public void Throws_When_Values_Is_Null()
+        {
+            Assert.Throws<ArgumentNullException>(() => new WopiOverrideMetadata(null!));
+        }
+
+        [Fact]
+        public void Throws_When_Values_Is_Empty()
+        {
+            Assert.Throws<ArgumentException>(() => new WopiOverrideMetadata());
+        }
+
+        [Fact]
+        public void Exposes_Supplied_Values_Case_Sensitively()
+        {
+            // Project to an array — Assert.Contains on FrozenSet<T> is ambiguous between
+            // the ISet<T> and IReadOnlySet<T> overloads, and Assert.True(set.Contains(x)) trips
+            // xUnit2017.
+            var values = new WopiOverrideMetadata("LOCK", "UNLOCK").Values.ToArray();
+
+            Assert.Contains("LOCK", values);
+            Assert.Contains("UNLOCK", values);
+            // Ordinal (case-sensitive) per WOPI spec — header values are upper-case constants.
+            Assert.DoesNotContain("lock", values);
+        }
+    }
+
+    /// <summary>
+    /// Exercises the pass-through branch in <see cref="WopiOverrideMatcherPolicy"/>: a candidate
+    /// without <see cref="WopiOverrideMetadata"/> sharing the route template with metadata-bearing
+    /// siblings must remain valid when the request header invalidates the others. Models the
+    /// "consumer mixes WOPI-style endpoints with their own metadata-less fallback" scenario.
+    /// </summary>
+    public sealed class MetadataLessSiblingPassThrough : IAsyncLifetime
+    {
+        private WebApplication? _app;
+        private HttpClient? _client;
+
+        public async ValueTask InitializeAsync()
+        {
+            var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions());
+            builder.WebHost.UseTestServer();
+            builder.Services.AddRouting();
+            builder.Services.AddSingleton<MatcherPolicy, WopiOverrideMatcherPolicy>();
+            builder.Services.AddAuthorization();
+
+            _app = builder.Build();
+            _app.UseRouting();
+            _app.UseAuthorization();
+
+            // Override-bearing endpoint. Invalidated when the request header isn't OP_A.
+            _app.MapPost("/sibling/{id}", (string id) => TypedResults.Ok($"OP_A:{id}"))
+                .WithMetadata(new WopiOverrideMetadata("OP_A"));
+
+            // Metadata-less sibling on the same route+verb. Pass-through (`metadata is null`)
+            // leaves it valid; with OP_A invalidated, this is the only remaining candidate.
+            _app.MapPost("/sibling/{id}", (string id) => TypedResults.Ok($"FALLBACK:{id}"));
+
+            await _app.StartAsync();
+            _client = _app.GetTestClient();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            _client?.Dispose();
+            if (_app is not null)
+            {
+                await _app.DisposeAsync();
+            }
+        }
+
+        [Fact]
+        public async Task Metadata_Less_Sibling_Wins_When_Override_Does_Not_Match()
+        {
+            var req = new HttpRequestMessage(HttpMethod.Post, "/sibling/abc");
+            // No X-WOPI-Override — invalidates the OP_A endpoint, leaves the metadata-less one.
+            var resp = await _client!.SendAsync(req);
+
+            Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+            Assert.Equal("\"FALLBACK:abc\"", await resp.Content.ReadAsStringAsync());
+        }
+    }
+
     /// <summary>Test authentication handler that succeeds only when <c>X-Test-Auth</c> is present.</summary>
     private sealed class HeaderTriggerAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,

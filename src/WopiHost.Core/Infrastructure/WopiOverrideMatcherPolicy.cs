@@ -39,7 +39,6 @@ internal sealed class WopiOverrideMatcherPolicy : MatcherPolicy, IEndpointSelect
     /// <inheritdoc />
     public bool AppliesToEndpoints(IReadOnlyList<Endpoint> endpoints)
     {
-        ArgumentNullException.ThrowIfNull(endpoints);
         for (var i = 0; i < endpoints.Count; i++)
         {
             if (endpoints[i].Metadata.GetMetadata<WopiOverrideMetadata>() is not null)
@@ -53,9 +52,6 @@ internal sealed class WopiOverrideMatcherPolicy : MatcherPolicy, IEndpointSelect
     /// <inheritdoc />
     public Task ApplyAsync(HttpContext httpContext, CandidateSet candidates)
     {
-        ArgumentNullException.ThrowIfNull(httpContext);
-        ArgumentNullException.ThrowIfNull(candidates);
-
         var header = httpContext.Request.Headers[WopiHeaders.WOPI_OVERRIDE].ToString();
 
         for (var i = 0; i < candidates.Count; i++)
