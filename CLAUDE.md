@@ -46,7 +46,7 @@ This is a modular **WOPI protocol host** implementation that integrates custom d
 ### Core Libraries (src/)
 
 - **WopiHost.Abstractions** — Interfaces and contracts: `IWopiStorageProvider`, `IWopiWritableStorageProvider`, `IWopiLockProvider`, `IWopiAccessTokenService`, `IWopiProofValidator`, `IWopiPermissionProvider`, `IDiscoverer`. All other projects depend on this.
-- **WopiHost.Core** — WOPI REST endpoint controllers (`FilesController`, `ContainersController`, `FoldersController`), security (JWT auth, WOPI proof validation), and request infrastructure. This is the main server library.
+- **WopiHost.Core** — WOPI REST endpoints as Minimal APIs (`src/WopiHost.Core/Endpoints/*Endpoints.cs`, wired via `app.MapWopiEndpoints()`), security (JWT auth, WOPI proof validation), and request infrastructure. The override-multiplexed `POST {id}` routes dispatch through `WopiOverrideMatcherPolicy` so each `X-WOPI-Override` value keeps its own authorization policy. This is the main server library.
 - **WopiHost.Discovery** — Discovers WOPI client capabilities from Office Online Server XML.
 - **WopiHost.Url** — Generates WOPI URLs for file/container actions.
 - **WopiHost.Cobalt** — Optional MS-FSSHTTP (Cobalt) protocol support for co-authoring.

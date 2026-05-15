@@ -37,11 +37,16 @@ builder.Services.ConfigureWopiSecurity(o =>
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers();
+app.MapWopiEndpoints();
 app.Run();
 ```
 
-`AddWopi()` registers controllers, the access-token authentication scheme, the proof-key validator, default `IWopiAccessTokenService` (signed JWT), and default `IWopiPermissionProvider` (reads from token claims). Override either by registering your own implementation — the defaults are added with `TryAdd*` so a custom registration wins regardless of order. See [the runnable sample](../../sample/WopiHost/Program.cs).
+`AddWopi()` registers the access-token authentication scheme, the proof-key validator, the WOPI endpoint filters and override-header matcher policy, default `IWopiAccessTokenService` (signed JWT), and default `IWopiPermissionProvider` (reads from token claims). `app.MapWopiEndpoints()` wires every WOPI route onto the application — files, containers, folders, ecosystem, bootstrap. Override either default service by registering your own implementation — the defaults are added with `TryAdd*` so a custom registration wins regardless of order. See [the runnable sample](../../sample/WopiHost/Program.cs).
+
+> **Migrating from 8.x?** Replace `app.MapControllers()` with `app.MapWopiEndpoints()`. The
+> `AddWopi()` signature is unchanged. Custom MVC `IActionFilter` / `IActionResult` types
+> that derived from the v8 WOPI helpers (`LockMismatchResult`, `[RequiresWritableStorage]`,
+> etc.) no longer exist — see the v9 release notes for the new `IResult` equivalents.
 
 The bundled provider packages each ship a typed `Add{Provider}{StorageOrLock}Provider(...)` extension — pick the one you want and reference its package. Available extensions:
 
