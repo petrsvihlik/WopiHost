@@ -192,6 +192,72 @@ public sealed class EndpointSmokeTests(EndpointSmokeTests.Fixture fixture) : ICl
     }
 
     [Fact]
+    public async Task ContainerAncestry_Returns_404_ForMissingContainer()
+    {
+        var missing = new string('a', 64);
+        var token = await MintContainerTokenAsync(missing);
+        using var client = _fixture.WopiBackend.CreateClient();
+        var resp = await client.GetAsync($"/wopi/containers/{missing}/ancestry?access_token={Uri.EscapeDataString(token)}");
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task ContainerChildren_Returns_404_ForMissingContainer()
+    {
+        var missing = new string('b', 64);
+        var token = await MintContainerTokenAsync(missing);
+        using var client = _fixture.WopiBackend.CreateClient();
+        var resp = await client.GetAsync($"/wopi/containers/{missing}/children?access_token={Uri.EscapeDataString(token)}");
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task FileAncestry_Returns_404_ForMissingFile()
+    {
+        var missing = new string('c', 64);
+        var token = await MintFileTokenAsync(missing);
+        using var client = _fixture.WopiBackend.CreateClient();
+        var resp = await client.GetAsync($"/wopi/files/{missing}/ancestry?access_token={Uri.EscapeDataString(token)}");
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task FileEcosystemPointer_Returns_404_ForMissingFile()
+    {
+        var missing = new string('d', 64);
+        var token = await MintFileTokenAsync(missing);
+        using var client = _fixture.WopiBackend.CreateClient();
+        var resp = await client.GetAsync($"/wopi/files/{missing}/ecosystem_pointer?access_token={Uri.EscapeDataString(token)}");
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task CheckFolderInfo_Returns_404_ForMissingFolder()
+    {
+        var missing = new string('e', 64);
+        var token = await MintContainerTokenAsync(missing);
+        using var client = _fixture.WopiBackend.CreateClient();
+        var resp = await client.GetAsync($"/wopi/folders/{missing}?access_token={Uri.EscapeDataString(token)}");
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task FolderChildren_Returns_404_ForMissingFolder()
+    {
+        var missing = new string('f', 64);
+        var token = await MintContainerTokenAsync(missing);
+        using var client = _fixture.WopiBackend.CreateClient();
+        var resp = await client.GetAsync($"/wopi/folders/{missing}/children?access_token={Uri.EscapeDataString(token)}");
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Fact]
     public async Task ContainerChildren_Honours_FileExtensionFilter()
     {
         var token = await MintContainerTokenAsync(RootContainerId());
