@@ -56,10 +56,7 @@ internal static class ContainerMutatingEndpoints
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(deps.WritableStorage);
-        if (await deps.Storage.GetWopiContainer(id, cancellationToken).ConfigureAwait(false) is null)
-        {
-            return TypedResults.NotFound();
-        }
+        if (await deps.Storage.GetWopiContainer(id, cancellationToken).ConfigureAwait(false) is null) return TypedResults.NotFound();
 
         // Mutually exclusive headers per spec: 501 when both present or both missing.
         if ((!string.IsNullOrWhiteSpace(suggestedTarget) && !string.IsNullOrWhiteSpace(relativeTarget))
@@ -72,36 +69,38 @@ internal static class ContainerMutatingEndpoints
             return TypedResults.BadRequest();
         }
 
-        IWopiContainer? newFolder;
+        var (newFolder, conflict) = await ResolveNewChildContainer(httpContext, deps, id, suggestedTarget, relativeTarget, cancellationToken).ConfigureAwait(false);
+        if (conflict is not null) return conflict;
+        if (newFolder is null) return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+
+        var info = await deps.ContainerInfoBuilder.BuildAsync(newFolder, httpContext, cancellationToken).ConfigureAwait(false);
+        var url = httpContext.GetUrlHelper();
+        return TypedResults.Json(new CreateChildContainerResponse(new(newFolder.Name, url.GetWopiSrc(newFolder)), info));
+    }
+
+    /// <summary>
+    /// Dispatches the relative-target ("specific mode") and suggested-target name-negotiation
+    /// branches. Returns <c>(folder, null)</c> on success or <c>(null, conflict)</c> when the
+    /// specific-mode name collides — the conflict result writes <c>X-WOPI-ValidRelativeTarget</c>.
+    /// </summary>
+    private static async Task<(IWopiContainer? folder, IResult? conflict)> ResolveNewChildContainer(
+        HttpContext httpContext, CreateChildContainerDeps deps, string id, UtfString? suggestedTarget, UtfString? relativeTarget, CancellationToken cancellationToken)
+    {
         if (!string.IsNullOrWhiteSpace(relativeTarget))
         {
             // "specific mode" — host must not modify the name.
-            newFolder = await deps.Storage.GetWopiContainerByName(id, relativeTarget, cancellationToken).ConfigureAwait(false);
-            if (newFolder is not null)
+            var existing = await deps.Storage.GetWopiContainerByName(id, relativeTarget, cancellationToken).ConfigureAwait(false);
+            if (existing is not null)
             {
-                var suggestedName = await deps.WritableStorage.GetSuggestedContainerName(id, relativeTarget, cancellationToken).ConfigureAwait(false);
+                var suggestedName = await deps.WritableStorage!.GetSuggestedContainerName(id, relativeTarget, cancellationToken).ConfigureAwait(false);
                 httpContext.Response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(suggestedName).ToString(true);
-                return TypedResults.Conflict();
+                return (null, TypedResults.Conflict());
             }
-            newFolder = await deps.WritableStorage.CreateWopiChildContainer(id, relativeTarget, cancellationToken).ConfigureAwait(false);
+            return (await deps.WritableStorage!.CreateWopiChildContainer(id, relativeTarget, cancellationToken).ConfigureAwait(false), null);
         }
-        else if (!string.IsNullOrWhiteSpace(suggestedTarget))
-        {
-            var newName = await deps.WritableStorage.GetSuggestedContainerName(id, suggestedTarget, cancellationToken).ConfigureAwait(false);
-            newFolder = await deps.WritableStorage.CreateWopiChildContainer(id, newName, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            return TypedResults.BadRequest();
-        }
-
-        if (newFolder is not null)
-        {
-            var info = await deps.ContainerInfoBuilder.BuildAsync(newFolder, httpContext, cancellationToken).ConfigureAwait(false);
-            var url = httpContext.GetUrlHelper();
-            return TypedResults.Json(new CreateChildContainerResponse(new(newFolder.Name, url.GetWopiSrc(newFolder)), info));
-        }
-        return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+        // suggested-target branch — host may dedupe the name.
+        var newName = await deps.WritableStorage!.GetSuggestedContainerName(id, suggestedTarget!, cancellationToken).ConfigureAwait(false);
+        return (await deps.WritableStorage.CreateWopiChildContainer(id, newName, cancellationToken).ConfigureAwait(false), null);
     }
 
     /// <summary>Bundle of services consumed by <see cref="CreateChildFile"/>.</summary>
@@ -203,28 +202,23 @@ internal static class ContainerMutatingEndpoints
             httpContext.Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
             return TypedResults.BadRequest();
         }
+        return await TryRenameContainerAsync(httpContext, writableStorageProvider, id, requestedName, container, cancellationToken).ConfigureAwait(false);
+    }
 
+    private static async Task<IResult> TryRenameContainerAsync(HttpContext httpContext, IWopiWritableStorageProvider writableStorageProvider, string id, string requestedName, IWopiContainer container, CancellationToken cancellationToken)
+    {
         try
         {
-            if (await writableStorageProvider.RenameWopiContainer(id, requestedName, cancellationToken).ConfigureAwait(false))
-            {
-                return TypedResults.Json(new { container.Name });
-            }
-            // false → missing resource (race with concurrent delete).
-            return TypedResults.NotFound();
+            return await writableStorageProvider.RenameWopiContainer(id, requestedName, cancellationToken).ConfigureAwait(false)
+                ? TypedResults.Json(new { container.Name })
+                : TypedResults.NotFound(); // false → missing resource (race with concurrent delete).
         }
         catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
         {
             httpContext.Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
             return TypedResults.BadRequest();
         }
-        catch (DirectoryNotFoundException)
-        {
-            return TypedResults.NotFound();
-        }
-        catch (InvalidOperationException)
-        {
-            return TypedResults.Conflict();
-        }
+        catch (DirectoryNotFoundException) { return TypedResults.NotFound(); }
+        catch (InvalidOperationException) { return TypedResults.Conflict(); }
     }
 }

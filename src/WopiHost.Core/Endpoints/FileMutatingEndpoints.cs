@@ -89,51 +89,39 @@ internal static class FileMutatingEndpoints
         [FromHeader(Name = WopiHeaders.EDITORS)] string? editors,
         CancellationToken cancellationToken)
     {
-        // RequiresWritableStorageEndpointFilter already short-circuited the request with 501
-        // if WritableStorage was missing — the assert is defensive against pipeline misorder.
+        // RequiresWritableStorageEndpointFilter already short-circuited with 501 if
+        // WritableStorage was missing — the assert is defensive against pipeline misorder.
         ArgumentNullException.ThrowIfNull(deps.WritableStorage);
         var file = await deps.WritableStorage.GetWritableFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
+        if (CheckMaxFileSize(httpContext, deps.Options.Value.MaxFileSize) is { } tooLarge) return tooLarge;
 
-        if (CheckMaxFileSize(httpContext, deps.Options.Value.MaxFileSize) is { } tooLarge)
-        {
-            return tooLarge;
-        }
-
-        // Unlocked: the spec permits PutFile on a 0-byte unlocked file as a workaround for the
-        // "create-new" flow; otherwise return 409 with the empty-lock header.
+        // Unlocked: spec permits PutFile on a 0-byte unlocked file as a "create-new" workaround.
         if (string.IsNullOrEmpty(newLockIdentifier))
         {
-            if (file.Length != 0)
-            {
-                return new WopiLockMismatchResult(existingLock: null);
-            }
-            await httpContext.CopyToWriteStream(file, cancellationToken).ConfigureAwait(false);
-            if (file.Version is not null)
-            {
-                httpContext.Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
-            }
-            await InvokePutFileCallbackAsync(httpContext, deps.Extensions, file, editors, cancellationToken).ConfigureAwait(false);
-            return TypedResults.Ok();
+            return file.Length != 0
+                ? new WopiLockMismatchResult(existingLock: null)
+                : await WriteAndAck(httpContext, deps.Extensions, file, editors, cancellationToken).ConfigureAwait(false);
         }
 
-        // Locked: acquire/refresh the lock via the shared ProcessLockCore helper; only write
-        // content on a clean Ok.
+        // Locked: acquire/refresh the lock via the shared ProcessLockCore helper, only write on Ok.
         var lockResult = await ProcessLockCore(
             id, httpContext, deps.LockProvider, deps.Options, deps.LockComparer ?? OrdinalWopiLockComparer.Instance,
             wopiOverrideHeader: WopiFileOperations.Lock, oldLockIdentifier: null, newLockIdentifier: newLockIdentifier,
             cancellationToken).ConfigureAwait(false);
-        if (lockResult is not Microsoft.AspNetCore.Http.HttpResults.Ok)
-        {
-            return lockResult;
-        }
+        return lockResult is Microsoft.AspNetCore.Http.HttpResults.Ok
+            ? await WriteAndAck(httpContext, deps.Extensions, file, editors, cancellationToken).ConfigureAwait(false)
+            : lockResult;
+    }
 
+    private static async Task<IResult> WriteAndAck(HttpContext httpContext, IWopiHostExtensions extensions, IWopiWritableFile file, string? editors, CancellationToken cancellationToken)
+    {
         await httpContext.CopyToWriteStream(file, cancellationToken).ConfigureAwait(false);
         if (file.Version is not null)
         {
             httpContext.Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
         }
-        await InvokePutFileCallbackAsync(httpContext, deps.Extensions, file, editors, cancellationToken).ConfigureAwait(false);
+        await InvokePutFileCallbackAsync(httpContext, extensions, file, editors, cancellationToken).ConfigureAwait(false);
         return TypedResults.Ok();
     }
 
@@ -169,30 +157,25 @@ internal static class FileMutatingEndpoints
             httpContext.Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
             return TypedResults.BadRequest();
         }
+        return await TryRenameFileAsync(httpContext, deps.WritableStorage, id, requestedName, file, cancellationToken).ConfigureAwait(false);
+    }
 
+    private static async Task<IResult> TryRenameFileAsync(HttpContext httpContext, IWopiWritableStorageProvider writableStorage, string id, string requestedName, IWopiFile file, CancellationToken cancellationToken)
+    {
         try
         {
-            var newName = await deps.WritableStorage.GetSuggestedFileName(id, requestedName + '.' + file.Extension, cancellationToken).ConfigureAwait(false);
-            if (await deps.WritableStorage.RenameWopiFile(id, newName, cancellationToken).ConfigureAwait(false))
-            {
-                return TypedResults.Json(new { Name = Path.GetFileNameWithoutExtension(newName) });
-            }
-            // false → missing resource (race with concurrent delete).
-            return TypedResults.NotFound();
+            var newName = await writableStorage.GetSuggestedFileName(id, requestedName + '.' + file.Extension, cancellationToken).ConfigureAwait(false);
+            return await writableStorage.RenameWopiFile(id, newName, cancellationToken).ConfigureAwait(false)
+                ? TypedResults.Json(new { Name = Path.GetFileNameWithoutExtension(newName) })
+                : TypedResults.NotFound(); // false → missing resource (race with concurrent delete).
         }
         catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
         {
             httpContext.Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
             return TypedResults.BadRequest();
         }
-        catch (FileNotFoundException)
-        {
-            return TypedResults.NotFound();
-        }
-        catch (InvalidOperationException)
-        {
-            return TypedResults.Conflict();
-        }
+        catch (FileNotFoundException) { return TypedResults.NotFound(); }
+        catch (InvalidOperationException) { return TypedResults.Conflict(); }
     }
 
     /// <summary>Bundle of services consumed by <see cref="PutRelativeFile"/>.</summary>

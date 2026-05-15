@@ -23,3 +23,13 @@ test_patterns = [
 [[source]]
 name = "default"
 default = true
+
+# Minimal-API endpoint handlers naturally collect many DI services as positional
+# parameters (the framework's parameter-injection idiom). qlty's function-parameters
+# and file-complexity rules are calibrated for OOP class methods; ignoring them
+# here lets us keep the natural Minimal-API shape rather than over-engineering
+# per-handler service records past the point of clarity.
+[[ignore]]
+linters = ["qlty"]
+rules = ["function-parameters", "file-complexity"]
+file_patterns = ["src/WopiHost.Core/Endpoints/**"]

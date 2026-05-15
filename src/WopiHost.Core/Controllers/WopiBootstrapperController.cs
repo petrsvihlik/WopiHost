@@ -220,37 +220,11 @@ public class WopiBootstrapperController(
         ?? throw new InvalidOperationException("Bootstrap principal lacks an identifier claim.");
 
     /// <summary>
-    /// Parses the <c>X-WOPI-WopiSrc</c> header into a <see cref="WopiResourceType"/> and the
-    /// resource identifier. Accepts paths shaped like <c>/wopi/files/{id}</c> or
-    /// <c>/wopi/containers/{id}</c>.
+    /// Thin forwarder to <see cref="Endpoints.EndpointHelpers.TryParseWopiSrc"/>. Kept for
+    /// the duration of the #430 migration so existing tests against
+    /// <c>WopiBootstrapperController.TryParseWopiSrc</c> continue to compile. Deleted in
+    /// phase 4 alongside the controller.
     /// </summary>
     internal static bool TryParseWopiSrc(string wopiSrc, out WopiResourceType resourceType, out string resourceId)
-    {
-        resourceType = default;
-        resourceId = string.Empty;
-
-        if (string.IsNullOrWhiteSpace(wopiSrc) ||
-            !Uri.TryCreate(wopiSrc, UriKind.Absolute, out var uri))
-        {
-            return false;
-        }
-
-        var segments = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        for (var i = 0; i < segments.Length - 1; i++)
-        {
-            if (segments[i].Equals("files", StringComparison.OrdinalIgnoreCase))
-            {
-                resourceType = WopiResourceType.File;
-                resourceId = Uri.UnescapeDataString(segments[i + 1]);
-                return true;
-            }
-            if (segments[i].Equals("containers", StringComparison.OrdinalIgnoreCase))
-            {
-                resourceType = WopiResourceType.Container;
-                resourceId = Uri.UnescapeDataString(segments[i + 1]);
-                return true;
-            }
-        }
-        return false;
-    }
+        => Endpoints.EndpointHelpers.TryParseWopiSrc(wopiSrc, out resourceType, out resourceId);
 }

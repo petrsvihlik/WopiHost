@@ -111,7 +111,7 @@ internal static class BootstrapEndpoints
     private static async Task<IResult> GetNewAccessTokenAsync(HttpContext httpContext, BootstrapDeps deps, string? wopiSrc, CancellationToken cancellationToken)
     {
         // Spec: if X-WOPI-WopiSrc is absent or unparseable, return 404.
-        if (string.IsNullOrEmpty(wopiSrc) || !TryParseWopiSrc(wopiSrc, out var resourceType, out var resourceId))
+        if (string.IsNullOrEmpty(wopiSrc) || !EndpointHelpers.TryParseWopiSrc(wopiSrc, out var resourceType, out var resourceId))
         {
             return TypedResults.NotFound();
         }
@@ -200,37 +200,4 @@ internal static class BootstrapEndpoints
         ?? user.FindFirstValue(ClaimTypes.Upn)
         ?? throw new InvalidOperationException("Bootstrap principal lacks an identifier claim.");
 
-    /// <summary>
-    /// Parses the <c>X-WOPI-WopiSrc</c> header into a <see cref="WopiResourceType"/> and the
-    /// resource identifier. Accepts paths shaped like <c>/wopi/files/{id}</c> or
-    /// <c>/wopi/containers/{id}</c>.
-    /// </summary>
-    internal static bool TryParseWopiSrc(string wopiSrc, out WopiResourceType resourceType, out string resourceId)
-    {
-        resourceType = default;
-        resourceId = string.Empty;
-
-        if (string.IsNullOrWhiteSpace(wopiSrc) || !Uri.TryCreate(wopiSrc, UriKind.Absolute, out var uri))
-        {
-            return false;
-        }
-
-        var segments = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        for (var i = 0; i < segments.Length - 1; i++)
-        {
-            if (segments[i].Equals("files", StringComparison.OrdinalIgnoreCase))
-            {
-                resourceType = WopiResourceType.File;
-                resourceId = Uri.UnescapeDataString(segments[i + 1]);
-                return true;
-            }
-            if (segments[i].Equals("containers", StringComparison.OrdinalIgnoreCase))
-            {
-                resourceType = WopiResourceType.Container;
-                resourceId = Uri.UnescapeDataString(segments[i + 1]);
-                return true;
-            }
-        }
-        return false;
-    }
 }
