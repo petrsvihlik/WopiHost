@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -22,7 +21,6 @@ namespace WopiHost.Core.Results;
 /// recompiling. Falls back to <see cref="WopiHeaders.EMPTY_LOCK_VALUE"/> (empty string, spec
 /// compliant) when no service provider is available.
 /// </remarks>
-[ExcludeFromCodeCoverage(Justification = "Phase 3 of #430 migration; HTTP parity tests land in phase 5 (test relocation into WopiHost.IntegrationTests)")]
 public sealed class WopiLockMismatchResult(string? existingLock = null, string? reason = null) : IResult, IWopiOutcomeResult
 {
     /// <inheritdoc />

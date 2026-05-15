@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Mime;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
@@ -18,7 +17,6 @@ namespace WopiHost.Core.Endpoints;
 /// Read-only Minimal-API endpoints for WOPI file resources. Mirrors the GET surface of
 /// <c>FilesController</c> behind a <see cref="WopiRouteNames"/>-named route table.
 /// </summary>
-[ExcludeFromCodeCoverage(Justification = "Phase 2 of #430 migration; HTTP parity tests land in phase 5 (test relocation into WopiHost.IntegrationTests)")]
 internal static class FileEndpoints
 {
     private const string UserInfoCacheKeyPrefix = "UserInfo-";

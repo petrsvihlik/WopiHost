@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -15,7 +14,6 @@ namespace WopiHost.Core.Endpoints;
 /// Minimal-API mutating endpoints for the <c>/wopi/containers/{id}</c> surface. Mirrors the
 /// non-GET actions of <c>ContainersController</c>, dispatched via <c>X-WOPI-Override</c>.
 /// </summary>
-[ExcludeFromCodeCoverage(Justification = "Phase 3 of #430 migration; HTTP parity tests land in phase 5 (test relocation into WopiHost.IntegrationTests)")]
 internal static class ContainerMutatingEndpoints
 {
     public static void MapContainerMutatingEndpoints(RouteGroupBuilder containers)

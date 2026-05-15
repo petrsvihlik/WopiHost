@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -21,7 +20,6 @@ namespace WopiHost.Core.Endpoints;
 /// non-GET actions of <c>FilesController</c>, dispatched via the <c>X-WOPI-Override</c>
 /// header (<see cref="WopiOverrideMatcherPolicy"/>) where applicable.
 /// </summary>
-[ExcludeFromCodeCoverage(Justification = "Phase 3 of #430 migration; HTTP parity tests land in phase 5 (test relocation into WopiHost.IntegrationTests)")]
 internal static class FileMutatingEndpoints
 {
     private const string UserInfoCacheKeyPrefix = "UserInfo-";

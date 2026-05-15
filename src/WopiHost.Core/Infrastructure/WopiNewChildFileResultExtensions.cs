@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using WopiHost.Abstractions;
 using WopiHost.Core.Results;
@@ -18,7 +17,6 @@ internal static class WopiNewChildFileResultExtensions
     /// effect. Returns <see langword="null"/> when the negotiation succeeded — caller reads
     /// <see cref="WopiNewChildFileResult.File"/> and proceeds.
     /// </summary>
-    [ExcludeFromCodeCoverage(Justification = "Phase 3 of #430 migration; HTTP parity tests land in phase 5 (test relocation into WopiHost.IntegrationTests)")]
     public static IResult? ToErrorResult(this WopiNewChildFileResult result, HttpResponse response)
     {
         ArgumentNullException.ThrowIfNull(result);

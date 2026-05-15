@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
@@ -12,7 +11,6 @@ namespace WopiHost.Core.Extensions;
 /// Helpers for Minimal-API endpoint handlers that need to reuse infrastructure currently
 /// shaped for MVC controllers (notably <see cref="IUrlHelper"/>-based URL generation).
 /// </summary>
-[ExcludeFromCodeCoverage(Justification = "Phase 2 of #430 migration; exercised by HTTP parity tests in phase 5 (test relocation into WopiHost.IntegrationTests)")]
 internal static class HttpContextExtensions
 {
     /// <summary>

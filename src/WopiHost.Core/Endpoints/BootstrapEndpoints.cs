@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -33,7 +32,6 @@ namespace WopiHost.Core.Endpoints;
 /// and switches inside the handler — two operations doesn't justify a parallel matcher
 /// policy.
 /// </remarks>
-[ExcludeFromCodeCoverage(Justification = "Phase 3 of #430 migration; HTTP parity tests land in phase 5 (test relocation into WopiHost.IntegrationTests)")]
 internal static class BootstrapEndpoints
 {
     public static void MapBootstrapEndpoints(IEndpointRouteBuilder endpoints)

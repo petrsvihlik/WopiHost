@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -28,7 +27,6 @@ namespace WopiHost.Core.Endpoints;
 /// experimenting with the new topology should pick one or the other.
 /// </para>
 /// </remarks>
-[ExcludeFromCodeCoverage(Justification = "Phase 2 of #430 migration; HTTP parity tests land in phase 5 (test relocation into WopiHost.IntegrationTests). Route-table assertions live in MapWopiEndpointsTests.")]
 public static class WopiEndpointRouteBuilderExtensions
 {
     /// <summary>
