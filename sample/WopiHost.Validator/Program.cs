@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
+using WopiHost.Core.Endpoints;
 using WopiHost.Validator.Infrastructure;
 using WopiHost.Validator.Models;
 
@@ -11,8 +12,6 @@ builder.Services.AddHealthChecks();
 // Add service discovery
 builder.Services.AddServiceDiscovery();
 
-// standard
-builder.Services.AddControllers();
 if (builder.Environment.IsDevelopment())
 {
     builder.Configuration.AddUserSecrets<Program>();
@@ -42,8 +41,8 @@ app.UseRouting();
 app.UseAuthorization();
 // HostPages
 app.MapRazorPages();
-// WopiServer Controllers
-app.MapControllers();
+// WOPI protocol endpoints
+app.MapWopiEndpoints();
 // Map health checks
 app.MapHealthChecks("/health");
 
