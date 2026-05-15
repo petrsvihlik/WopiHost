@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WopiHost.Abstractions;
@@ -48,6 +49,36 @@ internal static class WopiNewChildFileResultExtensions
                 // succeed. Defensive — the in-tree providers don't trip this path.
                 return new InternalServerErrorResult();
 
+            default:
+                throw new InvalidOperationException($"Unknown {nameof(WopiNewChildFileOutcome)}: {result.Outcome}");
+        }
+    }
+
+    /// <summary>
+    /// Minimal-API <see cref="IResult"/> equivalent of
+    /// <see cref="ToErrorActionResult(WopiNewChildFileResult, HttpResponse)"/>. Returns
+    /// <see langword="null"/> when the negotiation succeeded — caller proceeds with
+    /// <see cref="WopiNewChildFileResult.File"/>.
+    /// </summary>
+    [ExcludeFromCodeCoverage(Justification = "Phase 3 of #430 migration; HTTP parity tests land in phase 5 (test relocation into WopiHost.IntegrationTests)")]
+    public static IResult? ToErrorResult(this WopiNewChildFileResult result, HttpResponse response)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(response);
+
+        switch (result.Outcome)
+        {
+            case WopiNewChildFileOutcome.Success:
+                return null;
+            case WopiNewChildFileOutcome.BadRequest:
+                return TypedResults.BadRequest();
+            case WopiNewChildFileOutcome.Conflict:
+                response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(result.ValidRelativeTargetSuggestion!).ToString(true);
+                return TypedResults.Conflict();
+            case WopiNewChildFileOutcome.Locked:
+                return new WopiLockMismatchResult(result.ExistingLockId!, reason: "File already exists and is currently locked");
+            case WopiNewChildFileOutcome.InternalError:
+                return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
             default:
                 throw new InvalidOperationException($"Unknown {nameof(WopiNewChildFileOutcome)}: {result.Outcome}");
         }

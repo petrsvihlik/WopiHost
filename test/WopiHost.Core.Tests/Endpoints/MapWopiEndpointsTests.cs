@@ -9,6 +9,7 @@ using WopiHost.Core.Endpoints;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Security;
+using WopiHost.Core.Security.Authentication;
 
 namespace WopiHost.Core.Tests.Endpoints;
 
@@ -35,8 +36,12 @@ public sealed class MapWopiEndpointsTests : IAsyncLifetime
         // registration discovery sees the type as a service.
         builder.Services.AddSingleton(Mock.Of<IWopiStorageProvider>());
         // Override the default WOPI auth scheme so RequireAuthorization() resolves; the no-op
-        // handler short-circuits to NoResult since we never hit endpoints in this test.
-        builder.Services.AddAuthentication("test").AddScheme<AuthenticationSchemeOptions, NoOpAuthHandler>("test", _ => { });
+        // handler short-circuits to NoResult since we never hit endpoints in this test. The
+        // Bootstrap group requires WopiAuthenticationSchemes.Bootstrap to be registered for
+        // its policy to construct at endpoint-registration time.
+        builder.Services.AddAuthentication("test")
+            .AddScheme<AuthenticationSchemeOptions, NoOpAuthHandler>("test", _ => { })
+            .AddScheme<AuthenticationSchemeOptions, NoOpAuthHandler>(WopiAuthenticationSchemes.Bootstrap, _ => { });
 
         _app = builder.Build();
         _app.MapWopiEndpoints();
@@ -101,7 +106,6 @@ public sealed class MapWopiEndpointsTests : IAsyncLifetime
             .Select(e => e.RoutePattern.RawText)
             .ToHashSet();
 
-        // 12 read-only endpoints land in Phase 2. Bootstrap GET defers to Phase 3.
         string[] expected =
         [
             "/wopi/files/{id}",
@@ -116,11 +120,87 @@ public sealed class MapWopiEndpointsTests : IAsyncLifetime
             "/wopi/folders/{id}/children",
             "/wopi/ecosystem",
             "/wopi/ecosystem/root_container_pointer",
+            // Phase 3: bootstrap GET — different auth scheme, but still a GET route.
+            "/wopibootstrapper",
         ];
         foreach (var template in expected)
         {
             Assert.Contains(template, templates);
         }
+    }
+
+    [Fact]
+    public void PutFile_Maps_To_PUT_And_POST_On_Contents()
+    {
+        // Phase 3a: PutFile uses MapMethods(["PUT", "POST"], ...) on /{id}/contents.
+        var verbs = _endpoints
+            .Where(e => e.RoutePattern.RawText == "/wopi/files/{id}/contents")
+            .SelectMany(e => e.Metadata.GetMetadata<Microsoft.AspNetCore.Routing.HttpMethodMetadata>()?.HttpMethods ?? [])
+            .ToHashSet();
+        Assert.Contains("GET", verbs);  // Phase 2: GetFile
+        Assert.Contains("PUT", verbs);  // Phase 3: PutFile
+        Assert.Contains("POST", verbs); // Phase 3: PutFile (alternate verb per spec)
+    }
+
+    [Theory]
+    [InlineData("/wopi/files/{id}", WopiFileOperations.RenameFile)]
+    [InlineData("/wopi/files/{id}", WopiFileOperations.PutRelativeFile)]
+    [InlineData("/wopi/files/{id}", WopiFileOperations.PutUserInfo)]
+    [InlineData("/wopi/files/{id}", WopiFileOperations.DeleteFile)]
+    [InlineData("/wopi/files/{id}", WopiFileOperations.Cobalt)]
+    [InlineData("/wopi/files/{id}", WopiFileOperations.Lock)]
+    [InlineData("/wopi/files/{id}", WopiFileOperations.Unlock)]
+    [InlineData("/wopi/files/{id}", WopiFileOperations.RefreshLock)]
+    [InlineData("/wopi/files/{id}", WopiFileOperations.GetLock)]
+    [InlineData("/wopi/containers/{id}", WopiContainerOperations.CreateChildContainer)]
+    [InlineData("/wopi/containers/{id}", WopiContainerOperations.CreateChildFile)]
+    [InlineData("/wopi/containers/{id}", WopiContainerOperations.DeleteContainer)]
+    [InlineData("/wopi/containers/{id}", WopiContainerOperations.RenameContainer)]
+    public void Override_Dispatched_POST_Endpoint_Exists_For(string template, string overrideValue)
+    {
+        // Every override-dispatched POST endpoint must register a POST handler on the template
+        // carrying WopiOverrideMetadata that includes the spec-defined header value. The
+        // matcher policy at request time picks one out of the set; the registration assertion
+        // here is the safety net against renaming the constants or dropping an endpoint.
+        var match = _endpoints
+            .Where(e =>
+                e.RoutePattern.RawText == template &&
+                e.Metadata.GetMetadata<Microsoft.AspNetCore.Routing.HttpMethodMetadata>()?.HttpMethods.Contains("POST") == true &&
+                e.Metadata.GetMetadata<WopiOverrideMetadata>() is { } meta &&
+                meta.Values.Contains(overrideValue))
+            .ToArray();
+        Assert.Single(match);
+    }
+
+    [Fact]
+    public void ProcessLock_Multiplexes_All_Five_Override_Values_On_One_Endpoint()
+    {
+        // The WOPI spec treats LOCK/PUT/UNLOCK/REFRESH_LOCK/GET_LOCK as one state machine and
+        // they share the Update permission, so a single endpoint carries all five values in
+        // its metadata set rather than splitting into five sibling endpoints.
+        var match = _endpoints
+            .Where(e =>
+                e.RoutePattern.RawText == "/wopi/files/{id}" &&
+                e.Metadata.GetMetadata<WopiOverrideMetadata>() is { } meta &&
+                meta.Values.Contains(WopiFileOperations.Lock) &&
+                meta.Values.Contains(WopiFileOperations.Put) &&
+                meta.Values.Contains(WopiFileOperations.Unlock) &&
+                meta.Values.Contains(WopiFileOperations.RefreshLock) &&
+                meta.Values.Contains(WopiFileOperations.GetLock))
+            .ToArray();
+        Assert.Single(match);
+    }
+
+    [Fact]
+    public void Bootstrap_Endpoints_Live_Outside_The_Wopi_Group()
+    {
+        // Bootstrap uses WopiAuthenticationSchemes.Bootstrap (OAuth2 Bearer), distinct from
+        // the access-token scheme the /wopi routes use, so it must NOT share the /wopi prefix.
+        var bootstrap = _endpoints
+            .Where(e => e.RoutePattern.RawText == "/wopibootstrapper")
+            .ToArray();
+        Assert.Equal(2, bootstrap.Length);  // GET + POST
+        Assert.DoesNotContain(_endpoints, e => e.RoutePattern.RawText?.StartsWith("/wopi/wopibootstrapper", StringComparison.Ordinal) == true);
     }
 
     private sealed class NoOpAuthHandler(

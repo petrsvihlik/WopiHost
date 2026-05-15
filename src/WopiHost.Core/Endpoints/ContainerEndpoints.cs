@@ -36,6 +36,8 @@ internal static class ContainerEndpoints
 
         containers.MapGet("/{id}/children", EnumerateChildren)
             .RequireAuthorization(p => p.AddRequirements(new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.Read)));
+
+        ContainerMutatingEndpoints.MapContainerMutatingEndpoints(containers);
     }
 
     private static async Task<IResult> CheckContainerInfo(

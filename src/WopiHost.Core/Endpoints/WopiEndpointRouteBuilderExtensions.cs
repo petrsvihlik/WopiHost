@@ -53,6 +53,11 @@ public static class WopiEndpointRouteBuilderExtensions
         FolderEndpoints.MapFolderEndpoints(wopi);
         EcosystemEndpoints.MapEcosystemEndpoints(wopi);
 
+        // /wopibootstrapper sits outside the /wopi group — different auth scheme
+        // (WopiAuthenticationSchemes.Bootstrap, OAuth2 Bearer) and the proof-validation /
+        // telemetry filters wire up separately inside MapBootstrapEndpoints.
+        BootstrapEndpoints.MapBootstrapEndpoints(endpoints);
+
         return endpoints;
     }
 }

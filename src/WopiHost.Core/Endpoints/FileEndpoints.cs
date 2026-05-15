@@ -40,6 +40,8 @@ internal static class FileEndpoints
 
         files.MapGet("/{id}/ancestry", EnumerateAncestors)
             .RequireAuthorization(p => p.AddRequirements(new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Read)));
+
+        FileMutatingEndpoints.MapFileMutatingEndpoints(files);
     }
 
     /// <summary>
