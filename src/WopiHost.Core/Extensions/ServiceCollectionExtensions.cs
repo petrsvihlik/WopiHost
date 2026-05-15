@@ -1,4 +1,3 @@
-using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,27 +26,19 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         services.AddMemoryCache();
         services.AddRouting(options => options.LowercaseUrls = true);
-        services.AddAuthorizationCore();
+        // AddAuthorization (not AddAuthorizationCore) — middleware-tier services for
+        // app.UseAuthorization() were previously brought in by AddControllers.
+        services.AddAuthorization();
 
         services.AddSingleton<IAuthorizationHandler, WopiAuthorizationHandler>();
 
         services.AddScoped<IWopiProofValidator, WopiProofValidator>();
-        services.AddScoped<WopiOriginValidationActionFilter>();
-        services.AddScoped<WopiTelemetryActionFilter>();
-        services.AddControllers()
-            .AddApplicationPart(typeof(ServiceCollectionExtensions).GetTypeInfo().Assembly)
-            .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null);
 
-        // Minimal-API equivalents (issue #430 migration). Coexist with the MVC filters above
-        // until the controllers are removed in Phase 4 — both topologies route off the same
-        // shared services (WopiOriginValidator, telemetry primitives, custom result types).
+        // Minimal-API endpoint filters + the override-header matcher policy. Consumers wire
+        // the surface up via app.MapWopiEndpoints().
         services.AddSingleton<MatcherPolicy, WopiOverrideMatcherPolicy>();
         services.AddScoped<WopiOriginValidationEndpointFilter>();
         services.AddScoped<WopiTelemetryEndpointFilter>();
-        // Mirror the MVC JsonOptions config so System.Text.Json serialization is identical
-        // between the controller and Minimal-API topologies. Distinct options-types: MVC reads
-        // Microsoft.AspNetCore.Mvc.JsonOptions, Minimal API reads
-        // Microsoft.AspNetCore.Http.Json.JsonOptions — both need configuring.
         services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(
             o => o.SerializerOptions.PropertyNamingPolicy = null);
 

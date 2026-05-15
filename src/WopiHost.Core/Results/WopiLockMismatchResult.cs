@@ -8,11 +8,11 @@ using WopiHost.Core.Models;
 namespace WopiHost.Core.Results;
 
 /// <summary>
-/// Minimal-API <see cref="IResult"/> equivalent of <see cref="LockMismatchResult"/>.
-/// Writes the spec-mandated <c>X-WOPI-Lock</c> (and optional <c>X-WOPI-LockFailureReason</c>)
-/// response headers and responds with <c>409 Conflict</c>. Implements
-/// <see cref="IWopiOutcomeResult"/> so the telemetry endpoint filter classifies the outcome
-/// as <see cref="WopiTelemetry.Outcomes.LockMismatch"/> rather than generic <c>Conflict</c>.
+/// <see cref="IResult"/> for WOPI lock-mismatch responses. Writes the spec-mandated
+/// <c>X-WOPI-Lock</c> (and optional <c>X-WOPI-LockFailureReason</c>) response headers and
+/// responds with <c>409 Conflict</c>. Implements <see cref="IWopiOutcomeResult"/> so the
+/// telemetry endpoint filter classifies the outcome as
+/// <see cref="WopiTelemetry.Outcomes.LockMismatch"/> rather than generic <c>Conflict</c>.
 /// </summary>
 /// <remarks>
 /// When <paramref name="existingLock"/> is null, the <c>X-WOPI-Lock</c> header is set to the

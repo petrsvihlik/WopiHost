@@ -8,8 +8,7 @@ namespace WopiHost.Core.Infrastructure;
 /// Short-circuits the request with <c>501 Not Implemented</c> when no
 /// <see cref="IWopiWritableStorageProvider"/> is registered. Attached to endpoints that mutate
 /// storage (PUT, DELETE, RENAME, …) so read-only hosts surface the unimplemented capability the
-/// way the WOPI spec mandates. Mirrors <see cref="RequiresWritableStorageAttribute"/> for the
-/// Minimal-API topology.
+/// way the WOPI spec mandates.
 /// </summary>
 internal sealed class RequiresWritableStorageEndpointFilter : IEndpointFilter
 {

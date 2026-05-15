@@ -6,9 +6,12 @@ using WopiHost.Abstractions;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Minimal-API equivalent of <see cref="WopiTelemetryActionFilter"/>: wraps every WOPI endpoint
-/// in the telemetry envelope (Activity span, log scope keyed on <c>wopi.file_id</c> /
-/// <c>wopi.container_id</c> / <c>wopi.lock_id</c>, outcome log line, metric increments).
+/// Wraps every WOPI endpoint in the telemetry envelope: an
+/// <see cref="System.Diagnostics.Activity"/> span, a log scope keyed on <c>wopi.file_id</c> /
+/// <c>wopi.container_id</c> / <c>wopi.lock_id</c>, an outcome log line, and the
+/// <see cref="WopiTelemetry.Requests"/> / <see cref="WopiTelemetry.LockConflicts"/> metric
+/// increments. Attached to the <c>/wopi</c> route group inside
+/// <see cref="Endpoints.WopiEndpointRouteBuilderExtensions.MapWopiEndpoints"/>.
 /// </summary>
 /// <remarks>
 /// <para>

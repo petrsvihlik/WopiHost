@@ -13,16 +13,12 @@ namespace WopiHost.Core.Infrastructure;
 /// <remarks>
 /// <para>
 /// The WOPI protocol multiplexes mutating operations through a single <c>POST {id}</c> route on
-/// both the Files and Containers controllers, distinguished only by the <c>X-WOPI-Override</c>
-/// header (<c>LOCK</c>, <c>UNLOCK</c>, <c>PUT</c>, <c>RENAME_FILE</c>, <c>DELETE</c>, …). This
-/// metadata is the Minimal API equivalent of the <see cref="HttpHeaderAttribute"/>
-/// <see cref="Microsoft.AspNetCore.Mvc.ActionConstraints.IActionConstraint"/> currently used on
-/// the MVC controllers — see <see cref="WopiOverrideHeaderAttribute"/>.
+/// both the files and containers endpoints, distinguished only by the <c>X-WOPI-Override</c>
+/// header (<c>LOCK</c>, <c>UNLOCK</c>, <c>PUT</c>, <c>RENAME_FILE</c>, <c>DELETE</c>, …).
 /// </para>
 /// <para>
-/// String comparison is <see cref="StringComparer.Ordinal"/> to match the existing controller
-/// behaviour (<see cref="HttpHeaderAttribute.Accept"/> uses default string equality). The WOPI
-/// spec defines override values as upper-case constants in <see cref="WopiFileOperations"/> /
+/// String comparison is <see cref="StringComparer.Ordinal"/> per the WOPI spec, which defines
+/// override values as upper-case constants in <see cref="WopiFileOperations"/> /
 /// <see cref="WopiContainerOperations"/> / <see cref="WopiEcosystemOperations"/>.
 /// </para>
 /// </remarks>

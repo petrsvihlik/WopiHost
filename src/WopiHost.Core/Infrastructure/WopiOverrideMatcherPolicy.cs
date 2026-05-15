@@ -27,8 +27,7 @@ namespace WopiHost.Core.Infrastructure;
 /// candidate is invalidated and the router returns <c>404 Not Found</c> — even when another
 /// endpoint shares the template under a different verb. The 405 hint belongs to
 /// <see cref="HttpMethodMatcherPolicy"/> alone; custom policies that nullify candidates cannot
-/// re-emit it. The MVC <see cref="HttpHeaderAttribute"/> action constraint exhibits the same
-/// fall-through behaviour today.
+/// re-emit it.
 /// </para>
 /// </remarks>
 internal sealed class WopiOverrideMatcherPolicy : MatcherPolicy, IEndpointSelectorPolicy

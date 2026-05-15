@@ -9,7 +9,6 @@ namespace WopiHost.Core.Security.Authentication;
 /// <summary>
 /// Validates the WOPI proof-key signature on incoming requests, asserting that the request
 /// originated from a legitimate WOPI client (Microsoft 365 for the web, Office Online Server, …).
-/// Minimal-API equivalent of <see cref="WopiOriginValidationActionFilter"/>.
 /// </summary>
 /// <remarks>
 /// <para>
