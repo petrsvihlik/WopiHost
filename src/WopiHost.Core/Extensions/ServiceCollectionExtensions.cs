@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using WopiHost.Abstractions;
@@ -36,6 +37,19 @@ public static class ServiceCollectionExtensions
         services.AddControllers()
             .AddApplicationPart(typeof(ServiceCollectionExtensions).GetTypeInfo().Assembly)
             .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null);
+
+        // Minimal-API equivalents (issue #430 migration). Coexist with the MVC filters above
+        // until the controllers are removed in Phase 4 — both topologies route off the same
+        // shared services (WopiOriginValidator, telemetry primitives, custom result types).
+        services.AddSingleton<MatcherPolicy, WopiOverrideMatcherPolicy>();
+        services.AddScoped<WopiOriginValidationEndpointFilter>();
+        services.AddScoped<WopiTelemetryEndpointFilter>();
+        // Mirror the MVC JsonOptions config so System.Text.Json serialization is identical
+        // between the controller and Minimal-API topologies. Distinct options-types: MVC reads
+        // Microsoft.AspNetCore.Mvc.JsonOptions, Minimal API reads
+        // Microsoft.AspNetCore.Http.Json.JsonOptions — both need configuring.
+        services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(
+            o => o.SerializerOptions.PropertyNamingPolicy = null);
 
         services.AddAuthentication(o => { o.DefaultScheme = WopiAuthenticationSchemes.AccessToken; })
             .AddTokenAuthentication(
