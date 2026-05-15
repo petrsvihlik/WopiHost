@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Routing.Matching;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -231,6 +232,79 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
 
             Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
             Assert.Equal("\"FALLBACK:abc\"", await resp.Content.ReadAsStringAsync());
+        }
+    }
+
+    /// <summary>
+    /// Exercises the <c>IsValidCandidate</c> short-circuit in <see cref="WopiOverrideMatcherPolicy"/>:
+    /// when an earlier <see cref="MatcherPolicy"/> has invalidated a candidate, the override policy
+    /// must skip it rather than re-evaluate metadata. Models composition with custom downstream
+    /// policies — the built-in <c>HttpMethodMatcherPolicy</c> doesn't trigger this branch because
+    /// Minimal API's DFA pre-splits by verb before override dispatch runs.
+    /// </summary>
+    public sealed class PreInvalidatedCandidateSkip : IAsyncLifetime
+    {
+        private WebApplication? _app;
+        private HttpClient? _client;
+
+        public async ValueTask InitializeAsync()
+        {
+            var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions());
+            builder.WebHost.UseTestServer();
+            builder.Services.AddRouting();
+            // Order matters: invalidator runs first (Order 500), override policy second (Order 1000).
+            builder.Services.AddSingleton<MatcherPolicy, FirstCandidateInvalidator>();
+            builder.Services.AddSingleton<MatcherPolicy, WopiOverrideMatcherPolicy>();
+            builder.Services.AddAuthorization();
+
+            _app = builder.Build();
+            _app.UseRouting();
+            _app.UseAuthorization();
+
+            // Two POST endpoints on the same route. The invalidator nullifies the first by index;
+            // the override policy must skip it (covering `IsValidCandidate(i) continue`) and
+            // dispatch the second based on the header.
+            _app.MapPost("/pre/{id}", (string id) => TypedResults.Ok($"FIRST:{id}"))
+                .WithMetadata(new WopiOverrideMetadata("OP_X"));
+            _app.MapPost("/pre/{id}", (string id) => TypedResults.Ok($"SECOND:{id}"))
+                .WithMetadata(new WopiOverrideMetadata("OP_X"));
+
+            await _app.StartAsync();
+            _client = _app.GetTestClient();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            _client?.Dispose();
+            if (_app is not null)
+            {
+                await _app.DisposeAsync();
+            }
+        }
+
+        [Fact]
+        public async Task Skips_Already_Invalidated_Candidate()
+        {
+            var req = new HttpRequestMessage(HttpMethod.Post, "/pre/abc");
+            req.Headers.Add(WopiHeaders.WOPI_OVERRIDE, "OP_X");
+            var resp = await _client!.SendAsync(req);
+
+            Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+            Assert.Equal("\"SECOND:abc\"", await resp.Content.ReadAsStringAsync());
+        }
+
+        private sealed class FirstCandidateInvalidator : MatcherPolicy, IEndpointSelectorPolicy
+        {
+            public override int Order => 500;
+            public bool AppliesToEndpoints(IReadOnlyList<Endpoint> endpoints) => true;
+            public Task ApplyAsync(HttpContext httpContext, CandidateSet candidates)
+            {
+                if (candidates.Count > 0)
+                {
+                    candidates.SetValidity(0, false);
+                }
+                return Task.CompletedTask;
+            }
         }
     }
 
