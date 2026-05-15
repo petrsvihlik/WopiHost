@@ -45,19 +45,23 @@ internal static class EcosystemEndpoints
         return TypedResults.Json(checkEcosystem);
     }
 
+    /// <summary>Bundle of services consumed by <see cref="GetRootContainer"/>.</summary>
+    internal sealed record GetRootContainerDeps(
+        IWopiStorageProvider Storage,
+        IWopiAccessTokenService AccessTokenService,
+        IWopiPermissionProvider PermissionProvider,
+        ICheckContainerInfoBuilder ContainerInfoBuilder);
+
     private static async Task<IResult> GetRootContainer(
         HttpContext httpContext,
-        IWopiStorageProvider storageProvider,
-        IWopiAccessTokenService accessTokenService,
-        IWopiPermissionProvider permissionProvider,
-        ICheckContainerInfoBuilder checkContainerInfoBuilder,
+        [AsParameters] GetRootContainerDeps deps,
         CancellationToken cancellationToken)
     {
-        var root = await storageProvider.GetWopiContainer(storageProvider.RootContainer.Identifier, cancellationToken).ConfigureAwait(false);
+        var root = await deps.Storage.GetWopiContainer(deps.Storage.RootContainer.Identifier, cancellationToken).ConfigureAwait(false);
         if (root is null) return TypedResults.NotFound();
 
-        var permissions = await permissionProvider.GetContainerPermissionsAsync(httpContext.User, root, cancellationToken).ConfigureAwait(false);
-        var token = await accessTokenService.IssueAsync(new WopiAccessTokenRequest
+        var permissions = await deps.PermissionProvider.GetContainerPermissionsAsync(httpContext.User, root, cancellationToken).ConfigureAwait(false);
+        var token = await deps.AccessTokenService.IssueAsync(new WopiAccessTokenRequest
         {
             UserId = httpContext.User.GetUserId(),
             UserDisplayName = httpContext.User.FindFirstValue(ClaimTypes.Name),
@@ -73,7 +77,7 @@ internal static class EcosystemEndpoints
             ContainerPointer = new ChildContainer(root.Name, url.GetWopiSrc(root, token.Token)),
             // The spec strongly recommends including ContainerInfo so the WOPI client doesn't
             // have to round-trip back to CheckContainerInfo.
-            ContainerInfo = await checkContainerInfoBuilder.BuildAsync(root, httpContext, cancellationToken).ConfigureAwait(false),
+            ContainerInfo = await deps.ContainerInfoBuilder.BuildAsync(root, httpContext, cancellationToken).ConfigureAwait(false),
         };
         return TypedResults.Json(rc);
     }

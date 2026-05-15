@@ -1,5 +1,4 @@
 using System.Net.Mime;
-using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -41,34 +40,41 @@ internal static class FileEndpoints
             .RequireAuthorization(p => p.AddRequirements(new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Read)));
     }
 
+    /// <summary>
+    /// Bundle of services consumed by <see cref="CheckFileInfo"/>. Collapses the handler's
+    /// parameter list so Minimal-API DI binding stays explicit at the call site without
+    /// drowning the route lambda. Optional services carry <c>[FromServices]</c> so the
+    /// framework's registration-time check doesn't fall back to body inference when the
+    /// associated provider (lock / cobalt) ships as a separate package and isn't registered.
+    /// </summary>
+    internal sealed record CheckFileInfoDeps(
+        IWopiStorageProvider Storage,
+        IMemoryCache MemoryCache,
+        ICheckFileInfoBuilder Builder,
+        [property: FromServices] IWopiLockProvider? LockProvider,
+        [property: FromServices] ICobaltProcessor? CobaltProcessor);
+
     private static async Task<IResult> CheckFileInfo(
         string id,
         HttpContext httpContext,
-        IWopiStorageProvider storageProvider,
-        IMemoryCache memoryCache,
-        ICheckFileInfoBuilder checkFileInfoBuilder,
-        // Optional providers — annotate explicitly so Minimal-API registration doesn't fall
-        // back to body inference when the provider isn't registered (lock and cobalt providers
-        // ship as separate opt-in packages).
-        [FromServices] IWopiLockProvider? lockProvider,
-        [FromServices] ICobaltProcessor? cobaltProcessor,
+        [AsParameters] CheckFileInfoDeps deps,
         CancellationToken cancellationToken)
     {
-        var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
+        var file = await deps.Storage.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
 
-        _ = memoryCache.TryGetValue($"{UserInfoCacheKeyPrefix}{httpContext.User.GetUserId()}", out string? userInfo);
+        _ = deps.MemoryCache.TryGetValue($"{UserInfoCacheKeyPrefix}{httpContext.User.GetUserId()}", out string? userInfo);
 
         var capabilities = new WopiHostCapabilities
         {
-            SupportsCobalt = cobaltProcessor is not null,
-            SupportsGetLock = lockProvider is not null,
-            SupportsLocks = lockProvider is not null,
+            SupportsCobalt = deps.CobaltProcessor is not null,
+            SupportsGetLock = deps.LockProvider is not null,
+            SupportsLocks = deps.LockProvider is not null,
             SupportsCoauth = false,
             SupportsUpdate = true,
         };
 
-        var checkFileInfo = await checkFileInfoBuilder.BuildAsync(file, httpContext, capabilities, userInfo, cancellationToken).ConfigureAwait(false);
+        var checkFileInfo = await deps.Builder.BuildAsync(file, httpContext, capabilities, userInfo, cancellationToken).ConfigureAwait(false);
 
         // Serialize<object>() so any properties declared on a derived WopiCheckFileInfo type
         // make it onto the wire — System.Text.Json walks the runtime type, not the declared type.
@@ -109,21 +115,8 @@ internal static class FileEndpoints
     {
         var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
-
-        // Issue a minimum-privilege token: the URL points to CheckEcosystem which has no
-        // resource gate. Reusing the inbound token violates WOPI "preventing token trading".
-        var token = await accessTokenService.IssueAsync(new WopiAccessTokenRequest
-        {
-            UserId = httpContext.User.GetUserId(),
-            UserDisplayName = httpContext.User.FindFirstValue(ClaimTypes.Name),
-            UserEmail = httpContext.User.FindFirstValue(ClaimTypes.Email),
-            ResourceId = file.Identifier,
-            ResourceType = WopiResourceType.File,
-            FilePermissions = WopiFilePermissions.None,
-        }, cancellationToken).ConfigureAwait(false);
-
-        var url = httpContext.GetUrlHelper().GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: token.Token);
-        return TypedResults.Json(new UrlResponse(url));
+        return await EndpointHelpers.IssueEcosystemPointerAsync(
+            httpContext, file.Identifier, WopiResourceType.File, accessTokenService, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<IResult> EnumerateAncestors(

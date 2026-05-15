@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -59,21 +58,8 @@ internal static class ContainerEndpoints
     {
         var container = await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false);
         if (container is null) return TypedResults.NotFound();
-
-        // Minimum-privilege token bound to this container — see file-side rationale in
-        // FileEndpoints.GetEcosystem for the "preventing token trading" guidance.
-        var token = await accessTokenService.IssueAsync(new WopiAccessTokenRequest
-        {
-            UserId = httpContext.User.GetUserId(),
-            UserDisplayName = httpContext.User.FindFirstValue(ClaimTypes.Name),
-            UserEmail = httpContext.User.FindFirstValue(ClaimTypes.Email),
-            ResourceId = container.Identifier,
-            ResourceType = WopiResourceType.Container,
-            ContainerPermissions = WopiContainerPermissions.None,
-        }, cancellationToken).ConfigureAwait(false);
-
-        var url = httpContext.GetUrlHelper().GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: token.Token);
-        return TypedResults.Json(new UrlResponse(url));
+        return await EndpointHelpers.IssueEcosystemPointerAsync(
+            httpContext, container.Identifier, WopiResourceType.Container, accessTokenService, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<IResult> EnumerateAncestors(
