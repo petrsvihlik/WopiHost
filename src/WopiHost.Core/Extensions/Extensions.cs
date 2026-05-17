@@ -168,5 +168,4 @@ internal static class Extensions
             stream,
             cancellationToken).ConfigureAwait(false);
     }
-
 }
