@@ -37,7 +37,7 @@ namespace WopiHost.Core.Infrastructure;
 /// otherwise <see cref="WopiTelemetry.Outcomes.Error"/>.
 /// </para>
 /// </remarks>
-internal sealed class WopiTelemetryEndpointFilter(ILogger<WopiTelemetryEndpointFilter> logger) : IEndpointFilter
+internal sealed partial class WopiTelemetryEndpointFilter(ILogger<WopiTelemetryEndpointFilter> logger) : IEndpointFilter
 {
     /// <inheritdoc />
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
@@ -66,25 +66,19 @@ internal sealed class WopiTelemetryEndpointFilter(ILogger<WopiTelemetryEndpointF
         {
             var result = await next(context).ConfigureAwait(false);
             outcome = ClassifyResult(result, httpContext.Response.StatusCode);
-            logger.LogInformation(
-                "WOPI {operation} on {resourceId} by {userId} (override={wopiOverride}) → {outcome}",
-                operation, resourceId ?? string.Empty, userId, wopiOverride, outcome);
+            LogActionCompleted(logger, operation, resourceId ?? string.Empty, wopiOverride, outcome);
             return result;
         }
         catch (Exception ex) when (IsCancellation(ex, httpContext.RequestAborted))
         {
             outcome = WopiTelemetry.Outcomes.Cancelled;
-            logger.LogDebug(
-                "WOPI {operation} on {resourceId} cancelled (client disconnected)",
-                operation, resourceId ?? string.Empty);
+            LogActionCancelled(logger, operation, resourceId ?? string.Empty);
             throw;
         }
         catch (Exception ex)
         {
             outcome = WopiTelemetry.Outcomes.Error;
-            logger.LogError(ex,
-                "WOPI {operation} on {resourceId} threw an unhandled exception",
-                operation, resourceId ?? string.Empty);
+            LogActionFailed(logger, ex, operation, resourceId ?? string.Empty);
             throw;
         }
         finally

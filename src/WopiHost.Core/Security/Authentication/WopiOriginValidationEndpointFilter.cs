@@ -27,7 +27,7 @@ namespace WopiHost.Core.Security.Authentication;
 /// "valid principal, bad signature."
 /// </para>
 /// </remarks>
-internal sealed class WopiOriginValidationEndpointFilter(
+internal sealed partial class WopiOriginValidationEndpointFilter(
     IWopiProofValidator proofValidator,
     ILogger<WopiOriginValidationEndpointFilter> logger) : IEndpointFilter
 {
@@ -38,16 +38,14 @@ internal sealed class WopiOriginValidationEndpointFilter(
 
         if (httpContext.User.Identity?.IsAuthenticated != true)
         {
-            // Logged at Error (not Warning) because reaching this filter without an authenticated
-            // principal means the host's auth pipeline is misconfigured — operator action required.
-            logger.LogError("WOPI proof filter reached on an unauthenticated request — auth pipeline misconfigured ([Authorize] missing, scheme misregistered, or middleware reordered). Returning 401.");
+            LogUnauthenticatedRequestReached(logger);
             return TypedResults.Unauthorized();
         }
 
         var accessToken = httpContext.Request.GetAccessToken();
         if (string.IsNullOrEmpty(accessToken))
         {
-            logger.LogWarning("WOPI request rejected: access token is missing");
+            LogAccessTokenMissing(logger);
             WopiTelemetry.ProofValidationFailures.Add(1,
                 new KeyValuePair<string, object?>("reason", "access_token_missing"));
             return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
@@ -56,7 +54,7 @@ internal sealed class WopiOriginValidationEndpointFilter(
         var validated = await proofValidator.ValidateProofAsync(httpContext, accessToken).ConfigureAwait(false);
         if (!validated)
         {
-            logger.LogWarning("WOPI request rejected: proof-key validation failed");
+            LogProofRejected(logger);
             return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
         }
 
