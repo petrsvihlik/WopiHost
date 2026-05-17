@@ -236,8 +236,7 @@ internal static class FileMutatingEndpoints
         await InvokePutRelativeFileCallbackAsync(httpContext, deps.Extensions, file, newFile, fileConversion, declaredSize, cancellationToken).ConfigureAwait(false);
         var capabilities = MakeCapabilities(deps.LockProvider, deps.CobaltProcessor);
         var checkFileInfo = await deps.CheckFileInfoBuilder.BuildAsync(newFile, httpContext, capabilities, cancellationToken: cancellationToken).ConfigureAwait(false);
-        var url = httpContext.GetUrlHelper();
-        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, url.GetWopiSrc(newFile))
+        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, httpContext.GetWopiSrc(newFile))
         {
             HostEditUrl = checkFileInfo.HostEditUrl,
             HostViewUrl = checkFileInfo.HostViewUrl,

@@ -42,7 +42,7 @@ internal static class EndpointHelpers
         };
 
         var token = await accessTokenService.IssueAsync(request, cancellationToken).ConfigureAwait(false);
-        var url = httpContext.GetUrlHelper().GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: token.Token);
+        var url = httpContext.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: token.Token);
         return TypedResults.Json(new UrlResponse(url));
     }
 

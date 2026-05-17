@@ -71,10 +71,9 @@ internal static class EcosystemEndpoints
             ContainerPermissions = permissions,
         }, cancellationToken).ConfigureAwait(false);
 
-        var url = httpContext.GetUrlHelper();
         var rc = new RootContainerInfo
         {
-            ContainerPointer = new ChildContainer(root.Name, url.GetWopiSrc(root, token.Token)),
+            ContainerPointer = new ChildContainer(root.Name, httpContext.GetWopiSrc(root, token.Token)),
             // The spec strongly recommends including ContainerInfo so the WOPI client doesn't
             // have to round-trip back to CheckContainerInfo.
             ContainerInfo = await deps.ContainerInfoBuilder.BuildAsync(root, httpContext, cancellationToken).ConfigureAwait(false),

@@ -84,8 +84,7 @@ internal static class ContainerMutatingEndpoints
     private static async Task<IResult> BuildCreateChildContainerResponse(HttpContext httpContext, ICheckContainerInfoBuilder builder, IWopiContainer folder, CancellationToken cancellationToken)
     {
         var info = await builder.BuildAsync(folder, httpContext, cancellationToken).ConfigureAwait(false);
-        var url = httpContext.GetUrlHelper();
-        return TypedResults.Json(new CreateChildContainerResponse(new(folder.Name, url.GetWopiSrc(folder)), info));
+        return TypedResults.Json(new CreateChildContainerResponse(new(folder.Name, httpContext.GetWopiSrc(folder)), info));
     }
 
     /// <summary>
@@ -155,8 +154,7 @@ internal static class ContainerMutatingEndpoints
 
         var newFile = negotiation.File!;
         var checkFileInfo = await deps.CheckFileInfoBuilder.BuildAsync(newFile, httpContext, cancellationToken: cancellationToken).ConfigureAwait(false);
-        var url = httpContext.GetUrlHelper();
-        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, url.GetWopiSrc(newFile))
+        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, httpContext.GetWopiSrc(newFile))
         {
             HostEditUrl = checkFileInfo.HostEditUrl,
             HostViewUrl = checkFileInfo.HostViewUrl,

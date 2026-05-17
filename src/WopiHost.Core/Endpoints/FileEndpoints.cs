@@ -130,9 +130,8 @@ internal static class FileEndpoints
         var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
 
-        var url = httpContext.GetUrlHelper();
         var ancestors = await storageProvider.GetFileAncestors(id, cancellationToken).ConfigureAwait(false);
-        var response = new EnumerateAncestorsResponse(ancestors.Select(a => new ChildContainer(a.Name, url.GetWopiSrc(a))));
+        var response = new EnumerateAncestorsResponse(ancestors.Select(a => new ChildContainer(a.Name, httpContext.GetWopiSrc(a))));
         return TypedResults.Json(response);
     }
 }

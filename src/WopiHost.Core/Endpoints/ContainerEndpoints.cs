@@ -75,9 +75,8 @@ internal static class ContainerEndpoints
             return TypedResults.NotFound();
         }
 
-        var url = httpContext.GetUrlHelper();
         var ancestors = await storageProvider.GetContainerAncestors(id, cancellationToken).ConfigureAwait(false);
-        var response = new EnumerateAncestorsResponse(ancestors.Select(a => new ChildContainer(a.Name, url.GetWopiSrc(a))));
+        var response = new EnumerateAncestorsResponse(ancestors.Select(a => new ChildContainer(a.Name, httpContext.GetWopiSrc(a))));
         return TypedResults.Json(response);
     }
 
@@ -93,14 +92,13 @@ internal static class ContainerEndpoints
             return TypedResults.NotFound();
         }
 
-        var url = httpContext.GetUrlHelper();
         var files = new List<ChildFile>();
         var containers = new List<ChildContainer>();
         var fileExtensions = fileExtensionFilterList?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         await foreach (var wopiFile in storageProvider.GetWopiFiles(id, fileExtensions, cancellationToken).ConfigureAwait(false))
         {
-            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, url.GetWopiSrc(wopiFile))
+            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, httpContext.GetWopiSrc(wopiFile))
             {
                 LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
                 Size = wopiFile.Length,
@@ -109,7 +107,7 @@ internal static class ContainerEndpoints
         }
         await foreach (var wopiContainer in storageProvider.GetWopiContainers(id, cancellationToken).ConfigureAwait(false))
         {
-            containers.Add(new ChildContainer(wopiContainer.Name, url.GetWopiSrc(wopiContainer)));
+            containers.Add(new ChildContainer(wopiContainer.Name, httpContext.GetWopiSrc(wopiContainer)));
         }
 
         return TypedResults.Json(new Container { ChildFiles = files, ChildContainers = containers });

@@ -67,12 +67,11 @@ internal static class FolderEndpoints
             return TypedResults.NotFound();
         }
 
-        var url = httpContext.GetUrlHelper();
         var files = new List<ChildFile>();
         var fileExtensions = fileExtensionFilterList?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         await foreach (var wopiFile in storageProvider.GetWopiFiles(id, fileExtensions, cancellationToken).ConfigureAwait(false))
         {
-            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, url.GetWopiSrc(wopiFile))
+            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, httpContext.GetWopiSrc(wopiFile))
             {
                 LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
                 Size = wopiFile.Length,

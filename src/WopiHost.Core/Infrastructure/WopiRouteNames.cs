@@ -6,7 +6,7 @@ namespace WopiHost.Core.Infrastructure;
 /// Named-route constants for the Minimal-API endpoints registered by
 /// <see cref="WopiEndpointRouteBuilderExtensions.MapWopiEndpoints"/>. The strings are passed to
 /// <c>.WithName(...)</c> at registration and consumed by callers that need to construct WOPI
-/// URLs via <c>LinkGenerator</c> / <c>IUrlHelper</c>.
+/// URLs via <c>LinkGenerator</c>.
 /// </summary>
 public static class WopiRouteNames
 {

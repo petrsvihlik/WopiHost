@@ -96,13 +96,12 @@ internal static class BootstrapEndpoints
         if (rootContainer is null) return TypedResults.NotFound();
 
         var token = await IssueContainerTokenAsync(httpContext, deps, rootContainer, cancellationToken).ConfigureAwait(false);
-        var url = httpContext.GetUrlHelper();
         return TypedResults.Json(new BootstrapRootContainerInfo
         {
             Bootstrap = bootstrap,
             RootContainerInfo = new RootContainerInfo
             {
-                ContainerPointer = new ChildContainer(rootContainer.Name, url.GetWopiSrc(rootContainer, token.Token)),
+                ContainerPointer = new ChildContainer(rootContainer.Name, httpContext.GetWopiSrc(rootContainer, token.Token)),
                 ContainerInfo = await deps.ContainerInfoBuilder.BuildAsync(rootContainer, httpContext, cancellationToken).ConfigureAwait(false),
             },
         });
@@ -156,17 +155,13 @@ internal static class BootstrapEndpoints
         ContainerPermissions = WopiContainerPermissions.None,
     };
 
-    private static BootstrapInfo BuildBootstrapInfo(HttpContext httpContext, string userId, WopiAccessToken ecosystemToken)
+    private static BootstrapInfo BuildBootstrapInfo(HttpContext httpContext, string userId, WopiAccessToken ecosystemToken) => new()
     {
-        var url = httpContext.GetUrlHelper();
-        return new BootstrapInfo
-        {
-            EcosystemUrl = url.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: ecosystemToken.Token),
-            UserId = userId,
-            SignInName = httpContext.User.FindFirstValue(ClaimTypes.Email) ?? string.Empty,
-            UserFriendlyName = httpContext.User.FindFirstValue(ClaimTypes.Name) ?? string.Empty,
-        };
-    }
+        EcosystemUrl = httpContext.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: ecosystemToken.Token),
+        UserId = userId,
+        SignInName = httpContext.User.FindFirstValue(ClaimTypes.Email) ?? string.Empty,
+        UserFriendlyName = httpContext.User.FindFirstValue(ClaimTypes.Name) ?? string.Empty,
+    };
 
     private static async Task<WopiAccessToken> IssueFileTokenAsync(HttpContext httpContext, BootstrapDeps deps, IWopiFile file, CancellationToken cancellationToken)
     {
