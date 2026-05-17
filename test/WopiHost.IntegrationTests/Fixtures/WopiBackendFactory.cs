@@ -10,7 +10,18 @@ namespace WopiHost.IntegrationTests.Fixtures;
 /// <see cref="OidcWebAppFactory"/>) and replaces the default proof validator with a no-op so
 /// tests can synthesize WOPI requests without forging proof-key headers.
 /// </summary>
-public sealed class WopiBackendFactory(string wopiSigningSecret) : WebApplicationFactory<global::WopiHost.Program>
+/// <param name="wopiSigningSecret">JWT-signing secret shared with the test frontend factory.</param>
+/// <param name="storageRootPath">
+/// Override for the file-system storage root. Defaults to <see cref="TestPaths.WopiDocsRoot"/>
+/// (the shared sample). Mutating tests must pass a per-test temp directory so they don't
+/// corrupt the sample for sibling tests.
+/// </param>
+/// <param name="configureServices">Optional callback for additional service registration,
+/// e.g. wiring the <c>WopiAuthenticationSchemes.Bootstrap</c> auth scheme for bootstrap tests.</param>
+public sealed class WopiBackendFactory(
+    string wopiSigningSecret,
+    string? storageRootPath = null,
+    Action<IServiceCollection>? configureServices = null) : WebApplicationFactory<global::WopiHost.Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -21,7 +32,7 @@ public sealed class WopiBackendFactory(string wopiSigningSecret) : WebApplicatio
                 ["Wopi:UseCobalt"] = "false",
                 ["Sample:StorageProvider"] = "FileSystem",
                 ["Sample:LockProvider"] = "Memory",
-                ["Wopi:StorageProvider:RootPath"] = TestPaths.WopiDocsRoot,
+                ["Wopi:StorageProvider:RootPath"] = storageRootPath ?? TestPaths.WopiDocsRoot,
                 ["Wopi:ClientUrl"] = "https://office.example.test",
                 ["Wopi:Discovery:NetZone"] = "ExternalHttps",
                 ["Wopi:Discovery:RefreshInterval"] = "12:00:00",
@@ -35,6 +46,7 @@ public sealed class WopiBackendFactory(string wopiSigningSecret) : WebApplicatio
             // would send; without this swap, every request 500s in WopiOriginValidationActionFilter.
             services.RemoveAll<IWopiProofValidator>();
             services.AddSingleton<IWopiProofValidator, AlwaysValidProofValidator>();
+            configureServices?.Invoke(services);
         });
 
         builder.UseEnvironment("Development");

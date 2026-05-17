@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -33,7 +32,6 @@ namespace WopiHost.Core.Endpoints;
 /// and switches inside the handler — two operations doesn't justify a parallel matcher
 /// policy.
 /// </remarks>
-[ExcludeFromCodeCoverage(Justification = "Phase 5 of #430: bootstrap requires a separate test fixture for the OAuth2-Bearer auth scheme. Coverage is tracked as a follow-up issue. The Microsoft WOPI validator job in CI exercises bootstrap end-to-end as protocol-conformance.")]
 internal static class BootstrapEndpoints
 {
     public static void MapBootstrapEndpoints(IEndpointRouteBuilder endpoints)

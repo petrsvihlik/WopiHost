@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -21,7 +20,6 @@ namespace WopiHost.Core.Endpoints;
 /// non-GET actions of <c>FilesController</c>, dispatched via the <c>X-WOPI-Override</c>
 /// header (<see cref="WopiOverrideMatcherPolicy"/>) where applicable.
 /// </summary>
-[ExcludeFromCodeCoverage(Justification = "Phase 5 of #430 ships smoke coverage of the Lock state machine and a lock-mismatch path; the full PutFile / RenameFile / PutRelativeFile / PutUserInfo / DeleteFile / ProcessCobalt coverage is tracked as a follow-up issue. The Microsoft WOPI validator job in CI exercises these paths end-to-end as protocol-conformance.")]
 internal static class FileMutatingEndpoints
 {
     private const string UserInfoCacheKeyPrefix = "UserInfo-";
