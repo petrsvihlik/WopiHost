@@ -54,58 +54,67 @@ internal static class BootstrapEndpoints
             .AddEndpointFilter<WopiTelemetryEndpointFilter>();
     }
 
-    /// <summary>Bundle of services consumed by both bootstrap handlers.</summary>
-    internal sealed record BootstrapDeps(
-        IWopiStorageProvider Storage,
-        IWopiAccessTokenService AccessTokenService,
-        IWopiPermissionProvider PermissionProvider,
-        ICheckContainerInfoBuilder ContainerInfoBuilder);
-
     private static async Task<IResult> Bootstrap(
         HttpContext httpContext,
-        [AsParameters] BootstrapDeps deps,
+        IWopiStorageProvider storage,
+        IWopiAccessTokenService accessTokenService,
         CancellationToken cancellationToken)
     {
         var userId = GetUserIdOrThrow(httpContext.User);
-        var ecosystemToken = await deps.AccessTokenService.IssueAsync(BuildEcosystemTokenRequest(httpContext.User, userId, deps.Storage), cancellationToken).ConfigureAwait(false);
+        var ecosystemToken = await accessTokenService.IssueAsync(BuildEcosystemTokenRequest(httpContext.User, userId, storage), cancellationToken).ConfigureAwait(false);
         var bootstrap = BuildBootstrapInfo(httpContext, userId, ecosystemToken);
         return TypedResults.Json(new BootstrapRootContainerInfo { Bootstrap = bootstrap });
     }
 
     private static async Task<IResult> ExecuteEcosystemOperation(
         HttpContext httpContext,
-        [AsParameters] BootstrapDeps deps,
+        IWopiStorageProvider storage,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
+        ICheckContainerInfoBuilder containerInfoBuilder,
         [FromHeader(Name = WopiHeaders.ECOSYSTEM_OPERATION)] string? ecosystemOperation,
         [FromHeader(Name = WopiHeaders.WOPI_SRC)] string? wopiSrc,
         CancellationToken cancellationToken) => ecosystemOperation switch
     {
-        "GET_ROOT_CONTAINER" => await GetRootContainerAsync(httpContext, deps, cancellationToken).ConfigureAwait(false),
-        "GET_NEW_ACCESS_TOKEN" => await GetNewAccessTokenAsync(httpContext, deps, wopiSrc, cancellationToken).ConfigureAwait(false),
+        "GET_ROOT_CONTAINER" => await GetRootContainerAsync(httpContext, storage, accessTokenService, permissionProvider, containerInfoBuilder, cancellationToken).ConfigureAwait(false),
+        "GET_NEW_ACCESS_TOKEN" => await GetNewAccessTokenAsync(httpContext, storage, accessTokenService, permissionProvider, wopiSrc, cancellationToken).ConfigureAwait(false),
         _ => TypedResults.StatusCode(StatusCodes.Status501NotImplemented),
     };
 
-    private static async Task<IResult> GetRootContainerAsync(HttpContext httpContext, BootstrapDeps deps, CancellationToken cancellationToken)
+    private static async Task<IResult> GetRootContainerAsync(
+        HttpContext httpContext,
+        IWopiStorageProvider storage,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
+        ICheckContainerInfoBuilder containerInfoBuilder,
+        CancellationToken cancellationToken)
     {
         var userId = GetUserIdOrThrow(httpContext.User);
-        var ecosystemToken = await deps.AccessTokenService.IssueAsync(BuildEcosystemTokenRequest(httpContext.User, userId, deps.Storage), cancellationToken).ConfigureAwait(false);
+        var ecosystemToken = await accessTokenService.IssueAsync(BuildEcosystemTokenRequest(httpContext.User, userId, storage), cancellationToken).ConfigureAwait(false);
         var bootstrap = BuildBootstrapInfo(httpContext, userId, ecosystemToken);
 
-        var rootContainer = await deps.Storage.GetWopiContainer(deps.Storage.RootContainer.Identifier, cancellationToken).ConfigureAwait(false);
+        var rootContainer = await storage.GetWopiContainer(storage.RootContainer.Identifier, cancellationToken).ConfigureAwait(false);
         if (rootContainer is null) return TypedResults.NotFound();
 
-        var token = await IssueContainerTokenAsync(httpContext, deps, rootContainer, cancellationToken).ConfigureAwait(false);
+        var token = await IssueContainerTokenAsync(httpContext, accessTokenService, permissionProvider, rootContainer, cancellationToken).ConfigureAwait(false);
         return TypedResults.Json(new BootstrapRootContainerInfo
         {
             Bootstrap = bootstrap,
             RootContainerInfo = new RootContainerInfo
             {
                 ContainerPointer = new ChildContainer(rootContainer.Name, httpContext.GetWopiSrc(rootContainer, token.Token)),
-                ContainerInfo = await deps.ContainerInfoBuilder.BuildAsync(rootContainer, httpContext, cancellationToken).ConfigureAwait(false),
+                ContainerInfo = await containerInfoBuilder.BuildAsync(rootContainer, httpContext, cancellationToken).ConfigureAwait(false),
             },
         });
     }
 
-    private static async Task<IResult> GetNewAccessTokenAsync(HttpContext httpContext, BootstrapDeps deps, string? wopiSrc, CancellationToken cancellationToken)
+    private static async Task<IResult> GetNewAccessTokenAsync(
+        HttpContext httpContext,
+        IWopiStorageProvider storage,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
+        string? wopiSrc,
+        CancellationToken cancellationToken)
     {
         // Spec: if X-WOPI-WopiSrc is absent or unparseable, return 404.
         if (string.IsNullOrEmpty(wopiSrc) || !EndpointHelpers.TryParseWopiSrc(wopiSrc, out var resourceType, out var resourceId))
@@ -114,22 +123,22 @@ internal static class BootstrapEndpoints
         }
 
         var userId = GetUserIdOrThrow(httpContext.User);
-        var ecosystemToken = await deps.AccessTokenService.IssueAsync(BuildEcosystemTokenRequest(httpContext.User, userId, deps.Storage), cancellationToken).ConfigureAwait(false);
+        var ecosystemToken = await accessTokenService.IssueAsync(BuildEcosystemTokenRequest(httpContext.User, userId, storage), cancellationToken).ConfigureAwait(false);
         var bootstrap = BuildBootstrapInfo(httpContext, userId, ecosystemToken);
         WopiAccessToken token;
 
         if (resourceType == WopiResourceType.File)
         {
-            var file = await deps.Storage.GetWopiFile(resourceId, cancellationToken).ConfigureAwait(false);
+            var file = await storage.GetWopiFile(resourceId, cancellationToken).ConfigureAwait(false);
             // Spec: only provide a token if the requested WopiSrc exists and the user is authorized.
             if (file is null) return TypedResults.NotFound();
-            token = await IssueFileTokenAsync(httpContext, deps, file, cancellationToken).ConfigureAwait(false);
+            token = await IssueFileTokenAsync(httpContext, accessTokenService, permissionProvider, file, cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            var container = await deps.Storage.GetWopiContainer(resourceId, cancellationToken).ConfigureAwait(false);
+            var container = await storage.GetWopiContainer(resourceId, cancellationToken).ConfigureAwait(false);
             if (container is null) return TypedResults.NotFound();
-            token = await IssueContainerTokenAsync(httpContext, deps, container, cancellationToken).ConfigureAwait(false);
+            token = await IssueContainerTokenAsync(httpContext, accessTokenService, permissionProvider, container, cancellationToken).ConfigureAwait(false);
         }
 
         return TypedResults.Json(new BootstrapRootContainerInfo
@@ -161,19 +170,19 @@ internal static class BootstrapEndpoints
         UserFriendlyName = httpContext.User.FindFirstValue(ClaimTypes.Name) ?? string.Empty,
     };
 
-    private static async Task<WopiAccessToken> IssueFileTokenAsync(HttpContext httpContext, BootstrapDeps deps, IWopiFile file, CancellationToken cancellationToken)
+    private static async Task<WopiAccessToken> IssueFileTokenAsync(HttpContext httpContext, IWopiAccessTokenService accessTokenService, IWopiPermissionProvider permissionProvider, IWopiFile file, CancellationToken cancellationToken)
     {
-        var perms = await deps.PermissionProvider.GetFilePermissionsAsync(httpContext.User, file, cancellationToken).ConfigureAwait(false);
-        return await deps.AccessTokenService.IssueAsync(BuildRequest(httpContext.User, file.Identifier, WopiResourceType.File) with
+        var perms = await permissionProvider.GetFilePermissionsAsync(httpContext.User, file, cancellationToken).ConfigureAwait(false);
+        return await accessTokenService.IssueAsync(BuildRequest(httpContext.User, file.Identifier, WopiResourceType.File) with
         {
             FilePermissions = perms,
         }, cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task<WopiAccessToken> IssueContainerTokenAsync(HttpContext httpContext, BootstrapDeps deps, IWopiContainer container, CancellationToken cancellationToken)
+    private static async Task<WopiAccessToken> IssueContainerTokenAsync(HttpContext httpContext, IWopiAccessTokenService accessTokenService, IWopiPermissionProvider permissionProvider, IWopiContainer container, CancellationToken cancellationToken)
     {
-        var perms = await deps.PermissionProvider.GetContainerPermissionsAsync(httpContext.User, container, cancellationToken).ConfigureAwait(false);
-        return await deps.AccessTokenService.IssueAsync(BuildRequest(httpContext.User, container.Identifier, WopiResourceType.Container) with
+        var perms = await permissionProvider.GetContainerPermissionsAsync(httpContext.User, container, cancellationToken).ConfigureAwait(false);
+        return await accessTokenService.IssueAsync(BuildRequest(httpContext.User, container.Identifier, WopiResourceType.Container) with
         {
             ContainerPermissions = perms,
         }, cancellationToken).ConfigureAwait(false);

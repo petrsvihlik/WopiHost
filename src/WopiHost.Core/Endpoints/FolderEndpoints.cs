@@ -31,25 +31,21 @@ internal static class FolderEndpoints
             .RequireAuthorization(p => p.AddRequirements(new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.Read)));
     }
 
-    /// <summary>Bundle of services consumed by <see cref="CheckFolderInfo"/>.</summary>
-    internal sealed record CheckFolderInfoDeps(
-        IWopiStorageProvider Storage,
-        ICheckFolderInfoBuilder Builder,
-        IWopiHostExtensions Extensions);
-
     private static async Task<IResult> CheckFolderInfo(
         string id,
         HttpContext httpContext,
-        [AsParameters] CheckFolderInfoDeps deps,
+        IWopiStorageProvider storage,
+        ICheckFolderInfoBuilder builder,
+        IWopiHostExtensions extensions,
         CancellationToken cancellationToken)
     {
-        var folder = await deps.Storage.GetWopiContainer(id, cancellationToken).ConfigureAwait(false);
+        var folder = await storage.GetWopiContainer(id, cancellationToken).ConfigureAwait(false);
         if (folder is null) return TypedResults.NotFound();
 
         // Build sync, then fire the host hook — keeps the only `await` on a direct interface
         // call, mirroring the controller version's structure to avoid the Infer# FP at #363.
-        var checkFolderInfo = deps.Builder.Build(folder, httpContext);
-        checkFolderInfo = await deps.Extensions.OnCheckFolderInfoAsync(
+        var checkFolderInfo = builder.Build(folder, httpContext);
+        checkFolderInfo = await extensions.OnCheckFolderInfoAsync(
             new WopiCheckFolderInfoContext(httpContext.User, folder, checkFolderInfo),
             cancellationToken).ConfigureAwait(false);
         return TypedResults.Json(checkFolderInfo);

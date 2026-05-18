@@ -71,44 +71,40 @@ internal static class FileMutatingEndpoints
             .RequireAuthorization(p => p.AddRequirements(new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Update)));
     }
 
-    /// <summary>Bundle of services consumed by <see cref="PutFile"/>.</summary>
-    internal sealed record PutFileDeps(
-        [property: FromServices] IWopiWritableStorageProvider? WritableStorage,
-        IWopiHostExtensions Extensions,
-        IOptions<WopiHostOptions> Options,
-        [property: FromServices] IWopiLockProvider? LockProvider,
-        [property: FromServices] IWopiLockComparer? LockComparer);
-
     private static async Task<IResult> PutFile(
         string id,
         HttpContext httpContext,
-        [AsParameters] PutFileDeps deps,
+        [FromServices] IWopiWritableStorageProvider? writableStorage,
+        IWopiHostExtensions extensions,
+        IOptions<WopiHostOptions> options,
+        [FromServices] IWopiLockProvider? lockProvider,
+        [FromServices] IWopiLockComparer? lockComparer,
         [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier,
         [FromHeader(Name = WopiHeaders.EDITORS)] string? editors,
         CancellationToken cancellationToken)
     {
         // RequiresWritableStorageEndpointFilter already short-circuited with 501 if
         // WritableStorage was missing — the assert is defensive against pipeline misorder.
-        ArgumentNullException.ThrowIfNull(deps.WritableStorage);
-        var file = await deps.WritableStorage.GetWritableFile(id, cancellationToken).ConfigureAwait(false);
+        ArgumentNullException.ThrowIfNull(writableStorage);
+        var file = await writableStorage.GetWritableFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
-        if (CheckMaxFileSize(httpContext, deps.Options.Value.MaxFileSize) is { } tooLarge) return tooLarge;
+        if (CheckMaxFileSize(httpContext, options.Value.MaxFileSize) is { } tooLarge) return tooLarge;
 
         // Unlocked: spec permits PutFile on a 0-byte unlocked file as a "create-new" workaround.
         if (string.IsNullOrEmpty(newLockIdentifier))
         {
             return file.Length != 0
                 ? new WopiLockMismatchResult(existingLock: null)
-                : await WriteAndAck(httpContext, deps.Extensions, file, editors, cancellationToken).ConfigureAwait(false);
+                : await WriteAndAck(httpContext, extensions, file, editors, cancellationToken).ConfigureAwait(false);
         }
 
         // Locked: acquire/refresh the lock via the shared ProcessLockCore helper, only write on Ok.
         var lockResult = await ProcessLockCore(
-            id, httpContext, deps.LockProvider, deps.Options, deps.LockComparer ?? OrdinalWopiLockComparer.Instance,
+            id, httpContext, lockProvider, options, lockComparer ?? OrdinalWopiLockComparer.Instance,
             wopiOverrideHeader: WopiFileOperations.Lock, oldLockIdentifier: null, newLockIdentifier: newLockIdentifier,
             cancellationToken).ConfigureAwait(false);
         return lockResult is Microsoft.AspNetCore.Http.HttpResults.Ok
-            ? await WriteAndAck(httpContext, deps.Extensions, file, editors, cancellationToken).ConfigureAwait(false)
+            ? await WriteAndAck(httpContext, extensions, file, editors, cancellationToken).ConfigureAwait(false)
             : lockResult;
     }
 
@@ -123,39 +119,35 @@ internal static class FileMutatingEndpoints
         return TypedResults.Ok();
     }
 
-    /// <summary>Bundle of services consumed by <see cref="RenameFile"/>.</summary>
-    internal sealed record RenameFileDeps(
-        IWopiStorageProvider Storage,
-        [property: FromServices] IWopiWritableStorageProvider? WritableStorage,
-        [property: FromServices] IWopiLockProvider? LockProvider,
-        [property: FromServices] IWopiLockComparer? LockComparer);
-
     private static async Task<IResult> RenameFile(
         string id,
         HttpContext httpContext,
-        [AsParameters] RenameFileDeps deps,
+        IWopiStorageProvider storage,
+        [FromServices] IWopiWritableStorageProvider? writableStorage,
+        [FromServices] IWopiLockProvider? lockProvider,
+        [FromServices] IWopiLockComparer? lockComparer,
         [FromHeader(Name = WopiHeaders.REQUESTED_NAME)] UtfString requestedName,
         [FromHeader(Name = WopiHeaders.LOCK)] string? lockIdentifier,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(deps.WritableStorage);
-        var file = await deps.Storage.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
+        ArgumentNullException.ThrowIfNull(writableStorage);
+        var file = await storage.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
 
-        var comparer = deps.LockComparer ?? OrdinalWopiLockComparer.Instance;
-        if (deps.LockProvider is not null
-            && await deps.LockProvider.GetLockAsync(id, cancellationToken).ConfigureAwait(false) is { } existingLock
+        var comparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
+        if (lockProvider is not null
+            && await lockProvider.GetLockAsync(id, cancellationToken).ConfigureAwait(false) is { } existingLock
             && !comparer.AreEqual(existingLock.LockId, lockIdentifier))
         {
             return new WopiLockMismatchResult(existingLock.LockId);
         }
 
-        if (!await deps.WritableStorage.CheckValidFileName(requestedName, cancellationToken).ConfigureAwait(false))
+        if (!await writableStorage.CheckValidFileName(requestedName, cancellationToken).ConfigureAwait(false))
         {
             httpContext.Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
             return TypedResults.BadRequest();
         }
-        return await TryRenameFileAsync(httpContext, deps.WritableStorage, id, requestedName, file, cancellationToken).ConfigureAwait(false);
+        return await TryRenameFileAsync(httpContext, writableStorage, id, requestedName, file, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<IResult> TryRenameFileAsync(HttpContext httpContext, IWopiWritableStorageProvider writableStorage, string id, string requestedName, IWopiFile file, CancellationToken cancellationToken)
@@ -176,21 +168,17 @@ internal static class FileMutatingEndpoints
         catch (InvalidOperationException) { return TypedResults.Conflict(); }
     }
 
-    /// <summary>Bundle of services consumed by <see cref="PutRelativeFile"/>.</summary>
-    internal sealed record PutRelativeFileDeps(
-        IWopiStorageProvider Storage,
-        [property: FromServices] IWopiWritableStorageProvider? WritableStorage,
-        IWopiNewChildFileNegotiator Negotiator,
-        IWopiHostExtensions Extensions,
-        ICheckFileInfoBuilder CheckFileInfoBuilder,
-        IOptions<WopiHostOptions> Options,
-        [property: FromServices] IWopiLockProvider? LockProvider,
-        [property: FromServices] ICobaltProcessor? CobaltProcessor);
-
     private static async Task<IResult> PutRelativeFile(
         string id,
         HttpContext httpContext,
-        [AsParameters] PutRelativeFileDeps deps,
+        IWopiStorageProvider storage,
+        [FromServices] IWopiWritableStorageProvider? writableStorage,
+        IWopiNewChildFileNegotiator negotiator,
+        IWopiHostExtensions extensions,
+        ICheckFileInfoBuilder checkFileInfoBuilder,
+        IOptions<WopiHostOptions> options,
+        [FromServices] IWopiLockProvider? lockProvider,
+        [FromServices] ICobaltProcessor? cobaltProcessor,
         [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget,
         [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? relativeTarget,
         [FromHeader(Name = WopiHeaders.OVERWRITE_RELATIVE_TARGET)] bool? overwriteRelativeTarget,
@@ -198,11 +186,11 @@ internal static class FileMutatingEndpoints
         [FromHeader(Name = WopiHeaders.SIZE)] long? declaredSize,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(deps.WritableStorage);
-        var file = await deps.Storage.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
+        ArgumentNullException.ThrowIfNull(writableStorage);
+        var file = await storage.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
 
-        if (CheckMaxFileSize(httpContext, deps.Options.Value.MaxFileSize, declaredSize) is { } tooLarge)
+        if (CheckMaxFileSize(httpContext, options.Value.MaxFileSize, declaredSize) is { } tooLarge)
         {
             return tooLarge;
         }
@@ -214,11 +202,11 @@ internal static class FileMutatingEndpoints
             return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
         }
 
-        var ancestors = await deps.Storage.GetFileAncestors(id, cancellationToken).ConfigureAwait(false);
+        var ancestors = await storage.GetFileAncestors(id, cancellationToken).ConfigureAwait(false);
         var parentContainer = ancestors.LastOrDefault()
             ?? throw new ArgumentException("Cannot find parent container", nameof(id));
 
-        var negotiation = await deps.Negotiator.NegotiateAsync(new WopiNewChildFileRequest(
+        var negotiation = await negotiator.NegotiateAsync(new WopiNewChildFileRequest(
             ContainerId: parentContainer.Identifier,
             SuggestedTarget: suggestedTarget,
             RelativeTarget: relativeTarget,
@@ -231,9 +219,9 @@ internal static class FileMutatingEndpoints
 
         var newFile = negotiation.File!;
         await httpContext.CopyToWriteStream(newFile, cancellationToken).ConfigureAwait(false);
-        await InvokePutRelativeFileCallbackAsync(httpContext, deps.Extensions, file, newFile, fileConversion, declaredSize, cancellationToken).ConfigureAwait(false);
-        var capabilities = MakeCapabilities(deps.LockProvider, deps.CobaltProcessor);
-        var checkFileInfo = await deps.CheckFileInfoBuilder.BuildAsync(newFile, httpContext, capabilities, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await InvokePutRelativeFileCallbackAsync(httpContext, extensions, file, newFile, fileConversion, declaredSize, cancellationToken).ConfigureAwait(false);
+        var capabilities = MakeCapabilities(lockProvider, cobaltProcessor);
+        var checkFileInfo = await checkFileInfoBuilder.BuildAsync(newFile, httpContext, capabilities, cancellationToken: cancellationToken).ConfigureAwait(false);
         return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, httpContext.GetWopiSrc(newFile))
         {
             HostEditUrl = checkFileInfo.HostEditUrl,
@@ -322,27 +310,23 @@ internal static class FileMutatingEndpoints
         return TypedResults.Bytes(responseBytes, MediaTypeNames.Application.Octet);
     }
 
-    /// <summary>Bundle of services consumed by <see cref="ProcessLock"/>.</summary>
-    internal sealed record ProcessLockDeps(
-        IWopiStorageProvider Storage,
-        IOptions<WopiHostOptions> Options,
-        [property: FromServices] IWopiLockProvider? LockProvider,
-        [property: FromServices] IWopiLockComparer? LockComparer);
-
     private static async Task<IResult> ProcessLock(
         string id,
         HttpContext httpContext,
-        [AsParameters] ProcessLockDeps deps,
+        IWopiStorageProvider storage,
+        IOptions<WopiHostOptions> options,
+        [FromServices] IWopiLockProvider? lockProvider,
+        [FromServices] IWopiLockComparer? lockComparer,
         [FromHeader(Name = WopiHeaders.WOPI_OVERRIDE)] string? wopiOverrideHeader,
         [FromHeader(Name = WopiHeaders.OLD_LOCK)] string? oldLockIdentifier,
         [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier,
         CancellationToken cancellationToken)
     {
-        var comparer = deps.LockComparer ?? OrdinalWopiLockComparer.Instance;
-        var file = await deps.Storage.GetWopiFile(id, cancellationToken).ConfigureAwait(false)
+        var comparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
+        var file = await storage.GetWopiFile(id, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("File not found");
         httpContext.Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
-        return await ProcessLockCore(id, httpContext, deps.LockProvider, deps.Options, comparer,
+        return await ProcessLockCore(id, httpContext, lockProvider, options, comparer,
             wopiOverrideHeader, oldLockIdentifier, newLockIdentifier, cancellationToken).ConfigureAwait(false);
     }
 

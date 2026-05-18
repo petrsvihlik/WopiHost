@@ -24,11 +24,13 @@ test_patterns = [
 name = "default"
 default = true
 
-# Minimal-API endpoint handlers naturally collect many DI services as positional
-# parameters (the framework's parameter-injection idiom). qlty's function-parameters
-# and file-complexity rules are calibrated for OOP class methods; ignoring them
-# here lets us keep the natural Minimal-API shape rather than over-engineering
-# per-handler service records past the point of clarity.
+# Minimal-API endpoint handlers naturally collect many DI services + bound HTTP
+# parameters (route values, headers, body) as positional parameters — that's the
+# framework's injection idiom. qlty's function-parameters and file-complexity
+# rules are calibrated for OOP class methods; ignoring them here keeps the
+# natural Minimal-API shape instead of routing every handler through a deps
+# record or a hand-rolled handler class (see the #430 commit history for the
+# round-trip that proved the record bundles weren't worth the indirection).
 [[ignore]]
 linters = ["qlty"]
 rules = ["function-parameters", "file-complexity"]

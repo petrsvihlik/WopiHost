@@ -42,41 +42,31 @@ internal static class FileEndpoints
         FileMutatingEndpoints.MapFileMutatingEndpoints(files);
     }
 
-    /// <summary>
-    /// Bundle of services consumed by <see cref="CheckFileInfo"/>. Collapses the handler's
-    /// parameter list so Minimal-API DI binding stays explicit at the call site without
-    /// drowning the route lambda. Optional services carry <c>[FromServices]</c> so the
-    /// framework's registration-time check doesn't fall back to body inference when the
-    /// associated provider (lock / cobalt) ships as a separate package and isn't registered.
-    /// </summary>
-    internal sealed record CheckFileInfoDeps(
-        IWopiStorageProvider Storage,
-        IMemoryCache MemoryCache,
-        ICheckFileInfoBuilder Builder,
-        [property: FromServices] IWopiLockProvider? LockProvider,
-        [property: FromServices] ICobaltProcessor? CobaltProcessor);
-
     private static async Task<IResult> CheckFileInfo(
         string id,
         HttpContext httpContext,
-        [AsParameters] CheckFileInfoDeps deps,
+        IWopiStorageProvider storage,
+        IMemoryCache memoryCache,
+        ICheckFileInfoBuilder builder,
+        [FromServices] IWopiLockProvider? lockProvider,
+        [FromServices] ICobaltProcessor? cobaltProcessor,
         CancellationToken cancellationToken)
     {
-        var file = await deps.Storage.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
+        var file = await storage.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
 
-        _ = deps.MemoryCache.TryGetValue($"{UserInfoCacheKeyPrefix}{httpContext.User.GetUserId()}", out string? userInfo);
+        _ = memoryCache.TryGetValue($"{UserInfoCacheKeyPrefix}{httpContext.User.GetUserId()}", out string? userInfo);
 
         var capabilities = new WopiHostCapabilities
         {
-            SupportsCobalt = deps.CobaltProcessor is not null,
-            SupportsGetLock = deps.LockProvider is not null,
-            SupportsLocks = deps.LockProvider is not null,
+            SupportsCobalt = cobaltProcessor is not null,
+            SupportsGetLock = lockProvider is not null,
+            SupportsLocks = lockProvider is not null,
             SupportsCoauth = false,
             SupportsUpdate = true,
         };
 
-        var checkFileInfo = await deps.Builder.BuildAsync(file, httpContext, capabilities, userInfo, cancellationToken).ConfigureAwait(false);
+        var checkFileInfo = await builder.BuildAsync(file, httpContext, capabilities, userInfo, cancellationToken).ConfigureAwait(false);
 
         // Serialize<object>() so any properties declared on a derived WopiCheckFileInfo type
         // make it onto the wire — System.Text.Json walks the runtime type, not the declared type.
