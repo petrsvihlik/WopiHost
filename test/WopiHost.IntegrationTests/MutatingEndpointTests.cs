@@ -575,6 +575,64 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         Assert.Equal("v2", string.Join(",", get.Headers.GetValues("X-WOPI-Lock")));
     }
 
+    [Fact]
+    public async Task Lock_Unlock_Cycle_Roundtrips()
+    {
+        // End-to-end cycle: LOCK → GET_LOCK → REFRESH_LOCK → UNLOCK. Complements the
+        // per-state tests above by verifying state survives across multiple HTTP requests
+        // on the same lock id.
+        var fileId = await _fixture.CreateTempFileAsync("cycle"u8.ToArray());
+        var token = await MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var lockResp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "lock-1"));
+        Assert.Equal(HttpStatusCode.OK, lockResp.StatusCode);
+
+        var getLockResp = await client.SendAsync(LockOp(fileId, token, "GET_LOCK"));
+        Assert.Equal(HttpStatusCode.OK, getLockResp.StatusCode);
+        Assert.Equal("lock-1", getLockResp.Headers.GetValues("X-WOPI-Lock").FirstOrDefault());
+
+        var refreshResp = await client.SendAsync(LockOp(fileId, token, "REFRESH_LOCK", newLock: "lock-1"));
+        Assert.Equal(HttpStatusCode.OK, refreshResp.StatusCode);
+
+        var unlockResp = await client.SendAsync(LockOp(fileId, token, "UNLOCK", newLock: "lock-1"));
+        Assert.Equal(HttpStatusCode.OK, unlockResp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Lock_OnLockedDifferentId_Returns_409_WithExistingLock()
+    {
+        // LOCK with a different id than the one already held → 409 with the original lock
+        // echoed back in X-WOPI-Lock. Distinct from Lock_OnLockedSameId_Refreshes which
+        // exercises the refresh branch when ids match.
+        var fileId = await _fixture.CreateTempFileAsync("conflict"u8.ToArray());
+        var token = await MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "lock-initial"));
+
+        var conflict = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "lock-other"));
+
+        Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
+        Assert.Equal("lock-initial", conflict.Headers.GetValues("X-WOPI-Lock").FirstOrDefault());
+    }
+
+    [Fact]
+    public async Task Unknown_Override_Returns_404()
+    {
+        // WopiOverrideMatcherPolicy invalidates all override-bearing candidates when no
+        // endpoint declares a matching X-WOPI-Override; framework then falls through to
+        // 404 (documented behaviour — see the policy class XML remarks).
+        var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
+        var token = await MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
+        req.Headers.Add("X-WOPI-Override", "BOGUS_OPERATION");
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
     // ---- CreateChildContainer --------------------------------------------
 
     [Fact]
