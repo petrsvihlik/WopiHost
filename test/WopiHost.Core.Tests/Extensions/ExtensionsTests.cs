@@ -1,5 +1,11 @@
-﻿using Moq;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
+using WopiHost.Core.Infrastructure;
 
 namespace WopiHost.Core.Tests.Extensions;
 
@@ -40,54 +46,67 @@ public class ExtensionsTests
     }
 
     [Fact]
-    public void GetWopiSrc_UnknownResourceType_Throws()
+    public async Task GetWopiSrc_UnknownResourceType_Throws()
     {
-        var url = new Moq.Mock<Microsoft.AspNetCore.Mvc.IUrlHelper>();
+        await using var app = await BuildAppAsync(_ => { });
+
+        var ctx = new DefaultHttpContext { RequestServices = app.Services };
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            url.Object.GetWopiSrc((WopiHost.Abstractions.WopiResourceType)999, "id"));
+            ctx.GetWopiSrc((WopiResourceType)999, "id"));
     }
 
     [Theory]
-    [InlineData(WopiHost.Abstractions.WopiResourceType.File, WopiHost.Core.Infrastructure.WopiRouteNames.CheckFileInfo)]
-    [InlineData(WopiHost.Abstractions.WopiResourceType.Container, WopiHost.Core.Infrastructure.WopiRouteNames.CheckContainerInfo)]
-    public void GetWopiSrc_EnumOverload_RoutesToMatchingControllerAction(
-        WopiHost.Abstractions.WopiResourceType resourceType, string expectedRouteName)
+    [InlineData(WopiResourceType.File, WopiRouteNames.CheckFileInfo, "/files/{id}")]
+    [InlineData(WopiResourceType.Container, WopiRouteNames.CheckContainerInfo, "/containers/{id}")]
+    public async Task GetWopiSrc_EnumOverload_RoutesToMatchingNamedRoute(
+        WopiResourceType resourceType, string expectedRouteName, string routeTemplate)
     {
         // The enum overload of GetWopiSrc maps File → CheckFileInfo, Container → CheckContainerInfo.
-        // Both arms (and the throw arm in the test above) round out coverage on the resource-type
-        // dispatch. The mock asserts both that the call went out and which route name was used.
-        string? observedRouteName = null;
-        var url = new Moq.Mock<Microsoft.AspNetCore.Mvc.IUrlHelper>();
-        url.Setup(u => u.ActionContext).Returns(new Microsoft.AspNetCore.Mvc.ActionContext
+        // Both arms (plus the throw arm in the test above) round out coverage on the resource-type
+        // dispatch.
+        await using var app = await BuildAppAsync(endpoints =>
+            endpoints.MapGet(routeTemplate, () => "ok").WithName(expectedRouteName));
+
+        var ctx = new DefaultHttpContext
         {
-            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { Request = { Scheme = "https", Host = new("h") } }
-        });
-        url.Setup(u => u.RouteUrl(It.IsAny<Microsoft.AspNetCore.Mvc.Routing.UrlRouteContext>()))
-            .Callback<Microsoft.AspNetCore.Mvc.Routing.UrlRouteContext>(ctx => observedRouteName = ctx.RouteName)
-            .Returns("/wopi/x");
+            RequestServices = app.Services,
+            Request = { Scheme = "https", Host = new("h") },
+        };
 
-        var src = url.Object.GetWopiSrc(resourceType, "id", "access");
+        var src = ctx.GetWopiSrc(resourceType, "abc", "access");
 
-        Assert.Equal(expectedRouteName, observedRouteName);
         Assert.NotNull(src);
+        Assert.Contains("abc", src.ToString(), StringComparison.Ordinal);
+        Assert.Contains("access_token=access", src.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void GetWopiSrc_WhenRouteUrlReturnsNull_FallsBackGracefully()
+    public async Task GetWopiSrc_WhenRouteUnknown_Throws()
     {
-        // The proxy-aware URL helper returns null when no route matches. The caller (GetWopiSrc)
-        // must surface that via an InvalidOperationException so the bug isn't silently masked
-        // by an empty Uri. This exercises the null-route-path branch in ProxyAwareRouteUrl.
-        var url = new Moq.Mock<Microsoft.AspNetCore.Mvc.IUrlHelper>();
-        url.Setup(u => u.ActionContext).Returns(new Microsoft.AspNetCore.Mvc.ActionContext
+        // If the named route isn't registered, the helper must surface an explicit error rather
+        // than silently masking with an empty Uri.
+        await using var app = await BuildAppAsync(_ => { });
+
+        var ctx = new DefaultHttpContext
         {
-            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { Request = { Scheme = "https", Host = new("h") } }
-        });
-        url.Setup(u => u.RouteUrl(It.IsAny<Microsoft.AspNetCore.Mvc.Routing.UrlRouteContext>()))
-            .Returns((string?)null);
+            RequestServices = app.Services,
+            Request = { Scheme = "https", Host = new("h") },
+        };
 
         Assert.Throws<InvalidOperationException>(() =>
-            url.Object.GetWopiSrc(WopiHost.Abstractions.WopiResourceType.File, "id"));
+            ctx.GetWopiSrc(WopiResourceType.File, "id"));
+    }
+
+    private static async Task<WebApplication> BuildAppAsync(Action<IEndpointRouteBuilder> mapEndpoints)
+    {
+        var builder = WebApplication.CreateEmptyBuilder(new());
+        builder.WebHost.UseTestServer();
+        builder.Services.AddRouting();
+        var app = builder.Build();
+        app.UseRouting();
+        mapEndpoints(app);
+        await app.StartAsync();
+        return app;
     }
 }

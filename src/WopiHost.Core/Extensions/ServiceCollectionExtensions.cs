@@ -1,5 +1,5 @@
-using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using WopiHost.Abstractions;
@@ -26,16 +26,21 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         services.AddMemoryCache();
         services.AddRouting(options => options.LowercaseUrls = true);
-        services.AddAuthorizationCore();
+        // AddAuthorization (not AddAuthorizationCore) — middleware-tier services for
+        // app.UseAuthorization() were previously brought in by AddControllers.
+        services.AddAuthorization();
 
         services.AddSingleton<IAuthorizationHandler, WopiAuthorizationHandler>();
 
         services.AddScoped<IWopiProofValidator, WopiProofValidator>();
-        services.AddScoped<WopiOriginValidationActionFilter>();
-        services.AddScoped<WopiTelemetryActionFilter>();
-        services.AddControllers()
-            .AddApplicationPart(typeof(ServiceCollectionExtensions).GetTypeInfo().Assembly)
-            .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null);
+
+        // Minimal-API endpoint filters + the override-header matcher policy. Consumers wire
+        // the surface up via app.MapWopiEndpoints().
+        services.AddSingleton<MatcherPolicy, WopiOverrideMatcherPolicy>();
+        services.AddScoped<WopiOriginValidationEndpointFilter>();
+        services.AddScoped<WopiTelemetryEndpointFilter>();
+        services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(
+            o => o.SerializerOptions.PropertyNamingPolicy = null);
 
         services.AddAuthentication(o => { o.DefaultScheme = WopiAuthenticationSchemes.AccessToken; })
             .AddTokenAuthentication(

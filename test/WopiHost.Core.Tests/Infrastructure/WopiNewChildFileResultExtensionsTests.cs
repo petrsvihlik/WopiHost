@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
 using WopiHost.Abstractions;
 using WopiHost.Core.Infrastructure;
@@ -8,9 +8,9 @@ using WopiHost.Core.Results;
 namespace WopiHost.Core.Tests.Infrastructure;
 
 /// <summary>
-/// Tests for the WOPI-spec response-mapping in <see cref="WopiNewChildFileResultExtensions.ToErrorActionResult"/>.
+/// Tests for the WOPI-spec response-mapping in <see cref="WopiNewChildFileResultExtensions.ToErrorResult"/>.
 /// Translates the negotiator's <see cref="WopiNewChildFileResult"/> into the appropriate
-/// <see cref="IActionResult"/> plus the spec-mandated response-header side effects.
+/// <see cref="IResult"/> plus the spec-mandated response-header side effects.
 /// </summary>
 public class WopiNewChildFileResultExtensionsTests
 {
@@ -19,31 +19,31 @@ public class WopiNewChildFileResultExtensionsTests
     [Fact]
     public void Success_ReturnsNull()
     {
-        // Null is the explicit "no error result — controller should proceed with result.File" signal.
+        // Null is the explicit "no error result — caller should proceed with result.File" signal.
         var result = WopiNewChildFileResult.Success(Mock.Of<IWopiWritableFile>());
 
-        Assert.Null(result.ToErrorActionResult(_response));
+        Assert.Null(result.ToErrorResult(_response));
     }
 
     [Fact]
-    public void BadRequest_ReturnsBadRequestResult_WithoutHeaders()
+    public void BadRequest_ReturnsBadRequest_WithoutHeaders()
     {
         var result = WopiNewChildFileResult.BadRequest();
 
-        var actionResult = result.ToErrorActionResult(_response);
+        var actionResult = result.ToErrorResult(_response);
 
-        Assert.IsType<BadRequestResult>(actionResult);
+        Assert.IsType<BadRequest>(actionResult);
         Assert.Empty(_response.Headers);
     }
 
     [Fact]
-    public void Conflict_WritesValidRelativeTargetHeader_AndReturnsConflictResult()
+    public void Conflict_WritesValidRelativeTargetHeader_AndReturnsConflict()
     {
         var result = WopiNewChildFileResult.Conflict("Report (1).docx");
 
-        var actionResult = result.ToErrorActionResult(_response);
+        var actionResult = result.ToErrorResult(_response);
 
-        Assert.IsType<ConflictResult>(actionResult);
+        Assert.IsType<Conflict>(actionResult);
         Assert.True(_response.Headers.ContainsKey(WopiHeaders.VALID_RELATIVE_TARGET));
         // Header value is UTF-7 encoded per the WOPI spec — the round-trip is asserted in
         // UtfStringTests; here we only check the header was set with non-empty content.
@@ -51,24 +51,28 @@ public class WopiNewChildFileResultExtensionsTests
     }
 
     [Fact]
-    public void Locked_ReturnsLockMismatchResult_WithExistingLockHeader()
+    public async Task Locked_ReturnsWopiLockMismatchResult_WithExistingLockHeader()
     {
         var result = WopiNewChildFileResult.Locked("active-lock-id");
 
-        var actionResult = result.ToErrorActionResult(_response);
+        var actionResult = result.ToErrorResult(_response);
 
-        Assert.IsType<LockMismatchResult>(actionResult);
+        var lockMismatch = Assert.IsType<WopiLockMismatchResult>(actionResult);
+        // WopiLockMismatchResult writes the lock header on ExecuteAsync, so trigger the side
+        // effect explicitly before asserting on response headers.
+        await lockMismatch.ExecuteAsync(_response.HttpContext);
         Assert.Equal("active-lock-id", _response.Headers[WopiHeaders.LOCK].ToString());
     }
 
     [Fact]
-    public void InternalError_ReturnsInternalServerErrorResult()
+    public void InternalError_Returns500()
     {
         var result = WopiNewChildFileResult.InternalError();
 
-        var actionResult = result.ToErrorActionResult(_response);
+        var actionResult = result.ToErrorResult(_response);
 
-        Assert.IsType<InternalServerErrorResult>(actionResult);
+        var status = Assert.IsAssignableFrom<IStatusCodeHttpResult>(actionResult);
+        Assert.Equal(StatusCodes.Status500InternalServerError, status.StatusCode);
     }
 
     [Fact]
@@ -79,7 +83,7 @@ public class WopiNewChildFileResultExtensionsTests
         // outcome via the property init and verify the throw fires.
         var result = new WopiNewChildFileResult { Outcome = (WopiNewChildFileOutcome)999 };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => result.ToErrorActionResult(_response));
+        var ex = Assert.Throws<InvalidOperationException>(() => result.ToErrorResult(_response));
         Assert.Contains("999", ex.Message, StringComparison.Ordinal);
     }
 
@@ -88,7 +92,7 @@ public class WopiNewChildFileResultExtensionsTests
     {
         WopiNewChildFileResult result = null!;
 
-        Assert.Throws<ArgumentNullException>(() => result.ToErrorActionResult(_response));
+        Assert.Throws<ArgumentNullException>(() => result.ToErrorResult(_response));
     }
 
     [Fact]
@@ -96,6 +100,6 @@ public class WopiNewChildFileResultExtensionsTests
     {
         var result = WopiNewChildFileResult.BadRequest();
 
-        Assert.Throws<ArgumentNullException>(() => result.ToErrorActionResult(null!));
+        Assert.Throws<ArgumentNullException>(() => result.ToErrorResult(null!));
     }
 }

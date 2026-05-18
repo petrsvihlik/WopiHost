@@ -12,6 +12,7 @@
 	  <Folder Include="Security\Authorization\" />
 	</ItemGroup>
 	<ItemGroup>
+	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
 	  <PackageReference Include="Moq" />
 	</ItemGroup>
 	<ItemGroup>

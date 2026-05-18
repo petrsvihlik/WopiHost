@@ -3,6 +3,7 @@ using Serilog;
 using Serilog.Events;
 using WopiHost.Abstractions;
 using WopiHost.Core.Models;
+using WopiHost.Core.Endpoints;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Security;
@@ -78,8 +79,6 @@ public partial class Program
                 builder.Services.AddCobalt();
             }
 
-            builder.Services.AddControllers();
-
             // Add OpenAPI
             builder.Services.AddOpenApi();
 
@@ -152,7 +151,7 @@ public partial class Program
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.MapControllers();
+            app.MapWopiEndpoints();
             app.MapGet("/", () => "This is just a WOPI server. You need a WOPI client to access it...").ShortCircuit(404);
 
             // Map default endpoints from Aspire — owns /health and /alive (Development only,
