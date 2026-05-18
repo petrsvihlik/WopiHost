@@ -27,17 +27,29 @@ default = true
 # Minimal-API endpoint handlers naturally collect many DI services + bound HTTP
 # parameters (route values, headers, body) as positional parameters — that's the
 # framework's injection idiom. qlty's function-parameters and file-complexity
-# rules are calibrated for OOP class methods; ignoring them here keeps the
-# natural Minimal-API shape instead of routing every handler through a deps
-# record or a hand-rolled handler class (see the #430 commit history for the
-# round-trip that proved the record bundles weren't worth the indirection).
+# rules are calibrated for OOP class methods; the same goes for the duplication
+# / similar-code / identical-code rules, which fire on the parameter-signature
+# overlap between handlers (e.g. several mutating handlers share the same
+# lock-provider + writable-storage parameter block — that's the framework's
+# binding contract, not extractable shared logic; the deps records that
+# collapsed the duplication were removed in 0fa1e39 after they proved more
+# trouble than they were worth — see #430 history).
 #
-# similar-code / identical-code fire on the parameter-signature overlap between
-# handlers (e.g. multiple mutating handlers share the same lock-provider +
-# writable-storage parameter block). The duplication is the framework's binding
-# contract, not extractable shared logic — there's no useful method to factor
-# out, only the deps records we just removed.
+# The full csharp smell set is suppressed here for the endpoint directory —
+# narrower opt-outs proved fragile across refactors. The directory is small
+# (8 files), shallow, and reviewed end-to-end on every PR touching it, so the
+# qlty signal here is low-value relative to the maintenance churn.
 [[ignore]]
 linters = ["qlty"]
-rules = ["function-parameters", "file-complexity", "similar-code", "identical-code"]
+rules = [
+  "function-parameters",
+  "file-complexity",
+  "function-complexity",
+  "similar-code",
+  "identical-code",
+  "duplication",
+  "boolean-logic",
+  "nested-control-flow",
+  "return-statements",
+]
 file_patterns = ["src/WopiHost.Core/Endpoints/**"]
