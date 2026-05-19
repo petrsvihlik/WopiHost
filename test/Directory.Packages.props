@@ -21,7 +21,7 @@
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="Testcontainers" Version="4.11.0" />
     <PackageVersion Include="Testcontainers.Azurite" Version="4.11.0" />
-    <PackageVersion Include="Testcontainers.Redis" Version="4.11.0" />
+    <PackageVersion Include="Testcontainers.Redis" Version="4.12.0" />
     <!-- StackExchange.Redis client. The test/ Directory.Packages.props doesn't inherit from
          the root one, so the version must be redeclared here for the Redis lock provider tests. -->
     <PackageVersion Include="StackExchange.Redis" Version="2.9.32" />
