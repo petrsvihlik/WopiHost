@@ -32,10 +32,10 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.3.3" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.3.3" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.3.4" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.3.4" />
     <!-- Aspire integration for the Redis lock provider opt-in. Only the AppHost needs it. -->
-    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.3.3" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.3.4" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />
   </ItemGroup>
 </Project>
