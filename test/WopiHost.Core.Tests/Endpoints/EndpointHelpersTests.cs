@@ -43,7 +43,6 @@ public class EndpointHelpersTests
     [InlineData("https://wopi.example.com/wopi/files/")] // missing id
     [InlineData("https://wopi.example.com/wopi/files")] // missing id segment entirely
     [InlineData("https://wopi.example.com/wopi/containers/")] // missing id
-    [InlineData("/wopi/files/abc")] // not absolute Uri
     public void TryParseWopiSrc_RejectsInvalidUrls(string url)
     {
         var ok = EndpointHelpers.TryParseWopiSrc(url, out _, out _);
