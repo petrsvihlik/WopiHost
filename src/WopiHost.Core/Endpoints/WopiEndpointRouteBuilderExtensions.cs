@@ -7,26 +7,13 @@ using WopiHost.Core.Security.Authentication;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Minimal-API endpoint registration for the WOPI host. The Minimal-API equivalent of the
-/// historic <c>app.MapControllers()</c> path when consuming <c>WopiHost.Core</c>.
-/// </summary>
-/// <remarks>
-/// <para>
-/// Consumer usage:
+/// Minimal-API endpoint registration for the WOPI host. Call alongside <c>AddWopi()</c>:
 /// <code>
 /// builder.Services.AddWopi();
 /// // ...
 /// app.MapWopiEndpoints();
 /// </code>
-/// </para>
-/// <para>
-/// During the migration tracked in issue #430 the controller topology is still wired by the
-/// sample. <c>MapWopiEndpoints()</c> is the forward-looking entry point and is safe to call
-/// alongside <c>app.MapControllers()</c> during transition <em>provided</em> the route
-/// templates do not collide — for the read-only GET endpoints they would, so a consumer
-/// experimenting with the new topology should pick one or the other.
-/// </para>
-/// </remarks>
+/// </summary>
 public static class WopiEndpointRouteBuilderExtensions
 {
     /// <summary>
