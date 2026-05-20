@@ -79,7 +79,7 @@ internal static class FileMutatingEndpoints
         IOptions<WopiHostOptions> options,
         [FromServices] IWopiLockProvider? lockProvider,
         [FromServices] IWopiLockComparer? lockComparer,
-        [FromHeader(Name = WopiHeaders.LOCK)] string? newLockIdentifier,
+        [FromHeader(Name = WopiHeaders.LOCK)] string? requestLockId,
         [FromHeader(Name = WopiHeaders.EDITORS)] string? editors,
         CancellationToken cancellationToken)
     {
@@ -90,22 +90,36 @@ internal static class FileMutatingEndpoints
         if (file is null) return TypedResults.NotFound();
         if (CheckMaxFileSize(httpContext, options.Value.MaxFileSize) is { } tooLarge) return tooLarge;
 
-        // Unlocked: spec permits PutFile on a 0-byte unlocked file as a "create-new" workaround.
-        if (string.IsNullOrEmpty(newLockIdentifier))
+        // PutFile branches on the FILE'S current lock state, not on whether X-WOPI-Lock was
+        // sent. Spec: "When a host receives a PutFile request on a file that's not locked, the
+        // host checks the current size of the file." Earlier impl keyed off the request header
+        // (string.IsNullOrEmpty(requestLockId)) — which silently overwrote locked 0-byte files
+        // when the client omitted the header (#A) and acquired locks as a side effect when the
+        // client sent one against an unlocked file (#B). Both deviated from
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile.
+        var existingLock = lockProvider is not null
+            ? await lockProvider.GetLockAsync(id, cancellationToken).ConfigureAwait(false)
+            : null;
+
+        if (existingLock is not null)
         {
-            return file.Length != 0
-                ? new WopiLockMismatchResult(existingLock: null)
-                : await WriteAndAck(httpContext, extensions, file, editors, cancellationToken).ConfigureAwait(false);
+            // File is locked → X-WOPI-Lock must match the current lock id. Missing/empty header
+            // counts as a mismatch (sent="" vs current=existing). Spec: 409 with the current
+            // lock id in X-WOPI-Lock.
+            var comparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
+            if (string.IsNullOrEmpty(requestLockId) || !comparer.AreEqual(existingLock.LockId, requestLockId))
+            {
+                return new WopiLockMismatchResult(existingLock.LockId);
+            }
+            return await WriteAndAck(httpContext, extensions, file, editors, cancellationToken).ConfigureAwait(false);
         }
 
-        // Locked: acquire/refresh the lock via the shared ProcessLockCore helper, only write on Ok.
-        var lockResult = await ProcessLockCore(
-            id, httpContext, lockProvider, options, lockComparer ?? OrdinalWopiLockComparer.Instance,
-            wopiOverrideHeader: WopiFileOperations.Lock, oldLockIdentifier: null, newLockIdentifier: newLockIdentifier,
-            cancellationToken).ConfigureAwait(false);
-        return lockResult is Microsoft.AspNetCore.Http.HttpResults.Ok
-            ? await WriteAndAck(httpContext, extensions, file, editors, cancellationToken).ConfigureAwait(false)
-            : lockResult;
+        // File is unlocked → size decides. 0-byte file is the create-new flow per spec; any
+        // other size returns 409 with X-WOPI-Lock set to the empty placeholder regardless of
+        // whether the client sent X-WOPI-Lock (an unlocked file has no lock id to surface).
+        return file.Length != 0
+            ? new WopiLockMismatchResult(existingLock: null)
+            : await WriteAndAck(httpContext, extensions, file, editors, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<IResult> WriteAndAck(HttpContext httpContext, IWopiHostExtensions extensions, IWopiWritableFile file, string? editors, CancellationToken cancellationToken)

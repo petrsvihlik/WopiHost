@@ -91,6 +91,91 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     }
 
     [Fact]
+    public async Task PutFile_OnLockedFile_MissingLockHeader_NonEmpty_Returns_409_WithCurrentLock()
+    {
+        // Spec: file is locked + X-WOPI-Lock missing → lock mismatch → 409 with the CURRENT
+        // lock id in X-WOPI-Lock. Previous impl returned 409 with an EMPTY X-WOPI-Lock because
+        // it branched on the request header's absence, not the file's lock state.
+        var fileId = await _fixture.CreateTempFileAsync("locked-non-empty"u8.ToArray());
+        var token = await MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+        var url = $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}";
+
+        var lockReq = new HttpRequestMessage(HttpMethod.Post, url);
+        lockReq.Headers.Add("X-WOPI-Override", "LOCK");
+        lockReq.Headers.Add("X-WOPI-Lock", "guarding-lock");
+        Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(lockReq)).StatusCode);
+
+        var putReq = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new ByteArrayContent("overwrite-attempt"u8.ToArray()),
+        };
+        // intentionally omit X-WOPI-Lock
+        var resp = await client.SendAsync(putReq);
+
+        Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
+        Assert.Equal("guarding-lock", resp.Headers.GetValues("X-WOPI-Lock").FirstOrDefault());
+    }
+
+    [Fact]
+    public async Task PutFile_OnLockedFile_MissingLockHeader_ZeroByte_Returns_409_WithCurrentLock()
+    {
+        // Spec: file is locked → ANY PutFile without a matching X-WOPI-Lock is a mismatch,
+        // INCLUDING the 0-byte create-new fast path. The previous impl skipped the lock-state
+        // check on the no-header path and silently overwrote locked 0-byte files — a real
+        // security smell against malicious / buggy clients.
+        var fileId = await _fixture.CreateTempFileAsync([]);  // 0-byte file
+        var token = await MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+        var url = $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}";
+
+        var lockReq = new HttpRequestMessage(HttpMethod.Post, url);
+        lockReq.Headers.Add("X-WOPI-Override", "LOCK");
+        lockReq.Headers.Add("X-WOPI-Lock", "guards-zero-byte");
+        Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(lockReq)).StatusCode);
+
+        var putReq = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new ByteArrayContent("create-new-attempt"u8.ToArray()),
+        };
+        // intentionally omit X-WOPI-Lock
+        var resp = await client.SendAsync(putReq);
+
+        Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
+        Assert.Equal("guards-zero-byte", resp.Headers.GetValues("X-WOPI-Lock").FirstOrDefault());
+    }
+
+    [Fact]
+    public async Task PutFile_OnUnlockedFile_WithLockHeader_NonEmpty_Returns_409_WithEmptyLock()
+    {
+        // Spec: file is unlocked → size decides; non-zero → 409 with the empty-lock placeholder
+        // in X-WOPI-Lock. The previous impl, when X-WOPI-Lock was sent against an unlocked file,
+        // would invoke ProcessLockCore → AddLockAsync and ACQUIRE the lock as a side effect,
+        // then write. PutFile is supposed to validate against an existing lock, not establish one.
+        var fileId = await _fixture.CreateTempFileAsync("existing-content"u8.ToArray());
+        var token = await MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var putReq = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new ByteArrayContent("overwrite-attempt"u8.ToArray()),
+        };
+        putReq.Headers.Add("X-WOPI-Lock", "client-thinks-it-holds-this");
+        var resp = await client.SendAsync(putReq);
+
+        Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
+        Assert.Equal(string.Empty, resp.Headers.GetValues("X-WOPI-Lock").FirstOrDefault());
+
+        // Side-effect check: the file must NOT now be locked. Probe via GET_LOCK and assert
+        // the response carries the empty-lock placeholder, confirming PutFile didn't acquire.
+        var getLockReq = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
+        getLockReq.Headers.Add("X-WOPI-Override", "GET_LOCK");
+        var getLockResp = await client.SendAsync(getLockReq);
+        Assert.Equal(HttpStatusCode.OK, getLockResp.StatusCode);
+        Assert.Equal(string.Empty, getLockResp.Headers.GetValues("X-WOPI-Lock").FirstOrDefault());
+    }
+
+    [Fact]
     public async Task PutFile_WithMatchingLock_Updates_AndReturns_200()
     {
         var fileId = await _fixture.CreateTempFileAsync("v1"u8.ToArray());
