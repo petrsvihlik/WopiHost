@@ -450,13 +450,14 @@ internal static class FileMutatingEndpoints
     // IWopiWritableStorageProvider is non-null (ArgumentNullException.ThrowIfNull at the top of
     // the method). SupportsUpdate is therefore unconditionally true here — for the unauthenticated /
     // missing-writable-storage cases, the read-only CheckFileInfo endpoint computes the capability
-    // dynamically instead.
+    // dynamically instead. SupportsCoauth tracks ICobaltProcessor registration since the Cobalt
+    // protocol is what actually delivers multi-user editing in WopiHost (see WopiHost.Cobalt).
     private static WopiHostCapabilities MakeCapabilities(IWopiLockProvider? lockProvider, ICobaltProcessor? cobaltProcessor) => new()
     {
         SupportsCobalt = cobaltProcessor is not null,
         SupportsGetLock = lockProvider is not null,
         SupportsLocks = lockProvider is not null,
-        SupportsCoauth = false,
+        SupportsCoauth = cobaltProcessor is not null,
         SupportsUpdate = true,
     };
 

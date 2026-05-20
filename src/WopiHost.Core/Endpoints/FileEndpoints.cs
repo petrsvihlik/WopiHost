@@ -58,18 +58,20 @@ internal static class FileEndpoints
 
         _ = memoryCache.TryGetValue($"{UserInfoCacheKeyPrefix}{httpContext.User.GetUserId()}", out string? userInfo);
 
-        // SupportsUpdate must mirror what the mutating endpoints will actually do. Without a
-        // writable storage provider, PutFile / RenameFile / DeleteFile all 501 (via
-        // RequiresWritableStorageEndpointFilter); advertising SupportsUpdate=true in that case
-        // would lie to the WOPI client per
+        // Capabilities must mirror what's actually wired up — advertising features the host
+        // can't deliver would lie to the WOPI client. Cobalt provides the multi-user editing
+        // surface, so SupportsCoauth tracks its registration alongside SupportsCobalt.
+        // SupportsUpdate must reflect writable-storage presence; without it PutFile /
+        // RenameFile / DeleteFile all 501 via RequiresWritableStorageEndpointFilter, and
+        // DefaultCheckFileInfoBuilder cascades SupportsUpdate=false into
+        // UserCanNotWriteRelative=true per
         // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile.
-        // DefaultCheckFileInfoBuilder cascades SupportsUpdate=false into UserCanNotWriteRelative=true.
         var capabilities = new WopiHostCapabilities
         {
             SupportsCobalt = cobaltProcessor is not null,
             SupportsGetLock = lockProvider is not null,
             SupportsLocks = lockProvider is not null,
-            SupportsCoauth = false,
+            SupportsCoauth = cobaltProcessor is not null,
             SupportsUpdate = writableStorage is not null,
         };
 
