@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
@@ -12,8 +13,22 @@ namespace WopiHost.Core.Endpoints;
 /// genuinely cross-resource — single-resource concerns belong in their respective endpoint
 /// file.
 /// </summary>
-internal static class EndpointHelpers
+internal static partial class EndpointHelpers
 {
+    /// <summary>
+    /// Matches a trailing <c>/files/{id}</c> or <c>/containers/{id}</c> pair anywhere in a
+    /// path. Anchored at the end so that a host serving WOPI under a parent path that happens
+    /// to contain a segment named <c>files</c> or <c>containers</c> (e.g.
+    /// <c>/repository/files/wopi/containers/abc</c>) still resolves to the WOPI resource at the
+    /// tail. The <c>[^/?#]+</c> character class is defensive — <see cref="Uri.AbsolutePath"/>
+    /// never includes query / fragment, but rejecting those characters costs nothing.
+    /// <see cref="RegexOptions.CultureInvariant"/> pairs with <see cref="RegexOptions.IgnoreCase"/>
+    /// so the literal "files" / "containers" match is locale-independent (Turkish dotless-I
+    /// would otherwise surprise us).
+    /// </summary>
+    [GeneratedRegex(@"/(files|containers)/([^/?#]+)/?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex WopiSrcPathRegex();
+
     /// <summary>
     /// Issues a minimum-privilege access token bound to <paramref name="resourceIdentifier"/>
     /// and returns a <see cref="UrlResponse"/> pointing at <see cref="WopiRouteNames.CheckEcosystem"/>.
@@ -121,9 +136,11 @@ internal static class EndpointHelpers
 
     /// <summary>
     /// Parses the <c>X-WOPI-WopiSrc</c> header into a <see cref="WopiResourceType"/> and the
-    /// resource identifier. Accepts paths shaped like <c>/wopi/files/{id}</c> or
-    /// <c>/wopi/containers/{id}</c>. Shared between the Minimal-API bootstrap endpoint and
-    /// (transitionally) the MVC bootstrap controller until phase 4 deletes the latter.
+    /// resource identifier. Accepts absolute URIs whose path ends with <c>/files/{id}</c> or
+    /// <c>/containers/{id}</c> (case-insensitive). When the path contains multiple candidate
+    /// segments — e.g. <c>/files/archive/containers/abc</c> — the trailing pair wins, which
+    /// matches the WOPI spec's "the resource is at the URL tail" intent and avoids the
+    /// first-match-wins ambiguity of the previous segment-scan implementation.
     /// </summary>
     public static bool TryParseWopiSrc(string wopiSrc, out WopiResourceType resourceType, out string resourceId)
     {
@@ -135,22 +152,16 @@ internal static class EndpointHelpers
             return false;
         }
 
-        var segments = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        for (var i = 0; i < segments.Length - 1; i++)
+        var match = WopiSrcPathRegex().Match(uri.AbsolutePath);
+        if (!match.Success)
         {
-            if (segments[i].Equals("files", StringComparison.OrdinalIgnoreCase))
-            {
-                resourceType = WopiResourceType.File;
-                resourceId = Uri.UnescapeDataString(segments[i + 1]);
-                return true;
-            }
-            if (segments[i].Equals("containers", StringComparison.OrdinalIgnoreCase))
-            {
-                resourceType = WopiResourceType.Container;
-                resourceId = Uri.UnescapeDataString(segments[i + 1]);
-                return true;
-            }
+            return false;
         }
-        return false;
+
+        resourceType = match.Groups[1].Value.Equals("files", StringComparison.OrdinalIgnoreCase)
+            ? WopiResourceType.File
+            : WopiResourceType.Container;
+        resourceId = Uri.UnescapeDataString(match.Groups[2].Value);
+        return true;
     }
 }
