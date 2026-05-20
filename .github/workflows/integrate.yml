@@ -39,7 +39,11 @@ jobs:
       uses: qltysh/qlty-action/coverage@v2
       with:
         oidc: true
-        files: "**/coverage.*.info"
+        # Coverlet's MSBuild integration emits `coverage.info` per project (no inner label),
+        # so the recursive `**/coverage.info` glob is what matches. The earlier
+        # `**/coverage.*.info` pattern required a label between the two dots and silently
+        # matched nothing — the qlty action now errors on empty input rather than no-op'ing.
+        files: "**/coverage.info"
         # Coverlet's lcov references source-generated files (LoggerMessage.g.cs,
         # LibraryImports.g.cs, etc.) under artifacts/obj/, which don't exist at
         # publish time. Without this flag Qlty counts them as 0% covered, hence

@@ -45,6 +45,8 @@ internal static class ContainerMutatingEndpoints
         IWopiStorageProvider storage,
         [FromServices] IWopiWritableStorageProvider? writableStorage,
         ICheckContainerInfoBuilder containerInfoBuilder,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
         [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget,
         [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? relativeTarget,
         CancellationToken cancellationToken)
@@ -58,27 +60,51 @@ internal static class ContainerMutatingEndpoints
         {
             return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
         }
-        if (!await writableStorage.CheckValidContainerName((suggestedTarget ?? relativeTarget)!, cancellationToken).ConfigureAwait(false))
+
+        // Spec branches on which header is set:
+        //  - Specific mode (X-WOPI-RelativeTarget): invalid name → 400 with
+        //    X-WOPI-InvalidContainerNameError describing why.
+        //  - Suggested mode (X-WOPI-SuggestedTarget): "must never result in a 400 Bad Request or
+        //    409 Conflict. Rather, the host must modify the proposed name as needed to create a
+        //    new container that is legally named." → sanitise on invalid input.
+        string requestedName = (relativeTarget ?? suggestedTarget)!;
+        if (!await writableStorage.CheckValidContainerName(requestedName, cancellationToken).ConfigureAwait(false))
         {
-            return TypedResults.BadRequest();
+            if (relativeTarget is not null)
+            {
+                httpContext.Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
+                return TypedResults.BadRequest();
+            }
+            // Suggested mode: sanitise. Fall back to a GUID stem if even sanitisation fails.
+            requestedName = SanitiseContainerName(requestedName);
+            if (!await writableStorage.CheckValidContainerName(requestedName, cancellationToken).ConfigureAwait(false))
+            {
+                requestedName = Guid.NewGuid().ToString("N");
+            }
         }
 
         // Single exit for the resolve/build/respond tail — keeps the handler under qlty's
         // return-statements threshold (specific-mode conflict, provider null, and success
         // share one return via the switch).
-        var resolved = await ResolveNewChildContainer(httpContext, storage, writableStorage, id, suggestedTarget, relativeTarget, cancellationToken).ConfigureAwait(false);
+        var resolved = await ResolveNewChildContainer(httpContext, storage, writableStorage, id, requestedName, isSpecificMode: relativeTarget is not null, cancellationToken).ConfigureAwait(false);
         return resolved switch
         {
             (null, { } conflict) => conflict,
             (null, _) => TypedResults.StatusCode(StatusCodes.Status500InternalServerError),
-            ({ } folder, _) => await BuildCreateChildContainerResponse(httpContext, containerInfoBuilder, folder, cancellationToken).ConfigureAwait(false),
+            ({ } folder, _) => await BuildCreateChildContainerResponse(httpContext, containerInfoBuilder, accessTokenService, permissionProvider, folder, cancellationToken).ConfigureAwait(false),
         };
     }
 
-    private static async Task<IResult> BuildCreateChildContainerResponse(HttpContext httpContext, ICheckContainerInfoBuilder builder, IWopiContainer folder, CancellationToken cancellationToken)
+    private static async Task<IResult> BuildCreateChildContainerResponse(HttpContext httpContext, ICheckContainerInfoBuilder builder, IWopiAccessTokenService accessTokenService, IWopiPermissionProvider permissionProvider, IWopiContainer folder, CancellationToken cancellationToken)
     {
         var info = await builder.BuildAsync(folder, httpContext, cancellationToken).ConfigureAwait(false);
-        return TypedResults.Json(new CreateChildContainerResponse(new(folder.Name, httpContext.GetWopiSrc(folder)), info));
+        // Mint a fresh container-scoped token for the new child container. Reusing the inbound
+        // PARENT-container token in the response URL would either fail downstream authorization
+        // or constitute token trading per
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading.
+        var childToken = await EndpointHelpers.IssueAccessTokenForContainerAsync(
+            httpContext, accessTokenService, permissionProvider, folder, cancellationToken).ConfigureAwait(false);
+        return TypedResults.Json(new CreateChildContainerResponse(new(folder.Name, httpContext.GetWopiSrc(folder, childToken)), info));
     }
 
     /// <summary>
@@ -87,23 +113,35 @@ internal static class ContainerMutatingEndpoints
     /// specific-mode name collides — the conflict result writes <c>X-WOPI-ValidRelativeTarget</c>.
     /// </summary>
     private static async Task<(IWopiContainer? folder, IResult? conflict)> ResolveNewChildContainer(
-        HttpContext httpContext, IWopiStorageProvider storage, IWopiWritableStorageProvider writableStorage, string id, UtfString? suggestedTarget, UtfString? relativeTarget, CancellationToken cancellationToken)
+        HttpContext httpContext, IWopiStorageProvider storage, IWopiWritableStorageProvider writableStorage, string id, string requestedName, bool isSpecificMode, CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(relativeTarget))
+        if (isSpecificMode)
         {
             // "specific mode" — host must not modify the name.
-            var existing = await storage.GetWopiContainerByName(id, relativeTarget, cancellationToken).ConfigureAwait(false);
+            var existing = await storage.GetWopiContainerByName(id, requestedName, cancellationToken).ConfigureAwait(false);
             if (existing is not null)
             {
-                var suggestedName = await writableStorage.GetSuggestedContainerName(id, relativeTarget, cancellationToken).ConfigureAwait(false);
+                var suggestedName = await writableStorage.GetSuggestedContainerName(id, requestedName, cancellationToken).ConfigureAwait(false);
                 httpContext.Response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(suggestedName).ToString(true);
                 return (null, TypedResults.Conflict());
             }
-            return (await writableStorage.CreateWopiChildContainer(id, relativeTarget, cancellationToken).ConfigureAwait(false), null);
+            return (await writableStorage.CreateWopiChildContainer(id, requestedName, cancellationToken).ConfigureAwait(false), null);
         }
         // suggested-target branch — host may dedupe the name.
-        var newName = await writableStorage.GetSuggestedContainerName(id, suggestedTarget!, cancellationToken).ConfigureAwait(false);
+        var newName = await writableStorage.GetSuggestedContainerName(id, requestedName, cancellationToken).ConfigureAwait(false);
         return (await writableStorage.CreateWopiChildContainer(id, newName, cancellationToken).ConfigureAwait(false), null);
+    }
+
+    /// <summary>
+    /// Replaces forbidden filesystem characters in a container name with <c>_</c>. Container
+    /// names have no concept of extension so no extension-preservation logic is needed (unlike
+    /// the file-name sanitiser in <see cref="FileMutatingEndpoints"/>).
+    /// </summary>
+    private static string SanitiseContainerName(string invalid)
+    {
+        const string forbiddenChars = "<>:\"/\\|?* ";
+        var sanitised = forbiddenChars.Aggregate(invalid, (cur, c) => cur.Replace(c, '_')).Trim();
+        return string.IsNullOrWhiteSpace(sanitised) || sanitised is "." or ".." ? Guid.NewGuid().ToString("N") : sanitised;
     }
 
     private static async Task<IResult> CreateChildFile(
@@ -213,8 +251,11 @@ internal static class ContainerMutatingEndpoints
     {
         try
         {
+            // Spec: response is JSON with a single required Name property — the NEW name. The
+            // pre-fix impl returned `container.Name` from the snapshot we fetched before the
+            // rename, so clients received the OLD name and got out-of-sync.
             return await writableStorageProvider.RenameWopiContainer(id, requestedName, cancellationToken).ConfigureAwait(false)
-                ? TypedResults.Json(new { container.Name })
+                ? TypedResults.Json(new { Name = requestedName })
                 : TypedResults.NotFound(); // false → missing resource (race with concurrent delete).
         }
         catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))

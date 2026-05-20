@@ -55,6 +55,8 @@ internal static class FolderEndpoints
         string id,
         HttpContext httpContext,
         IWopiStorageProvider storageProvider,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
         [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? fileExtensionFilterList,
         CancellationToken cancellationToken)
     {
@@ -65,9 +67,13 @@ internal static class FolderEndpoints
 
         var files = new List<ChildFile>();
         var fileExtensions = fileExtensionFilterList?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        // Mint per-file resource-scoped tokens — see ContainerEndpoints.EnumerateChildren for
+        // the same rationale (preventing token trading on child URLs).
         await foreach (var wopiFile in storageProvider.GetWopiFiles(id, fileExtensions, cancellationToken).ConfigureAwait(false))
         {
-            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, httpContext.GetWopiSrc(wopiFile))
+            var fileToken = await EndpointHelpers.IssueAccessTokenForFileAsync(
+                httpContext, accessTokenService, permissionProvider, wopiFile, cancellationToken).ConfigureAwait(false);
+            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, httpContext.GetWopiSrc(wopiFile, fileToken))
             {
                 LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
                 Size = wopiFile.Length,

@@ -94,6 +94,8 @@ internal static class ContainerEndpoints
         string id,
         HttpContext httpContext,
         IWopiStorageProvider storageProvider,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
         [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? fileExtensionFilterList,
         CancellationToken cancellationToken)
     {
@@ -106,9 +108,14 @@ internal static class ContainerEndpoints
         var containers = new List<ChildContainer>();
         var fileExtensions = fileExtensionFilterList?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
+        // Mint per-child resource-scoped tokens — the inbound token is bound to the PARENT
+        // container's id, so reusing it for child URLs trips "preventing token trading"
+        // (https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading).
         await foreach (var wopiFile in storageProvider.GetWopiFiles(id, fileExtensions, cancellationToken).ConfigureAwait(false))
         {
-            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, httpContext.GetWopiSrc(wopiFile))
+            var fileToken = await EndpointHelpers.IssueAccessTokenForFileAsync(
+                httpContext, accessTokenService, permissionProvider, wopiFile, cancellationToken).ConfigureAwait(false);
+            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, httpContext.GetWopiSrc(wopiFile, fileToken))
             {
                 LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
                 Size = wopiFile.Length,
@@ -117,7 +124,9 @@ internal static class ContainerEndpoints
         }
         await foreach (var wopiContainer in storageProvider.GetWopiContainers(id, cancellationToken).ConfigureAwait(false))
         {
-            containers.Add(new ChildContainer(wopiContainer.Name, httpContext.GetWopiSrc(wopiContainer)));
+            var containerToken = await EndpointHelpers.IssueAccessTokenForContainerAsync(
+                httpContext, accessTokenService, permissionProvider, wopiContainer, cancellationToken).ConfigureAwait(false);
+            containers.Add(new ChildContainer(wopiContainer.Name, httpContext.GetWopiSrc(wopiContainer, containerToken)));
         }
 
         return TypedResults.Json(new Container { ChildFiles = files, ChildContainers = containers });
