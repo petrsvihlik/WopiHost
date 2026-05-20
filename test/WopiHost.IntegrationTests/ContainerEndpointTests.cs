@@ -120,6 +120,12 @@ public sealed class ContainerEndpointTests(ReadOnlyEndpointsFixture fixture)
             Assert.NotEqual(token, childToken);
 
             var jwt = handler.ReadJwtToken(childToken);
+            // Per-resource binding: URL path id must equal the JWT resource-id claim verbatim.
+            // The previous LowercaseUrls=true routing-option default was case-folding the URL
+            // path while leaving the JWT claim intact (minted from raw file.Identifier) —
+            // GetWopiSrc now passes LinkOptions { LowercaseUrls = false } to keep them aligned.
+            var childId = uri.AbsolutePath.Split('/').Last();
+            Assert.Equal(childId, jwt.Claims.First(c => c.Type == WopiClaimTypes.ResourceId).Value);
             Assert.Equal("File", jwt.Claims.First(c => c.Type == WopiClaimTypes.ResourceType).Value);
         }
     }

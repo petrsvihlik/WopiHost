@@ -23,6 +23,12 @@ public class WopiCheckContainerInfo
     public Uri? HostUrl { get; set; }
 
     /// <summary>
+    /// A Boolean value indicating whether the user is authenticated with the host or not.
+    /// Should match the IsAnonymousUser value returned in CheckFileInfo.
+    /// </summary>
+    public bool IsAnonymousUser { get; set; }
+
+    /// <summary>
     /// A Boolean value indicating whether the user is an education user or not. This should match the IsEduUser value returned in CheckFileInfo.
     /// </summary>
     public bool IsEduUser { get; set; }

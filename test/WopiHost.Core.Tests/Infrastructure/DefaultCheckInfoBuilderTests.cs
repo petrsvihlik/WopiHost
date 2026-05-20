@@ -416,6 +416,48 @@ public class DefaultCheckInfoBuilderTests
     }
 
     [Fact]
+    public async Task GetWopiCheckContainerInfo_AnonymousUser_ReportsIsAnonymousUserTrue()
+    {
+        // Spec: IsAnonymousUser "should match the IsAnonymousUser value returned in
+        // CheckFileInfo." The file + folder builders both set it from auth state; the
+        // container builder previously omitted it, so anonymous users were reported as
+        // authenticated in the container response.
+        var mockFolder = new Mock<IWopiContainer>();
+        mockFolder.Setup(f => f.Name).Returns("AnonContainer");
+        var mockSecurityHandler = new Mock<IWopiPermissionProvider>();
+        mockSecurityHandler
+            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiContainer>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiContainerPermissions.None);
+        var httpContext = new DefaultHttpContext();  // no User → anonymous
+
+        var builder = new DefaultCheckContainerInfoBuilder(mockSecurityHandler.Object, new WopiHostExtensions());
+        var result = await builder.BuildAsync(mockFolder.Object, httpContext);
+
+        Assert.True(result.IsAnonymousUser);
+    }
+
+    [Fact]
+    public async Task GetWopiCheckContainerInfo_AuthenticatedUser_ReportsIsAnonymousUserFalse()
+    {
+        var mockFolder = new Mock<IWopiContainer>();
+        mockFolder.Setup(f => f.Name).Returns("AuthContainer");
+        var mockSecurityHandler = new Mock<IWopiPermissionProvider>();
+        mockSecurityHandler
+            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiContainer>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiContainerPermissions.None);
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+                [new(ClaimTypes.NameIdentifier, "user-1")], "test auth scheme")),
+        };
+
+        var builder = new DefaultCheckContainerInfoBuilder(mockSecurityHandler.Object, new WopiHostExtensions());
+        var result = await builder.BuildAsync(mockFolder.Object, httpContext);
+
+        Assert.False(result.IsAnonymousUser);
+    }
+
+    [Fact]
     public async Task GetWopiCheckContainerInfo_WithNoPermissions_ReturnsAllFalse()
     {
         var mockFolder = new Mock<IWopiContainer>();

@@ -98,7 +98,13 @@ internal static class Extensions
             ["id"] = identifier ?? string.Empty,
             ["access_token"] = accessToken,
         };
-        var routePath = linkGenerator.GetPathByName(httpContext, routeName, values)
+        // Preserve identifier casing — global LowercaseUrls=true on the routing options would
+        // otherwise mangle ids like "WOPITEST" → "wopitest", causing the URL path to disagree
+        // with the JWT `wopi:resource_id` claim (which is minted verbatim from
+        // file.Identifier). Production SHA-256 ids are already lowercase so this matters most
+        // for tests and third-party storage providers with mixed-case ids. Same precedent as
+        // DefaultCheckFileInfoBuilder's FileUrl construction.
+        var routePath = linkGenerator.GetPathByName(httpContext, routeName, values, options: new LinkOptions { LowercaseUrls = false })
             ?? throw new InvalidOperationException(routeName + " route not found");
 
         var request = httpContext.Request;
