@@ -40,17 +40,27 @@ default = true
 # (8 files), shallow, and reviewed end-to-end on every PR touching it, so the
 # qlty signal here is low-value relative to the maintenance churn.
 #
-# NB: rule names use underscores in the fully-qualified form (qlty:function_parameters)
-# even though the cloud's PR-comment renderer displays them with hyphens.
+# NB: the docs example uses underscores (qlty:function_parameters) but qlty.sh's PR-
+# comment review flow keys off the hyphenated form (qlty:function-parameters — see the
+# rule slug in the issue URLs). Listing both forms here insulates us from the docs/cloud
+# disagreement; whichever the matcher honours wins.
 [[triage]]
 match.plugins = ["qlty"]
 match.rules = [
+  "qlty:function-parameters",
+  "qlty:file-complexity",
+  "qlty:function-complexity",
+  "qlty:similar-code",
+  "qlty:identical-code",
+  "qlty:duplication",
+  "qlty:boolean-logic",
+  "qlty:nested-control-flow",
+  "qlty:return-statements",
   "qlty:function_parameters",
   "qlty:file_complexity",
   "qlty:function_complexity",
   "qlty:similar_code",
   "qlty:identical_code",
-  "qlty:duplication",
   "qlty:boolean_logic",
   "qlty:nested_control_flow",
   "qlty:return_statements",
