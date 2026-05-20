@@ -26,44 +26,15 @@ default = true
 
 # Minimal-API endpoint handlers naturally collect many DI services + bound HTTP
 # parameters (route values, headers, body) as positional parameters — that's the
-# framework's injection idiom. qlty's function-parameters and file-complexity
-# rules are calibrated for OOP class methods; the same goes for the duplication
-# / similar-code / identical-code rules, which fire on the parameter-signature
-# overlap between handlers (e.g. several mutating handlers share the same
-# lock-provider + writable-storage parameter block — that's the framework's
-# binding contract, not extractable shared logic; the deps records that
-# collapsed the duplication were removed in 0fa1e39 after they proved more
-# trouble than they were worth — see #430 history).
+# framework's injection idiom. The handlers in src/WopiHost.Core/Endpoints/ range from
+# 6 to ~18 parameters, well past qlty's default function-parameters threshold (~5).
+# The deps-record workaround was tried and removed in 0fa1e39 after it proved more
+# trouble than it was worth (see #430 history).
 #
-# The full csharp smell set is suppressed here for the endpoint directory —
-# narrower opt-outs proved fragile across refactors. The directory is small
-# (8 files), shallow, and reviewed end-to-end on every PR touching it, so the
-# qlty signal here is low-value relative to the maintenance churn.
-#
-# NB: the docs example uses underscores (qlty:function_parameters) but qlty.sh's PR-
-# comment review flow keys off the hyphenated form (qlty:function-parameters — see the
-# rule slug in the issue URLs). Listing both forms here insulates us from the docs/cloud
-# disagreement; whichever the matcher honours wins.
-[[triage]]
-match.plugins = ["qlty"]
-match.rules = [
-  "qlty:function-parameters",
-  "qlty:file-complexity",
-  "qlty:function-complexity",
-  "qlty:similar-code",
-  "qlty:identical-code",
-  "qlty:duplication",
-  "qlty:boolean-logic",
-  "qlty:nested-control-flow",
-  "qlty:return-statements",
-  "qlty:function_parameters",
-  "qlty:file_complexity",
-  "qlty:function_complexity",
-  "qlty:similar_code",
-  "qlty:identical_code",
-  "qlty:boolean_logic",
-  "qlty:nested_control_flow",
-  "qlty:return_statements",
-]
-match.file_patterns = ["src/WopiHost.Core/Endpoints/**"]
-set.ignored = true
+# Raise the C# function-parameters threshold globally. The only code that approaches
+# this threshold is the endpoint directory; everything else in the repo is well under,
+# so the bump is effectively scoped to where it's needed. The [[triage]] block tried
+# previously didn't actually suppress — the rule kept firing in PR review comments —
+# so we switch to the language-level threshold override per qlty's documented schema.
+[language.csharp.smells.function_parameters]
+threshold = 50
