@@ -11,7 +11,8 @@ namespace WopiHost.IntegrationTests.Fixtures;
 /// </summary>
 /// <remarks>
 /// Read-only tests can safely share a single backend because they don't mutate the
-/// file-system state. <see cref="MutatingEndpointTests"/> uses its own per-class temp-dir
+/// file-system state. <see cref="FileMutatingEndpointTests"/> /
+/// <see cref="ContainerMutatingEndpointTests"/> share their own collection-scoped temp-dir
 /// fixture (so writes don't corrupt this shared one).
 /// </remarks>
 public sealed class ReadOnlyEndpointsFixture : IDisposable

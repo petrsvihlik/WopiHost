@@ -334,22 +334,22 @@ internal static class FileMutatingEndpoints
         }
 
         // Read up to MAX+1 so we can detect bodies that exceed the cap mid-stream (chunked
-        // transfer-encoding with no Content-Length, or clients that lie about it).
-        using var buffer = new MemoryStream(PutUserInfoMaxBytes + 1);
-        var chunk = new byte[PutUserInfoMaxBytes + 1];
+        // transfer-encoding with no Content-Length, or clients that lie about it). Single
+        // backing buffer — ReadAsync writes directly at the running offset, no intermediate
+        // chunk array or MemoryStream copy.
+        var buffer = new byte[PutUserInfoMaxBytes + 1];
         var total = 0;
         int read;
-        while ((read = await httpContext.Request.Body.ReadAsync(chunk.AsMemory(0, chunk.Length - total), cancellationToken).ConfigureAwait(false)) > 0)
+        while ((read = await httpContext.Request.Body.ReadAsync(buffer.AsMemory(total), cancellationToken).ConfigureAwait(false)) > 0)
         {
             total += read;
             if (total > PutUserInfoMaxBytes)
             {
                 return TypedResults.BadRequest();
             }
-            buffer.Write(chunk, 0, read);
         }
 
-        var userInfo = System.Text.Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length);
+        var userInfo = System.Text.Encoding.UTF8.GetString(buffer, 0, total);
 
         memoryCache.Set(
             $"{UserInfoCacheKeyPrefix}{httpContext.User.GetUserId()}",

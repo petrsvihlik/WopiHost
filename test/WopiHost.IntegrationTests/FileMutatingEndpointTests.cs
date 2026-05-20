@@ -7,52 +7,17 @@ using Xunit;
 namespace WopiHost.IntegrationTests;
 
 /// <summary>
-/// HTTP-level coverage of every mutating endpoint in <c>MapWopiEndpoints</c>
-/// (FileMutatingEndpoints + ContainerMutatingEndpoints). Mutating tests need an isolated
-/// file-system root so they don't corrupt the shared sample/wopi-docs the read-only smoke
-/// tests rely on — the fixture copies the sample into a per-class temp directory and points
-/// <see cref="WopiBackendFactory"/> at it. Cleanup happens in <see cref="IDisposable.Dispose"/>.
+/// HTTP-level coverage of every mutating endpoint in
+/// <see cref="WopiHost.Core.Endpoints.FileMutatingEndpoints"/>: PutFile, RenameFile,
+/// PutRelativeFile, PutUserInfo, DeleteFile, ProcessCobalt, and the full Lock state machine
+/// (Lock / GetLock / Unlock / RefreshLock / UnlockAndRelock) dispatched through ProcessLock.
+/// Plus a couple of cross-cutting integration tests (multi-step lock-cycle, unknown override
+/// fallthrough) that share the same fixture.
 /// </summary>
-public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture) : IClassFixture<MutatingEndpointTests.Fixture>
+[Collection("MutatingEndpoints")]
+public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
 {
-    private const string SharedSigningSecret = "mutating-tests-shared-key-32bytes!";
-
-    private readonly Fixture _fixture = fixture;
-
-    private async Task<string> MintFileTokenAsync(string fileId, WopiFilePermissions permissions = WopiFilePermissions.UserCanWrite | WopiFilePermissions.UserCanRename)
-    {
-        using var scope = _fixture.WopiBackend.Services.CreateScope();
-        var tokens = scope.ServiceProvider.GetRequiredService<IWopiAccessTokenService>();
-        var token = await tokens.IssueAsync(new WopiAccessTokenRequest
-        {
-            UserId = "mut-user",
-            UserDisplayName = "Mut User",
-            UserEmail = "mut@example.com",
-            ResourceId = fileId,
-            ResourceType = WopiResourceType.File,
-            FilePermissions = permissions,
-        });
-        return token.Token;
-    }
-
-    private async Task<string> MintContainerTokenAsync(string containerId)
-    {
-        using var scope = _fixture.WopiBackend.Services.CreateScope();
-        var tokens = scope.ServiceProvider.GetRequiredService<IWopiAccessTokenService>();
-        var token = await tokens.IssueAsync(new WopiAccessTokenRequest
-        {
-            UserId = "mut-user",
-            UserDisplayName = "Mut User",
-            UserEmail = "mut@example.com",
-            ResourceId = containerId,
-            ResourceType = WopiResourceType.Container,
-            ContainerPermissions = WopiContainerPermissions.UserCanCreateChildContainer
-                | WopiContainerPermissions.UserCanCreateChildFile
-                | WopiContainerPermissions.UserCanDelete
-                | WopiContainerPermissions.UserCanRename,
-        });
-        return token.Token;
-    }
+    private readonly MutatingEndpointsFixture _fixture = fixture;
 
     // ---- PutFile ---------------------------------------------------------
 
@@ -60,7 +25,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task PutFile_OnUnlockedZeroByteFile_Returns_200()
     {
         var fileId = await _fixture.CreateTempFileAsync([]);
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
@@ -77,7 +42,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     {
         // Spec: PutFile on a non-empty unlocked file must 409 with the empty-lock header set.
         var fileId = await _fixture.CreateTempFileAsync("existing"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
@@ -97,7 +62,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // lock id in X-WOPI-Lock. Previous impl returned 409 with an EMPTY X-WOPI-Lock because
         // it branched on the request header's absence, not the file's lock state.
         var fileId = await _fixture.CreateTempFileAsync("locked-non-empty"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         var url = $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}";
 
@@ -125,7 +90,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // check on the no-header path and silently overwrote locked 0-byte files — a real
         // security smell against malicious / buggy clients.
         var fileId = await _fixture.CreateTempFileAsync([]);  // 0-byte file
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         var url = $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}";
 
@@ -153,7 +118,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // would invoke ProcessLockCore → AddLockAsync and ACQUIRE the lock as a side effect,
         // then write. PutFile is supposed to validate against an existing lock, not establish one.
         var fileId = await _fixture.CreateTempFileAsync("existing-content"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var putReq = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
@@ -179,7 +144,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task PutFile_WithMatchingLock_Updates_AndReturns_200()
     {
         var fileId = await _fixture.CreateTempFileAsync("v1"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         var url = $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}";
 
@@ -201,13 +166,31 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         Assert.Equal(HttpStatusCode.OK, putResp.StatusCode);
     }
 
+    [Fact]
+    public async Task PutFile_WithEditorsHeader_Splits_AndReturns_200()
+    {
+        // ParseEditorsHeader's non-empty branch is only hit when X-WOPI-Editors is populated.
+        var fileId = await _fixture.CreateTempFileAsync([]);
+        var token = await _fixture.MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new ByteArrayContent("hello"u8.ToArray()),
+        };
+        req.Headers.Add("X-WOPI-Editors", "editor-1, editor-2 , editor-3");
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+    }
+
     // ---- RenameFile ------------------------------------------------------
 
     [Fact]
     public async Task RenameFile_Returns_200_WithNewName()
     {
         var fileId = await _fixture.CreateTempFileAsync("rename-me"u8.ToArray(), extension: ".txt");
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
@@ -229,7 +212,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // based on the requested name that meets the file name requirements." Previously we
         // returned 400 immediately on invalid name. Now we sanitise '/' → '_' and proceed.
         var fileId = await _fixture.CreateTempFileAsync("rename-me"u8.ToArray(), extension: ".txt");
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
@@ -244,66 +227,10 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     }
 
     [Fact]
-    public async Task ProcessLock_OnMissingFile_Returns_404()
-    {
-        // Spec: Lock/Unlock/RefreshLock all list 404 for "Resource not found". Previous impl
-        // threw InvalidOperationException → surfaced as 500.
-        var missing = new string('0', 64);
-        var token = await MintFileTokenAsync(missing);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{missing}?access_token={Uri.EscapeDataString(token)}");
-        req.Headers.Add("X-WOPI-Override", "LOCK");
-        req.Headers.Add("X-WOPI-Lock", "any-lock-id");
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
-    }
-
-    [Fact]
-    public async Task ProcessCobalt_OnMissingFile_Returns_404()
-    {
-        // ProcessCobalt previously threw InvalidOperationException when the file was missing,
-        // surfacing as 500. Now returns 404 — matches the rest of the surface.
-        var missing = new string('1', 64);
-        var token = await MintFileTokenAsync(missing);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{missing}?access_token={Uri.EscapeDataString(token)}")
-        {
-            Content = new ByteArrayContent([]),
-        };
-        req.Headers.Add("X-WOPI-Override", "COBALT");
-        var resp = await client.SendAsync(req);
-
-        // The endpoint also has RequiresWritableStorageEndpointFilter — but since the FS provider
-        // IS a writable storage, this filter doesn't fire. We get 404 from the new null check.
-        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
-    }
-
-    [Fact]
-    public async Task PutUserInfo_BodyOverLimit_Returns_400()
-    {
-        // Spec caps UserInfo at 1024 ASCII chars.
-        var fileId = await _fixture.CreateTempFileAsync("for-userinfo"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}")
-        {
-            Content = new StringContent(new string('x', 2000)),
-        };
-        req.Headers.Add("X-WOPI-Override", "PUT_USER_INFO");
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
-    }
-
-    [Fact]
     public async Task RenameFile_NotFound_Returns_404()
     {
         var missing = new string('a', 64);
-        var token = await MintFileTokenAsync(missing);
+        var token = await _fixture.MintFileTokenAsync(missing);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{missing}?access_token={Uri.EscapeDataString(token)}");
@@ -318,7 +245,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task RenameFile_LockMismatch_Returns_409()
     {
         var fileId = await _fixture.CreateTempFileAsync("locked"u8.ToArray(), extension: ".txt");
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         var url = $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}";
 
@@ -343,7 +270,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task PutRelativeFile_WithSuggestedTarget_Returns_200()
     {
         var parentFileId = await _fixture.CreateTempFileAsync("anchor"u8.ToArray(), extension: ".txt");
-        var token = await MintFileTokenAsync(parentFileId, WopiFilePermissions.UserCanWrite);
+        var token = await _fixture.MintFileTokenAsync(parentFileId, WopiFilePermissions.UserCanWrite);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{parentFileId}?access_token={Uri.EscapeDataString(token)}")
@@ -366,7 +293,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // "bad/name.txt" contains a forbidden '/' char; the negotiator sanitises it to a valid
         // candidate, the file gets created, and we get 200.
         var parentFileId = await _fixture.CreateTempFileAsync("anchor"u8.ToArray(), extension: ".txt");
-        var token = await MintFileTokenAsync(parentFileId, WopiFilePermissions.UserCanWrite);
+        var token = await _fixture.MintFileTokenAsync(parentFileId, WopiFilePermissions.UserCanWrite);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{parentFileId}?access_token={Uri.EscapeDataString(token)}")
@@ -386,7 +313,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // Spec: specific-mode invalid name → 400, optionally with X-WOPI-ValidRelativeTarget so
         // the client can auto-retry with a sanitised name.
         var parentFileId = await _fixture.CreateTempFileAsync("anchor"u8.ToArray(), extension: ".txt");
-        var token = await MintFileTokenAsync(parentFileId, WopiFilePermissions.UserCanWrite);
+        var token = await _fixture.MintFileTokenAsync(parentFileId, WopiFilePermissions.UserCanWrite);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{parentFileId}?access_token={Uri.EscapeDataString(token)}")
@@ -407,7 +334,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // Spec: the Url property includes an access token. To honour "preventing token trading",
         // that token must be bound to the NEW file's resource id — not the source file's.
         var parentFileId = await _fixture.CreateTempFileAsync("anchor"u8.ToArray(), extension: ".txt");
-        var token = await MintFileTokenAsync(parentFileId, WopiFilePermissions.UserCanWrite);
+        var token = await _fixture.MintFileTokenAsync(parentFileId, WopiFilePermissions.UserCanWrite);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{parentFileId}?access_token={Uri.EscapeDataString(token)}")
@@ -438,7 +365,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task PutRelativeFile_BothHeaders_Returns_501()
     {
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray(), extension: ".txt");
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}")
@@ -459,7 +386,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task PutUserInfo_Returns_200_AndStoresInfo()
     {
         var fileId = await _fixture.CreateTempFileAsync("for-userinfo"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}")
@@ -478,10 +405,28 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     }
 
     [Fact]
+    public async Task PutUserInfo_BodyOverLimit_Returns_400()
+    {
+        // Spec caps UserInfo at 1024 ASCII chars.
+        var fileId = await _fixture.CreateTempFileAsync("for-userinfo"u8.ToArray());
+        var token = await _fixture.MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new StringContent(new string('x', 2000)),
+        };
+        req.Headers.Add("X-WOPI-Override", "PUT_USER_INFO");
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
     public async Task PutUserInfo_NotFound_Returns_404()
     {
         var missing = new string('b', 64);
-        var token = await MintFileTokenAsync(missing);
+        var token = await _fixture.MintFileTokenAsync(missing);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{missing}?access_token={Uri.EscapeDataString(token)}")
@@ -500,7 +445,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task DeleteFile_Returns_200_AndRemovesFile()
     {
         var fileId = await _fixture.CreateTempFileAsync("delete-me"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
@@ -518,7 +463,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task DeleteFile_NotFound_Returns_404()
     {
         var missing = new string('c', 64);
-        var token = await MintFileTokenAsync(missing);
+        var token = await _fixture.MintFileTokenAsync(missing);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{missing}?access_token={Uri.EscapeDataString(token)}");
@@ -532,7 +477,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task DeleteFile_OnLockedFile_Returns_409()
     {
         var fileId = await _fixture.CreateTempFileAsync("locked-delete"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         var url = $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}";
 
@@ -561,7 +506,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // surfaces as a 500. Spec'd behaviour for hosts without Cobalt support; the validator
         // exercises the success path when Cobalt is wired in.
         var fileId = await _fixture.CreateTempFileAsync("cobalt-target"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}")
@@ -572,6 +517,25 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         var resp = await client.SendAsync(req);
 
         Assert.Equal(HttpStatusCode.InternalServerError, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task ProcessCobalt_OnMissingFile_Returns_404()
+    {
+        // ProcessCobalt previously threw InvalidOperationException when the file was missing,
+        // surfacing as 500. Now returns 404 — matches the rest of the surface.
+        var missing = new string('1', 64);
+        var token = await _fixture.MintFileTokenAsync(missing);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{missing}?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new ByteArrayContent([]),
+        };
+        req.Headers.Add("X-WOPI-Override", "COBALT");
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
 
     // ---- Lock state machine ---------------------------------------------
@@ -591,10 +555,24 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     }
 
     [Fact]
+    public async Task ProcessLock_OnMissingFile_Returns_404()
+    {
+        // Spec: Lock/Unlock/RefreshLock all list 404 for "Resource not found". Previous impl
+        // threw InvalidOperationException → surfaced as 500.
+        var missing = new string('0', 64);
+        var token = await _fixture.MintFileTokenAsync(missing);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var resp = await client.SendAsync(LockOp(missing, token, "LOCK", newLock: "any-lock-id"));
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Fact]
     public async Task GetLock_OnUnlocked_Returns_200_WithEmptyLockHeader()
     {
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var resp = await client.SendAsync(LockOp(fileId, token, "GET_LOCK"));
@@ -609,7 +587,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task GetLock_OnLocked_Returns_200_WithLockId()
     {
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "active"));
 
@@ -625,7 +603,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // Spec: Lock lists 400 Bad Request — "X-WOPI-Lock was not provided or was empty" — as
         // a distinct status from 409 (lock mismatch). Previous impl returned 409.
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var resp = await client.SendAsync(LockOp(fileId, token, "LOCK"));
@@ -637,7 +615,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task Lock_IdTooLong_Returns_400()
     {
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         // WopiLockInfo.MaxLockIdLength is 1024; 2000 chars is clearly over.
         var oversized = new string('z', 2000);
@@ -654,7 +632,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // LOCK with the same id as the existing lock dispatches into LockOrRefresh's refresh
         // branch — covers HandleLock's "existingLock is not null" path.
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "same-id"));
 
@@ -667,7 +645,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task Unlock_OnUnlocked_Returns_409()
     {
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var resp = await client.SendAsync(LockOp(fileId, token, "UNLOCK", newLock: "any"));
@@ -679,7 +657,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task Unlock_WithWrongLock_Returns_409()
     {
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "real-lock"));
 
@@ -693,7 +671,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task Unlock_WithMatchingLock_Returns_200()
     {
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "unlock-me"));
 
@@ -706,7 +684,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task RefreshLock_OnUnlocked_Returns_409()
     {
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var resp = await client.SendAsync(LockOp(fileId, token, "REFRESH_LOCK", newLock: "lock"));
@@ -719,7 +697,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     {
         // Spec: RefreshLock lists 400 Bad Request for missing/empty X-WOPI-Lock.
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "active"));
 
@@ -732,7 +710,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task RefreshLock_WithMatchingLock_Returns_200()
     {
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "refresh-me"));
 
@@ -745,7 +723,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task UnlockAndRelock_OnUnlocked_Returns_409()
     {
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "new", oldLock: "old"));
@@ -757,7 +735,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task UnlockAndRelock_WithWrongOldLock_Returns_409()
     {
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "current"));
 
@@ -773,7 +751,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // Spec: UnlockAndRelock (LOCK override with X-WOPI-OldLock present) lists 400 Bad Request
         // for missing/empty X-WOPI-Lock. The pre-dispatch guard in ProcessLockCore catches this.
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "current"));
 
@@ -783,28 +761,10 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     }
 
     [Fact]
-    public async Task PutFile_WithEditorsHeader_Splits_AndReturns_200()
-    {
-        // ParseEditorsHeader's non-empty branch is only hit when X-WOPI-Editors is populated.
-        var fileId = await _fixture.CreateTempFileAsync([]);
-        var token = await MintFileTokenAsync(fileId);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var req = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
-        {
-            Content = new ByteArrayContent("hello"u8.ToArray()),
-        };
-        req.Headers.Add("X-WOPI-Editors", "editor-1, editor-2 , editor-3");
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-    }
-
-    [Fact]
     public async Task UnlockAndRelock_WithMatchingOldLock_Returns_200()
     {
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "v1"));
 
@@ -823,7 +783,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // per-state tests above by verifying state survives across multiple HTTP requests
         // on the same lock id.
         var fileId = await _fixture.CreateTempFileAsync("cycle"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var lockResp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "lock-1"));
@@ -847,7 +807,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // echoed back in X-WOPI-Lock. Distinct from Lock_OnLockedSameId_Refreshes which
         // exercises the refresh branch when ids match.
         var fileId = await _fixture.CreateTempFileAsync("conflict"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "lock-initial"));
 
@@ -864,7 +824,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         // endpoint declares a matching X-WOPI-Override; framework then falls through to
         // 404 (documented behaviour — see the policy class XML remarks).
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
-        var token = await MintFileTokenAsync(fileId);
+        var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
@@ -872,335 +832,5 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         var resp = await client.SendAsync(req);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
-    }
-
-    // ---- CreateChildContainer --------------------------------------------
-
-    [Fact]
-    public async Task CreateChildContainer_WithSuggestedTarget_Returns_200()
-    {
-        var token = await MintContainerTokenAsync(_fixture.RootContainerId);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
-        req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
-        req.Headers.Add("X-WOPI-SuggestedTarget", $"folder-{Guid.NewGuid():N}");
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
-        Assert.Contains("\"ContainerPointer\"", body);
-    }
-
-    [Fact]
-    public async Task CreateChildContainer_WithRelativeTarget_OnExisting_Returns_409()
-    {
-        var token = await MintContainerTokenAsync(_fixture.RootContainerId);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        // First create a folder with a known name…
-        var name = $"folder-{Guid.NewGuid():N}";
-        var first = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
-        first.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
-        first.Headers.Add("X-WOPI-RelativeTarget", name);
-        var firstResp = await client.SendAsync(first);
-        Assert.Equal(HttpStatusCode.OK, firstResp.StatusCode);
-
-        // …then ask for it again under specific (relative) mode → 409.
-        var second = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
-        second.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
-        second.Headers.Add("X-WOPI-RelativeTarget", name);
-        var secondResp = await client.SendAsync(second);
-
-        Assert.Equal(HttpStatusCode.Conflict, secondResp.StatusCode);
-        Assert.True(secondResp.Headers.Contains("X-WOPI-ValidRelativeTarget"));
-    }
-
-    [Fact]
-    public async Task CreateChildContainer_BothHeaders_Returns_501()
-    {
-        var token = await MintContainerTokenAsync(_fixture.RootContainerId);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
-        req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
-        req.Headers.Add("X-WOPI-SuggestedTarget", "a");
-        req.Headers.Add("X-WOPI-RelativeTarget", "b");
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
-    }
-
-    // ---- CreateChildFile -------------------------------------------------
-
-    [Fact]
-    public async Task CreateChildFile_WithSuggestedTarget_Returns_200()
-    {
-        var token = await MintContainerTokenAsync(_fixture.RootContainerId);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}")
-        {
-            Content = new ByteArrayContent("file-body"u8.ToArray()),
-        };
-        req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_FILE");
-        req.Headers.Add("X-WOPI-SuggestedTarget", ".txt");
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-    }
-
-    [Fact]
-    public async Task CreateChildFile_BothHeaders_Returns_501()
-    {
-        var token = await MintContainerTokenAsync(_fixture.RootContainerId);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}")
-        {
-            Content = new ByteArrayContent([]),
-        };
-        req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_FILE");
-        req.Headers.Add("X-WOPI-SuggestedTarget", "a.txt");
-        req.Headers.Add("X-WOPI-RelativeTarget", "b.txt");
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
-    }
-
-    // ---- DeleteContainer / RenameContainer -------------------------------
-
-    [Fact]
-    public async Task DeleteContainer_OnEmpty_Returns_200()
-    {
-        // Create a fresh empty subfolder, then delete it.
-        using var client = _fixture.WopiBackend.CreateClient();
-        var childId = await _fixture.CreateTempContainerAsync();
-        var childToken = await MintContainerTokenAsync(childId);
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{childId}?access_token={Uri.EscapeDataString(childToken)}");
-        req.Headers.Add("X-WOPI-Override", "DELETE_CONTAINER");
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-    }
-
-    [Fact]
-    public async Task DeleteContainer_NonEmpty_Returns_409()
-    {
-        // Create a subfolder, drop a file into it, then try to delete the folder.
-        // FileSystemProvider's DeleteWopiContainer raises InvalidOperationException on a
-        // non-empty directory, which the handler maps to 409.
-        var childId = await _fixture.CreateTempContainerAsync();
-        var fileName = $"child-{Guid.NewGuid():N}.bin";
-        using (var scope = _fixture.WopiBackend.Services.CreateScope())
-        {
-            var writable = scope.ServiceProvider.GetRequiredService<IWopiWritableStorageProvider>();
-            await writable.CreateWopiChildFile(childId, fileName);
-        }
-        var token = await MintContainerTokenAsync(childId);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{childId}?access_token={Uri.EscapeDataString(token)}");
-        req.Headers.Add("X-WOPI-Override", "DELETE_CONTAINER");
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
-    }
-
-    [Fact]
-    public async Task DeleteContainer_NotFound_Returns_404()
-    {
-        var missing = new string('d', 64);
-        var token = await MintContainerTokenAsync(missing);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{missing}?access_token={Uri.EscapeDataString(token)}");
-        req.Headers.Add("X-WOPI-Override", "DELETE_CONTAINER");
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
-    }
-
-    [Fact]
-    public async Task RenameContainer_Returns_200_WithNewName()
-    {
-        // Spec: response JSON has a single required Name property that MUST be the new name.
-        // The pre-fix impl returned the OLD container snapshot's Name (out-of-sync with what
-        // the storage provider actually persisted).
-        var childId = await _fixture.CreateTempContainerAsync();
-        var token = await MintContainerTokenAsync(childId);
-        using var client = _fixture.WopiBackend.CreateClient();
-        var newName = $"renamed-{Guid.NewGuid():N}";
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{childId}?access_token={Uri.EscapeDataString(token)}");
-        req.Headers.Add("X-WOPI-Override", "RENAME_CONTAINER");
-        req.Headers.Add("X-WOPI-RequestedName", newName);
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
-        var payload = JsonSerializer.Deserialize<JsonElement>(body);
-        Assert.Equal(newName, payload.GetProperty("Name").GetString());
-    }
-
-    [Fact]
-    public async Task CreateChildContainer_Suggested_InvalidName_SanitisesAndReturns_200()
-    {
-        // Spec: suggested-mode "must never result in a 400 Bad Request or 409 Conflict. Rather,
-        // the host must modify the proposed name as needed to create a new container that is
-        // legally named." Previously we returned 400 on invalid input regardless of mode.
-        var token = await MintContainerTokenAsync(_fixture.RootContainerId);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
-        req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
-        req.Headers.Add("X-WOPI-SuggestedTarget", $"bad/name-{Guid.NewGuid():N}");
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-    }
-
-    [Fact]
-    public async Task CreateChildContainer_Relative_InvalidName_Returns_400_WithInvalidContainerNameError()
-    {
-        // Spec: specific-mode 400 "must include an X-WOPI-InvalidContainerNameError header that
-        // describes why the file name was invalid." Pre-fix returned bare BadRequest with no
-        // diagnostic header.
-        var token = await MintContainerTokenAsync(_fixture.RootContainerId);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
-        req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
-        req.Headers.Add("X-WOPI-RelativeTarget", "bad/name");
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
-        Assert.True(resp.Headers.Contains("X-WOPI-InvalidContainerNameError"));
-    }
-
-    [Fact]
-    public async Task CreateChildContainer_ResponseUrl_CarriesFreshContainerScopedToken()
-    {
-        // Spec: response Url property must include an access token. To honour "preventing
-        // token trading", it must be bound to the NEW child's resource id, not reuse the
-        // inbound parent token.
-        var token = await MintContainerTokenAsync(_fixture.RootContainerId);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var name = $"folder-{Guid.NewGuid():N}";
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
-        req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
-        req.Headers.Add("X-WOPI-RelativeTarget", name);
-        var resp = await client.SendAsync(req);
-        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-
-        var body = await resp.Content.ReadAsStringAsync();
-        var payload = JsonSerializer.Deserialize<JsonElement>(body);
-        var url = payload.GetProperty("ContainerPointer").GetProperty("Url").GetString()!;
-        var uri = new Uri(url);
-        var childToken = System.Web.HttpUtility.ParseQueryString(uri.Query)["access_token"]!;
-        Assert.NotEqual(token, childToken);
-
-        var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(childToken);
-        var childId = uri.AbsolutePath.Split('/').Last();
-        Assert.Equal(childId, jwt.Claims.First(c => c.Type == WopiClaimTypes.ResourceId).Value);
-        Assert.NotEqual(_fixture.RootContainerId, jwt.Claims.First(c => c.Type == WopiClaimTypes.ResourceId).Value);
-    }
-
-    [Fact]
-    public async Task RenameContainer_NotFound_Returns_404()
-    {
-        var missing = new string('e', 64);
-        var token = await MintContainerTokenAsync(missing);
-        using var client = _fixture.WopiBackend.CreateClient();
-
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{missing}?access_token={Uri.EscapeDataString(token)}");
-        req.Headers.Add("X-WOPI-Override", "RENAME_CONTAINER");
-        req.Headers.Add("X-WOPI-RequestedName", "x");
-        var resp = await client.SendAsync(req);
-
-        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
-    }
-
-    /// <summary>
-    /// Per-test-class fixture. Boots a <see cref="WopiBackendFactory"/> rooted at a fresh
-    /// temp directory containing a copy of <see cref="TestPaths.WopiDocsRoot"/>, so mutating
-    /// tests can write / delete / rename without corrupting the shared sample. Exposes
-    /// helpers for materialising disposable test files + containers that resolve to a
-    /// usable storage identifier.
-    /// </summary>
-    public sealed class Fixture : IDisposable
-    {
-        private readonly string _tempRoot;
-        public WopiBackendFactory WopiBackend { get; }
-        public string RootContainerId { get; }
-
-        public Fixture()
-        {
-            _tempRoot = Path.Combine(Path.GetTempPath(), $"wopi-mut-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(_tempRoot);
-            CopyDirectory(TestPaths.WopiDocsRoot, _tempRoot);
-
-            WopiBackend = new WopiBackendFactory(SharedSigningSecret, storageRootPath: _tempRoot);
-
-            using var scope = WopiBackend.Services.CreateScope();
-            var storage = scope.ServiceProvider.GetRequiredService<IWopiStorageProvider>();
-            RootContainerId = storage.RootContainer.Identifier;
-        }
-
-        /// <summary>
-        /// Creates a file via <see cref="IWopiWritableStorageProvider.CreateWopiChildFile"/>
-        /// so the FileSystemProvider's id→path cache registers the new identifier (dropping
-        /// raw bytes onto disk would leave the cache stale and the file invisible to
-        /// <c>GetWopiFiles</c>). Then writes <paramref name="contents"/> through the writable
-        /// file handle.
-        /// </summary>
-        public async Task<string> CreateTempFileAsync(byte[] contents, string extension = ".bin")
-        {
-            var fileName = $"mut-{Guid.NewGuid():N}{extension}";
-            using var scope = WopiBackend.Services.CreateScope();
-            var writable = scope.ServiceProvider.GetRequiredService<IWopiWritableStorageProvider>();
-            var file = await writable.CreateWopiChildFile(RootContainerId, fileName)
-                ?? throw new InvalidOperationException($"CreateWopiChildFile returned null for {fileName}");
-            if (contents.Length > 0)
-            {
-                await using var stream = await file.OpenWriteAsync();
-                await stream.WriteAsync(contents);
-            }
-            return file.Identifier;
-        }
-
-        /// <summary>
-        /// Creates a subfolder via <see cref="IWopiWritableStorageProvider.CreateWopiChildContainer"/>
-        /// so the id→path cache registers it. Returns the new container's identifier.
-        /// </summary>
-        public async Task<string> CreateTempContainerAsync()
-        {
-            var folderName = $"mut-container-{Guid.NewGuid():N}";
-            using var scope = WopiBackend.Services.CreateScope();
-            var writable = scope.ServiceProvider.GetRequiredService<IWopiWritableStorageProvider>();
-            var container = await writable.CreateWopiChildContainer(RootContainerId, folderName)
-                ?? throw new InvalidOperationException($"CreateWopiChildContainer returned null for {folderName}");
-            return container.Identifier;
-        }
-
-        private static void CopyDirectory(string source, string destination)
-        {
-            foreach (var dir in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
-            {
-                Directory.CreateDirectory(dir.Replace(source, destination, StringComparison.Ordinal));
-            }
-            foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
-            {
-                File.Copy(file, file.Replace(source, destination, StringComparison.Ordinal), overwrite: true);
-            }
-        }
-
-        public void Dispose()
-        {
-            WopiBackend.Dispose();
-            try { Directory.Delete(_tempRoot, recursive: true); } catch { /* best-effort cleanup */ }
-        }
     }
 }
