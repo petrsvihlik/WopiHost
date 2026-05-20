@@ -369,7 +369,7 @@ internal static class FileMutatingEndpoints
         };
     }
 
-    private static IResult HandleGetLock(HttpContext httpContext, WopiLockInfo? existingLock, IOptions<WopiHostOptions> options)
+    private static Microsoft.AspNetCore.Http.HttpResults.Ok HandleGetLock(HttpContext httpContext, WopiLockInfo? existingLock, IOptions<WopiHostOptions> options)
     {
         httpContext.Response.Headers[WopiHeaders.LOCK] = existingLock is not null
             ? existingLock.LockId
@@ -434,7 +434,7 @@ internal static class FileMutatingEndpoints
             : new WopiLockMismatchResult(reason: "Could not refresh lock");
     }
 
-    private static IResult? CheckMaxFileSize(HttpContext httpContext, long? max, long? declaredSize = null)
+    private static Microsoft.AspNetCore.Http.HttpResults.StatusCodeHttpResult? CheckMaxFileSize(HttpContext httpContext, long? max, long? declaredSize = null)
     {
         if (max is null) return null;
         var contentLength = httpContext.Request.ContentLength;

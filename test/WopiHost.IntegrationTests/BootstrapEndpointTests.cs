@@ -70,7 +70,6 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
     [Fact]
     public async Task GetNewAccessToken_POST_WithFileWopiSrc_Returns_Token()
     {
-        var rootId = _fixture.RootContainerId;
         var fileId = await _fixture.FirstFileIdAsync();
 
         using var client = _fixture.WopiBackend.CreateClient().AsBootstrapUser("user-3", "Carol");

@@ -32,7 +32,7 @@ public class WopiOriginValidationEndpointFilterTests
 
         var result = await filter.InvokeAsync(ctx, _ => ValueTask.FromResult<object?>(null));
 
-        var status = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        var status = Assert.IsType<IStatusCodeHttpResult>(result, exactMatch: false);
         Assert.Equal(StatusCodes.Status500InternalServerError, status.StatusCode);
     }
 
@@ -46,7 +46,7 @@ public class WopiOriginValidationEndpointFilterTests
 
         var result = await filter.InvokeAsync(ctx, _ => ValueTask.FromResult<object?>(null));
 
-        var status = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        var status = Assert.IsType<IStatusCodeHttpResult>(result, exactMatch: false);
         Assert.Equal(StatusCodes.Status500InternalServerError, status.StatusCode);
     }
 

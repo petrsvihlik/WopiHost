@@ -47,10 +47,10 @@ public sealed class MapWopiEndpointsTests : IAsyncLifetime
         _app.MapWopiEndpoints();
         await _app.StartAsync();
 
-        _endpoints = _app.Services.GetRequiredService<EndpointDataSource>()
-            .Endpoints
-            .OfType<RouteEndpoint>()
-            .ToArray();
+        _endpoints = [..
+            _app.Services.GetRequiredService<EndpointDataSource>()
+                .Endpoints
+                .OfType<RouteEndpoint>()];
     }
 
     public async ValueTask DisposeAsync()

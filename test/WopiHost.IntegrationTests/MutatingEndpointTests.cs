@@ -58,7 +58,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     [Fact]
     public async Task PutFile_OnUnlockedZeroByteFile_Returns_200()
     {
-        var fileId = await _fixture.CreateTempFileAsync(Array.Empty<byte>());
+        var fileId = await _fixture.CreateTempFileAsync([]);
         var token = await MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
@@ -204,7 +204,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}")
         {
-            Content = new ByteArrayContent(Array.Empty<byte>()),
+            Content = new ByteArrayContent([]),
         };
         req.Headers.Add("X-WOPI-Override", "PUT_RELATIVE");
         req.Headers.Add("X-WOPI-SuggestedTarget", "a.txt");
@@ -327,7 +327,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}")
         {
-            Content = new ByteArrayContent(Array.Empty<byte>()),
+            Content = new ByteArrayContent([]),
         };
         req.Headers.Add("X-WOPI-Override", "COBALT");
         var resp = await client.SendAsync(req);
@@ -545,7 +545,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task PutFile_WithEditorsHeader_Splits_AndReturns_200()
     {
         // ParseEditorsHeader's non-empty branch is only hit when X-WOPI-Editors is populated.
-        var fileId = await _fixture.CreateTempFileAsync(Array.Empty<byte>());
+        var fileId = await _fixture.CreateTempFileAsync([]);
         var token = await MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
@@ -717,7 +717,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}")
         {
-            Content = new ByteArrayContent(Array.Empty<byte>()),
+            Content = new ByteArrayContent([]),
         };
         req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_FILE");
         req.Headers.Add("X-WOPI-SuggestedTarget", "a.txt");
@@ -733,7 +733,6 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     public async Task DeleteContainer_OnEmpty_Returns_200()
     {
         // Create a fresh empty subfolder, then delete it.
-        var rootToken = await MintContainerTokenAsync(_fixture.RootContainerId);
         using var client = _fixture.WopiBackend.CreateClient();
         var childId = await _fixture.CreateTempContainerAsync();
         var childToken = await MintContainerTokenAsync(childId);

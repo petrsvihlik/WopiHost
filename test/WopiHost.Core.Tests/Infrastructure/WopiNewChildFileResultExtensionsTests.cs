@@ -71,7 +71,7 @@ public class WopiNewChildFileResultExtensionsTests
 
         var actionResult = result.ToErrorResult(_response);
 
-        var status = Assert.IsAssignableFrom<IStatusCodeHttpResult>(actionResult);
+        var status = Assert.IsType<IStatusCodeHttpResult>(actionResult, exactMatch: false);
         Assert.Equal(StatusCodes.Status500InternalServerError, status.StatusCode);
     }
 

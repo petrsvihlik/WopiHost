@@ -280,7 +280,7 @@ public class WopiTelemetryEndpointFilterTests
         var listener = new ActivityListener
         {
             ShouldListenTo = src => src.Name == WopiTelemetry.Name,
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            Sample = static (ref _) => ActivitySamplingResult.AllData,
             ActivityStopped = a => { if (a.OperationName == operationName) capture.Activity ??= a; },
         };
         ActivitySource.AddActivityListener(listener);

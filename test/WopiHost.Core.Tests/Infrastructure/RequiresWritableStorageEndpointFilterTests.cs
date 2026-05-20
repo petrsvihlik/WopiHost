@@ -14,12 +14,12 @@ public class RequiresWritableStorageEndpointFilterTests
         var ctx = CreateContext(services => { /* no provider */ });
         var filter = new RequiresWritableStorageEndpointFilter();
         var nextCalled = false;
-        EndpointFilterDelegate next = _ => { nextCalled = true; return ValueTask.FromResult<object?>(null); };
+        ValueTask<object?> Next(EndpointFilterInvocationContext _) { nextCalled = true; return ValueTask.FromResult<object?>(null); }
 
-        var result = await filter.InvokeAsync(ctx, next);
+        var result = await filter.InvokeAsync(ctx, Next);
 
         Assert.False(nextCalled);
-        var status = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        var status = Assert.IsType<IStatusCodeHttpResult>(result, exactMatch: false);
         Assert.Equal(StatusCodes.Status501NotImplemented, status.StatusCode);
     }
 
@@ -30,9 +30,9 @@ public class RequiresWritableStorageEndpointFilterTests
         var ctx = CreateContext(services => services.AddSingleton(writable));
         var filter = new RequiresWritableStorageEndpointFilter();
         var sentinel = new object();
-        EndpointFilterDelegate next = _ => ValueTask.FromResult<object?>(sentinel);
+        ValueTask<object?> Next(EndpointFilterInvocationContext _) => ValueTask.FromResult<object?>(sentinel);
 
-        var result = await filter.InvokeAsync(ctx, next);
+        var result = await filter.InvokeAsync(ctx, Next);
 
         Assert.Same(sentinel, result);
     }

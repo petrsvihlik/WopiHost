@@ -3,7 +3,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace WopiHost.E2ETests.Collabora.Fixtures;
 
@@ -68,7 +67,7 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
         // AppHost reads `builder.Configuration.GetValue<bool>(...)`. Command-line --args were
         // tried first and silently no-op'd (the resource graph kept Redis on, Collabora off).
         var appBuilder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.WopiHost_AppHost>([], (DistributedApplicationOptions _, HostApplicationBuilderSettings settings) =>
+            .CreateAsync<Projects.WopiHost_AppHost>([], (_, settings) =>
             {
                 settings.Configuration ??= new ConfigurationManager();
                 settings.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
