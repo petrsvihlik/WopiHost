@@ -446,6 +446,11 @@ internal static class FileMutatingEndpoints
         return null;
     }
 
+    // Only the PutRelativeFile handler calls this, and it has already verified
+    // IWopiWritableStorageProvider is non-null (ArgumentNullException.ThrowIfNull at the top of
+    // the method). SupportsUpdate is therefore unconditionally true here — for the unauthenticated /
+    // missing-writable-storage cases, the read-only CheckFileInfo endpoint computes the capability
+    // dynamically instead.
     private static WopiHostCapabilities MakeCapabilities(IWopiLockProvider? lockProvider, ICobaltProcessor? cobaltProcessor) => new()
     {
         SupportsCobalt = cobaltProcessor is not null,

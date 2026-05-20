@@ -50,6 +50,7 @@ internal static class FileEndpoints
         ICheckFileInfoBuilder builder,
         [FromServices] IWopiLockProvider? lockProvider,
         [FromServices] ICobaltProcessor? cobaltProcessor,
+        [FromServices] IWopiWritableStorageProvider? writableStorage,
         CancellationToken cancellationToken)
     {
         var file = await storage.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
@@ -57,13 +58,19 @@ internal static class FileEndpoints
 
         _ = memoryCache.TryGetValue($"{UserInfoCacheKeyPrefix}{httpContext.User.GetUserId()}", out string? userInfo);
 
+        // SupportsUpdate must mirror what the mutating endpoints will actually do. Without a
+        // writable storage provider, PutFile / RenameFile / DeleteFile all 501 (via
+        // RequiresWritableStorageEndpointFilter); advertising SupportsUpdate=true in that case
+        // would lie to the WOPI client per
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile.
+        // DefaultCheckFileInfoBuilder cascades SupportsUpdate=false into UserCanNotWriteRelative=true.
         var capabilities = new WopiHostCapabilities
         {
             SupportsCobalt = cobaltProcessor is not null,
             SupportsGetLock = lockProvider is not null,
             SupportsLocks = lockProvider is not null,
             SupportsCoauth = false,
-            SupportsUpdate = true,
+            SupportsUpdate = writableStorage is not null,
         };
 
         var checkFileInfo = await builder.BuildAsync(file, httpContext, capabilities, userInfo, cancellationToken).ConfigureAwait(false);
