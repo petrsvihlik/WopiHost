@@ -244,6 +244,44 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     }
 
     [Fact]
+    public async Task ProcessLock_OnMissingFile_Returns_404()
+    {
+        // Spec: Lock/Unlock/RefreshLock all list 404 for "Resource not found". Previous impl
+        // threw InvalidOperationException → surfaced as 500.
+        var missing = new string('0', 64);
+        var token = await MintFileTokenAsync(missing);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{missing}?access_token={Uri.EscapeDataString(token)}");
+        req.Headers.Add("X-WOPI-Override", "LOCK");
+        req.Headers.Add("X-WOPI-Lock", "any-lock-id");
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task ProcessCobalt_OnMissingFile_Returns_404()
+    {
+        // ProcessCobalt previously threw InvalidOperationException when the file was missing,
+        // surfacing as 500. Now returns 404 — matches the rest of the surface.
+        var missing = new string('1', 64);
+        var token = await MintFileTokenAsync(missing);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{missing}?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new ByteArrayContent([]),
+        };
+        req.Headers.Add("X-WOPI-Override", "COBALT");
+        var resp = await client.SendAsync(req);
+
+        // The endpoint also has RequiresWritableStorageEndpointFilter — but since the FS provider
+        // IS a writable storage, this filter doesn't fire. We get 404 from the new null check.
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Fact]
     public async Task PutUserInfo_BodyOverLimit_Returns_400()
     {
         // Spec caps UserInfo at 1024 ASCII chars.

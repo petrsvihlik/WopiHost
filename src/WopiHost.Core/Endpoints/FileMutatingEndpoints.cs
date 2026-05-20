@@ -399,9 +399,12 @@ internal static class FileMutatingEndpoints
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(writableStorageProvider);
-        ArgumentNullException.ThrowIfNull(cobaltProcessor);
+        // Resolve the file before checking the Cobalt processor so a missing file surfaces as
+        // 404 (per spec) regardless of whether the host has Cobalt wired up. Missing processor
+        // is a host-config issue and falls through to ArgumentNullException → 500 below.
         var file = await writableStorageProvider.GetWritableFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
+        ArgumentNullException.ThrowIfNull(cobaltProcessor);
 
         var bytes = await httpContext.Request.Body.ReadBytesAsync(cancellationToken).ConfigureAwait(false);
         var responseBytes = await cobaltProcessor.ProcessCobalt(file, httpContext.User, bytes, cancellationToken).ConfigureAwait(false);

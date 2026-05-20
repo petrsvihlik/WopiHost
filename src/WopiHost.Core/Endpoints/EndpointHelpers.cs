@@ -65,17 +65,8 @@ internal static class EndpointHelpers
         CancellationToken cancellationToken)
     {
         var perms = await permissionProvider.GetFilePermissionsAsync(httpContext.User, file, cancellationToken).ConfigureAwait(false);
-        var request = new WopiAccessTokenRequest
-        {
-            UserId = httpContext.User.GetUserId(),
-            UserDisplayName = httpContext.User.FindFirstValue(ClaimTypes.Name),
-            UserEmail = httpContext.User.FindFirstValue(ClaimTypes.Email),
-            ResourceId = file.Identifier,
-            ResourceType = WopiResourceType.File,
-            FilePermissions = perms,
-        };
-        var token = await accessTokenService.IssueAsync(request, cancellationToken).ConfigureAwait(false);
-        return token.Token;
+        return await IssueResourceTokenAsync(httpContext, accessTokenService, file.Identifier, WopiResourceType.File,
+            filePermissions: perms, containerPermissions: WopiContainerPermissions.None, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -93,14 +84,36 @@ internal static class EndpointHelpers
         CancellationToken cancellationToken)
     {
         var perms = await permissionProvider.GetContainerPermissionsAsync(httpContext.User, container, cancellationToken).ConfigureAwait(false);
+        return await IssueResourceTokenAsync(httpContext, accessTokenService, container.Identifier, WopiResourceType.Container,
+            filePermissions: WopiFilePermissions.None, containerPermissions: perms, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Shared back-end for the typed <see cref="IssueAccessTokenForFileAsync"/> /
+    /// <see cref="IssueAccessTokenForContainerAsync"/> helpers. WopiAccessTokenRequest carries
+    /// both FilePermissions and ContainerPermissions as init-only properties; the token-issuing
+    /// path consults the set whose ResourceType matches the request — passing
+    /// <c>None</c> for the other is safe and idiomatic (same pattern as
+    /// <see cref="IssueEcosystemPointerAsync"/>).
+    /// </summary>
+    private static async Task<string> IssueResourceTokenAsync(
+        HttpContext httpContext,
+        IWopiAccessTokenService accessTokenService,
+        string resourceId,
+        WopiResourceType resourceType,
+        WopiFilePermissions filePermissions,
+        WopiContainerPermissions containerPermissions,
+        CancellationToken cancellationToken)
+    {
         var request = new WopiAccessTokenRequest
         {
             UserId = httpContext.User.GetUserId(),
             UserDisplayName = httpContext.User.FindFirstValue(ClaimTypes.Name),
             UserEmail = httpContext.User.FindFirstValue(ClaimTypes.Email),
-            ResourceId = container.Identifier,
-            ResourceType = WopiResourceType.Container,
-            ContainerPermissions = perms,
+            ResourceId = resourceId,
+            ResourceType = resourceType,
+            FilePermissions = filePermissions,
+            ContainerPermissions = containerPermissions,
         };
         var token = await accessTokenService.IssueAsync(request, cancellationToken).ConfigureAwait(false);
         return token.Token;
