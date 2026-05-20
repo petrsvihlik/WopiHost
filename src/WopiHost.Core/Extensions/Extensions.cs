@@ -98,12 +98,24 @@ internal static class Extensions
             ["id"] = identifier ?? string.Empty,
             ["access_token"] = accessToken,
         };
-        // Preserve identifier casing — global LowercaseUrls=true on the routing options would
-        // otherwise mangle ids like "WOPITEST" → "wopitest", causing the URL path to disagree
-        // with the JWT `wopi:resource_id` claim (which is minted verbatim from
-        // file.Identifier). Production SHA-256 ids are already lowercase so this matters most
-        // for tests and third-party storage providers with mixed-case ids. Same precedent as
+        // Preserve identifier casing. The global routing option set by AddWopi()
+        // (`AddRouting(o => o.LowercaseUrls = true)` — introduced in PR #253 / commit 8baf8844
+        // for "spec-compliant lowercase paths" like /wopi/files/{id} instead of
+        // /wopi/Files/{id}) lowercases BOTH route literals AND route parameter values, but the
+        // JWT `wopi:resource_id` claim is minted verbatim from file.Identifier /
+        // container.Identifier. Without this override, a host with mixed-case ids (think a
+        // SharePoint-style provider returning `01ABCDEF`) would build URLs containing
+        // `01abcdef` while the embedded access token's claim says `01ABCDEF` — strict per-id
+        // binding fails. Production SHA-256 ids are already lowercase so this matters most for
+        // tests and future third-party providers. Same precedent as
         // DefaultCheckFileInfoBuilder's FileUrl construction.
+        //
+        // Trade-off: this override also stops lowercasing the route's LITERAL segments. That's
+        // fine because every WOPI route is registered with already-lowercase literals
+        // (`files`, `containers`, `folders`, `ecosystem`, `wopibootstrapper`) — see
+        // MapWopiEndpoints. The lowercase-literal invariant is now load-bearing; a regression
+        // test in WopiRouteNamesTests pins it so a future contributor adding `MapGet("/Files/...")`
+        // would fail loudly rather than silently shipping URLs with mixed-case literals.
         var routePath = linkGenerator.GetPathByName(httpContext, routeName, values, options: new LinkOptions { LowercaseUrls = false })
             ?? throw new InvalidOperationException(routeName + " route not found");
 

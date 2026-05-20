@@ -130,6 +130,27 @@ public sealed class MapWopiEndpointsTests : IAsyncLifetime
     }
 
     [Fact]
+    public void All_Route_Literals_Are_Lowercase()
+    {
+        // Load-bearing invariant — GetWopiSrc (Extensions.cs) passes
+        // LinkOptions { LowercaseUrls = false } to LinkGenerator to keep the {id} parameter's
+        // case intact so URLs agree with the JWT `wopi:resource_id` claim. That override turns
+        // off lowercasing for LITERAL segments too, so the routes must already be lowercase
+        // by construction. If a future contributor writes MapGet("/Files/...") this assertion
+        // fails loudly rather than silently shipping URLs with mixed-case literals.
+        var mixedCaseLiterals = _endpoints
+            .Select(e => e.RoutePattern.RawText ?? string.Empty)
+            .SelectMany(template => template.Split('/', StringSplitOptions.RemoveEmptyEntries))
+            .Where(segment => !segment.StartsWith('{')) // skip route parameter placeholders
+            .Where(segment => segment.Any(char.IsUpper))
+            .Distinct()
+            .ToList();
+
+        Assert.True(mixedCaseLiterals.Count == 0,
+            "WOPI route literals must be lowercase. Mixed-case segments found: " + string.Join(", ", mixedCaseLiterals));
+    }
+
+    [Fact]
     public void PutFile_Maps_To_PUT_And_POST_On_Contents()
     {
         // Phase 3a: PutFile uses MapMethods(["PUT", "POST"], ...) on /{id}/contents.
