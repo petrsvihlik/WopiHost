@@ -39,17 +39,21 @@ default = true
 # narrower opt-outs proved fragile across refactors. The directory is small
 # (8 files), shallow, and reviewed end-to-end on every PR touching it, so the
 # qlty signal here is low-value relative to the maintenance churn.
-[[ignore]]
-linters = ["qlty"]
-rules = [
-  "function-parameters",
-  "file-complexity",
-  "function-complexity",
-  "similar-code",
-  "identical-code",
-  "duplication",
-  "boolean-logic",
-  "nested-control-flow",
-  "return-statements",
+#
+# NB: rule names use underscores in the fully-qualified form (qlty:function_parameters)
+# even though the cloud's PR-comment renderer displays them with hyphens.
+[[triage]]
+match.plugins = ["qlty"]
+match.rules = [
+  "qlty:function_parameters",
+  "qlty:file_complexity",
+  "qlty:function_complexity",
+  "qlty:similar_code",
+  "qlty:identical_code",
+  "qlty:duplication",
+  "qlty:boolean_logic",
+  "qlty:nested_control_flow",
+  "qlty:return_statements",
 ]
-file_patterns = ["src/WopiHost.Core/Endpoints/**"]
+match.file_patterns = ["src/WopiHost.Core/Endpoints/**"]
+set.ignored = true
