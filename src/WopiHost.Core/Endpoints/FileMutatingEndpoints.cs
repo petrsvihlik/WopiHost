@@ -177,6 +177,8 @@ internal static class FileMutatingEndpoints
         IWopiHostExtensions extensions,
         ICheckFileInfoBuilder checkFileInfoBuilder,
         IOptions<WopiHostOptions> options,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
         [FromServices] IWopiLockProvider? lockProvider,
         [FromServices] ICobaltProcessor? cobaltProcessor,
         [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget,
@@ -222,7 +224,12 @@ internal static class FileMutatingEndpoints
         await InvokePutRelativeFileCallbackAsync(httpContext, extensions, file, newFile, fileConversion, declaredSize, cancellationToken).ConfigureAwait(false);
         var capabilities = MakeCapabilities(lockProvider, cobaltProcessor);
         var checkFileInfo = await checkFileInfoBuilder.BuildAsync(newFile, httpContext, capabilities, cancellationToken: cancellationToken).ConfigureAwait(false);
-        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, httpContext.GetWopiSrc(newFile))
+        // Mint a fresh token bound to the NEW file's resource id; reusing the inbound token
+        // (scoped to the source file) violates the WOPI "preventing token trading" guidance and
+        // would fail downstream authorization for any host whose tokens encode resource id.
+        var newFileToken = await EndpointHelpers.IssueAccessTokenForFileAsync(
+            httpContext, accessTokenService, permissionProvider, newFile, cancellationToken).ConfigureAwait(false);
+        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, httpContext.GetWopiSrc(newFile, newFileToken))
         {
             HostEditUrl = checkFileInfo.HostEditUrl,
             HostViewUrl = checkFileInfo.HostViewUrl,

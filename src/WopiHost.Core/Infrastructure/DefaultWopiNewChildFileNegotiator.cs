@@ -40,7 +40,13 @@ public sealed class DefaultWopiNewChildFileNegotiator(
         var relativeTarget = request.RelativeTarget!;
         if (!await writable.CheckValidFileName(relativeTarget, cancellationToken).ConfigureAwait(false))
         {
-            return WopiNewChildFileResult.BadRequest();
+            // Spec: 400 MAY include X-WOPI-ValidRelativeTarget so the WOPI client can auto-retry.
+            // Compute a sanitised stem + original extension, then dedupe via GetSuggestedFileName.
+            // The suggestion is best-effort — when the sanitised candidate still fails validation
+            // (provider rules beyond forbidden-char swap, e.g. reserved names like CON on Windows),
+            // we omit the header rather than emit a name we know is invalid.
+            var sanitised = await TryBuildValidSuggestionAsync(request, relativeTarget, cancellationToken).ConfigureAwait(false);
+            return WopiNewChildFileResult.BadRequest(sanitised);
         }
 
         var existing = await storage.GetWopiFileByName(request.ContainerId, relativeTarget, cancellationToken).ConfigureAwait(false);
@@ -98,7 +104,15 @@ public sealed class DefaultWopiNewChildFileNegotiator(
         }
         else if (!await writable.CheckValidFileName(suggestedTarget, cancellationToken).ConfigureAwait(false))
         {
-            return WopiNewChildFileResult.BadRequest();
+            // Spec: "The response to a request including [X-WOPI-SuggestedTarget] must never
+            // result in a 400 Bad Request or 409 Conflict. Rather, the host must modify the
+            // proposed name as needed to create a new file that's both legally named and doesn't
+            // overwrite any existing file, while preserving the file extension."
+            // Try sanitising the requested name first; if that still fails, fall back to the
+            // caller-supplied stem + original extension (the same shape we use for
+            // extension-only inputs).
+            suggestedTarget = await TryBuildValidSuggestionAsync(request, suggestedTarget, cancellationToken).ConfigureAwait(false)
+                ?? request.SuggestedExtensionFallbackStem + ExtractExtension(suggestedTarget);
         }
 
         var newName = await writable.GetSuggestedFileName(request.ContainerId, suggestedTarget, cancellationToken).ConfigureAwait(false);
@@ -106,5 +120,42 @@ public sealed class DefaultWopiNewChildFileNegotiator(
         return created is not null
             ? WopiNewChildFileResult.Success(created)
             : WopiNewChildFileResult.InternalError();
+    }
+
+    /// <summary>
+    /// Attempts to sanitise <paramref name="invalidName"/> into a name that passes
+    /// <see cref="IWopiWritableStorageProvider.CheckValidFileName"/>, preserving the original
+    /// extension. Replaces forbidden filesystem characters with <c>_</c>; if the sanitised stem
+    /// is empty or path-nav (<c>.</c>/<c>..</c>), substitutes the request's fallback stem.
+    /// Returns the dedup-suggested name on success, or <see langword="null"/> when the sanitised
+    /// candidate still fails validation (caller decides whether to swallow or surface the failure).
+    /// </summary>
+    private async Task<string?> TryBuildValidSuggestionAsync(WopiNewChildFileRequest request, string invalidName, CancellationToken cancellationToken)
+    {
+        var ext = ExtractExtension(invalidName);
+        var stem = ext.Length == 0 ? invalidName : invalidName[..^ext.Length];
+
+        // Mirrors ToSafeIdentity's forbidden-char set plus the cross-platform filesystem
+        // unsafe characters. Providers may apply stricter rules (Windows reserved names, etc.),
+        // which we re-check via CheckValidFileName below.
+        const string forbiddenChars = "<>:\"/\\|?* ";
+        var sanitisedStem = forbiddenChars.Aggregate(stem, (cur, c) => cur.Replace(c, '_')).Trim();
+        if (string.IsNullOrWhiteSpace(sanitisedStem) || sanitisedStem is "." or "..")
+        {
+            sanitisedStem = request.SuggestedExtensionFallbackStem;
+        }
+
+        var candidate = sanitisedStem + ext;
+        if (!await writable.CheckValidFileName(candidate, cancellationToken).ConfigureAwait(false))
+        {
+            return null;
+        }
+        return await writable.GetSuggestedFileName(request.ContainerId, candidate, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static string ExtractExtension(string name)
+    {
+        var dot = name.LastIndexOf('.');
+        return dot > 0 ? name[dot..] : string.Empty;
     }
 }

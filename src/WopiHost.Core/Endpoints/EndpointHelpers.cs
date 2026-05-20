@@ -47,6 +47,38 @@ internal static class EndpointHelpers
     }
 
     /// <summary>
+    /// Mints a fresh resource-scoped access token for <paramref name="file"/> and returns the
+    /// token string. Used by <c>PutRelativeFile</c> and <c>CreateChildFile</c> to build the
+    /// response <c>Url</c> property — reusing the inbound token (which is bound to the SOURCE
+    /// file's resource id) would either fail downstream authorization or open a token-trading
+    /// hole per
+    /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading"/>.
+    /// Permissions on the new file are resolved through <see cref="IWopiPermissionProvider"/>
+    /// so a host that locks down create-vs-edit separately sees that distinction in the token's
+    /// <c>wopi:fperms</c> claim.
+    /// </summary>
+    public static async Task<string> IssueAccessTokenForFileAsync(
+        HttpContext httpContext,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
+        IWopiFile file,
+        CancellationToken cancellationToken)
+    {
+        var perms = await permissionProvider.GetFilePermissionsAsync(httpContext.User, file, cancellationToken).ConfigureAwait(false);
+        var request = new WopiAccessTokenRequest
+        {
+            UserId = httpContext.User.GetUserId(),
+            UserDisplayName = httpContext.User.FindFirstValue(ClaimTypes.Name),
+            UserEmail = httpContext.User.FindFirstValue(ClaimTypes.Email),
+            ResourceId = file.Identifier,
+            ResourceType = WopiResourceType.File,
+            FilePermissions = perms,
+        };
+        var token = await accessTokenService.IssueAsync(request, cancellationToken).ConfigureAwait(false);
+        return token.Token;
+    }
+
+    /// <summary>
     /// Parses the <c>X-WOPI-WopiSrc</c> header into a <see cref="WopiResourceType"/> and the
     /// resource identifier. Accepts paths shaped like <c>/wopi/files/{id}</c> or
     /// <c>/wopi/containers/{id}</c>. Shared between the Minimal-API bootstrap endpoint and

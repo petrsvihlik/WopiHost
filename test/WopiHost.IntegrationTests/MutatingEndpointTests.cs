@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using WopiHost.Abstractions;
 using WopiHost.IntegrationTests.Fixtures;
 using Xunit;
@@ -193,6 +194,81 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         var body = await resp.Content.ReadAsStringAsync();
         Assert.Contains("\"Name\"", body);
+    }
+
+    [Fact]
+    public async Task PutRelativeFile_Suggested_InvalidName_Returns_200_NotBadRequest()
+    {
+        // Spec: suggested-mode MUST NOT return 400 — the host modifies the name to be valid.
+        // "bad/name.txt" contains a forbidden '/' char; the negotiator sanitises it to a valid
+        // candidate, the file gets created, and we get 200.
+        var parentFileId = await _fixture.CreateTempFileAsync("anchor"u8.ToArray(), extension: ".txt");
+        var token = await MintFileTokenAsync(parentFileId, WopiFilePermissions.UserCanWrite);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{parentFileId}?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new ByteArrayContent("body"u8.ToArray()),
+        };
+        req.Headers.Add("X-WOPI-Override", "PUT_RELATIVE");
+        req.Headers.Add("X-WOPI-SuggestedTarget", "bad/name.txt");
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task PutRelativeFile_Relative_InvalidName_Returns_400_WithValidRelativeTarget()
+    {
+        // Spec: specific-mode invalid name → 400, optionally with X-WOPI-ValidRelativeTarget so
+        // the client can auto-retry with a sanitised name.
+        var parentFileId = await _fixture.CreateTempFileAsync("anchor"u8.ToArray(), extension: ".txt");
+        var token = await MintFileTokenAsync(parentFileId, WopiFilePermissions.UserCanWrite);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{parentFileId}?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new ByteArrayContent("body"u8.ToArray()),
+        };
+        req.Headers.Add("X-WOPI-Override", "PUT_RELATIVE");
+        req.Headers.Add("X-WOPI-RelativeTarget", "bad/name.txt");
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        Assert.True(resp.Headers.Contains("X-WOPI-ValidRelativeTarget"));
+    }
+
+    [Fact]
+    public async Task PutRelativeFile_ResponseUrl_CarriesFreshToken_BoundToNewFile()
+    {
+        // Spec: the Url property includes an access token. To honour "preventing token trading",
+        // that token must be bound to the NEW file's resource id — not the source file's.
+        var parentFileId = await _fixture.CreateTempFileAsync("anchor"u8.ToArray(), extension: ".txt");
+        var token = await MintFileTokenAsync(parentFileId, WopiFilePermissions.UserCanWrite);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{parentFileId}?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new ByteArrayContent("body"u8.ToArray()),
+        };
+        req.Headers.Add("X-WOPI-Override", "PUT_RELATIVE");
+        req.Headers.Add("X-WOPI-SuggestedTarget", ".txt");
+        var resp = await client.SendAsync(req);
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+
+        var body = await resp.Content.ReadAsStringAsync();
+        var payload = JsonSerializer.Deserialize<JsonElement>(body);
+        var url = payload.GetProperty("Url").GetString()!;
+        var uri = new Uri(url);
+        var responseToken = System.Web.HttpUtility.ParseQueryString(uri.Query)["access_token"];
+        Assert.False(string.IsNullOrEmpty(responseToken));
+        Assert.NotEqual(token, responseToken); // fresh token, not the inbound source-bound one
+
+        var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(responseToken);
+        // The new file's id is encoded in the URL path: /wopi/files/{newFileId}
+        var newFileId = uri.AbsolutePath.Split('/').Last();
+        Assert.Equal(newFileId, jwt.Claims.First(c => c.Type == WopiClaimTypes.ResourceId).Value);
+        Assert.NotEqual(parentFileId, jwt.Claims.First(c => c.Type == WopiClaimTypes.ResourceId).Value);
     }
 
     [Fact]

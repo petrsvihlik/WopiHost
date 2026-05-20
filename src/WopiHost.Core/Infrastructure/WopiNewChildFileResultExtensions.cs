@@ -27,6 +27,12 @@ internal static class WopiNewChildFileResultExtensions
             case WopiNewChildFileOutcome.Success:
                 return null;
             case WopiNewChildFileOutcome.BadRequest:
+                // Spec: 400 MAY carry X-WOPI-ValidRelativeTarget so the client can auto-retry with
+                // a sanitised name. Only emit when the negotiator has computed a suggestion.
+                if (result.ValidRelativeTargetSuggestion is not null)
+                {
+                    response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(result.ValidRelativeTargetSuggestion).ToString(true);
+                }
                 return TypedResults.BadRequest();
             case WopiNewChildFileOutcome.Conflict:
                 response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(result.ValidRelativeTargetSuggestion!).ToString(true);

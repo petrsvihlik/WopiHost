@@ -23,8 +23,12 @@ public sealed class WopiNewChildFileResult
 
     /// <summary>
     /// The host-suggested alternative name to advertise via the
-    /// <c>X-WOPI-ValidRelativeTarget</c> response header. Non-null exactly when
-    /// <see cref="Outcome"/> is <see cref="WopiNewChildFileOutcome.Conflict"/>.
+    /// <c>X-WOPI-ValidRelativeTarget</c> response header. Non-null on
+    /// <see cref="WopiNewChildFileOutcome.Conflict"/>; optionally non-null on
+    /// <see cref="WopiNewChildFileOutcome.BadRequest"/> when the host can suggest a
+    /// sanitised alternative for the invalid name (per the spec: "X-WOPI-ValidRelativeTarget
+    /// might be used when responding with a 400 Bad Request, because the requested name
+    /// contained invalid characters").
     /// </summary>
     public string? ValidRelativeTargetSuggestion { get; init; }
 
@@ -38,9 +42,12 @@ public sealed class WopiNewChildFileResult
     public static WopiNewChildFileResult Success(IWopiWritableFile file) =>
         new() { Outcome = WopiNewChildFileOutcome.Success, File = file };
 
-    /// <summary>Shorthand factory for the 400-bad-request path.</summary>
-    public static WopiNewChildFileResult BadRequest() =>
-        new() { Outcome = WopiNewChildFileOutcome.BadRequest };
+    /// <summary>
+    /// Shorthand factory for the 400-bad-request path. Optionally carries a sanitised
+    /// alternative the controller will surface via <c>X-WOPI-ValidRelativeTarget</c>.
+    /// </summary>
+    public static WopiNewChildFileResult BadRequest(string? validRelativeTargetSuggestion = null) =>
+        new() { Outcome = WopiNewChildFileOutcome.BadRequest, ValidRelativeTargetSuggestion = validRelativeTargetSuggestion };
 
     /// <summary>Shorthand factory for the 409-name-conflict path.</summary>
     public static WopiNewChildFileResult Conflict(string validRelativeTargetSuggestion) =>

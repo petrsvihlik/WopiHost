@@ -113,6 +113,8 @@ internal static class ContainerMutatingEndpoints
         [FromServices] IWopiWritableStorageProvider? writableStorage,
         IWopiNewChildFileNegotiator negotiator,
         ICheckFileInfoBuilder checkFileInfoBuilder,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
         [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget,
         [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? relativeTarget,
         [FromHeader(Name = WopiHeaders.OVERWRITE_RELATIVE_TARGET)] bool? overwriteRelativeTarget,
@@ -144,7 +146,11 @@ internal static class ContainerMutatingEndpoints
 
         var newFile = negotiation.File!;
         var checkFileInfo = await checkFileInfoBuilder.BuildAsync(newFile, httpContext, cancellationToken: cancellationToken).ConfigureAwait(false);
-        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, httpContext.GetWopiSrc(newFile))
+        // Fresh, resource-scoped token for the new file. The inbound token is bound to the parent
+        // CONTAINER's id and would fail authorization on the new file's CheckFileInfo callback.
+        var newFileToken = await EndpointHelpers.IssueAccessTokenForFileAsync(
+            httpContext, accessTokenService, permissionProvider, newFile, cancellationToken).ConfigureAwait(false);
+        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, httpContext.GetWopiSrc(newFile, newFileToken))
         {
             HostEditUrl = checkFileInfo.HostEditUrl,
             HostViewUrl = checkFileInfo.HostViewUrl,
