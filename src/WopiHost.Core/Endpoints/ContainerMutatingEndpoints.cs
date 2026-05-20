@@ -244,10 +244,10 @@ internal static class ContainerMutatingEndpoints
             httpContext.Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
             return TypedResults.BadRequest();
         }
-        return await TryRenameContainerAsync(httpContext, writableStorageProvider, id, requestedName, container, cancellationToken).ConfigureAwait(false);
+        return await TryRenameContainerAsync(httpContext, writableStorageProvider, id, requestedName, cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task<IResult> TryRenameContainerAsync(HttpContext httpContext, IWopiWritableStorageProvider writableStorageProvider, string id, string requestedName, IWopiContainer container, CancellationToken cancellationToken)
+    private static async Task<IResult> TryRenameContainerAsync(HttpContext httpContext, IWopiWritableStorageProvider writableStorageProvider, string id, string requestedName, CancellationToken cancellationToken)
     {
         try
         {
