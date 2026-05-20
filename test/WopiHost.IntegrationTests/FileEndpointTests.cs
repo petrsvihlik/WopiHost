@@ -1,4 +1,5 @@
 using System.Net;
+using WopiHost.Abstractions;
 using WopiHost.IntegrationTests.Fixtures;
 using Xunit;
 
@@ -113,5 +114,36 @@ public sealed class FileEndpointTests(ReadOnlyEndpointsFixture fixture)
         var resp = await client.GetAsync($"/wopi/files/{missing}/ancestry?access_token={Uri.EscapeDataString(token)}");
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task FileAncestry_UrlsCarryFreshContainerScopedTokens()
+    {
+        // Spec: each ancestor URL embeds an access token. Per "preventing token trading", that
+        // token must be bound to the CONTAINER's resource id, not reuse the inbound file token.
+        var token = await _fixture.MintFileTokenAsync(_fixture.FirstFileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}/ancestry?access_token={System.Uri.EscapeDataString(token)}");
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+
+        var body = await resp.Content.ReadAsStringAsync();
+        var payload = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(body);
+        var ancestors = payload.GetProperty("AncestorsWithRootFirst").EnumerateArray().ToList();
+        Assert.NotEmpty(ancestors);
+
+        foreach (var ancestor in ancestors)
+        {
+            var url = ancestor.GetProperty("Url").GetString()!;
+            var uri = new System.Uri(url);
+            var ancestorToken = System.Web.HttpUtility.ParseQueryString(uri.Query)["access_token"]!;
+            Assert.NotEqual(token, ancestorToken);  // fresh token, not the inbound file-scoped one
+
+            var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(ancestorToken);
+            // The ancestor's id is embedded in the URL path: /wopi/containers/{id}
+            var ancestorId = uri.AbsolutePath.Split('/').Last();
+            Assert.Equal(ancestorId, jwt.Claims.First(c => c.Type == WopiClaimTypes.ResourceId).Value);
+            Assert.Equal("Container", jwt.Claims.First(c => c.Type == WopiClaimTypes.ResourceType).Value);
+        }
     }
 }

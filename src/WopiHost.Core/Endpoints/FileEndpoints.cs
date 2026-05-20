@@ -124,13 +124,24 @@ internal static class FileEndpoints
         string id,
         HttpContext httpContext,
         IWopiStorageProvider storageProvider,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
         CancellationToken cancellationToken)
     {
         var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
 
         var ancestors = await storageProvider.GetFileAncestors(id, cancellationToken).ConfigureAwait(false);
-        var response = new EnumerateAncestorsResponse(ancestors.Select(a => new ChildContainer(a.Name, httpContext.GetWopiSrc(a))));
-        return TypedResults.Json(response);
+        // Mint a fresh container-scoped token per ancestor URL. Reusing the inbound file token
+        // here would surface the same token-trading hazard the PutRelativeFile cleanup addressed
+        // — see https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading
+        var children = new List<ChildContainer>();
+        foreach (var ancestor in ancestors)
+        {
+            var ancestorToken = await EndpointHelpers.IssueAccessTokenForContainerAsync(
+                httpContext, accessTokenService, permissionProvider, ancestor, cancellationToken).ConfigureAwait(false);
+            children.Add(new ChildContainer(ancestor.Name, httpContext.GetWopiSrc(ancestor, ancestorToken)));
+        }
+        return TypedResults.Json(new EnumerateAncestorsResponse(children));
     }
 }

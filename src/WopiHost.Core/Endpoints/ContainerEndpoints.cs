@@ -68,6 +68,8 @@ internal static class ContainerEndpoints
         string id,
         HttpContext httpContext,
         IWopiStorageProvider storageProvider,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
         CancellationToken cancellationToken)
     {
         if (await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false) is null)
@@ -76,8 +78,16 @@ internal static class ContainerEndpoints
         }
 
         var ancestors = await storageProvider.GetContainerAncestors(id, cancellationToken).ConfigureAwait(false);
-        var response = new EnumerateAncestorsResponse(ancestors.Select(a => new ChildContainer(a.Name, httpContext.GetWopiSrc(a))));
-        return TypedResults.Json(response);
+        // Mint a fresh container-scoped token per ancestor URL — same token-trading rationale
+        // as the file-side EnumerateAncestors.
+        var children = new List<ChildContainer>();
+        foreach (var ancestor in ancestors)
+        {
+            var ancestorToken = await EndpointHelpers.IssueAccessTokenForContainerAsync(
+                httpContext, accessTokenService, permissionProvider, ancestor, cancellationToken).ConfigureAwait(false);
+            children.Add(new ChildContainer(ancestor.Name, httpContext.GetWopiSrc(ancestor, ancestorToken)));
+        }
+        return TypedResults.Json(new EnumerateAncestorsResponse(children));
     }
 
     private static async Task<IResult> EnumerateChildren(

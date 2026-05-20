@@ -222,6 +222,46 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     }
 
     [Fact]
+    public async Task RenameFile_InvalidName_SanitisesAndReturns_200()
+    {
+        // Spec: "If the host can't rename the file because the name requested is invalid or
+        // conflicts with an existing file, the host should try to generate a different name
+        // based on the requested name that meets the file name requirements." Previously we
+        // returned 400 immediately on invalid name. Now we sanitise '/' → '_' and proceed.
+        var fileId = await _fixture.CreateTempFileAsync("rename-me"u8.ToArray(), extension: ".txt");
+        var token = await MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
+        req.Headers.Add("X-WOPI-Override", "RENAME_FILE");
+        req.Headers.Add("X-WOPI-RequestedName", "bad/name");
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var body = await resp.Content.ReadAsStringAsync();
+        Assert.Contains("\"Name\"", body);
+        Assert.DoesNotContain("/", body);  // forbidden char was sanitised
+    }
+
+    [Fact]
+    public async Task PutUserInfo_BodyOverLimit_Returns_400()
+    {
+        // Spec caps UserInfo at 1024 ASCII chars.
+        var fileId = await _fixture.CreateTempFileAsync("for-userinfo"u8.ToArray());
+        var token = await MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new StringContent(new string('x', 2000)),
+        };
+        req.Headers.Add("X-WOPI-Override", "PUT_USER_INFO");
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
     public async Task RenameFile_NotFound_Returns_404()
     {
         var missing = new string('a', 64);
@@ -542,16 +582,17 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     }
 
     [Fact]
-    public async Task Lock_MissingNewLockIdentifier_Returns_409()
+    public async Task Lock_MissingNewLockIdentifier_Returns_400()
     {
+        // Spec: Lock lists 400 Bad Request — "X-WOPI-Lock was not provided or was empty" — as
+        // a distinct status from 409 (lock mismatch). Previous impl returned 409.
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
         var token = await MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        // No X-WOPI-Lock header at all → HandleLock returns WopiLockMismatchResult.
         var resp = await client.SendAsync(LockOp(fileId, token, "LOCK"));
 
-        Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
 
     [Fact]
@@ -636,8 +677,9 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     }
 
     [Fact]
-    public async Task RefreshLock_MissingIdentifier_Returns_409()
+    public async Task RefreshLock_MissingIdentifier_Returns_400()
     {
+        // Spec: RefreshLock lists 400 Bad Request for missing/empty X-WOPI-Lock.
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
         var token = await MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
@@ -645,7 +687,7 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
 
         var resp = await client.SendAsync(LockOp(fileId, token, "REFRESH_LOCK"));
 
-        Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
 
     [Fact]
@@ -688,18 +730,18 @@ public sealed class MutatingEndpointTests(MutatingEndpointTests.Fixture fixture)
     }
 
     [Fact]
-    public async Task UnlockAndRelock_MissingNewLock_Returns_409()
+    public async Task UnlockAndRelock_MissingNewLock_Returns_400()
     {
+        // Spec: UnlockAndRelock (LOCK override with X-WOPI-OldLock present) lists 400 Bad Request
+        // for missing/empty X-WOPI-Lock. The pre-dispatch guard in ProcessLockCore catches this.
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
         var token = await MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
         await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "current"));
 
-        // LOCK with X-WOPI-OldLock but no X-WOPI-Lock dispatches into HandleUnlockAndRelock,
-        // which 409s when newLockIdentifier is missing.
         var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", oldLock: "current"));
 
-        Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
 
     [Fact]

@@ -156,30 +156,87 @@ internal static class FileMutatingEndpoints
             return new WopiLockMismatchResult(existingLock.LockId);
         }
 
-        if (!await writableStorage.CheckValidFileName(requestedName, cancellationToken).ConfigureAwait(false))
+        // Spec: "X-WOPI-RequestedName ... a UTF-7 encoded string that's a file name, not including
+        // the file extension." Append the source file's extension so providers can dedup against
+        // sibling files with the same stem (foo.txt, foo (1).txt, ...).
+        var requestedFullName = requestedName + '.' + file.Extension;
+
+        // Parent container id is the dedup scope for GetSuggestedFileName — passing the file id
+        // here is a long-standing bug that degenerates the provider into echoing the requested
+        // name back. Same fix shape as the pre-#420 PutRelativeFile correction; the storage
+        // contract is GetSuggestedFileName(CONTAINER, name).
+        var ancestors = await storage.GetFileAncestors(id, cancellationToken).ConfigureAwait(false);
+        var parentContainer = ancestors.LastOrDefault()
+            ?? throw new ArgumentException("Cannot find parent container", nameof(id));
+
+        // Spec: "If the host can't rename the file because the name requested is invalid or
+        // conflicts with an existing file, the host should try to generate a different name
+        // based on the requested name that meets the file name requirements." Try sanitisation
+        // first — only return 400 if no valid candidate can be computed.
+        if (!await writableStorage.CheckValidFileName(requestedFullName, cancellationToken).ConfigureAwait(false))
         {
-            httpContext.Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
-            return TypedResults.BadRequest();
+            var sanitised = await TryBuildValidFileNameAsync(writableStorage, requestedFullName, fallbackStem: file.Name, cancellationToken).ConfigureAwait(false);
+            if (sanitised is null)
+            {
+                httpContext.Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
+                return TypedResults.BadRequest();
+            }
+            requestedFullName = sanitised;
         }
-        return await TryRenameFileAsync(httpContext, writableStorage, id, requestedName, file, cancellationToken).ConfigureAwait(false);
+
+        return await TryRenameFileAsync(httpContext, writableStorage, id, parentContainer.Identifier, requestedFullName, cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task<IResult> TryRenameFileAsync(HttpContext httpContext, IWopiWritableStorageProvider writableStorage, string id, string requestedName, IWopiFile file, CancellationToken cancellationToken)
+    private static async Task<IResult> TryRenameFileAsync(HttpContext httpContext, IWopiWritableStorageProvider writableStorage, string id, string parentContainerId, string requestedFullName, CancellationToken cancellationToken)
     {
         try
         {
-            var newName = await writableStorage.GetSuggestedFileName(id, requestedName + '.' + file.Extension, cancellationToken).ConfigureAwait(false);
+            var newName = await writableStorage.GetSuggestedFileName(parentContainerId, requestedFullName, cancellationToken).ConfigureAwait(false);
             return await writableStorage.RenameWopiFile(id, newName, cancellationToken).ConfigureAwait(false)
                 ? TypedResults.Json(new { Name = Path.GetFileNameWithoutExtension(newName) })
                 : TypedResults.NotFound(); // false → missing resource (race with concurrent delete).
         }
-        catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
+        catch (ArgumentException)
         {
             httpContext.Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
             return TypedResults.BadRequest();
         }
         catch (FileNotFoundException) { return TypedResults.NotFound(); }
         catch (InvalidOperationException) { return TypedResults.Conflict(); }
+    }
+
+    /// <summary>
+    /// Replaces filesystem-forbidden characters in <paramref name="invalidName"/>'s stem with
+    /// <c>_</c>, preserving the extension. Returns the sanitised name only if it passes
+    /// <see cref="IWopiWritableStorageProvider.CheckValidFileName"/>; otherwise tries the
+    /// fallback stem; otherwise returns <see langword="null"/>. Mirrors the helper in
+    /// <see cref="DefaultWopiNewChildFileNegotiator"/>; kept local rather than extracted because
+    /// the two callers' fallback policies differ slightly (RenameFile has no concept of
+    /// "suggested target" — the source file's name is the only reasonable fallback).
+    /// </summary>
+    private static async Task<string?> TryBuildValidFileNameAsync(IWopiWritableStorageProvider writable, string invalidName, string fallbackStem, CancellationToken cancellationToken)
+    {
+        var dot = invalidName.LastIndexOf('.');
+        var ext = dot > 0 ? invalidName[dot..] : string.Empty;
+        var stem = dot > 0 ? invalidName[..dot] : invalidName;
+
+        const string forbiddenChars = "<>:\"/\\|?* ";
+        var sanitisedStem = forbiddenChars.Aggregate(stem, (cur, c) => cur.Replace(c, '_')).Trim();
+        if (string.IsNullOrWhiteSpace(sanitisedStem) || sanitisedStem is "." or "..")
+        {
+            sanitisedStem = fallbackStem;
+        }
+
+        var candidate = sanitisedStem + ext;
+        if (await writable.CheckValidFileName(candidate, cancellationToken).ConfigureAwait(false))
+        {
+            return candidate;
+        }
+
+        var fallback = fallbackStem + ext;
+        return candidate != fallback && await writable.CheckValidFileName(fallback, cancellationToken).ConfigureAwait(false)
+            ? fallback
+            : null;
     }
 
     private static async Task<IResult> PutRelativeFile(
@@ -250,6 +307,15 @@ internal static class FileMutatingEndpoints
         });
     }
 
+    /// <summary>
+    /// Spec-defined max body size for PutUserInfo:
+    /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo"/>.
+    /// "The UserInfo string is provided in the body of the request, and has a maximum size of
+    /// 1024 ASCII characters." Cap the read so a malicious or buggy client can't push an
+    /// unbounded body into our MemoryCache.
+    /// </summary>
+    private const int PutUserInfoMaxBytes = 1024;
+
     private static async Task<IResult> PutUserInfo(
         string id,
         HttpContext httpContext,
@@ -261,13 +327,29 @@ internal static class FileMutatingEndpoints
         var file = await storageProvider.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
 
-        // Replaces the [FromStringBody] model-binder path the MVC controller used. Manual body
-        // read keeps the Minimal-API binding source explicit.
-        string userInfo;
-        using (var reader = new StreamReader(httpContext.Request.Body))
+        // Fast-fail when the declared Content-Length already exceeds the spec cap.
+        if (httpContext.Request.ContentLength is long declared && declared > PutUserInfoMaxBytes)
         {
-            userInfo = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            return TypedResults.BadRequest();
         }
+
+        // Read up to MAX+1 so we can detect bodies that exceed the cap mid-stream (chunked
+        // transfer-encoding with no Content-Length, or clients that lie about it).
+        using var buffer = new MemoryStream(PutUserInfoMaxBytes + 1);
+        var chunk = new byte[PutUserInfoMaxBytes + 1];
+        var total = 0;
+        int read;
+        while ((read = await httpContext.Request.Body.ReadAsync(chunk.AsMemory(0, chunk.Length - total), cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            total += read;
+            if (total > PutUserInfoMaxBytes)
+            {
+                return TypedResults.BadRequest();
+            }
+            buffer.Write(chunk, 0, read);
+        }
+
+        var userInfo = System.Text.Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length);
 
         memoryCache.Set(
             $"{UserInfoCacheKeyPrefix}{httpContext.User.GetUserId()}",
@@ -318,8 +400,8 @@ internal static class FileMutatingEndpoints
     {
         ArgumentNullException.ThrowIfNull(writableStorageProvider);
         ArgumentNullException.ThrowIfNull(cobaltProcessor);
-        var file = await writableStorageProvider.GetWritableFile(id, cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException("File not found");
+        var file = await writableStorageProvider.GetWritableFile(id, cancellationToken).ConfigureAwait(false);
+        if (file is null) return TypedResults.NotFound();
 
         var bytes = await httpContext.Request.Body.ReadBytesAsync(cancellationToken).ConfigureAwait(false);
         var responseBytes = await cobaltProcessor.ProcessCobalt(file, httpContext.User, bytes, cancellationToken).ConfigureAwait(false);
@@ -344,8 +426,8 @@ internal static class FileMutatingEndpoints
         CancellationToken cancellationToken)
     {
         var comparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
-        var file = await storage.GetWopiFile(id, cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException("File not found");
+        var file = await storage.GetWopiFile(id, cancellationToken).ConfigureAwait(false);
+        if (file is null) return TypedResults.NotFound();
         httpContext.Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
         return await ProcessLockCore(id, httpContext, lockProvider, options, comparer,
             wopiOverrideHeader, oldLockIdentifier, newLockIdentifier, cancellationToken).ConfigureAwait(false);
@@ -375,6 +457,18 @@ internal static class FileMutatingEndpoints
             return TypedResults.BadRequest();
         }
 
+        // Spec: Lock, Unlock, RefreshLock, UnlockAndRelock ALL list 400 Bad Request — "X-WOPI-Lock
+        // was not provided or was empty" — as a distinct status from 409 (lock mismatch). GetLock
+        // doesn't require X-WOPI-Lock on the request, so skip the guard for it. Whitespace-only
+        // values are practically empty and rejected here too.
+        if (wopiOverrideHeader is WopiFileOperations.Lock or WopiFileOperations.Put
+                or WopiFileOperations.Unlock or WopiFileOperations.RefreshLock
+            && string.IsNullOrWhiteSpace(newLockIdentifier))
+        {
+            httpContext.Response.Headers[WopiHeaders.LOCK_FAILURE_REASON] = "X-WOPI-Lock header is required";
+            return TypedResults.BadRequest();
+        }
+
         var existingLock = await lockProvider.GetLockAsync(id, cancellationToken).ConfigureAwait(false);
         // Lock override doubles as UnlockAndRelock when X-WOPI-OldLock is present, so dispatch
         // by header presence rather than baking a third branch into the switch.
@@ -382,10 +476,10 @@ internal static class FileMutatingEndpoints
         {
             WopiFileOperations.GetLock => HandleGetLock(httpContext, existingLock, options),
             WopiFileOperations.Lock or WopiFileOperations.Put => oldLockIdentifier is null
-                ? await HandleLock(id, newLockIdentifier, existingLock, lockProvider, cancellationToken).ConfigureAwait(false)
-                : await HandleUnlockAndRelock(id, oldLockIdentifier, newLockIdentifier, existingLock, lockProvider, comparer, cancellationToken).ConfigureAwait(false),
-            WopiFileOperations.Unlock => await HandleUnlock(id, newLockIdentifier, existingLock, lockProvider, comparer, cancellationToken).ConfigureAwait(false),
-            WopiFileOperations.RefreshLock => await HandleRefreshLock(newLockIdentifier, existingLock, lockProvider, comparer, cancellationToken).ConfigureAwait(false),
+                ? await HandleLock(id, newLockIdentifier!, existingLock, lockProvider, cancellationToken).ConfigureAwait(false)
+                : await HandleUnlockAndRelock(id, oldLockIdentifier, newLockIdentifier!, existingLock, lockProvider, comparer, cancellationToken).ConfigureAwait(false),
+            WopiFileOperations.Unlock => await HandleUnlock(id, newLockIdentifier!, existingLock, lockProvider, comparer, cancellationToken).ConfigureAwait(false),
+            WopiFileOperations.RefreshLock => await HandleRefreshLock(newLockIdentifier!, existingLock, lockProvider, comparer, cancellationToken).ConfigureAwait(false),
             _ => TypedResults.StatusCode(StatusCodes.Status501NotImplemented),
         };
     }
@@ -398,12 +492,10 @@ internal static class FileMutatingEndpoints
         return TypedResults.Ok();
     }
 
-    private static async Task<IResult> HandleLock(string id, string? newLockIdentifier, WopiLockInfo? existingLock, IWopiLockProvider lockProvider, CancellationToken ct)
+    // newLockIdentifier is non-null/non-whitespace by the time these handlers run — ProcessLockCore
+    // guards 400 BadRequest for missing/empty/whitespace X-WOPI-Lock before the dispatch switch.
+    private static async Task<IResult> HandleLock(string id, string newLockIdentifier, WopiLockInfo? existingLock, IWopiLockProvider lockProvider, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(newLockIdentifier))
-        {
-            return new WopiLockMismatchResult(reason: "Missing new lock identifier");
-        }
         if (existingLock is not null)
         {
             return await LockOrRefresh(newLockIdentifier, existingLock, lockProvider, OrdinalWopiLockComparer.Instance, ct).ConfigureAwait(false);
@@ -413,11 +505,10 @@ internal static class FileMutatingEndpoints
             : new WopiLockMismatchResult(reason: "Could not create lock");
     }
 
-    private static async Task<IResult> HandleUnlockAndRelock(string id, string oldLockIdentifier, string? newLockIdentifier, WopiLockInfo? existingLock, IWopiLockProvider lockProvider, IWopiLockComparer comparer, CancellationToken ct)
+    private static async Task<IResult> HandleUnlockAndRelock(string id, string oldLockIdentifier, string newLockIdentifier, WopiLockInfo? existingLock, IWopiLockProvider lockProvider, IWopiLockComparer comparer, CancellationToken ct)
     {
         if (existingLock is null) return new WopiLockMismatchResult(reason: "File not locked");
         if (!comparer.AreEqual(existingLock.LockId, oldLockIdentifier)) return new WopiLockMismatchResult(existingLock.LockId);
-        if (string.IsNullOrWhiteSpace(newLockIdentifier)) return new WopiLockMismatchResult(reason: "Missing new lock identifier");
         // Pass the expected old lock id down so the provider does an atomic compare-and-swap;
         // the controller-level check above is necessary but not sufficient under concurrency.
         return await lockProvider.TryUnlockAndRelockAsync(id, newLockIdentifier, oldLockIdentifier, ct).ConfigureAwait(false)
@@ -425,7 +516,7 @@ internal static class FileMutatingEndpoints
             : new WopiLockMismatchResult(existingLock.LockId, reason: "Lock changed concurrently");
     }
 
-    private static async Task<IResult> HandleUnlock(string id, string? newLockIdentifier, WopiLockInfo? existingLock, IWopiLockProvider lockProvider, IWopiLockComparer comparer, CancellationToken ct)
+    private static async Task<IResult> HandleUnlock(string id, string newLockIdentifier, WopiLockInfo? existingLock, IWopiLockProvider lockProvider, IWopiLockComparer comparer, CancellationToken ct)
     {
         if (existingLock is null) return new WopiLockMismatchResult(reason: "File not locked");
         if (!comparer.AreEqual(existingLock.LockId, newLockIdentifier)) return new WopiLockMismatchResult(existingLock.LockId);
@@ -434,10 +525,9 @@ internal static class FileMutatingEndpoints
             : new WopiLockMismatchResult(reason: "Could not remove lock");
     }
 
-    private static async Task<IResult> HandleRefreshLock(string? newLockIdentifier, WopiLockInfo? existingLock, IWopiLockProvider lockProvider, IWopiLockComparer comparer, CancellationToken ct)
+    private static async Task<IResult> HandleRefreshLock(string newLockIdentifier, WopiLockInfo? existingLock, IWopiLockProvider lockProvider, IWopiLockComparer comparer, CancellationToken ct)
     {
         if (existingLock is null) return new WopiLockMismatchResult(reason: "File not locked");
-        if (string.IsNullOrWhiteSpace(newLockIdentifier)) return new WopiLockMismatchResult(reason: "Missing new lock identifier");
         return await LockOrRefresh(newLockIdentifier, existingLock, lockProvider, comparer, ct).ConfigureAwait(false);
     }
 

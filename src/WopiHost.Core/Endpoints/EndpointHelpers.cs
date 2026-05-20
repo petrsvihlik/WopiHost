@@ -79,6 +79,34 @@ internal static class EndpointHelpers
     }
 
     /// <summary>
+    /// Container-shaped sibling of <see cref="IssueAccessTokenForFileAsync"/>. Mints a fresh
+    /// access token bound to <paramref name="container"/>'s identifier and the user's container
+    /// permissions, for use in responses that surface container URLs (EnumerateAncestors,
+    /// CreateChildContainer, ...). Reusing the inbound file/container token across different
+    /// resource ids violates the "preventing token trading" guidance.
+    /// </summary>
+    public static async Task<string> IssueAccessTokenForContainerAsync(
+        HttpContext httpContext,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
+        IWopiContainer container,
+        CancellationToken cancellationToken)
+    {
+        var perms = await permissionProvider.GetContainerPermissionsAsync(httpContext.User, container, cancellationToken).ConfigureAwait(false);
+        var request = new WopiAccessTokenRequest
+        {
+            UserId = httpContext.User.GetUserId(),
+            UserDisplayName = httpContext.User.FindFirstValue(ClaimTypes.Name),
+            UserEmail = httpContext.User.FindFirstValue(ClaimTypes.Email),
+            ResourceId = container.Identifier,
+            ResourceType = WopiResourceType.Container,
+            ContainerPermissions = perms,
+        };
+        var token = await accessTokenService.IssueAsync(request, cancellationToken).ConfigureAwait(false);
+        return token.Token;
+    }
+
+    /// <summary>
     /// Parses the <c>X-WOPI-WopiSrc</c> header into a <see cref="WopiResourceType"/> and the
     /// resource identifier. Accepts paths shaped like <c>/wopi/files/{id}</c> or
     /// <c>/wopi/containers/{id}</c>. Shared between the Minimal-API bootstrap endpoint and

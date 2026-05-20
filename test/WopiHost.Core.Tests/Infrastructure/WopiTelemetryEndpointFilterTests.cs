@@ -8,6 +8,13 @@ using WopiHost.Core.Infrastructure;
 
 namespace WopiHost.Core.Tests.Infrastructure;
 
+/// <summary>
+/// Pinned to <see cref="WopiTelemetryCollection"/> so the listener installed in
+/// <see cref="CaptureActivity"/> can't leak into a parallel run of
+/// <see cref="WopiTelemetryTests.StartActivity_NoListener_ReturnsNull"/> — both classes
+/// register process-global listeners on <see cref="WopiTelemetry.Name"/> and must serialise.
+/// </summary>
+[Collection(WopiTelemetryCollection.Name)]
 public class WopiTelemetryEndpointFilterTests
 {
     [Theory]
