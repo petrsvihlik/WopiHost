@@ -284,6 +284,46 @@ public class DefaultCheckInfoBuilderTests
     }
 
     [Fact]
+    public async Task GetWopiCheckFileInfo_SupportsUpdateFalse_Cascades_UserCanNotWriteRelativeTrue()
+    {
+        // Per https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile,
+        // a host that advertises SupportsUpdate=false must also report UserCanNotWriteRelative=true.
+        // The builder enforces that cascade regardless of the per-user UserCanNotWriteRelative
+        // permission flag — without this, FileEndpoints.CheckFileInfo wouldn't be able to flip
+        // both signals via just SupportsUpdate.
+        var mockFile = new Mock<IWopiFile>();
+        mockFile.Setup(f => f.Checksum).Returns(new ReadOnlyMemory<byte>([0]));
+        mockFile.Setup(f => f.Name).Returns("test");
+        mockFile.Setup(f => f.Owner).Returns("owner");
+        mockFile.Setup(f => f.Extension).Returns("txt");
+        mockFile.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
+
+        // Permissions exclude UserCanNotWriteRelative — proving the cascade is driven by
+        // capabilities, not permissions.
+        var mockSecurityHandler = new Mock<IWopiPermissionProvider>();
+        mockSecurityHandler
+            .Setup(_ => _.GetFilePermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiFilePermissions.UserCanWrite);
+
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new(ClaimTypes.NameIdentifier, "userId"),
+            ], "test auth scheme")),
+        };
+
+        var builder = new DefaultCheckFileInfoBuilder(mockSecurityHandler.Object, new WopiHostExtensions());
+        var result = await builder.BuildAsync(
+            mockFile.Object,
+            httpContext,
+            capabilities: new WopiHostCapabilities { SupportsUpdate = false });
+
+        Assert.False(result.SupportsUpdate);
+        Assert.True(result.UserCanNotWriteRelative);
+    }
+
+    [Fact]
     public void BuildCheckFolderInfo_ReturnsAnonymousUser_WhenNotAuthenticated()
     {
         var mockFolder = new Mock<IWopiContainer>();
@@ -373,6 +413,48 @@ public class DefaultCheckInfoBuilderTests
         Assert.True(result.UserCanDelete);
         Assert.True(result.UserCanRename);
         Assert.False(result.IsEduUser);
+    }
+
+    [Fact]
+    public async Task GetWopiCheckContainerInfo_AnonymousUser_ReportsIsAnonymousUserTrue()
+    {
+        // Spec: IsAnonymousUser "should match the IsAnonymousUser value returned in
+        // CheckFileInfo." The file + folder builders both set it from auth state; the
+        // container builder previously omitted it, so anonymous users were reported as
+        // authenticated in the container response.
+        var mockFolder = new Mock<IWopiContainer>();
+        mockFolder.Setup(f => f.Name).Returns("AnonContainer");
+        var mockSecurityHandler = new Mock<IWopiPermissionProvider>();
+        mockSecurityHandler
+            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiContainer>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiContainerPermissions.None);
+        var httpContext = new DefaultHttpContext();  // no User → anonymous
+
+        var builder = new DefaultCheckContainerInfoBuilder(mockSecurityHandler.Object, new WopiHostExtensions());
+        var result = await builder.BuildAsync(mockFolder.Object, httpContext);
+
+        Assert.True(result.IsAnonymousUser);
+    }
+
+    [Fact]
+    public async Task GetWopiCheckContainerInfo_AuthenticatedUser_ReportsIsAnonymousUserFalse()
+    {
+        var mockFolder = new Mock<IWopiContainer>();
+        mockFolder.Setup(f => f.Name).Returns("AuthContainer");
+        var mockSecurityHandler = new Mock<IWopiPermissionProvider>();
+        mockSecurityHandler
+            .Setup(_ => _.GetContainerPermissionsAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiContainer>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WopiContainerPermissions.None);
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+                [new(ClaimTypes.NameIdentifier, "user-1")], "test auth scheme")),
+        };
+
+        var builder = new DefaultCheckContainerInfoBuilder(mockSecurityHandler.Object, new WopiHostExtensions());
+        var result = await builder.BuildAsync(mockFolder.Object, httpContext);
+
+        Assert.False(result.IsAnonymousUser);
     }
 
     [Fact]

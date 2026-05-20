@@ -23,3 +23,18 @@ test_patterns = [
 [[source]]
 name = "default"
 default = true
+
+# Minimal-API endpoint handlers naturally collect many DI services + bound HTTP
+# parameters (route values, headers, body) as positional parameters — that's the
+# framework's injection idiom. The handlers in src/WopiHost.Core/Endpoints/ range from
+# 6 to ~18 parameters, well past qlty's default function-parameters threshold (~5).
+# The deps-record workaround was tried and removed in 0fa1e39 after it proved more
+# trouble than it was worth (see #430 history).
+#
+# Raise the C# function-parameters threshold globally. The only code that approaches
+# this threshold is the endpoint directory; everything else in the repo is well under,
+# so the bump is effectively scoped to where it's needed. The [[triage]] block tried
+# previously didn't actually suppress — the rule kept firing in PR review comments —
+# so we switch to the language-level threshold override per qlty's documented schema.
+[language.csharp.smells.function_parameters]
+threshold = 50

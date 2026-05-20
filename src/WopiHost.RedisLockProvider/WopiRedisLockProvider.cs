@@ -171,6 +171,9 @@ public sealed partial class WopiRedisLockProvider(
         Func<WopiLockInfo, WopiLockInfo> mutate,
         CancellationToken cancellationToken)
     {
+        // StackExchange.Redis APIs don't accept a CancellationToken; honour the caller's
+        // token at the entrance and trust the in-flight Redis round-trips to be short.
+        cancellationToken.ThrowIfCancellationRequested();
         var key = Key(fileId);
         var raw = await Db.StringGetAsync(key).ConfigureAwait(false);
         if (!raw.HasValue)

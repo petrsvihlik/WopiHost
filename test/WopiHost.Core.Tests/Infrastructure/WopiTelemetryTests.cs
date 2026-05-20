@@ -11,11 +11,11 @@ namespace WopiHost.Core.Tests.Infrastructure;
 /// stay uncovered).
 /// </summary>
 /// <remarks>
-/// Pinned to <see cref="WopiTelemetryCollection"/> so this class runs sequentially with
-/// <see cref="WopiTelemetryActionFilterTests"/>. Both register a process-global
-/// <see cref="ActivitySource"/> listener for <see cref="WopiTelemetry.Name"/>; if xUnit runs
-/// them in parallel, this class's <c>StartActivity_NoListener_ReturnsNull</c> sees the sibling
-/// class's listener and fails non-deterministically.
+/// Pinned to <see cref="WopiTelemetryCollection"/> so this class runs sequentially with any
+/// sibling that registers a process-global <see cref="ActivitySource"/> listener for
+/// <see cref="WopiTelemetry.Name"/>; if xUnit runs them in parallel, this class's
+/// <c>StartActivity_NoListener_ReturnsNull</c> sees the sibling listener and fails
+/// non-deterministically.
 /// </remarks>
 [Collection(WopiTelemetryCollection.Name)]
 public sealed class WopiTelemetryTests : IDisposable

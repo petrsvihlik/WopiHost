@@ -1,0 +1,134 @@
+using System.Globalization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
+using WopiHost.Abstractions;
+using WopiHost.Core.Extensions;
+using WopiHost.Core.Infrastructure;
+using WopiHost.Core.Models;
+using WopiHost.Core.Security.Authorization;
+
+namespace WopiHost.Core.Endpoints;
+
+/// <summary>
+/// Read-only Minimal-API endpoints for WOPI container resources. Mirrors the GET surface of
+/// <c>ContainersController</c>.
+/// </summary>
+internal static class ContainerEndpoints
+{
+    public static void MapContainerEndpoints(IEndpointRouteBuilder wopi)
+    {
+        var containers = wopi.MapGroup("/containers")
+            .WithMetadata(new WopiResourceKindMetadata(WopiResourceType.Container));
+
+        containers.MapGet("/{id}", CheckContainerInfo)
+            .WithName(WopiRouteNames.CheckContainerInfo)
+            .RequireAuthorization(p => p.AddRequirements(new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.Read)));
+
+        containers.MapGet("/{id}/ecosystem_pointer", GetEcosystem)
+            .RequireAuthorization(p => p.AddRequirements(new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.Read)));
+
+        containers.MapGet("/{id}/ancestry", EnumerateAncestors)
+            .RequireAuthorization(p => p.AddRequirements(new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.Read)));
+
+        containers.MapGet("/{id}/children", EnumerateChildren)
+            .RequireAuthorization(p => p.AddRequirements(new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.Read)));
+
+        ContainerMutatingEndpoints.MapContainerMutatingEndpoints(containers);
+    }
+
+    private static async Task<IResult> CheckContainerInfo(
+        string id,
+        HttpContext httpContext,
+        IWopiStorageProvider storageProvider,
+        ICheckContainerInfoBuilder checkContainerInfoBuilder,
+        CancellationToken cancellationToken)
+    {
+        var container = await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false);
+        if (container is null) return TypedResults.NotFound();
+        var info = await checkContainerInfoBuilder.BuildAsync(container, httpContext, cancellationToken).ConfigureAwait(false);
+        return TypedResults.Json(info);
+    }
+
+    private static async Task<IResult> GetEcosystem(
+        string id,
+        HttpContext httpContext,
+        IWopiStorageProvider storageProvider,
+        IWopiAccessTokenService accessTokenService,
+        CancellationToken cancellationToken)
+    {
+        var container = await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false);
+        if (container is null) return TypedResults.NotFound();
+        return await EndpointHelpers.IssueEcosystemPointerAsync(
+            httpContext, container.Identifier, WopiResourceType.Container, accessTokenService, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<IResult> EnumerateAncestors(
+        string id,
+        HttpContext httpContext,
+        IWopiStorageProvider storageProvider,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
+        CancellationToken cancellationToken)
+    {
+        if (await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false) is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var ancestors = await storageProvider.GetContainerAncestors(id, cancellationToken).ConfigureAwait(false);
+        // Mint a fresh container-scoped token per ancestor URL — same token-trading rationale
+        // as the file-side EnumerateAncestors.
+        var children = new List<ChildContainer>();
+        foreach (var ancestor in ancestors)
+        {
+            var ancestorToken = await EndpointHelpers.IssueAccessTokenForContainerAsync(
+                httpContext, accessTokenService, permissionProvider, ancestor, cancellationToken).ConfigureAwait(false);
+            children.Add(new ChildContainer(ancestor.Name, httpContext.GetWopiSrc(ancestor, ancestorToken)));
+        }
+        return TypedResults.Json(new EnumerateAncestorsResponse(children));
+    }
+
+    private static async Task<IResult> EnumerateChildren(
+        string id,
+        HttpContext httpContext,
+        IWopiStorageProvider storageProvider,
+        IWopiAccessTokenService accessTokenService,
+        IWopiPermissionProvider permissionProvider,
+        [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? fileExtensionFilterList,
+        CancellationToken cancellationToken)
+    {
+        if (await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false) is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var files = new List<ChildFile>();
+        var containers = new List<ChildContainer>();
+        var fileExtensions = fileExtensionFilterList?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        // Mint per-child resource-scoped tokens — the inbound token is bound to the PARENT
+        // container's id, so reusing it for child URLs trips "preventing token trading"
+        // (https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading).
+        await foreach (var wopiFile in storageProvider.GetWopiFiles(id, fileExtensions, cancellationToken).ConfigureAwait(false))
+        {
+            var fileToken = await EndpointHelpers.IssueAccessTokenForFileAsync(
+                httpContext, accessTokenService, permissionProvider, wopiFile, cancellationToken).ConfigureAwait(false);
+            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, httpContext.GetWopiSrc(wopiFile, fileToken))
+            {
+                LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
+                Size = wopiFile.Length,
+                Version = wopiFile.Version ?? wopiFile.LastWriteTimeUtc.ToString("s", CultureInfo.InvariantCulture),
+            });
+        }
+        await foreach (var wopiContainer in storageProvider.GetWopiContainers(id, cancellationToken).ConfigureAwait(false))
+        {
+            var containerToken = await EndpointHelpers.IssueAccessTokenForContainerAsync(
+                httpContext, accessTokenService, permissionProvider, wopiContainer, cancellationToken).ConfigureAwait(false);
+            containers.Add(new ChildContainer(wopiContainer.Name, httpContext.GetWopiSrc(wopiContainer, containerToken)));
+        }
+
+        return TypedResults.Json(new Container { ChildFiles = files, ChildContainers = containers });
+    }
+}

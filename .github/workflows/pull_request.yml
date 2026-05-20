@@ -54,7 +54,7 @@ jobs:
       uses: qltysh/qlty-action/coverage@v2
       with:
         oidc: true
-        files: "**/coverage.*.info"
+        files: "test/**/coverage.info"
         # See integrate.yml for the rationale.
         skip-missing-files: true
     - name: Codecov

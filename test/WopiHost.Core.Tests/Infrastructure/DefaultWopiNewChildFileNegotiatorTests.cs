@@ -39,14 +39,36 @@ public class DefaultWopiNewChildFileNegotiatorTests
     }
 
     [Fact]
-    public async Task RelativeTarget_InvalidName_ReturnsBadRequest()
+    public async Task RelativeTarget_InvalidName_ReturnsBadRequest_WithSuggestion()
     {
+        // Initial name fails validation; the sanitised candidate ("bad_name.docx" — '/' → '_')
+        // is then re-validated and dedup-suggested. Spec: the host MAY include
+        // X-WOPI-ValidRelativeTarget on the 400 so the client can auto-retry.
         _writable.Setup(w => w.CheckValidFileName("bad/name.docx", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
+        _writable.Setup(w => w.CheckValidFileName("bad_name.docx", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _writable.Setup(w => w.GetSuggestedFileName(Container, "bad_name.docx", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("bad_name.docx");
 
         var result = await CreateNegotiator().NegotiateAsync(Request(relative: "bad/name.docx"));
 
         Assert.Equal(WopiNewChildFileOutcome.BadRequest, result.Outcome);
+        Assert.Equal("bad_name.docx", result.ValidRelativeTargetSuggestion);
+    }
+
+    [Fact]
+    public async Task RelativeTarget_InvalidName_OmitsSuggestionWhenSanitiseStillFails()
+    {
+        // Sanitised candidate also fails (e.g. provider rejects reserved names like CON);
+        // omit X-WOPI-ValidRelativeTarget rather than emit a name we know is invalid.
+        _writable.Setup(w => w.CheckValidFileName(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "CON.docx"));
+
+        Assert.Equal(WopiNewChildFileOutcome.BadRequest, result.Outcome);
+        Assert.Null(result.ValidRelativeTargetSuggestion);
     }
 
     [Fact]
@@ -180,13 +202,44 @@ public class DefaultWopiNewChildFileNegotiatorTests
     }
 
     [Fact]
-    public async Task SuggestedTarget_InvalidName_ReturnsBadRequest()
+    public async Task SuggestedTarget_InvalidName_SanitisesAndCreates()
     {
+        // Spec: PutRelativeFile in suggested mode MUST NOT return 400 / 409 for an invalid name —
+        // the host must modify the proposed name to be valid while preserving the file extension.
+        // The negotiator sanitises forbidden chars ('/' → '_'), so "bad/name.docx" becomes
+        // "bad_name.docx" which then passes validation and gets created.
+        var newFile = Mock.Of<IWopiWritableFile>();
         _writable.Setup(w => w.CheckValidFileName("bad/name.docx", It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _writable.Setup(w => w.CheckValidFileName("bad_name.docx", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _writable.Setup(w => w.GetSuggestedFileName(Container, "bad_name.docx", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("bad_name.docx");
+        _writable.Setup(w => w.CreateWopiChildFile(Container, "bad_name.docx", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(newFile);
 
         var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "bad/name.docx"));
 
-        Assert.Equal(WopiNewChildFileOutcome.BadRequest, result.Outcome);
+        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
+        Assert.Same(newFile, result.File);
+    }
+
+    [Fact]
+    public async Task SuggestedTarget_InvalidName_FallsBackToStemWhenSanitiseStillFails()
+    {
+        // Sanitised candidate also fails validation → fall back to fallbackStem + extension
+        // (same shape as the extension-only suggested-target path). Original extension is
+        // preserved per spec.
+        var newFile = Mock.Of<IWopiWritableFile>();
+        _writable.Setup(w => w.CheckValidFileName("bad/name.docx", It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _writable.Setup(w => w.CheckValidFileName("bad_name.docx", It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _writable.Setup(w => w.GetSuggestedFileName(Container, "Untitled.docx", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Untitled.docx");
+        _writable.Setup(w => w.CreateWopiChildFile(Container, "Untitled.docx", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(newFile);
+
+        var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "bad/name.docx"));
+
+        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
+        _writable.Verify(w => w.GetSuggestedFileName(Container, "Untitled.docx", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

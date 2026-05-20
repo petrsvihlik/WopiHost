@@ -23,6 +23,12 @@ public class DefaultCheckContainerInfoBuilder(
 
         var permissions = await permissionProvider.GetContainerPermissionsAsync(httpContext.User, container, cancellationToken).ConfigureAwait(false);
 
+        // Spec: IsAnonymousUser "should match the IsAnonymousUser value returned in
+        // CheckFileInfo" — and the file / folder builders both set it from the auth state.
+        // CheckContainerInfo was previously omitting it (left as default `false`), so
+        // anonymous users were reported as authenticated in the container response.
+        var isAnonymous = httpContext.User?.Identity?.IsAuthenticated != true;
+
         var checkContainerInfo = new WopiCheckContainerInfo
         {
             Name = container.Name,
@@ -30,6 +36,7 @@ public class DefaultCheckContainerInfoBuilder(
             UserCanCreateChildFile = permissions.HasFlag(WopiContainerPermissions.UserCanCreateChildFile),
             UserCanDelete = permissions.HasFlag(WopiContainerPermissions.UserCanDelete),
             UserCanRename = permissions.HasFlag(WopiContainerPermissions.UserCanRename),
+            IsAnonymousUser = isAnonymous,
             IsEduUser = false,
         };
 
