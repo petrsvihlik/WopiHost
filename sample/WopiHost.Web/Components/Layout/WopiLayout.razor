@@ -1,9 +1,9 @@
 @inherits LayoutComponentBase
+@inject IOptions<WopiOptions> WopiOptions
 
 @* Full-bleed iframe layout for the WOPI editor. The "Files" pill on top-left lets the user
    navigate back; the postMessage handshake gives the WOPI client a chance to flush pending
-   saves before the host navigates away. Mirrors _LayoutWOPI.cshtml — kept inline so the
-   editor host page is self-contained. *@
+   saves before the host navigates away. *@
 
 <HeadContent>
     <meta http-equiv="x-ua-compatible" content="ie=edge">
@@ -76,13 +76,17 @@
             window.location.href = '/';
         }
 
+        // Restrict postMessage to the WOPI client's origin so the Action_Close payload is
+        // never delivered to a different document if the iframe ever navigates elsewhere.
+        var wopiClientOrigin = '@WopiOptions.Value.ClientUrl.GetLeftPart(System.UriPartial.Authority)';
+
         btn.addEventListener('click', function () {
             try {
                 var frame = document.getElementById('office_frame');
                 if (frame && frame.contentWindow) {
                     frame.contentWindow.postMessage(
                         JSON.stringify({ MessageId: 'Action_Close', SendTime: Date.now(), Values: {} }),
-                        '*'
+                        wopiClientOrigin
                     );
                     // Give the client ~600ms to acknowledge / flush, then navigate.
                     setTimeout(goHome, 600);

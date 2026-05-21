@@ -2,6 +2,8 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
+
+  <!-- Production packages — referenced by src/, sample/, infra/, and tests. -->
   <ItemGroup>
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.300" PrivateAssets="All" />
     <PackageVersion Include="System.IO.FileSystem.AccessControl" Version="5.0.0" />
@@ -32,10 +34,54 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.3.4" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.3.4" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.3.5" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.3.5" />
     <!-- Aspire integration for the Redis lock provider opt-in. Only the AppHost needs it. -->
-    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.3.4" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.3.5" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />
+  </ItemGroup>
+
+  <!--
+    Test-only packages. Gated on the project living under test/ so a src/, sample/, or
+    infra/ csproj that accidentally <PackageReference>s one fails restore with NU1604
+    (no version defined for that scope). Keeping them in this single root file (rather
+    than a sibling test/Directory.Packages.props) is what lets Dependabot find every
+    declared version — the sibling-file layout was tripping a false-positive
+    "no longer a dependency" auto-closure on every test-scope bump.
+
+    Cross-platform path check: matches both '/' (POSIX) and '\' (Windows) separators
+    bracketing the literal "test" segment, so we won't accidentally match folders like
+    "tests_archive/" or "unittest-output/" if someone adds them later.
+  -->
+  <ItemGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectFullPath)', '[\\/]test[\\/]'))">
+    <PackageVersion Include="coverlet.collector" Version="10.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageVersion>
+    <PackageVersion Include="coverlet.msbuild" Version="10.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageVersion>
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.3.5" />
+    <PackageVersion Include="FakeItEasy" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.59.0" />
+    <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="Testcontainers" Version="4.12.0" />
+    <PackageVersion Include="Testcontainers.Azurite" Version="4.12.0" />
+    <PackageVersion Include="Testcontainers.Redis" Version="4.12.0" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <!-- Runner-free packages used only by WopiHost.Abstractions.Testing — the shared conformance
+         library is a class library, not a test project, so it can't pull in the xunit.v3
+         metapackage (which would force OutputType=Exe via the MTP entry point). Keep these
+         aligned with xunit.v3 above. -->
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.2" />
+    <PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageVersion>
   </ItemGroup>
 </Project>

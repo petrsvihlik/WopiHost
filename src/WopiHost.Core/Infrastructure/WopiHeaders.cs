@@ -159,7 +159,7 @@ public static class WopiHeaders
     /// <summary>
     /// A string describing the reason the rename operation couldn't be completed.
     /// </summary>
-    public const string INVALID_FILE_NAME = "X-WOPI-InvalidFileNameError ";
+    public const string INVALID_FILE_NAME = "X-WOPI-InvalidFileNameError";
 
     /// <summary>
     /// A UTF-7 encoded string that is a container name. Required.

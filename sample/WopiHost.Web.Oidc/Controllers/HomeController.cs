@@ -59,7 +59,10 @@ public class HomeController(
 
     public async Task<ActionResult> Detail(string id, string wopiAction)
     {
-        var actionEnum = Enum.Parse<WopiActionEnum>(wopiAction);
+        if (!Enum.TryParse<WopiActionEnum>(wopiAction, ignoreCase: true, out var actionEnum))
+        {
+            return BadRequest($"Unknown WOPI action '{wopiAction}'.");
+        }
         var file = await storageProvider.GetWopiFile(id)
             ?? throw new FileNotFoundException($"File with ID '{id}' not found.");
 

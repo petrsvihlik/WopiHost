@@ -24,19 +24,6 @@ updates:
     commit-message:
       prefix: "chore(deps)"
 
-  # test/Directory.Packages.props is a sibling CPM file that doesn't inherit
-  # from the root one — it must be scanned separately or Dependabot will
-  # auto-close test-only package PRs with "no longer a dependency". (See #445.)
-  - package-ecosystem: nuget
-    directory: "/test"
-    registries:
-      - cobalt-github-packages
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 20
-    commit-message:
-      prefix: "chore(deps)"
-
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

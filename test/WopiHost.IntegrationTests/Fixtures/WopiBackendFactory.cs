@@ -43,7 +43,7 @@ public sealed class WopiBackendFactory(
         builder.ConfigureServices(services =>
         {
             // Tests synthesize WOPI requests without the X-WOPI-Proof headers a real Office client
-            // would send; without this swap, every request 500s in WopiOriginValidationActionFilter.
+            // would send; without this swap, every request 500s in WopiOriginValidationEndpointFilter.
             services.RemoveAll<IWopiProofValidator>();
             services.AddSingleton<IWopiProofValidator, AlwaysValidProofValidator>();
             configureServices?.Invoke(services);

@@ -107,7 +107,7 @@ public partial class Program
 
             // Dev-only escape hatch for WOPI clients that do not sign requests with proof keys
             // (e.g. Collabora Online — proof keys are an OOS / M365-for-the-Web feature). Without
-            // this, every WOPI callback 500s in WopiOriginValidationActionFilter because
+            // this, every WOPI callback 500s in WopiOriginValidationEndpointFilter because
             // sourceProofKeys.Value is null. Refuses to enable outside Development so a stray
             // production config cannot silently disable signature checking.
             var bootSecurityOptions = builder.Configuration
