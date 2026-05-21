@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
@@ -35,7 +36,7 @@ internal static partial class EndpointHelpers
     /// Used by the file- and container-side <c>ecosystem_pointer</c> endpoints. Reusing the
     /// inbound token would violate the WOPI "preventing token trading" guidance.
     /// </summary>
-    public static async Task<IResult> IssueEcosystemPointerAsync(
+    public static async Task<JsonHttpResult<UrlResponse>> IssueEcosystemPointerAsync(
         HttpContext httpContext,
         string resourceIdentifier,
         WopiResourceType resourceType,

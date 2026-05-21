@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
@@ -10,24 +11,32 @@ using WopiHost.Core.Models;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// WOPI ecosystem-pointer endpoints. These endpoints do not carry per-resource WopiAuthorize
-/// requirements — only the standard authenticated-user gate from the group's
-/// <c>RequireAuthorization()</c>.
+/// WOPI ecosystem-pointer endpoints. The endpoints do not carry per-resource
+/// <see cref="Security.Authorization.WopiAuthorizeAttribute"/> requirements — only the
+/// standard authenticated-user gate from the parent group's <c>RequireAuthorization()</c>.
 /// </summary>
 internal static class EcosystemEndpoints
 {
     public static void MapEcosystemEndpoints(IEndpointRouteBuilder wopi)
     {
-        // Two endpoints, no shared metadata — register directly. Using MapGroup("/ecosystem")
-        // + MapGet("") would produce the wrong RawText (the empty inner path doesn't normalise
-        // to the group's exact prefix).
+        // Two endpoints, no shared metadata — register directly. MapGroup("/ecosystem") +
+        // MapGet("") normalises to "/ecosystem/" (trailing slash), which would break
+        // WopiRouteNames.CheckEcosystem lookups. See MapGroupEmptyTemplateTests.
         wopi.MapGet("/ecosystem", CheckEcosystem)
-            .WithName(WopiRouteNames.CheckEcosystem);
+            .WithName(WopiRouteNames.CheckEcosystem)
+            .WithTags("Ecosystem")
+            .WithSummary("CheckEcosystem — returns ecosystem capabilities.")
+            .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/checkecosystem. " +
+                "The host customisation hook (OnCheckEcosystemAsync) on IWopiHostExtensions can tweak the returned capabilities before they're emitted.");
 
-        wopi.MapGet("/ecosystem/root_container_pointer", GetRootContainer);
+        wopi.MapGet("/ecosystem/root_container_pointer", GetRootContainer)
+            .WithTags("Ecosystem")
+            .WithSummary("Returns a pointer (URL + token) to the WOPI root container.")
+            .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getrootcontainer. " +
+                "Includes the root container's CheckContainerInfo payload to save the WOPI client a round-trip back to /wopi/containers/{id}.");
     }
 
-    private static async Task<IResult> CheckEcosystem(
+    private static async Task<JsonHttpResult<WopiCheckEcosystem>> CheckEcosystem(
         HttpContext httpContext,
         IWopiHostExtensions extensions,
         CancellationToken cancellationToken)
@@ -45,35 +54,39 @@ internal static class EcosystemEndpoints
         return TypedResults.Json(checkEcosystem);
     }
 
-    private static async Task<IResult> GetRootContainer(
-        HttpContext httpContext,
-        IWopiStorageProvider storage,
-        IWopiAccessTokenService accessTokenService,
-        IWopiPermissionProvider permissionProvider,
-        ICheckContainerInfoBuilder containerInfoBuilder,
-        CancellationToken cancellationToken)
+    private static async Task<Results<NotFound, JsonHttpResult<RootContainerInfo>>> GetRootContainer(
+        [AsParameters] GetRootContainerRequest req)
     {
-        var root = await storage.GetWopiContainer(storage.RootContainer.Identifier, cancellationToken).ConfigureAwait(false);
+        var root = await req.Storage.GetWopiContainer(req.Storage.RootContainer.Identifier, req.CancellationToken).ConfigureAwait(false);
         if (root is null) return TypedResults.NotFound();
 
-        var permissions = await permissionProvider.GetContainerPermissionsAsync(httpContext.User, root, cancellationToken).ConfigureAwait(false);
-        var token = await accessTokenService.IssueAsync(new WopiAccessTokenRequest
+        var permissions = await req.PermissionProvider.GetContainerPermissionsAsync(req.Http.User, root, req.CancellationToken).ConfigureAwait(false);
+        var token = await req.AccessTokenService.IssueAsync(new WopiAccessTokenRequest
         {
-            UserId = httpContext.User.GetUserId(),
-            UserDisplayName = httpContext.User.FindFirstValue(ClaimTypes.Name),
-            UserEmail = httpContext.User.FindFirstValue(ClaimTypes.Email),
+            UserId = req.Http.User.GetUserId(),
+            UserDisplayName = req.Http.User.FindFirstValue(ClaimTypes.Name),
+            UserEmail = req.Http.User.FindFirstValue(ClaimTypes.Email),
             ResourceId = root.Identifier,
             ResourceType = WopiResourceType.Container,
             ContainerPermissions = permissions,
-        }, cancellationToken).ConfigureAwait(false);
+        }, req.CancellationToken).ConfigureAwait(false);
 
         var rc = new RootContainerInfo
         {
-            ContainerPointer = new ChildContainer(root.Name, httpContext.GetWopiSrc(root, token.Token)),
+            ContainerPointer = new ChildContainer(root.Name, req.Http.GetWopiSrc(root, token.Token)),
             // The spec strongly recommends including ContainerInfo so the WOPI client doesn't
             // have to round-trip back to CheckContainerInfo.
-            ContainerInfo = await containerInfoBuilder.BuildAsync(root, httpContext, cancellationToken).ConfigureAwait(false),
+            ContainerInfo = await req.ContainerInfoBuilder.BuildAsync(root, req.Http, req.CancellationToken).ConfigureAwait(false),
         };
         return TypedResults.Json(rc);
     }
 }
+
+/// <summary>Parameter bundle for <see cref="EcosystemEndpoints.GetRootContainer"/>.</summary>
+internal readonly record struct GetRootContainerRequest(
+    HttpContext Http,
+    IWopiStorageProvider Storage,
+    IWopiAccessTokenService AccessTokenService,
+    IWopiPermissionProvider PermissionProvider,
+    ICheckContainerInfoBuilder ContainerInfoBuilder,
+    CancellationToken CancellationToken);

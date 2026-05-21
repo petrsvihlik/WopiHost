@@ -1,0 +1,50 @@
+@page "/Error"
+@layout MainLayout
+
+@using Microsoft.AspNetCore.Diagnostics
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+<HeadContent>
+    <PageTitle>Error - WopiHost.Web</PageTitle>
+</HeadContent>
+
+<h1 class="text-danger">Error</h1>
+<h2 class="text-danger">An error occurred while processing your request.</h2>
+
+@if (_exception is not null && _showDetails)
+{
+    <div class="alert alert-danger">
+        <h3>Exception details:</h3>
+        <p>@_exception.Message</p>
+        @if (!string.IsNullOrEmpty(_exception.StackTrace))
+        {
+            <pre>@_exception.StackTrace</pre>
+        }
+    </div>
+}
+else
+{
+    <p>
+        Please try again or contact the system administrator if the problem persists.
+    </p>
+}
+
+<div>
+    <a href="/" class="btn btn-primary">Return to Home</a>
+</div>
+
+@code {
+    private Exception? _exception;
+    private bool _showDetails;
+
+    protected override void OnInitialized()
+    {
+        var http = HttpContextAccessor.HttpContext;
+        // app.UseExceptionHandler stashes the captured exception on IExceptionHandlerFeature so
+        // the error-handler endpoint can render the details. Production hosts should NOT echo
+        // stack traces — flip _showDetails based on environment if you fork this sample.
+        _exception = http?.Features.Get<IExceptionHandlerFeature>()?.Error;
+        _showDetails = true;
+    }
+}

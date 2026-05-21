@@ -1,4 +1,7 @@
+using System.Reflection;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using WopiHost.Core.Infrastructure;
@@ -12,6 +15,10 @@ namespace WopiHost.Core.Results;
 /// responds with <c>409 Conflict</c>. Implements <see cref="IWopiOutcomeResult"/> so the
 /// telemetry endpoint filter classifies the outcome as
 /// <see cref="WopiTelemetry.Outcomes.LockMismatch"/> rather than generic <c>Conflict</c>.
+/// Also implements <see cref="IStatusCodeHttpResult"/> and <see cref="IEndpointMetadataProvider"/>
+/// so it composes into <c>Results&lt;...&gt;</c> typed-union return types alongside built-in
+/// results (e.g. <c>Ok</c>, <c>NotFound</c>) and contributes a 409 response to the generated
+/// OpenAPI document without an explicit <c>.Produces(409)</c> call at the registration site.
 /// </summary>
 /// <remarks>
 /// When <paramref name="existingLock"/> is null, the <c>X-WOPI-Lock</c> header is set to the
@@ -21,10 +28,14 @@ namespace WopiHost.Core.Results;
 /// recompiling. Falls back to <see cref="WopiHeaders.EMPTY_LOCK_VALUE"/> (empty string, spec
 /// compliant) when no service provider is available.
 /// </remarks>
-public sealed class WopiLockMismatchResult(string? existingLock = null, string? reason = null) : IResult, IWopiOutcomeResult
+public sealed class WopiLockMismatchResult(string? existingLock = null, string? reason = null)
+    : IResult, IWopiOutcomeResult, IStatusCodeHttpResult, IEndpointMetadataProvider
 {
     /// <inheritdoc />
     public string Outcome => WopiTelemetry.Outcomes.LockMismatch;
+
+    /// <inheritdoc />
+    public int? StatusCode => StatusCodes.Status409Conflict;
 
     /// <inheritdoc />
     public Task ExecuteAsync(HttpContext httpContext)
@@ -40,5 +51,12 @@ public sealed class WopiLockMismatchResult(string? existingLock = null, string? 
         }
         httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public static void PopulateMetadata(MethodInfo method, EndpointBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Metadata.Add(new ProducesResponseTypeMetadata(StatusCodes.Status409Conflict, type: null));
     }
 }

@@ -17,10 +17,12 @@ namespace WopiHost.Core.Endpoints;
 public static class WopiEndpointRouteBuilderExtensions
 {
     /// <summary>
-    /// Maps the WOPI host endpoints onto <paramref name="endpoints"/>. Returns a route group
-    /// builder so additional metadata can be layered on by the caller.
+    /// Maps the WOPI host endpoints onto <paramref name="endpoints"/>. Returns the
+    /// <c>/wopi</c> route group so additional metadata can be layered on by the caller
+    /// (the bootstrap endpoints are registered as a side effect and aren't reachable
+    /// through the returned builder — they live on a different prefix and auth scheme).
     /// </summary>
-    public static IEndpointRouteBuilder MapWopiEndpoints(this IEndpointRouteBuilder endpoints)
+    public static RouteGroupBuilder MapWopiEndpoints(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
@@ -43,6 +45,6 @@ public static class WopiEndpointRouteBuilderExtensions
         // telemetry filters wire up separately inside MapBootstrapEndpoints.
         BootstrapEndpoints.MapBootstrapEndpoints(endpoints);
 
-        return endpoints;
+        return wopi;
     }
 }
