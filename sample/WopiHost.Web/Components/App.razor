@@ -1,7 +1,13 @@
 @* Root Razor Component for the WopiHost.Web frontend. Per the .NET 10 Minimal-API +
    Razor Components idiom, App.razor owns the <html>/<head>/<body> structure and the
    <Routes> child renders into <body>. Static SSR — no @rendermode set, so each request
-   returns plain pre-rendered HTML and the sample stays a thin viewer without SignalR. *@
+   returns plain pre-rendered HTML and the sample stays a thin viewer without SignalR.
+
+   Stylesheets live here (NOT in MainLayout's <HeadContent>) because page-level <HeadContent>
+   in static SSR replaces — not merges with — the layout's <HeadContent>. Anything every page
+   needs (marx-css, site.css) goes in this root <head> so it's always present. WopiLayout's
+   own inline styles (body{margin:0;...} + #office_frame at 100%) cover marx-css visually on
+   the editor host page, so it doesn't matter that the styles also load there. *@
 
 <!DOCTYPE html>
 <html lang="en">
@@ -9,6 +15,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
+    <link rel="stylesheet" href="https://unpkg.com/marx-css/css/marx.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
     <HeadOutlet />
 </head>
 <body>

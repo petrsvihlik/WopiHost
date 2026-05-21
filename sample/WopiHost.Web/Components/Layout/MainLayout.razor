@@ -2,12 +2,8 @@
 
 @* Default layout for the browse and error pages. Mirrors the structure of the legacy
    _Layout.cshtml so the smoke test selectors (nav.breadcrumb, table.files, etc.) on the
-   page itself continue to match — the layout only adds chrome above/below. *@
-
-<HeadContent>
-    <link rel="stylesheet" href="https://unpkg.com/marx-css/css/marx.min.css" />
-    <link rel="stylesheet" href="/css/site.css" />
-</HeadContent>
+   page itself continue to match — the layout only adds chrome above/below. Stylesheets
+   are declared in App.razor's <head>, not here — see the note on that file for why. *@
 
 <nav>
     <ul>
