@@ -11,8 +11,8 @@ using WopiHost.Core.Security.Authorization;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Minimal-API mutating endpoints for the <c>/wopi/containers/{id}</c> surface. Mirrors the
-/// non-GET actions of <c>ContainersController</c>, dispatched via <c>X-WOPI-Override</c>.
+/// Minimal-API mutating endpoints for the <c>/wopi/containers/{id}</c> surface, dispatched via
+/// <c>X-WOPI-Override</c>.
 /// </summary>
 internal static class ContainerMutatingEndpoints
 {

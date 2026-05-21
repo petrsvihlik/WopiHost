@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿@inject Microsoft.Extensions.Options.IOptions<WopiOptions> WopiOptions
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
@@ -78,13 +79,17 @@
             window.location.href = '@Url.Action("Index", "Home")';
         }
 
+        // Restrict postMessage to the WOPI client's origin so the Action_Close payload is
+        // never delivered to a different document if the iframe ever navigates elsewhere.
+        var wopiClientOrigin = '@WopiOptions.Value.ClientUrl.GetLeftPart(System.UriPartial.Authority)';
+
         btn.addEventListener('click', function () {
             try {
                 var frame = document.getElementById('office_frame');
                 if (frame && frame.contentWindow) {
                     frame.contentWindow.postMessage(
                         JSON.stringify({ MessageId: 'Action_Close', SendTime: Date.now(), Values: {} }),
-                        '*'
+                        wopiClientOrigin
                     );
                     // Give the client ~600ms to acknowledge / flush, then navigate.
                     setTimeout(goHome, 600);

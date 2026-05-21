@@ -12,10 +12,10 @@ using WopiHost.Core.Security.Authentication;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Minimal-API equivalents of <c>WopiBootstrapperController</c>. Lives outside the
-/// <c>/wopi</c> group because the bootstrap endpoints authenticate via
-/// <see cref="WopiAuthenticationSchemes.Bootstrap"/> (OAuth2 Bearer from the host's IdP)
-/// rather than the access-token query parameter the rest of the WOPI surface uses.
+/// Minimal-API bootstrapper endpoints. Live outside the <c>/wopi</c> group because the
+/// bootstrap endpoints authenticate via <see cref="WopiAuthenticationSchemes.Bootstrap"/>
+/// (OAuth2 Bearer from the host's IdP) rather than the access-token query parameter the rest
+/// of the WOPI surface uses.
 /// </summary>
 /// <remarks>
 /// Three operations share <c>/wopibootstrapper</c>:
