@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using WopiHost.Abstractions;
@@ -12,7 +13,7 @@ using WopiHost.Core.Security.Authentication;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Minimal-API equivalents of <c>WopiBootstrapperController</c>. Lives outside the
+/// Minimal-API endpoints for the <c>/wopibootstrapper</c> surface. Lives outside the
 /// <c>/wopi</c> group because the bootstrap endpoints authenticate via
 /// <see cref="WopiAuthenticationSchemes.Bootstrap"/> (OAuth2 Bearer from the host's IdP)
 /// rather than the access-token query parameter the rest of the WOPI surface uses.
@@ -36,25 +37,34 @@ internal static class BootstrapEndpoints
 {
     public static void MapBootstrapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        // Two endpoints; MapGroup("/wopibootstrapper") + MapGet("") would normalise the
-        // template wrong (same trap that bit /ecosystem in EcosystemEndpoints), so register
-        // the two verbs directly.
+        // MapGroup("/wopibootstrapper") + MapGet("") normalises the template to
+        // "/wopibootstrapper/" (trailing slash) — see MapGroupEmptyTemplateTests — so register
+        // the two verbs directly on the receiver instead.
         static void ApplyBootstrapAuth(Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder p) => p
             .AddAuthenticationSchemes(WopiAuthenticationSchemes.Bootstrap)
             .RequireAuthenticatedUser();
 
         endpoints.MapGet("/wopibootstrapper", Bootstrap)
+            .WithTags("Bootstrap")
+            .WithSummary("WOPI Bootstrap — issues an ecosystem access token for the authenticated principal.")
+            .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap. " +
+                "Authenticates with the WopiAuthenticationSchemes.Bootstrap scheme (OAuth2 Bearer from the IdP).")
             .RequireAuthorization(ApplyBootstrapAuth)
-            .AddEndpointFilter<Security.Authentication.WopiOriginValidationEndpointFilter>()
+            .AddEndpointFilter<WopiOriginValidationEndpointFilter>()
             .AddEndpointFilter<WopiTelemetryEndpointFilter>();
 
         endpoints.MapPost("/wopibootstrapper", ExecuteEcosystemOperation)
+            .WithTags("Bootstrap")
+            .WithSummary("Dispatches by X-WOPI-EcosystemOperation header (GET_ROOT_CONTAINER | GET_NEW_ACCESS_TOKEN).")
+            .WithDescription("GET_ROOT_CONTAINER: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getrootcontainer. " +
+                "GET_NEW_ACCESS_TOKEN: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getnewaccesstoken. " +
+                "Unknown operation values yield 501.")
             .RequireAuthorization(ApplyBootstrapAuth)
-            .AddEndpointFilter<Security.Authentication.WopiOriginValidationEndpointFilter>()
+            .AddEndpointFilter<WopiOriginValidationEndpointFilter>()
             .AddEndpointFilter<WopiTelemetryEndpointFilter>();
     }
 
-    private static async Task<IResult> Bootstrap(
+    private static async Task<JsonHttpResult<BootstrapRootContainerInfo>> Bootstrap(
         HttpContext httpContext,
         IWopiStorageProvider storage,
         IWopiAccessTokenService accessTokenService,
@@ -66,79 +76,62 @@ internal static class BootstrapEndpoints
         return TypedResults.Json(new BootstrapRootContainerInfo { Bootstrap = bootstrap });
     }
 
-    private static async Task<IResult> ExecuteEcosystemOperation(
-        HttpContext httpContext,
-        IWopiStorageProvider storage,
-        IWopiAccessTokenService accessTokenService,
-        IWopiPermissionProvider permissionProvider,
-        ICheckContainerInfoBuilder containerInfoBuilder,
-        [FromHeader(Name = WopiHeaders.ECOSYSTEM_OPERATION)] string? ecosystemOperation,
-        [FromHeader(Name = WopiHeaders.WOPI_SRC)] string? wopiSrc,
-        CancellationToken cancellationToken) => ecosystemOperation switch
+    private static async Task<Results<NotFound, JsonHttpResult<BootstrapRootContainerInfo>, StatusCodeHttpResult>> ExecuteEcosystemOperation(
+        [AsParameters] ExecuteEcosystemOperationRequest req) => req.EcosystemOperation switch
     {
-        "GET_ROOT_CONTAINER" => await GetRootContainerAsync(httpContext, storage, accessTokenService, permissionProvider, containerInfoBuilder, cancellationToken).ConfigureAwait(false),
-        "GET_NEW_ACCESS_TOKEN" => await GetNewAccessTokenAsync(httpContext, storage, accessTokenService, permissionProvider, wopiSrc, cancellationToken).ConfigureAwait(false),
+        "GET_ROOT_CONTAINER" => await GetRootContainerAsync(req).ConfigureAwait(false),
+        "GET_NEW_ACCESS_TOKEN" => await GetNewAccessTokenAsync(req).ConfigureAwait(false),
         _ => TypedResults.StatusCode(StatusCodes.Status501NotImplemented),
     };
 
-    private static async Task<IResult> GetRootContainerAsync(
-        HttpContext httpContext,
-        IWopiStorageProvider storage,
-        IWopiAccessTokenService accessTokenService,
-        IWopiPermissionProvider permissionProvider,
-        ICheckContainerInfoBuilder containerInfoBuilder,
-        CancellationToken cancellationToken)
+    private static async Task<Results<NotFound, JsonHttpResult<BootstrapRootContainerInfo>, StatusCodeHttpResult>> GetRootContainerAsync(
+        ExecuteEcosystemOperationRequest req)
     {
-        var userId = GetUserIdOrThrow(httpContext.User);
-        var ecosystemToken = await accessTokenService.IssueAsync(BuildEcosystemTokenRequest(httpContext.User, userId, storage), cancellationToken).ConfigureAwait(false);
-        var bootstrap = BuildBootstrapInfo(httpContext, userId, ecosystemToken);
+        var userId = GetUserIdOrThrow(req.Http.User);
+        var ecosystemToken = await req.AccessTokenService.IssueAsync(BuildEcosystemTokenRequest(req.Http.User, userId, req.Storage), req.CancellationToken).ConfigureAwait(false);
+        var bootstrap = BuildBootstrapInfo(req.Http, userId, ecosystemToken);
 
-        var rootContainer = await storage.GetWopiContainer(storage.RootContainer.Identifier, cancellationToken).ConfigureAwait(false);
+        var rootContainer = await req.Storage.GetWopiContainer(req.Storage.RootContainer.Identifier, req.CancellationToken).ConfigureAwait(false);
         if (rootContainer is null) return TypedResults.NotFound();
 
-        var token = await IssueContainerTokenAsync(httpContext, accessTokenService, permissionProvider, rootContainer, cancellationToken).ConfigureAwait(false);
+        var token = await IssueContainerTokenAsync(req.Http, req.AccessTokenService, req.PermissionProvider, rootContainer, req.CancellationToken).ConfigureAwait(false);
         return TypedResults.Json(new BootstrapRootContainerInfo
         {
             Bootstrap = bootstrap,
             RootContainerInfo = new RootContainerInfo
             {
-                ContainerPointer = new ChildContainer(rootContainer.Name, httpContext.GetWopiSrc(rootContainer, token.Token)),
-                ContainerInfo = await containerInfoBuilder.BuildAsync(rootContainer, httpContext, cancellationToken).ConfigureAwait(false),
+                ContainerPointer = new ChildContainer(rootContainer.Name, req.Http.GetWopiSrc(rootContainer, token.Token)),
+                ContainerInfo = await req.ContainerInfoBuilder.BuildAsync(rootContainer, req.Http, req.CancellationToken).ConfigureAwait(false),
             },
         });
     }
 
-    private static async Task<IResult> GetNewAccessTokenAsync(
-        HttpContext httpContext,
-        IWopiStorageProvider storage,
-        IWopiAccessTokenService accessTokenService,
-        IWopiPermissionProvider permissionProvider,
-        string? wopiSrc,
-        CancellationToken cancellationToken)
+    private static async Task<Results<NotFound, JsonHttpResult<BootstrapRootContainerInfo>, StatusCodeHttpResult>> GetNewAccessTokenAsync(
+        ExecuteEcosystemOperationRequest req)
     {
         // Spec: if X-WOPI-WopiSrc is absent or unparseable, return 404.
-        if (string.IsNullOrEmpty(wopiSrc) || !EndpointHelpers.TryParseWopiSrc(wopiSrc, out var resourceType, out var resourceId))
+        if (string.IsNullOrEmpty(req.WopiSrc) || !EndpointHelpers.TryParseWopiSrc(req.WopiSrc, out var resourceType, out var resourceId))
         {
             return TypedResults.NotFound();
         }
 
-        var userId = GetUserIdOrThrow(httpContext.User);
-        var ecosystemToken = await accessTokenService.IssueAsync(BuildEcosystemTokenRequest(httpContext.User, userId, storage), cancellationToken).ConfigureAwait(false);
-        var bootstrap = BuildBootstrapInfo(httpContext, userId, ecosystemToken);
+        var userId = GetUserIdOrThrow(req.Http.User);
+        var ecosystemToken = await req.AccessTokenService.IssueAsync(BuildEcosystemTokenRequest(req.Http.User, userId, req.Storage), req.CancellationToken).ConfigureAwait(false);
+        var bootstrap = BuildBootstrapInfo(req.Http, userId, ecosystemToken);
         WopiAccessToken token;
 
         if (resourceType == WopiResourceType.File)
         {
-            var file = await storage.GetWopiFile(resourceId, cancellationToken).ConfigureAwait(false);
+            var file = await req.Storage.GetWopiFile(resourceId, req.CancellationToken).ConfigureAwait(false);
             // Spec: only provide a token if the requested WopiSrc exists and the user is authorized.
             if (file is null) return TypedResults.NotFound();
-            token = await IssueFileTokenAsync(httpContext, accessTokenService, permissionProvider, file, cancellationToken).ConfigureAwait(false);
+            token = await IssueFileTokenAsync(req.Http, req.AccessTokenService, req.PermissionProvider, file, req.CancellationToken).ConfigureAwait(false);
         }
         else
         {
-            var container = await storage.GetWopiContainer(resourceId, cancellationToken).ConfigureAwait(false);
+            var container = await req.Storage.GetWopiContainer(resourceId, req.CancellationToken).ConfigureAwait(false);
             if (container is null) return TypedResults.NotFound();
-            token = await IssueContainerTokenAsync(httpContext, accessTokenService, permissionProvider, container, cancellationToken).ConfigureAwait(false);
+            token = await IssueContainerTokenAsync(req.Http, req.AccessTokenService, req.PermissionProvider, container, req.CancellationToken).ConfigureAwait(false);
         }
 
         return TypedResults.Json(new BootstrapRootContainerInfo
@@ -202,3 +195,14 @@ internal static class BootstrapEndpoints
         ?? user.FindFirstValue(ClaimTypes.Upn)
         ?? throw new InvalidOperationException("Bootstrap principal lacks an identifier claim.");
 }
+
+/// <summary>Parameter bundle for <see cref="BootstrapEndpoints.ExecuteEcosystemOperation"/>.</summary>
+internal readonly record struct ExecuteEcosystemOperationRequest(
+    HttpContext Http,
+    IWopiStorageProvider Storage,
+    IWopiAccessTokenService AccessTokenService,
+    IWopiPermissionProvider PermissionProvider,
+    ICheckContainerInfoBuilder ContainerInfoBuilder,
+    [FromHeader(Name = WopiHeaders.ECOSYSTEM_OPERATION)] string? EcosystemOperation,
+    [FromHeader(Name = WopiHeaders.WOPI_SRC)] string? WopiSrc,
+    CancellationToken CancellationToken);

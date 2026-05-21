@@ -1,12 +1,14 @@
-﻿<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
+@inherits LayoutComponentBase
+
+@* Full-bleed iframe layout for the WOPI editor. The "Files" pill on top-left lets the user
+   navigate back; the postMessage handshake gives the WOPI client a chance to flush pending
+   saves before the host navigates away. Mirrors _LayoutWOPI.cshtml — kept inline so the
+   editor host page is self-contained. *@
+
+<HeadContent>
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
-    <title>@ViewBag.Title</title>
-    <link rel="shortcut icon" href="@ViewData["favicon"]" />
-
+    <link rel="shortcut icon" href="@Favicon?.ToString()" />
     <style type="text/css">
         body {
             margin: 0;
@@ -54,19 +56,15 @@
             display: block;
         }
     </style>
+</HeadContent>
 
-</head>
-<body>
 <button id="wopi_back" type="button" title="Close editor and return to files">← Files</button>
 
-@RenderBody()
-@await RenderSectionAsync("scripts", required: false)
+@Body
 
 <script type="text/javascript">
     // Close handshake: Office for the Web / Collabora honour the WOPI postMessage
     // "Action_Close" so they can flush pending saves before the host navigates away.
-    // Listener: once the client posts "App_LoadingStatus" with "Document_Loaded" we
-    // know it can receive postMessages. We post Action_Close and navigate away.
     (function () {
         var btn = document.getElementById('wopi_back');
         if (!btn) return;
@@ -75,7 +73,7 @@
         function goHome() {
             if (navigated) return;
             navigated = true;
-            window.location.href = '@Url.Action("Index", "Home")';
+            window.location.href = '/';
         }
 
         btn.addEventListener('click', function () {
@@ -105,5 +103,8 @@
         });
     })();
 </script>
-</body>
-</html>
+
+@code {
+    /// <summary>Favicon URL forwarded by the Detail page so the layout can render the WOPI-client-supplied icon.</summary>
+    [CascadingParameter(Name = nameof(Favicon))] public Uri? Favicon { get; set; }
+}

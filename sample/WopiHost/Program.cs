@@ -145,9 +145,6 @@ public partial class Program
                 options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} with [WOPI CorrelationID: {" + nameof(WopiHeaders.CORRELATION_ID) + "}, WOPI SessionID: {" + nameof(WopiHeaders.SESSION_ID) + "}] responded {StatusCode} in {Elapsed:0.0000} ms";
             });
 
-            app.UseRouting();
-
-            // Automatically authenticate
             app.UseAuthentication();
             app.UseAuthorization();
 

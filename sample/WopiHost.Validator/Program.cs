@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Endpoints;
@@ -37,7 +38,6 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseStaticFiles();
 
-app.UseRouting();
 app.UseAuthorization();
 // HostPages
 app.MapRazorPages();
@@ -51,37 +51,7 @@ app.MapHealthChecks("/health");
 // CLI can authenticate. NOT a pattern to copy into a production WOPI host —
 // in real deployments tokens are minted server-side from an authenticated
 // user session, never exposed via an unauthenticated endpoint.
-app.MapGet("/_test/issue-token/{fileId}", async (
-    string fileId,
-    IWopiStorageProvider storage,
-    IWopiAccessTokenService tokens,
-    IWopiPermissionProvider permissions,
-    IOptions<WopiOptions> options,
-    CancellationToken ct) =>
-{
-    var file = await storage.GetWopiFile(fileId, ct);
-    if (file is null)
-    {
-        return Results.NotFound();
-    }
-    var anonymous = new System.Security.Claims.ClaimsPrincipal();
-    var filePerms = await permissions.GetFilePermissionsAsync(anonymous, file, ct);
-    // The Microsoft WOPI validator uses a single token for both file and container ops, so
-    // we mint one with both surfaces pre-authorized. Real hosts typically issue narrower
-    // tokens per session.
-    var rootContainer = storage.RootContainer;
-    var containerPerms = await permissions.GetContainerPermissionsAsync(anonymous, rootContainer, ct);
-    var token = await tokens.IssueAsync(new WopiAccessTokenRequest
-    {
-        UserId = options.Value.UserId,
-        UserDisplayName = options.Value.UserId,
-        ResourceId = file.Identifier,
-        ResourceType = WopiResourceType.File,
-        FilePermissions = filePerms,
-        ContainerPermissions = containerPerms,
-    }, ct);
-    return Results.Text(token.Token);
-});
+app.MapGet("/_test/issue-token/{fileId}", WopiHost.Validator.ValidatorTokenEndpoint.IssueValidatorToken);
 
 await app.RunAsync();
 
@@ -89,4 +59,37 @@ namespace WopiHost.Validator
 {
     /// <summary>Test-only marker so <c>WebApplicationFactory&lt;ValidatorSampleEntryPoint&gt;</c> resolves unambiguously to this sample's assembly.</summary>
     public partial class ValidatorSampleEntryPoint;
+
+    internal static class ValidatorTokenEndpoint
+    {
+        public static async Task<Results<NotFound, ContentHttpResult>> IssueValidatorToken(
+            string fileId,
+            IWopiStorageProvider storage,
+            IWopiAccessTokenService tokens,
+            IWopiPermissionProvider permissions,
+            IOptions<WopiOptions> options,
+            CancellationToken ct)
+        {
+            var file = await storage.GetWopiFile(fileId, ct);
+            if (file is null) return TypedResults.NotFound();
+
+            var anonymous = new System.Security.Claims.ClaimsPrincipal();
+            var filePerms = await permissions.GetFilePermissionsAsync(anonymous, file, ct);
+            // The Microsoft WOPI validator uses a single token for both file and container ops, so
+            // we mint one with both surfaces pre-authorized. Real hosts typically issue narrower
+            // tokens per session.
+            var rootContainer = storage.RootContainer;
+            var containerPerms = await permissions.GetContainerPermissionsAsync(anonymous, rootContainer, ct);
+            var token = await tokens.IssueAsync(new WopiAccessTokenRequest
+            {
+                UserId = options.Value.UserId,
+                UserDisplayName = options.Value.UserId,
+                ResourceId = file.Identifier,
+                ResourceType = WopiResourceType.File,
+                FilePermissions = filePerms,
+                ContainerPermissions = containerPerms,
+            }, ct);
+            return TypedResults.Text(token.Token);
+        }
+    }
 }

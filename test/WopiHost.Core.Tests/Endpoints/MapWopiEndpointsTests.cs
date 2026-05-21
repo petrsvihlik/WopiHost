@@ -35,6 +35,16 @@ public sealed class MapWopiEndpointsTests : IAsyncLifetime
         // Storage provider isn't part of AddWopi (it's provider-package-scoped) — stub it so
         // registration discovery sees the type as a service.
         builder.Services.AddSingleton(Mock.Of<IWopiStorageProvider>());
+        // The optional services (locks, cobalt, writable storage) aren't registered by AddWopi
+        // and ride on [AsParameters] handler signatures as nullable service parameters. Without
+        // [FromServices] on those properties, the Minimal-API binder needs the types to be
+        // visible in DI — register Mock.Of stubs (any non-null instance suffices) so endpoint
+        // registration succeeds. Production hosts always have at least one lock + writable
+        // provider registered; this fixture mirrors that shape so the test exercises the same
+        // binding configuration as production.
+        builder.Services.AddSingleton(Mock.Of<IWopiLockProvider>());
+        builder.Services.AddSingleton(Mock.Of<IWopiWritableStorageProvider>());
+        builder.Services.AddSingleton(Mock.Of<ICobaltProcessor>());
         // Override the default WOPI auth scheme so RequireAuthorization() resolves; the no-op
         // handler short-circuits to NoResult since we never hit endpoints in this test. The
         // Bootstrap group requires WopiAuthenticationSchemes.Bootstrap to be registered for

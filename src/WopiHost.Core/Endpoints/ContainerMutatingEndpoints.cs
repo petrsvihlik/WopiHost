@@ -1,62 +1,89 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
-using WopiHost.Core.Security.Authorization;
+using WopiHost.Core.Results;
+
+// Shared typed-union for CreateChildContainer — branches: 404 (missing parent), 200 with
+// CreateChildContainerResponse, 501 (mutex headers), 400 (illegal specific-mode name), 409
+// (specific-mode name conflict), 500 (internal error path).
+using CreateChildContainerResult = Microsoft.AspNetCore.Http.HttpResults.Results<
+    Microsoft.AspNetCore.Http.HttpResults.NotFound,
+    Microsoft.AspNetCore.Http.HttpResults.JsonHttpResult<WopiHost.Core.Models.CreateChildContainerResponse>,
+    Microsoft.AspNetCore.Http.HttpResults.StatusCodeHttpResult,
+    Microsoft.AspNetCore.Http.HttpResults.BadRequest,
+    Microsoft.AspNetCore.Http.HttpResults.Conflict>;
+
+// Shared typed-union for CreateChildFile. Mirrors PutRelativeFile minus the FileExtension /
+// declared-size paths: 404, 200 ChildFile, 501 (mutex headers), 400/409 from negotiation,
+// lock-mismatch when target exists locked, 500 internal-error.
+using CreateChildFileResult = Microsoft.AspNetCore.Http.HttpResults.Results<
+    Microsoft.AspNetCore.Http.HttpResults.NotFound,
+    Microsoft.AspNetCore.Http.HttpResults.JsonHttpResult<WopiHost.Core.Models.ChildFile>,
+    Microsoft.AspNetCore.Http.HttpResults.StatusCodeHttpResult,
+    Microsoft.AspNetCore.Http.HttpResults.BadRequest,
+    Microsoft.AspNetCore.Http.HttpResults.Conflict,
+    WopiHost.Core.Results.WopiLockMismatchResult>;
 
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Minimal-API mutating endpoints for the <c>/wopi/containers/{id}</c> surface. Mirrors the
-/// non-GET actions of <c>ContainersController</c>, dispatched via <c>X-WOPI-Override</c>.
+/// Mutating Minimal-API endpoints for the <c>/wopi/containers/{id}</c> surface. POST overloads
+/// share the route and verb and are discriminated by <c>X-WOPI-Override</c> via
+/// <see cref="WopiOverrideMatcherPolicy"/>.
 /// </summary>
 internal static class ContainerMutatingEndpoints
 {
     public static void MapContainerMutatingEndpoints(RouteGroupBuilder containers)
     {
-        containers.MapPost("/{id}", CreateChildContainer)
+        // The writable-storage gate applies to every mutating container endpoint. Hoist onto a
+        // sub-group so each MapPost doesn't have to repeat .AddEndpointFilter.
+        var mutating = containers.MapGroup("")
+            .AddEndpointFilter<RequiresWritableStorageEndpointFilter>();
+
+        mutating.MapPost("/{id}", CreateChildContainer)
             .WithMetadata(new WopiOverrideMetadata(WopiContainerOperations.CreateChildContainer))
-            .AddEndpointFilter<RequiresWritableStorageEndpointFilter>()
-            .RequireAuthorization(p => p.AddRequirements(new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.Create)));
+            .WithSummary("CreateChildContainer (X-WOPI-Override: CREATE_CHILD_CONTAINER).")
+            .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/createchildcontainer. " +
+                "Suggested-mode silently sanitises invalid names; specific-mode returns 400 with X-WOPI-InvalidContainerNameError on conflict.")
+            .RequireWopiPermission(WopiResourceType.Container, Permission.Create);
 
-        containers.MapPost("/{id}", CreateChildFile)
+        mutating.MapPost("/{id}", CreateChildFile)
             .WithMetadata(new WopiOverrideMetadata(WopiContainerOperations.CreateChildFile))
-            .AddEndpointFilter<RequiresWritableStorageEndpointFilter>()
-            .RequireAuthorization(p => p.AddRequirements(new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.CreateChildFile)));
+            .WithSummary("CreateChildFile (X-WOPI-Override: CREATE_CHILD_FILE).")
+            .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/createchildfile. " +
+                "Same suggested/relative target negotiation as PutRelativeFile.")
+            .RequireWopiPermission(WopiResourceType.Container, Permission.CreateChildFile);
 
-        containers.MapPost("/{id}", DeleteContainer)
+        mutating.MapPost("/{id}", DeleteContainer)
             .WithMetadata(new WopiOverrideMetadata(WopiContainerOperations.DeleteContainer))
-            .AddEndpointFilter<RequiresWritableStorageEndpointFilter>()
-            .RequireAuthorization(p => p.AddRequirements(new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.Delete)));
+            .WithSummary("DeleteContainer (X-WOPI-Override: DELETE_CONTAINER).")
+            .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/deletecontainer. " +
+                "Returns 409 when the container has child files / child containers.")
+            .RequireWopiPermission(WopiResourceType.Container, Permission.Delete);
 
-        containers.MapPost("/{id}", RenameContainer)
+        mutating.MapPost("/{id}", RenameContainer)
             .WithMetadata(new WopiOverrideMetadata(WopiContainerOperations.RenameContainer))
-            .AddEndpointFilter<RequiresWritableStorageEndpointFilter>()
-            .RequireAuthorization(p => p.AddRequirements(new WopiAuthorizeAttribute(WopiResourceType.Container, Permission.Rename)));
+            .WithSummary("RenameContainer (X-WOPI-Override: RENAME_CONTAINER).")
+            .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/renamecontainer. " +
+                "Returns the new name on success; 400 with X-WOPI-InvalidContainerNameError on invalid input.")
+            .RequireWopiPermission(WopiResourceType.Container, Permission.Rename);
     }
 
-    private static async Task<IResult> CreateChildContainer(
-        string id,
-        HttpContext httpContext,
-        IWopiStorageProvider storage,
-        [FromServices] IWopiWritableStorageProvider? writableStorage,
-        ICheckContainerInfoBuilder containerInfoBuilder,
-        IWopiAccessTokenService accessTokenService,
-        IWopiPermissionProvider permissionProvider,
-        [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget,
-        [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? relativeTarget,
-        CancellationToken cancellationToken)
+    private static async Task<CreateChildContainerResult> CreateChildContainer(
+        [AsParameters] CreateChildContainerRequest req)
     {
-        ArgumentNullException.ThrowIfNull(writableStorage);
-        if (await storage.GetWopiContainer(id, cancellationToken).ConfigureAwait(false) is null) return TypedResults.NotFound();
+        ArgumentNullException.ThrowIfNull(req.WritableStorage);
+        if (await req.Storage.GetWopiContainer(req.Id, req.CancellationToken).ConfigureAwait(false) is null) return TypedResults.NotFound();
 
         // Mutually exclusive headers per spec: 501 when both present or both missing.
-        if ((!string.IsNullOrWhiteSpace(suggestedTarget) && !string.IsNullOrWhiteSpace(relativeTarget))
-            || (string.IsNullOrWhiteSpace(suggestedTarget) && string.IsNullOrWhiteSpace(relativeTarget)))
+        if ((!string.IsNullOrWhiteSpace(req.SuggestedTarget) && !string.IsNullOrWhiteSpace(req.RelativeTarget))
+            || (string.IsNullOrWhiteSpace(req.SuggestedTarget) && string.IsNullOrWhiteSpace(req.RelativeTarget)))
         {
             return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
         }
@@ -67,17 +94,17 @@ internal static class ContainerMutatingEndpoints
         //  - Suggested mode (X-WOPI-SuggestedTarget): "must never result in a 400 Bad Request or
         //    409 Conflict. Rather, the host must modify the proposed name as needed to create a
         //    new container that is legally named." → sanitise on invalid input.
-        string requestedName = (relativeTarget ?? suggestedTarget)!;
-        if (!await writableStorage.CheckValidContainerName(requestedName, cancellationToken).ConfigureAwait(false))
+        string requestedName = (req.RelativeTarget ?? req.SuggestedTarget)!;
+        if (!await req.WritableStorage.CheckValidContainerName(requestedName, req.CancellationToken).ConfigureAwait(false))
         {
-            if (relativeTarget is not null)
+            if (req.RelativeTarget is not null)
             {
-                httpContext.Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
+                req.Http.Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
                 return TypedResults.BadRequest();
             }
             // Suggested mode: sanitise. Fall back to a GUID stem if even sanitisation fails.
             requestedName = SanitiseContainerName(requestedName);
-            if (!await writableStorage.CheckValidContainerName(requestedName, cancellationToken).ConfigureAwait(false))
+            if (!await req.WritableStorage.CheckValidContainerName(requestedName, req.CancellationToken).ConfigureAwait(false))
             {
                 requestedName = Guid.NewGuid().ToString("N");
             }
@@ -86,16 +113,16 @@ internal static class ContainerMutatingEndpoints
         // Single exit for the resolve/build/respond tail — keeps the handler under qlty's
         // return-statements threshold (specific-mode conflict, provider null, and success
         // share one return via the switch).
-        var resolved = await ResolveNewChildContainer(httpContext, storage, writableStorage, id, requestedName, isSpecificMode: relativeTarget is not null, cancellationToken).ConfigureAwait(false);
+        var resolved = await ResolveNewChildContainer(req.Http, req.Storage, req.WritableStorage, req.Id, requestedName, isSpecificMode: req.RelativeTarget is not null, req.CancellationToken).ConfigureAwait(false);
         return resolved switch
         {
             (null, { } conflict) => conflict,
             (null, _) => TypedResults.StatusCode(StatusCodes.Status500InternalServerError),
-            ({ } folder, _) => await BuildCreateChildContainerResponse(httpContext, containerInfoBuilder, accessTokenService, permissionProvider, folder, cancellationToken).ConfigureAwait(false),
+            ({ } folder, _) => await BuildCreateChildContainerResponse(req.Http, req.ContainerInfoBuilder, req.AccessTokenService, req.PermissionProvider, folder, req.CancellationToken).ConfigureAwait(false),
         };
     }
 
-    private static async Task<IResult> BuildCreateChildContainerResponse(HttpContext httpContext, ICheckContainerInfoBuilder builder, IWopiAccessTokenService accessTokenService, IWopiPermissionProvider permissionProvider, IWopiContainer folder, CancellationToken cancellationToken)
+    private static async Task<JsonHttpResult<CreateChildContainerResponse>> BuildCreateChildContainerResponse(HttpContext httpContext, ICheckContainerInfoBuilder builder, IWopiAccessTokenService accessTokenService, IWopiPermissionProvider permissionProvider, IWopiContainer folder, CancellationToken cancellationToken)
     {
         var info = await builder.BuildAsync(folder, httpContext, cancellationToken).ConfigureAwait(false);
         // Mint a fresh container-scoped token for the new child container. Reusing the inbound
@@ -112,7 +139,7 @@ internal static class ContainerMutatingEndpoints
     /// branches. Returns <c>(folder, null)</c> on success or <c>(null, conflict)</c> when the
     /// specific-mode name collides — the conflict result writes <c>X-WOPI-ValidRelativeTarget</c>.
     /// </summary>
-    private static async Task<(IWopiContainer? folder, IResult? conflict)> ResolveNewChildContainer(
+    private static async Task<(IWopiContainer? folder, Conflict? conflict)> ResolveNewChildContainer(
         HttpContext httpContext, IWopiStorageProvider storage, IWopiWritableStorageProvider writableStorage, string id, string requestedName, bool isSpecificMode, CancellationToken cancellationToken)
     {
         if (isSpecificMode)
@@ -144,26 +171,15 @@ internal static class ContainerMutatingEndpoints
         return string.IsNullOrWhiteSpace(sanitised) || sanitised is "." or ".." ? Guid.NewGuid().ToString("N") : sanitised;
     }
 
-    private static async Task<IResult> CreateChildFile(
-        string id,
-        HttpContext httpContext,
-        IWopiStorageProvider storage,
-        [FromServices] IWopiWritableStorageProvider? writableStorage,
-        IWopiNewChildFileNegotiator negotiator,
-        ICheckFileInfoBuilder checkFileInfoBuilder,
-        IWopiAccessTokenService accessTokenService,
-        IWopiPermissionProvider permissionProvider,
-        [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? suggestedTarget,
-        [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? relativeTarget,
-        [FromHeader(Name = WopiHeaders.OVERWRITE_RELATIVE_TARGET)] bool? overwriteRelativeTarget,
-        CancellationToken cancellationToken)
+    private static async Task<CreateChildFileResult> CreateChildFile(
+        [AsParameters] CreateChildFileRequest req)
     {
-        ArgumentNullException.ThrowIfNull(writableStorage);
-        var container = await storage.GetWopiContainer(id, cancellationToken).ConfigureAwait(false);
+        ArgumentNullException.ThrowIfNull(req.WritableStorage);
+        var container = await req.Storage.GetWopiContainer(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (container is null) return TypedResults.NotFound();
 
-        if ((!string.IsNullOrWhiteSpace(suggestedTarget) && !string.IsNullOrWhiteSpace(relativeTarget))
-            || (string.IsNullOrWhiteSpace(suggestedTarget) && string.IsNullOrWhiteSpace(relativeTarget)))
+        if ((!string.IsNullOrWhiteSpace(req.SuggestedTarget) && !string.IsNullOrWhiteSpace(req.RelativeTarget))
+            || (string.IsNullOrWhiteSpace(req.SuggestedTarget) && string.IsNullOrWhiteSpace(req.RelativeTarget)))
         {
             return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
         }
@@ -171,44 +187,48 @@ internal static class ContainerMutatingEndpoints
         // Suggested-target / relative-target negotiation — protocol shared with PutRelativeFile.
         // CreateChildFile has no source file in scope, so the extension-only fallback uses a
         // fresh GUID as the stem.
-        var negotiation = await negotiator.NegotiateAsync(new WopiNewChildFileRequest(
+        var negotiation = await req.Negotiator.NegotiateAsync(new WopiNewChildFileRequest(
             ContainerId: container.Identifier,
-            SuggestedTarget: suggestedTarget,
-            RelativeTarget: relativeTarget,
-            OverwriteRelativeTarget: overwriteRelativeTarget ?? false,
-            SuggestedExtensionFallbackStem: Guid.NewGuid().ToString("N")), cancellationToken).ConfigureAwait(false);
-        if (negotiation.ToErrorResult(httpContext.Response) is { } error)
+            SuggestedTarget: req.SuggestedTarget,
+            RelativeTarget: req.RelativeTarget,
+            OverwriteRelativeTarget: req.OverwriteRelativeTarget ?? false,
+            SuggestedExtensionFallbackStem: Guid.NewGuid().ToString("N")), req.CancellationToken).ConfigureAwait(false);
+        if (negotiation.ToErrorResult(req.Http.Response) is { } error)
         {
-            return error;
+            return error switch
+            {
+                BadRequest br => br,
+                Conflict c => c,
+                WopiLockMismatchResult w => w,
+                StatusCodeHttpResult sc => sc,
+                _ => throw new InvalidOperationException($"Unexpected negotiator error result: {error.GetType().FullName}"),
+            };
         }
 
         var newFile = negotiation.File!;
-        var checkFileInfo = await checkFileInfoBuilder.BuildAsync(newFile, httpContext, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var checkFileInfo = await req.CheckFileInfoBuilder.BuildAsync(newFile, req.Http, cancellationToken: req.CancellationToken).ConfigureAwait(false);
         // Fresh, resource-scoped token for the new file. The inbound token is bound to the parent
         // CONTAINER's id and would fail authorization on the new file's CheckFileInfo callback.
         var newFileToken = await EndpointHelpers.IssueAccessTokenForFileAsync(
-            httpContext, accessTokenService, permissionProvider, newFile, cancellationToken).ConfigureAwait(false);
-        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, httpContext.GetWopiSrc(newFile, newFileToken))
+            req.Http, req.AccessTokenService, req.PermissionProvider, newFile, req.CancellationToken).ConfigureAwait(false);
+        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, req.Http.GetWopiSrc(newFile, newFileToken))
         {
             HostEditUrl = checkFileInfo.HostEditUrl,
             HostViewUrl = checkFileInfo.HostViewUrl,
         });
     }
 
-    private static async Task<IResult> DeleteContainer(
-        string id,
-        IWopiStorageProvider storageProvider,
-        [FromServices] IWopiWritableStorageProvider? writableStorageProvider,
-        CancellationToken cancellationToken)
+    private static async Task<Results<NotFound, Ok, Conflict>> DeleteContainer(
+        [AsParameters] DeleteContainerRequest req)
     {
-        ArgumentNullException.ThrowIfNull(writableStorageProvider);
-        if (await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false) is null)
+        ArgumentNullException.ThrowIfNull(req.WritableStorage);
+        if (await req.Storage.GetWopiContainer(req.Id, req.CancellationToken).ConfigureAwait(false) is null)
         {
             return TypedResults.NotFound();
         }
         try
         {
-            if (await writableStorageProvider.DeleteWopiContainer(id, cancellationToken).ConfigureAwait(false))
+            if (await req.WritableStorage.DeleteWopiContainer(req.Id, req.CancellationToken).ConfigureAwait(false))
             {
                 return TypedResults.Ok();
             }
@@ -227,27 +247,22 @@ internal static class ContainerMutatingEndpoints
         }
     }
 
-    private static async Task<IResult> RenameContainer(
-        string id,
-        HttpContext httpContext,
-        IWopiStorageProvider storageProvider,
-        [FromServices] IWopiWritableStorageProvider? writableStorageProvider,
-        [FromHeader(Name = WopiHeaders.REQUESTED_NAME)] UtfString requestedName,
-        CancellationToken cancellationToken)
+    private static async Task<Results<NotFound, JsonHttpResult<RenameContainerResponse>, BadRequest, Conflict>> RenameContainer(
+        [AsParameters] RenameContainerRequest req)
     {
-        ArgumentNullException.ThrowIfNull(writableStorageProvider);
-        var container = await storageProvider.GetWopiContainer(id, cancellationToken).ConfigureAwait(false);
+        ArgumentNullException.ThrowIfNull(req.WritableStorage);
+        var container = await req.Storage.GetWopiContainer(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (container is null) return TypedResults.NotFound();
 
-        if (!await writableStorageProvider.CheckValidContainerName(requestedName, cancellationToken).ConfigureAwait(false))
+        if (!await req.WritableStorage.CheckValidContainerName(req.RequestedName, req.CancellationToken).ConfigureAwait(false))
         {
-            httpContext.Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
+            req.Http.Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
             return TypedResults.BadRequest();
         }
-        return await TryRenameContainerAsync(httpContext, writableStorageProvider, id, requestedName, cancellationToken).ConfigureAwait(false);
+        return await TryRenameContainerAsync(req.Http, req.WritableStorage, req.Id, req.RequestedName, req.CancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task<IResult> TryRenameContainerAsync(HttpContext httpContext, IWopiWritableStorageProvider writableStorageProvider, string id, string requestedName, CancellationToken cancellationToken)
+    private static async Task<Results<NotFound, JsonHttpResult<RenameContainerResponse>, BadRequest, Conflict>> TryRenameContainerAsync(HttpContext httpContext, IWopiWritableStorageProvider writableStorageProvider, string id, string requestedName, CancellationToken cancellationToken)
     {
         try
         {
@@ -255,7 +270,7 @@ internal static class ContainerMutatingEndpoints
             // pre-fix impl returned `container.Name` from the snapshot we fetched before the
             // rename, so clients received the OLD name and got out-of-sync.
             return await writableStorageProvider.RenameWopiContainer(id, requestedName, cancellationToken).ConfigureAwait(false)
-                ? TypedResults.Json(new { Name = requestedName })
+                ? TypedResults.Json(new RenameContainerResponse(requestedName))
                 : TypedResults.NotFound(); // false → missing resource (race with concurrent delete).
         }
         catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
@@ -267,3 +282,55 @@ internal static class ContainerMutatingEndpoints
         catch (InvalidOperationException) { return TypedResults.Conflict(); }
     }
 }
+
+/// <summary>Response payload for <c>RenameContainer</c> — single required <c>Name</c> property per spec.</summary>
+public sealed record RenameContainerResponse(string Name);
+
+// [FromServices] on IWopiWritableStorageProvider? is load-bearing — see the equivalent note in
+// FileMutatingEndpoints. The nullable signal communicates the optional contract while the
+// attribute forces DI lookup at the binder so unregistered hosts still resolve a null instead
+// of triggering body-inference startup failure.
+
+/// <summary>Parameter bundle for <see cref="ContainerMutatingEndpoints.CreateChildContainer"/>.</summary>
+internal readonly record struct CreateChildContainerRequest(
+    [FromRoute] string Id,
+    HttpContext Http,
+    IWopiStorageProvider Storage,
+    [FromServices] IWopiWritableStorageProvider? WritableStorage,
+    ICheckContainerInfoBuilder ContainerInfoBuilder,
+    IWopiAccessTokenService AccessTokenService,
+    IWopiPermissionProvider PermissionProvider,
+    [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? SuggestedTarget,
+    [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? RelativeTarget,
+    CancellationToken CancellationToken);
+
+/// <summary>Parameter bundle for <see cref="ContainerMutatingEndpoints.CreateChildFile"/>.</summary>
+internal readonly record struct CreateChildFileRequest(
+    [FromRoute] string Id,
+    HttpContext Http,
+    IWopiStorageProvider Storage,
+    [FromServices] IWopiWritableStorageProvider? WritableStorage,
+    IWopiNewChildFileNegotiator Negotiator,
+    ICheckFileInfoBuilder CheckFileInfoBuilder,
+    IWopiAccessTokenService AccessTokenService,
+    IWopiPermissionProvider PermissionProvider,
+    [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? SuggestedTarget,
+    [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? RelativeTarget,
+    [FromHeader(Name = WopiHeaders.OVERWRITE_RELATIVE_TARGET)] bool? OverwriteRelativeTarget,
+    CancellationToken CancellationToken);
+
+/// <summary>Parameter bundle for <see cref="ContainerMutatingEndpoints.DeleteContainer"/>.</summary>
+internal readonly record struct DeleteContainerRequest(
+    [FromRoute] string Id,
+    IWopiStorageProvider Storage,
+    [FromServices] IWopiWritableStorageProvider? WritableStorage,
+    CancellationToken CancellationToken);
+
+/// <summary>Parameter bundle for <see cref="ContainerMutatingEndpoints.RenameContainer"/>.</summary>
+internal readonly record struct RenameContainerRequest(
+    [FromRoute] string Id,
+    HttpContext Http,
+    IWopiStorageProvider Storage,
+    [FromServices] IWopiWritableStorageProvider? WritableStorage,
+    [FromHeader(Name = WopiHeaders.REQUESTED_NAME)] UtfString RequestedName,
+    CancellationToken CancellationToken);

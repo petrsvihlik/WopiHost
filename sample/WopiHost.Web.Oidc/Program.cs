@@ -117,7 +117,6 @@ else
     app.UseExceptionHandler("/Error");
 }
 app.UseStaticFiles();
-app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 

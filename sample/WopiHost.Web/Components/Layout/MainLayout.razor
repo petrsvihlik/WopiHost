@@ -1,0 +1,29 @@
+@inherits LayoutComponentBase
+
+@* Default layout for the browse and error pages. Mirrors the structure of the legacy
+   _Layout.cshtml so the smoke test selectors (nav.breadcrumb, table.files, etc.) on the
+   page itself continue to match — the layout only adds chrome above/below. *@
+
+<HeadContent>
+    <link rel="stylesheet" href="https://unpkg.com/marx-css/css/marx.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</HeadContent>
+
+<nav>
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="https://github.com/petrsvihlik/WopiHost">GitHub</a></li>
+        <li><a href="https://www.paypal.me/Svihlik">Donate</a></li>
+    </ul>
+</nav>
+<header></header>
+<main>
+    <section>
+        <h1>WopiHost - Web</h1>
+        @Body
+    </section>
+</main>
+<footer>
+    <p>&copy; @DateTime.Now.Year - WopiHost.Web - <a href="https://github.com/petrsvihlik/WopiHost" target="_blank" rel="noopener">GitHub</a></p>
+</footer>
+

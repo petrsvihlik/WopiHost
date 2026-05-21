@@ -1,0 +1,17 @@
+@* Root Razor Component for the WopiHost.Web frontend. Per the .NET 10 Minimal-API +
+   Razor Components idiom, App.razor owns the <html>/<head>/<body> structure and the
+   <Routes> child renders into <body>. Static SSR — no @rendermode set, so each request
+   returns plain pre-rendered HTML and the sample stays a thin viewer without SignalR. *@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <HeadOutlet />
+</head>
+<body>
+    <Routes />
+</body>
+</html>

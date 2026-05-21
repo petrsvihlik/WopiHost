@@ -1,0 +1,93 @@
+@page "/Home/Detail/{Id}"
+@layout WopiLayout
+
+@using System.Globalization
+@using Microsoft.AspNetCore.Http
+@using WopiHost.Abstractions
+@using WopiHost.Discovery
+@using WopiHost.Discovery.Enumerations
+@using WopiHost.Url
+@using WopiHost.Web.Models
+@using WopiHost.Web.Services
+
+@inject IOptions<WopiOptions> WopiOptionsAccessor
+@inject IWopiStorageProvider Storage
+@inject IDiscoverer Discoverer
+@inject ILogger<WopiUrlBuilder> UrlBuilderLogger
+@inject IHttpContextAccessor HttpContextAccessor
+@inject WopiAccessTokenMinter TokenMinter
+
+<CascadingValue Value="_favicon" Name="@nameof(WopiLayout.Favicon)" IsFixed="true">
+    @* Form-driven iframe POST mirrors the WOPI hostpage contract — the WOPI client (Office,
+       Collabora) reads access_token / access_token_ttl from the body, NOT the query string,
+       so the discovery-supplied urlsrc lands here as the form's action URL. *@
+    <form id="office_form" name="office_form" target="office_frame" action="@_urlSrc" method="post">
+        <input name="access_token" value="@_accessToken" type="hidden" />
+        <input name="access_token_ttl" value="@_accessTokenTtl" type="hidden" />
+    </form>
+
+    <span id="frameholder"></span>
+
+    <script type="text/javascript">
+        var frameholder = document.getElementById('frameholder');
+        var office_frame = document.createElement('iframe');
+        office_frame.name = 'office_frame';
+        office_frame.id = 'office_frame';
+        // The title should be set for accessibility
+        office_frame.title = 'Office Online Frame';
+        // This attribute allows true fullscreen mode in slideshow view
+        // when using PowerPoint Online's 'view' action.
+        office_frame.setAttribute('allowfullscreen', 'true');
+        frameholder.appendChild(office_frame);
+        document.getElementById('office_form').submit();
+    </script>
+</CascadingValue>
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+
+    /// <summary>WOPI action — <c>View</c>, <c>Edit</c>, etc. Parsed loosely via Enum.Parse.</summary>
+    [SupplyParameterFromQuery(Name = "wopiaction")] public string? WopiAction { get; set; }
+
+    private string? _urlSrc;
+    private string? _accessToken;
+    private long _accessTokenTtl;
+    private Uri? _favicon;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Host page headers per WOPI spec — prevent browser caching.
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/hostpage#host-page-headers
+        // Setting on HttpContext.Response works for SSR Razor Components as long as nothing has
+        // been written to the response yet — OnInitializedAsync runs before any rendering.
+        var http = HttpContextAccessor.HttpContext;
+        if (http is not null)
+        {
+            http.Response.Headers.CacheControl = "no-cache, no-store";
+            http.Response.Headers.Expires = "-1";
+            http.Response.Headers.Pragma = "no-cache";
+            http.Response.Headers.Vary = "*";
+        }
+
+        var action = string.IsNullOrEmpty(WopiAction)
+            ? WopiActionEnum.View
+            : Enum.Parse<WopiActionEnum>(WopiAction, ignoreCase: true);
+
+        var file = await Storage.GetWopiFile(Id)
+            ?? throw new FileNotFoundException($"File with ID '{Id}' not found.");
+
+        var (token, expiresAt) = TokenMinter.Mint("Anonymous", file.Identifier, action);
+        _accessToken = token;
+        _accessTokenTtl = expiresAt.ToUnixTimeMilliseconds();
+
+        var extension = file.Extension.TrimStart('.');
+        var options = WopiOptionsAccessor.Value;
+        var urlBuilder = new WopiUrlBuilder(Discoverer, UrlBuilderLogger,
+            new WopiUrlSettings { UiLlcc = ResolveUiCulture(options.UiCulture) });
+        _urlSrc = await urlBuilder.GetFileUrlAsync(extension, new Uri(options.HostUrl, $"/wopi/files/{Id}"), action);
+        _favicon = await Discoverer.GetApplicationFavIconAsync(extension);
+    }
+
+    private static CultureInfo ResolveUiCulture(string? configured)
+        => string.IsNullOrWhiteSpace(configured) ? CultureInfo.CurrentUICulture : new CultureInfo(configured);
+}

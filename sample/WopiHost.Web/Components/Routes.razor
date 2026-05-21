@@ -1,0 +1,15 @@
+@* Router for the sample frontend. The Microsoft Razor Components router discovers @page
+   routes via reflection; this component just wires the Router/RouteView/LayoutView shape. *@
+
+<Router AppAssembly="@typeof(Routes).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(Layout.MainLayout)">
+            <h2 class="text-danger">Page not found</h2>
+            <p>The requested page does not exist on this WOPI host frontend.</p>
+            <a href="/">Return to Home</a>
+        </LayoutView>
+    </NotFound>
+</Router>

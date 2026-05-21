@@ -1,0 +1,227 @@
+@page "/"
+@page "/Home/Index"
+@layout MainLayout
+
+@using System.Globalization
+@using WopiHost.Abstractions
+@using WopiHost.Discovery
+@using WopiHost.Discovery.Enumerations
+@using WopiHost.Web.Models
+
+@inject IWopiStorageProvider Storage
+@inject IDiscoverer Discoverer
+
+<HeadContent>
+    <PageTitle>List of WOPI files - WopiHost.Web</PageTitle>
+</HeadContent>
+
+@if (_error is not null)
+{
+    @* Render the discovery / network-error path inline rather than redirecting to /Error so
+       the user keeps the diagnostic context. Mirrors the legacy controller's behaviour. *@
+    <h2 class="text-danger">An error occurred while processing your request.</h2>
+    <div class="alert alert-danger">
+        <p>@_error.Message</p>
+        @if (!string.IsNullOrEmpty(_error.StackTrace))
+        {
+            <pre>@_error.StackTrace</pre>
+        }
+    </div>
+}
+else if (_model is not null)
+{
+    <nav class="breadcrumb" aria-label="breadcrumb">
+        <ol>
+            <li><a href="/">Root</a></li>
+            @foreach (var part in _model.BreadcrumbParts)
+            {
+                <li><a href="@part.Url">@part.Name</a></li>
+            }
+            <li class="current" aria-current="page">@_model.ContainerName</li>
+        </ol>
+    </nav>
+
+    <table class="files">
+        <thead>
+            <tr>
+                <th class="col-icon">Type</th>
+                <th>Name</th>
+                <th class="col-date">Modified</th>
+                <th class="col-size">Size</th>
+                <th class="col-actions">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var container in _model.Containers)
+            {
+                <tr>
+                    <td class="col-icon">📁</td>
+                    <td>
+                        <a href="@BuildContainerLink(container)">@container.Name</a>
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            }
+
+            @foreach (var file in _model.Files)
+            {
+                <tr>
+                    <td class="col-icon"><img src="@file.IconUri" alt="" /></td>
+                    <td>
+                        @if (file.SupportsView)
+                        {
+                            <a href="@BuildDetailLink(file.FileId, WopiActionEnum.View)" title="View">@file.FileName</a>
+                        }
+                        else
+                        {
+                            @file.FileName
+                        }
+                    </td>
+                    <td class="col-date">@file.LastModified.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td class="col-size">@file.FormattedSize</td>
+                    <td class="col-actions">
+                        @* 🔍 (U+1F50D) for view + 🖉 (U+1F589) for edit. The magnifying glass has
+                           Emoji_Presentation=Yes so a VS-15 (U+FE0E) is appended to request text
+                           style; site.css backs that up with font-variant-emoji: text so both
+                           glyphs render as thin monochrome shapes on browsers that honour it. *@
+                        <a title="View"
+                           href="@BuildDetailLink(file.FileId, WopiActionEnum.View)"
+                           class="@(file.SupportsView ? "" : "disabledIcon")">&#128269;&#65038;</a>
+                        <a title="Edit"
+                           href="@BuildDetailLink(file.FileId, WopiActionEnum.Edit)"
+                           class="@(file.SupportsEdit ? "" : "disabledIcon")">&#128393;</a>
+                    </td>
+                </tr>
+            }
+
+            @if (_model.Containers.Count == 0 && _model.Files.Count == 0)
+            {
+                <tr><td colspan="5" class="empty">This container is empty.</td></tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    /// <summary>Identifier of the container being browsed. Defaults to the storage provider's root.</summary>
+    [SupplyParameterFromQuery] public string? ContainerId { get; set; }
+
+    /// <summary>Optional parent container id, used to render the ".." up-link without re-querying ancestry.</summary>
+    [SupplyParameterFromQuery] public string? ParentContainerId { get; set; }
+
+    private BrowseViewModel? _model;
+    private Exception? _error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            _error = null;
+            // Default to the storage provider's root when no container is specified.
+            var containerId = ContainerId ?? Storage.RootContainer.Identifier;
+            var current = await Storage.GetWopiContainer(containerId)
+                ?? throw new DirectoryNotFoundException($"Container '{containerId}' not found.");
+
+            var model = new BrowseViewModel
+            {
+                ContainerId = containerId,
+                ContainerName = current.Name,
+            };
+
+            // Breadcrumb: if we're below the root, walk ancestors to build clickable trail
+            // and recover the parent container id when the URL didn't supply one.
+            var parentContainerId = ParentContainerId;
+            if (containerId != Storage.RootContainer.Identifier)
+            {
+                var ancestors = await Storage.GetContainerAncestors(containerId);
+                for (var i = 0; i < ancestors.Count; i++)
+                {
+                    var ancestor = ancestors[i];
+                    var parentId = i > 0 ? ancestors[i - 1].Identifier : null;
+                    model.BreadcrumbParts.Add(new BreadcrumbPart(
+                        ancestor.Name,
+                        new Uri(BuildBrowseLink(ancestor.Identifier, parentId), UriKind.Relative)));
+                }
+                if (string.IsNullOrWhiteSpace(parentContainerId) && ancestors.Count > 0)
+                {
+                    parentContainerId = ancestors[^1].Identifier;
+                }
+            }
+
+            // Show ".." entry when there's somewhere to go up to.
+            if (!string.IsNullOrWhiteSpace(parentContainerId))
+            {
+                var parent = await Storage.GetWopiContainer(parentContainerId)
+                    ?? throw new DirectoryNotFoundException($"Parent container '{parentContainerId}' not found.");
+                model.Containers.Add(new ContainerViewModel { ContainerId = parent.Identifier, Name = ".." });
+            }
+
+            await foreach (var folder in Storage.GetWopiContainers(containerId))
+            {
+                model.Containers.Add(new ContainerViewModel { ContainerId = folder.Identifier, Name = folder.Name });
+            }
+
+            await foreach (var file in Storage.GetWopiFiles(containerId))
+            {
+                model.Files.Add(new FileViewModel
+                {
+                    FileId = file.Identifier,
+                    FileName = file.Name + "." + file.Extension,
+                    LastModified = file.LastWriteTimeUtc.ToLocalTime(),
+                    Size = file.Length,
+                    FormattedSize = FormatFileSize(file.Length),
+                    SupportsEdit = await Discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.Edit),
+                    SupportsView = await Discoverer.SupportsActionAsync(file.Extension, WopiActionEnum.View),
+                    // Leading slash so the fallback resolves to /file.ico regardless of the
+                    // current URL — without it the browser resolves "file.ico" relative to
+                    // the current path (e.g. /Home/Index → /Home/file.ico → 404).
+                    IconUri = (await Discoverer.GetApplicationFavIconAsync(file.Extension)) ?? new Uri("/file.ico", UriKind.Relative)
+                });
+            }
+
+            _model = model;
+            _containerIdForLinks = containerId;
+        }
+        catch (DiscoveryException ex) { _error = ex; }
+        catch (HttpRequestException ex) { _error = ex; }
+    }
+
+    private string _containerIdForLinks = string.Empty;
+
+    private string BuildContainerLink(ContainerViewModel container)
+    {
+        // The ".." up-link's parent isn't the current container — it's whichever ancestor sits
+        // above the parent. Leaving parentContainerId blank lets the page rebuild it from
+        // ancestry on the next load.
+        var parent = container.Name == ".." ? string.Empty : _containerIdForLinks;
+        return BuildBrowseLink(container.ContainerId, parent);
+    }
+
+    private static string BuildBrowseLink(string containerId, string? parentContainerId)
+    {
+        var path = $"/?containerId={Uri.EscapeDataString(containerId)}";
+        if (!string.IsNullOrEmpty(parentContainerId))
+        {
+            path += $"&parentContainerId={Uri.EscapeDataString(parentContainerId)}";
+        }
+        return path;
+    }
+
+    private static string BuildDetailLink(string fileId, WopiActionEnum action)
+        => $"/Home/Detail/{Uri.EscapeDataString(fileId)}?wopiaction={action}";
+
+    private static string FormatFileSize(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB", "PB"];
+        double size = bytes;
+        var unit = 0;
+        while (size >= 1024 && unit < units.Length - 1)
+        {
+            size /= 1024;
+            unit++;
+        }
+        return string.Format(CultureInfo.CurrentCulture, "{0:0.#} {1}", size, units[unit]);
+    }
+}

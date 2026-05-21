@@ -2,7 +2,9 @@ using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.ServiceDefaults;
+using WopiHost.Web.Components;
 using WopiHost.Web.Models;
+using WopiHost.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,8 +15,15 @@ builder.AddServiceDefaults();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// Add services to the container
-builder.Services.AddControllersWithViews();
+// Razor Components: static SSR only (no .AddInteractiveServerComponents()) — the sample is a
+// thin viewer and the WOPI client owns the editor experience inside an iframe, so there's
+// nothing to gain from SignalR connections per request.
+builder.Services.AddRazorComponents();
+
+// Detail.razor sets cache-control / Pragma response headers per the WOPI hostpage spec and
+// reads the captured exception in Error.razor — both need direct access to HttpContext.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<WopiAccessTokenMinter>();
 
 // Configuration
 builder.Services
@@ -47,12 +56,13 @@ else
 // Add static files to the request pipeline
 app.UseStaticFiles();
 
-app.UseRouting();
+// Razor Components stamp anti-forgery metadata on each endpoint, so app.UseAntiforgery() must
+// be in the pipeline before the endpoint middleware runs. The Razor Components routing layer
+// rejects unsafe verbs (POST etc.) when the anti-forgery cookie/token pair is missing — this
+// sample is GET-only so the gate is a no-op at runtime, but the middleware must still be wired.
+app.UseAntiforgery();
 
-// Map endpoints
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapRazorComponents<App>();
 
 // Map health check endpoints
 app.MapHealthChecks("/health");
