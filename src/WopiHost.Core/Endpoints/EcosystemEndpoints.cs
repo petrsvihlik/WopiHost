@@ -10,9 +10,9 @@ using WopiHost.Core.Models;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// WOPI ecosystem-pointer endpoints. Mirrors the GET surface of <c>EcosystemController</c>.
-/// These endpoints do not carry per-resource WopiAuthorize requirements — only the standard
-/// authenticated-user gate from the group's <c>RequireAuthorization()</c>.
+/// WOPI ecosystem-pointer endpoints. These endpoints do not carry per-resource WopiAuthorize
+/// requirements — only the standard authenticated-user gate from the group's
+/// <c>RequireAuthorization()</c>.
 /// </summary>
 internal static class EcosystemEndpoints
 {

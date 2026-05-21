@@ -16,9 +16,8 @@ using WopiHost.Core.Security.Authorization;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Minimal-API mutating endpoints for the <c>/wopi/files/{id}</c> surface. Mirrors the
-/// non-GET actions of <c>FilesController</c>, dispatched via the <c>X-WOPI-Override</c>
-/// header (<see cref="WopiOverrideMatcherPolicy"/>) where applicable.
+/// Minimal-API mutating endpoints for the <c>/wopi/files/{id}</c> surface, dispatched via the
+/// <c>X-WOPI-Override</c> header (<see cref="WopiOverrideMatcherPolicy"/>) where applicable.
 /// </summary>
 internal static class FileMutatingEndpoints
 {

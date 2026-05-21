@@ -12,8 +12,7 @@ using WopiHost.Core.Security.Authorization;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Read-only Minimal-API endpoints for WOPI container resources. Mirrors the GET surface of
-/// <c>ContainersController</c>.
+/// Read-only Minimal-API endpoints for WOPI container resources.
 /// </summary>
 internal static class ContainerEndpoints
 {

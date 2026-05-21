@@ -14,8 +14,8 @@ using WopiHost.Core.Security.Authorization;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Read-only Minimal-API endpoints for WOPI file resources. Mirrors the GET surface of
-/// <c>FilesController</c> behind a <see cref="WopiRouteNames"/>-named route table.
+/// Read-only Minimal-API endpoints for WOPI file resources, exposed behind a
+/// <see cref="WopiRouteNames"/>-named route table.
 /// </summary>
 internal static class FileEndpoints
 {

@@ -62,8 +62,8 @@ public static class ServiceCollectionExtensions
         // WopiHostExtensions to plug in audit, telemetry, response mutations, etc.
         services.TryAddSingleton<IWopiHostExtensions, WopiHostExtensions>();
 
-        // CheckXxxInfo response builders. Scoped to match controller lifetime — the writable
-        // storage provider may be scoped, and the builders capture it.
+        // CheckXxxInfo response builders. Scoped because the writable storage provider may be
+        // scoped, and the builders capture it.
         services.TryAddScoped<ICheckFileInfoBuilder, DefaultCheckFileInfoBuilder>();
         services.TryAddScoped<ICheckContainerInfoBuilder, DefaultCheckContainerInfoBuilder>();
         services.TryAddScoped<ICheckFolderInfoBuilder, DefaultCheckFolderInfoBuilder>();
@@ -115,9 +115,9 @@ public static class ServiceCollectionExtensions
     /// Decorates the registered <see cref="IWopiWritableStorageProvider"/> with
     /// <see cref="WopiLockAwareWritableStorageProvider"/> so delete/rename operations consult
     /// <see cref="IWopiLockProvider"/> first and throw <see cref="WopiResourceLockedException"/>
-    /// when the target is locked. Defense in depth — the controllers already short-circuit on
-    /// locks; this decorator catches non-WOPI code paths (admin tools, batch jobs) and future
-    /// controller regressions before they corrupt locked state.
+    /// when the target is locked. Defense in depth — the WOPI endpoints already short-circuit
+    /// on locks; this decorator catches non-WOPI code paths (admin tools, batch jobs) and any
+    /// future endpoint regressions before they corrupt locked state.
     /// </summary>
     /// <remarks>
     /// Must be called <em>after</em> the storage provider is registered (typically via

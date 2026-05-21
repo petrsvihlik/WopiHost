@@ -12,9 +12,9 @@ using WopiHost.Core.Security.Authorization;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Read-only Minimal-API endpoints for the WOPI folder surface. Mirrors
-/// <c>FoldersController</c>. Folders are containers from a permissions standpoint
-/// (<see cref="WopiResourceType.Container"/>) but expose only the legacy folder shape.
+/// Read-only Minimal-API endpoints for the WOPI folder surface. Folders are containers from a
+/// permissions standpoint (<see cref="WopiResourceType.Container"/>) but expose only the legacy
+/// folder shape.
 /// </summary>
 internal static class FolderEndpoints
 {
