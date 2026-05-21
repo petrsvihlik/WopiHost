@@ -61,6 +61,12 @@ public sealed class WopiNewChildFileResult
     /// from a create call that's contractually expected to succeed).</summary>
     public static WopiNewChildFileResult InternalError() =>
         new() { Outcome = WopiNewChildFileOutcome.InternalError };
+
+    /// <summary>Shorthand factory for the 501-not-implemented path — the user is authorized to
+    /// call <c>PutRelativeFile</c> but is not authorized to overwrite the existing target file.
+    /// See <see cref="IWopiPermissionProvider.CanOverwriteFileAsync"/> for the gating decision.</summary>
+    public static WopiNewChildFileResult NotImplemented() =>
+        new() { Outcome = WopiNewChildFileOutcome.NotImplemented };
 }
 
 /// <summary>
@@ -85,4 +91,10 @@ public enum WopiNewChildFileOutcome
     /// <summary>The storage provider returned <see langword="null"/> from a create call. Shouldn't
     /// happen with the in-tree providers but guarded defensively.</summary>
     InternalError,
+
+    /// <summary>The caller is authorized to invoke <c>PutRelativeFile</c> (passed the endpoint-level
+    /// <c>Permission.Create</c> gate) but the target name resolves to an existing file the caller
+    /// is not allowed to overwrite. Maps to <c>501 Not Implemented</c> per the
+    /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile">PutRelativeFile spec</see>.</summary>
+    NotImplemented,
 }

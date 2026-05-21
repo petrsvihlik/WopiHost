@@ -41,6 +41,12 @@ internal static class WopiNewChildFileResultExtensions
                 return new WopiLockMismatchResult(result.ExistingLockId!, reason: "File already exists and is currently locked");
             case WopiNewChildFileOutcome.InternalError:
                 return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+            case WopiNewChildFileOutcome.NotImplemented:
+                // Spec: PutRelativeFile returns 501 specifically when the caller is authorized
+                // to invoke the operation but not authorized to overwrite the existing target.
+                // No spec-defined response headers for this path; the status code carries the
+                // signal on its own. See #455.
+                return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
             default:
                 throw new InvalidOperationException($"Unknown {nameof(WopiNewChildFileOutcome)}: {result.Outcome}");
         }

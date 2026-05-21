@@ -1,8 +1,12 @@
+using System.Security.Claims;
+
 namespace WopiHost.Abstractions;
 
 /// <summary>
 /// Input to <see cref="IWopiNewChildFileNegotiator.NegotiateAsync"/>. Captures the WOPI
-/// PutRelativeFile / CreateChildFile request inputs as a pure POCO — no HTTP context, no
+/// PutRelativeFile / CreateChildFile request inputs as a near-POCO — only the authenticated
+/// <see cref="ClaimsPrincipal"/> is carried (needed for per-operation authorization decisions
+/// like <see cref="IWopiPermissionProvider.CanOverwriteFileAsync"/>); no HTTP context, no
 /// ambient request state.
 /// </summary>
 /// <param name="ContainerId">
@@ -27,6 +31,12 @@ namespace WopiHost.Abstractions;
 /// source file in scope so passes a fresh GUID. The only spec-mandated difference between
 /// the two flows.
 /// </param>
+/// <param name="User">
+/// The authenticated principal making the request. Carried into the request so the negotiator
+/// can consult <see cref="IWopiPermissionProvider.CanOverwriteFileAsync"/> when the caller
+/// asked to overwrite an existing target — that authorization decision is per-operation and
+/// per-existing-file, so it can't be encoded into the access token at mint time.
+/// </param>
 /// <remarks>
 /// Both target parameters are plain <see langword="string"/>s; controllers binding the
 /// <c>UtfString</c>-typed WOPI headers can pass them in via the implicit
@@ -38,4 +48,5 @@ public sealed record WopiNewChildFileRequest(
     string? SuggestedTarget,
     string? RelativeTarget,
     bool OverwriteRelativeTarget,
-    string SuggestedExtensionFallbackStem);
+    string SuggestedExtensionFallbackStem,
+    ClaimsPrincipal User);

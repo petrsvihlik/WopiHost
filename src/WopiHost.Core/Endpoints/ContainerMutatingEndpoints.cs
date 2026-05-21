@@ -192,7 +192,8 @@ internal static class ContainerMutatingEndpoints
             SuggestedTarget: req.SuggestedTarget,
             RelativeTarget: req.RelativeTarget,
             OverwriteRelativeTarget: req.OverwriteRelativeTarget ?? false,
-            SuggestedExtensionFallbackStem: Guid.NewGuid().ToString("N")), req.CancellationToken).ConfigureAwait(false);
+            SuggestedExtensionFallbackStem: Guid.NewGuid().ToString("N"),
+            User: req.Http.User), req.CancellationToken).ConfigureAwait(false);
         if (negotiation.ToErrorResult(req.Http.Response) is { } error)
         {
             return error switch
