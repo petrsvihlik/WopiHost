@@ -10,6 +10,8 @@
 
 @inject IWopiStorageProvider Storage
 @inject IDiscoverer Discoverer
+@inject IWebHostEnvironment HostEnvironment
+@inject ILogger<Browse> Logger
 
 <HeadContent>
     <PageTitle>List of WOPI files - WopiHost.Web</PageTitle>
@@ -18,11 +20,12 @@
 @if (_error is not null)
 {
     @* Render the discovery / network-error path inline rather than redirecting to /Error so
-       the user keeps the diagnostic context. Mirrors the legacy controller's behaviour. *@
+       the user keeps the diagnostic context. Stack-trace echo is gated on Development —
+       production hosts will display only the exception message. *@
     <h2 class="text-danger">An error occurred while processing your request.</h2>
     <div class="alert alert-danger">
         <p>@_error.Message</p>
-        @if (!string.IsNullOrEmpty(_error.StackTrace))
+        @if (HostEnvironment.IsDevelopment() && !string.IsNullOrEmpty(_error.StackTrace))
         {
             <pre>@_error.StackTrace</pre>
         }
@@ -184,8 +187,15 @@ else if (_model is not null)
             _model = model;
             _containerIdForLinks = containerId;
         }
-        catch (DiscoveryException ex) { _error = ex; }
-        catch (HttpRequestException ex) { _error = ex; }
+        // DiscoveryException wraps the HttpRequestException raised when fetching the discovery
+        // XML from the WOPI client; plain HttpRequestException is the fallback for non-discovery
+        // network failures during listing. Both render the same inline-error view; logging
+        // happens once so the stack trace lands in the server logs even when the UI hides it.
+        catch (Exception ex) when (ex is DiscoveryException or HttpRequestException)
+        {
+            Logger.LogError(ex, "WopiHost.Web Browse failed to enumerate / discover files.");
+            _error = ex;
+        }
     }
 
     private string _containerIdForLinks = string.Empty;

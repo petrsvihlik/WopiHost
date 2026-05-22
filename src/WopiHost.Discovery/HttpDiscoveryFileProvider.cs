@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Xml;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 
@@ -32,6 +33,24 @@ public partial class HttpDiscoveryFileProvider(HttpClient httpClient, ILogger<Ht
         {
             LogDiscoveryFetchFailed(_logger, e, _httpClient.BaseAddress);
             throw new DiscoveryException($"There was a problem retrieving the discovery file. Please check availability of the WOPI Client at '{_httpClient.BaseAddress}'.", e);
+        }
+        // HttpClient.Timeout surfaces as TaskCanceledException whose InnerException is a
+        // TimeoutException (.NET 6+ convention). Distinguish that from a real CancellationToken
+        // cancellation triggered by the caller — those have InnerException == null and must be
+        // allowed to propagate so the caller observes the cancellation it asked for.
+        catch (TaskCanceledException e) when (e.InnerException is TimeoutException)
+        {
+            LogDiscoveryFetchFailed(_logger, e, _httpClient.BaseAddress);
+            throw new DiscoveryException($"The WOPI Client at '{_httpClient.BaseAddress}' did not respond within the configured HttpClient.Timeout.", e);
+        }
+        // Malformed XML from the WOPI client (or a server returning 200 with a non-XML body —
+        // e.g. an error page) used to propagate as XmlException, which callers couldn't catch
+        // cleanly alongside the rest of the discovery failure surface. Wrap to keep the
+        // single-exception-type contract.
+        catch (XmlException e)
+        {
+            LogDiscoveryFetchFailed(_logger, e, _httpClient.BaseAddress);
+            throw new DiscoveryException($"The WOPI Client at '{_httpClient.BaseAddress}' returned a discovery payload that could not be parsed as XML.", e);
         }
     }
 }

@@ -26,4 +26,14 @@ public partial class WopiProofValidator
         Level = LogLevel.Error,
         Message = "WOPI proof validation threw")]
     private static partial void LogProofValidationError(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "WOPI proof verification: malformed Base64 input (proof header or discovery key) — treated as failed verification")]
+    private static partial void LogProofVerifyMalformedBase64(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "WOPI proof verification: cryptographic failure (likely invalid CSP blob from discovery, or non-RSA signature material) — treated as failed verification")]
+    private static partial void LogProofVerifyCryptoFailure(ILogger logger, Exception exception);
 }

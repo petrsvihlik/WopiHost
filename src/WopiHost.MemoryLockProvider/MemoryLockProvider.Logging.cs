@@ -30,4 +30,18 @@ public partial class MemoryLockProvider
         Level = LogLevel.Debug,
         Message = "WOPI lock {lockId} on file {fileId} removed")]
     private static partial void LogLockRemoved(ILogger logger, string fileId, string lockId);
+
+    [LoggerMessage(
+        EventId = 2001,
+        Level = LogLevel.Information,
+        Message = "MemoryLockProvider: no TimeProvider supplied — falling back to TimeProvider.System. " +
+                  "If you registered a custom TimeProvider (e.g. FakeTimeProvider for tests) the provider was constructed without it.")]
+    private static partial void LogTimeProviderFallback(ILogger logger);
+
+    [LoggerMessage(
+        EventId = 2002,
+        Level = LogLevel.Information,
+        Message = "MemoryLockProvider: no IWopiLockComparer supplied — falling back to OrdinalWopiLockComparer. " +
+                  "If you registered a custom comparer (e.g. JsonShapedWopiLockComparer) for OOS-style lock-id absorption, the provider was constructed without it.")]
+    private static partial void LogLockComparerFallback(ILogger logger);
 }

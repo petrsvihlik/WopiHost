@@ -21,28 +21,39 @@ namespace WopiHost.MemoryLockProvider;
 /// via <c>services.AddMemoryLockProvider()</c>).
 /// </para>
 /// </remarks>
-/// <param name="logger">Logger.</param>
-/// <param name="timeProvider">
-/// Clock source for lock timestamps and expiry. Defaults to <see cref="TimeProvider.System"/>
-/// when not supplied via DI; inject a <c>FakeTimeProvider</c> (or any custom
-/// <see cref="TimeProvider"/>) in tests to make expiry deterministic.
-/// </param>
-/// <param name="lockComparer">
-/// Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/> when not supplied
-/// via DI; replace with a custom comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>)
-/// to absorb known WOPI-client lock-id mutations.
-/// </param>
-public partial class MemoryLockProvider(
-    ILogger<MemoryLockProvider> logger,
-    TimeProvider? timeProvider = null,
-    IWopiLockComparer? lockComparer = null) : IWopiLockProvider
+public partial class MemoryLockProvider : IWopiLockProvider
 {
     /// <summary>Per-instance lock store keyed by fileId.</summary>
     private readonly ConcurrentDictionary<string, WopiLockInfo> _locks = new();
 
-    private readonly ILogger<MemoryLockProvider> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly IWopiLockComparer _lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
-    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
+    private readonly ILogger<MemoryLockProvider> _logger;
+    private readonly IWopiLockComparer _lockComparer;
+    private readonly TimeProvider _timeProvider;
+
+    /// <summary>Creates a new instance of <see cref="MemoryLockProvider"/>.</summary>
+    /// <param name="logger">Logger.</param>
+    /// <param name="timeProvider">Clock source. Defaults to <see cref="TimeProvider.System"/>.</param>
+    /// <param name="lockComparer">Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/>.</param>
+    /// <remarks>
+    /// When <paramref name="timeProvider"/> or <paramref name="lockComparer"/> is <see langword="null"/>,
+    /// the provider falls back to the default implementation and emits a single Information-level
+    /// log line on construction. Pre-#456 the fallback was silent — users that registered a custom
+    /// <see cref="IWopiLockComparer"/> (e.g. <c>JsonShapedWopiLockComparer</c>) but accidentally
+    /// constructed the provider without DI would see ordinal comparison without any signal that
+    /// their override had been bypassed.
+    /// </remarks>
+    public MemoryLockProvider(
+        ILogger<MemoryLockProvider> logger,
+        TimeProvider? timeProvider = null,
+        IWopiLockComparer? lockComparer = null)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _timeProvider = timeProvider ?? TimeProvider.System;
+        _lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
+
+        if (timeProvider is null) LogTimeProviderFallback(_logger);
+        if (lockComparer is null) LogLockComparerFallback(_logger);
+    }
 
     /// <inheritdoc />
     public Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default)

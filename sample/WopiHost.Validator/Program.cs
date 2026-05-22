@@ -46,12 +46,19 @@ app.MapWopiEndpoints();
 // Map health checks
 app.MapHealthChecks("/health");
 
-// Test-only token-issuance endpoint used by the WOPI validator harness.
-// Mints a real signed access token for {fileId} so the Microsoft WOPI validator
-// CLI can authenticate. NOT a pattern to copy into a production WOPI host —
-// in real deployments tokens are minted server-side from an authenticated
-// user session, never exposed via an unauthenticated endpoint.
-app.MapGet("/_test/issue-token/{fileId}", WopiHost.Validator.ValidatorTokenEndpoint.IssueValidatorToken);
+// Test-only token-issuance endpoint used by the WOPI validator harness. Mints a real signed
+// access token for {fileId} so the Microsoft WOPI validator CLI can authenticate.
+//
+// Gated on the Development environment because the endpoint is unauthenticated and hands out
+// tokens that grant full access to any file in storage. Samples are routinely copied into
+// production codebases — refusing to register the route outside Development means a stray
+// production deploy of this sample doesn't unintentionally expose token issuance to anonymous
+// callers. The Microsoft WOPI validator harness always runs against Development so this
+// doesn't affect the intended workflow.
+if (app.Environment.IsDevelopment())
+{
+    app.MapGet("/_test/issue-token/{fileId}", WopiHost.Validator.ValidatorTokenEndpoint.IssueValidatorToken);
+}
 
 await app.RunAsync();
 

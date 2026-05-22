@@ -26,6 +26,15 @@ namespace WopiHost.AzureStorageProvider;
 /// child blob shares its prefix, plus the explicit folder-marker blob (<see cref="FolderMarker"/>) is
 /// recognised as creating an otherwise-empty folder.
 /// </para>
+/// <para>
+/// <strong>Two dictionaries, kept in sync.</strong> <c>_idToPath</c> drives id→path lookups
+/// (which fire on every WOPI route that resolves <c>{id}</c>); <c>_pathToId</c> is the inverse
+/// for the listing path, where the provider walks the blob namespace and needs to look up the id
+/// for each blob name. Pre-#456 the inverse lookup was an O(n) linear scan of <c>_idToPath</c>;
+/// in containers with thousands of blobs, listing degenerated to O(n²) total work across the
+/// hydration loop. The reverse dict matches what <c>WopiHost.FileSystemProvider</c>'s
+/// <c>InMemoryFileIds</c> already does.
+/// </para>
 /// </remarks>
 public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
 {
@@ -42,6 +51,7 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
     public const string FolderMarker = ".wopi.folder";
 
     private readonly Dictionary<string, string> _idToPath = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _pathToId = new(StringComparer.Ordinal);
 
     /// <summary>Whether <see cref="ScanAll(IEnumerable{string})"/> has been called.</summary>
     public bool WasScanned { get; private set; }
@@ -52,32 +62,45 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
 
     /// <summary>Looks up the identifier for a blob path. Path comparison is case-sensitive.</summary>
     public bool TryGetFileId(string path, [NotNullWhen(true)] out string? fileId)
-    {
-        foreach (var pair in _idToPath)
-        {
-            if (pair.Value == path)
-            {
-                fileId = pair.Key;
-                return true;
-            }
-        }
-        fileId = null;
-        return false;
-    }
+        => _pathToId.TryGetValue(path, out fileId);
 
     /// <summary>Adds (or replaces) a path-to-id mapping and returns the deterministic id.</summary>
     public string Add(string path)
     {
         var id = IdFromPath(path);
+        // Two writes that must stay in lockstep. If the id was previously mapped to a DIFFERENT
+        // path (theoretically possible only when path strings collide on SHA-256 — practically
+        // impossible) the old reverse entry would dangle, but the forward write below would
+        // still rebind it. The realistic case "same id, same path" no-ops both writes.
         _idToPath[id] = path;
+        _pathToId[path] = id;
         return id;
     }
 
     /// <summary>Removes a mapping by id.</summary>
-    public bool Remove(string fileId) => _idToPath.Remove(fileId);
+    public bool Remove(string fileId)
+    {
+        if (!_idToPath.Remove(fileId, out var path))
+        {
+            return false;
+        }
+        _ = _pathToId.Remove(path);
+        return true;
+    }
 
     /// <summary>Updates the path for an existing id (used after a rename to keep the id stable).</summary>
-    public void Update(string fileId, string newPath) => _idToPath[fileId] = newPath;
+    public void Update(string fileId, string newPath)
+    {
+        // Drop the old reverse entry first so a rename that moves blob A → blob B doesn't leave
+        // _pathToId[oldPath]=A behind. If the id wasn't previously known, there's no reverse
+        // entry to drop — the forward write below registers the new mapping fresh.
+        if (_idToPath.TryGetValue(fileId, out var oldPath) && !string.Equals(oldPath, newPath, StringComparison.Ordinal))
+        {
+            _ = _pathToId.Remove(oldPath);
+        }
+        _idToPath[fileId] = newPath;
+        _pathToId[newPath] = fileId;
+    }
 
     /// <summary>
     /// Rebuilds the map from a flat enumeration of blob paths. The empty path is treated as the root
@@ -87,8 +110,11 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
     public void ScanAll(IEnumerable<string> blobPaths)
     {
         _idToPath.Clear();
+        _pathToId.Clear();
         // Root container is always identified by the empty string.
-        _idToPath[IdFromPath(string.Empty)] = string.Empty;
+        var rootId = IdFromPath(string.Empty);
+        _idToPath[rootId] = string.Empty;
+        _pathToId[string.Empty] = rootId;
 
         var seenDirs = new HashSet<string>(StringComparer.Ordinal);
         foreach (var path in blobPaths)
@@ -102,7 +128,9 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
                 continue;
             }
 
-            _idToPath[IdFromPath(path)] = path;
+            var id = IdFromPath(path);
+            _idToPath[id] = path;
+            _pathToId[path] = id;
 
             var lastSlash = path.LastIndexOf('/');
             if (lastSlash > 0)
@@ -120,7 +148,9 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
         var current = dirPath;
         while (!string.IsNullOrEmpty(current) && seen.Add(current))
         {
-            _idToPath[IdFromPath(current)] = current;
+            var id = IdFromPath(current);
+            _idToPath[id] = current;
+            _pathToId[current] = id;
             var slash = current.LastIndexOf('/');
             current = slash > 0 ? current[..slash] : string.Empty;
         }

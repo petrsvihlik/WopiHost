@@ -106,7 +106,12 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
             }
             return verified;
         }
-        catch (Exception ex)
+        // Filter critical async-rude exceptions out of the fail-closed catch: swallowing an
+        // OutOfMemoryException / StackOverflowException / ThreadAbortException to return false
+        // hides a process-level fault and lets the request continue against a host that's
+        // already torn. Let those bubble. Any other Exception is treated as "proof validation
+        // failed" — fail-closed is the right default for a security gate.
+        catch (Exception ex) when (!IsCriticalUnwindException(ex))
         {
             LogProofValidationError(logger, ex);
             WopiTelemetry.ProofValidationFailures.Add(1,
@@ -115,6 +120,17 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
         }
     }
 
+    /// <summary>
+    /// Returns true for exceptions that must NOT be silently coerced into "validation failed."
+    /// These are the canonical async-rude / process-fatal exceptions: catching them here would
+    /// mask a torn process state and let the request continue against a broken host. The
+    /// runtime considers them "always rethrow" — we mirror that convention for the proof gate.
+    /// </summary>
+    private static bool IsCriticalUnwindException(Exception ex) => ex is
+        OutOfMemoryException or
+        StackOverflowException or
+        ThreadAbortException;
+
     private static byte[] ToBigEndian(int value)
     {
         var bytes = BitConverter.GetBytes(value);
@@ -122,7 +138,7 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
         return bytes;
     }
 
-    private static bool VerifyProof(byte[] expectedProof, string proofFromRequest, string proofFromDiscovery)
+    private bool VerifyProof(byte[] expectedProof, string proofFromRequest, string proofFromDiscovery)
     {
         using var rsaProvider = new RSACryptoServiceProvider();
         try
@@ -130,13 +146,20 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
             rsaProvider.ImportCspBlob(Convert.FromBase64String(proofFromDiscovery));
             return rsaProvider.VerifyData(expectedProof, "SHA256", Convert.FromBase64String(proofFromRequest));
         }
-        catch (FormatException)
+        // The original catches stayed silent — a malformed Base64 input or a busted CSP blob
+        // looked identical to a normal "signature didn't match" mismatch in the logs, so a
+        // misconfigured discovery key (e.g. truncated, swapped) was indistinguishable from a
+        // legitimate spoofing attempt. Debug-level structured logging surfaces the distinction
+        // without leaking the key material in production INFO logs.
+        catch (FormatException ex)
         {
+            LogProofVerifyMalformedBase64(logger, ex);
             return false;
         }
-        catch (CryptographicException)
+        catch (CryptographicException ex)
         {
+            LogProofVerifyCryptoFailure(logger, ex);
             return false;
         }
     }
-} 
+}
