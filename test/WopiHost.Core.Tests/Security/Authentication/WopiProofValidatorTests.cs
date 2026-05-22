@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Primitives;
 using Moq;
+using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Security.Authentication;
 using WopiHost.Discovery;
@@ -30,7 +31,7 @@ public class WopiProofValidatorTests
         var validator = CreateValidator();
         var ctx = BuildHttpContext(includeProof: false);
 
-        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+        var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
     }
@@ -42,7 +43,7 @@ public class WopiProofValidatorTests
         var validator = CreateValidator();
         var ctx = BuildHttpContext(includeTimestamp: false);
 
-        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+        var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
     }
@@ -54,7 +55,7 @@ public class WopiProofValidatorTests
         var validator = CreateValidator();
         var ctx = BuildHttpContext(timestampOverride: "not-a-number", proofOverride: "AAAA");
 
-        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+        var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
     }
@@ -68,7 +69,7 @@ public class WopiProofValidatorTests
         var validator = CreateValidator();
         var ctx = BuildHttpContext(proofOverride: "AAAA");
 
-        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+        var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
     }
@@ -85,7 +86,7 @@ public class WopiProofValidatorTests
         SignAndApply(ctx.Request, current, staleTime.Ticks);
 
         var validator = CreateValidator();
-        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+        var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
     }
@@ -102,7 +103,7 @@ public class WopiProofValidatorTests
         SignAndApply(ctx.Request, current, futureTime.Ticks);
 
         var validator = CreateValidator();
-        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+        var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
     }
@@ -119,7 +120,7 @@ public class WopiProofValidatorTests
         SignAndApply(ctx.Request, current, ticks);
 
         var validator = CreateValidator();
-        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+        var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.True(result);
     }
@@ -137,7 +138,7 @@ public class WopiProofValidatorTests
         SignAndApply(ctx.Request, old, ticks);
 
         var validator = CreateValidator();
-        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+        var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.True(result);
     }
@@ -159,7 +160,7 @@ public class WopiProofValidatorTests
             Convert.ToBase64String(current.SignData(canonical, "SHA256"));
 
         var validator = CreateValidator();
-        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+        var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.True(result);
     }
@@ -178,7 +179,7 @@ public class WopiProofValidatorTests
         SignAndApply(ctx.Request, attacker, ticks);
 
         var validator = CreateValidator();
-        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+        var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
     }
@@ -192,7 +193,7 @@ public class WopiProofValidatorTests
         var validator = CreateValidator();
         var ctx = BuildHttpContext(proofOverride: "AAAA");
 
-        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+        var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
     }
@@ -213,7 +214,7 @@ public class WopiProofValidatorTests
         ctx.Request.Headers[WopiHeaders.PROOF] = "not valid base64@@@@";
 
         var validator = CreateValidator();
-        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+        var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
     }
@@ -238,7 +239,7 @@ public class WopiProofValidatorTests
         ctx.Request.Headers[WopiHeaders.PROOF] = Convert.ToBase64String(new byte[256]);
 
         var validator = CreateValidator();
-        var result = await validator.ValidateProofAsync(ctx, AccessToken);
+        var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
     }

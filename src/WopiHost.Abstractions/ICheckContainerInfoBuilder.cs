@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace WopiHost.Abstractions;
 
@@ -19,11 +19,11 @@ public interface ICheckContainerInfoBuilder
     /// Builds a fully populated <see cref="WopiCheckContainerInfo"/> for <paramref name="container"/>.
     /// </summary>
     /// <param name="container">The container the response describes.</param>
-    /// <param name="httpContext">The current request context. Used for the authenticated principal
-    /// and access to per-request services.</param>
+    /// <param name="user">The authenticated principal — drives the
+    /// <c>IsAnonymousUser</c> response flag and the per-user permission lookup.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task<WopiCheckContainerInfo> BuildAsync(
         IWopiContainer container,
-        HttpContext httpContext,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken = default);
 }

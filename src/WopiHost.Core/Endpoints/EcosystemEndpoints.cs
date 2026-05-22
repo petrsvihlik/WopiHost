@@ -76,7 +76,7 @@ internal static class EcosystemEndpoints
             ContainerPointer = new ChildContainer(root.Name, req.Http.GetWopiSrc(root, token.Token)),
             // The spec strongly recommends including ContainerInfo so the WOPI client doesn't
             // have to round-trip back to CheckContainerInfo.
-            ContainerInfo = await req.ContainerInfoBuilder.BuildAsync(root, req.Http, req.CancellationToken).ConfigureAwait(false),
+            ContainerInfo = await req.ContainerInfoBuilder.BuildAsync(root, req.Http.User, req.CancellationToken).ConfigureAwait(false),
         };
         return TypedResults.Json(rc);
     }

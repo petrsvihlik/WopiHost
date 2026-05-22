@@ -71,5 +71,5 @@ internal static class ServiceCollectionRemoveAllExtensions
 /// <summary>Test-only proof validator. Real hosts must keep <c>WopiProofValidator</c>.</summary>
 internal sealed class AlwaysValidProofValidator : IWopiProofValidator
 {
-    public Task<bool> ValidateProofAsync(Microsoft.AspNetCore.Http.HttpContext httpContext, string accessToken) => Task.FromResult(true);
+    public Task<bool> ValidateProofAsync(WopiHost.Abstractions.WopiRequestInfo request, string accessToken) => Task.FromResult(true);
 }

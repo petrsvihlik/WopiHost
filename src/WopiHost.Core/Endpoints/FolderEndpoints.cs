@@ -46,7 +46,7 @@ internal static class FolderEndpoints
 
         // Build sync, then fire the host hook — keeps the only `await` on a direct interface
         // call, mirroring the controller version's structure to avoid the Infer# FP at #363.
-        var checkFolderInfo = req.Builder.Build(folder, req.Http);
+        var checkFolderInfo = req.Builder.Build(folder, req.Http.User);
         checkFolderInfo = await req.Extensions.OnCheckFolderInfoAsync(
             new WopiCheckFolderInfoContext(req.Http.User, folder, checkFolderInfo),
             req.CancellationToken).ConfigureAwait(false);

@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Http;
-
 namespace WopiHost.Abstractions;
 
 /// <summary>
@@ -29,8 +27,9 @@ public interface ICheckFileInfoBuilder
     /// Builds a fully populated <see cref="WopiCheckFileInfo"/> for <paramref name="file"/>.
     /// </summary>
     /// <param name="file">The file the response describes.</param>
-    /// <param name="httpContext">The current request context. Used for the authenticated principal,
-    /// access-token resolution (for <c>FileUrl</c>), and access to per-request services.</param>
+    /// <param name="request">Framework-neutral request envelope — carries the authenticated
+    /// principal, the proxy-aware request URL (for <c>FileUrl</c> construction), the resolved
+    /// access token, request headers, and the per-request service scope.</param>
     /// <param name="capabilities">Per-controller capability flags (lock/cobalt/coauth support)
     /// to copy onto the response. <see langword="null"/> leaves the response defaults.</param>
     /// <param name="userInfo">Cached value of the user's previously-stored
@@ -38,7 +37,7 @@ public interface ICheckFileInfoBuilder
     /// <param name="cancellationToken">Cancellation token.</param>
     Task<WopiCheckFileInfo> BuildAsync(
         IWopiFile file,
-        HttpContext httpContext,
+        WopiRequestInfo request,
         WopiHostCapabilities? capabilities = null,
         string? userInfo = null,
         CancellationToken cancellationToken = default);

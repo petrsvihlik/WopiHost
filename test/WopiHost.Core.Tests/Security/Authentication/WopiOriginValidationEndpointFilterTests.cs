@@ -41,7 +41,7 @@ public class WopiOriginValidationEndpointFilterTests
     {
         var ctx = CreateContext(authenticated: true, accessToken: "abc");
         var validator = new Mock<IWopiProofValidator>(MockBehavior.Strict);
-        validator.Setup(v => v.ValidateProofAsync(ctx.HttpContext, "abc")).ReturnsAsync(false);
+        validator.Setup(v => v.ValidateProofAsync(It.IsAny<WopiRequestInfo>(), "abc")).ReturnsAsync(false);
         var filter = new WopiOriginValidationEndpointFilter(validator.Object, NullLogger<WopiOriginValidationEndpointFilter>.Instance);
 
         var result = await filter.InvokeAsync(ctx, _ => ValueTask.FromResult<object?>(null));
@@ -55,7 +55,7 @@ public class WopiOriginValidationEndpointFilterTests
     {
         var ctx = CreateContext(authenticated: true, accessToken: "abc");
         var validator = new Mock<IWopiProofValidator>(MockBehavior.Strict);
-        validator.Setup(v => v.ValidateProofAsync(ctx.HttpContext, "abc")).ReturnsAsync(true);
+        validator.Setup(v => v.ValidateProofAsync(It.IsAny<WopiRequestInfo>(), "abc")).ReturnsAsync(true);
         var filter = new WopiOriginValidationEndpointFilter(validator.Object, NullLogger<WopiOriginValidationEndpointFilter>.Instance);
         var sentinel = new object();
 

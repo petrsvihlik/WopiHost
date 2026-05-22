@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 
@@ -14,20 +13,20 @@ namespace WopiHost.Core.Infrastructure;
 public class DefaultCheckFolderInfoBuilder : ICheckFolderInfoBuilder
 {
     /// <inheritdoc />
-    public WopiCheckFolderInfo Build(IWopiContainer folder, HttpContext httpContext)
+    public WopiCheckFolderInfo Build(IWopiContainer folder, ClaimsPrincipal user)
     {
         ArgumentNullException.ThrowIfNull(folder);
-        ArgumentNullException.ThrowIfNull(httpContext);
+        ArgumentNullException.ThrowIfNull(user);
 
         var checkFolderInfo = new WopiCheckFolderInfo
         {
             FolderName = folder.Name,
         };
 
-        if (httpContext.User?.Identity?.IsAuthenticated == true)
+        if (user.Identity?.IsAuthenticated == true)
         {
-            checkFolderInfo.UserId = httpContext.User.GetUserId();
-            checkFolderInfo.UserFriendlyName = httpContext.User.FindFirst(ClaimTypes.Name)?.Value;
+            checkFolderInfo.UserId = user.GetUserId();
+            checkFolderInfo.UserFriendlyName = user.FindFirst(ClaimTypes.Name)?.Value;
         }
         else
         {

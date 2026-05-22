@@ -51,7 +51,7 @@ internal sealed partial class WopiOriginValidationEndpointFilter(
             return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
         }
 
-        var validated = await proofValidator.ValidateProofAsync(httpContext, accessToken).ConfigureAwait(false);
+        var validated = await proofValidator.ValidateProofAsync(httpContext.ToWopiRequestInfo(), accessToken).ConfigureAwait(false);
         if (!validated)
         {
             LogProofRejected(logger);

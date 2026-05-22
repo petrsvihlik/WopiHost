@@ -1,10 +1,8 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using WopiHost.Abstractions;
-using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Discovery;
 
@@ -38,17 +36,21 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
     /// <summary>
     /// Validates the WOPI proof headers on the given request.
     /// </summary>
-    /// <param name="httpContext">The HTTP context to validate.</param>
+    /// <param name="request">Framework-neutral request envelope (proxy-aware URL + header
+    /// reader). Pre-#457 this was an <c>HttpContext</c>; refactored so
+    /// <c>WopiHost.Abstractions</c> no longer depends on ASP.NET.</param>
     /// <param name="accessToken">The access token from the request.</param>
     /// <returns>True if the request's proof headers are valid, false otherwise.</returns>
-    public async Task<bool> ValidateProofAsync(HttpContext httpContext, string accessToken)
+    public async Task<bool> ValidateProofAsync(WopiRequestInfo request, string accessToken)
     {
+        ArgumentNullException.ThrowIfNull(request);
         try
         {
-            var request = httpContext.Request;
-            if (!request.Headers.TryGetValue(WopiHeaders.PROOF, out var receivedProof) ||
-                !request.Headers.TryGetValue(WopiHeaders.TIMESTAMP, out var receivedTimeStamp) ||
-                !long.TryParse(receivedTimeStamp.ToString(), CultureInfo.InvariantCulture, out var ticks))
+            var receivedProof = request.GetHeader(WopiHeaders.PROOF);
+            var receivedTimeStamp = request.GetHeader(WopiHeaders.TIMESTAMP);
+            if (string.IsNullOrEmpty(receivedProof)
+                || string.IsNullOrEmpty(receivedTimeStamp)
+                || !long.TryParse(receivedTimeStamp, CultureInfo.InvariantCulture, out var ticks))
             {
                 LogProofHeadersMissing(logger);
                 WopiTelemetry.ProofValidationFailures.Add(1,
@@ -75,7 +77,24 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
                 return false;
             }
 
-            var hostUrl = request.GetProxyAwareRequestUrl().ToUpperInvariant();
+            // WOPI spec signs the EXACT URL the client called, case-sensitive on path/query.
+            // The adapter built request.RequestUrl from the proxy-aware reconstruction (i.e.
+            // X-Forwarded-Proto / X-Forwarded-Host honoured); .OriginalString preserves it
+            // byte-for-byte. The .ToUpperInvariant() that follows matches WOPI's signature
+            // contract — case-folded uniformly across host case quirks.
+            //
+            // Null RequestUrl: the adapter couldn't reconstruct a usable URL (synthesised
+            // context, blank scheme/host). Without a URL there's nothing to sign against —
+            // fail validation. Pre-#457 this produced "://" and signature mismatch; same
+            // observable outcome via a typed null check.
+            if (request.RequestUrl is null)
+            {
+                LogProofHeadersMissing(logger);
+                WopiTelemetry.ProofValidationFailures.Add(1,
+                    new KeyValuePair<string, object?>("reason", "missing_request_url"));
+                return false;
+            }
+            var hostUrl = request.RequestUrl.OriginalString.ToUpperInvariant();
             var hostUrlBytes = Encoding.UTF8.GetBytes(hostUrl);
             var accessTokenBytes = Encoding.UTF8.GetBytes(accessToken);
             var timeStampBytes = BitConverter.GetBytes(ticks);
@@ -94,9 +113,9 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
             expectedProof.AddRange(timeStampBytes);
             byte[] expectedBytes = [.. expectedProof];
 
-            var receivedProofOld = request.Headers[WopiHeaders.PROOF_OLD].FirstOrDefault() ?? string.Empty;
-            var verified = VerifyProof(expectedBytes, receivedProof.ToString(), sourceProofKeys.Value)
-                || VerifyProof(expectedBytes, receivedProof.ToString(), sourceProofKeys.OldValue)
+            var receivedProofOld = request.GetHeader(WopiHeaders.PROOF_OLD) ?? string.Empty;
+            var verified = VerifyProof(expectedBytes, receivedProof, sourceProofKeys.Value)
+                || VerifyProof(expectedBytes, receivedProof, sourceProofKeys.OldValue)
                 || VerifyProof(expectedBytes, receivedProofOld, sourceProofKeys.Value);
             if (!verified)
             {

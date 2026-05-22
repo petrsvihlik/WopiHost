@@ -21,13 +21,13 @@ public class DefaultCheckFileInfoBuilder(
     /// <inheritdoc />
     public async Task<WopiCheckFileInfo> BuildAsync(
         IWopiFile file,
-        HttpContext httpContext,
+        WopiRequestInfo request,
         WopiHostCapabilities? capabilities = null,
         string? userInfo = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(file);
-        ArgumentNullException.ThrowIfNull(httpContext);
+        ArgumentNullException.ThrowIfNull(request);
 
         // #181 make sure the BaseFileName always has an extension
         var baseFileName = file.Name.EndsWith(file.Extension, StringComparison.OrdinalIgnoreCase)
@@ -68,14 +68,14 @@ public class DefaultCheckFileInfoBuilder(
         checkFileInfo.FileNameMaxLength = writableStorageProvider?.FileNameMaxLength ?? 0;
         checkFileInfo.Sha256 = await file.GetEncodedSha256(cancellationToken).ConfigureAwait(false);
 
-        if (httpContext.User?.Identity?.IsAuthenticated == true)
+        if (request.User?.Identity?.IsAuthenticated == true)
         {
-            checkFileInfo.UserId = httpContext.User.GetUserId();
+            checkFileInfo.UserId = request.User.GetUserId();
             checkFileInfo.HostAuthenticationId = checkFileInfo.UserId;
-            checkFileInfo.UserFriendlyName = httpContext.User.FindFirst(ClaimTypes.Name)?.Value;
-            checkFileInfo.UserPrincipalName = httpContext.User.FindFirst(ClaimTypes.Upn)?.Value;
+            checkFileInfo.UserFriendlyName = request.User.FindFirst(ClaimTypes.Name)?.Value;
+            checkFileInfo.UserPrincipalName = request.User.FindFirst(ClaimTypes.Upn)?.Value;
 
-            var permissions = await permissionProvider.GetFilePermissionsAsync(httpContext.User, file, cancellationToken).ConfigureAwait(false);
+            var permissions = await permissionProvider.GetFilePermissionsAsync(request.User, file, cancellationToken).ConfigureAwait(false);
             checkFileInfo.ReadOnly = permissions.HasFlag(WopiFilePermissions.ReadOnly);
             checkFileInfo.RestrictedWebViewOnly = permissions.HasFlag(WopiFilePermissions.RestrictedWebViewOnly);
             checkFileInfo.UserCanAttend = permissions.HasFlag(WopiFilePermissions.UserCanAttend);
@@ -101,9 +101,17 @@ public class DefaultCheckFileInfoBuilder(
         // must be a token-bearing URL that lets the client GET file content without
         // sending WOPI-specific headers. Hosts can override via IWopiHostExtensions
         // (e.g., to point at a CDN).
-        if (linkGenerator is not null)
+        //
+        // Skip when the adapter couldn't reconstruct a usable request URL (synthesised
+        // HttpContext in tests; malformed X-Forwarded-* headers). The WopiRequestInfo
+        // contract documents RequestUrl as nullable specifically for this case.
+        if (linkGenerator is not null && request.RequestUrl is not null)
         {
-            var (scheme, host, _, _, _) = httpContext.Request.GetProxyAwareUrlParts();
+            // The Uri the adapter handed us already incorporates the proxy-aware scheme + host
+            // (X-Forwarded-Proto / X-Forwarded-Host honoured), so LinkGenerator receives the
+            // upstream-facing values rather than the post-proxy hostname.
+            var scheme = request.RequestUrl.Scheme;
+            var host = request.RequestUrl.Authority;
             if (!string.IsNullOrEmpty(scheme) && !string.IsNullOrEmpty(host))
             {
                 // Preserve the file identifier's casing — the storage provider's lookup
@@ -114,7 +122,7 @@ public class DefaultCheckFileInfoBuilder(
                     new
                     {
                         id = file.Identifier,
-                        access_token = httpContext.Request.GetAccessToken(),
+                        access_token = request.AccessToken ?? string.Empty,
                     },
                     scheme,
                     new HostString(host),
@@ -129,7 +137,7 @@ public class DefaultCheckFileInfoBuilder(
         }
 
         return await extensions.OnCheckFileInfoAsync(
-            new WopiCheckFileInfoContext(httpContext.User, file, checkFileInfo),
+            new WopiCheckFileInfoContext(request.User, file, checkFileInfo),
             cancellationToken).ConfigureAwait(false);
     }
 }

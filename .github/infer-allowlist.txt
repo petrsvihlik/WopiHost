@@ -25,13 +25,14 @@
 # cleanup. The 12 entries below stay until either Infer# improves or a C#
 # nullability attribute resolves it at source. Substring-matched line ranges
 # are intentionally specific so unrelated FPs in the same file still fail loud.
+# #457 cleanup (WopiRequestInfo refactor) flushed two of the original 12 entries —
+# ContainerMutatingEndpoints.cs:213 and FileMutatingEndpoints.cs:319 are no longer
+# flagged. Removed; the remaining 10 are still real FPs.
 Endpoints/BootstrapEndpoints.cs:80: error: Null Dereference
 Endpoints/ContainerEndpoints.cs:69: error: Null Dereference
 Endpoints/ContainerEndpoints.cs:87: error: Null Dereference
 Endpoints/ContainerEndpoints.cs:111: error: Null Dereference
 Endpoints/ContainerEndpoints.cs:122: error: Null Dereference
-Endpoints/ContainerMutatingEndpoints.cs:213: error: Null Dereference
 Endpoints/FileEndpoints.cs:117: error: Null Dereference
 Endpoints/FileEndpoints.cs:134: error: Null Dereference
-Endpoints/FileMutatingEndpoints.cs:319: error: Null Dereference
 Endpoints/FolderEndpoints.cs:70: error: Null Dereference
