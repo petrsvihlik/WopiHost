@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Discovery;
@@ -134,39 +133,31 @@ public partial class HomeController(
 
     /// <summary>
     /// Appends the M365 business-flow marker (<c>business_user=1</c>) as a query parameter.
-    /// Replaces any existing <c>business_user</c> value verbatim and preserves the URL's
-    /// fragment — naive string concatenation broke on URLs that already carried a fragment
-    /// (the <c>&amp;business_user=1</c> would land after the <c>#</c>) and on URLs that already
+    /// Replaces any existing <c>business_user</c> value and preserves the URL's fragment —
+    /// naive string concatenation broke on URLs that already carried a fragment (the
+    /// <c>&amp;business_user=1</c> would land after the <c>#</c>) and on URLs that already
     /// contained <c>business_user</c> (producing a duplicate query key with undefined semantics).
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Spec reference:
     /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/business"/>.
+    /// </para>
+    /// <para>
+    /// <c>HttpUtility.ParseQueryString</c> returns a <see cref="System.Collections.Specialized.NameValueCollection"/>
+    /// whose <c>ToString()</c> emits URL-encoded <c>key=value&amp;…</c> shape, and whose
+    /// indexer-set replaces any prior value for the key in place — exactly the idempotent-set
+    /// semantic this method needs. <see cref="UriBuilder"/> owns fragment / port / scheme parts
+    /// in their own properties so we don't have to slice them out by hand.
+    /// </para>
     /// </remarks>
     internal static string? AppendBusinessFlag(string? url)
     {
         if (string.IsNullOrEmpty(url)) return url;
-
-        // Split off the fragment first — UriBuilder's Fragment round-trips through with its
-        // own '#' added, and QueryHelpers.AddQueryString operates on the query in isolation.
-        var fragmentIndex = url.IndexOf('#', StringComparison.Ordinal);
-        var fragment = fragmentIndex >= 0 ? url[fragmentIndex..] : string.Empty;
-        var withoutFragment = fragmentIndex >= 0 ? url[..fragmentIndex] : url;
-
-        // QueryHelpers.AddQueryString re-encodes existing query params correctly. If the URL
-        // already has business_user (any value), strip the prior entry first so we end up with
-        // a single, canonical business_user=1.
-        var queryIndex = withoutFragment.IndexOf('?', StringComparison.Ordinal);
-        if (queryIndex >= 0)
-        {
-            var path = withoutFragment[..queryIndex];
-            var existing = QueryHelpers.ParseQuery(withoutFragment[queryIndex..]);
-            existing.Remove("business_user");
-            withoutFragment = QueryHelpers.AddQueryString(
-                path,
-                existing.SelectMany(kvp => kvp.Value.Select(v => new KeyValuePair<string, string?>(kvp.Key, v))));
-        }
-
-        return QueryHelpers.AddQueryString(withoutFragment, "business_user", "1") + fragment;
+        var builder = new UriBuilder(url);
+        var query = System.Web.HttpUtility.ParseQueryString(builder.Query);
+        query["business_user"] = "1";
+        builder.Query = query.ToString();
+        return builder.Uri.ToString();
     }
 }
