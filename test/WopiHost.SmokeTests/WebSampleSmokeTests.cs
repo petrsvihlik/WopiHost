@@ -107,6 +107,6 @@ public sealed class WebSampleSmokeTests(PlaywrightFixture playwright) : IAsyncLi
 
         await page.GotoAsync(_factory.ServerUrl.AbsoluteUri, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
-        Assert.True(pageErrors.Count == 0, "Page errors:\n" + string.Join("\n", pageErrors));
+        Assert.Empty(pageErrors);
     }
 }

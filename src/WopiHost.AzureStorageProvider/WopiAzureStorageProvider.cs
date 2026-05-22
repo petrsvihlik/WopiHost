@@ -533,13 +533,33 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
         var source = _containerClient.GetBlobClient(sourcePath);
         var dest = _containerClient.GetBlobClient(destPath);
 
-        if (await dest.ExistsAsync(cancellationToken).ConfigureAwait(false))
+        // Atomic existence check via conditional-headers (IfNoneMatch="*") rather than a
+        // separate ExistsAsync + StartCopyFromUri pair. The prior shape had a TOCTOU window:
+        // a concurrent rename that landed between our existence probe and our copy could
+        // either silently overwrite the new neighbour or get partially applied. Setting
+        // IfNoneMatch=* tells Azure "fail if the destination already has any ETag" — the
+        // 409 Conflict comes from Blob Storage's own consistency layer, no client-side
+        // race possible.
+        // https://learn.microsoft.com/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
+        try
         {
-            throw new InvalidOperationException($"Target blob '{destPath}' already exists.");
+            var copyOp = await dest.StartCopyFromUriAsync(
+                source.Uri,
+                options: new BlobCopyFromUriOptions
+                {
+                    DestinationConditions = new BlobRequestConditions { IfNoneMatch = ETag.All },
+                },
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            await copyOp.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (RequestFailedException ex) when (ex.Status == 409 || ex.ErrorCode == BlobErrorCode.BlobAlreadyExists)
+        {
+            // Preserve the legacy exception shape so callers (RenameWopi{File,Container}) keep
+            // their existing 409-Conflict mapping. Status 409 covers the IfNoneMatch=* rejection
+            // and Azure's own BlobAlreadyExists path; both indicate "destination occupied."
+            throw new InvalidOperationException($"Target blob '{destPath}' already exists.", ex);
         }
 
-        var copyOp = await dest.StartCopyFromUriAsync(source.Uri, cancellationToken: cancellationToken).ConfigureAwait(false);
-        await copyOp.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
         await source.DeleteAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 

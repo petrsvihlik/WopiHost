@@ -33,5 +33,5 @@ Endpoints/ContainerEndpoints.cs:122: error: Null Dereference
 Endpoints/ContainerMutatingEndpoints.cs:213: error: Null Dereference
 Endpoints/FileEndpoints.cs:117: error: Null Dereference
 Endpoints/FileEndpoints.cs:134: error: Null Dereference
-Endpoints/FileMutatingEndpoints.cs:321: error: Null Dereference
+Endpoints/FileMutatingEndpoints.cs:319: error: Null Dereference
 Endpoints/FolderEndpoints.cs:70: error: Null Dereference

@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Diagnostics
 @using Microsoft.AspNetCore.Http
 @inject IHttpContextAccessor HttpContextAccessor
+@inject IWebHostEnvironment HostEnvironment
 
 <HeadContent>
     <PageTitle>Error - WopiHost.Web</PageTitle>
@@ -42,9 +43,11 @@ else
     {
         var http = HttpContextAccessor.HttpContext;
         // app.UseExceptionHandler stashes the captured exception on IExceptionHandlerFeature so
-        // the error-handler endpoint can render the details. Production hosts should NOT echo
-        // stack traces — flip _showDetails based on environment if you fork this sample.
+        // the error-handler endpoint can render the details. Stack traces leak file paths,
+        // configuration values, and source-line numbers — gate exposure on the Development
+        // environment so a stray production deploy of this sample doesn't echo internals back
+        // to anonymous callers. Matches the gate ASP.NET Core uses for UseDeveloperExceptionPage.
         _exception = http?.Features.Get<IExceptionHandlerFeature>()?.Error;
-        _showDetails = true;
+        _showDetails = HostEnvironment.IsDevelopment();
     }
 }
