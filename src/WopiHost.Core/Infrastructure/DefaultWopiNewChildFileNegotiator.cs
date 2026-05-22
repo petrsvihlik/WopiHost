@@ -11,6 +11,7 @@ namespace WopiHost.Core.Infrastructure;
 public sealed class DefaultWopiNewChildFileNegotiator(
     IWopiStorageProvider storage,
     IWopiWritableStorageProvider writable,
+    IWopiPermissionProvider permissions,
     IWopiLockProvider? lockProvider = null) : IWopiNewChildFileNegotiator
 {
     /// <inheritdoc />
@@ -68,6 +69,19 @@ public sealed class DefaultWopiNewChildFileNegotiator(
             // correct containerId in one place.
             var suggestedName = await writable.GetSuggestedFileName(request.ContainerId, relativeTarget, cancellationToken).ConfigureAwait(false);
             return WopiNewChildFileResult.Conflict(suggestedName);
+        }
+
+        // Spec-mandated 501-gate: the caller passed the endpoint-level Permission.Create check
+        // and asked to overwrite, but the host's ACL may still deny overwrite of THIS specific
+        // existing file. The decision is per-target and only resolvable now that `existing` is
+        // in scope (it isn't known at token-mint time, so it can't be encoded as a
+        // WopiFilePermissions flag on the access token). See #455 and
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile —
+        // "If the user is not authorized to overwrite the target file, the host must respond
+        // with a 501 Not Implemented."
+        if (!await permissions.CanOverwriteFileAsync(request.User, existing, cancellationToken).ConfigureAwait(false))
+        {
+            return WopiNewChildFileResult.NotImplemented();
         }
 
         // Overwrite is allowed — a file matching the target name might still be locked.

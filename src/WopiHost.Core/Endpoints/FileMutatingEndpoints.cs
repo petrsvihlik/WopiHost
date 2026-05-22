@@ -295,7 +295,8 @@ internal static class FileMutatingEndpoints
             SuggestedTarget: req.SuggestedTarget,
             RelativeTarget: req.RelativeTarget,
             OverwriteRelativeTarget: req.OverwriteRelativeTarget ?? false,
-            SuggestedExtensionFallbackStem: file.Name), req.CancellationToken).ConfigureAwait(false);
+            SuggestedExtensionFallbackStem: file.Name,
+            User: req.Http.User), req.CancellationToken).ConfigureAwait(false);
         if (negotiation.ToErrorResult(req.Http.Response) is { } error)
         {
             // Negotiator surfaces failure modes as IResult — destructure into the typed union.

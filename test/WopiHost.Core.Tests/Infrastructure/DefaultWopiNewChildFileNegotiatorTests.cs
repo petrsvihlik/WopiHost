@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Moq;
 using WopiHost.Abstractions;
 using WopiHost.Core.Infrastructure;
@@ -13,19 +14,31 @@ namespace WopiHost.Core.Tests.Infrastructure;
 public class DefaultWopiNewChildFileNegotiatorTests
 {
     private const string Container = "container-1";
+    private static readonly ClaimsPrincipal s_anonymous = new();
     private readonly Mock<IWopiStorageProvider> _storage = new();
     private readonly Mock<IWopiWritableStorageProvider> _writable = new();
+    private readonly Mock<IWopiPermissionProvider> _permissions = new();
     private readonly Mock<IWopiLockProvider> _lockProvider = new();
 
+    public DefaultWopiNewChildFileNegotiatorTests()
+    {
+        // Default permission stance for every test: allow overwrite. The 501-unauthorized-
+        // overwrite path has its own dedicated test that overrides this setup.
+        _permissions
+            .Setup(p => p.CanOverwriteFileAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<IWopiFile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+    }
+
     private DefaultWopiNewChildFileNegotiator CreateNegotiator(bool withLockProvider = true)
-        => new(_storage.Object, _writable.Object, withLockProvider ? _lockProvider.Object : null);
+        => new(_storage.Object, _writable.Object, _permissions.Object, withLockProvider ? _lockProvider.Object : null);
 
     private static WopiNewChildFileRequest Request(
         string? suggested = null,
         string? relative = null,
         bool overwrite = false,
-        string fallbackStem = "Untitled")
-        => new(Container, suggested, relative, overwrite, fallbackStem);
+        string fallbackStem = "Untitled",
+        ClaimsPrincipal? user = null)
+        => new(Container, suggested, relative, overwrite, fallbackStem, user ?? s_anonymous);
 
     [Fact]
     public async Task BothTargetsMissing_ReturnsBadRequest()
@@ -114,6 +127,35 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         Assert.Equal(WopiNewChildFileOutcome.Conflict, result.Outcome);
         Assert.Equal("doc (1).docx", result.ValidRelativeTargetSuggestion);
+    }
+
+    [Fact]
+    public async Task RelativeTarget_Collision_Overwrite_PermissionProviderDenies_ReturnsNotImplemented()
+    {
+        // Spec (#455): "If the user is not authorized to overwrite the target file, the host must
+        // respond with a 501 Not Implemented." The endpoint-level Permission.Create gate already
+        // passed (we're inside the negotiator), but the per-target permission provider rules out
+        // overwriting THIS specific file. The lock probe must NOT run — denying overwrite is a
+        // strictly stronger signal than "the existing file is locked," so 501 wins.
+        var existing = Mock.Of<IWopiFile>(f => f.Identifier == "existing-id");
+        var deniedUser = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "alice")], "test"));
+        _writable.Setup(w => w.CheckValidFileName("doc.docx", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _storage.Setup(s => s.GetWopiFileByName(Container, "doc.docx", It.IsAny<CancellationToken>())).ReturnsAsync(existing);
+        _permissions
+            .Setup(p => p.CanOverwriteFileAsync(deniedUser, existing, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: true, user: deniedUser));
+
+        Assert.Equal(WopiNewChildFileOutcome.NotImplemented, result.Outcome);
+        _lockProvider.Verify(
+            l => l.GetLockAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "Permission denial must short-circuit before the lock probe.");
+        _writable.Verify(
+            w => w.GetWritableFile(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "Permission denial must short-circuit before the writable-file resolution.");
     }
 
     [Fact]
