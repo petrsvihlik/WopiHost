@@ -68,12 +68,4 @@ public sealed record WopiRequestInfo
     /// from the underlying request without allocating a copy per call.
     /// </remarks>
     public required Func<string, string?> GetHeader { get; init; }
-
-    /// <summary>
-    /// Per-request service scope. Replacement <see cref="ICheckFileInfoBuilder"/> /
-    /// <see cref="IWopiProofValidator"/> implementations that need to resolve scoped
-    /// dependencies the constructor doesn't already accept (e.g. <c>LinkGenerator</c>, a
-    /// custom URL builder, an audit sink) read them from here.
-    /// </summary>
-    public required IServiceProvider RequestServices { get; init; }
 }

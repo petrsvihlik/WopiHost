@@ -53,7 +53,6 @@ internal static class HttpContextWopiRequestInfoExtensions
             // IHeaderDictionary is case-insensitive — the delegate inherits that behaviour for
             // free. Returns null for absent headers per the WopiRequestInfo.GetHeader contract.
             GetHeader = name => request.Headers.TryGetValue(name, out var v) ? v.ToString() : null,
-            RequestServices = httpContext.RequestServices,
         };
     }
 }
