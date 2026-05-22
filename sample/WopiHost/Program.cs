@@ -180,6 +180,6 @@ public partial class Program
 /// </summary>
 internal sealed class NoOpProofValidator : IWopiProofValidator
 {
-    public Task<bool> ValidateProofAsync(HttpContext httpContext, string accessToken)
+    public Task<bool> ValidateProofAsync(WopiRequestInfo request, string accessToken)
         => Task.FromResult(true);
 }

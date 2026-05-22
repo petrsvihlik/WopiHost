@@ -124,7 +124,7 @@ internal static class ContainerMutatingEndpoints
 
     private static async Task<JsonHttpResult<CreateChildContainerResponse>> BuildCreateChildContainerResponse(HttpContext httpContext, ICheckContainerInfoBuilder builder, IWopiAccessTokenService accessTokenService, IWopiPermissionProvider permissionProvider, IWopiContainer folder, CancellationToken cancellationToken)
     {
-        var info = await builder.BuildAsync(folder, httpContext, cancellationToken).ConfigureAwait(false);
+        var info = await builder.BuildAsync(folder, httpContext.User, cancellationToken).ConfigureAwait(false);
         // Mint a fresh container-scoped token for the new child container. Reusing the inbound
         // PARENT-container token in the response URL would either fail downstream authorization
         // or constitute token trading per
@@ -207,7 +207,7 @@ internal static class ContainerMutatingEndpoints
         }
 
         var newFile = negotiation.File!;
-        var checkFileInfo = await req.CheckFileInfoBuilder.BuildAsync(newFile, req.Http, cancellationToken: req.CancellationToken).ConfigureAwait(false);
+        var checkFileInfo = await req.CheckFileInfoBuilder.BuildAsync(newFile, req.Http.ToWopiRequestInfo(), cancellationToken: req.CancellationToken).ConfigureAwait(false);
         // Fresh, resource-scoped token for the new file. The inbound token is bound to the parent
         // CONTAINER's id and would fail authorization on the new file's CheckFileInfo callback.
         var newFileToken = await EndpointHelpers.IssueAccessTokenForFileAsync(

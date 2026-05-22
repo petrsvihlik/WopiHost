@@ -57,7 +57,7 @@ internal static class ContainerEndpoints
     {
         var container = await req.Storage.GetWopiContainer(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (container is null) return TypedResults.NotFound();
-        var info = await req.Builder.BuildAsync(container, req.Http, req.CancellationToken).ConfigureAwait(false);
+        var info = await req.Builder.BuildAsync(container, req.Http.User, req.CancellationToken).ConfigureAwait(false);
         return TypedResults.Json(info);
     }
 

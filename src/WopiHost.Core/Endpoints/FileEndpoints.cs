@@ -81,7 +81,7 @@ internal static class FileEndpoints
             SupportsUpdate = req.WritableStorage is not null,
         };
 
-        var checkFileInfo = await req.Builder.BuildAsync(file, req.Http, capabilities, userInfo, req.CancellationToken).ConfigureAwait(false);
+        var checkFileInfo = await req.Builder.BuildAsync(file, req.Http.ToWopiRequestInfo(), capabilities, userInfo, req.CancellationToken).ConfigureAwait(false);
 
         // Serialize<object>() so any properties declared on a derived WopiCheckFileInfo type
         // make it onto the wire — System.Text.Json walks the runtime type, not the declared type.

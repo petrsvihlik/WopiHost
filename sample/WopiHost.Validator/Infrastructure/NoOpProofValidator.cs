@@ -30,5 +30,5 @@ namespace WopiHost.Validator.Infrastructure;
 /// </remarks>
 public sealed class NoOpProofValidator : IWopiProofValidator
 {
-    public Task<bool> ValidateProofAsync(HttpContext httpContext, string accessToken) => Task.FromResult(true);
+    public Task<bool> ValidateProofAsync(WopiRequestInfo request, string accessToken) => Task.FromResult(true);
 }

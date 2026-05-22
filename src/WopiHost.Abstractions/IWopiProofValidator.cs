@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Http;
-
 namespace WopiHost.Abstractions;
 
 /// <summary>
@@ -25,8 +23,11 @@ public interface IWopiProofValidator
     /// <summary>
     /// Validates the WOPI proof headers on the given request.
     /// </summary>
-    /// <param name="httpContext">The HTTP request to validate.</param>
-    /// <param name="accessToken">The access token from the request.</param>
+    /// <param name="request">Framework-neutral request envelope — carries the proxy-aware
+    /// request URL (used for the signed-payload reconstruction) and the
+    /// <see cref="WopiRequestInfo.GetHeader"/> delegate for reading
+    /// <c>X-WOPI-Proof</c> / <c>X-WOPI-ProofOld</c> / <c>X-WOPI-TimeStamp</c>.</param>
+    /// <param name="accessToken">The access token from the request — part of the signed payload.</param>
     /// <returns>True if the request's proof headers are valid, false otherwise.</returns>
-    Task<bool> ValidateProofAsync(HttpContext httpContext, string accessToken);
+    Task<bool> ValidateProofAsync(WopiRequestInfo request, string accessToken);
 }

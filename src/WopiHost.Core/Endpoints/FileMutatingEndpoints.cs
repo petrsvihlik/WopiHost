@@ -312,7 +312,7 @@ internal static class FileMutatingEndpoints
         await req.Http.CopyToWriteStream(newFile, req.CancellationToken).ConfigureAwait(false);
         await InvokePutRelativeFileCallbackAsync(req.Http, req.Extensions, file, newFile, req.FileConversion, req.DeclaredSize, req.CancellationToken).ConfigureAwait(false);
         var capabilities = MakeCapabilities(req.LockProvider, req.CobaltProcessor);
-        var checkFileInfo = await req.CheckFileInfoBuilder.BuildAsync(newFile, req.Http, capabilities, cancellationToken: req.CancellationToken).ConfigureAwait(false);
+        var checkFileInfo = await req.CheckFileInfoBuilder.BuildAsync(newFile, req.Http.ToWopiRequestInfo(), capabilities, cancellationToken: req.CancellationToken).ConfigureAwait(false);
         // Mint a fresh token bound to the NEW file's resource id; reusing the inbound token
         // (scoped to the source file) violates the WOPI "preventing token trading" guidance and
         // would fail downstream authorization for any host whose tokens encode resource id.

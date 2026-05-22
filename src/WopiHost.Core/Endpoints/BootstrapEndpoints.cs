@@ -101,7 +101,7 @@ internal static class BootstrapEndpoints
             RootContainerInfo = new RootContainerInfo
             {
                 ContainerPointer = new ChildContainer(rootContainer.Name, req.Http.GetWopiSrc(rootContainer, token.Token)),
-                ContainerInfo = await req.ContainerInfoBuilder.BuildAsync(rootContainer, req.Http, req.CancellationToken).ConfigureAwait(false),
+                ContainerInfo = await req.ContainerInfoBuilder.BuildAsync(rootContainer, req.Http.User, req.CancellationToken).ConfigureAwait(false),
             },
         });
     }

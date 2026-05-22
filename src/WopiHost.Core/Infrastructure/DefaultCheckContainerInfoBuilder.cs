@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 using WopiHost.Abstractions;
 
 namespace WopiHost.Core.Infrastructure;
@@ -15,19 +15,19 @@ public class DefaultCheckContainerInfoBuilder(
     /// <inheritdoc />
     public async Task<WopiCheckContainerInfo> BuildAsync(
         IWopiContainer container,
-        HttpContext httpContext,
+        ClaimsPrincipal user,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(container);
-        ArgumentNullException.ThrowIfNull(httpContext);
+        ArgumentNullException.ThrowIfNull(user);
 
-        var permissions = await permissionProvider.GetContainerPermissionsAsync(httpContext.User, container, cancellationToken).ConfigureAwait(false);
+        var permissions = await permissionProvider.GetContainerPermissionsAsync(user, container, cancellationToken).ConfigureAwait(false);
 
         // Spec: IsAnonymousUser "should match the IsAnonymousUser value returned in
         // CheckFileInfo" — and the file / folder builders both set it from the auth state.
         // CheckContainerInfo was previously omitting it (left as default `false`), so
         // anonymous users were reported as authenticated in the container response.
-        var isAnonymous = httpContext.User?.Identity?.IsAuthenticated != true;
+        var isAnonymous = user.Identity?.IsAuthenticated != true;
 
         var checkContainerInfo = new WopiCheckContainerInfo
         {
@@ -41,7 +41,7 @@ public class DefaultCheckContainerInfoBuilder(
         };
 
         return await extensions.OnCheckContainerInfoAsync(
-            new WopiCheckContainerInfoContext(httpContext.User, container, checkContainerInfo),
+            new WopiCheckContainerInfoContext(user, container, checkContainerInfo),
             cancellationToken).ConfigureAwait(false);
     }
 }

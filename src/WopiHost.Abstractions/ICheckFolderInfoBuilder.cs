@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace WopiHost.Abstractions;
 
@@ -26,6 +26,7 @@ public interface ICheckFolderInfoBuilder
     /// Builds the default <see cref="WopiCheckFolderInfo"/> for <paramref name="folder"/>.
     /// </summary>
     /// <param name="folder">The folder the response describes.</param>
-    /// <param name="httpContext">The current request context. Used for the authenticated principal.</param>
-    WopiCheckFolderInfo Build(IWopiContainer folder, HttpContext httpContext);
+    /// <param name="user">The authenticated principal — drives the
+    /// <c>IsAnonymousUser</c> response flag plus <c>UserId</c> / <c>UserFriendlyName</c>.</param>
+    WopiCheckFolderInfo Build(IWopiContainer folder, ClaimsPrincipal user);
 }
