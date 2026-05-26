@@ -327,6 +327,24 @@ services.Replace(ServiceDescriptor.Singleton<IWopiLockComparer, JsonShapedWopiLo
 
 Or register your own `IWopiLockComparer` implementation tailored to the specific mutation you observe. Tolerance carries its own correctness risk — distinct locks that happen to share a `S` field are treated as equivalent, which can mask lost updates — so don't relax the strict default speculatively.
 
+## `AddProblemDetails()` / `UseStatusCodePages()` — don't
+
+`WopiHost.Core` does not register `AddProblemDetails()` and the samples do not wire `UseStatusCodePages()`. Both are deliberate. The WOPI spec is prescriptive about error responses: lock failures return `X-WOPI-LockFailureReason` + an empty body, name-negotiation failures return `X-WOPI-InvalidFileNameError` / `X-WOPI-InvalidContainerNameError` + an empty body, and Office Online / Collabora do not read JSON error bodies. A generic `ProblemDetails` middleware that catches every empty-body 4xx and writes `application/problem+json` would silently violate the contract.
+
+If you layer **non-WOPI** JSON endpoints onto a WOPI host (admin / management / custom REST surfaces):
+
+```csharp
+builder.Services.AddProblemDetails();
+
+var app = builder.Build();
+app.UseExceptionHandler();   // OK — WOPI endpoints don't throw on the spec paths
+// app.UseStatusCodePages(); // NOT OK — would inject JSON into WOPI's empty-body 4xx responses
+app.MapWopiEndpoints();
+app.MapMyAdminEndpoints();   // your non-WOPI endpoints
+```
+
+`UseExceptionHandler()` is safe because the WOPI surface uses typed-result returns (`TypedResults.BadRequest()`, `TypedResults.Conflict()`, etc.) and doesn't throw on the spec paths — so it never reaches the exception handler. `UseStatusCodePages()` is not safe: it intercepts every empty-body 4xx, including the WOPI ones. If you genuinely need status-code-pages for your other endpoints, configure it to exclude the WOPI prefix via [`UseWhen(...)`](https://learn.microsoft.com/aspnet/core/fundamentals/middleware/?view=aspnetcore-10.0#branch-the-middleware-pipeline) or path-based filtering. See [#467](https://github.com/petrsvihlik/WopiHost/issues/467) for the full design discussion.
+
 ## Lock-aware writable storage (defense in depth)
 
 `services.AddWopiLockAwareWritableStorage()` wraps the registered `IWopiWritableStorageProvider` so that the delete/rename pairs (`DeleteWopiFile`, `DeleteWopiContainer`, `RenameWopiFile`, `RenameWopiContainer`) consult `IWopiLockProvider` first and throw `WopiResourceLockedException` when the target is locked. The WOPI controllers already short-circuit on locks before reaching the storage layer, so on the hot path this decorator is redundant — it earns its keep when:
