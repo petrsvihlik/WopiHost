@@ -277,11 +277,9 @@ internal static class FileMutatingEndpoints
             return tooLarge;
         }
 
-        // Mutually exclusive headers per spec: 501 when both present or both missing.
-        if ((!string.IsNullOrWhiteSpace(req.SuggestedTarget) && !string.IsNullOrWhiteSpace(req.RelativeTarget))
-            || (string.IsNullOrWhiteSpace(req.SuggestedTarget) && string.IsNullOrWhiteSpace(req.RelativeTarget)))
+        if (EndpointHelpers.EnsureExactlyOneOf(req.SuggestedTarget, req.RelativeTarget) is { } mutex)
         {
-            return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
+            return mutex;
         }
 
         var ancestors = await req.Storage.GetFileAncestors(req.Id, req.CancellationToken).ConfigureAwait(false);
