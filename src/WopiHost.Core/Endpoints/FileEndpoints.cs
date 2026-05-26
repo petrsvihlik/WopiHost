@@ -114,8 +114,14 @@ internal static class FileEndpoints
     {
         var file = await req.Storage.GetWopiFile(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
-        return await EndpointHelpers.IssueEcosystemPointerAsync(
-            req.Http, file.Identifier, WopiResourceType.File, req.AccessTokenService, req.CancellationToken).ConfigureAwait(false);
+        // Minimum-privilege token bound to the file's id (token-trading prevention, see
+        // EndpointHelpers.BuildResourceTokenRequest). Direct await on the injected
+        // IWopiAccessTokenService.IssueAsync — see ContainerEndpoints.GetEcosystem for why.
+        var ecosystemToken = await req.AccessTokenService.IssueAsync(
+            EndpointHelpers.BuildResourceTokenRequest(req.Http.User, file.Identifier, WopiResourceType.File),
+            req.CancellationToken).ConfigureAwait(false);
+        var url = req.Http.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: ecosystemToken.Token);
+        return TypedResults.Json(new UrlResponse(url));
     }
 
     private static async Task<Results<NotFound, JsonHttpResult<EnumerateAncestorsResponse>>> EnumerateAncestors(
@@ -129,11 +135,17 @@ internal static class FileEndpoints
         // here would surface the same token-trading hazard the PutRelativeFile cleanup addressed
         // — see https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading
         var children = new List<ChildContainer>();
+        // Fresh container-scoped token per ancestor URL — same token-trading rationale as
+        // ContainerEndpoints.EnumerateAncestors. The await lands directly on the injected
+        // IWopiAccessTokenService.IssueAsync; routing through a static helper instead trips
+        // an Infer# null-deref FP through the async state machine (#471).
         foreach (var ancestor in ancestors)
         {
-            var ancestorToken = await EndpointHelpers.IssueAccessTokenForContainerAsync(
-                req.Http, req.AccessTokenService, req.PermissionProvider, ancestor, req.CancellationToken).ConfigureAwait(false);
-            children.Add(new ChildContainer(ancestor.Name, req.Http.GetWopiSrc(ancestor, ancestorToken)));
+            var perms = await req.PermissionProvider.GetContainerPermissionsAsync(req.Http.User, ancestor, req.CancellationToken).ConfigureAwait(false);
+            var ancestorToken = await req.AccessTokenService.IssueAsync(
+                EndpointHelpers.BuildResourceTokenRequest(req.Http.User, ancestor.Identifier, WopiResourceType.Container, containerPermissions: perms),
+                req.CancellationToken).ConfigureAwait(false);
+            children.Add(new ChildContainer(ancestor.Name, req.Http.GetWopiSrc(ancestor, ancestorToken.Token)));
         }
         return TypedResults.Json(new EnumerateAncestorsResponse(children));
     }

@@ -314,9 +314,12 @@ internal static class FileMutatingEndpoints
         // Mint a fresh token bound to the NEW file's resource id; reusing the inbound token
         // (scoped to the source file) violates the WOPI "preventing token trading" guidance and
         // would fail downstream authorization for any host whose tokens encode resource id.
-        var newFileToken = await EndpointHelpers.IssueAccessTokenForFileAsync(
-            req.Http, req.AccessTokenService, req.PermissionProvider, newFile, req.CancellationToken).ConfigureAwait(false);
-        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, req.Http.GetWopiSrc(newFile, newFileToken))
+        // Await on the injected IWopiAccessTokenService.IssueAsync — see #471.
+        var newFilePerms = await req.PermissionProvider.GetFilePermissionsAsync(req.Http.User, newFile, req.CancellationToken).ConfigureAwait(false);
+        var newFileToken = await req.AccessTokenService.IssueAsync(
+            EndpointHelpers.BuildResourceTokenRequest(req.Http.User, newFile.Identifier, WopiResourceType.File, filePermissions: newFilePerms),
+            req.CancellationToken).ConfigureAwait(false);
+        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, req.Http.GetWopiSrc(newFile, newFileToken.Token))
         {
             HostEditUrl = checkFileInfo.HostEditUrl,
             HostViewUrl = checkFileInfo.HostViewUrl,

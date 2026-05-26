@@ -108,28 +108,31 @@ internal static class ContainerMutatingEndpoints
             }
         }
 
-        // Single exit for the resolve/build/respond tail — keeps the handler under qlty's
-        // return-statements threshold (specific-mode conflict, provider null, and success
-        // share one return via the switch).
         var resolved = await ResolveNewChildContainer(req.Http, req.Storage, req.WritableStorage, req.Id, requestedName, isSpecificMode: req.RelativeTarget is not null, req.CancellationToken).ConfigureAwait(false);
-        return resolved switch
+        if (resolved is (null, { } conflict))
         {
-            (null, { } conflict) => conflict,
-            (null, _) => TypedResults.StatusCode(StatusCodes.Status500InternalServerError),
-            ({ } folder, _) => await BuildCreateChildContainerResponse(req.Http, req.ContainerInfoBuilder, req.AccessTokenService, req.PermissionProvider, folder, req.CancellationToken).ConfigureAwait(false),
-        };
-    }
+            return conflict;
+        }
+        if (resolved.folder is null)
+        {
+            return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+        }
 
-    private static async Task<JsonHttpResult<CreateChildContainerResponse>> BuildCreateChildContainerResponse(HttpContext httpContext, ICheckContainerInfoBuilder builder, IWopiAccessTokenService accessTokenService, IWopiPermissionProvider permissionProvider, IWopiContainer folder, CancellationToken cancellationToken)
-    {
-        var info = await builder.BuildAsync(folder, httpContext.User, cancellationToken).ConfigureAwait(false);
+        // Inlined response build — keeps the awaits direct on the injected dependencies so
+        // Infer# can see through the async state machine (#471). The previous switch arm
+        // `await BuildCreateChildContainerResponse(...)` was an await on a same-class static
+        // method, which triggered the same null-deref FP class as the EndpointHelpers calls.
+        var folder = resolved.folder;
+        var info = await req.ContainerInfoBuilder.BuildAsync(folder, req.Http.User, req.CancellationToken).ConfigureAwait(false);
         // Mint a fresh container-scoped token for the new child container. Reusing the inbound
         // PARENT-container token in the response URL would either fail downstream authorization
         // or constitute token trading per
         // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading.
-        var childToken = await EndpointHelpers.IssueAccessTokenForContainerAsync(
-            httpContext, accessTokenService, permissionProvider, folder, cancellationToken).ConfigureAwait(false);
-        return TypedResults.Json(new CreateChildContainerResponse(new(folder.Name, httpContext.GetWopiSrc(folder, childToken)), info));
+        var childPerms = await req.PermissionProvider.GetContainerPermissionsAsync(req.Http.User, folder, req.CancellationToken).ConfigureAwait(false);
+        var childToken = await req.AccessTokenService.IssueAsync(
+            EndpointHelpers.BuildResourceTokenRequest(req.Http.User, folder.Identifier, WopiResourceType.Container, containerPermissions: childPerms),
+            req.CancellationToken).ConfigureAwait(false);
+        return TypedResults.Json(new CreateChildContainerResponse(new(folder.Name, req.Http.GetWopiSrc(folder, childToken.Token)), info));
     }
 
     /// <summary>
@@ -207,9 +210,12 @@ internal static class ContainerMutatingEndpoints
         var checkFileInfo = await req.CheckFileInfoBuilder.BuildAsync(newFile, req.Http.ToWopiRequestInfo(), cancellationToken: req.CancellationToken).ConfigureAwait(false);
         // Fresh, resource-scoped token for the new file. The inbound token is bound to the parent
         // CONTAINER's id and would fail authorization on the new file's CheckFileInfo callback.
-        var newFileToken = await EndpointHelpers.IssueAccessTokenForFileAsync(
-            req.Http, req.AccessTokenService, req.PermissionProvider, newFile, req.CancellationToken).ConfigureAwait(false);
-        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, req.Http.GetWopiSrc(newFile, newFileToken))
+        // Await on the injected IWopiAccessTokenService.IssueAsync — see #471.
+        var newFilePerms = await req.PermissionProvider.GetFilePermissionsAsync(req.Http.User, newFile, req.CancellationToken).ConfigureAwait(false);
+        var newFileToken = await req.AccessTokenService.IssueAsync(
+            EndpointHelpers.BuildResourceTokenRequest(req.Http.User, newFile.Identifier, WopiResourceType.File, filePermissions: newFilePerms),
+            req.CancellationToken).ConfigureAwait(false);
+        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, req.Http.GetWopiSrc(newFile, newFileToken.Token))
         {
             HostEditUrl = checkFileInfo.HostEditUrl,
             HostViewUrl = checkFileInfo.HostViewUrl,
