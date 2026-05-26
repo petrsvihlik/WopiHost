@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using WopiHost.Abstractions;
 using WopiHost.Core.Endpoints;
 
@@ -48,5 +49,38 @@ public class EndpointHelpersTests
         var ok = EndpointHelpers.TryParseWopiSrc(url, out _, out _);
 
         Assert.False(ok);
+    }
+
+    // EnsureExactlyOneOf — replaces the hand-rolled mutex check used in name-negotiation
+    // endpoints (PutRelativeFile, CreateChildFile, CreateChildContainer). The spec mandates
+    // 501 — not 400 — when both targets are present OR both are absent; whitespace-only values
+    // count as absent so a header sent with an empty token doesn't sneak past the gate.
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", "")]
+    [InlineData("   ", "   ")]
+    [InlineData("a", "b")]
+    [InlineData(null, "")]
+    [InlineData("   ", null)]
+    public void EnsureExactlyOneOf_BothPresentOrBothAbsent_Returns501(string? a, string? b)
+    {
+        var result = EndpointHelpers.EnsureExactlyOneOf(a, b);
+
+        Assert.NotNull(result);
+        Assert.Equal(StatusCodes.Status501NotImplemented, result!.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("a", null)]
+    [InlineData(null, "b")]
+    [InlineData("a", "")]
+    [InlineData("", "b")]
+    [InlineData("a", "   ")] // whitespace-only treated as absent — exactly-one rule still satisfied
+    [InlineData("   ", "b")]
+    public void EnsureExactlyOneOf_ExactlyOneSet_ReturnsNull(string? a, string? b)
+    {
+        var result = EndpointHelpers.EnsureExactlyOneOf(a, b);
+
+        Assert.Null(result);
     }
 }

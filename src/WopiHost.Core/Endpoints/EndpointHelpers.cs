@@ -136,6 +136,25 @@ internal static partial class EndpointHelpers
     }
 
     /// <summary>
+    /// Enforces the WOPI "exactly one of header A or header B" contract used by name-negotiation
+    /// endpoints (PutRelativeFile, CreateChildFile, CreateChildContainer). The spec mandates
+    /// <c>501 Not Implemented</c> — not 400 — when both headers are present or both are absent,
+    /// because the host has not chosen which negotiation mode (suggested vs specific) to support.
+    /// Returns <see langword="null"/> when exactly one is set so the call site can proceed; the
+    /// caller dispatches on which one was set via subsequent <c>!= null</c> checks.
+    /// </summary>
+    /// <remarks>
+    /// Whitespace-only header values count as absent (matches the
+    /// <c>string.IsNullOrWhiteSpace</c> semantics the hand-rolled call sites used). .NET 10's
+    /// <c>Microsoft.Extensions.Validation</c> doesn't fit this seam — see #466 for the
+    /// investigation; the validation pipeline is 400-shaped only and can't express 501 NI.
+    /// </remarks>
+    public static StatusCodeHttpResult? EnsureExactlyOneOf(string? a, string? b)
+        => string.IsNullOrWhiteSpace(a) == string.IsNullOrWhiteSpace(b)
+            ? TypedResults.StatusCode(StatusCodes.Status501NotImplemented)
+            : null;
+
+    /// <summary>
     /// Parses the <c>X-WOPI-WopiSrc</c> header into a <see cref="WopiResourceType"/> and the
     /// resource identifier. Accepts absolute URIs whose path ends with <c>/files/{id}</c> or
     /// <c>/containers/{id}</c> (case-insensitive). When the path contains multiple candidate
