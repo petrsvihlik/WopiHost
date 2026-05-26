@@ -7,6 +7,8 @@ using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.ServiceDefaults;
+using WopiHost.Web.Oidc.Components;
+using WopiHost.Web.Oidc.Endpoints;
 using WopiHost.Web.Oidc.Infrastructure;
 using WopiHost.Web.Oidc.Models;
 
@@ -16,7 +18,15 @@ builder.AddServiceDefaults();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-builder.Services.AddControllersWithViews();
+// Razor Components: static SSR only (no .AddInteractiveServerComponents()) — the sample is a
+// thin viewer and the WOPI client owns the editor experience inside an iframe, so there's
+// nothing to gain from SignalR connections per request.
+builder.Services.AddRazorComponents();
+
+// MainLayout reads HttpContext.User for the auth-aware nav; Detail.razor sets WOPI hostpage
+// cache-control headers and reads the captured exception in Error.razor. All three need
+// direct HttpContext access from component code, which is only available via the accessor.
+builder.Services.AddHttpContextAccessor();
 
 builder.Services
     .AddOptionsWithValidateOnStart<WopiOptions>()
@@ -116,13 +126,21 @@ else
 {
     app.UseExceptionHandler("/Error");
 }
+
 app.UseStaticFiles();
+
+// Auth middleware now has to be wired explicitly — AddRazorComponents doesn't add it the way
+// AddControllersWithViews did via MapControllerRoute.
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+// Razor Components stamp anti-forgery metadata on each endpoint, so app.UseAntiforgery() must
+// be in the pipeline before MapRazorComponents runs. The MainLayout's sign-out POST form
+// honours this via <AntiforgeryToken />.
+app.UseAntiforgery();
+
+app.MapRazorComponents<App>();
+AccountEndpoints.MapAccountEndpoints(app);
 
 app.MapDefaultEndpoints();
 

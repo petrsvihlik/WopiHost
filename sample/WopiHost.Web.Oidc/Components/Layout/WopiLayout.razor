@@ -1,0 +1,33 @@
+@inherits LayoutComponentBase
+
+@* Full-bleed iframe layout for the WOPI editor. Trimmed to match the legacy
+   _LayoutWOPI.cshtml shape (no postMessage "back to files" pill) since the OIDC sample
+   never carried that affordance. If you want it later, port from WopiHost.Web's WopiLayout. *@
+
+<HeadContent>
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <link rel="shortcut icon" href="@Favicon?.ToString()" />
+    <style type="text/css">
+        body { margin: 0; padding: 0; overflow: hidden; -ms-content-zooming: none; }
+        #office_frame {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin: 0;
+            border: none;
+            display: block;
+        }
+    </style>
+</HeadContent>
+
+@Body
+
+@code {
+    /// <summary>Favicon URL forwarded by the Detail page so the layout can render the WOPI-client-supplied icon.</summary>
+    [CascadingParameter(Name = nameof(Favicon))] public Uri? Favicon { get; set; }
+}
