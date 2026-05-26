@@ -39,7 +39,6 @@ public partial class OidcSignInTests : IClassFixture<OidcSignInTests.AppFactory>
     [GeneratedRegex("""<input\s+type="hidden"\s+name="([^"]+)"\s+value="([^"]+)"\s*/>""")]
     private static partial Regex FormPostHiddenInputRegex();
 
-
     private readonly MockOidcServerFixture _mockOidc;
     private readonly AppFactory _factory;
 
