@@ -9,8 +9,10 @@ namespace WopiHost.IntegrationTests.Fixtures;
 /// Exposes the issuer URL once started, or marks itself unavailable if Docker is not running.
 /// </summary>
 /// <remarks>
-/// Image: <c>ghcr.io/navikt/mock-oauth2-server</c>. The container's authorize endpoint
-/// auto-issues a code (no UI), making the OIDC flow testable end-to-end without a browser.
+/// Image: <c>ghcr.io/navikt/mock-oauth2-server</c>. <c>GET /authorize</c> returns a tiny HTML
+/// login form (single <c>name="username"</c> input); <c>POST /authorize</c> with that username
+/// returns the <c>?code=...&amp;state=...</c> redirect. <see cref="OidcSignInTests"/> drives
+/// both legs to exercise the full sign-in handshake.
 /// </remarks>
 public sealed class MockOidcServerFixture : IAsyncLifetime
 {

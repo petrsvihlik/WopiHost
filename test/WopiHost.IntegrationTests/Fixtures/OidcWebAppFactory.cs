@@ -36,6 +36,16 @@ public sealed class OidcWebAppFactory(Uri authority, string wopiSigningSecret, s
                 options.RequireHttpsMetadata = false;
                 options.Authority = authority.AbsoluteUri.TrimEnd('/');
                 options.BackchannelHttpHandler = new HttpClientHandler();
+
+                // Correlation/Nonce cookies default to SameSite=None — which the framework
+                // auto-promotes to Secure (browsers reject None without Secure). Secure cookies
+                // are dropped by HttpClient on http://localhost, so the TestServer never sees
+                // them on the callback and the OIDC handler throws "Correlation failed." Force
+                // Lax + non-Secure so OidcSignInTests can drive the handshake over plain HTTP.
+                options.CorrelationCookie.SameSite = SameSiteMode.Lax;
+                options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.None;
+                options.NonceCookie.SameSite = SameSiteMode.Lax;
+                options.NonceCookie.SecurePolicy = CookieSecurePolicy.None;
             });
         });
 
