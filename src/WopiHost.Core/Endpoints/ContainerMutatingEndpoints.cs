@@ -118,20 +118,15 @@ internal static class ContainerMutatingEndpoints
             return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
         }
 
-        // Inlined response build — keeps the awaits direct on the injected dependencies so
+        // Inlined response build — keeps the awaits direct on injected dependencies so
         // Infer# can see through the async state machine (#471). The previous switch arm
         // `await BuildCreateChildContainerResponse(...)` was an await on a same-class static
-        // method, which triggered the same null-deref FP class as the EndpointHelpers calls.
+        // method, which tripped the same null-deref FP class as the EndpointHelpers calls.
         var folder = resolved.folder;
         var info = await req.ContainerInfoBuilder.BuildAsync(folder, req.Http.User, req.CancellationToken).ConfigureAwait(false);
-        // Mint a fresh container-scoped token for the new child container. Reusing the inbound
-        // PARENT-container token in the response URL would either fail downstream authorization
-        // or constitute token trading per
-        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading.
-        var childPerms = await req.PermissionProvider.GetContainerPermissionsAsync(req.Http.User, folder, req.CancellationToken).ConfigureAwait(false);
-        var childToken = await req.AccessTokenService.IssueAsync(
-            EndpointHelpers.BuildResourceTokenRequest(req.Http.User, folder.Identifier, WopiResourceType.Container, containerPermissions: childPerms),
-            req.CancellationToken).ConfigureAwait(false);
+        // Mint a fresh container-scoped token for the new child container — see
+        // IWopiResourceTokenMinter for the token-trading prevention rationale.
+        var childToken = await req.TokenMinter.MintForContainerAsync(req.Http.User, folder, req.CancellationToken).ConfigureAwait(false);
         return TypedResults.Json(new CreateChildContainerResponse(new(folder.Name, req.Http.GetWopiSrc(folder, childToken.Token)), info));
     }
 
@@ -210,11 +205,8 @@ internal static class ContainerMutatingEndpoints
         var checkFileInfo = await req.CheckFileInfoBuilder.BuildAsync(newFile, req.Http.ToWopiRequestInfo(), cancellationToken: req.CancellationToken).ConfigureAwait(false);
         // Fresh, resource-scoped token for the new file. The inbound token is bound to the parent
         // CONTAINER's id and would fail authorization on the new file's CheckFileInfo callback.
-        // Await on the injected IWopiAccessTokenService.IssueAsync — see #471.
-        var newFilePerms = await req.PermissionProvider.GetFilePermissionsAsync(req.Http.User, newFile, req.CancellationToken).ConfigureAwait(false);
-        var newFileToken = await req.AccessTokenService.IssueAsync(
-            EndpointHelpers.BuildResourceTokenRequest(req.Http.User, newFile.Identifier, WopiResourceType.File, filePermissions: newFilePerms),
-            req.CancellationToken).ConfigureAwait(false);
+        // See IWopiResourceTokenMinter for the token-trading prevention rationale.
+        var newFileToken = await req.TokenMinter.MintForFileAsync(req.Http.User, newFile, req.CancellationToken).ConfigureAwait(false);
         return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, req.Http.GetWopiSrc(newFile, newFileToken.Token))
         {
             HostEditUrl = checkFileInfo.HostEditUrl,
@@ -302,8 +294,7 @@ internal readonly record struct CreateChildContainerRequest(
     IWopiStorageProvider Storage,
     [FromServices] IWopiWritableStorageProvider? WritableStorage,
     ICheckContainerInfoBuilder ContainerInfoBuilder,
-    IWopiAccessTokenService AccessTokenService,
-    IWopiPermissionProvider PermissionProvider,
+    IWopiResourceTokenMinter TokenMinter,
     [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? SuggestedTarget,
     [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? RelativeTarget,
     CancellationToken CancellationToken);
@@ -316,8 +307,7 @@ internal readonly record struct CreateChildFileRequest(
     [FromServices] IWopiWritableStorageProvider? WritableStorage,
     IWopiNewChildFileNegotiator Negotiator,
     ICheckFileInfoBuilder CheckFileInfoBuilder,
-    IWopiAccessTokenService AccessTokenService,
-    IWopiPermissionProvider PermissionProvider,
+    IWopiResourceTokenMinter TokenMinter,
     [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? SuggestedTarget,
     [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? RelativeTarget,
     [FromHeader(Name = WopiHeaders.OVERWRITE_RELATIVE_TARGET)] bool? OverwriteRelativeTarget,

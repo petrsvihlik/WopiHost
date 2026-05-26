@@ -114,12 +114,8 @@ internal static class FileEndpoints
     {
         var file = await req.Storage.GetWopiFile(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
-        // Minimum-privilege token bound to the file's id (token-trading prevention, see
-        // EndpointHelpers.BuildResourceTokenRequest). Direct await on the injected
-        // IWopiAccessTokenService.IssueAsync — see ContainerEndpoints.GetEcosystem for why.
-        var ecosystemToken = await req.AccessTokenService.IssueAsync(
-            EndpointHelpers.BuildResourceTokenRequest(req.Http.User, file.Identifier, WopiResourceType.File),
-            req.CancellationToken).ConfigureAwait(false);
+        var ecosystemToken = await req.TokenMinter.MintMinimumPrivilegeAsync(
+            req.Http.User, file.Identifier, WopiResourceType.File, req.CancellationToken).ConfigureAwait(false);
         var url = req.Http.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: ecosystemToken.Token);
         return TypedResults.Json(new UrlResponse(url));
     }
@@ -131,20 +127,12 @@ internal static class FileEndpoints
         if (file is null) return TypedResults.NotFound();
 
         var ancestors = await req.Storage.GetFileAncestors(req.Id, req.CancellationToken).ConfigureAwait(false);
-        // Mint a fresh container-scoped token per ancestor URL. Reusing the inbound file token
-        // here would surface the same token-trading hazard the PutRelativeFile cleanup addressed
-        // — see https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading
+        // Mint a fresh container-scoped token per ancestor URL — see IWopiResourceTokenMinter
+        // for the token-trading prevention rationale and the #471 Infer# context.
         var children = new List<ChildContainer>();
-        // Fresh container-scoped token per ancestor URL — same token-trading rationale as
-        // ContainerEndpoints.EnumerateAncestors. The await lands directly on the injected
-        // IWopiAccessTokenService.IssueAsync; routing through a static helper instead trips
-        // an Infer# null-deref FP through the async state machine (#471).
         foreach (var ancestor in ancestors)
         {
-            var perms = await req.PermissionProvider.GetContainerPermissionsAsync(req.Http.User, ancestor, req.CancellationToken).ConfigureAwait(false);
-            var ancestorToken = await req.AccessTokenService.IssueAsync(
-                EndpointHelpers.BuildResourceTokenRequest(req.Http.User, ancestor.Identifier, WopiResourceType.Container, containerPermissions: perms),
-                req.CancellationToken).ConfigureAwait(false);
+            var ancestorToken = await req.TokenMinter.MintForContainerAsync(req.Http.User, ancestor, req.CancellationToken).ConfigureAwait(false);
             children.Add(new ChildContainer(ancestor.Name, req.Http.GetWopiSrc(ancestor, ancestorToken.Token)));
         }
         return TypedResults.Json(new EnumerateAncestorsResponse(children));
@@ -182,7 +170,7 @@ internal readonly record struct GetEcosystemRequest(
     [FromRoute] string Id,
     HttpContext Http,
     IWopiStorageProvider Storage,
-    IWopiAccessTokenService AccessTokenService,
+    IWopiResourceTokenMinter TokenMinter,
     CancellationToken CancellationToken);
 
 /// <summary>Parameter bundle for <see cref="FileEndpoints.EnumerateAncestors"/>.</summary>
@@ -190,6 +178,5 @@ internal readonly record struct EnumerateAncestorsRequest(
     [FromRoute] string Id,
     HttpContext Http,
     IWopiStorageProvider Storage,
-    IWopiAccessTokenService AccessTokenService,
-    IWopiPermissionProvider PermissionProvider,
+    IWopiResourceTokenMinter TokenMinter,
     CancellationToken CancellationToken);

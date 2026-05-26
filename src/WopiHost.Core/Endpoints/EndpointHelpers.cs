@@ -1,9 +1,7 @@
-using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using WopiHost.Abstractions;
-using WopiHost.Core.Extensions;
 
 namespace WopiHost.Core.Endpoints;
 
@@ -27,48 +25,6 @@ internal static partial class EndpointHelpers
     /// </summary>
     [GeneratedRegex(@"/(files|containers)/([^/?#]+)/?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex WopiSrcPathRegex();
-
-    /// <summary>
-    /// Builds a <see cref="WopiAccessTokenRequest"/> populated from the user's identity claims
-    /// and the supplied resource identity + permissions. Synchronous on purpose — used at the
-    /// call sites that previously routed through async helpers (<c>IssueAccessTokenForFileAsync</c>,
-    /// <c>IssueAccessTokenForContainerAsync</c>, <c>IssueEcosystemPointerAsync</c>), which tripped
-    /// an Infer# null-deref FP through the static-method-await indirection (#471 / pre-#363
-    /// pattern). The await stays direct on the injected <see cref="IWopiAccessTokenService"/>
-    /// so Infer# sees through it.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <strong>Why mint a fresh token at all.</strong> Every endpoint that surfaces a child or
-    /// ancestor URL (EnumerateAncestors, EnumerateChildren, PutRelativeFile, CreateChildFile,
-    /// CreateChildContainer, ecosystem_pointer) builds the URL with a token bound to the *new*
-    /// resource id — reusing the inbound token would either fail downstream authorization or
-    /// open a token-trading hole per
-    /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading"/>.
-    /// </para>
-    /// <para>
-    /// <see cref="WopiAccessTokenRequest"/> exposes both <see cref="WopiAccessTokenRequest.FilePermissions"/>
-    /// and <see cref="WopiAccessTokenRequest.ContainerPermissions"/> as init-only properties; the
-    /// token-issuing path consults the set whose <see cref="WopiAccessTokenRequest.ResourceType"/>
-    /// matches and ignores the other. Defaulting both to <see cref="WopiFilePermissions.None"/> /
-    /// <see cref="WopiContainerPermissions.None"/> is the idiomatic shape.
-    /// </para>
-    /// </remarks>
-    public static WopiAccessTokenRequest BuildResourceTokenRequest(
-        ClaimsPrincipal user,
-        string resourceId,
-        WopiResourceType resourceType,
-        WopiFilePermissions filePermissions = WopiFilePermissions.None,
-        WopiContainerPermissions containerPermissions = WopiContainerPermissions.None) => new()
-    {
-        UserId = user.GetUserId(),
-        UserDisplayName = user.FindFirstValue(ClaimTypes.Name),
-        UserEmail = user.FindFirstValue(ClaimTypes.Email),
-        ResourceId = resourceId,
-        ResourceType = resourceType,
-        FilePermissions = filePermissions,
-        ContainerPermissions = containerPermissions,
-    };
 
     /// <summary>
     /// Enforces the WOPI "exactly one of header A or header B" contract used by name-negotiation

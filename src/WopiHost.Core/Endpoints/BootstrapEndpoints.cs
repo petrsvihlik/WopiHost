@@ -102,10 +102,7 @@ internal static class BootstrapEndpoints
             var rootContainer = await req.Storage.GetWopiContainer(req.Storage.RootContainer.Identifier, req.CancellationToken).ConfigureAwait(false);
             if (rootContainer is null) return TypedResults.NotFound();
 
-            var rootPerms = await req.PermissionProvider.GetContainerPermissionsAsync(user, rootContainer, req.CancellationToken).ConfigureAwait(false);
-            var token = await req.AccessTokenService.IssueAsync(
-                EndpointHelpers.BuildResourceTokenRequest(user, rootContainer.Identifier, WopiResourceType.Container, containerPermissions: rootPerms),
-                req.CancellationToken).ConfigureAwait(false);
+            var token = await req.TokenMinter.MintForContainerAsync(user, rootContainer, req.CancellationToken).ConfigureAwait(false);
 
             return TypedResults.Json(new BootstrapRootContainerInfo
             {
@@ -135,19 +132,13 @@ internal static class BootstrapEndpoints
                 var file = await req.Storage.GetWopiFile(resourceId, req.CancellationToken).ConfigureAwait(false);
                 // Spec: only provide a token if the requested WopiSrc exists and the user is authorized.
                 if (file is null) return TypedResults.NotFound();
-                var filePerms = await req.PermissionProvider.GetFilePermissionsAsync(user, file, req.CancellationToken).ConfigureAwait(false);
-                token = await req.AccessTokenService.IssueAsync(
-                    EndpointHelpers.BuildResourceTokenRequest(user, file.Identifier, WopiResourceType.File, filePermissions: filePerms),
-                    req.CancellationToken).ConfigureAwait(false);
+                token = await req.TokenMinter.MintForFileAsync(user, file, req.CancellationToken).ConfigureAwait(false);
             }
             else
             {
                 var container = await req.Storage.GetWopiContainer(resourceId, req.CancellationToken).ConfigureAwait(false);
                 if (container is null) return TypedResults.NotFound();
-                var containerPerms = await req.PermissionProvider.GetContainerPermissionsAsync(user, container, req.CancellationToken).ConfigureAwait(false);
-                token = await req.AccessTokenService.IssueAsync(
-                    EndpointHelpers.BuildResourceTokenRequest(user, container.Identifier, WopiResourceType.Container, containerPermissions: containerPerms),
-                    req.CancellationToken).ConfigureAwait(false);
+                token = await req.TokenMinter.MintForContainerAsync(user, container, req.CancellationToken).ConfigureAwait(false);
             }
 
             return TypedResults.Json(new BootstrapRootContainerInfo
@@ -189,11 +180,17 @@ internal static class BootstrapEndpoints
 }
 
 /// <summary>Parameter bundle for <see cref="BootstrapEndpoints.ExecuteEcosystemOperation"/>.</summary>
+/// <remarks>
+/// <see cref="IWopiAccessTokenService"/> is still bound directly here because the
+/// ecosystem-grant token (different from per-resource tokens — bound to the root container with
+/// no permissions baked in) is bootstrap-specific and doesn't fit the
+/// <see cref="IWopiResourceTokenMinter"/> shape. The per-resource tokens go through the minter.
+/// </remarks>
 internal readonly record struct ExecuteEcosystemOperationRequest(
     HttpContext Http,
     IWopiStorageProvider Storage,
     IWopiAccessTokenService AccessTokenService,
-    IWopiPermissionProvider PermissionProvider,
+    IWopiResourceTokenMinter TokenMinter,
     ICheckContainerInfoBuilder ContainerInfoBuilder,
     [FromHeader(Name = WopiHeaders.ECOSYSTEM_OPERATION)] string? EcosystemOperation,
     [FromHeader(Name = WopiHeaders.WOPI_SRC)] string? WopiSrc,

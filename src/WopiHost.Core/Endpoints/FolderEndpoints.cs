@@ -63,15 +63,11 @@ internal static class FolderEndpoints
 
         var files = new List<ChildFile>();
         var fileExtensions = req.FileExtensionFilterList?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        // Mint per-file resource-scoped tokens — see ContainerEndpoints.EnumerateChildren for
-        // the same rationale (preventing token trading on child URLs). Awaits land directly
-        // on the injected IWopiAccessTokenService.IssueAsync — see #471 for why.
+        // Mint per-file resource-scoped tokens — see IWopiResourceTokenMinter for the
+        // token-trading prevention rationale and the #471 Infer# context.
         await foreach (var wopiFile in req.Storage.GetWopiFiles(req.Id, fileExtensions, req.CancellationToken).ConfigureAwait(false))
         {
-            var filePerms = await req.PermissionProvider.GetFilePermissionsAsync(req.Http.User, wopiFile, req.CancellationToken).ConfigureAwait(false);
-            var fileToken = await req.AccessTokenService.IssueAsync(
-                EndpointHelpers.BuildResourceTokenRequest(req.Http.User, wopiFile.Identifier, WopiResourceType.File, filePermissions: filePerms),
-                req.CancellationToken).ConfigureAwait(false);
+            var fileToken = await req.TokenMinter.MintForFileAsync(req.Http.User, wopiFile, req.CancellationToken).ConfigureAwait(false);
             files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, req.Http.GetWopiSrc(wopiFile, fileToken.Token))
             {
                 LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
@@ -100,8 +96,7 @@ internal readonly record struct EnumerateFolderChildrenRequest(
     [FromRoute] string Id,
     HttpContext Http,
     IWopiStorageProvider Storage,
-    IWopiAccessTokenService AccessTokenService,
-    IWopiPermissionProvider PermissionProvider,
+    IWopiResourceTokenMinter TokenMinter,
     [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? FileExtensionFilterList,
     CancellationToken CancellationToken);
 

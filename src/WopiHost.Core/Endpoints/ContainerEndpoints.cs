@@ -66,13 +66,8 @@ internal static class ContainerEndpoints
     {
         var container = await req.Storage.GetWopiContainer(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (container is null) return TypedResults.NotFound();
-        // Minimum-privilege token bound to the container's id (token-trading prevention,
-        // see EndpointHelpers.BuildResourceTokenRequest). Direct await on the injected
-        // IWopiAccessTokenService.IssueAsync — routing through a static async helper trips
-        // an Infer# null-deref FP through the async state machine (#471).
-        var ecosystemToken = await req.AccessTokenService.IssueAsync(
-            EndpointHelpers.BuildResourceTokenRequest(req.Http.User, container.Identifier, WopiResourceType.Container),
-            req.CancellationToken).ConfigureAwait(false);
+        var ecosystemToken = await req.TokenMinter.MintMinimumPrivilegeAsync(
+            req.Http.User, container.Identifier, WopiResourceType.Container, req.CancellationToken).ConfigureAwait(false);
         var url = req.Http.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: ecosystemToken.Token);
         return TypedResults.Json(new UrlResponse(url));
     }
@@ -86,17 +81,14 @@ internal static class ContainerEndpoints
         }
 
         var ancestors = await req.Storage.GetContainerAncestors(req.Id, req.CancellationToken).ConfigureAwait(false);
-        // Fresh container-scoped token per ancestor URL — same token-trading rationale as
-        // the file-side EnumerateAncestors. The await lands directly on the injected
-        // IWopiAccessTokenService.IssueAsync; routing through a static helper trips an
-        // Infer# null-deref FP through the async state machine (#471).
+        // Fresh container-scoped token per ancestor URL — see IWopiResourceTokenMinter for the
+        // token-trading prevention rationale. Going through the injected minter keeps Infer#'s
+        // async-state-machine analysis clean (#471): the await lands on an injected interface
+        // method, not a same-class or shared static async helper.
         var children = new List<ChildContainer>();
         foreach (var ancestor in ancestors)
         {
-            var perms = await req.PermissionProvider.GetContainerPermissionsAsync(req.Http.User, ancestor, req.CancellationToken).ConfigureAwait(false);
-            var ancestorToken = await req.AccessTokenService.IssueAsync(
-                EndpointHelpers.BuildResourceTokenRequest(req.Http.User, ancestor.Identifier, WopiResourceType.Container, containerPermissions: perms),
-                req.CancellationToken).ConfigureAwait(false);
+            var ancestorToken = await req.TokenMinter.MintForContainerAsync(req.Http.User, ancestor, req.CancellationToken).ConfigureAwait(false);
             children.Add(new ChildContainer(ancestor.Name, req.Http.GetWopiSrc(ancestor, ancestorToken.Token)));
         }
         return TypedResults.Json(new EnumerateAncestorsResponse(children));
@@ -117,14 +109,11 @@ internal static class ContainerEndpoints
         // Mint per-child resource-scoped tokens — the inbound token is bound to the PARENT
         // container's id, so reusing it for child URLs trips "preventing token trading"
         // (https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading).
-        // Awaits land directly on the injected IWopiAccessTokenService.IssueAsync — see
-        // EnumerateAncestors above for why the static-helper indirection is gone (#471).
+        // Routed through IWopiResourceTokenMinter so the await lands on an injected interface
+        // method — see #471 for the Infer# precision-loss this shape avoids.
         await foreach (var wopiFile in req.Storage.GetWopiFiles(req.Id, fileExtensions, req.CancellationToken).ConfigureAwait(false))
         {
-            var filePerms = await req.PermissionProvider.GetFilePermissionsAsync(req.Http.User, wopiFile, req.CancellationToken).ConfigureAwait(false);
-            var fileToken = await req.AccessTokenService.IssueAsync(
-                EndpointHelpers.BuildResourceTokenRequest(req.Http.User, wopiFile.Identifier, WopiResourceType.File, filePermissions: filePerms),
-                req.CancellationToken).ConfigureAwait(false);
+            var fileToken = await req.TokenMinter.MintForFileAsync(req.Http.User, wopiFile, req.CancellationToken).ConfigureAwait(false);
             files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, req.Http.GetWopiSrc(wopiFile, fileToken.Token))
             {
                 LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
@@ -134,10 +123,7 @@ internal static class ContainerEndpoints
         }
         await foreach (var wopiContainer in req.Storage.GetWopiContainers(req.Id, req.CancellationToken).ConfigureAwait(false))
         {
-            var containerPerms = await req.PermissionProvider.GetContainerPermissionsAsync(req.Http.User, wopiContainer, req.CancellationToken).ConfigureAwait(false);
-            var containerToken = await req.AccessTokenService.IssueAsync(
-                EndpointHelpers.BuildResourceTokenRequest(req.Http.User, wopiContainer.Identifier, WopiResourceType.Container, containerPermissions: containerPerms),
-                req.CancellationToken).ConfigureAwait(false);
+            var containerToken = await req.TokenMinter.MintForContainerAsync(req.Http.User, wopiContainer, req.CancellationToken).ConfigureAwait(false);
             containers.Add(new ChildContainer(wopiContainer.Name, req.Http.GetWopiSrc(wopiContainer, containerToken.Token)));
         }
 
@@ -158,7 +144,6 @@ internal readonly record struct EnumerateContainerChildrenRequest(
     [FromRoute] string Id,
     HttpContext Http,
     IWopiStorageProvider Storage,
-    IWopiAccessTokenService AccessTokenService,
-    IWopiPermissionProvider PermissionProvider,
+    IWopiResourceTokenMinter TokenMinter,
     [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? FileExtensionFilterList,
     CancellationToken CancellationToken);
