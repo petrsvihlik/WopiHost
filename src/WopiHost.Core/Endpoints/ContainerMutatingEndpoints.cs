@@ -81,11 +81,9 @@ internal static class ContainerMutatingEndpoints
         ArgumentNullException.ThrowIfNull(req.WritableStorage);
         if (await req.Storage.GetWopiContainer(req.Id, req.CancellationToken).ConfigureAwait(false) is null) return TypedResults.NotFound();
 
-        // Mutually exclusive headers per spec: 501 when both present or both missing.
-        if ((!string.IsNullOrWhiteSpace(req.SuggestedTarget) && !string.IsNullOrWhiteSpace(req.RelativeTarget))
-            || (string.IsNullOrWhiteSpace(req.SuggestedTarget) && string.IsNullOrWhiteSpace(req.RelativeTarget)))
+        if (EndpointHelpers.EnsureExactlyOneOf(req.SuggestedTarget, req.RelativeTarget) is { } mutex)
         {
-            return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
+            return mutex;
         }
 
         // Spec branches on which header is set:
@@ -178,10 +176,9 @@ internal static class ContainerMutatingEndpoints
         var container = await req.Storage.GetWopiContainer(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (container is null) return TypedResults.NotFound();
 
-        if ((!string.IsNullOrWhiteSpace(req.SuggestedTarget) && !string.IsNullOrWhiteSpace(req.RelativeTarget))
-            || (string.IsNullOrWhiteSpace(req.SuggestedTarget) && string.IsNullOrWhiteSpace(req.RelativeTarget)))
+        if (EndpointHelpers.EnsureExactlyOneOf(req.SuggestedTarget, req.RelativeTarget) is { } mutex)
         {
-            return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
+            return mutex;
         }
 
         // Suggested-target / relative-target negotiation — protocol shared with PutRelativeFile.
