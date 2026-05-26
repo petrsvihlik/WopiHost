@@ -53,6 +53,13 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IWopiAccessTokenService, JwtAccessTokenService>();
         services.TryAddSingleton<IWopiPermissionProvider, DefaultWopiPermissionProvider>();
 
+        // Per-resource token mint orchestrator used by every endpoint that surfaces a child or
+        // ancestor URL in a response (EnumerateAncestors, EnumerateChildren, PutRelativeFile,
+        // CreateChildFile, CreateChildContainer, ecosystem_pointer). Centralising the mint
+        // (permission lookup + WopiAccessTokenRequest build + IssueAsync call) here keeps the
+        // token-trading prevention shape in one place and lets a host override the policy.
+        services.TryAddSingleton<IWopiResourceTokenMinter, ResourceTokenMinter>();
+
         // Lock-id comparison: strict by default. Hosts that need tolerant comparison (e.g. for
         // OOS-style JSON-shaped lock mutations) replace this registration with their own
         // IWopiLockComparer (JsonShapedWopiLockComparer ships as one option).

@@ -63,13 +63,12 @@ internal static class FolderEndpoints
 
         var files = new List<ChildFile>();
         var fileExtensions = req.FileExtensionFilterList?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        // Mint per-file resource-scoped tokens — see ContainerEndpoints.EnumerateChildren for
-        // the same rationale (preventing token trading on child URLs).
+        // Mint per-file resource-scoped tokens — see IWopiResourceTokenMinter for the
+        // token-trading prevention rationale and the #471 Infer# context.
         await foreach (var wopiFile in req.Storage.GetWopiFiles(req.Id, fileExtensions, req.CancellationToken).ConfigureAwait(false))
         {
-            var fileToken = await EndpointHelpers.IssueAccessTokenForFileAsync(
-                req.Http, req.AccessTokenService, req.PermissionProvider, wopiFile, req.CancellationToken).ConfigureAwait(false);
-            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, req.Http.GetWopiSrc(wopiFile, fileToken))
+            var fileToken = await req.TokenMinter.MintForFileAsync(req.Http.User, wopiFile, req.CancellationToken).ConfigureAwait(false);
+            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, req.Http.GetWopiSrc(wopiFile, fileToken.Token))
             {
                 LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
                 Size = wopiFile.Length,
@@ -97,8 +96,7 @@ internal readonly record struct EnumerateFolderChildrenRequest(
     [FromRoute] string Id,
     HttpContext Http,
     IWopiStorageProvider Storage,
-    IWopiAccessTokenService AccessTokenService,
-    IWopiPermissionProvider PermissionProvider,
+    IWopiResourceTokenMinter TokenMinter,
     [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? FileExtensionFilterList,
     CancellationToken CancellationToken);
 

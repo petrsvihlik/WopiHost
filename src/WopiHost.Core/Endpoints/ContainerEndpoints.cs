@@ -66,8 +66,10 @@ internal static class ContainerEndpoints
     {
         var container = await req.Storage.GetWopiContainer(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (container is null) return TypedResults.NotFound();
-        return await EndpointHelpers.IssueEcosystemPointerAsync(
-            req.Http, container.Identifier, WopiResourceType.Container, req.AccessTokenService, req.CancellationToken).ConfigureAwait(false);
+        var ecosystemToken = await req.TokenMinter.MintForEcosystemAsync(
+            req.Http.User, container.Identifier, WopiResourceType.Container, req.CancellationToken).ConfigureAwait(false);
+        var url = req.Http.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: ecosystemToken.Token);
+        return TypedResults.Json(new UrlResponse(url));
     }
 
     private static async Task<Results<NotFound, JsonHttpResult<EnumerateAncestorsResponse>>> EnumerateAncestors(
@@ -79,14 +81,15 @@ internal static class ContainerEndpoints
         }
 
         var ancestors = await req.Storage.GetContainerAncestors(req.Id, req.CancellationToken).ConfigureAwait(false);
-        // Mint a fresh container-scoped token per ancestor URL — same token-trading rationale
-        // as the file-side EnumerateAncestors.
+        // Fresh container-scoped token per ancestor URL — see IWopiResourceTokenMinter for the
+        // token-trading prevention rationale. Going through the injected minter keeps Infer#'s
+        // async-state-machine analysis clean (#471): the await lands on an injected interface
+        // method, not a same-class or shared static async helper.
         var children = new List<ChildContainer>();
         foreach (var ancestor in ancestors)
         {
-            var ancestorToken = await EndpointHelpers.IssueAccessTokenForContainerAsync(
-                req.Http, req.AccessTokenService, req.PermissionProvider, ancestor, req.CancellationToken).ConfigureAwait(false);
-            children.Add(new ChildContainer(ancestor.Name, req.Http.GetWopiSrc(ancestor, ancestorToken)));
+            var ancestorToken = await req.TokenMinter.MintForContainerAsync(req.Http.User, ancestor, req.CancellationToken).ConfigureAwait(false);
+            children.Add(new ChildContainer(ancestor.Name, req.Http.GetWopiSrc(ancestor, ancestorToken.Token)));
         }
         return TypedResults.Json(new EnumerateAncestorsResponse(children));
     }
@@ -106,11 +109,12 @@ internal static class ContainerEndpoints
         // Mint per-child resource-scoped tokens — the inbound token is bound to the PARENT
         // container's id, so reusing it for child URLs trips "preventing token trading"
         // (https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading).
+        // Routed through IWopiResourceTokenMinter so the await lands on an injected interface
+        // method — see #471 for the Infer# precision-loss this shape avoids.
         await foreach (var wopiFile in req.Storage.GetWopiFiles(req.Id, fileExtensions, req.CancellationToken).ConfigureAwait(false))
         {
-            var fileToken = await EndpointHelpers.IssueAccessTokenForFileAsync(
-                req.Http, req.AccessTokenService, req.PermissionProvider, wopiFile, req.CancellationToken).ConfigureAwait(false);
-            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, req.Http.GetWopiSrc(wopiFile, fileToken))
+            var fileToken = await req.TokenMinter.MintForFileAsync(req.Http.User, wopiFile, req.CancellationToken).ConfigureAwait(false);
+            files.Add(new ChildFile(wopiFile.Name + '.' + wopiFile.Extension, req.Http.GetWopiSrc(wopiFile, fileToken.Token))
             {
                 LastModifiedTime = wopiFile.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture),
                 Size = wopiFile.Length,
@@ -119,9 +123,8 @@ internal static class ContainerEndpoints
         }
         await foreach (var wopiContainer in req.Storage.GetWopiContainers(req.Id, req.CancellationToken).ConfigureAwait(false))
         {
-            var containerToken = await EndpointHelpers.IssueAccessTokenForContainerAsync(
-                req.Http, req.AccessTokenService, req.PermissionProvider, wopiContainer, req.CancellationToken).ConfigureAwait(false);
-            containers.Add(new ChildContainer(wopiContainer.Name, req.Http.GetWopiSrc(wopiContainer, containerToken)));
+            var containerToken = await req.TokenMinter.MintForContainerAsync(req.Http.User, wopiContainer, req.CancellationToken).ConfigureAwait(false);
+            containers.Add(new ChildContainer(wopiContainer.Name, req.Http.GetWopiSrc(wopiContainer, containerToken.Token)));
         }
 
         return TypedResults.Json(new Container { ChildFiles = files, ChildContainers = containers });
@@ -141,7 +144,6 @@ internal readonly record struct EnumerateContainerChildrenRequest(
     [FromRoute] string Id,
     HttpContext Http,
     IWopiStorageProvider Storage,
-    IWopiAccessTokenService AccessTokenService,
-    IWopiPermissionProvider PermissionProvider,
+    IWopiResourceTokenMinter TokenMinter,
     [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? FileExtensionFilterList,
     CancellationToken CancellationToken);

@@ -110,26 +110,26 @@ internal static class ContainerMutatingEndpoints
 
         // Single exit for the resolve/build/respond tail — keeps the handler under qlty's
         // return-statements threshold (specific-mode conflict, provider null, and success
-        // share one return via the switch).
+        // share one return via the switch). The success-arm body is in a local async
+        // function so the switch arm itself stays a single `await` expression, and the
+        // inner awaits land directly on injected dependencies (which Infer# tracks
+        // cleanly — see #471 history).
         var resolved = await ResolveNewChildContainer(req.Http, req.Storage, req.WritableStorage, req.Id, requestedName, isSpecificMode: req.RelativeTarget is not null, req.CancellationToken).ConfigureAwait(false);
         return resolved switch
         {
             (null, { } conflict) => conflict,
             (null, _) => TypedResults.StatusCode(StatusCodes.Status500InternalServerError),
-            ({ } folder, _) => await BuildCreateChildContainerResponse(req.Http, req.ContainerInfoBuilder, req.AccessTokenService, req.PermissionProvider, folder, req.CancellationToken).ConfigureAwait(false),
+            ({ } folder, _) => await BuildSuccessAsync(folder).ConfigureAwait(false),
         };
-    }
 
-    private static async Task<JsonHttpResult<CreateChildContainerResponse>> BuildCreateChildContainerResponse(HttpContext httpContext, ICheckContainerInfoBuilder builder, IWopiAccessTokenService accessTokenService, IWopiPermissionProvider permissionProvider, IWopiContainer folder, CancellationToken cancellationToken)
-    {
-        var info = await builder.BuildAsync(folder, httpContext.User, cancellationToken).ConfigureAwait(false);
-        // Mint a fresh container-scoped token for the new child container. Reusing the inbound
-        // PARENT-container token in the response URL would either fail downstream authorization
-        // or constitute token trading per
-        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading.
-        var childToken = await EndpointHelpers.IssueAccessTokenForContainerAsync(
-            httpContext, accessTokenService, permissionProvider, folder, cancellationToken).ConfigureAwait(false);
-        return TypedResults.Json(new CreateChildContainerResponse(new(folder.Name, httpContext.GetWopiSrc(folder, childToken)), info));
+        async Task<JsonHttpResult<CreateChildContainerResponse>> BuildSuccessAsync(IWopiContainer folder)
+        {
+            var info = await req.ContainerInfoBuilder.BuildAsync(folder, req.Http.User, req.CancellationToken).ConfigureAwait(false);
+            // Mint a fresh container-scoped token for the new child container — see
+            // IWopiResourceTokenMinter for the token-trading prevention rationale.
+            var childToken = await req.TokenMinter.MintForContainerAsync(req.Http.User, folder, req.CancellationToken).ConfigureAwait(false);
+            return TypedResults.Json(new CreateChildContainerResponse(new(folder.Name, req.Http.GetWopiSrc(folder, childToken.Token)), info));
+        }
     }
 
     /// <summary>
@@ -207,9 +207,9 @@ internal static class ContainerMutatingEndpoints
         var checkFileInfo = await req.CheckFileInfoBuilder.BuildAsync(newFile, req.Http.ToWopiRequestInfo(), cancellationToken: req.CancellationToken).ConfigureAwait(false);
         // Fresh, resource-scoped token for the new file. The inbound token is bound to the parent
         // CONTAINER's id and would fail authorization on the new file's CheckFileInfo callback.
-        var newFileToken = await EndpointHelpers.IssueAccessTokenForFileAsync(
-            req.Http, req.AccessTokenService, req.PermissionProvider, newFile, req.CancellationToken).ConfigureAwait(false);
-        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, req.Http.GetWopiSrc(newFile, newFileToken))
+        // See IWopiResourceTokenMinter for the token-trading prevention rationale.
+        var newFileToken = await req.TokenMinter.MintForFileAsync(req.Http.User, newFile, req.CancellationToken).ConfigureAwait(false);
+        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, req.Http.GetWopiSrc(newFile, newFileToken.Token))
         {
             HostEditUrl = checkFileInfo.HostEditUrl,
             HostViewUrl = checkFileInfo.HostViewUrl,
@@ -296,8 +296,7 @@ internal readonly record struct CreateChildContainerRequest(
     IWopiStorageProvider Storage,
     [FromServices] IWopiWritableStorageProvider? WritableStorage,
     ICheckContainerInfoBuilder ContainerInfoBuilder,
-    IWopiAccessTokenService AccessTokenService,
-    IWopiPermissionProvider PermissionProvider,
+    IWopiResourceTokenMinter TokenMinter,
     [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? SuggestedTarget,
     [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? RelativeTarget,
     CancellationToken CancellationToken);
@@ -310,8 +309,7 @@ internal readonly record struct CreateChildFileRequest(
     [FromServices] IWopiWritableStorageProvider? WritableStorage,
     IWopiNewChildFileNegotiator Negotiator,
     ICheckFileInfoBuilder CheckFileInfoBuilder,
-    IWopiAccessTokenService AccessTokenService,
-    IWopiPermissionProvider PermissionProvider,
+    IWopiResourceTokenMinter TokenMinter,
     [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? SuggestedTarget,
     [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? RelativeTarget,
     [FromHeader(Name = WopiHeaders.OVERWRITE_RELATIVE_TARGET)] bool? OverwriteRelativeTarget,

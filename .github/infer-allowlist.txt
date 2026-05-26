@@ -7,32 +7,19 @@
 # Add a comment above each entry naming the issue tracking it. Don't add new
 # entries without a matching issue — every allowlist entry is technical debt.
 #
-# Historical note: the three originally tracked by #363 were resolved by
-# restructuring `WopiBootstrapperController.BuildBootstrapInfoAsync` and
-# `GetWopiCheckFolderInfo` so the `await` lands on an injected dependency
-# directly, which Infer# can see through.
-
-# https://github.com/petrsvihlik/WopiHost/issues/471
-# 12 false positives on the new [AsParameters] WOPI endpoint handlers. Infer#
-# loses null-tracking through:
-#  (1) record-struct property dereferences (req.Http, req.Storage, …) inside
-#      `await foreach` over IAsyncEnumerable<IWopiFile / IWopiContainer>; and
-#  (2) Task<JsonHttpResult<T>>-returning helpers consumed by typed-union
-#      Results<NotFound, JsonHttpResult<T>> returns (the helper return type
-#      changed from Task<IResult> in #470).
-# Restructuring to dispel the FP (inlining helpers, reverting return types,
-# or extracting req.X locals — all tried) defeats substantive parts of #458's
-# cleanup. The 12 entries below stay until either Infer# improves or a C#
-# nullability attribute resolves it at source. Substring-matched line ranges
-# are intentionally specific so unrelated FPs in the same file still fail loud.
-# #457 cleanup (WopiRequestInfo refactor) flushed two of the original 12 entries —
-# ContainerMutatingEndpoints.cs:213 and FileMutatingEndpoints.cs:319 are no longer
-# flagged. Removed; the remaining 10 are still real FPs.
-Endpoints/BootstrapEndpoints.cs:80: error: Null Dereference
-Endpoints/ContainerEndpoints.cs:69: error: Null Dereference
-Endpoints/ContainerEndpoints.cs:87: error: Null Dereference
-Endpoints/ContainerEndpoints.cs:111: error: Null Dereference
-Endpoints/ContainerEndpoints.cs:122: error: Null Dereference
-Endpoints/FileEndpoints.cs:117: error: Null Dereference
-Endpoints/FileEndpoints.cs:134: error: Null Dereference
-Endpoints/FolderEndpoints.cs:70: error: Null Dereference
+# Historical notes:
+#
+# - The three FPs originally tracked by #363 were resolved by restructuring
+#   `WopiBootstrapperController.BuildBootstrapInfoAsync` and `GetWopiCheckFolderInfo`
+#   so the `await` lands on an injected dependency directly, which Infer# can see
+#   through.
+#
+# - The 10 FPs tracked by #471 (introduced by the #470 Minimal-API migration) were
+#   resolved by the same #363 shape: every `await` in the WOPI endpoint handlers
+#   now lands directly on an injected dependency rather than on a same-class or
+#   shared-helper static async method. The `EndpointHelpers.IssueAccessTokenForFile/
+#   ContainerAsync` / `IssueEcosystemPointerAsync` helpers and the
+#   BootstrapEndpoints internal `GetRootContainerAsync` / `GetNewAccessTokenAsync` /
+#   `IssueFileTokenAsync` / `IssueContainerTokenAsync` dispatch helpers were
+#   inlined; the new `EndpointHelpers.BuildResourceTokenRequest` is synchronous
+#   (no async state machine) so Infer# stays clean through it.

@@ -314,9 +314,9 @@ internal static class FileMutatingEndpoints
         // Mint a fresh token bound to the NEW file's resource id; reusing the inbound token
         // (scoped to the source file) violates the WOPI "preventing token trading" guidance and
         // would fail downstream authorization for any host whose tokens encode resource id.
-        var newFileToken = await EndpointHelpers.IssueAccessTokenForFileAsync(
-            req.Http, req.AccessTokenService, req.PermissionProvider, newFile, req.CancellationToken).ConfigureAwait(false);
-        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, req.Http.GetWopiSrc(newFile, newFileToken))
+        // See IWopiResourceTokenMinter for the centralized mint + the #471 Infer# context.
+        var newFileToken = await req.TokenMinter.MintForFileAsync(req.Http.User, newFile, req.CancellationToken).ConfigureAwait(false);
+        return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, req.Http.GetWopiSrc(newFile, newFileToken.Token))
         {
             HostEditUrl = checkFileInfo.HostEditUrl,
             HostViewUrl = checkFileInfo.HostViewUrl,
@@ -653,8 +653,7 @@ internal readonly record struct PutRelativeFileRequest(
     IWopiHostExtensions Extensions,
     ICheckFileInfoBuilder CheckFileInfoBuilder,
     IOptions<WopiHostOptions> Options,
-    IWopiAccessTokenService AccessTokenService,
-    IWopiPermissionProvider PermissionProvider,
+    IWopiResourceTokenMinter TokenMinter,
     [FromServices] IWopiLockProvider? LockProvider,
     [FromServices] ICobaltProcessor? CobaltProcessor,
     [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? SuggestedTarget,

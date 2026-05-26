@@ -114,8 +114,10 @@ internal static class FileEndpoints
     {
         var file = await req.Storage.GetWopiFile(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
-        return await EndpointHelpers.IssueEcosystemPointerAsync(
-            req.Http, file.Identifier, WopiResourceType.File, req.AccessTokenService, req.CancellationToken).ConfigureAwait(false);
+        var ecosystemToken = await req.TokenMinter.MintForEcosystemAsync(
+            req.Http.User, file.Identifier, WopiResourceType.File, req.CancellationToken).ConfigureAwait(false);
+        var url = req.Http.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: ecosystemToken.Token);
+        return TypedResults.Json(new UrlResponse(url));
     }
 
     private static async Task<Results<NotFound, JsonHttpResult<EnumerateAncestorsResponse>>> EnumerateAncestors(
@@ -125,15 +127,13 @@ internal static class FileEndpoints
         if (file is null) return TypedResults.NotFound();
 
         var ancestors = await req.Storage.GetFileAncestors(req.Id, req.CancellationToken).ConfigureAwait(false);
-        // Mint a fresh container-scoped token per ancestor URL. Reusing the inbound file token
-        // here would surface the same token-trading hazard the PutRelativeFile cleanup addressed
-        // — see https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading
+        // Mint a fresh container-scoped token per ancestor URL — see IWopiResourceTokenMinter
+        // for the token-trading prevention rationale and the #471 Infer# context.
         var children = new List<ChildContainer>();
         foreach (var ancestor in ancestors)
         {
-            var ancestorToken = await EndpointHelpers.IssueAccessTokenForContainerAsync(
-                req.Http, req.AccessTokenService, req.PermissionProvider, ancestor, req.CancellationToken).ConfigureAwait(false);
-            children.Add(new ChildContainer(ancestor.Name, req.Http.GetWopiSrc(ancestor, ancestorToken)));
+            var ancestorToken = await req.TokenMinter.MintForContainerAsync(req.Http.User, ancestor, req.CancellationToken).ConfigureAwait(false);
+            children.Add(new ChildContainer(ancestor.Name, req.Http.GetWopiSrc(ancestor, ancestorToken.Token)));
         }
         return TypedResults.Json(new EnumerateAncestorsResponse(children));
     }
@@ -170,7 +170,7 @@ internal readonly record struct GetEcosystemRequest(
     [FromRoute] string Id,
     HttpContext Http,
     IWopiStorageProvider Storage,
-    IWopiAccessTokenService AccessTokenService,
+    IWopiResourceTokenMinter TokenMinter,
     CancellationToken CancellationToken);
 
 /// <summary>Parameter bundle for <see cref="FileEndpoints.EnumerateAncestors"/>.</summary>
@@ -178,6 +178,5 @@ internal readonly record struct EnumerateAncestorsRequest(
     [FromRoute] string Id,
     HttpContext Http,
     IWopiStorageProvider Storage,
-    IWopiAccessTokenService AccessTokenService,
-    IWopiPermissionProvider PermissionProvider,
+    IWopiResourceTokenMinter TokenMinter,
     CancellationToken CancellationToken);
