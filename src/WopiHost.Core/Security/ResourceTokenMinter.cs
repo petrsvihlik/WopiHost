@@ -51,7 +51,7 @@ public sealed partial class ResourceTokenMinter(
     }
 
     /// <inheritdoc />
-    public async Task<WopiAccessToken> MintMinimumPrivilegeAsync(ClaimsPrincipal user, string resourceId, WopiResourceType resourceType, CancellationToken cancellationToken = default)
+    public async Task<WopiAccessToken> MintForEcosystemAsync(ClaimsPrincipal user, string resourceId, WopiResourceType resourceType, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentException.ThrowIfNullOrEmpty(resourceId);
@@ -59,7 +59,7 @@ public sealed partial class ResourceTokenMinter(
         var token = await accessTokenService.IssueAsync(
             BuildRequest(user, resourceId, resourceType),
             cancellationToken).ConfigureAwait(false);
-        LogMinimumPrivilegeTokenMinted(logger, user.GetUserId(), resourceType, resourceId);
+        LogEcosystemTokenMinted(logger, user.GetUserId(), resourceType, resourceId);
         return token;
     }
 

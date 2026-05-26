@@ -66,7 +66,7 @@ internal static class ContainerEndpoints
     {
         var container = await req.Storage.GetWopiContainer(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (container is null) return TypedResults.NotFound();
-        var ecosystemToken = await req.TokenMinter.MintMinimumPrivilegeAsync(
+        var ecosystemToken = await req.TokenMinter.MintForEcosystemAsync(
             req.Http.User, container.Identifier, WopiResourceType.Container, req.CancellationToken).ConfigureAwait(false);
         var url = req.Http.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: ecosystemToken.Token);
         return TypedResults.Json(new UrlResponse(url));

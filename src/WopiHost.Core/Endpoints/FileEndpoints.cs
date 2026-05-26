@@ -114,7 +114,7 @@ internal static class FileEndpoints
     {
         var file = await req.Storage.GetWopiFile(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
-        var ecosystemToken = await req.TokenMinter.MintMinimumPrivilegeAsync(
+        var ecosystemToken = await req.TokenMinter.MintForEcosystemAsync(
             req.Http.User, file.Identifier, WopiResourceType.File, req.CancellationToken).ConfigureAwait(false);
         var url = req.Http.GetWopiSrc(WopiRouteNames.CheckEcosystem, identifier: null, accessToken: ecosystemToken.Token);
         return TypedResults.Json(new UrlResponse(url));

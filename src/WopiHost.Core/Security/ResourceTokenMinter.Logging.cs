@@ -36,8 +36,8 @@ public partial class ResourceTokenMinter
     [LoggerMessage(
         EventId = 4003,
         Level = LogLevel.Debug,
-        Message = "Minted minimum-privilege WOPI access token for user {userId} bound to {resourceType}:{resourceId}")]
-    private static partial void LogMinimumPrivilegeTokenMinted(
+        Message = "Minted ecosystem_pointer WOPI access token for user {userId} bound to {resourceType}:{resourceId}")]
+    private static partial void LogEcosystemTokenMinted(
         ILogger logger,
         string userId,
         WopiResourceType resourceType,

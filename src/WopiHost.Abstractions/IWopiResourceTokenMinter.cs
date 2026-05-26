@@ -54,9 +54,16 @@ public interface IWopiResourceTokenMinter
 
     /// <summary>
     /// Issues a minimum-privilege (no <c>FilePermissions</c> / <c>ContainerPermissions</c>)
-    /// token bound to <paramref name="resourceId"/> + <paramref name="resourceType"/>. Used by
-    /// the <c>ecosystem_pointer</c> handlers, which return a URL to <c>/wopi/ecosystem</c> and
-    /// don't need any resource-mutation capability baked in.
+    /// token bound to <paramref name="resourceId"/> + <paramref name="resourceType"/>, for use
+    /// in the WOPI <c>ecosystem_pointer</c> response URLs (the file- and container-side
+    /// <c>GetEcosystem</c> handlers). The returned URL points at <c>/wopi/ecosystem</c> with
+    /// this token; the ecosystem endpoint doesn't need any resource-mutation capability baked in.
     /// </summary>
-    Task<WopiAccessToken> MintMinimumPrivilegeAsync(ClaimsPrincipal user, string resourceId, WopiResourceType resourceType, CancellationToken cancellationToken = default);
+    /// <remarks>
+    /// Not used by the bootstrap's ecosystem-grant token — that one binds to the root container
+    /// with a looser user-id resolution (<c>NameIdentifier → Upn</c> fall-through, not the
+    /// strict <c>NameIdentifier</c> this seam uses) and stays inline in
+    /// <c>BootstrapEndpoints.BuildEcosystemTokenRequest</c>.
+    /// </remarks>
+    Task<WopiAccessToken> MintForEcosystemAsync(ClaimsPrincipal user, string resourceId, WopiResourceType resourceType, CancellationToken cancellationToken = default);
 }
