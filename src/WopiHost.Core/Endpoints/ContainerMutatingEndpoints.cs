@@ -108,26 +108,28 @@ internal static class ContainerMutatingEndpoints
             }
         }
 
+        // Single exit for the resolve/build/respond tail — keeps the handler under qlty's
+        // return-statements threshold (specific-mode conflict, provider null, and success
+        // share one return via the switch). The success-arm body is in a local async
+        // function so the switch arm itself stays a single `await` expression, and the
+        // inner awaits land directly on injected dependencies (which Infer# tracks
+        // cleanly — see #471 history).
         var resolved = await ResolveNewChildContainer(req.Http, req.Storage, req.WritableStorage, req.Id, requestedName, isSpecificMode: req.RelativeTarget is not null, req.CancellationToken).ConfigureAwait(false);
-        if (resolved is (null, { } conflict))
+        return resolved switch
         {
-            return conflict;
-        }
-        if (resolved.folder is null)
-        {
-            return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
-        }
+            (null, { } conflict) => conflict,
+            (null, _) => TypedResults.StatusCode(StatusCodes.Status500InternalServerError),
+            ({ } folder, _) => await BuildSuccessAsync(folder).ConfigureAwait(false),
+        };
 
-        // Inlined response build — keeps the awaits direct on injected dependencies so
-        // Infer# can see through the async state machine (#471). The previous switch arm
-        // `await BuildCreateChildContainerResponse(...)` was an await on a same-class static
-        // method, which tripped the same null-deref FP class as the EndpointHelpers calls.
-        var folder = resolved.folder;
-        var info = await req.ContainerInfoBuilder.BuildAsync(folder, req.Http.User, req.CancellationToken).ConfigureAwait(false);
-        // Mint a fresh container-scoped token for the new child container — see
-        // IWopiResourceTokenMinter for the token-trading prevention rationale.
-        var childToken = await req.TokenMinter.MintForContainerAsync(req.Http.User, folder, req.CancellationToken).ConfigureAwait(false);
-        return TypedResults.Json(new CreateChildContainerResponse(new(folder.Name, req.Http.GetWopiSrc(folder, childToken.Token)), info));
+        async Task<JsonHttpResult<CreateChildContainerResponse>> BuildSuccessAsync(IWopiContainer folder)
+        {
+            var info = await req.ContainerInfoBuilder.BuildAsync(folder, req.Http.User, req.CancellationToken).ConfigureAwait(false);
+            // Mint a fresh container-scoped token for the new child container — see
+            // IWopiResourceTokenMinter for the token-trading prevention rationale.
+            var childToken = await req.TokenMinter.MintForContainerAsync(req.Http.User, folder, req.CancellationToken).ConfigureAwait(false);
+            return TypedResults.Json(new CreateChildContainerResponse(new(folder.Name, req.Http.GetWopiSrc(folder, childToken.Token)), info));
+        }
     }
 
     /// <summary>
