@@ -91,10 +91,17 @@ if (builder.Configuration.GetValue<bool>("AppHost:UseAzureStorage"))
 // reconfigured to load WopiHost.RedisLockProvider with the Aspire-allocated connection string.
 // WaitFor ensures the WOPI backend doesn't try to acquire a lock before Redis is accepting
 // connections.
+//
+// Lifetime defaults to Session (Aspire's default) so the container is torn down on AppHost
+// shutdown. Persistent lifetime was tried but accumulated orphaned containers across runs:
+// Aspire's persistent-resource identity is fingerprinted from the resource config (including
+// the auto-generated REDIS_PASSWORD), so a fresh password each session produces a fresh
+// fingerprint and a fresh container while the previous one lingers as `Exited`. Lock state is
+// short-lived by design (30-min WOPI spec expiry), so there's no data-survival need that
+// would justify pinning the password to stabilise the fingerprint.
 if (builder.Configuration.GetValue("AppHost:UseRedisLocks", defaultValue: true))
 {
-    var redis = builder.AddRedis("wopi-locks")
-                       .WithLifetime(ContainerLifetime.Persistent);
+    var redis = builder.AddRedis("wopi-locks");
     wopiHost
         // Flip the sample's lock-provider discriminator so AddSampleLockProvider() dispatches to
         // Redis. Sample:LockProvider lives in the sample's appsettings (not WopiHost.Core's
