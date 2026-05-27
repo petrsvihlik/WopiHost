@@ -16,7 +16,7 @@ namespace WopiHost.IntegrationTests.Fixtures;
 /// the suite to discovery parsing — a separate concern with its own unit coverage. Hosting the
 /// keys here keeps the proof-validation integration tests focused on the proof gate itself.
 /// </remarks>
-internal sealed class FakeDiscovererWithProofKeys : IDiscoverer, IDisposable
+public sealed class FakeDiscovererWithProofKeys : IDiscoverer, IDisposable
 {
     private readonly RSACryptoServiceProvider _currentKey;
     private readonly RSACryptoServiceProvider _oldKey;

@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using WopiHost.Abstractions;
-using Xunit;
 
 namespace WopiHost.Core.Tests.Abstractions;
 
