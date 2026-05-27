@@ -5,8 +5,8 @@ using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.Web.Components;
-using WopiHost.Web.Models;
 using WopiHost.Web.Services;
+using WopiHost.Web.Shared;
 
 namespace WopiHost.SmokeTests.Fixtures;
 

@@ -3,8 +3,8 @@ using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.ServiceDefaults;
 using WopiHost.Web.Components;
-using WopiHost.Web.Models;
 using WopiHost.Web.Services;
+using WopiHost.Web.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 

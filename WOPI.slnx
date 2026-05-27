@@ -17,6 +17,7 @@
   <Project Path="sample/WopiHost.Validator/WopiHost.Validator.csproj" />
   <Project Path="sample/WopiHost.Web/WopiHost.Web.csproj" />
   <Project Path="sample/WopiHost.Web.Oidc/WopiHost.Web.Oidc.csproj" />
+  <Project Path="sample/WopiHost.Web.Shared/WopiHost.Web.Shared.csproj" />
 
   <Project Path="test/WopiHost.Abstractions.Testing/WopiHost.Abstractions.Testing.csproj" />
   <Project Path="test/WopiHost.AzureLockProvider.Tests/WopiHost.AzureLockProvider.Tests.csproj" />
