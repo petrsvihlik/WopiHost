@@ -15,6 +15,7 @@ namespace WopiHost.AzureLockProvider.Tests;
 /// its own blob container (GUID-suffixed) for isolation. Provider-specific tests (blob-lease
 /// takeover scenarios, direct metadata seeding) stay in <c>WopiAzureLockProviderTests</c>.
 /// </remarks>
+[Trait("Category", "Integration")]
 [Collection(AzuriteCollection.Name)]
 public sealed class AzureLockProviderConformanceTests(AzuriteFixture azurite) : LockProviderConformanceTests
 {

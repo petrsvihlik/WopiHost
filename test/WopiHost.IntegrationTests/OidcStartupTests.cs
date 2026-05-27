@@ -8,7 +8,13 @@ namespace WopiHost.IntegrationTests;
 /// Verifies the OIDC sample boots against the mock IdP and accepts/rejects requests as
 /// authenticated/anonymous correctly. Skipped if Docker / Testcontainers is unavailable.
 /// </summary>
+// Trait("Category", "RequiresDocker") flags the in-test Assert.SkipUnless(IsAvailable) paths
+// below — Testcontainers boots a real Mock-OIDC container, which is unavailable in environments
+// without Docker (CI runners that lack the daemon, contributors on locked-down workstations).
+// The skip is silent at the test level; the trait lets `dotnet test --filter Category!=RequiresDocker`
+// trim them from a quick pre-commit run without touching the source.
 [Collection(nameof(MockOidcCollection))]
+[Trait("Category", "RequiresDocker")]
 public class OidcStartupTests : IClassFixture<OidcStartupTests.AppFactory>
 {
     private readonly MockOidcServerFixture _mockOidc;

@@ -158,16 +158,13 @@ internal static class ContainerMutatingEndpoints
     }
 
     /// <summary>
-    /// Replaces forbidden filesystem characters in a container name with <c>_</c>. Container
-    /// names have no concept of extension so no extension-preservation logic is needed (unlike
-    /// the file-name sanitiser in <see cref="FileMutatingEndpoints"/>).
+    /// Sanitises a container name via <see cref="WopiFileNameSanitiser"/>. Container names have
+    /// no concept of extension, so we drop straight to the scrub helper — there's nothing to
+    /// preserve on the right-hand side. Falls back to a fresh GUID when the scrubbed name is
+    /// unusable (empty / path-nav).
     /// </summary>
     private static string SanitiseContainerName(string invalid)
-    {
-        const string forbiddenChars = "<>:\"/\\|?* ";
-        var sanitised = forbiddenChars.Aggregate(invalid, (cur, c) => cur.Replace(c, '_')).Trim();
-        return string.IsNullOrWhiteSpace(sanitised) || sanitised is "." or ".." ? Guid.NewGuid().ToString("N") : sanitised;
-    }
+        => WopiFileNameSanitiser.ScrubOrNull(invalid) ?? Guid.NewGuid().ToString("N");
 
     private static async Task<CreateChildFileResult> CreateChildFile(
         [AsParameters] CreateChildFileRequest req)

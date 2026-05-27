@@ -8,6 +8,7 @@ namespace WopiHost.AzureStorageProvider.Tests;
 /// Targeted tests for branches the happy-path tests don't cover: error returns, unsupported types,
 /// duplicate creation, root-folder operations, search-pattern matching, etc.
 /// </summary>
+[Trait("Category", "Integration")]
 [Collection(AzuriteCollection.Name)]
 public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
 {

@@ -1,4 +1,3 @@
-using System.Reflection;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
@@ -15,6 +14,7 @@ namespace WopiHost.AzureLockProvider.Tests;
 /// (add/get/refresh/remove/expiry/CAS/comparer) is covered by
 /// <see cref="AzureLockProviderConformanceTests"/>.
 /// </summary>
+[Trait("Category", "Integration")]
 [Collection(AzuriteCollection.Name)]
 public class WopiAzureLockProviderTests(AzuriteFixture azurite)
 {
@@ -85,11 +85,8 @@ public class WopiAzureLockProviderTests(AzuriteFixture azurite)
     }
 
     private static BlobClient GetLockBlob(WopiAzureLockProvider provider, string fileId)
-    {
-        // Reach into the private GetLockBlob to address the same blob in setup helpers.
-        var method = typeof(WopiAzureLockProvider)
-            .GetMethod("GetLockBlob", BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("GetLockBlob not found");
-        return (BlobClient)method.Invoke(provider, [fileId])!;
-    }
+        // GetLockBlob is internal — visible to this assembly via the auto-wired
+        // InternalsVisibleTo in Directory.Build.props (WopiHost.AzureLockProvider →
+        // WopiHost.AzureLockProvider.Tests).
+        => provider.GetLockBlob(fileId);
 }

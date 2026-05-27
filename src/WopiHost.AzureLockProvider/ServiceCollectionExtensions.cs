@@ -23,6 +23,11 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        // Fail fast if another provider (Redis) has already bound 'Wopi:LockProvider' — both
+        // providers use the same section so the second registration would otherwise silently
+        // win the IWopiLockProvider race with bindings from the wrong options type.
+        WopiLockProviderRegistrationGuard.ClaimSection(services, "WopiHost.AzureLockProvider");
+
         services
             .AddOptions<WopiAzureLockProviderOptions>()
             .Bind(configuration.GetSection(WopiAzureLockProviderOptions.SectionName))
