@@ -126,7 +126,7 @@ public sealed class DefaultWopiNewChildFileNegotiator(
             // caller-supplied stem + original extension (the same shape we use for
             // extension-only inputs).
             suggestedTarget = await TryBuildValidSuggestionAsync(request, suggestedTarget, cancellationToken).ConfigureAwait(false)
-                ?? request.SuggestedExtensionFallbackStem + ExtractExtension(suggestedTarget);
+                ?? request.SuggestedExtensionFallbackStem + WopiFileNameSanitiser.ExtractExtension(suggestedTarget);
         }
 
         var newName = await writable.GetSuggestedFileName(request.ContainerId, suggestedTarget, cancellationToken).ConfigureAwait(false);
@@ -137,39 +137,17 @@ public sealed class DefaultWopiNewChildFileNegotiator(
     }
 
     /// <summary>
-    /// Attempts to sanitise <paramref name="invalidName"/> into a name that passes
-    /// <see cref="IWopiWritableStorageProvider.CheckValidFileName"/>, preserving the original
-    /// extension. Replaces forbidden filesystem characters with <c>_</c>; if the sanitised stem
-    /// is empty or path-nav (<c>.</c>/<c>..</c>), substitutes the request's fallback stem.
-    /// Returns the dedup-suggested name on success, or <see langword="null"/> when the sanitised
-    /// candidate still fails validation (caller decides whether to swallow or surface the failure).
+    /// Scrubs <paramref name="invalidName"/> via <see cref="WopiFileNameSanitiser"/> and then
+    /// asks the provider to dedup the candidate against existing siblings. Returns the
+    /// dedup-suggested name on success, or <see langword="null"/> when the scrubbed candidate
+    /// still fails validation (caller decides whether to swallow or surface the failure).
     /// </summary>
     private async Task<string?> TryBuildValidSuggestionAsync(WopiNewChildFileRequest request, string invalidName, CancellationToken cancellationToken)
     {
-        var ext = ExtractExtension(invalidName);
-        var stem = ext.Length == 0 ? invalidName : invalidName[..^ext.Length];
-
-        // Mirrors ToSafeIdentity's forbidden-char set plus the cross-platform filesystem
-        // unsafe characters. Providers may apply stricter rules (Windows reserved names, etc.),
-        // which we re-check via CheckValidFileName below.
-        const string forbiddenChars = "<>:\"/\\|?* ";
-        var sanitisedStem = forbiddenChars.Aggregate(stem, (cur, c) => cur.Replace(c, '_')).Trim();
-        if (string.IsNullOrWhiteSpace(sanitisedStem) || sanitisedStem is "." or "..")
-        {
-            sanitisedStem = request.SuggestedExtensionFallbackStem;
-        }
-
-        var candidate = sanitisedStem + ext;
-        if (!await writable.CheckValidFileName(candidate, cancellationToken).ConfigureAwait(false))
-        {
-            return null;
-        }
-        return await writable.GetSuggestedFileName(request.ContainerId, candidate, cancellationToken).ConfigureAwait(false);
-    }
-
-    private static string ExtractExtension(string name)
-    {
-        var dot = name.LastIndexOf('.');
-        return dot > 0 ? name[dot..] : string.Empty;
+        var candidate = await WopiFileNameSanitiser.TryBuildValidCandidateAsync(
+            writable, invalidName, request.SuggestedExtensionFallbackStem, cancellationToken).ConfigureAwait(false);
+        return candidate is null
+            ? null
+            : await writable.GetSuggestedFileName(request.ContainerId, candidate, cancellationToken).ConfigureAwait(false);
     }
 }

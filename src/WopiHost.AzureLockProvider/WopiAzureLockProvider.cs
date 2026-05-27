@@ -348,7 +348,12 @@ public partial class WopiAzureLockProvider(
         }
     }
 
-    private BlobClient GetLockBlob(string fileId)
+    // Visible to WopiHost.AzureLockProvider.Tests via InternalsVisibleTo (auto-wired in
+    // Directory.Build.props). The Azure-specific tests need to address the same blob from
+    // outside the provider (direct metadata seeding, lease takeover). Pre-#456 they reflected
+    // into the private method via BindingFlags.NonPublic; exposing it as internal keeps the
+    // production API surface unchanged while letting tests compile against a typed signature.
+    internal BlobClient GetLockBlob(string fileId)
     {
         // Hash the fileId so any caller-supplied identifier is reduced to a safe blob name.
         var name = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(fileId))).ToLowerInvariant();

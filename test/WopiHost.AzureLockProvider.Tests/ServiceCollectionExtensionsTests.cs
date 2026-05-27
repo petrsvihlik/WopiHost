@@ -111,6 +111,24 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
+    public void AddAzureLockProvider_WhenLockProviderAlreadyRegistered_Throws()
+    {
+        // A host that wires two IWopiLockProviders would have the second registration silently
+        // win the resolve — pre-#456 there was no guard, post-#456 we fail fast at composition.
+        var services = new ServiceCollection();
+        AddNullLogging(services);
+        services.AddSingleton<IWopiLockProvider>(new FakeLockProvider());
+
+        var ex = Assert.Throws<InvalidOperationException>(
+            () => services.AddAzureLockProvider(BuildConfig(new()
+            {
+                ["Wopi:LockProvider:ConnectionString"] = "UseDevelopmentStorage=true",
+                ["Wopi:LockProvider:ContainerName"] = "wopi-locks",
+            })));
+        Assert.Contains(nameof(IWopiLockProvider), ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AddAzureLockProvider_NullArgs_Throw()
     {
         var services = new ServiceCollection();
@@ -128,5 +146,14 @@ public class ServiceCollectionExtensionsTests
             => new("fake", DateTimeOffset.UtcNow.AddHours(1));
         public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
             => new(new AccessToken("fake", DateTimeOffset.UtcNow.AddHours(1)));
+    }
+
+    private sealed class FakeLockProvider : IWopiLockProvider
+    {
+        public Task<WopiLockInfo?> GetLockAsync(string fileId, CancellationToken cancellationToken = default) => Task.FromResult<WopiLockInfo?>(null);
+        public Task<WopiLockInfo?> AddLockAsync(string fileId, string lockId, CancellationToken cancellationToken = default) => Task.FromResult<WopiLockInfo?>(null);
+        public Task<bool> RefreshLockAsync(string fileId, string expectedExistingLockId, CancellationToken cancellationToken = default) => Task.FromResult(false);
+        public Task<bool> TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken cancellationToken = default) => Task.FromResult(false);
+        public Task<bool> RemoveLockAsync(string fileId, CancellationToken cancellationToken = default) => Task.FromResult(false);
     }
 }

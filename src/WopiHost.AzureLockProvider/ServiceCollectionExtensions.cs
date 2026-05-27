@@ -23,6 +23,10 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        // Only one IWopiLockProvider can be in DI at a time — a host that wires two would have
+        // the second registration silently win the resolve. Fail fast at composition instead.
+        ThrowIfLockProviderAlreadyRegistered(services, nameof(AddAzureLockProvider));
+
         services
             .AddOptions<WopiAzureLockProviderOptions>()
             .Bind(configuration.GetSection(WopiAzureLockProviderOptions.SectionName))
@@ -54,5 +58,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IWopiLockProvider>(sp => sp.GetRequiredService<WopiAzureLockProvider>());
 
         return services;
+    }
+
+    private static void ThrowIfLockProviderAlreadyRegistered(IServiceCollection services, string thisExtensionName)
+    {
+        if (services.Any(d => d.ServiceType == typeof(IWopiLockProvider)))
+        {
+            throw new InvalidOperationException(
+                $"An {nameof(IWopiLockProvider)} is already registered. {thisExtensionName} cannot " +
+                "coexist with another lock-provider registration — pick one (Memory / Azure / Redis).");
+        }
     }
 }

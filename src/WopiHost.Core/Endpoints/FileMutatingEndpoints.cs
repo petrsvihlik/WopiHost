@@ -232,35 +232,27 @@ internal static class FileMutatingEndpoints
     }
 
     /// <summary>
-    /// Replaces filesystem-forbidden characters in <paramref name="invalidName"/>'s stem with
-    /// <c>_</c>, preserving the extension. Returns the sanitised name only if it passes
-    /// <see cref="IWopiWritableStorageProvider.CheckValidFileName"/>; otherwise tries the
-    /// fallback stem; otherwise returns <see langword="null"/>. Mirrors the helper in
-    /// <see cref="DefaultWopiNewChildFileNegotiator"/>; kept local rather than extracted because
-    /// the two callers' fallback policies differ slightly (RenameFile has no concept of
-    /// "suggested target" — the source file's name is the only reasonable fallback).
+    /// Scrubs <paramref name="invalidName"/> via <see cref="WopiFileNameSanitiser"/> and falls
+    /// back to the source file's stem + the original extension when the scrubbed candidate is
+    /// still rejected by the provider. RenameFile has no concept of "suggested target" — the
+    /// source file's name is the only reasonable fallback — so the fallback shape differs from
+    /// <see cref="DefaultWopiNewChildFileNegotiator"/> (which uses the caller-supplied stem) and
+    /// can't be folded into the sanitiser helper.
     /// </summary>
     private static async Task<string?> TryBuildValidFileNameAsync(IWopiWritableStorageProvider writable, string invalidName, string fallbackStem, CancellationToken cancellationToken)
     {
-        var dot = invalidName.LastIndexOf('.');
-        var ext = dot > 0 ? invalidName[dot..] : string.Empty;
-        var stem = dot > 0 ? invalidName[..dot] : invalidName;
+        var candidate = await WopiFileNameSanitiser.TryBuildValidCandidateAsync(writable, invalidName, fallbackStem, cancellationToken).ConfigureAwait(false);
+        if (candidate is not null) return candidate;
 
-        const string forbiddenChars = "<>:\"/\\|?* ";
-        var sanitisedStem = forbiddenChars.Aggregate(stem, (cur, c) => cur.Replace(c, '_')).Trim();
-        if (string.IsNullOrWhiteSpace(sanitisedStem) || sanitisedStem is "." or "..")
-        {
-            sanitisedStem = fallbackStem;
-        }
-
-        var candidate = sanitisedStem + ext;
-        if (await writable.CheckValidFileName(candidate, cancellationToken).ConfigureAwait(false))
-        {
-            return candidate;
-        }
-
+        // Scrubbed candidate failed CheckValidFileName — try one more swing with the literal
+        // fallback stem + the original extension. The extra round-trip is the cost of keeping
+        // the sanitiser caller-agnostic; in the unrecoverable-input case (sanitiser already
+        // fell back to fallbackStem+ext) the second CheckValidFileName re-asks the same
+        // question and returns the same answer — at most one redundant call per RenameFile
+        // failure path, which is itself already a 400 response in flight.
+        var ext = WopiFileNameSanitiser.ExtractExtension(invalidName);
         var fallback = fallbackStem + ext;
-        return candidate != fallback && await writable.CheckValidFileName(fallback, cancellationToken).ConfigureAwait(false)
+        return await writable.CheckValidFileName(fallback, cancellationToken).ConfigureAwait(false)
             ? fallback
             : null;
     }
@@ -442,7 +434,30 @@ internal static class FileMutatingEndpoints
         {
             return new WopiLockMismatchResult(reason: "Locking is not supported");
         }
+        if (ValidateLockHeaders(httpContext, wopiOverrideHeader, oldLockIdentifier, newLockIdentifier) is { } headerError)
+        {
+            return headerError;
+        }
+        var existingLock = await lockProvider.GetLockAsync(id, cancellationToken).ConfigureAwait(false);
+        return await DispatchLockOperation(id, httpContext, lockProvider, options, comparer,
+            wopiOverrideHeader, oldLockIdentifier, newLockIdentifier, existingLock, cancellationToken).ConfigureAwait(false);
+    }
 
+    /// <summary>
+    /// Spec validation gate: enforces lock-id max length and X-WOPI-Lock-required-for-mutation
+    /// rules <em>before</em> dispatching to the per-operation handler. Pre-#456 this lived inline
+    /// in ProcessLockCore (50-line method, two coupled guard chains). Splitting it out leaves
+    /// ProcessLockCore as a pure dispatch state machine and lets the validation rules be tested
+    /// or audited in isolation.
+    /// </summary>
+    /// <returns>The error result that should short-circuit the operation, or <see langword="null"/>
+    /// when the headers pass validation.</returns>
+    private static BadRequest? ValidateLockHeaders(
+        HttpContext httpContext,
+        string? wopiOverrideHeader,
+        string? oldLockIdentifier,
+        string? newLockIdentifier)
+    {
         if ((newLockIdentifier is not null && newLockIdentifier.Length > WopiLockInfo.MaxLockIdLength)
             || (oldLockIdentifier is not null && oldLockIdentifier.Length > WopiLockInfo.MaxLockIdLength))
         {
@@ -450,7 +465,6 @@ internal static class FileMutatingEndpoints
                 $"Lock id exceeds maximum length of {WopiLockInfo.MaxLockIdLength} characters";
             return TypedResults.BadRequest();
         }
-
         // Spec: Lock, Unlock, RefreshLock, UnlockAndRelock ALL list 400 Bad Request — "X-WOPI-Lock
         // was not provided or was empty" — as a distinct status from 409 (lock mismatch). GetLock
         // doesn't require X-WOPI-Lock on the request, so skip the guard for it. Whitespace-only
@@ -462,11 +476,30 @@ internal static class FileMutatingEndpoints
             httpContext.Response.Headers[WopiHeaders.LOCK_FAILURE_REASON] = "X-WOPI-Lock header is required";
             return TypedResults.BadRequest();
         }
+        return null;
+    }
 
-        var existingLock = await lockProvider.GetLockAsync(id, cancellationToken).ConfigureAwait(false);
-        // Lock override doubles as UnlockAndRelock when X-WOPI-OldLock is present, so dispatch
-        // by header presence rather than baking a third branch into the switch.
-        return wopiOverrideHeader switch
+    /// <summary>
+    /// Maps the validated X-WOPI-Override header onto the appropriate Handle* implementation.
+    /// Lock override doubles as UnlockAndRelock when X-WOPI-OldLock is present, so dispatch is
+    /// by header presence rather than baking a third branch into the switch.
+    /// </summary>
+    /// <remarks>
+    /// Unrecognised override values fall through to 501 NotImplemented — the outer
+    /// <c>WopiOverrideMatcherPolicy</c> already restricts routing to the values listed in the
+    /// endpoint metadata, so the default arm is defense-in-depth for anyone bypassing the policy.
+    /// </remarks>
+    private static async Task<ProcessLockResult> DispatchLockOperation(
+        string id,
+        HttpContext httpContext,
+        IWopiLockProvider lockProvider,
+        IOptions<WopiHostOptions> options,
+        IWopiLockComparer comparer,
+        string? wopiOverrideHeader,
+        string? oldLockIdentifier,
+        string? newLockIdentifier,
+        WopiLockInfo? existingLock,
+        CancellationToken cancellationToken) => wopiOverrideHeader switch
         {
             WopiFileOperations.GetLock => HandleGetLock(httpContext, existingLock, options),
             WopiFileOperations.Lock or WopiFileOperations.Put => oldLockIdentifier is null
@@ -476,7 +509,6 @@ internal static class FileMutatingEndpoints
             WopiFileOperations.RefreshLock => await HandleRefreshLock(newLockIdentifier!, existingLock, lockProvider, comparer, cancellationToken).ConfigureAwait(false),
             _ => TypedResults.StatusCode(StatusCodes.Status501NotImplemented),
         };
-    }
 
     private static Ok HandleGetLock(HttpContext httpContext, WopiLockInfo? existingLock, IOptions<WopiHostOptions> options)
     {

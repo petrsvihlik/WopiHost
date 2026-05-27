@@ -10,6 +10,7 @@ namespace WopiHost.AzureLockProvider.Tests;
 /// Targeted tests for error and edge paths in <see cref="WopiAzureLockProvider"/> that the happy-path
 /// tests don't reach: malformed metadata, expired locks, broken leases, etc.
 /// </summary>
+[Trait("Category", "Integration")]
 [Collection(AzuriteCollection.Name)]
 public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
 {

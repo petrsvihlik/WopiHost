@@ -157,4 +157,22 @@ public partial class MemoryLockProvider : IWopiLockProvider
         // the comparand stale and the swap returns false.
         return Task.FromResult(_locks.TryUpdate(fileId, updated, existing));
     }
+
+    /// <summary>
+    /// Test-only seed: writes <paramref name="lockInfo"/> directly into the per-instance lock
+    /// dictionary. Lets <c>MemoryLockProviderTests</c> exercise eviction paths that depend on
+    /// shape (e.g. a stale record with a past <see cref="WopiLockInfo.DateCreated"/>) without
+    /// reflecting on the private dictionary field. Conformance-style behavior is driven through
+    /// the public <see cref="IWopiLockProvider"/> surface — this hook is exclusively for the
+    /// provider's own impl-specific tests.
+    /// </summary>
+    internal void SeedLockForTesting(string fileId, WopiLockInfo lockInfo)
+        => _locks[fileId] = lockInfo;
+
+    /// <summary>
+    /// Test-only probe: returns whether <paramref name="fileId"/> currently has an entry in the
+    /// per-instance dictionary. Paired with <see cref="SeedLockForTesting"/> to assert eviction
+    /// behavior without reaching into private state via reflection.
+    /// </summary>
+    internal bool ContainsLockForTesting(string fileId) => _locks.ContainsKey(fileId);
 }

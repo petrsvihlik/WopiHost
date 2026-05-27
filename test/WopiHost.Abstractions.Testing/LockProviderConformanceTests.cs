@@ -381,4 +381,67 @@ public abstract class LockProviderConformanceTests
         Assert.NotNull(info);
         Assert.Equal("next-lock", info.LockId);
     }
+
+    public static TheoryData<string, string> ExoticLockIds() => new()
+    {
+        // Escaped quotes inside the JSON payload — Office Online Server has shipped lock ids
+        // shaped like {"S":"abc \"quoted\" def"} in the wild. Round-trip must preserve the
+        // backslash + quote pair verbatim.
+        { "lock-with-escaped-quotes", """{"S":"abc \"quoted\" def","F":4}""" },
+        // JSON null values inside the payload — also seen in OOS. The provider stores the byte
+        // sequence; the comparer never reaches a string-null because the lock id itself is the
+        // serialised JSON.
+        { "lock-with-null-value", """{"S":"abc","E":null,"F":4}""" },
+        // Concrete OOS lock id shape (the F-field carries spec-defined flags; S is the session
+        // hash). Pinning the literal shape catches regressions where a provider accidentally
+        // trims/normalises before storing.
+        { "lock-shape-oos", """{"S":"AB12CD34","F":0}""" },
+        // Special ASCII characters that interact badly with naive string handling — equals
+        // sign + colon + semicolon are header-syntax-relevant and tab is invisible; all
+        // permitted by the WOPI spec (ASCII 32-126 + tab in practice).
+        { "lock-with-special-ascii", "key=value;flag:on" },
+        // WOPI permits ASCII 32-126; embed the full punctuation cluster as a stress test to
+        // catch providers that escape/normalise specific characters.
+        { "lock-with-punctuation", "lock-!@#$%^&*()_+-=[]{}|;':\",./<>?" },
+    };
+
+    [Theory]
+    [MemberData(nameof(ExoticLockIds))]
+    public async Task AddLockAsync_PreservesExoticLockIdBytes_OnGet(string label, string lockId)
+    {
+        // The provider stores the lock id; GetLockAsync must surface the IDENTICAL byte sequence
+        // back. Skipping this round-trip cover means a provider could trim, normalise, or lose
+        // characters silently and only the JsonShaped tests in this suite would catch it.
+        _ = label;
+        var sut = await CreateSutAsync();
+        var fileId = $"exotic-roundtrip-{Guid.NewGuid()}";
+
+        var added = await sut.AddLockAsync(fileId, lockId);
+        Assert.NotNull(added);
+        Assert.Equal(lockId, added.LockId);
+
+        var fetched = await sut.GetLockAsync(fileId);
+        Assert.NotNull(fetched);
+        Assert.Equal(lockId, fetched.LockId);
+    }
+
+    [Theory]
+    [MemberData(nameof(ExoticLockIds))]
+    public async Task TryUnlockAndRelockAsync_PreservesExoticLockIdBytes_OnSwap(string label, string lockId)
+    {
+        // Same round-trip pin for the CAS swap path — a provider that stores the new lock id via
+        // a separate code path (e.g. Azure metadata vs Lease) might handle exotic bytes
+        // differently on Add vs Swap.
+        _ = label;
+        var sut = await CreateSutAsync();
+        var fileId = $"exotic-swap-{Guid.NewGuid()}";
+        await sut.AddLockAsync(fileId, "initial-lock");
+
+        var swapped = await sut.TryUnlockAndRelockAsync(fileId, lockId, expectedExistingLockId: "initial-lock");
+        Assert.True(swapped);
+
+        var fetched = await sut.GetLockAsync(fileId);
+        Assert.NotNull(fetched);
+        Assert.Equal(lockId, fetched.LockId);
+    }
 }

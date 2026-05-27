@@ -21,6 +21,14 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddMemoryLockProvider(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+        // Only one IWopiLockProvider can be in DI at a time — a host that wires two would have
+        // the second registration silently win the resolve. Fail fast at composition instead.
+        if (services.Any(d => d.ServiceType == typeof(IWopiLockProvider)))
+        {
+            throw new InvalidOperationException(
+                $"An {nameof(IWopiLockProvider)} is already registered. {nameof(AddMemoryLockProvider)} cannot " +
+                "coexist with another lock-provider registration — pick one (Memory / Azure / Redis).");
+        }
         services.AddSingleton<IWopiLockProvider, MemoryLockProvider>();
         return services;
     }

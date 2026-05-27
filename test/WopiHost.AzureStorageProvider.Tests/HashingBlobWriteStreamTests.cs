@@ -5,6 +5,7 @@ using Xunit;
 
 namespace WopiHost.AzureStorageProvider.Tests;
 
+[Trait("Category", "Integration")]
 [Collection(AzuriteCollection.Name)]
 public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
 {
