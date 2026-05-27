@@ -34,10 +34,9 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        // Fail fast if another provider (Azure) has already bound 'Wopi:LockProvider' — both
-        // providers use the same section so the second registration would otherwise silently
-        // win the IWopiLockProvider race with bindings from the wrong options type.
-        WopiLockProviderRegistrationGuard.ClaimSection(services, "WopiHost.RedisLockProvider");
+        // Only one IWopiLockProvider can be in DI at a time — a host that wires two would have
+        // the second registration silently win the resolve. Fail fast at composition instead.
+        ThrowIfLockProviderAlreadyRegistered(services, nameof(AddRedisLockProvider));
 
         services
             .AddOptions<WopiRedisLockProviderOptions>()
@@ -59,6 +58,16 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IWopiLockProvider>(sp => sp.GetRequiredService<WopiRedisLockProvider>());
 
         return services;
+    }
+
+    private static void ThrowIfLockProviderAlreadyRegistered(IServiceCollection services, string thisExtensionName)
+    {
+        if (services.Any(d => d.ServiceType == typeof(IWopiLockProvider)))
+        {
+            throw new InvalidOperationException(
+                $"An {nameof(IWopiLockProvider)} is already registered. {thisExtensionName} cannot " +
+                "coexist with another lock-provider registration — pick one (Memory / Azure / Redis).");
+        }
     }
 
     private static ConnectionMultiplexer BuildOwnedMultiplexer(WopiRedisLockProviderOptions opts)
