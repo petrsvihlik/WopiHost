@@ -70,6 +70,19 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
+    public void AddRedisLockProvider_WhenLockProviderAlreadyRegistered_Throws()
+    {
+        // A host that wires two IWopiLockProviders would have the second registration silently
+        // win the resolve — pre-#456 there was no guard, post-#456 we fail fast at composition.
+        var services = NewServicesWith();
+        services.AddSingleton<IWopiLockProvider>(A.Fake<IWopiLockProvider>());
+
+        var ex = Assert.Throws<InvalidOperationException>(
+            () => services.AddRedisLockProvider(BuildConfig(("Wopi:LockProvider:ConnectionString", "localhost:6379"))));
+        Assert.Contains(nameof(IWopiLockProvider), ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AddRedisLockProvider_NoMultiplexerAndNoConnectionString_ThrowsOnResolve()
     {
         // No multiplexer in DI AND no ConnectionString option → constructing the provider has to
