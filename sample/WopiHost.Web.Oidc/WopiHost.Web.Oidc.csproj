@@ -27,6 +27,7 @@
 		<ProjectReference Include="..\..\src\WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.Url\WopiHost.Url.csproj" />
 		<ProjectReference Include="..\..\infra\WopiHost.ServiceDefaults\WopiHost.ServiceDefaults.csproj" />
+		<ProjectReference Include="..\WopiHost.Web.Shared\WopiHost.Web.Shared.csproj" />
 	</ItemGroup>
 
 </Project>

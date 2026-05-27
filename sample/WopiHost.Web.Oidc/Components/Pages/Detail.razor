@@ -11,6 +11,7 @@
 @using WopiHost.Url
 @using WopiHost.Web.Oidc.Infrastructure
 @using WopiHost.Web.Oidc.Models
+@using WopiHost.Web.Shared
 
 @inject IOptions<WopiOptions> WopiOptionsAccessor
 @inject IOptions<OidcOptions> OidcOptionsAccessor
@@ -137,7 +138,7 @@ else
         var extension = file.Extension.TrimStart('.');
         var options = WopiOptionsAccessor.Value;
         var urlBuilder = new WopiUrlBuilder(Discoverer, UrlBuilderLogger,
-            new WopiUrlSettings { UiLlcc = new CultureInfo("en-US") });
+            new WopiUrlSettings { UiLlcc = ResolveUiCulture(options.UiCulture) });
         // business_user=1 marks the user as a business (org) user per the M365 business flow.
         // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/business
         var wopiSrc = new Uri(options.HostUrl, $"/wopi/files/{Id}");
@@ -165,4 +166,7 @@ else
         builder.Query = query.ToString();
         return builder.Uri.ToString();
     }
+
+    private static CultureInfo ResolveUiCulture(string? configured)
+        => string.IsNullOrWhiteSpace(configured) ? CultureInfo.CurrentUICulture : new CultureInfo(configured);
 }

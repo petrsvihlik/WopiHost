@@ -11,6 +11,7 @@ using WopiHost.Web.Oidc.Components;
 using WopiHost.Web.Oidc.Endpoints;
 using WopiHost.Web.Oidc.Infrastructure;
 using WopiHost.Web.Oidc.Models;
+using WopiHost.Web.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
