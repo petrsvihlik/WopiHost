@@ -1,0 +1,29 @@
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**'
+          - 'sample/wopi-docs/**'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/**'
+          - '.github/dependabot.yml'
+          - '.github/labeler.yml'
+
+devops:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'infra/**'
+          - 'Dockerfile*'
+          - '**/*.slnx'
+          - 'Directory.Packages.props'
+          - 'Directory.Build.props'
+
+.NET:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/**/*.cs'
+          - 'sample/**/*.cs'
+          - 'test/**/*.cs'
