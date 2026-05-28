@@ -202,13 +202,18 @@ if (useCollabora)
            // and the document canvas stays blank. On Docker Desktop the explicit entry is a
            // no-op (or equivalent override), so it's safe to set unconditionally.
            .WithContainerRuntimeArgs("--add-host", "host.docker.internal:host-gateway")
-           // Allow any WOPI host hostname. Earlier iterations tried "host\.docker\.internal"
-           // and "host\.docker\.internal:5050" and Collabora still came back with
-           //   Action_Load_Resp { errorType: "websocketunauthorized", errorMsg: "Unauthorized WOPI host" }
-           // Going fully permissive while we figure out which canonicalised form coolwsd
-           // expects. If `.*` still produces the same error, the issue isn't the regex at
-           // all — it's a different auth path (capabilities probe, user_auth, …).
-           .WithEnvironment("domain", ".*")
+           // WOPI hosts Collabora is allowed to call back to. coolwsd matches this regex against
+           // the WopiSrc host with std::regex_match (full-string match), and the host it sees
+           // carries the port — "host.docker.internal:5050". That's why earlier iterations with
+           // a bare "host\.docker\.internal" 401'd ("websocketunauthorized" / "Unauthorized WOPI
+           // host"): the ":5050" suffix left the full match unsatisfied. Anchoring the known dev
+           // host as a prefix and absorbing the port (or any path) with a trailing ".*" keeps the
+           // pattern scoped to host.docker.internal instead of waving through every hostname.
+           // The "host\.docker\.internal:5050" attempt that also 401'd predates the trace logging
+           // below; if this narrowed form ever regresses, that trace surfaces the exact host
+           // string coolwsd matched against so the regex can be fixed against real data rather
+           // than guessed — see the --o:logging.level=trace note.
+           .WithEnvironment("domain", @"host\.docker\.internal.*")
            // --o:logging.level=trace so the container log shows the actual host string being
            // matched against (and why the match fails). The CI workflow captures container
            // logs on failure, so a future run with this trace level will surface coolwsd's
