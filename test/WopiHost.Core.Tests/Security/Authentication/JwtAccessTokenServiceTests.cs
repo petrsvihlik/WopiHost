@@ -312,6 +312,39 @@ public class JwtAccessTokenServiceTests
         await Assert.ThrowsAsync<ArgumentNullException>(() => svc.IssueAsync(null!));
     }
 
+    [Fact]
+    public async Task EphemeralKey_ConcurrentFirstRequests_AllTokensValidate()
+    {
+        // #420 item 2.4: the singleton-scoped service used to lazily materialize _ephemeralDevKey
+        // via a non-atomic null-check + assignment in GetSigningKey. Concurrent first callers each
+        // minted a *different* random key; whichever assignment lost the publish race signed
+        // tokens with a key the service then discarded — those tokens would fail ValidateAsync
+        // because the service holds the winning key. Lazy<T> in ExecutionAndPublication mode
+        // (the default) makes the factory run exactly once. Pin the invariant.
+        var svc = BuildService(new WopiSecurityOptions()); // no SigningKey/SecurityKey → ephemeral path
+
+        const int concurrency = 32;
+        var tokens = await Task.WhenAll(
+            Enumerable.Range(0, concurrency).Select(i => Task.Run(async () =>
+            {
+                var issued = await svc.IssueAsync(new WopiAccessTokenRequest
+                {
+                    UserId = $"u{i}",
+                    ResourceId = $"r{i}",
+                    ResourceType = WopiResourceType.File,
+                });
+                return issued.Token;
+            })));
+
+        // Every token must round-trip — proves the signing key was the same instance the service
+        // now uses for validation. A racey ephemeral key would surface as one or more failures here.
+        foreach (var token in tokens)
+        {
+            var v = await svc.ValidateAsync(token);
+            Assert.True(v.IsValid, $"Token failed validation — ephemeral key may have raced on concurrent first request.");
+        }
+    }
+
     private sealed class TestOptionsMonitor<T>(T value) : IOptionsMonitor<T>
     {
         public T CurrentValue { get; } = value;

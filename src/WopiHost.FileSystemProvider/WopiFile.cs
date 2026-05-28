@@ -12,49 +12,53 @@ namespace WopiHost.FileSystemProvider;
 /// </summary>
 /// <param name="filePath">Path on the file system the file is located in.</param>
 /// <param name="fileIdentifier">Identifier of a file.</param>
-public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
+public class WopiFile(string filePath, string fileIdentifier) : IWopiWritableFile
 {
-    private readonly FileInfo fileInfo = new(filePath);
-    private readonly FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(filePath);
+    private readonly FileInfo _fileInfo = new(filePath);
+    private readonly FileVersionInfo _fileVersionInfo = FileVersionInfo.GetVersionInfo(filePath);
 
     /// <inheritdoc/>
     public string Identifier { get; } = fileIdentifier;
 
     /// <inheritdoc />
-    public bool Exists => fileInfo.Exists;
+    public bool Exists => _fileInfo.Exists;
 
     /// <inheritdoc/>
-    public string Extension => fileInfo.Extension.TrimStart('.');
+    public string Extension => _fileInfo.Extension.TrimStart('.');
 
     /// <inheritdoc/>
-    public string? Version => fileVersionInfo.FileVersion ?? fileInfo.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);
+    public string? Version => _fileVersionInfo.FileVersion ?? _fileInfo.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
-#pragma warning disable CA1819 // Properties should not return arrays
-    public byte[]? Checksum { get; } = null;
-#pragma warning restore CA1819 // Properties should not return arrays
+    public ReadOnlyMemory<byte>? Checksum => null;
 
     /// <inheritdoc/>
-    public long Size => fileInfo.Length;
+    public long Length => _fileInfo.Length;
 
     /// <inheritdoc/>
-    public long Length => fileInfo.Length;
+    public string Name => Path.GetFileNameWithoutExtension(_fileInfo.Name);
 
     /// <inheritdoc/>
-    public string Name => Path.GetFileNameWithoutExtension(fileInfo.Name);
+    public DateTime LastWriteTimeUtc => _fileInfo.LastWriteTimeUtc;
 
     /// <inheritdoc/>
-    public DateTime LastWriteTimeUtc => fileInfo.LastWriteTimeUtc;
+    public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult<Stream>(_fileInfo.OpenRead());
+    }
 
     /// <inheritdoc/>
-    public Task<Stream> GetReadStream(CancellationToken cancellationToken = default) => Task.FromResult<Stream>(fileInfo.OpenRead());
-
-    /// <inheritdoc/>
-    public Task<Stream> GetWriteStream(CancellationToken cancellationToken = default) => Task.FromResult<Stream>(fileInfo.Open(FileMode.Truncate));
+    public Task<Stream> OpenWriteAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult<Stream>(_fileInfo.Open(FileMode.Truncate));
+    }
 
     /// <summary>
     /// A string that uniquely identifies the owner of the file.
-    /// Supported only on Windows and Linux.
+    /// Supported only on Windows and Linux. Throws
+    /// <see cref="PlatformNotSupportedException"/> on other platforms.
     /// https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416
     /// </summary>
     [SupportedOSPlatform("linux")]
@@ -65,16 +69,14 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiFile
         {
             if (OperatingSystem.IsWindows())
             {
-                return fileInfo.GetAccessControl().GetOwner(typeof(NTAccount))?.ToString() ?? string.Empty;
+                return _fileInfo.GetAccessControl().GetOwner(typeof(NTAccount))?.ToString() ?? string.Empty;
             }
-            //else if (OperatingSystem.IsLinux())
-            //{
-            //    return Mono.Unix.UnixFileSystemInfo.GetFileSystemEntry(FilePath).OwnerUser.UserName; //TODO: test
-            //}
-            else
+            if (OperatingSystem.IsLinux())
             {
-                return "UNSUPPORTED_PLATFORM";
+                return LinuxFileOwner.GetOwnerName(_fileInfo.FullName);
             }
+            throw new PlatformNotSupportedException(
+                "WopiFile.Owner is only supported on Windows and Linux.");
         }
     }
 }

@@ -102,7 +102,35 @@ PASS=$(grep -cE '^  Pass:' "${VALIDATOR_LOG}" || true)
 FAIL=$(grep -cE '^  Fail:' "${VALIDATOR_LOG}" || true)
 SKIP=$(grep -cE '^  Skipped:' "${VALIDATOR_LOG}" || true)
 
+# Known-failure baseline (issues #291, #292, #293).
+# Mirrors .github/workflows/wopi-validator.yml so local runs and CI agree.
+# See sample/WopiHost.Validator/Infrastructure/NoOpProofValidator.cs and
+# https://github.com/microsoft/wopi-validator-core/pull/145 (rebase of #86) for context.
+KNOWN_FAILURES=$(printf '%s\n' \
+  "ProofKeys.CurrentInvalid.OldValidSignedWithOldKey" \
+  "ProofKeys.CurrentInvalid.OldInvalid" \
+  "ProofKeys.TimestampOlderThan20Min" \
+  | sort -u)
+ACTUAL_FAILURES=$( { grep -E '^  Fail:' "${VALIDATOR_LOG}" || true; } | sed -E 's/^  Fail:[[:space:]]*//' | sort -u)
+UNEXPECTED_FAILURES=$(comm -23 <(printf '%s\n' "${ACTUAL_FAILURES}") <(printf '%s\n' "${KNOWN_FAILURES}") || true)
+UNEXPECTEDLY_PASSING=$(comm -13 <(printf '%s\n' "${ACTUAL_FAILURES}") <(printf '%s\n' "${KNOWN_FAILURES}") || true)
+
 echo
 echo "==> Results: ${PASS} pass / ${FAIL} fail / ${SKIP} skipped"
 echo "==> Logs: ${VALIDATOR_LOG}, ${HOST_LOG}"
-[ "${FAIL}" -eq 0 ]
+
+EXIT_CODE=0
+if [[ -n "${UNEXPECTED_FAILURES}" ]]; then
+  echo
+  echo "==> ❌ Unexpected failures (not in pinned baseline):"
+  printf '      %s\n' "${UNEXPECTED_FAILURES}"
+  EXIT_CODE=1
+fi
+if [[ -n "${UNEXPECTEDLY_PASSING}" ]]; then
+  echo
+  echo "==> ⚠️  Pinned tests that did NOT fail this run — retire the pin or update names:"
+  printf '      %s\n' "${UNEXPECTEDLY_PASSING}"
+  EXIT_CODE=1
+fi
+
+exit "${EXIT_CODE}"

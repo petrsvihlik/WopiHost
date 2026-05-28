@@ -1,5 +1,11 @@
-﻿using System.Text;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
+using WopiHost.Core.Infrastructure;
 
 namespace WopiHost.Core.Tests.Extensions;
 
@@ -40,11 +46,67 @@ public class ExtensionsTests
     }
 
     [Fact]
-    public void GetWopiSrc_UnknownResourceType_Throws()
+    public async Task GetWopiSrc_UnknownResourceType_Throws()
     {
-        var url = new Moq.Mock<Microsoft.AspNetCore.Mvc.IUrlHelper>();
+        await using var app = await BuildAppAsync(_ => { });
+
+        var ctx = new DefaultHttpContext { RequestServices = app.Services };
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            url.Object.GetWopiSrc((WopiHost.Abstractions.WopiResourceType)999, "id"));
+            ctx.GetWopiSrc((WopiResourceType)999, "id"));
+    }
+
+    [Theory]
+    [InlineData(WopiResourceType.File, WopiRouteNames.CheckFileInfo, "/files/{id}")]
+    [InlineData(WopiResourceType.Container, WopiRouteNames.CheckContainerInfo, "/containers/{id}")]
+    public async Task GetWopiSrc_EnumOverload_RoutesToMatchingNamedRoute(
+        WopiResourceType resourceType, string expectedRouteName, string routeTemplate)
+    {
+        // The enum overload of GetWopiSrc maps File → CheckFileInfo, Container → CheckContainerInfo.
+        // Both arms (plus the throw arm in the test above) round out coverage on the resource-type
+        // dispatch.
+        await using var app = await BuildAppAsync(endpoints =>
+            endpoints.MapGet(routeTemplate, () => "ok").WithName(expectedRouteName));
+
+        var ctx = new DefaultHttpContext
+        {
+            RequestServices = app.Services,
+            Request = { Scheme = "https", Host = new("h") },
+        };
+
+        var src = ctx.GetWopiSrc(resourceType, "abc", "access");
+
+        Assert.NotNull(src);
+        Assert.Contains("abc", src.ToString(), StringComparison.Ordinal);
+        Assert.Contains("access_token=access", src.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetWopiSrc_WhenRouteUnknown_Throws()
+    {
+        // If the named route isn't registered, the helper must surface an explicit error rather
+        // than silently masking with an empty Uri.
+        await using var app = await BuildAppAsync(_ => { });
+
+        var ctx = new DefaultHttpContext
+        {
+            RequestServices = app.Services,
+            Request = { Scheme = "https", Host = new("h") },
+        };
+
+        Assert.Throws<InvalidOperationException>(() =>
+            ctx.GetWopiSrc(WopiResourceType.File, "id"));
+    }
+
+    private static async Task<WebApplication> BuildAppAsync(Action<IEndpointRouteBuilder> mapEndpoints)
+    {
+        var builder = WebApplication.CreateEmptyBuilder(new());
+        builder.WebHost.UseTestServer();
+        builder.Services.AddRouting();
+        var app = builder.Build();
+        app.UseRouting();
+        mapEndpoints(app);
+        await app.StartAsync();
+        return app;
     }
 }

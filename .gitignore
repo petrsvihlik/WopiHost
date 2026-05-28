@@ -27,6 +27,9 @@ bld/
 [Bb]in/
 [Oo]bj/
 
+# .NET SDK artifacts output (UseArtifactsOutput=true; see Directory.Build.props)
+/artifacts/
+
 # Visual Studo 2015 cache/options directory
 .vs/
 
@@ -211,7 +214,12 @@ coverage.json
 # Claude Code
 .claude/worktrees/
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 # WOPI validator local logs (see scripts/run-validator.sh)
 /host.log
 /validator.log
+
+# Infer# static analysis output (see .github/workflows/infersharp.yml)
+/infer-staging/
+/infer-out/

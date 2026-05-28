@@ -1,8 +1,16 @@
-﻿namespace WopiHost.Abstractions;
+namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Representation of a file.
+/// Read-side view of a WOPI file. Fetched from <see cref="IWopiStorageProvider.GetWopiFile"/>
+/// when the caller only needs to enumerate metadata or stream content out.
 /// </summary>
+/// <remarks>
+/// Per #420 item 1.2, the write seam is split off into <see cref="IWopiWritableFile"/> so a
+/// read-only flow can't accidentally call <c>OpenWriteAsync</c> on a file it fetched read-only.
+/// Callers that need to mutate file content fetch via
+/// <see cref="IWopiWritableStorageProvider.GetWritableFile"/> or take the writable file directly
+/// from <see cref="IWopiWritableStorageProvider.CreateWopiChildFile"/>.
+/// </remarks>
 public interface IWopiFile : IWopiResource
 {
     /// <summary>
@@ -16,7 +24,9 @@ public interface IWopiFile : IWopiResource
     bool Exists { get; }
 
     /// <summary>
-    /// Gets size of the file in bytes.
+    /// Size of the file in bytes. Matches the <c>Length</c> property on .NET filesystem types
+    /// (<see cref="System.IO.FileInfo.Length"/>, <see cref="System.IO.Stream.Length"/>) and feeds
+    /// the WOPI <c>CheckFileInfo.Size</c> response field on the wire.
     /// </summary>
     long Length { get; }
 
@@ -36,22 +46,27 @@ public interface IWopiFile : IWopiResource
     string? Version { get; }
 
     /// <summary>
-    /// SHA256 checksum
+    /// SHA-256 checksum of the file contents, or <see langword="null"/> when the provider doesn't
+    /// compute one. <see cref="ReadOnlyMemory{T}"/> hands callers an immutable view; providers
+    /// can wrap their existing <c>byte[]</c> hash output via the implicit conversion from
+    /// <c>byte[]</c> to <see cref="ReadOnlyMemory{T}"/>.
     /// </summary>
-    byte[]? Checksum { get; }
+    ReadOnlyMemory<byte>? Checksum { get; }
 
     /// <summary>
-    /// Size of the file.
+    /// Opens the file for reading. Ownership of the returned <see cref="Stream"/> is transferred
+    /// to the caller, who must dispose it when done — typically via
+    /// <c>await using var stream = await file.OpenReadAsync(ct);</c>.
     /// </summary>
-    long Size { get; }
-
-    /// <summary>
-    /// Gets read-only stream.
-    /// </summary>
-    Task<Stream> GetReadStream(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets r/w stream.
-    /// </summary>
-    Task<Stream> GetWriteStream(CancellationToken cancellationToken = default);
+    /// <remarks>
+    /// Naming mirrors the .NET BCL convention for resource-acquiring openers
+    /// (<see cref="System.IO.File.OpenRead(string)"/>, <c>BlobClient.OpenReadAsync</c>,
+    /// <c>HttpClient.GetStreamAsync</c>): <c>Open*</c> signals that the call acquires a resource
+    /// the caller must release, in contrast to a property-like <c>Get*</c> which would not.
+    /// <see cref="Stream"/> already implements <see cref="IAsyncDisposable"/> (since .NET Core
+    /// 3.0), so <c>await using</c> is the idiomatic disposal path.
+    /// </remarks>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A read-positioned <see cref="Stream"/> owned by the caller.</returns>
+    Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default);
 }

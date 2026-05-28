@@ -1,0 +1,139 @@
+name: Infer# Static Analysis
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - 'LICENSE'
+      - '.claude/**'
+  pull_request_target:
+    branches: [ master ]
+    paths-ignore:
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - 'LICENSE'
+      - '.claude/**'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  approve:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Approve
+        run: echo For security reasons, all pull requests need to be approved first before running any automated CI.
+
+  analyze:
+    runs-on: ubuntu-latest
+    needs: [approve]
+    if: |
+      always() &&
+      (github.event_name == 'push' || needs.approve.result == 'success')
+    environment:
+      name: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository && 'Integrate Pull Request' || '' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 2
+
+      - name: Setup .NET 10.0
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Set Cobalt packages token
+        run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build (Release, no warnings-as-errors for analysis-only build)
+        run: dotnet build --no-restore -c Release /p:ContinuousIntegrationBuild=true
+
+      - name: Stage src/ libraries
+        run: |
+          # UseArtifactsOutput (#313) centralizes outputs under
+          # artifacts/bin/<Project>/<config>/ — replaces the legacy
+          # src/<Project>/bin/Release/net10.0/ paths. The previous
+          # release_net10.0 suffix only appeared while we multi-targeted; now
+          # that net10 is the sole TFM, the SDK drops the suffix.
+          mkdir -p infer-staging
+          for proj in WopiHost.Abstractions WopiHost.Core WopiHost.Discovery WopiHost.Url WopiHost.Cobalt WopiHost.FileSystemProvider WopiHost.MemoryLockProvider; do
+            cp "artifacts/bin/$proj/release/$proj.dll" "artifacts/bin/$proj/release/$proj.pdb" infer-staging/
+          done
+          ls -la infer-staging/
+
+      - name: Run Infer#
+        run: |
+          mkdir -p infer-out
+          docker run --rm \
+            -v "$PWD/infer-staging:/binaries:ro" \
+            -v "$PWD/infer-out:/output" \
+            --entrypoint sh \
+            mcr.microsoft.com/infersharp@sha256:030eb68fb99f86f6c6351672f444a7092dceb0fdf15ac5f24ddf9f9e198484cd \
+            -c "cd /infersharp && ./run_infersharp.sh /binaries && cp -r infer-out/* /output/ 2>/dev/null; cp filtered_output.sarif /output/ 2>/dev/null; true"
+
+      - name: Upload SARIF to GitHub code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: infer-out/report.sarif
+          category: infersharp
+
+      - name: Upload Infer# output as artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: infer-output
+          path: |
+            infer-out/report.txt
+            infer-out/report.json
+            infer-out/report.sarif
+            infer-out/logs
+
+      - name: Fail on any unlisted finding
+        run: |
+          if [ ! -s infer-out/report.txt ]; then
+            echo "Infer# clean — no issues found."
+            exit 0
+          fi
+
+          # Filter known false positives via .github/infer-allowlist.txt. Each
+          # active line in the allowlist is a fixed-string substring matched
+          # against the report; any matching report line is dropped before the
+          # fail gate. See the allowlist itself for the policy on adding entries.
+          allowlist=".github/infer-allowlist.txt"
+          if [ -f "$allowlist" ]; then
+            grep -v -E '^(#|$)' "$allowlist" > /tmp/infer-allowlist-active || true
+            if [ -s /tmp/infer-allowlist-active ]; then
+              grep -v -F -f /tmp/infer-allowlist-active infer-out/report.txt > /tmp/infer-filtered.txt || true
+            else
+              cp infer-out/report.txt /tmp/infer-filtered.txt
+            fi
+          else
+            cp infer-out/report.txt /tmp/infer-filtered.txt
+          fi
+
+          # Count remaining error lines (not summary or context lines).
+          remaining=$(grep -cE ': error:' /tmp/infer-filtered.txt || true)
+          if [ "${remaining:-0}" -gt 0 ]; then
+            echo "::error::Infer# reported $remaining unlisted finding(s) — see report.txt artifact and the Security tab."
+            grep -E ': error:' /tmp/infer-filtered.txt
+            echo ""
+            echo "If these are true positives, fix the code. If they are false positives, add an entry to .github/infer-allowlist.txt with a tracking issue link."
+            exit 1
+          fi
+
+          echo "Infer# clean — all reported findings are in the allowlist."
+          if [ -s /tmp/infer-allowlist-active ]; then
+            echo "Allowlisted entries (these still need long-term fixes — see .github/infer-allowlist.txt):"
+            cat /tmp/infer-allowlist-active
+          fi

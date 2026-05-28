@@ -1,0 +1,172 @@
+@page "/Home/Detail/{Id}"
+@attribute [Authorize]
+@layout WopiLayout
+
+@using System.Globalization
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Http
+@using WopiHost.Abstractions
+@using WopiHost.Discovery
+@using WopiHost.Discovery.Enumerations
+@using WopiHost.Url
+@using WopiHost.Web.Oidc.Infrastructure
+@using WopiHost.Web.Oidc.Models
+@using WopiHost.Web.Shared
+
+@inject IOptions<WopiOptions> WopiOptionsAccessor
+@inject IOptions<OidcOptions> OidcOptionsAccessor
+@inject IWopiStorageProvider Storage
+@inject IDiscoverer Discoverer
+@inject ILogger<WopiUrlBuilder> UrlBuilderLogger
+@inject IHttpContextAccessor HttpContextAccessor
+@inject WopiAccessTokenMinter TokenMinter
+
+@if (_badRequestReason is not null)
+{
+    @* Untrusted query value didn't parse — 400 status was set on HttpContext.Response in
+       OnInitializedAsync; render a plain text message so the response body isn't empty. *@
+    <p>@_badRequestReason</p>
+}
+else
+{
+    <CascadingValue Value="_favicon" Name="@nameof(WopiLayout.Favicon)" IsFixed="true">
+        @* Form-driven iframe POST mirrors the WOPI hostpage contract — the WOPI client (Office,
+           Collabora) reads access_token / access_token_ttl from the body, NOT the query string,
+           so the discovery-supplied urlsrc lands here as the form's action URL.
+
+           IMPORTANT: attribute order on the access_token input is load-bearing —
+           WopiTokenRoundTripTests.AccessTokenInputRegex() matches the literal text
+           `<input name="access_token" value="..." type="hidden" />`. Any reordering breaks
+           the test even though the DOM is semantically equivalent. *@
+        <form id="office_form" name="office_form" target="office_frame" action="@_urlSrc" method="post">
+            <input name="access_token" value="@_accessToken" type="hidden" />
+            <input name="access_token_ttl" value="@_accessTokenTtl" type="hidden" />
+        </form>
+
+        <span id="frameholder"></span>
+
+        <script type="text/javascript">
+            var frameholder = document.getElementById('frameholder');
+            var office_frame = document.createElement('iframe');
+            office_frame.name = 'office_frame';
+            office_frame.id = 'office_frame';
+            // The title should be set for accessibility — required by the M365 business flow.
+            office_frame.title = 'Office Online Frame';
+            office_frame.setAttribute('allowfullscreen', 'true');
+            frameholder.appendChild(office_frame);
+            document.getElementById('office_form').submit();
+        </script>
+    </CascadingValue>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+
+    /// <summary>WOPI action — <c>View</c>, <c>Edit</c>, etc. Validated via TryParse; an
+    /// unknown value yields 400 (the route parameter is untrusted query input). Query keys
+    /// are case-insensitive so <c>wopiAction=Edit</c> and <c>wopiaction=Edit</c> both bind.</summary>
+    [SupplyParameterFromQuery(Name = "wopiaction")] public string? WopiAction { get; set; }
+
+    private string? _urlSrc;
+    private string? _accessToken;
+    private long _accessTokenTtl;
+    private Uri? _favicon;
+    private string? _badRequestReason;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Host page headers per WOPI spec — prevent browser caching.
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/hostpage#host-page-headers
+        // Setting on HttpContext.Response works for SSR Razor Components as long as nothing has
+        // been written to the response yet — OnInitializedAsync runs before any rendering.
+        var http = HttpContextAccessor.HttpContext;
+        if (http is not null)
+        {
+            http.Response.Headers.CacheControl = "no-cache, no-store";
+            http.Response.Headers.Expires = "-1";
+            http.Response.Headers.Pragma = "no-cache";
+            http.Response.Headers.Vary = "*";
+        }
+
+        // wopiaction is untrusted query input — Enum.Parse throws on unknown values, which
+        // would 500 the request. Validate up front and 400 cleanly. Default to View when the
+        // parameter is omitted entirely, matching the legacy controller's behaviour.
+        WopiActionEnum action;
+        if (string.IsNullOrEmpty(WopiAction))
+        {
+            action = WopiActionEnum.View;
+        }
+        else if (!Enum.TryParse(WopiAction, ignoreCase: true, out action))
+        {
+            if (http is not null) http.Response.StatusCode = StatusCodes.Status400BadRequest;
+            _badRequestReason = $"Unknown WOPI action '{WopiAction}'.";
+            return;
+        }
+
+        var file = await Storage.GetWopiFile(Id)
+            ?? throw new FileNotFoundException($"File with ID '{Id}' not found.");
+
+        var user = http?.User ?? throw new InvalidOperationException("Razor Component rendered outside an HTTP context.");
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? user.FindFirstValue("sub")
+            ?? throw new InvalidOperationException("Authenticated principal is missing a subject claim.");
+        var displayName = user.FindFirstValue("name") ?? user.FindFirstValue(ClaimTypes.Name);
+        var email = user.FindFirstValue(ClaimTypes.Email) ?? user.FindFirstValue("email");
+
+        var permissions = OidcRolePermissionMapper.Resolve(user, OidcOptionsAccessor.Value.RoleClaimType);
+
+        // Scope by the requested action: even an editor-role user opening a "view" link gets a
+        // read-only token. Necessary because Collabora derives view-vs-edit from CheckFileInfo
+        // permission flags (single editor URL); OOS / M365 ship distinct view/edit URLs and so
+        // would mask this. Strip write+rename; keep Attend/Present (interaction, not authoring).
+        if (action != WopiActionEnum.Edit)
+        {
+            permissions &= ~(WopiFilePermissions.UserCanWrite | WopiFilePermissions.UserCanRename);
+        }
+
+        var (token, expiresAt) = TokenMinter.Mint(new WopiTokenMintRequest
+        {
+            UserId = userId,
+            UserDisplayName = displayName,
+            UserEmail = email,
+            ResourceId = file.Identifier,
+            FilePermissions = permissions,
+        });
+        _accessToken = token;
+        _accessTokenTtl = expiresAt.ToUnixTimeMilliseconds();
+
+        var extension = file.Extension.TrimStart('.');
+        var options = WopiOptionsAccessor.Value;
+        var urlBuilder = new WopiUrlBuilder(Discoverer, UrlBuilderLogger,
+            new WopiUrlSettings { UiLlcc = ResolveUiCulture(options.UiCulture) });
+        // business_user=1 marks the user as a business (org) user per the M365 business flow.
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/business
+        var wopiSrc = new Uri(options.HostUrl, $"/wopi/files/{Id}");
+        _urlSrc = AppendBusinessFlag(await urlBuilder.GetFileUrlAsync(extension, wopiSrc, action));
+        _favicon = await Discoverer.GetApplicationFavIconAsync(extension);
+    }
+
+    /// <summary>
+    /// Appends the M365 business-flow marker (<c>business_user=1</c>) as a query parameter.
+    /// Replaces any existing <c>business_user</c> value and preserves the URL's fragment —
+    /// naive string concatenation broke on URLs that already carried a fragment (the
+    /// <c>&amp;business_user=1</c> would land after the <c>#</c>) and on URLs that already
+    /// contained <c>business_user</c> (producing a duplicate query key with undefined semantics).
+    /// </summary>
+    /// <remarks>
+    /// Spec reference:
+    /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/business"/>.
+    /// </remarks>
+    internal static string? AppendBusinessFlag(string? url)
+    {
+        if (string.IsNullOrEmpty(url)) return url;
+        var builder = new UriBuilder(url);
+        var query = System.Web.HttpUtility.ParseQueryString(builder.Query);
+        query["business_user"] = "1";
+        builder.Query = query.ToString();
+        return builder.Uri.ToString();
+    }
+
+    private static CultureInfo ResolveUiCulture(string? configured)
+        => string.IsNullOrWhiteSpace(configured) ? CultureInfo.CurrentUICulture : new CultureInfo(configured);
+}

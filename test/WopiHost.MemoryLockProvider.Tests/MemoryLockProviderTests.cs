@@ -1,134 +1,59 @@
-using System.Collections.Concurrent;
-using System.Reflection;
+using Microsoft.Extensions.Logging.Abstractions;
 using WopiHost.Abstractions;
 using Xunit;
 
 namespace WopiHost.MemoryLockProvider.Tests;
 
+/// <summary>
+/// Provider-specific tests for <see cref="MemoryLockProvider"/> that can't run through the
+/// shared <see cref="WopiHost.Abstractions.Testing.LockProviderConformanceTests"/> harness —
+/// today that's just the direct stale-state seeding, which depends on the impl-specific backing
+/// dictionary. Cross-impl behavior (add/get/refresh/remove/expiry/CAS/comparer) is covered by
+/// <see cref="MemoryLockProviderConformanceTests"/>.
+/// </summary>
 public class MemoryLockProviderTests
 {
-    private readonly MemoryLockProvider _lockProvider;
-
-    public MemoryLockProviderTests()
-    {
-        _lockProvider = new MemoryLockProvider();
-    }
-
     [Fact]
-    public void AddLock_ShouldAddLock()
+    public async Task GetLockAsync_ExpiredLock_RemovesAndReturnsNull_ViaDirectStateSeed()
     {
-        var fileId = "file1";
-        var lockId = "lock1";
-
-        var lockInfo = _lockProvider.AddLock(fileId, lockId);
-
-        Assert.NotNull(lockInfo);
-        Assert.Equal(fileId, lockInfo.FileId);
-        Assert.Equal(lockId, lockInfo.LockId);
-    }
-
-    [Fact]
-    public void TryGetLock_ShouldReturnTrue_WhenLockExists()
-    {
-        var fileId = "file2";
-        var lockId = "lock2";
-        _lockProvider.AddLock(fileId, lockId);
-
-        var result = _lockProvider.TryGetLock(fileId, out var lockInfo);
-
-        Assert.True(result);
-        Assert.NotNull(lockInfo);
-        Assert.Equal(fileId, lockInfo.FileId);
-        Assert.Equal(lockId, lockInfo.LockId);
-    }
-
-    [Fact]
-    public void TryGetLock_ShouldReturnFalse_WhenLockDoesNotExist()
-    {
-        var result = _lockProvider.TryGetLock("nonexistentFile", out var lockInfo);
-
-        Assert.False(result);
-        Assert.Null(lockInfo);
-    }
-
-    [Fact]
-    public void RefreshLock_ShouldUpdateLock()
-    {
-        var fileId = "file3";
-        var lockId = "lock3";
-        _lockProvider.AddLock(fileId, lockId);
-
-        var result = _lockProvider.RefreshLock(fileId);
-
-        Assert.True(result);
-        _lockProvider.TryGetLock(fileId, out var lockInfo);
-        Assert.NotNull(lockInfo);
-        Assert.Equal(fileId, lockInfo.FileId);
-        Assert.Equal(lockId, lockInfo.LockId);
-    }
-
-    [Fact]
-    public void RemoveLock_ShouldRemoveLock()
-    {
-        var fileId = "file4";
-        var lockId = "lock4";
-        _lockProvider.AddLock(fileId, lockId);
-
-        var result = _lockProvider.RemoveLock(fileId);
-
-        Assert.True(result);
-        var lockExists = _lockProvider.TryGetLock(fileId, out var lockInfo);
-        Assert.False(lockExists);
-        Assert.Null(lockInfo);
-    }
-
-    [Fact]
-    public void AddLock_DuplicateFileId_ReturnsNull()
-    {
-        var fileId = $"dup-{Guid.NewGuid()}";
-        _lockProvider.AddLock(fileId, "first");
-
-        var second = _lockProvider.AddLock(fileId, "second");
-
-        Assert.Null(second);
-    }
-
-    [Fact]
-    public void RefreshLock_NoExistingLock_ReturnsFalse()
-    {
-        var fileId = $"missing-{Guid.NewGuid()}";
-
-        var result = _lockProvider.RefreshLock(fileId);
-
-        Assert.False(result);
-    }
-
-    [Fact]
-    public void TryGetLock_ExpiredLock_RemovesAndReturnsFalse()
-    {
-        // The provider's AddLock always stamps DateCreated with UtcNow, so the
-        // only way to seed an expired entry is to inject one directly into the
-        // private static dictionary backing the provider.
-        var fileId = $"expired-{Guid.NewGuid()}";
-        var locks = GetSharedLockDictionary();
-        locks[fileId] = new WopiLockInfo
+        // Seeds a stale record directly into the provider's per-instance state. The
+        // TimeProvider-based expiry path is covered by the conformance suite; this case
+        // additionally exercises the "I observed an entry whose DateCreated predates my clock"
+        // eviction branch with a system clock (no fake), which the conformance suite can't model
+        // without reaching into impl-specific state.
+        var provider = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance);
+        var fileId = $"expired-direct-{Guid.NewGuid()}";
+        provider.SeedLockForTesting(fileId, new WopiLockInfo
         {
             FileId = fileId,
             LockId = "stale",
             DateCreated = DateTimeOffset.UtcNow.AddHours(-1),
-        };
+        });
 
-        var found = _lockProvider.TryGetLock(fileId, out _);
+        var found = await provider.GetLockAsync(fileId);
 
-        Assert.False(found);
-        Assert.False(locks.ContainsKey(fileId));
+        Assert.Null(found);
+        Assert.False(provider.ContainsLockForTesting(fileId));
     }
 
-    private static ConcurrentDictionary<string, WopiLockInfo> GetSharedLockDictionary()
+    [Fact]
+    public void TwoInstances_OwnIndependentLockState()
     {
-        var field = typeof(MemoryLockProvider)
-            .GetField("locks", BindingFlags.Static | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("MemoryLockProvider.locks field not found");
-        return (ConcurrentDictionary<string, WopiLockInfo>)field.GetValue(null)!;
+        // Pins #380 item 2.3 — pre-fix the provider used a static dictionary, so two instances
+        // shared a single lock store. Now state is per-instance; a lock seeded into one provider
+        // must not appear on a sibling.
+        var providerA = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance);
+        var providerB = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance);
+
+        var fileId = $"isolation-{Guid.NewGuid()}";
+        providerA.SeedLockForTesting(fileId, new WopiLockInfo
+        {
+            FileId = fileId,
+            LockId = "only-on-A",
+            DateCreated = DateTimeOffset.UtcNow,
+        });
+
+        Assert.True(providerA.ContainsLockForTesting(fileId));
+        Assert.False(providerB.ContainsLockForTesting(fileId));
     }
 }

@@ -1,69 +1,70 @@
-# ![Logo](../img/logo48.png) WopiHost Samples
+# ![Logo](../img/logo48.png) WopiHost samples
 
-Introduction
-==========
-This folder includes samples for hosting the WopiHost and the Host pages.
- 
-wopi-docs
----
+Three runnable samples + a folder of test documents. The recommended way to launch them is via .NET Aspire — see [Quick start](../README.md#quick-start) in the top-level README.
 
-Sample documents used by our Host pages - referenced by the FileSystemProvider as configured in the samples.
+## Layout
 
-WopiHost and WopiHost.Web
----
+| Folder | What it is |
+|---|---|
+| [`WopiHost`](WopiHost/) | Backend WOPI server. Implements the WOPI REST endpoints. |
+| [`WopiHost.Web`](WopiHost.Web/) | Frontend host page (anonymous user). Lists files and embeds the WOPI client. |
+| [`WopiHost.Web.Oidc`](WopiHost.Web.Oidc/) | Frontend host page with **OIDC sign-in**. Same role as `WopiHost.Web` but with real users. See [its README](WopiHost.Web.Oidc/README.md). |
+| [`WopiHost.Validator`](WopiHost.Validator/) | Combined backend + host page used to run the official WOPI Validator suite. |
+| [`wopi-docs`](wopi-docs/) | Sample documents served by the file-system storage provider. |
 
-Two companion samples - the WopiHost is the actual Wopi Server host and the WopiHost.Web provides a sample Host page to actually view/edit the sample documents in the Wopi client (as configured in WopiHost.Web/Wopi:ClientUrl).
+## Configuration
 
-#### Configuration: WopiHost
+### `WopiHost` ([appsettings.json](WopiHost/appsettings.json))
 
-[WopiHost\appSettings.json](https://github.com/petrsvihlik/WopiHost/blob/master/sample/WopiHost/appsettings.json)
+| Key | Sample value | Purpose |
+|---|---|---|
+| `Sample:StorageProvider` | `"FileSystem"` | Sample-local discriminator picking which storage provider's typed extension to call. Values: `FileSystem` ([src/WopiHost.FileSystemProvider](../src/WopiHost.FileSystemProvider/README.md)) or `Azure` ([src/WopiHost.AzureStorageProvider](../src/WopiHost.AzureStorageProvider/README.md)). Lives in the sample only — real hosts reference one provider package and call its typed extension directly. |
+| `Wopi:StorageProvider:RootPath` | `"../wopi-docs"` | Root of the directory tree the file-system provider exposes. |
+| `Sample:LockProvider` | `"Memory"` | Sample-local lock-provider discriminator. Values: `Memory`, `Azure`, `Redis` — see the per-provider READMEs. |
+| `Wopi:UseCobalt` | `false` | Reflectively register [WopiHost.Cobalt](../src/WopiHost.Cobalt/README.md) when `true`. Requires a private `Microsoft.CobaltCore` package. |
+| `Wopi:ClientUrl` | `"https://ffc-onenote.officeapps.live.com"` | Base URI of the WOPI client (Office Online Server / M365 for the Web / Collabora). Used by discovery. The AppHost overrides this to `http://localhost:9980` when run with `AppHost:UseCollabora=true` — see [End-to-end editing with Collabora Online](https://github.com/petrsvihlik/WopiHost/wiki/Collabora-Online) on the wiki. |
 
-| Parameter | Sample value | Description |
-| :--- | :--- | :--- |
-|`Wopi:StorageProviderAssemblyName`| [`"WopiHost.FileSystemProvider"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost.FileSystemProvider) | Name of assembly containing implementation of the `IWopiStorageProvider` and `IWopiSecurityHandler` interfaces |
-|`Wopi:StorageProvider:RootPath` | [`".\\wopi-docs"`](https://github.com/petrsvihlik/WopiHost/tree/master/sample/wopi-docs) | Provider-specific setting used by `WopiHost.FileSystemProvider` (which is an implementation of `IWopiStorageProvider` working with System.IO) |
-|`Wopi:LockProviderAssemblyName`| [`"WopiHost.LockProvider"`](https://github.com/petrsvihlik/WopiHost/tree/master/WopiHost.MemoryLockProvider) | Name of assembly containing implementation of the `IWopiLockProvider` interface |
-|`Wopi:UseCobalt`| `false`| Whether or not to use [MS-FSSHTTP](https://learn.microsoft.com/openspecs/sharepoint_protocols/ms-fsshttp/) for file synchronization. More details at [Cobalt](#cobalt)|
+### `WopiHost.Web` ([appsettings.json](WopiHost.Web/appsettings.json))
 
-#### Configuration: WopiHost.Web
-[WopiHost.Web\appSettings.json](https://github.com/petrsvihlik/WopiHost/blob/master/sample/WopiHost.Web/appsettings.json)
+| Key | Sample value | Purpose |
+|---|---|---|
+| `Wopi:HostUrl` | `"http://wopihost"` | Base URI of the backend (above). Used to construct WopiSrc URLs. AppHost overrides this to `http://host.docker.internal:5000` when `AppHost:UseCollabora=true`, so callbacks from the Collabora container resolve to the host machine. |
+| `Wopi:ClientUrl` | `"https://ffc-onenote.officeapps.live.com"` | Base URI of the WOPI client. Used by the discovery cache. |
+| `Wopi:Discovery:NetZone` | `"ExternalHttps"` | Which discovery zone to read URL templates from. Values: see [`NetZoneEnum`](../src/WopiHost.Discovery/NetZoneEnum.cs). |
+| `Wopi:UiCulture` | (unset) | Optional IETF BCP 47 tag (e.g. `en-US`) for the `UI_LLCC` placeholder. Defaults to `CultureInfo.CurrentUICulture`. |
 
-| Parameter | Sample value | Description |
-| :--- | :--- | :--- |
-| `Wopi:HostUrl` | `"http://wopihost:52788"` | URL pointing to a WopiHost instance (above). It's used by the URL generator. |
-| `Wopi:ClientUrl` | ` "http://owaserver"` | Base URL of your WOPI client - typically, [Office Online Server](#compatible-wopi-clients) - used by the discovery module to load WOPI client URL templates |
-| `Wopi:StorageProvider:RootPath` | [`".\\wopi-docs"`](https://github.com/petrsvihlik/WopiHost/tree/master/sample/wopi-docs) | Provider-specific setting used by `WopiHost.FileSystemProvider` (which is an implementation of `IWopiStorageProvider` working with System.IO) |
-| `Wopi:Discovery:NetZone` | `"InternalHttp"` | Determines the target zone configuration of your [OOS Deployment](https://learn.microsoft.com/officeonlineserver/deploy-office-online-server). Values correspond with the [`NetZoneEnum`](https://github.com/petrsvihlik/WopiHost/blob/master/WopiHost.Discovery/NetZoneEnum.cs). |
+`WopiHost.Web.Oidc` adds an `Oidc:*` section — see [its README](WopiHost.Web.Oidc/README.md).
 
+`WopiHost.Validator` is a combined host that needs both sets of values plus `Wopi:UserId` (default: `Anonymous`) which it bakes into the access token used by the validator.
 
-Additionally, you can use the [secret storage](https://learn.microsoft.com/aspnet/core/security/app-secrets?view=aspnetcore-2.2&tabs=windows) to configure both of the apps.
+You can also use [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for any of the above.
 
-WopiHost.Validator
----
+## Running individually (without Aspire)
 
-Single hosting for both the Wopi Server and the Host page server by a single .NET HTTP server.
-This has been preconfigured to handle custom Wopi Events and is used to validate the Wopi Server implementation using the WOPI-Validator.
+```bash
+# Terminal 1 — backend
+dotnet run --project sample/WopiHost
 
-#### Configuration: WopiHost.Validator
-
-This is a combination of the WopiHost and WopiHost.Web configurations, with the additional `Wopi:UserId` (default: Anonymous) setting to specify the hard-coded token to be used by the WOPI-Validator.
-
-#### Running the WOPI-Validator
-
-After cloning and building the [WOPI-Validator repository](https://github.com/Microsoft/wopi-validator-core) use the following command to run the `Office Online` suite of validations:
-
-```
-dotnet run --project src\WopiValidator\WopiValidator.csproj --framework net10.0 -s -e OfficeOnline -w http://localhost:28752/wopi/files/Llx0ZXN0LndvcGl0ZXN0 -t Anonymous -l 0
+# Terminal 2 — frontend
+dotnet run --project sample/WopiHost.Web
 ```
 
+Set both as startup projects in Visual Studio for an F5-driven flow.
 
-Running the samples
----
-Once you've successfully built the app you can:
+## Running the WOPI Validator
 
-- run it directly from the Visual Studio using [IIS Express or self-hosted](/img/debug.png?raw=true).
-  - make sure you run both `WopiHost` and `WopiHost.Web`. You can set them both as [startup projects](/img/multiple_projects.png?raw=true)
-- run it from the `cmd`
-  - navigate to the WopiHost folder and run `dotnet run`
-- run it in IIS (tested in IIS 8.5)
-  - See [Hosting Options](https://github.com/petrsvihlik/WopiHost/blob/master/README.md#hosting-options) in the main README for detailed IIS setup instructions
+After cloning [Microsoft/wopi-validator-core](https://github.com/Microsoft/wopi-validator-core):
+
+```bash
+dotnet run --project src/WopiValidator/WopiValidator.csproj --framework net10.0 \
+  -s -e OfficeOnline \
+  -w http://localhost:28752/wopi/files/Llx0ZXN0LndvcGl0ZXN0 \
+  -t Anonymous \
+  -l 0
+```
+
+`28752` is the validator's [launchSettings](WopiHost.Validator/Properties/launchSettings.json) port for `dotnet run`. Under Aspire orchestration it is `7000` instead — adjust `-w` accordingly.
+
+## Hosting in IIS / Docker
+
+See [Hosting](https://github.com/petrsvihlik/WopiHost/wiki/Hosting) on the wiki.

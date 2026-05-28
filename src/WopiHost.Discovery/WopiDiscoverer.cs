@@ -1,4 +1,5 @@
 ﻿using System.Xml.Linq;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WopiHost.Discovery.Enumerations;
 using WopiHost.Discovery.Models;
@@ -6,14 +7,7 @@ using WopiHost.Discovery.Models;
 namespace WopiHost.Discovery;
 
 ///<inheritdoc cref="IDiscoverer"/>
-/// <summary>
-/// Creates a new instance of the <see cref="WopiDiscoverer"/>, a class for examining the capabilities of the WOPI client.
-/// </summary>
-/// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
-/// <param name="discoveryOptions">the discovery options</param>
-public class WopiDiscoverer(
-    IDiscoveryFileProvider discoveryFileProvider, 
-    IOptions<DiscoveryOptions> discoveryOptions) : IDiscoverer
+public partial class WopiDiscoverer : IDiscoverer, IDisposable
 {
     private const string ElementNetZone = "net-zone";
     private const string ElementApp = "app";
@@ -34,40 +28,66 @@ public class WopiDiscoverer(
     private const string AttrProofKeyOldModulus = "oldmodulus";
     private const string AttrProofKeyOldExponent = "oldexponent";
 
-    private AsyncExpiringLazy<IEnumerable<XElement>> Apps
+    private readonly IOptions<DiscoveryOptions> _discoveryOptions;
+    private readonly ILogger<WopiDiscoverer> _logger;
+
+    // Eagerly constructed in the ctor (and stored in readonly fields) so
+    // Infer# can statically track the SemaphoreSlim allocation through to
+    // Dispose(). The previous lazy `??=` pattern hid ownership from the
+    // analyzer and was reported as PULSE_RESOURCE_LEAK.
+    private readonly AsyncExpiringLazy<IEnumerable<XElement>> _apps;
+    private readonly AsyncExpiringLazy<XElement> _proofKey;
+    private bool _disposed;
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="WopiDiscoverer"/>, a class for examining the capabilities of the WOPI client.
+    /// </summary>
+    /// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
+    /// <param name="discoveryOptions">the discovery options</param>
+    /// <param name="logger">Logger.</param>
+    public WopiDiscoverer(
+        IDiscoveryFileProvider discoveryFileProvider,
+        IOptions<DiscoveryOptions> discoveryOptions,
+        ILogger<WopiDiscoverer> logger)
     {
-        get => field ??= new AsyncExpiringLazy<IEnumerable<XElement>>(async metadata =>
+        ArgumentNullException.ThrowIfNull(discoveryFileProvider);
+        ArgumentNullException.ThrowIfNull(discoveryOptions);
+
+        _discoveryOptions = discoveryOptions;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+        _apps = new AsyncExpiringLazy<IEnumerable<XElement>>(async _ =>
         {
-            return new TemporaryValue<IEnumerable<XElement>>
-            {
-                Result = (await discoveryFileProvider.GetDiscoveryXmlAsync())
+            var apps = (await discoveryFileProvider.GetDiscoveryXmlAsync().ConfigureAwait(false))
                 .Elements(ElementNetZone)
                 .Where(ValidateNetZone)
-                .Elements(ElementApp),
-
-                ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval)
+                .Elements(ElementApp)
+                .ToArray();
+            LogDiscoveryRefreshed(_logger, apps.Length, _discoveryOptions.Value.NetZone);
+            return new TemporaryValue<IEnumerable<XElement>>
+            {
+                Result = apps,
+                ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval),
             };
         });
-    }
 
-    private AsyncExpiringLazy<XElement> ProofKey
-    {
-        get => field ??= new AsyncExpiringLazy<XElement>(async metadata =>
+        _proofKey = new AsyncExpiringLazy<XElement>(async _ =>
         {
+            var proofKey = (await discoveryFileProvider.GetDiscoveryXmlAsync().ConfigureAwait(false))
+                .Elements(ElementProofKey)
+                .FirstOrDefault() ?? new XElement(ElementProofKey);
+            LogProofKeyRefreshed(_logger);
             return new TemporaryValue<XElement>
             {
-                Result = (await discoveryFileProvider.GetDiscoveryXmlAsync())
-                    .Elements(ElementProofKey)
-                    .FirstOrDefault() ?? new XElement(ElementProofKey),
-
-                ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval)
+                Result = proofKey,
+                ValidUntil = DateTimeOffset.UtcNow.Add(discoveryOptions.Value.RefreshInterval),
             };
         });
     }
 
-    internal async Task<IEnumerable<XElement>> GetAppsAsync() => await Apps.Value();
-    
-    internal async Task<XElement> GetProofKeyAsync() => await ProofKey.Value();
+    internal async Task<IEnumerable<XElement>> GetAppsAsync() => await _apps.Value().ConfigureAwait(false);
+
+    internal async Task<XElement> GetProofKeyAsync() => await _proofKey.Value().ConfigureAwait(false);
 
     private bool ValidateNetZone(XElement e)
     {
@@ -78,13 +98,13 @@ public class WopiDiscoverer(
         }
         netZoneString = netZoneString.Replace("-", "", StringComparison.InvariantCulture);
         var success = Enum.TryParse(netZoneString, true, out NetZoneEnum netZone);
-        return success && (netZone == discoveryOptions.Value.NetZone);
+        return success && (netZone == _discoveryOptions.Value.NetZone);
     }
 
     ///<inheritdoc />
     public async Task<bool> SupportsExtensionAsync(string extension)
     {
-        var query = (await GetAppsAsync()).Elements()
+        var query = (await GetAppsAsync().ConfigureAwait(false)).Elements()
             .FirstOrDefault(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase));
         return query is not null;
     }
@@ -94,8 +114,8 @@ public class WopiDiscoverer(
     {
         var actionString = action.ToString().ToUpperInvariant();
 
-        var query = (await GetAppsAsync()).Elements()
-            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) && 
+        var query = (await GetAppsAsync().ConfigureAwait(false)).Elements()
+            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) &&
                 e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true);
 
         return query.Any();
@@ -106,8 +126,8 @@ public class WopiDiscoverer(
     {
         var actionString = action.ToString().ToUpperInvariant();
 
-        var query = (await GetAppsAsync()).Elements()
-            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) && 
+        var query = (await GetAppsAsync().ConfigureAwait(false)).Elements()
+            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) &&
                 e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true)
             .Select(e => e.Attribute(AttrActionRequires)?.Value.Split(','));
 
@@ -115,18 +135,11 @@ public class WopiDiscoverer(
     }
 
     ///<inheritdoc />
-    public async Task<bool> RequiresCobaltAsync(string extension, WopiActionEnum action)
-    {
-        var requirements = await GetActionRequirementsAsync(extension, action);
-        return requirements is not null && requirements.Contains(AttrValCobalt);
-    }
-
-    ///<inheritdoc />
     public async Task<string?> GetUrlTemplateAsync(string extension, WopiActionEnum action)
     {
         var actionString = action.ToString().ToUpperInvariant();
-        var query = (await GetAppsAsync()).Elements()
-            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) && 
+        var query = (await GetAppsAsync().ConfigureAwait(false)).Elements()
+            .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) &&
                 e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true)
             .Select(e => e.Attribute(AttrActionUrl)?.Value);
         return query.FirstOrDefault();
@@ -135,7 +148,7 @@ public class WopiDiscoverer(
     ///<inheritdoc />
     public async Task<string?> GetApplicationNameAsync(string extension)
     {
-        var query = (await GetAppsAsync())
+        var query = (await GetAppsAsync().ConfigureAwait(false))
             .Where(e => e.Descendants(ElementAction).Any(d => string.Equals(d.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase)))
             .Select(e => e.Attribute(AttrAppName)?.Value);
 
@@ -145,18 +158,18 @@ public class WopiDiscoverer(
     ///<inheritdoc />
     public async Task<Uri?> GetApplicationFavIconAsync(string extension)
     {
-        var query = (await GetAppsAsync())
+        var query = (await GetAppsAsync().ConfigureAwait(false))
             .Where(e => e.Descendants(ElementAction).Any(d => string.Equals(d.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase)))
             .Select(e => e.Attribute(AttrAppFavicon)?.Value);
         var result = query.FirstOrDefault();
         return result is not null ? new Uri(result) : null;
     }
-    
+
     ///<inheritdoc />
     public async Task<WopiProofKeys> GetProofKeysAsync()
     {
-        var proofKey = await GetProofKeyAsync();
-        
+        var proofKey = await GetProofKeyAsync().ConfigureAwait(false);
+
         return new WopiProofKeys
         {
             Value = proofKey.Attribute(AttrProofKeyValue)?.Value,
@@ -166,5 +179,35 @@ public class WopiDiscoverer(
             OldModulus = proofKey.Attribute(AttrProofKeyOldModulus)?.Value,
             OldExponent = proofKey.Attribute(AttrProofKeyOldExponent)?.Value
         };
+    }
+
+    /// <summary>
+    /// Disposes the cached <see cref="AsyncExpiringLazy{T}"/> instances so
+    /// their internal semaphores are released. The DI container invokes this
+    /// at host shutdown when <see cref="WopiDiscoverer"/> is registered as a
+    /// singleton.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases managed resources held by this instance.
+    /// </summary>
+    /// <param name="disposing"><c>true</c> when called from <see cref="Dispose()"/>.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        if (disposing)
+        {
+            _apps.Dispose();
+            _proofKey.Dispose();
+        }
+        _disposed = true;
     }
 }

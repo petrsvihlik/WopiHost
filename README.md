@@ -1,665 +1,104 @@
 # ![Logo](img/logo48.png) WopiHost
 
 [![Build & Test](https://github.com/petrsvihlik/WopiHost/actions/workflows/integrate.yml/badge.svg)](https://github.com/petrsvihlik/WopiHost/actions/workflows/integrate.yml)
-[![codecov](https://codecov.io/gh/petrsvihlik/WopiHost/branch/master/graph/badge.svg)](https://codecov.io/gh/petrsvihlik/WopiHost) 
+[![codecov](https://codecov.io/gh/petrsvihlik/WopiHost/branch/master/graph/badge.svg)](https://codecov.io/gh/petrsvihlik/WopiHost)
 [![Code Coverage](https://qlty.sh/gh/petrsvihlik/projects/WopiHost/coverage.svg)](https://qlty.sh/gh/petrsvihlik/projects/WopiHost)
 [![Maintainability](https://qlty.sh/badges/43534b35-fa0c-4a2d-bd02-17802842b9c5/maintainability.svg)](https://qlty.sh/gh/petrsvihlik/projects/WopiHost)
 [![CodeFactor](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/badge/master)](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/overview/master)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_shield)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=small)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_small)
 [![.NET Core](https://img.shields.io/badge/net-10-692079.svg)](https://dotnet.microsoft.com/download/dotnet/10.0)
 
-| Package | Version | Downloads |
-| ------------- | :-------------: | :-------------: | 
-| `WopiHost.Abstractions` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Abstractions.svg)](https://www.nuget.org/packages/WopiHost.Abstractions) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Abstractions.svg)](https://www.nuget.org/packages/WopiHost.Abstractions) |
-| `WopiHost.Core` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Core.svg)](https://www.nuget.org/packages/WopiHost.Core) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Core.svg)](https://www.nuget.org/packages/WopiHost.Core) |
-| `WopiHost.Discovery` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Discovery.svg)](https://www.nuget.org/packages/WopiHost.Discovery) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Discovery.svg)](https://www.nuget.org/packages/WopiHost.Discovery) |
-| `WopiHost.FileSystemProvider` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.FileSystemProvider.svg)](https://www.nuget.org/packages/WopiHost.FileSystemProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.FileSystemProvider.svg)](https://www.nuget.org/packages/WopiHost.FileSystemProvider) |
-| `WopiHost.MemoryLockProvider` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.MemoryLockProvider.svg)](https://www.nuget.org/packages/WopiHost.MemoryLockProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.MemoryLockProvider.svg)](https://www.nuget.org/packages/WopiHost.MemoryLockProvider) |
-| `WopiHost.Url` | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Url.svg)](https://www.nuget.org/packages/WopiHost.Url) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Url.svg)](https://www.nuget.org/packages/WopiHost.Url) |
+A modular **WOPI host** implementation for .NET that lets you plug your own data source into Office Online Server, Microsoft 365 for the Web, or any other WOPI client by implementing a small set of interfaces.
 
+## Packages
 
-Introduction
-==========
-This project is a sample implementation of a WOPI host. Basically, it allows developers to integrate custom datasources with Office Online Server (formerly Office Web Apps) or any other WOPI client by implementing a bunch of interfaces.
+| Package | What it does | Version | Downloads |
+|---|---|:-:|:-:|
+| [WopiHost.Abstractions](src/WopiHost.Abstractions/README.md) | Interfaces every other package builds on (`IWopiStorageProvider`, `IWopiLockProvider`, `IWopiPermissionProvider`, `IWopiAccessTokenService`) | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Abstractions.svg)](https://www.nuget.org/packages/WopiHost.Abstractions) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Abstractions.svg)](https://www.nuget.org/packages/WopiHost.Abstractions) |
+| [WopiHost.Core](src/WopiHost.Core/README.md) | The WOPI server — Minimal-API endpoints, JWT auth, proof validation (`AddWopi()` + `app.MapWopiEndpoints()`, `ConfigureWopiSecurity()`) | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Core.svg)](https://www.nuget.org/packages/WopiHost.Core) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Core.svg)](https://www.nuget.org/packages/WopiHost.Core) |
+| [WopiHost.Discovery](src/WopiHost.Discovery/README.md) | Reads the WOPI client's discovery XML (`IDiscoverer`, `IDiscoveryFileProvider`) | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Discovery.svg)](https://www.nuget.org/packages/WopiHost.Discovery) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Discovery.svg)](https://www.nuget.org/packages/WopiHost.Discovery) |
+| [WopiHost.Url](src/WopiHost.Url/README.md) | Builds the URLs you embed in iframes (`WopiUrlBuilder`, `WopiUrlSettings`) | [![NuGet](https://img.shields.io/nuget/v/WopiHost.Url.svg)](https://www.nuget.org/packages/WopiHost.Url) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Url.svg)](https://www.nuget.org/packages/WopiHost.Url) |
+| [WopiHost.FileSystemProvider](src/WopiHost.FileSystemProvider/README.md) | Reference storage backed by a directory tree | [![NuGet](https://img.shields.io/nuget/v/WopiHost.FileSystemProvider.svg)](https://www.nuget.org/packages/WopiHost.FileSystemProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.FileSystemProvider.svg)](https://www.nuget.org/packages/WopiHost.FileSystemProvider) |
+| [WopiHost.MemoryLockProvider](src/WopiHost.MemoryLockProvider/README.md) | In-process lock store (single instance / dev) | [![NuGet](https://img.shields.io/nuget/v/WopiHost.MemoryLockProvider.svg)](https://www.nuget.org/packages/WopiHost.MemoryLockProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.MemoryLockProvider.svg)](https://www.nuget.org/packages/WopiHost.MemoryLockProvider) |
+| [WopiHost.AzureStorageProvider](src/WopiHost.AzureStorageProvider/README.md) | Storage backed by Azure Blob Storage | [![NuGet](https://img.shields.io/nuget/v/WopiHost.AzureStorageProvider.svg)](https://www.nuget.org/packages/WopiHost.AzureStorageProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.AzureStorageProvider.svg)](https://www.nuget.org/packages/WopiHost.AzureStorageProvider) |
+| [WopiHost.AzureLockProvider](src/WopiHost.AzureLockProvider/README.md) | Distributed lock store backed by Azure Blob leases (strongest cross-instance exclusion) | [![NuGet](https://img.shields.io/nuget/v/WopiHost.AzureLockProvider.svg)](https://www.nuget.org/packages/WopiHost.AzureLockProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.AzureLockProvider.svg)](https://www.nuget.org/packages/WopiHost.AzureLockProvider) |
+| [WopiHost.RedisLockProvider](src/WopiHost.RedisLockProvider/README.md) | Best-effort distributed lock store backed by Redis (Lua-scripted compare-and-swap) | [![NuGet](https://img.shields.io/nuget/v/WopiHost.RedisLockProvider.svg)](https://www.nuget.org/packages/WopiHost.RedisLockProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.RedisLockProvider.svg)](https://www.nuget.org/packages/WopiHost.RedisLockProvider) |
+| [WopiHost.Cobalt](src/WopiHost.Cobalt/README.md) | Optional MS-FSSHTTP support (requires `Microsoft.CobaltCore`, see [below](#cobalt-build-note)) | _not published_ | — |
 
-## Architecture
+## Why use it?
 
-The WopiHost project is built using a modular architecture that separates concerns and allows for flexible implementations. Here's how the modules work together:
+- **Modular [architecture](https://github.com/petrsvihlik/WopiHost/wiki/Architecture)** — selective integration via 10 dedicated NuGet packages, clean separation between protocol, storage, and locking.
+- **Flexible storage** — implement `IWopiStorageProvider` to put any backend behind WOPI: file system, blob storage, database, custom APIs. See [Extending WopiHost](https://github.com/petrsvihlik/WopiHost/wiki/Extending-WopiHost).
+- **Comprehensive WOPI compliance** — file operations, container operations, ecosystem support, and [the bootstrapper endpoint](https://github.com/petrsvihlik/WopiHost/wiki/Bootstrap-Endpoint) for Office mobile.
+- **WOPI discovery built in** — dynamic capability detection from the WOPI client with template resolution and caching.
+- **Enterprise-ready security** — WOPI proof validation, origin checking, JWT access tokens, [pluggable permission/ACL providers](https://github.com/petrsvihlik/WopiHost/wiki/Extending-WopiHost#authentication--authorization).
+- **.NET Aspire integration** — service orchestration, OpenTelemetry, container support out of the box.
+- **Optional [Cobalt (MS-FSSHTTP)](https://github.com/petrsvihlik/WopiHost/wiki/Cobalt)** — for OOS clients that prefer the more efficient co-authoring protocol.
 
-```mermaid
-graph TB
-    subgraph "Sample Applications"
-        SampleApps["**Sample Applications**<br/>🌐 **WopiHost.Web**<br/>🧪 **WopiHost.Validator**<br/>📝 **WopiHost Sample**"]
-    end
-    
-    subgraph "WOPI Client"
-        OOS["**Office Online Server**<br/>Microsoft 365 for the Web"]
-    end
-    
-    subgraph "WopiHost Backend API"
-        WopiHost["**WopiHost**<br/>Host Application"]
-        Core["**WopiHost.Core**<br/>Controllers & Implementation"]
-        
-        subgraph "Core Libraries"
-            Abstractions["**WopiHost.Abstractions**<br/>Core Interfaces"]
-            Discovery["**WopiHost.Discovery**<br/>Client Capabilities"]
-            Url["**WopiHost.Url**<br/>URL Generation"]
-        end
-        
-        subgraph "Providers"
-            FileSystem["**WopiHost.FileSystemProvider**<br/>File System Storage"]
-            MemoryLock["**WopiHost.MemoryLockProvider**<br/>In-Memory Locking"]
-            CustomStorage["**Custom Storage**<br/>Cloud, Database, etc."]
-            CustomLock["**Custom Locking**<br/>Distributed Locking"]
-        end
-    end
-    
-    %% Sample apps embed WOPI client
-    SampleApps --> OOS
-    
-    %% WOPI client depends on WopiHost backend
-    OOS --> WopiHost
-    
-    %% WopiHost host app uses Core implementation
-    WopiHost --> Core
-    
-    %% Core dependencies
-    Core --> Abstractions
-    Core --> Discovery
-    
-    %% Library dependencies
-    Discovery --> Abstractions
-    Url --> Discovery
-    Url --> Abstractions
-    
-    %% Provider implementations
-    FileSystem --> Abstractions
-    MemoryLock --> Abstractions
-    CustomStorage --> Abstractions
-    CustomLock --> Abstractions
-    
-    %% Core uses providers
-    Core --> FileSystem
-    Core --> MemoryLock
-    Core --> CustomStorage
-    Core --> CustomLock
-    
-    %% Styling
-    classDef sampleApp fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef wopiClient fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef hostApp fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef coreModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef libraryModule fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef providerModule fill:#fce4ec,stroke:#880e4f,stroke-width:2px
-    
-    class SampleApps sampleApp
-    class OOS wopiClient
-    class WopiHost hostApp
-    class Core coreModule
-    class Abstractions,Discovery,Url libraryModule
-    class FileSystem,MemoryLock,CustomStorage,CustomLock providerModule
-```
+## Quick start
 
-### How It Works
+### Prerequisites
 
-1. **Sample Applications**: The `/sample` folder contains complete applications that embed the WOPI client:
-   - **WopiHost.Web**: A web application with file management UI that embeds Office Online Server
-   - **WopiHost.Validator**: A testing tool for WOPI protocol validation
-   - **WopiHost Sample**: A basic WOPI host implementation
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) (used by .NET Aspire for container resources)
+- Recommended: [Visual Studio 2026](https://visualstudio.microsoft.com/vs/) with the .NET Aspire workload, or [VS Code](https://code.visualstudio.com/) with the C# Dev Kit
 
-2. **WOPI Client Integration**: The sample applications embed Office Online Server or Microsoft 365 for the Web as a WOPI client component.
-
-3. **WopiHost Backend API**: The WOPI client depends on the WopiHost backend API (NuGet packages) to serve files:
-   - **WopiHost.Core**: Implements the WOPI REST API endpoints, handles authentication, authorization, and orchestrates all operations
-   - **WopiHost.Abstractions**: Defines the core interfaces for storage, security, and locking functionality
-   - **WopiHost.Discovery**: Queries the WOPI client to understand its capabilities
-   - **WopiHost.Url**: Generates proper WOPI URLs based on discovered capabilities
-
-4. **Storage & Lock Providers**: The WOPI client uses these providers to access and manage files:
-   - **WopiHost.FileSystemProvider**: File system storage implementation
-   - **WopiHost.MemoryLockProvider**: In-memory locking implementation
-   - **Custom Providers**: You can implement your own storage and locking providers
-
-5. **Your Own Applications**: You can create your own applications by embedding the WOPI client and referencing the WopiHost NuGet packages.
-
-This modular design allows you to:
-- **Use the sample applications** as starting points for your own WOPI-enabled applications
-- **Embed the WOPI client** in your own applications
-- **Reference individual WopiHost packages** to customize the backend API
-- **Implement custom providers** for your specific storage or infrastructure needs
-- **Test easily** with the included validator and sample implementations
-
-Key Differentiators
--------------------
- - **Modular Architecture**: Complete separation of concerns with 6 dedicated NuGet packages (Abstractions, Core, Discovery, Url, FileSystemProvider, MemoryLockProvider) allowing selective integration
- - **WOPI Discovery Integration**: Dynamic capability detection that queries Office Online Server to determine supported file types and actions, with intelligent URL template resolution and caching
- - **Advanced Cobalt Support**: Optional MS-FSSHTTP protocol integration for enhanced performance and compatibility with Office Web Apps 2013+ features
- - **Flexible Storage Abstraction**: Complete decoupling from file system with clean interfaces supporting any storage backend (cloud, database, custom APIs) through `IWopiStorageProvider`
- - **.NET Aspire Integration**: Modern cloud-native development experience with service orchestration, OpenTelemetry observability, and containerization support
- - **Comprehensive WOPI Compliance**: Full implementation of the current WOPI specification including file operations, container operations (basic), and ecosystem support (basic)
- - **Enterprise-Ready Security**: Built-in WOPI proof validation, origin checking, and extensible authentication/authorization with JWT token support
- - **Production-Ready Features**: Health checks, in-memory caching, and sample applications for testing and validation
- 
-Usage
-=====
-
-Prerequisites
--------------
- - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0), [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0), or [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
- - Recommended: [VS Code](https://code.visualstudio.com/) or [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)
-
-Building the app
-----------------
-The WopiHost app targets `net8.0`, `net9.0`, and `net10.0`.
-
-If you need a version that targets an older version of .NET, check out the releases:
-- [.NET 6](TBD)
-- [.NET 5](https://github.com/petrsvihlik/WopiHost/releases/tag/3.0.0)
-- [.NET Core 2.1 + .NET Framework 4.6](https://github.com/petrsvihlik/WopiHost/releases/tag/1.0.0)
-- [.NET Core 3.1 + .NET Standard 2.1](https://github.com/petrsvihlik/WopiHost/releases/tag/2.0.0)
-
-If you get errors saying that Microsoft.CobaltCore.*.nupkg can't be found, then just remove the reference or see the chapter [Cobalt](#Cobalt) below.
-
-Running with .NET Aspire
-------------------------
-This project includes a .NET Aspire orchestration for easy development and deployment. .NET Aspire provides a comprehensive developer experience for building cloud-native applications with .NET.
-
-### Prerequisites for .NET Aspire
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (required for the AppHost project)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop) (for containerization support)
-- Recommended: [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) with the .NET Aspire workload, or [VS Code](https://code.visualstudio.com/) with the C# Dev Kit extension
-
-### Running the application with .NET Aspire
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/petrsvihlik/WopiHost.git
-   cd WopiHost
-   ```
-
-2. **Run the Aspire AppHost:**
-   ```bash
-   dotnet run --project infra/WopiHost.AppHost
-   ```
-
-   This will start all three components of the application:
-   - **WopiHost** (Backend service) - `http://localhost:5000`
-     - API endpoints for WOPI operations
-     - Swagger UI available at `/scalar`
-   - **WopiHost.Web** (Frontend) - `http://localhost:6000` (HTTP) / `https://localhost:6001` (HTTPS)
-     - Web interface for file management and WOPI client integration
-   - **WopiHost.Validator** (Testing tool) - `http://localhost:7000`
-     - WOPI protocol validation and testing interface
-
-3. **Access the Aspire Dashboard:**
-   When you run the AppHost, .NET Aspire will automatically open the Aspire dashboard in your browser. The dashboard provides:
-   - Real-time application status and health monitoring
-   - Structured logging and trace visualization
-   - Resource management and configuration
-   - Inter-service communication monitoring
-
-![image](https://github.com/user-attachments/assets/438cf17b-36f2-4d5f-adb5-6003314d17c3)
-
-### Aspire Benefits
-
-Using .NET Aspire with WopiHost provides several advantages:
-
-- **Service Orchestration**: Automatically manages dependencies between WopiHost, Web frontend, and Validator
-- **Configuration Management**: Centralized configuration through the AppHost
-- **Observability**: Built-in logging, metrics, and distributed tracing
-- **Development Experience**: Simplified local development with automatic service discovery
-- **Production Ready**: Easy deployment to cloud environments with container support
-
-### Configuration
-
-The Aspire configuration can be customized in `infra/WopiHost.AppHost/Program.cs`. The current setup includes:
-
-- Service references and dependencies
-- Port assignments for each service
-- External endpoint configuration for web access
-- Health monitoring and readiness checks
-
-You can also customize application settings through:
-- `infra/WopiHost.AppHost/appsettings.json`
-- `infra/WopiHost.AppHost/appsettings.Development.json`
-
-### Alternative: Running individual projects
-
-If you prefer to run the projects individually without Aspire:
+### Run
 
 ```bash
-# Terminal 1 - Backend
-dotnet run --project sample/WopiHost
-
-# Terminal 2 - Frontend  
-dotnet run --project sample/WopiHost.Web
-
-# Terminal 3 - Validator (optional)
-dotnet run --project sample/WopiHost.Validator
+git clone https://github.com/petrsvihlik/WopiHost.git
+cd WopiHost
+dotnet run --project infra/WopiHost.AppHost
 ```
 
-## Hosting Options
+The Aspire dashboard opens automatically and starts:
 
-### .NET Aspire (Recommended)
-The .NET Aspire orchestration (described above) is the recommended approach for development and modern cloud-native deployments. It provides the best developer experience with automatic service discovery, configuration management, and observability.
-
-### Alternative Hosting Methods
-
-#### IIS Hosting
-For production deployments on Windows Server with IIS:
-
-1. **Publish the application:**
-   ```bash
-   dotnet publish sample/WopiHost -c Release -o ./publish
-   ```
-
-2. **Create web.config for IIS:**
-   ```xml
-   <?xml version="1.0" encoding="utf-8"?>
-   <configuration>
-     <location path="." inheritInChildApplications="false">
-       <system.webServer>
-         <handlers>
-           <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
-         </handlers>
-         <aspNetCore processPath="dotnet" arguments=".\WopiHost.dll" stdoutLogEnabled="false" stdoutLogFile=".\logs\stdout" hostingModel="inprocess" />
-       </system.webServer>
-     </location>
-   </configuration>
-   ```
-
-3. **Configure IIS:**
-   - Create a new Application Pool targeting .NET CLR Version "No Managed Code"
-   - Create a new website pointing to the published folder
-   - Ensure the Application Pool identity has read/execute permissions
-   - Install the [ASP.NET Core Hosting Bundle](https://dotnet.microsoft.com/download/dotnet-core) on the server
-
-4. **Configure WOPI settings** in `appsettings.json` for your production environment:
-   ```json
-   {
-     "Wopi": {
-       "ClientUrl": "https://your-office-online-server.com",
-       "StorageProviderAssemblyName": "WopiHost.FileSystemProvider",
-       "StorageProvider": {
-         "RootPath": "C:\\WopiHost\\Documents"
-       },
-       "LockProviderAssemblyName": "WopiHost.MemoryLockProvider"
-     }
-   }
-   ```
-
-#### HTTPS Configuration
-To enable HTTPS for production deployments:
-
-1. **Configure SSL certificates** in your hosting environment
-
-2. **Update appsettings.json:**
-   ```json
-   {
-     "Kestrel": {
-       "Endpoints": {
-         "Https": {
-           "Url": "https://localhost:5001",
-           "Certificate": {
-             "Path": "path/to/certificate.pfx",
-             "Password": "certificate-password"
-           }
-         }
-       }
-     }
-   }
-   ```
-
-3. **Enable HTTPS redirection** in Program.cs:
-   ```csharp
-   // Uncomment this line in your Program.cs
-   app.UseHttpsRedirection();
-   ```
-
-4. **For IIS with HTTPS:**
-   - Configure SSL binding in IIS Manager
-   - Ensure the certificate is properly installed and trusted
-   - Update WOPI client URLs to use HTTPS
-
-#### Command Line (dotnet run)
-For development and testing:
-
-```bash
-# Set environment variables
-export ASPNETCORE_ENVIRONMENT=Development
-export ASPNETCORE_URLS=http://localhost:5000
-
-# Run the application
-dotnet run --project sample/WopiHost
-```
-
-**Troubleshooting dotnet run:**
-- Ensure all configuration files are present in the project directory
-- Check that `appsettings.json` contains valid WOPI configuration
-- Use `--verbosity detailed` for detailed error information:
-  ```bash
-  dotnet run --project sample/WopiHost --verbosity detailed
-  ```
-- Verify the WOPI client URL is accessible and properly configured
-- Check that the storage provider path exists and is accessible
-
-#### Docker Hosting
-For containerized deployments:
-
-1. **Create a Dockerfile:**
-   ```dockerfile
-   FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-   WORKDIR /app
-   EXPOSE 80
-   EXPOSE 443
-
-   FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-   WORKDIR /src
-   COPY ["sample/WopiHost/WopiHost.csproj", "sample/WopiHost/"]
-   RUN dotnet restore "sample/WopiHost/WopiHost.csproj"
-   COPY . .
-   WORKDIR "/src/sample/WopiHost"
-   RUN dotnet build "WopiHost.csproj" -c Release -o /app/build
-
-   FROM build AS publish
-   RUN dotnet publish "WopiHost.csproj" -c Release -o /app/publish
-
-   FROM base AS final
-   WORKDIR /app
-   COPY --from=publish /app/publish .
-   ENTRYPOINT ["dotnet", "WopiHost.dll"]
-   ```
-
-2. **Build and run:**
-   ```bash
-   docker build -t wopihost .
-   docker run -p 5000:80 wopihost
-   ```
- 
-Samples
------------
-
-See [Samples](https://github.com/petrsvihlik/WopiHost/blob/master/sample/README.md) for all samples.
-
-Compatible WOPI Clients
--------
-Running the application only makes sense with a WOPI client as its counterpart. WopiHost is compatible with the following clients:
-
- #### Office Online Server 2016 
- 
- [deployment guidelines](https://learn.microsoft.com/officeonlineserver/deploy-office-online-server)
-
-Note that WopiHost will always be compatible only with the latest version of OOS because Microsoft also [supports only the latest version](https://learn.microsoft.com/officeonlineserver/office-online-server-release-schedule).
-
-The deployment of OOS/OWA requires the server to be part of a domain. If your server is not part of any domain (e.g. you're running it in a VM sandbox) it can be overcome by promoting your machine to a [Domain Controller](https://social.technet.microsoft.com/wiki/contents/articles/12370.windows-server-2012-set-up-your-first-domain-controller-step-by-step.aspx).
-To test your OWA server [follow the instructions here](https://learn.microsoft.com/office/troubleshoot/administration/test-viewing-documents-by-using-office-online-server-viewer).
-To remove the OWA instance use [`Remove-OfficeWebAppsMachine`](http://sharepointjack.com/2014/fun-configuring-office-web-apps-2013-owa/).
-
-#### Microsoft 365 for the Web 
-
-You can [use WopiHost to integrate with Microsoft 365 for the web](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online) which will require:
-- onboarding - [apply for CSPP](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/apply-for-cspp-program)
-- extending the provided interfaces to support the required features by Microsoft; we provide a sample implementation of the interfaces that pass the interactive [WOPI-Validator](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/build-test-ship/validator) tests
-- [Test Microsoft 365 for the web integration](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/build-test-ship/testing)
-
-Cobalt
-------
-In the past (in Office Web Apps 2013), some HTTP actions required the support of MS-FSSHTTP protocol (also known as "cobalt"). This is no longer true with Office Online Server 2016.
-However, if the WOPI client discovers (via [SupportsCobalt](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo#supportscobalt) property) that the WOPI host supports cobalt, it'll take advantage of it as it's more efficient.
-
-If you need or want your project to use Cobalt, you'll need to [create a NuGet package called Microsoft.CobaltCore.nupkg](https://github.com/petrsvihlik/WopiHost/wiki/Craft-your-own-Microsoft.CobaltCore-NuGet-package) containing Microsoft.CobaltCore.dll. This DLL is part of Office Web Apps 2013 / Office Online Server 2016, and its license doesn't allow public distribution and therefore, it's not part of this repository. Please always make sure your OWA/OOS server and the user connecting to it have valid licenses before you start using it.
-
-
-Using in your web project
--------------------------
-TODO
-
-Extending WopiHost
-==================
-
-WopiHost is designed with extensibility in mind. Each NuGet package provides specific interfaces and implementations that you can extend or replace to meet your requirements.
-
-## Core Extension Points
-
-### Storage Providers
-- **[WopiHost.Abstractions](src/WopiHost.Abstractions/README.md)** - Core interfaces for storage, security, and locking
-- **[WopiHost.FileSystemProvider](src/WopiHost.FileSystemProvider/README.md)** - File system-based storage implementation with examples for cloud storage, database integration, and document management systems
-
-### Lock Management
-- **[WopiHost.MemoryLockProvider](src/WopiHost.MemoryLockProvider/README.md)** - In-memory locking for single-instance deployments
-- **[WopiHost.Abstractions](src/WopiHost.Abstractions/README.md)** - `IWopiLockProvider` interface for custom distributed locking implementations
-
-### Core Functionality
-- **[WopiHost.Core](src/WopiHost.Core/README.md)** - WOPI server implementation with extensible controllers, middleware, and security handlers
-- **[WopiHost.Discovery](src/WopiHost.Discovery/README.md)** - WOPI client capability discovery with custom provider support
-- **[WopiHost.Url](src/WopiHost.Url/README.md)** - URL generation and template resolution
-
-## Quick Start Examples
-
-### Custom Cloud Storage
-```csharp
-// Implement IWopiStorageProvider for your cloud storage
-public class AzureBlobStorageProvider : IWopiStorageProvider, IWopiWritableStorageProvider
-{
-    // See WopiHost.Abstractions README for complete implementation
-}
-```
-
-### Authentication & Authorization
-
-WopiHost ships with a complete WOPI access-token pipeline. There are two extension points; the
-common case is implementing only the first.
-
-| Interface | What you implement | When |
-|---|---|---|
-| `IWopiPermissionProvider` | What permissions a user has on a file/container | Whenever you have a real ACL model. The default returns the flags configured on `WopiHostOptions`. |
-| `IWopiAccessTokenService` | How tokens are issued and validated | Only if you need a non-JWT format (e.g. opaque reference tokens with a backing store). The default issues signed JWTs. |
-
-```csharp
-// Plug in your ACL store. Called both at token issuance (to bake permissions into the
-// token) and at CheckFileInfo time (to populate the UserCan* response flags).
-public class MyAclPermissionProvider : IWopiPermissionProvider
-{
-    public Task<WopiFilePermissions> GetFilePermissionsAsync(
-        ClaimsPrincipal user, IWopiFile file, CancellationToken ct = default) { ... }
-
-    public Task<WopiContainerPermissions> GetContainerPermissionsAsync(
-        ClaimsPrincipal user, IWopiFolder container, CancellationToken ct = default) { ... }
-}
-
-services.AddWopi();
-services.AddSingleton<IWopiPermissionProvider, MyAclPermissionProvider>(); // overrides default
-services.ConfigureWopiSecurity(o => o.SigningKey = LoadSigningKeyFromKeyVault());
-```
-
-See the [WopiHost.Core README](src/WopiHost.Core/README.md#security) for the full token pipeline,
-the claim layout (`wopi:rid`, `wopi:fperms`, `wopi:cperms`), key rotation, and the bootstrapper
-authentication scheme.
-
-### Custom Lock Provider
-```csharp
-// Implement IWopiLockProvider for distributed locking
-public class RedisLockProvider : IWopiLockProvider
-{
-    // See WopiHost.Abstractions README for complete implementation
-}
-```
-
-## Advanced Customization
-
-### CheckFileInfo, CheckContainerInfo & CheckEcosystem Events
-Customize WOPI responses by registering for events in your `WopiHostOptions`:
-
-```csharp
-builder.Services.Configure<WopiHostOptions>(options =>
-{
-    options.OnCheckFileInfo = async context =>
-    {
-        var fileInfo = await GetDefaultFileInfo(context);
-        // Add custom properties
-        fileInfo.CustomProperty = "CustomValue";
-        return fileInfo;
-    };
-    
-    options.OnCheckContainerInfo = async context =>
-    {
-        var containerInfo = await GetDefaultContainerInfo(context);
-        // Add custom security properties
-        containerInfo.CustomSecurityProperty = "CustomSecurityValue";
-        return containerInfo;
-    };
-
-    // Override capability flags returned from GET /wopi/ecosystem.
-    // Spec: SupportsContainers should match the value returned from CheckFileInfo.
-    options.OnCheckEcosystem = context =>
-    {
-        context.CheckEcosystem.SupportsContainers = false;
-        return Task.FromResult(context.CheckEcosystem);
-    };
-});
-```
-
-### Bootstrap endpoint (Office for mobile)
-
-WopiHost exposes two authentication surfaces, and they speak different protocols:
-
-| Endpoint | Authentication | Used by |
-|---|---|---|
-| `/wopi/*` | `access_token` query parameter (host-issued WOPI access token) | Office for the Web, Office desktop |
-| `/wopibootstrapper` | OAuth2 `Authorization: Bearer <token>` from your IdP | Office mobile (iOS / Android) |
-
-The bootstrap operation lets a mobile client exchange an OAuth2 token from your identity
-provider for the WOPI tokens it needs to drive the rest of the protocol. Wire it up in two
-steps:
-
-**1. Register the `WopiBootstrap` authentication scheme** (any handler that validates your IdP's tokens):
-
-```csharp
-services.AddAuthentication()
-    .AddJwtBearer(WopiAuthenticationSchemes.Bootstrap, options =>
-    {
-        options.Authority = "https://idp.contoso.com";
-        options.Audience = "wopi";
-
-        // Spec mandates a specific WWW-Authenticate header on 401 so the mobile client
-        // knows where to send the user for OAuth2 sign-in. WopiBootstrapChallenge formats
-        // that header for you.
-        options.Events = new JwtBearerEvents
-        {
-            OnChallenge = context =>
-            {
-                context.HandleResponse();
-                WopiBootstrapChallenge.Apply(
-                    context.Response,
-                    authorizationUri: new Uri("https://idp.contoso.com/oauth2/authorize"),
-                    tokenIssuanceUri: new Uri("https://idp.contoso.com/oauth2/token"),
-                    providerId: "tpcontoso");
-                return Task.CompletedTask;
-            },
-        };
-    });
-```
-
-**2. Make sure the principal carries the claims the bootstrapper needs.**
-At minimum: `ClaimTypes.NameIdentifier` (or `ClaimTypes.Upn` as fallback) for `UserId`,
-optionally `ClaimTypes.Email` for `SignInName`, and `ClaimTypes.Name` for
-`UserFriendlyName`. Most IdPs ship these by default.
-
-Once wired, the controller handles the three operations the spec defines:
-
-| Method + header | Behavior |
+| Resource | What it is |
 |---|---|
-| `GET /wopibootstrapper` | Returns the bare `{ Bootstrap }` payload |
-| `POST /wopibootstrapper` with `X-WOPI-EcosystemOperation: GET_ROOT_CONTAINER` | Returns `{ Bootstrap, RootContainerInfo }` (with a per-container token + populated `ContainerInfo`) |
-| `POST /wopibootstrapper` with `X-WOPI-EcosystemOperation: GET_NEW_ACCESS_TOKEN` and `X-WOPI-WopiSrc: <files\|containers URL>` | Returns `{ Bootstrap, AccessTokenInfo }` (a fresh, real-permission WOPI access token bound to the resource) |
+| `wopihost` | WOPI backend; OpenAPI at `/scalar` |
+| `wopihost-web` | Sample frontend (file picker + iframe) |
+| `wopihost-validator` | WOPI protocol validator |
+| `collabora` | [Collabora Online](https://github.com/petrsvihlik/WopiHost/wiki/Collabora-Online) (CODE) container — real WOPI client for end-to-end editing |
 
-Missing or malformed `X-WOPI-WopiSrc`, or a resource the user cannot access, returns
-`404 Not Found` per spec — the bootstrapper never issues a token for a resource it
-cannot validate.
+The dashboard shows the URL each resource is bound to — Aspire allocates ports dynamically for the frontends, so they change between runs. The first run pulls the `collabora/code` Docker image (~1 GB) and takes a minute or two; if you don't want the dependency, set `"AppHost:UseCollabora": false` in [`infra/WopiHost.AppHost/appsettings.Development.json`](infra/WopiHost.AppHost/appsettings.Development.json).
 
-## Package-Specific Documentation
+![Aspire dashboard](https://github.com/user-attachments/assets/438cf17b-36f2-4d5f-adb5-6003314d17c3)
 
-Each WopiHost package includes comprehensive documentation with:
-- **Hero scenarios** showing real-world usage patterns
-- **API reference** with complete interface documentation
-- **Configuration examples** for various deployment scenarios
-- **Integration patterns** for enterprise systems
-- **Performance considerations** and best practices
+## Documentation
 
-**📚 [View all package documentation →](src/)**
+Everything beyond the basics lives in the **[wiki](https://github.com/petrsvihlik/WopiHost/wiki)**:
 
-## Extending Documentation Index
+| Topic | What's there |
+|---|---|
+| [Architecture](https://github.com/petrsvihlik/WopiHost/wiki/Architecture) | How the libraries, providers, frontend, and WOPI client fit together at runtime. |
+| [Configuration](https://github.com/petrsvihlik/WopiHost/wiki/Configuration) | `Wopi:*` and `AppHost:*` knobs (Azure storage, OIDC sample, etc.). |
+| [Hosting](https://github.com/petrsvihlik/WopiHost/wiki/Hosting) | IIS, HTTPS, Docker, running individual projects, older runtimes. |
+| [Collabora Online](https://github.com/petrsvihlik/WopiHost/wiki/Collabora-Online) | End-to-end editing with CODE — AppHost wiring, NetZone / proof-key gotchas. |
+| [Extending WopiHost](https://github.com/petrsvihlik/WopiHost/wiki/Extending-WopiHost) | Custom storage and lock providers, permissions, the minimal-host snippet. |
+| [CheckFileInfo customization](https://github.com/petrsvihlik/WopiHost/wiki/CheckFileInfo-Customization) | Overriding the response payload via `IWopiHostExtensions` hooks. |
+| [Bootstrap endpoint](https://github.com/petrsvihlik/WopiHost/wiki/Bootstrap-Endpoint) | Wiring `/wopibootstrapper` for Office mobile. |
+| [Cobalt](https://github.com/petrsvihlik/WopiHost/wiki/Cobalt) | What MS-FSSHTTP buys you and why the build complains. |
+| [Useful resources](https://github.com/petrsvihlik/WopiHost/wiki/Useful-Resources) · [Interesting WOPI projects](https://github.com/petrsvihlik/WopiHost/wiki/Interesting-WOPI-projects) | Specs, external write-ups, other implementations worth a look. |
 
-### By Extension Type
+## Cobalt build note
 
-| Extension Type | Package | Documentation | Key Interfaces |
-|----------------|---------|---------------|----------------|
-| **Storage** | [WopiHost.Abstractions](src/WopiHost.Abstractions/README.md) | Core storage interfaces | `IWopiStorageProvider`, `IWopiWritableStorageProvider` |
-| **File System** | [WopiHost.FileSystemProvider](src/WopiHost.FileSystemProvider/README.md) | File system implementation | `WopiFileSystemProvider`, `WopiSecurityHandler` |
-| **Locking** | [WopiHost.MemoryLockProvider](src/WopiHost.MemoryLockProvider/README.md) | In-memory locking | `IWopiLockProvider`, `MemoryLockProvider` |
-| **Core Server** | [WopiHost.Core](src/WopiHost.Core/README.md) | WOPI server implementation | Controllers, middleware, security |
-| **Discovery** | [WopiHost.Discovery](src/WopiHost.Discovery/README.md) | Client capability discovery | `IDiscoverer`, `IDiscoveryFileProvider` |
-| **URL Generation** | [WopiHost.Url](src/WopiHost.Url/README.md) | WOPI URL generation | `WopiUrlBuilder`, `WopiUrlSettings` |
-| **Cobalt Protocol** | [WopiHost.Cobalt](src/WopiHost.Cobalt/README.md) | MS-FSSHTTP support | `ICobaltSessionManager`, `CobaltSession` |
+If your first build fails with `Microsoft.CobaltCore.*.nupkg` not found, that is expected. Cobalt support depends on `Microsoft.CobaltCore.dll`, which ships with Office Online Server / OWA / SharePoint and **cannot be redistributed**. You have two options:
 
-### By Use Case
+- **Build the package yourself** from a SharePoint / OOS / OWA installation you are licensed for — see [Craft your own Microsoft.CobaltCore NuGet package](https://github.com/petrsvihlik/WopiHost/wiki/Craft-your-own-Microsoft.CobaltCore-NuGet-package).
+- **Skip Cobalt** — unload `WopiHost.Cobalt` (and its tests) from the solution. Office Online Server 2016+ does not require Cobalt; the protocol still works, just less efficiently for co-authoring on legacy clients.
 
-| Use Case | Recommended Packages | Documentation |
-|----------|---------------------|---------------|
-| **Cloud Storage Integration** | Abstractions + Custom Implementation | [Storage Examples](src/WopiHost.Abstractions/README.md#hero-scenarios) |
-| **Database-Backed Documents** | Abstractions + Custom Implementation | [Database Examples](src/WopiHost.Abstractions/README.md#hero-scenarios) |
-| **Enterprise Security** | Core + Custom Security Handler | [Security Examples](src/WopiHost.Core/README.md#security) |
-| **Distributed Locking** | Abstractions + Custom Lock Provider | [Lock Examples](src/WopiHost.Abstractions/README.md#hero-scenarios) |
-| **Multi-Tenant Host** | Core + Custom Providers | [Multi-Tenant Examples](src/WopiHost.Core/README.md#hero-scenarios) |
-| **High-Performance Editing** | Cobalt + Core | [Cobalt Examples](src/WopiHost.Cobalt/README.md#hero-scenarios) |
-| **Local Development** | FileSystemProvider + MemoryLockProvider | [Quick Start](src/WopiHost.FileSystemProvider/README.md#quick-start) |
+See the [Cobalt wiki page](https://github.com/petrsvihlik/WopiHost/wiki/Cobalt) for context on what Cobalt buys you and when to bother.
 
-### By Integration Pattern
+## Compatible WOPI clients
 
-| Pattern | Description | Packages | Examples |
-|---------|-------------|----------|----------|
-| **Custom Storage** | Implement your own storage backend | Abstractions | [Cloud Storage](src/WopiHost.Abstractions/README.md#hero-scenarios), [Database Storage](src/WopiHost.Abstractions/README.md#hero-scenarios) |
-| **Custom Security** | Implement your own authentication/authorization | Abstractions, Core | [Security Handler](src/WopiHost.Abstractions/README.md#hero-scenarios), [Authorization](src/WopiHost.Core/README.md#authorization) |
-| **Custom Locking** | Implement distributed or custom locking | Abstractions | [Distributed Locking](src/WopiHost.Abstractions/README.md#hero-scenarios) |
-| **Custom Discovery** | Implement custom WOPI discovery | Discovery | [Custom Provider](src/WopiHost.Discovery/README.md#examples) |
-| **Custom URL Generation** | Implement custom URL templates | Url | [URL Builder](src/WopiHost.Url/README.md#hero-scenarios) |
-| **Custom Controllers** | Extend or replace WOPI controllers | Core | [Custom Controllers](src/WopiHost.Core/README.md#examples) |
-| **Custom Middleware** | Add custom middleware to WOPI pipeline | Core | [Custom Middleware](src/WopiHost.Core/README.md#examples) |
+| Client | Status | Notes |
+|---|---|---|
+| **Office Online Server 2016+** | Production | Microsoft only [supports the latest version](https://learn.microsoft.com/officeonlineserver/office-online-server-release-schedule); WopiHost tracks the same. [Deployment guide](https://learn.microsoft.com/officeonlineserver/deploy-office-online-server). |
+| **Microsoft 365 for the Web** | Production | Requires [CSPP onboarding](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/apply-for-cspp-program) plus implementing the M365-specific feature surface. The provided sample passes the [WOPI-Validator](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/build-test-ship/validator). |
+| **Collabora Online (CODE)** | Development / CI only | Free and redistributable, runs as a Docker container. Useful for end-to-end testing without a Microsoft license; not a substitute for OOS or M365. See the [wiki](https://github.com/petrsvihlik/WopiHost/wiki/Collabora-Online) for the AppHost wiring. |
 
-Known issues / TODOs
-==================
-There is plenty of space for improvements in the overall architecture, implementation of the [MS-*] protocols, or just finishing the TODOs in the code. A lot of refactoring still needs to be done and also the code style has to be unified. So please feel free to help me out with it :)
+## License
 
- - Check out [open issues](https://github.com/petrsvihlik/WopiHost/issues?q=is%3Aopen)
-
-Contributing
-==========
-https://learn.microsoft.com/dotnet/standard/design-guidelines/
-
-License
-=======
- - [LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt) - License for my part of the project
- - [ORIGINAL_WORK_LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/src/WopiHost.Cobalt/ORIGINAL_WORK_LICENSE.txt) - License for Marx Yu's part of the project. This project is based on [Marx Yu's project](https://github.com/marx-yu/WopiHost).
- - [NOTICE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/NOTICE.txt) - additional notes to how the licenses are applied
-
-
-Useful resources
-=============
-Building WOPI Host
------------------------
- - [Official WOPI Documentation](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/)
- - [Official WOPI REST API Reference](https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/6a8bb410-68ad-47e4-9dc3-6cf29c6b046b)
- - [WOPI Host and url paths](https://www.cicoria.com/office-web-appswopi-host-and-url-paths/)
- - [Office Online integration via WOPI Host by Richard diZerega](https://github.com/OfficeDev/PnP-WOPI) + [video](https://www.youtube.com/watch?v=9lGonu0eoGA)
-
-MS-FSSHTTP (Cobalt)
--------
- - https://learn.microsoft.com/openspecs/sharepoint_protocols/ms-fsshttp/6d078cbe-2651-43a0-b460-685ac3f14c45
-
-Building WOPI Client
--------------------------
- - [SharePoint 2013: Building your own WOPI Client, part 1](https://www.wictorwilen.se/blog/sharepoint-2013-building-your-own-wopi-client-part-1/)
- - [SharePoint 2013: Building your own WOPI Client, part 2](https://www.wictorwilen.se/blog/sharepoint-2013-building-your-own-wopi-client-part-2/)
-
-
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_large)
+- [LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/LICENSE.txt) — license for this project.
+- [ORIGINAL_WORK_LICENSE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/src/WopiHost.Cobalt/ORIGINAL_WORK_LICENSE.txt) — license for [Marx Yu's](https://github.com/marx-yu/WopiHost) original code that `WopiHost.Cobalt` is based on.
+- [NOTICE.txt](https://github.com/petrsvihlik/WopiHost/blob/master/NOTICE.txt) — additional notes.

@@ -1,5 +1,5 @@
 ﻿using System.Text.RegularExpressions;
-
+using Microsoft.Extensions.Logging;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Enumerations;
 
@@ -14,13 +14,18 @@ namespace WopiHost.Url;
 /// Creates a new instance of WOPI URL generator class.
 /// </remarks>
 /// <param name="discoverer">Provider of WOPI discovery data.</param>
+/// <param name="logger">Logger.</param>
 /// <param name="urlSettings">Additional settings influencing behavior of the WOPI client.</param>
-public partial class WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings? urlSettings = null)
+public partial class WopiUrlBuilder(
+    IDiscoverer discoverer,
+    ILogger<WopiUrlBuilder> logger,
+    WopiUrlSettings? urlSettings = null)
 {
     [GeneratedRegex("<(?<name>\\w*)=(?<value>\\w*)&*>")]
     private static partial Regex UrlParamRegex();
-    
+
     private readonly IDiscoverer _wopiDiscoverer = discoverer;
+    private readonly ILogger<WopiUrlBuilder> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <summary>
     /// Additional URL parameters influencing the behavior of the WOPI client.
@@ -37,20 +42,50 @@ public partial class WopiUrlBuilder(IDiscoverer discoverer, WopiUrlSettings? url
     /// <returns></returns>
     public async Task<string?> GetFileUrlAsync(string extension, Uri wopiFileUrl, WopiActionEnum action, WopiUrlSettings? urlSettings = null)
     {
-        var combinedUrlSettings = new WopiUrlSettings((urlSettings ?? []).Merge(UrlSettings ?? []));
-        var template = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action);
-        if (!string.IsNullOrEmpty(template))
+        ArgumentNullException.ThrowIfNull(wopiFileUrl);
+
+        // Combine settings with method-arg precedence over constructor-arg.
+        WopiUrlSettings combinedUrlSettings = [];
+        if (UrlSettings is not null)
         {
-            // Resolve optional parameters
-            var url = UrlParamRegex().Replace(template, m => ResolveOptionalParameter(m.Groups["name"].Value, m.Groups["value"].Value, combinedUrlSettings) ?? string.Empty);
-            url = url.TrimEnd('&');
-
-            // Append mandatory parameters
-            url += "&WOPISrc=" + Uri.EscapeDataString(wopiFileUrl.ToString());
-
-            return url;
+            foreach (var kvp in UrlSettings) combinedUrlSettings[kvp.Key] = kvp.Value;
         }
-        return null;
+        if (urlSettings is not null)
+        {
+            foreach (var kvp in urlSettings) combinedUrlSettings[kvp.Key] = kvp.Value; // overrides
+        }
+
+        // Single source of truth for the WopiSrc value: the wopiFileUrl parameter. The
+        // WOPI_SOURCE placeholder, when present in a template, gets substituted with this
+        // value (URL-escaped by ResolveOptionalParameter). Any caller-provided WOPI_SOURCE
+        // value in urlSettings is overwritten so we never produce two different WopiSrc
+        // values in the same URL.
+        combinedUrlSettings[WopiUrlSettings.Placeholders.WopiSource] = wopiFileUrl.ToString();
+
+        var template = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action).ConfigureAwait(false);
+        if (string.IsNullOrEmpty(template))
+        {
+            LogTemplateNotFound(_logger, extension, action);
+            return null;
+        }
+
+        var templateHasWopiSourcePlaceholder = template.Contains(WopiUrlSettings.Placeholders.WopiSource, StringComparison.Ordinal);
+
+        // Resolve optional parameters
+        var url = UrlParamRegex().Replace(template, m => ResolveOptionalParameter(m.Groups["name"].Value, m.Groups["value"].Value, combinedUrlSettings) ?? string.Empty);
+        url = url.TrimEnd('&');
+
+        // Only append &WOPISrc= when the template did not already carry the WOPI_SOURCE
+        // placeholder. Modern Office Online / M365 templates include `<wopisrc=WOPI_SOURCE&>`
+        // and would otherwise produce two WopiSrc params (lowercase from the substitution,
+        // uppercase from this append) with potentially different values.
+        if (!templateHasWopiSourcePlaceholder)
+        {
+            url += "&WOPISrc=" + Uri.EscapeDataString(wopiFileUrl.ToString());
+        }
+
+        LogFileUrlGenerated(_logger, extension, action);
+        return url;
     }
 
     private static string? ResolveOptionalParameter(string name, string value, WopiUrlSettings urlSettings)

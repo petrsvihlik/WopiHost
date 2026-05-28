@@ -1,0 +1,25 @@
+# Infer# false-positive allowlist
+#
+# One pattern per line. Each pattern is matched as a fixed substring against
+# `infer-out/report.txt` lines; any matching error line is dropped before the
+# fail-on-finding gate. Empty lines and lines starting with `#` are ignored.
+#
+# Add a comment above each entry naming the issue tracking it. Don't add new
+# entries without a matching issue — every allowlist entry is technical debt.
+#
+# Historical notes:
+#
+# - The three FPs originally tracked by #363 were resolved by restructuring
+#   `WopiBootstrapperController.BuildBootstrapInfoAsync` and `GetWopiCheckFolderInfo`
+#   so the `await` lands on an injected dependency directly, which Infer# can see
+#   through.
+#
+# - The 10 FPs tracked by #471 (introduced by the #470 Minimal-API migration) were
+#   resolved by the same #363 shape: every `await` in the WOPI endpoint handlers
+#   now lands directly on an injected dependency rather than on a same-class or
+#   shared-helper static async method. The `EndpointHelpers.IssueAccessTokenForFile/
+#   ContainerAsync` / `IssueEcosystemPointerAsync` helpers and the
+#   BootstrapEndpoints internal `GetRootContainerAsync` / `GetNewAccessTokenAsync` /
+#   `IssueFileTokenAsync` / `IssueContainerTokenAsync` dispatch helpers were
+#   inlined; the new `EndpointHelpers.BuildResourceTokenRequest` is synchronous
+#   (no async state machine) so Infer# stays clean through it.

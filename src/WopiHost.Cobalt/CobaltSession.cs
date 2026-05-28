@@ -1,88 +1,266 @@
-﻿using System.Security.Claims;
+using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+using System.Security.Claims;
 using Cobalt;
+using Cobalt.Base.IO;
+using Microsoft.Extensions.Logging;
 using WopiHost.Abstractions;
 
 namespace WopiHost.Cobalt;
 
-public class CobaltProcessor : ICobaltProcessor
+/// <summary>
+/// MS-FSSHTTP / Cobalt processor that maintains a long-lived <see cref="CobaltFile"/>
+/// per WOPI file id.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The Cobalt protocol is stateful: schema/exclusive locks, edit deltas, and
+/// co-authoring metadata live inside the <c>CobaltFile</c>'s in-memory blob
+/// stores and must persist across HTTP requests for the same file. Creating a
+/// fresh <c>CobaltFile</c> per request (the previous behavior) makes
+/// co-authoring and delta-based edits impossible.
+/// </para>
+/// <para>
+/// Sessions are cached in a <see cref="ConcurrentDictionary{TKey,TValue}"/>
+/// keyed by <see cref="IWopiResource.Identifier"/>. A periodic timer evicts idle
+/// sessions after <see cref="SessionIdleTimeout"/> to keep memory bounded —
+/// the <see cref="LocalHostBlobStore"/> backing each session is in-memory.
+/// </para>
+/// </remarks>
+public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
 {
-    private readonly CoauthoringSessionTracker _sessionTracker = new();
-    private async Task<CobaltFile> GetCobaltFile(IWopiFile file, ClaimsPrincipal principal)
+    /// <summary>How long a session may go without traffic before it is disposed.</summary>
+    public static TimeSpan SessionIdleTimeout { get; } = TimeSpan.FromMinutes(60);
+
+    private static readonly TimeSpan s_cleanupInterval = TimeSpan.FromMinutes(5);
+
+    private readonly ILogger<CobaltProcessor> _logger;
+    private readonly CoauthoringSessionTracker _sessionTracker;
+    private readonly ConcurrentDictionary<string, Lazy<Task<CobaltSessionEntry>>> _sessions = new(StringComparer.Ordinal);
+    private readonly Timer _cleanupTimer;
+    private int _disposed;
+
+    public CobaltProcessor(ILogger<CobaltProcessor> logger, ILogger<CoauthoringSessionTracker> trackerLogger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _sessionTracker = new CoauthoringSessionTracker(trackerLogger ?? throw new ArgumentNullException(nameof(trackerLogger)));
+        _cleanupTimer = new Timer(_ => EvictIdleSessions(), state: null, s_cleanupInterval, s_cleanupInterval);
+    }
+
+    /// <inheritdoc/>
+    // Binary-protocol orchestration: deserializes a CobaltCore RequestBatch, executes it
+    // against the cached CobaltFile, optionally flushes content via GenericFda, and
+    // serializes the response. Exercised end-to-end by the WOPI Validator + sample apps;
+    // unit-testing it would require constructing real Cobalt protocol bytes which is
+    // brittle and high-maintenance. The argument-validation and dispose contract above
+    // and below are unit-tested in CobaltProcessorTests.
+    [ExcludeFromCodeCoverage(Justification = "Binary protocol; covered by integration tests")]
+    public async Task<byte[]> ProcessCobalt(IWopiWritableFile file, ClaimsPrincipal principal, byte[] newContent, CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(newContent);
+
+        var entry = await GetOrCreateSession(file, cancellationToken).ConfigureAwait(false);
+
+        // Wrap the request bytes as a CobaltStream (16.x replaced the Atom-taking
+        // overload of DeserializeInputFromProtocol with one that takes CobaltStream).
+        using var newContentStream = new MemoryStream(newContent, writable: false);
+        var requestStream = CobaltStream.Get(newContentStream, streamIsImmutable: true);
+        var requestBatch = new RequestBatch();
+        requestBatch.DeserializeInputFromProtocol(requestStream, out _, out var protocolVersion);
+
+        // Flow the current principal to CobaltHostLockingStore.HandleWhoAmI for the
+        // duration of this request only. AsyncLocal flows through async/await but is
+        // scoped per logical-call so concurrent requests for the same file from
+        // different users don't cross-pollute.
+        var prev = CobaltHostLockingStore.CurrentPrincipal.Value;
+        CobaltHostLockingStore.CurrentPrincipal.Value = principal;
+        byte[] response;
+        try
+        {
+            entry.Touch();
+            entry.File.CobaltEndpoint.ExecuteRequestBatch(requestBatch);
+
+            if (requestBatch.Requests.Any(r => r is PutChangesRequest && r.PartitionId == FilePartitionId.Content))
+            {
+                // Serialize concurrent saves for the same file. WOPI itself uses
+                // protocol-level locks but those don't necessarily cover the
+                // window between ExecuteRequestBatch and the disk flush.
+                await entry.WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    using var stream = await file.OpenWriteAsync(cancellationToken).ConfigureAwait(false);
+                    // GenericFdaStream is sync-only (CobaltCore exposes no async copy). The
+                    // surrounding awaits already honor cancellation; the sync copy itself runs
+                    // against an in-memory buffer so it's not network-bound.
+                    new GenericFda(entry.File.CobaltEndpoint).GetContentStream().CopyTo(stream);
+                    LogContentFlushed(_logger, file.Identifier);
+                }
+                finally
+                {
+                    entry.WriteLock.Release();
+                }
+            }
+
+            using var ms = new MemoryStream();
+            requestBatch.SerializeOutputToProtocol(protocolVersion).CopyTo(ms);
+            response = ms.ToArray();
+        }
+        finally
+        {
+            CobaltHostLockingStore.CurrentPrincipal.Value = prev;
+        }
+
+        return response;
+    }
+
+    [ExcludeFromCodeCoverage(Justification = "Cache + retry around CreateSessionEntry; reachable only via the binary-protocol ProcessCobalt path")]
+    private async Task<CobaltSessionEntry> GetOrCreateSession(IWopiWritableFile file, CancellationToken cancellationToken)
+    {
+        var freshEntry = false;
+        var lazy = _sessions.GetOrAdd(
+            file.Identifier,
+            _ =>
+            {
+                freshEntry = true;
+                return new Lazy<Task<CobaltSessionEntry>>(() => CreateSessionEntry(file, cancellationToken), LazyThreadSafetyMode.ExecutionAndPublication);
+            });
+        try
+        {
+            var entry = await lazy.Value.ConfigureAwait(false);
+            if (freshEntry)
+            {
+                LogSessionCreated(_logger, file.Identifier);
+            }
+            return entry;
+        }
+        catch (Exception ex)
+        {
+            // A faulted Lazy<Task<>> would otherwise be cached forever; remove
+            // exactly this entry so the next call retries. The KeyValuePair
+            // overload of TryRemove avoids racing with a concurrent
+            // GetOrCreateSession that already replaced the entry.
+            _sessions.TryRemove(new KeyValuePair<string, Lazy<Task<CobaltSessionEntry>>>(file.Identifier, lazy));
+            LogSessionCreateFailed(_logger, ex, file.Identifier);
+            throw;
+        }
+    }
+
+    [ExcludeFromCodeCoverage(Justification = "Instantiates CobaltFile / LocalHostBlobStore / Atom from CobaltCore; verified end-to-end by the validator + sample apps")]
+    private async Task<CobaltSessionEntry> CreateSessionEntry(IWopiWritableFile file, CancellationToken cancellationToken)
     {
         var disposal = new DisposalEscrow(file.Owner);
-        var content = new CobaltFilePartitionConfig
+
+        // CobaltCore 16.x retired `TemporaryHostBlobStore`; `LocalHostBlobStore` is
+        // the closest equivalent (in-memory by default; can be backed by a
+        // directory if a `dirPathForFileBackedBlobs` is supplied — left null here
+        // to match the old temp-only behavior).
+        static CobaltFilePartitionConfig MakePartition(FilePartitionId partition, bool genericFda) => new()
         {
             IsNewFile = true,
-            HostBlobStore = new TemporaryHostBlobStore(new TemporaryHostBlobStore.Config(), disposal, file.Identifier + @".Content"),
-            cellSchemaIsGenericFda = true,
+            HostBlobStore = new LocalHostBlobStore(new LocalHostBlobStore.Config()),
+            cellSchemaIsGenericFda = genericFda,
             CellStorageConfig = new CellStorageConfig(),
             Schema = CobaltFilePartition.Schema.ShreddedCobalt,
-            PartitionId = FilePartitionId.Content
+            PartitionId = partition,
         };
 
-        var coauth = new CobaltFilePartitionConfig
+        var partitionConfigs = new Dictionary<FilePartitionId, CobaltFilePartitionConfig>
         {
-            IsNewFile = true,
-            HostBlobStore = new TemporaryHostBlobStore(new TemporaryHostBlobStore.Config(), disposal, file.Identifier + @".CoauthMetadata"),
-            cellSchemaIsGenericFda = false,
-            CellStorageConfig = new CellStorageConfig(),
-            Schema = CobaltFilePartition.Schema.ShreddedCobalt,
-            PartitionId = FilePartitionId.CoauthMetadata
+            [FilePartitionId.Content] = MakePartition(FilePartitionId.Content, genericFda: true),
+            [FilePartitionId.WordWacUpdate] = MakePartition(FilePartitionId.WordWacUpdate, genericFda: false),
+            [FilePartitionId.CoauthMetadata] = MakePartition(FilePartitionId.CoauthMetadata, genericFda: false),
         };
 
-        var wacupdate = new CobaltFilePartitionConfig
-        {
-            IsNewFile = true,
-            HostBlobStore = new TemporaryHostBlobStore(new TemporaryHostBlobStore.Config(), disposal, file.Identifier + @".WordWacUpdate"),
-            cellSchemaIsGenericFda = false,
-            CellStorageConfig = new CellStorageConfig(),
-            Schema = CobaltFilePartition.Schema.ShreddedCobalt,
-            PartitionId = FilePartitionId.WordWacUpdate
-        };
-
-        var partitionConfigs = new Dictionary<FilePartitionId, CobaltFilePartitionConfig> { { FilePartitionId.Content, content }, { FilePartitionId.WordWacUpdate, wacupdate }, { FilePartitionId.CoauthMetadata, coauth } };
-
-        var tempCobaltFile = new CobaltFile(disposal, partitionConfigs, new CobaltHostLockingStore(principal, file.Identifier, _sessionTracker), null);
+        // CobaltCore 16.x changed the CobaltFile ctor to take a
+        // `GetConfigForPartitionAndVersion` delegate instead of a Dictionary.
+        var cobaltFile = new CobaltFile(
+            disposal,
+            (partition, _) => partitionConfigs.TryGetValue(partition, out var cfg) ? cfg : null,
+            new CobaltHostLockingStore(file.Identifier, _sessionTracker),
+            null);
 
         if (file.Exists)
         {
-            using var stream = await file.GetReadStream();
-            var srcAtom = new AtomFromStream(stream);
-            tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out var o1);
-            tempCobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
+            using var stream = await file.OpenReadAsync(cancellationToken).ConfigureAwait(false);
+            // 16.x made `AtomFromStream` an internal sealed type; `Atom.CreateFromArray`
+            // is the public byte[] factory. Buffer the stream so we can hand a byte[]
+            // to it.
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms, cancellationToken).ConfigureAwait(false);
+            var srcAtom = Atom.CreateFromArray(ms.ToArray());
+            cobaltFile.GetCobaltFilePartition(FilePartitionId.Content).SetStream(RootId.Default.Value, srcAtom, out _);
+            cobaltFile.GetCobaltFilePartition(FilePartitionId.Content).GetStream(RootId.Default.Value).Flush();
         }
-        return tempCobaltFile;
+
+        return new CobaltSessionEntry(cobaltFile, disposal);
     }
 
-    // not used anywhere?
-    //public async Task<Stream> GetFileStream(IWopiFile file, ClaimsPrincipal principal)
-    //{
-    //    //TODO: use in filescontroller
-    //    using var ms = new MemoryStream();
-    //    var cobaltFile = await GetCobaltFile(file, principal);
-    //    new GenericFda(cobaltFile.CobaltEndpoint).GetContentStream().CopyTo(ms);
-    //    return ms;
-    //}
-
-    /// <inheritdoc/>
-    public async Task<byte[]> ProcessCobalt(IWopiFile file, ClaimsPrincipal principal, byte[] newContent)
+    [ExcludeFromCodeCoverage(Justification = "Time-dependent timer callback; exercising it without real timers would require reflective state injection")]
+    private void EvictIdleSessions()
     {
-        // Refactoring tip: there are more ways of initializing Atom
-        var atomRequest = new AtomFromByteArray(newContent);
-        var requestBatch = new RequestBatch();
+        if (Volatile.Read(ref _disposed) != 0) return;
 
-        requestBatch.DeserializeInputFromProtocol(atomRequest, out var ctx, out var protocolVersion);
-        var cobaltFile = await GetCobaltFile(file, principal);
-        cobaltFile.CobaltEndpoint.ExecuteRequestBatch(requestBatch);
-
-        if (requestBatch.Requests.Any(request => request is PutChangesRequest && request.PartitionId == FilePartitionId.Content))
+        var cutoff = DateTimeOffset.UtcNow - SessionIdleTimeout;
+        foreach (var pair in _sessions)
         {
-            using var stream = await file.GetWriteStream();
-            new GenericFda(cobaltFile.CobaltEndpoint).GetContentStream().CopyTo(stream);
-        }
+            if (!pair.Value.IsValueCreated)
+            {
+                continue;
+            }
 
-        using var ms = new MemoryStream();
-        requestBatch.SerializeOutputToProtocol(protocolVersion).CopyTo(ms);
-        return ms.ToArray();
+            // The Lazy<Task<...>> may not have completed yet for a brand-new entry;
+            // skip those — they're definitionally not idle.
+            var task = pair.Value.Value;
+            if (task.Status != TaskStatus.RanToCompletion)
+            {
+                continue;
+            }
+
+            var entry = task.Result;
+            if (entry.LastUsed < cutoff && _sessions.TryRemove(pair.Key, out _))
+            {
+                entry.Dispose();
+                LogSessionEvicted(_logger, pair.Key);
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+
+        _cleanupTimer.Dispose();
+        foreach (var pair in _sessions)
+        {
+            if (pair.Value.IsValueCreated && pair.Value.Value.Status == TaskStatus.RanToCompletion)
+            {
+                pair.Value.Value.Result.Dispose();
+            }
+        }
+        _sessions.Clear();
+    }
+
+    private void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, typeof(CobaltProcessor));
+    }
+
+    private sealed class CobaltSessionEntry(CobaltFile file, DisposalEscrow disposal) : IDisposable
+    {
+        private long _lastUsedTicks = DateTimeOffset.UtcNow.UtcTicks;
+
+        public CobaltFile File { get; } = file;
+        public SemaphoreSlim WriteLock { get; } = new(initialCount: 1, maxCount: 1);
+        public DateTimeOffset LastUsed => new(Volatile.Read(ref _lastUsedTicks), TimeSpan.Zero);
+
+        public void Touch() => Volatile.Write(ref _lastUsedTicks, DateTimeOffset.UtcNow.UtcTicks);
+
+        public void Dispose()
+        {
+            disposal.Dispose();
+            WriteLock.Dispose();
+        }
     }
 }

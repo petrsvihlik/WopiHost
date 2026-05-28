@@ -1,0 +1,55 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Mvc.Testing;
+using WopiHost.Discovery;
+using WopiHost.Web.Oidc;
+
+namespace WopiHost.IntegrationTests.Fixtures;
+
+/// <summary>
+/// Variant of <see cref="OidcWebAppFactory"/> that swaps the cookie/OIDC auth pipeline for
+/// <see cref="TestAuthHandler"/> so tests can exercise the WOPI-minting controllers without a
+/// live IdP. The mock OIDC server still has to exist (the OIDC handler validates discovery at
+/// startup) — this factory just routes the actual authentication to the test handler.
+/// </summary>
+public sealed class TestAuthOidcWebAppFactory(string wopiSigningSecret, string wopiBackendUrl, Uri? authority = null) : WebApplicationFactory<OidcSampleEntryPoint>
+{
+    private readonly Uri _authority = authority ?? new Uri(PlaceholderAuthority);
+
+    /// <summary>Default placeholder authority — never contacted because TestAuth bypasses OIDC.</summary>
+    public const string PlaceholderAuthority = "https://placeholder.invalid/";
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.ConfigureAppConfiguration((_, config) =>
+        {
+            config.AddInMemoryCollection(OidcSampleTestConfig.Build(
+                oidcAuthority: _authority.AbsoluteUri.TrimEnd('/'),
+                wopiSigningSecret: wopiSigningSecret,
+                wopiBackendUrl: wopiBackendUrl));
+        });
+
+        builder.ConfigureServices(services =>
+        {
+            // Replace the default cookie scheme with our test handler so [Authorize] passes when
+            // a request includes the test-user headers (see TestAuthClientExtensions.AsUser).
+            var defaultScheme = TestAuthHandler.SchemeName;
+            services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = defaultScheme;
+                options.DefaultAuthenticateScheme = defaultScheme;
+                options.DefaultChallengeScheme = defaultScheme;
+                options.DefaultSignInScheme = defaultScheme;
+                options.DefaultSignOutScheme = defaultScheme;
+            }).AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(defaultScheme, _ => { });
+
+            services.AddAuthorization();
+
+            // Replace the discoverer so tests don't try to fetch discovery XML from the configured
+            // ClientUrl (which is an unreachable test hostname). FakeDiscoverer returns canned values.
+            services.RemoveAll<IDiscoverer>();
+            services.AddSingleton<IDiscoverer, FakeDiscoverer>();
+        });
+
+        builder.UseEnvironment("Development");
+    }
+}

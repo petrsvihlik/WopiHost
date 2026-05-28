@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 using WopiHost.Core.Infrastructure;
@@ -19,7 +18,8 @@ public class HostPageModel(
     IWopiAccessTokenService accessTokenService,
     IWopiPermissionProvider permissionProvider,
     IDiscoverer discoverer,
-    LinkGenerator linkGenerator) : PageModel
+    LinkGenerator linkGenerator,
+    ILogger<WopiUrlBuilder> urlBuilderLogger) : PageModel
 {
     [BindProperty(SupportsGet = true)]
     public required string FileId { get; set; }
@@ -28,9 +28,9 @@ public class HostPageModel(
 
     public string AccessToken { get; set; } = string.Empty;
     public string AccessTokenTtl { get; set; } = string.Empty;
-    public string UrlSrc { get; set; } = string.Empty;
+    public Uri? UrlSrc { get; set; }
 
-    private readonly WopiUrlBuilder urlGenerator = new(discoverer, new WopiUrlSettings { UiLlcc = CultureInfo.CurrentUICulture });
+    private readonly WopiUrlBuilder _urlGenerator = new(discoverer, urlBuilderLogger, new WopiUrlSettings { UiLlcc = CultureInfo.CurrentUICulture });
 
     public async Task<IActionResult> OnGet(CancellationToken cancellationToken = default)
     {
@@ -39,7 +39,7 @@ public class HostPageModel(
             return BadRequest(ModelState);
         }
 
-        var file = await storageProvider.GetWopiResource<IWopiFile>(FileId, cancellationToken)
+        var file = await storageProvider.GetWopiFile(FileId, cancellationToken)
             ?? throw new FileNotFoundException($"File with ID '{FileId}' not found.");
 
         var hostUser = new ClaimsPrincipal(new ClaimsIdentity(
@@ -67,8 +67,9 @@ public class HostPageModel(
             wopiOptions.Value.HostUrl,
             linkGenerator.GetPathByRouteValues(WopiRouteNames.CheckFileInfo, new { id = FileId })
             ?? throw new InvalidOperationException($"Could not generate route for '{WopiRouteNames.CheckFileInfo}'"));
-        UrlSrc = await urlGenerator.GetFileUrlAsync(extension, wopiFileUrl, WopiAction)
+        var urlSrcString = await _urlGenerator.GetFileUrlAsync(extension, wopiFileUrl, WopiAction)
             ?? throw new InvalidOperationException($"Could not retrieve WopiUrl for extension '{extension}'");
+        UrlSrc = new Uri(urlSrcString, UriKind.Absolute);
         ViewData["favicon"] = await discoverer.GetApplicationFavIconAsync(extension);
         return Page();
     }

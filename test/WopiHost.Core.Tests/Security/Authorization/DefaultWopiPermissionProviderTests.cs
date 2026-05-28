@@ -14,7 +14,6 @@ public class DefaultWopiPermissionProviderTests
         options ??= new WopiHostOptions
         {
             ClientUrl = new Uri("http://localhost"),
-            StorageProviderAssemblyName = "x",
         };
         var monitor = new Mock<IOptionsMonitor<WopiHostOptions>>();
         monitor.SetupGet(m => m.CurrentValue).Returns(options);
@@ -40,7 +39,6 @@ public class DefaultWopiPermissionProviderTests
         var options = new WopiHostOptions
         {
             ClientUrl = new Uri("http://localhost"),
-            StorageProviderAssemblyName = "x",
             DefaultFilePermissions = WopiFilePermissions.UserCanWrite,
         };
         var provider = Build(options);
@@ -60,7 +58,7 @@ public class DefaultWopiPermissionProviderTests
             [new Claim(WopiClaimTypes.ContainerPermissions, perms.ToString())],
             "test"));
 
-        var actual = await provider.GetContainerPermissionsAsync(user, new Mock<IWopiFolder>().Object);
+        var actual = await provider.GetContainerPermissionsAsync(user, new Mock<IWopiContainer>().Object);
 
         Assert.Equal(perms, actual);
     }
@@ -71,13 +69,12 @@ public class DefaultWopiPermissionProviderTests
         var options = new WopiHostOptions
         {
             ClientUrl = new Uri("http://localhost"),
-            StorageProviderAssemblyName = "x",
             DefaultContainerPermissions = WopiContainerPermissions.UserCanDelete,
         };
         var provider = Build(options);
         var user = new ClaimsPrincipal(new ClaimsIdentity());
 
-        var actual = await provider.GetContainerPermissionsAsync(user, new Mock<IWopiFolder>().Object);
+        var actual = await provider.GetContainerPermissionsAsync(user, new Mock<IWopiContainer>().Object);
 
         Assert.Equal(WopiContainerPermissions.UserCanDelete, actual);
     }
@@ -88,7 +85,6 @@ public class DefaultWopiPermissionProviderTests
         var options = new WopiHostOptions
         {
             ClientUrl = new Uri("http://localhost"),
-            StorageProviderAssemblyName = "x",
             DefaultFilePermissions = WopiFilePermissions.UserCanWrite,
         };
         var provider = Build(options);

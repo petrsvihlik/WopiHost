@@ -7,7 +7,11 @@ public class InMemoryFileIdsTests : IDisposable
     private readonly InMemoryFileIds _sut = new(NullLogger<InMemoryFileIds>.Instance);
     private readonly DirectoryInfo _tempDir = Directory.CreateTempSubdirectory("WopiTest_");
 
-    public void Dispose() => _tempDir.Delete(recursive: true);
+    public void Dispose()
+    {
+        _tempDir.Delete(recursive: true);
+        GC.SuppressFinalize(this);
+    }
 
     [Fact]
     public void ScanAll_SamePath_ProducesSameIds()
@@ -126,5 +130,109 @@ public class InMemoryFileIdsTests : IDisposable
 
         Assert.True(_sut.TryGetPath("WOPITEST", out var resolved));
         Assert.Equal(path, resolved);
+    }
+
+    [Fact]
+    public void UpdateFile_OldPath_NoLongerResolvesViaReverseLookup()
+    {
+        // #409 item 2.2: the path→id reverse map must drop the old binding when an id is
+        // rebound to a new path, otherwise stale entries pile up unboundedly.
+        var oldPath = Path.Combine(_tempDir.FullName, "old.docx");
+        var newPath = Path.Combine(_tempDir.FullName, "new.docx");
+        var id = _sut.AddFile(oldPath);
+
+        _sut.UpdateFile(id, newPath);
+
+        Assert.False(_sut.TryGetFileId(oldPath, out _));
+        Assert.True(_sut.TryGetFileId(newPath, out var resolvedId));
+        Assert.Equal(id, resolvedId);
+    }
+
+    [Fact]
+    public void RemoveId_Path_NoLongerResolvesViaReverseLookup()
+    {
+        var path = Path.Combine(_tempDir.FullName, "doc.docx");
+        var id = _sut.AddFile(path);
+
+        _sut.RemoveId(id);
+
+        Assert.False(_sut.TryGetFileId(path, out _));
+    }
+
+    [Fact]
+    public void ScanAll_Rescan_DropsBindingsForRemovedFiles()
+    {
+        // Confirm both maps are reset on rescan — pre-#409-item-2.2 the forward map was cleared
+        // but a parallel reverse map could have lingered if one was added in isolation.
+        var stalePath = Path.Combine(_tempDir.FullName, "stale.docx");
+        File.WriteAllText(stalePath, string.Empty);
+        _sut.ScanAll(_tempDir.FullName);
+        Assert.True(_sut.TryGetFileId(stalePath, out _));
+
+        File.Delete(stalePath);
+        _sut.ScanAll(_tempDir.FullName);
+
+        Assert.False(_sut.TryGetFileId(stalePath, out _));
+    }
+
+    [Fact]
+    public async Task AddFile_ConcurrentDistinctPaths_AllEntriesObservable()
+    {
+        // #409 item 2.2: pre-fix used a non-concurrent Dictionary, so parallel writers could
+        // corrupt the bucket array or lose entries silently. Verify each parallel add survives
+        // and is reachable in both directions.
+        const int writers = 64;
+        var paths = Enumerable.Range(0, writers)
+            .Select(i => Path.Combine(_tempDir.FullName, $"f{i}.docx"))
+            .ToArray();
+
+        var ids = await Task.WhenAll(
+            paths.Select(p => Task.Run(() => _sut.AddFile(p))));
+
+        Assert.Equal(writers, ids.Distinct().Count());
+        for (var i = 0; i < writers; i++)
+        {
+            Assert.True(_sut.TryGetFileId(paths[i], out var idViaPath));
+            Assert.Equal(ids[i], idViaPath);
+            Assert.True(_sut.TryGetPath(ids[i], out var pathViaId));
+            Assert.Equal(paths[i], pathViaId);
+        }
+    }
+
+    [Fact]
+    public async Task Mixed_ConcurrentAddAndRemove_LeavesConsistentState()
+    {
+        // Stress: half the workers add, the other half remove the same file id. Whatever the
+        // interleaving, the forward and reverse maps must agree (no dangling reverse entry).
+        const int rounds = 200;
+        var path = Path.Combine(_tempDir.FullName, "shared.docx");
+
+        var add = Task.Run(() =>
+        {
+            for (var i = 0; i < rounds; i++)
+            {
+                _sut.AddFile(path);
+            }
+        });
+        var remove = Task.Run(() =>
+        {
+            for (var i = 0; i < rounds; i++)
+            {
+                _sut.TryGetFileId(path, out var id);
+                if (id is not null)
+                {
+                    _sut.RemoveId(id);
+                }
+            }
+        });
+        await Task.WhenAll(add, remove);
+
+        // Final consistency check: every id present must round-trip through the reverse map and
+        // back. A leaked reverse entry would resolve to an id that's no longer in the forward map.
+        if (_sut.TryGetFileId(path, out var finalId))
+        {
+            Assert.True(_sut.TryGetPath(finalId, out var roundTripPath));
+            Assert.Equal(path, roundTripPath);
+        }
     }
 }

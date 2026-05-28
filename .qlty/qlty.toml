@@ -2,7 +2,18 @@ config_version = "0"
 
 exclude_patterns = [
   "**/node_modules/**",
-  "**/wwwroot/**"
+  "**/wwwroot/**",
+  "sample/**",
+  "infra/**",
+  # Source-generated output. Coverlet emits lcov entries for these (Logger source
+  # generator, LibraryImport source generator, etc.) but the files don't exist on
+  # disk at coverage-publish time — they're build outputs under artifacts/obj/.
+  # Without this exclusion, Qlty counts them as 0%-covered and tanks the
+  # percentage. (Codecov auto-skips files missing from the repo, which is why
+  # the same lcov yields ~93% there.)
+  "**/artifacts/**",
+  "**/obj/**",
+  "**/*.g.cs",
 ]
 
 test_patterns = [
@@ -12,3 +23,36 @@ test_patterns = [
 [[source]]
 name = "default"
 default = true
+
+# Minimal-API endpoint handlers naturally collect many DI services + bound HTTP
+# parameters (route values, headers, body) as positional parameters — that's the
+# framework's injection idiom. The handlers in src/WopiHost.Core/Endpoints/ range from
+# 6 to ~18 parameters, well past qlty's default function-parameters threshold (~5).
+# The deps-record workaround was tried and removed in 0fa1e39 after it proved more
+# trouble than it was worth (see #430 history).
+#
+# Raise the C# function-parameters threshold globally. The only code that approaches
+# this threshold is the endpoint directory; everything else in the repo is well under,
+# so the bump is effectively scoped to where it's needed. The [[triage]] block tried
+# previously didn't actually suppress — the rule kept firing in PR review comments —
+# so we switch to the language-level threshold override per qlty's documented schema.
+[language.csharp.smells.function_parameters]
+threshold = 50
+
+# Two WOPI dispatcher handlers — `BootstrapEndpoints.ExecuteEcosystemOperation` and
+# `ContainerMutatingEndpoints.CreateChildContainer` — sit at 7 and 6 returns
+# respectively, just over qlty's default return-statements threshold (5). Both shapes
+# are deliberate consequences of the #471 Infer# fix: the previous code used switch
+# arms / extracted async helpers to keep returns low, but `await` on a same-class
+# static async method (or shared static helper) tripped Infer#'s null-deref precision
+# loss through the async state machine. Inlining the dispatch branches dispelled the
+# FPs at the cost of one or two extra returns per handler.
+#
+# The functions remain readable — top-level guard clauses for spec-defined error
+# shapes (404, 400, 409, 501, 500) at the start, then a single success path. Raising
+# the threshold globally to 8 is the smaller compromise; the only other code that
+# approaches this count is similar endpoint-handler shape, so the bump stays scoped
+# to where it's needed. Same triage-vs-language-threshold rationale as
+# function_parameters above.
+[language.csharp.smells.return_statements]
+threshold = 8

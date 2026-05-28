@@ -1,0 +1,114 @@
+@inherits LayoutComponentBase
+@inject IOptions<WopiOptions> WopiOptions
+
+@* Full-bleed iframe layout for the WOPI editor. The "Files" pill on top-left lets the user
+   navigate back; the postMessage handshake gives the WOPI client a chance to flush pending
+   saves before the host navigates away. *@
+
+<HeadContent>
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <link rel="shortcut icon" href="@Favicon?.ToString()" />
+    <style type="text/css">
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            -ms-content-zooming: none;
+        }
+
+        /* Floating "back to files" pill, top-left over the editor.
+           Avoid eating editor real estate via a thin top bar. */
+        #wopi_back {
+            position: fixed;
+            top: 8px;
+            left: 8px;
+            z-index: 2147483647;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            font: 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.55);
+            border: 0;
+            border-radius: 999px;
+            cursor: pointer;
+            text-decoration: none;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        #wopi_back:hover {
+            background: rgba(0, 0, 0, 0.75);
+        }
+
+        #office_frame {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin: 0;
+            border: none;
+            display: block;
+        }
+    </style>
+</HeadContent>
+
+<button id="wopi_back" type="button" title="Close editor and return to files">← Files</button>
+
+@Body
+
+<script type="text/javascript">
+    // Close handshake: Office for the Web / Collabora honour the WOPI postMessage
+    // "Action_Close" so they can flush pending saves before the host navigates away.
+    (function () {
+        var btn = document.getElementById('wopi_back');
+        if (!btn) return;
+
+        var navigated = false;
+        function goHome() {
+            if (navigated) return;
+            navigated = true;
+            window.location.href = '/';
+        }
+
+        // Restrict postMessage to the WOPI client's origin so the Action_Close payload is
+        // never delivered to a different document if the iframe ever navigates elsewhere.
+        var wopiClientOrigin = '@WopiOptions.Value.ClientUrl.GetLeftPart(System.UriPartial.Authority)';
+
+        btn.addEventListener('click', function () {
+            try {
+                var frame = document.getElementById('office_frame');
+                if (frame && frame.contentWindow) {
+                    frame.contentWindow.postMessage(
+                        JSON.stringify({ MessageId: 'Action_Close', SendTime: Date.now(), Values: {} }),
+                        wopiClientOrigin
+                    );
+                    // Give the client ~600ms to acknowledge / flush, then navigate.
+                    setTimeout(goHome, 600);
+                    return;
+                }
+            } catch (e) { /* fall through */ }
+            goHome();
+        });
+
+        // Optional: if the client posts UI_Close back, treat it as confirmation.
+        window.addEventListener('message', function (e) {
+            try {
+                var msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                if (msg && (msg.MessageId === 'UI_Close' || msg.MessageId === 'Action_Close_Resp')) {
+                    goHome();
+                }
+            } catch (_) { /* ignore non-JSON messages from the iframe */ }
+        });
+    })();
+</script>
+
+@code {
+    /// <summary>Favicon URL forwarded by the Detail page so the layout can render the WOPI-client-supplied icon.</summary>
+    [CascadingParameter(Name = nameof(Favicon))] public Uri? Favicon { get; set; }
+}

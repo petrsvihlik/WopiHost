@@ -1,12 +1,22 @@
 ﻿[*.cs]
 
 # CA2007: Consider calling ConfigureAwait on the awaited task
+# ASP.NET Core has no SynchronizationContext, so ConfigureAwait(false) is noise on the
+# request path. We do still use ConfigureAwait(false) in library code where it matters
+# (e.g. inside providers) — the analyzer just doesn't earn its keep project-wide.
 dotnet_diagnostic.CA2007.severity = none
 
 # CA1707: Identifiers should not contain underscores
+# Test methods follow xunit's `Method_Scenario_Expectation` convention. Because xunit's
+# discovery scope spans src/ and test/ and the analyzer can't condition on test-class
+# membership, the disable is broader than ideal — production code is held to the convention
+# by review.
 dotnet_diagnostic.CA1707.severity = none
 
 # CA1822: Mark members as static
+# Several legitimate instance-member shapes (controller actions, virtual customization hooks,
+# extension-method targets used through `this`) trip this analyzer with no real win.
+# Silent so the IDE still surfaces it as a hint without blocking the build.
 dotnet_diagnostic.CA1822.severity = silent
 
 
@@ -15,3 +25,57 @@ dotnet_diagnostic.CA1056.severity = suggestion
 
 # CA1819: Properties should not return arrays
 dotnet_diagnostic.CA1819.severity = suggestion
+
+# IDE0005: Remove unnecessary using directives
+# Note: IDE0005 only fires at build-time when GenerateDocumentationFile is true.
+# It is enabled here for the IDE; the build-time guarantee is in Directory.Build.props.
+dotnet_diagnostic.IDE0005.severity = warning
+
+# IDE0161: Convert to file-scoped namespace
+csharp_style_namespace_declarations = file_scoped:warning
+dotnet_diagnostic.IDE0161.severity = warning
+
+# === .NET naming conventions ===
+# Picks the dotnet/runtime convention (also what Microsoft's "Common C# coding conventions"
+# recommends): _camelCase for private instance fields, s_camelCase for private static,
+# PascalCase for constants. Enforced at warning severity → build error under
+# TreatWarningsAsErrors. The IDE1006 analyzer powers all three rules below.
+
+# IDE1006: Naming rule violation — analyzer that surfaces the per-rule severities below.
+# Must be set independently of the dotnet_naming_rule entries because Roslyn treats the
+# diagnostic ID and the rule severities as separate knobs.
+dotnet_diagnostic.IDE1006.severity = warning
+
+# --- Symbols ---
+dotnet_naming_symbols.constants.applicable_kinds = field
+dotnet_naming_symbols.constants.applicable_accessibilities = *
+dotnet_naming_symbols.constants.required_modifiers = const
+
+dotnet_naming_symbols.private_static_fields.applicable_kinds = field
+dotnet_naming_symbols.private_static_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_static_fields.required_modifiers = static
+
+dotnet_naming_symbols.private_instance_fields.applicable_kinds = field
+dotnet_naming_symbols.private_instance_fields.applicable_accessibilities = private
+
+# --- Styles ---
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+dotnet_naming_style.s_underscore_camel_case.required_prefix = s_
+dotnet_naming_style.s_underscore_camel_case.capitalization = camel_case
+
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+
+# --- Rules (order matters: first match wins, so the most-specific rule comes first) ---
+dotnet_naming_rule.constants_should_be_pascal_case.symbols = constants
+dotnet_naming_rule.constants_should_be_pascal_case.style = pascal_case
+dotnet_naming_rule.constants_should_be_pascal_case.severity = warning
+
+dotnet_naming_rule.private_static_fields_should_be_s_underscore_camel_case.symbols = private_static_fields
+dotnet_naming_rule.private_static_fields_should_be_s_underscore_camel_case.style = s_underscore_camel_case
+dotnet_naming_rule.private_static_fields_should_be_s_underscore_camel_case.severity = warning
+
+dotnet_naming_rule.private_instance_fields_should_be_underscore_camel_case.symbols = private_instance_fields
+dotnet_naming_rule.private_instance_fields_should_be_underscore_camel_case.style = underscore_camel_case
+dotnet_naming_rule.private_instance_fields_should_be_underscore_camel_case.severity = warning

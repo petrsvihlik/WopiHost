@@ -22,20 +22,26 @@ namespace WopiHost.Core.Security.Authorization;
 /// </para>
 /// <para>
 /// If you need stricter per-resource enforcement (e.g. compliance), register an additional
-/// <see cref="IAuthorizationHandler"/> that compares the route id with the claim and fails
-/// the requirement on mismatch.
+/// <see cref="IAuthorizationHandler"/> that fails the requirement on mismatch. Read the
+/// per-request resource id from the resource <see cref="HttpContext"/> the framework hands
+/// to your handler — specifically <c>httpContext.Request.RouteValues["id"]</c> — and compare
+/// it against the <see cref="WopiClaimTypes.ResourceId"/> claim on the principal. Do not read
+/// it from the requirement: requirements are policy declarations cached on the action
+/// descriptor and shared across all concurrent requests, so they must never carry
+/// per-request state.
 /// </para>
 /// </remarks>
-public class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)
+public partial class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)
     : AuthorizationHandler<WopiAuthorizeAttribute, HttpContext>
 {
     /// <inheritdoc/>
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, WopiAuthorizeAttribute requirement, HttpContext resource)
     {
-        if (resource.Request.RouteValues.TryGetValue("id", out var fileIdRaw) && fileIdRaw is not null)
-        {
-            requirement.ResourceId = fileIdRaw.ToString();
-        }
+        // Per-request resource id stays in a local — never written onto the (shared) requirement.
+        // See class doc and #380 items 2.5 / 5.3.
+        var routeResourceId = resource.Request.RouteValues.TryGetValue("id", out var fileIdRaw)
+            ? fileIdRaw?.ToString()
+            : null;
 
         var user = context.User;
         if (user.Identity?.IsAuthenticated != true)
@@ -44,7 +50,7 @@ public class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)
             return Task.CompletedTask;
         }
 
-        LogResourceBindingMismatch(user, requirement);
+        WarnIfResourceBindingMismatch(user, routeResourceId);
 
         if (!HasRequiredPermission(user, requirement))
         {
@@ -56,20 +62,23 @@ public class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)
         return Task.CompletedTask;
     }
 
-    private void LogResourceBindingMismatch(ClaimsPrincipal user, WopiAuthorizeAttribute requirement)
+    private void WarnIfResourceBindingMismatch(ClaimsPrincipal user, string? routeResourceId)
     {
-        if (string.IsNullOrEmpty(requirement.ResourceId)) return;
+        if (string.IsNullOrEmpty(routeResourceId)) return;
         var ridClaim = user.FindFirstValue(WopiClaimTypes.ResourceId);
-        if (!string.IsNullOrEmpty(ridClaim) && !string.Equals(ridClaim, requirement.ResourceId, StringComparison.Ordinal))
+        if (!string.IsNullOrEmpty(ridClaim) && !string.Equals(ridClaim, routeResourceId, StringComparison.Ordinal))
         {
-            logger.LogDebug("Token bound to resource '{TokenRid}' is being used against route id '{RouteId}'. " +
-                "This is allowed by default (WOPI tokens are session-scoped); register a stricter IAuthorizationHandler if you need to block cross-resource reuse.",
-                ridClaim, requirement.ResourceId);
+            LogResourceBindingMismatch(logger, ridClaim, routeResourceId);
         }
     }
 
     private static bool HasRequiredPermission(ClaimsPrincipal user, WopiAuthorizeAttribute requirement)
     {
+        // Exhaustive over WopiResourceType — extend both arms when adding a new enum value.
+        // Unlike the resource-route dispatch (Extensions.GetWopiSrc), this site can't route
+        // through IWopiResource.Kind because the resource type comes from the
+        // [WopiAuthorize(...)] attribute (compile-time metadata), not from a resolved
+        // resource instance. The explicit switch is the right shape here (#420 item 2.11).
         return requirement.ResourceType switch
         {
             WopiResourceType.File => HasFilePermission(user, requirement.Permission),

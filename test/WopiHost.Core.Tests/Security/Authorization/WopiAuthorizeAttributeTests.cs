@@ -24,15 +24,4 @@ public class WopiAuthorizeAttributeTests
         Assert.Single(reqs);
         Assert.Same(sut, reqs[0]);
     }
-
-    [Fact]
-    public void ResourceId_RoundTrips()
-    {
-        var sut = new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Read)
-        {
-            ResourceId = "abc",
-        };
-
-        Assert.Equal("abc", sut.ResourceId);
-    }
 }

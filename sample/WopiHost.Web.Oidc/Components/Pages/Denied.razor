@@ -1,0 +1,17 @@
+@page "/account/denied"
+@attribute [AllowAnonymous]
+@layout MainLayout
+
+<HeadContent>
+    <PageTitle>Access denied - WopiHost.Web.Oidc</PageTitle>
+</HeadContent>
+
+<h2>Access denied</h2>
+<p>Your account does not have access to this resource. Contact your administrator if you believe this is an error.</p>
+<p>
+    @* Sign-out is a POST form so anti-forgery is honoured; matches the layout's nav. *@
+    <form action="/account/logout" method="post" style="display:inline;">
+        <AntiforgeryToken />
+        <button type="submit">Sign out</button>
+    </form>
+</p>

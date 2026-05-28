@@ -1,10 +1,10 @@
-﻿using WopiHost.Abstractions;
-using WopiHost.Core.Infrastructure;
+using WopiHost.Abstractions;
 
 namespace WopiHost.Core.Models;
 
 /// <summary>
-/// Response to the <see cref="Controllers.ContainersController.CreateChildContainer(string, UtfString?, UtfString?, CancellationToken)"/> method.
+/// Response body for the <c>CreateChildContainer</c> endpoint
+/// (<c>POST /wopi/containers/{id}</c> with <c>X-WOPI-Override: CREATE_CHILD_CONTAINER</c>).
 /// </summary>
 /// <param name="ContainerPointer">container name and URL</param>
 /// <param name="ContainerInfo">optional CheckContainerInfo</param>

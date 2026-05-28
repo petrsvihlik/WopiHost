@@ -1,5 +1,9 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
+using System.Text;
 using Cobalt;
+using Cobalt.Base;
+using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Cobalt;
 
@@ -13,8 +17,10 @@ namespace WopiHost.Cobalt;
 /// <see cref="CoauthStatusType.Alone"/> and an empty editors table, causing older OOS versions
 /// to show duplicate user names when the same person opens a document in multiple tabs.
 /// </remarks>
-public class CoauthoringSessionTracker
+public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker> logger)
 {
+    private readonly ILogger<CoauthoringSessionTracker> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
     /// <summary>
     /// Represents a single editing session (one browser tab / WOPI session).
     /// </summary>
@@ -23,10 +29,10 @@ public class CoauthoringSessionTracker
     /// <param name="LastActivity">When this session was last refreshed.</param>
     public record EditorSession(string UserId, string UserName, DateTimeOffset LastActivity);
 
-    private static readonly TimeSpan SessionTimeout = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan s_sessionTimeout = TimeSpan.FromMinutes(30);
 
     // fileId → (userId → session) — static so state is shared across all CobaltHostLockingStore instances
-    private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, EditorSession>> Sessions = new();
+    private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, EditorSession>> s_sessions = new();
 
     /// <summary>
     /// Registers or refreshes a user's editing session for the given file.
@@ -34,8 +40,13 @@ public class CoauthoringSessionTracker
     /// </summary>
     public void AddOrRefreshSession(string fileId, string userId, string userName)
     {
-        var fileSessions = Sessions.GetOrAdd(fileId, _ => new ConcurrentDictionary<string, EditorSession>());
-        fileSessions[userId] = new EditorSession(userId, userName, DateTimeOffset.UtcNow);
+        var files_sessions = s_sessions.GetOrAdd(fileId, _ => new ConcurrentDictionary<string, EditorSession>());
+        var added = !files_sessions.ContainsKey(userId);
+        files_sessions[userId] = new EditorSession(userId, userName, DateTimeOffset.UtcNow);
+        if (added)
+        {
+            LogEditorJoined(_logger, userId, userName, fileId);
+        }
     }
 
     /// <summary>
@@ -43,13 +54,16 @@ public class CoauthoringSessionTracker
     /// </summary>
     public void RemoveSession(string fileId, string userId)
     {
-        if (Sessions.TryGetValue(fileId, out var fileSessions))
+        if (s_sessions.TryGetValue(fileId, out var files_sessions))
         {
-            fileSessions.TryRemove(userId, out _);
-            // Clean up empty file entries
-            if (fileSessions.IsEmpty)
+            if (files_sessions.TryRemove(userId, out _))
             {
-                Sessions.TryRemove(fileId, out _);
+                LogEditorLeft(_logger, userId, fileId);
+            }
+            // Clean up empty file entries
+            if (files_sessions.IsEmpty)
+            {
+                s_sessions.TryRemove(fileId, out _);
             }
         }
     }
@@ -59,13 +73,13 @@ public class CoauthoringSessionTracker
     /// </summary>
     public int GetActiveEditorCount(string fileId)
     {
-        if (!Sessions.TryGetValue(fileId, out var fileSessions))
+        if (!s_sessions.TryGetValue(fileId, out var files_sessions))
         {
             return 0;
         }
 
-        var cutoff = DateTimeOffset.UtcNow - SessionTimeout;
-        return fileSessions.Values.Count(s => s.LastActivity > cutoff);
+        var cutoff = DateTimeOffset.UtcNow - s_sessionTimeout;
+        return files_sessions.Values.Count(s => s.LastActivity > cutoff);
     }
 
     /// <summary>
@@ -73,13 +87,13 @@ public class CoauthoringSessionTracker
     /// </summary>
     public bool IsAlone(string fileId, string userId)
     {
-        if (!Sessions.TryGetValue(fileId, out var fileSessions))
+        if (!s_sessions.TryGetValue(fileId, out var files_sessions))
         {
             return true;
         }
 
-        var cutoff = DateTimeOffset.UtcNow - SessionTimeout;
-        var activeEditors = fileSessions.Values
+        var cutoff = DateTimeOffset.UtcNow - s_sessionTimeout;
+        var activeEditors = files_sessions.Values
             .Where(s => s.LastActivity > cutoff)
             .ToList();
 
@@ -89,26 +103,46 @@ public class CoauthoringSessionTracker
     /// <summary>
     /// Returns the editors table for the Cobalt protocol.
     /// </summary>
-    public Dictionary<string, EditorsTableEntry> GetEditorsTable(string fileId)
+    /// <remarks>
+    /// As of MS-FSSHTTP/CobaltCore 16.x the editors table is keyed by
+    /// <see cref="ArrayGuid"/> (per-editor ClientId) and entries are
+    /// <see cref="EditorsTableEntryNew"/>. We don't have a real Cobalt ClientId
+    /// in WopiHost, so we derive a stable one per-user by hashing the user id —
+    /// this preserves the dedup-by-user behavior that the older string-keyed
+    /// table provided.
+    /// </remarks>
+    public EditorsTable GetEditorsTable(string fileId)
     {
-        var result = new Dictionary<string, EditorsTableEntry>();
-        if (!Sessions.TryGetValue(fileId, out var fileSessions))
+        var result = new EditorsTable();
+        if (!s_sessions.TryGetValue(fileId, out var files_sessions))
         {
             return result;
         }
 
-        var cutoff = DateTimeOffset.UtcNow - SessionTimeout;
-        foreach (var session in fileSessions.Values.Where(s => s.LastActivity > cutoff))
+        var cutoff = DateTimeOffset.UtcNow - s_sessionTimeout;
+        foreach (var session in files_sessions.Values.Where(s => s.LastActivity > cutoff))
         {
-            result[session.UserId] = new EditorsTableEntry
-            {
-                HasEditPermission = true,
-                UserName = session.UserName,
-                UserLogin = session.UserId
-            };
+            var clientId = DeriveClientId(session.UserId);
+            result[clientId] = new EditorsTableEntryNew(
+                dtTimeout: session.LastActivity.UtcDateTime + s_sessionTimeout,
+                clientId: clientId,
+                userName: session.UserName,
+                userLogin: session.UserId,
+                sipAddress: null,
+                emailAddress: null,
+                hasEditPermission: true);
         }
 
         return result;
+    }
+
+    private static ArrayGuid DeriveClientId(string userId)
+    {
+        // 16-byte MD5 of the user id maps cleanly onto ArrayGuid's underlying
+        // byte array. Not used for security — just a stable per-user identity
+        // so the same user across tabs collapses to a single editor row.
+        var bytes = MD5.HashData(Encoding.UTF8.GetBytes(userId ?? string.Empty));
+        return new ArrayGuid(bytes);
     }
 
     /// <summary>

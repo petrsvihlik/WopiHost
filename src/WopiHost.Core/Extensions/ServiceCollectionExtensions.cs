@@ -1,8 +1,9 @@
-using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using WopiHost.Abstractions;
+using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 using WopiHost.Core.Security;
 using WopiHost.Core.Security.Authentication;
@@ -25,15 +26,21 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         services.AddMemoryCache();
         services.AddRouting(options => options.LowercaseUrls = true);
-        services.AddAuthorizationCore();
+        // AddAuthorization (not AddAuthorizationCore) — middleware-tier services for
+        // app.UseAuthorization() were previously brought in by AddControllers.
+        services.AddAuthorization();
 
         services.AddSingleton<IAuthorizationHandler, WopiAuthorizationHandler>();
 
         services.AddScoped<IWopiProofValidator, WopiProofValidator>();
-        services.AddScoped<WopiOriginValidationActionFilter>();
-        services.AddControllers()
-            .AddApplicationPart(typeof(ServiceCollectionExtensions).GetTypeInfo().Assembly)
-            .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = null);
+
+        // Minimal-API endpoint filters + the override-header matcher policy. Consumers wire
+        // the surface up via app.MapWopiEndpoints().
+        services.AddSingleton<MatcherPolicy, WopiOverrideMatcherPolicy>();
+        services.AddScoped<WopiOriginValidationEndpointFilter>();
+        services.AddScoped<WopiTelemetryEndpointFilter>();
+        services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(
+            o => o.SerializerOptions.PropertyNamingPolicy = null);
 
         services.AddAuthentication(o => { o.DefaultScheme = WopiAuthenticationSchemes.AccessToken; })
             .AddTokenAuthentication(
@@ -45,6 +52,33 @@ public static class ServiceCollectionExtensions
         services.AddOptions<WopiSecurityOptions>();
         services.TryAddSingleton<IWopiAccessTokenService, JwtAccessTokenService>();
         services.TryAddSingleton<IWopiPermissionProvider, DefaultWopiPermissionProvider>();
+
+        // Per-resource token mint orchestrator used by every endpoint that surfaces a child or
+        // ancestor URL in a response (EnumerateAncestors, EnumerateChildren, PutRelativeFile,
+        // CreateChildFile, CreateChildContainer, ecosystem_pointer). Centralising the mint
+        // (permission lookup + WopiAccessTokenRequest build + IssueAsync call) here keeps the
+        // token-trading prevention shape in one place and lets a host override the policy.
+        services.TryAddSingleton<IWopiResourceTokenMinter, ResourceTokenMinter>();
+
+        // Lock-id comparison: strict by default. Hosts that need tolerant comparison (e.g. for
+        // OOS-style JSON-shaped lock mutations) replace this registration with their own
+        // IWopiLockComparer (JsonShapedWopiLockComparer ships as one option).
+        services.TryAddSingleton<IWopiLockComparer, OrdinalWopiLockComparer>();
+
+        // Host-customization seam. Pass-through default; hosts register a subclass of
+        // WopiHostExtensions to plug in audit, telemetry, response mutations, etc.
+        services.TryAddSingleton<IWopiHostExtensions, WopiHostExtensions>();
+
+        // CheckXxxInfo response builders. Scoped because the writable storage provider may be
+        // scoped, and the builders capture it.
+        services.TryAddScoped<ICheckFileInfoBuilder, DefaultCheckFileInfoBuilder>();
+        services.TryAddScoped<ICheckContainerInfoBuilder, DefaultCheckContainerInfoBuilder>();
+        services.TryAddScoped<ICheckFolderInfoBuilder, DefaultCheckFolderInfoBuilder>();
+
+        // Suggested-target / relative-target name-negotiation for PutRelativeFile and
+        // CreateChildFile — the spec defines the protocol identically for both, so it lives
+        // in one place.
+        services.TryAddScoped<IWopiNewChildFileNegotiator, DefaultWopiNewChildFileNegotiator>();
 
         services.AddOptions<WopiHostOptions>()
             .Configure(o =>
@@ -81,6 +115,54 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
         services.Configure(configure);
+        return services;
+    }
+
+    /// <summary>
+    /// Decorates the registered <see cref="IWopiWritableStorageProvider"/> with
+    /// <see cref="WopiLockAwareWritableStorageProvider"/> so delete/rename operations consult
+    /// <see cref="IWopiLockProvider"/> first and throw <see cref="WopiResourceLockedException"/>
+    /// when the target is locked. Defense in depth — the WOPI endpoints already short-circuit
+    /// on locks; this decorator catches non-WOPI code paths (admin tools, batch jobs) and any
+    /// future endpoint regressions before they corrupt locked state.
+    /// </summary>
+    /// <remarks>
+    /// Must be called <em>after</em> the storage provider is registered (typically via
+    /// <c>AddStorageProvider(...)</c>) and after a lock provider is registered.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">No <see cref="IWopiWritableStorageProvider"/>
+    /// is registered when this method runs.</exception>
+    public static IServiceCollection AddWopiLockAwareWritableStorage(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        var inner = services.LastOrDefault(d => d.ServiceType == typeof(IWopiWritableStorageProvider))
+            ?? throw new InvalidOperationException(
+                "AddWopiLockAwareWritableStorage requires an IWopiWritableStorageProvider to be registered first (typically via AddStorageProvider).");
+
+        services.Remove(inner);
+        services.Add(new ServiceDescriptor(
+            typeof(IWopiWritableStorageProvider),
+            sp =>
+            {
+                IWopiWritableStorageProvider innerInstance;
+                if (inner.ImplementationInstance is not null)
+                {
+                    innerInstance = (IWopiWritableStorageProvider)inner.ImplementationInstance;
+                }
+                else if (inner.ImplementationFactory is not null)
+                {
+                    innerInstance = (IWopiWritableStorageProvider)inner.ImplementationFactory(sp);
+                }
+                else
+                {
+                    innerInstance = (IWopiWritableStorageProvider)ActivatorUtilities.CreateInstance(sp, inner.ImplementationType!);
+                }
+                return new WopiLockAwareWritableStorageProvider(
+                    innerInstance,
+                    sp.GetRequiredService<IWopiLockProvider>());
+            },
+            inner.Lifetime));
         return services;
     }
 }

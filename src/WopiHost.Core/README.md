@@ -3,349 +3,111 @@
 [![NuGet](https://img.shields.io/nuget/v/WopiHost.Core.svg)](https://www.nuget.org/packages/WopiHost.Core)
 [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Core.svg)](https://www.nuget.org/packages/WopiHost.Core)
 
-A .NET library providing the core WOPI (Web Application Open Platform Interface) server implementation. This package contains ASP.NET Core controllers, middleware, and services that implement the WOPI protocol for integrating with Office Online Server.
+The WOPI server: ASP.NET Core controllers, authentication, authorization, proof-key validation, and the access-token pipeline. Reference this package in your host along with a storage provider (e.g. [WopiHost.FileSystemProvider](../WopiHost.FileSystemProvider/README.md)) and a lock provider (e.g. [WopiHost.MemoryLockProvider](../WopiHost.MemoryLockProvider/README.md)).
 
-## Features
-
-- **WOPI Controllers**: Complete implementation of WOPI REST API endpoints
-- **Authentication & Authorization**: Built-in WOPI token authentication and authorization
-- **File Operations**: Support for all standard WOPI file operations
-- **Container Operations**: Folder and container management
-- **Lock Management**: File locking and concurrency control
-- **Security Validation**: WOPI proof validation and origin checking
-- **Extensible Architecture**: Easy integration with custom storage providers
-
-## Installation
+## Install
 
 ```bash
 dotnet add package WopiHost.Core
 ```
 
-## Quick Start
-
-### Basic Setup
+## Quick start
 
 ```csharp
-using WopiHost.Core.Extensions;
-using WopiHost.Core.Models;
-
-// Program.cs
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure WOPI options
-builder.Services.Configure<WopiHostOptions>(options =>
+builder.Services.AddWopi(o =>
 {
-    options.ClientUrl = new Uri("https://your-office-online-server.com");
-    options.StorageProviderAssemblyName = "YourStorageProvider";
-    options.UseCobalt = false; // Set to true if using MS-FSSHTTP
+    o.ClientUrl = new Uri("https://your-office-online-server.com");
 });
 
-// Add WOPI services
-builder.Services.AddWopi();
+// Reference one storage provider package + one lock provider package and call their
+// typed registration extensions. Each provider's options bind from the configuration
+// section it documents (Wopi:StorageProvider / Wopi:LockProvider).
+builder.Services.AddFileSystemStorageProvider(builder.Configuration);
+builder.Services.AddMemoryLockProvider();
 
-// Add your custom storage provider
-builder.Services.AddScoped<IWopiStorageProvider, YourStorageProvider>();
+// Required in production: pin the access-token signing key.
+builder.Services.ConfigureWopiSecurity(o =>
+{
+    o.SigningKey = Convert.FromBase64String(
+        builder.Configuration[$"{WopiSecurityOptions.SectionName}:{nameof(WopiSecurityOptions.SigningKey)}"]!);
+});
 
 var app = builder.Build();
-
-// Configure pipeline
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers();
-
+app.MapWopiEndpoints();
 app.Run();
 ```
 
-### Configuration
+`AddWopi()` registers the access-token authentication scheme, the proof-key validator, the WOPI endpoint filters and override-header matcher policy, default `IWopiAccessTokenService` (signed JWT), and default `IWopiPermissionProvider` (reads from token claims). `app.MapWopiEndpoints()` wires every WOPI route onto the application — files, containers, folders, ecosystem, bootstrap. Override either default service by registering your own implementation — the defaults are added with `TryAdd*` so a custom registration wins regardless of order. See [the runnable sample](../../sample/WopiHost/Program.cs).
 
-```json
+> **Migrating from 8.x?** Replace `app.MapControllers()` with `app.MapWopiEndpoints()`. The
+> `AddWopi()` signature is unchanged. Custom MVC `IActionFilter` / `IActionResult` types
+> that derived from the v8 WOPI helpers (`LockMismatchResult`, `[RequiresWritableStorage]`,
+> etc.) no longer exist — see the v9 release notes for the new `IResult` equivalents.
+
+The bundled provider packages each ship a typed `Add{Provider}{StorageOrLock}Provider(...)` extension — pick the one you want and reference its package. Available extensions:
+
+| Provider package | Extension |
+|---|---|
+| `WopiHost.FileSystemProvider` | `services.AddFileSystemStorageProvider(IConfiguration)` |
+| `WopiHost.AzureStorageProvider` | `services.AddAzureStorageProvider(IConfiguration)` |
+| `WopiHost.MemoryLockProvider` | `services.AddMemoryLockProvider()` |
+| `WopiHost.AzureLockProvider` | `services.AddAzureLockProvider(IConfiguration)` |
+| `WopiHost.RedisLockProvider` | `services.AddRedisLockProvider(IConfiguration)` |
+
+Third-party providers register themselves the same way — implement `IWopiStorageProvider` / `IWopiWritableStorageProvider` (or `IWopiLockProvider`) and expose a typed extension on `IServiceCollection`.
+
+## Configuration
+
+```jsonc
 {
   "Wopi": {
     "ClientUrl": "https://your-office-online-server.com",
-    "StorageProviderAssemblyName": "YourStorageProvider",
-    "LockProviderAssemblyName": "YourLockProvider",
     "UseCobalt": false,
     "Discovery": {
-      "NetZone": "ExternalHttp",
-      "RefreshInterval": "24:00:00"
+      "NetZone":         "ExternalHttps",
+      "RefreshInterval": "12:00:00"
     }
+    // Provider-specific options bind under "Wopi:StorageProvider" and "Wopi:LockProvider" —
+    // see each provider's README.
   }
 }
 ```
 
-## Hero Scenarios
+`WopiHostOptions` ([source](Models/WopiHostOptions.cs)) implements `IDiscoveryOptions` so a single config section feeds Core, Discovery, and Url.
 
-### 1. Complete WOPI Host Implementation
+## Endpoints
 
-Build a complete WOPI host with custom storage:
+WOPI uses a small set of routes; verb + `X-WOPI-Override` header pick the operation. Don't expect REST-style `/lock` / `/unlock` paths — they don't exist.
 
-```csharp
-public class Program
-{
-    public static void Main(string[] args)
-    {
-        var builder = WebApplication.CreateBuilder(args);
-        
-        // Configure services
-        builder.Services.AddControllers();
-        builder.Services.AddWopi();
-        
-        // Configure WOPI options
-        builder.Services.Configure<WopiHostOptions>(options =>
-        {
-            options.ClientUrl = new Uri("https://office-online-server.com");
-            options.StorageProviderAssemblyName = "MyStorageProvider";
-            options.LockProviderAssemblyName = "MyLockProvider";
-            options.UseCobalt = true;
-        });
-        
-        // Add custom storage provider
-        builder.Services.AddScoped<IWopiStorageProvider, MyStorageProvider>();
-        builder.Services.AddScoped<IWopiWritableStorageProvider, MyStorageProvider>();
-        builder.Services.AddScoped<IWopiLockProvider, MyLockProvider>();
-        builder.Services.AddSingleton<IWopiPermissionProvider, MyAclPermissionProvider>();
-        
-        // Add discovery services
-        builder.Services.AddWopiDiscovery<WopiHostOptions>(options =>
-        {
-            options.NetZone = NetZoneEnum.ExternalHttp;
-            options.RefreshInterval = TimeSpan.FromHours(24);
-        });
-        
-        var app = builder.Build();
-        
-        // Configure pipeline
-        app.UseAuthentication();
-        app.UseAuthorization();
-        app.MapControllers();
-        
-        app.Run();
-    }
-}
-
-// Custom storage provider implementation
-public class MyStorageProvider : IWopiStorageProvider, IWopiWritableStorageProvider
-{
-    // Implement storage operations
-    public Task<T?> GetWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource
-    {
-        // Your implementation
-        throw new NotImplementedException();
-    }
-    
-    // Implement other required methods...
-}
-```
-
-### 2. Enterprise Document Management
-
-Integrate WOPI with enterprise document management systems:
-
-```csharp
-public class EnterpriseDocumentController : ControllerBase
-{
-    private readonly IWopiStorageProvider _storageProvider;
-    private readonly IDocumentService _documentService;
-    private readonly IUserService _userService;
-    
-    [HttpGet("documents/{documentId}/wopi-url")]
-    public async Task<IActionResult> GetWopiUrl(string documentId, [FromQuery] string action = "edit")
-    {
-        // Get document from enterprise system
-        var document = await _documentService.GetDocumentAsync(documentId);
-        if (document == null)
-        {
-            return NotFound();
-        }
-        
-        // Check user permissions
-        var user = await _userService.GetCurrentUserAsync();
-        if (!await _userService.HasPermissionAsync(user.Id, documentId, action))
-        {
-            return Forbid();
-        }
-        
-        // Generate WOPI URL
-        var wopiUrl = GenerateWopiUrl(documentId, action);
-        
-        return Ok(new { WopiUrl = wopiUrl, Document = document });
-    }
-    
-    [HttpPost("documents/{documentId}/checkout")]
-    public async Task<IActionResult> CheckoutDocument(string documentId)
-    {
-        var document = await _documentService.GetDocumentAsync(documentId);
-        if (document == null)
-        {
-            return NotFound();
-        }
-        
-        // Implement checkout logic
-        await _documentService.CheckoutDocumentAsync(documentId);
-        
-        return Ok();
-    }
-    
-    [HttpPost("documents/{documentId}/checkin")]
-    public async Task<IActionResult> CheckinDocument(string documentId, [FromBody] CheckinRequest request)
-    {
-        var document = await _documentService.GetDocumentAsync(documentId);
-        if (document == null)
-        {
-            return NotFound();
-        }
-        
-        // Implement checkin logic
-        await _documentService.CheckinDocumentAsync(documentId, request.Comment);
-        
-        return Ok();
-    }
-}
-```
-
-### 3. Multi-Tenant WOPI Host
-
-Build a multi-tenant WOPI host with tenant isolation:
-
-```csharp
-public class MultiTenantWopiHost
-{
-    public static void Main(string[] args)
-    {
-        var builder = WebApplication.CreateBuilder(args);
-        
-        // Add multi-tenant services
-        builder.Services.AddMultiTenant<TenantInfo>()
-            .WithConfigurationStore()
-            .WithRouteStrategy();
-        
-        // Add WOPI with tenant-aware configuration
-        builder.Services.AddWopi();
-        
-        // Add tenant-aware storage provider
-        builder.Services.AddScoped<IWopiStorageProvider>(provider =>
-        {
-            var tenantContext = provider.GetRequiredService<ITenantContextAccessor<TenantInfo>>();
-            var tenant = tenantContext.TenantInfo;
-            
-            return new TenantAwareStorageProvider(tenant);
-        });
-        
-        // Add tenant-aware security handler
-        builder.Services.AddScoped<IWopiPermissionProvider, TenantAwarePermissionProvider>();
-        
-        var app = builder.Build();
-        
-        // Configure multi-tenant pipeline
-        app.UseMultiTenant();
-        app.UseAuthentication();
-        app.UseAuthorization();
-        app.MapControllers();
-        
-        app.Run();
-    }
-}
-
-public class TenantAwareStorageProvider : IWopiStorageProvider
-{
-    private readonly TenantInfo _tenant;
-    private readonly IStorageProviderFactory _storageFactory;
-    
-    public TenantAwareStorageProvider(TenantInfo tenant, IStorageProviderFactory storageFactory)
-    {
-        _tenant = tenant;
-        _storageFactory = storageFactory;
-    }
-    
-    public async Task<T?> GetWopiResource<T>(string identifier, CancellationToken cancellationToken = default)
-        where T : class, IWopiResource
-    {
-        // Ensure tenant isolation
-        var tenantAwareId = $"{_tenant.Id}/{identifier}";
-        
-        var storageProvider = _storageFactory.GetProvider(_tenant.StorageProviderType);
-        return await storageProvider.GetWopiResource<T>(tenantAwareId, cancellationToken);
-    }
-    
-    // Implement other methods with tenant isolation...
-}
-```
-
-## API Reference
-
-### Controllers
-
-#### FilesController
-
-Handles WOPI file operations.
-
-**Endpoints:**
-- `GET /wopi/files/{fileId}` - Get file content
-- `POST /wopi/files/{fileId}` - Update file content
-- `GET /wopi/files/{fileId}/contents` - Get file contents
-- `POST /wopi/files/{fileId}/contents` - Update file contents
-- `POST /wopi/files/{fileId}/lock` - Lock file
-- `POST /wopi/files/{fileId}/unlock` - Unlock file
-- `GET /wopi/files/{fileId}/lock` - Get file lock
-- `POST /wopi/files/{fileId}/refreshlock` - Refresh file lock
-- `POST /wopi/files/{fileId}/rename` - Rename file
-- `DELETE /wopi/files/{fileId}` - Delete file
-
-#### ContainersController
-
-Handles WOPI container/folder operations.
-
-**Endpoints:**
-- `GET /wopi/containers/{containerId}` - Get container info
-- `GET /wopi/containers/{containerId}/children` - Get container children
-- `POST /wopi/containers/{containerId}` - Create container
-- `DELETE /wopi/containers/{containerId}` - Delete container
-
-#### EcosystemController
-
-Handles WOPI ecosystem operations.
-
-**Endpoints:**
-- `GET /wopi/ecosystem` - Get ecosystem info
-
-### Models
-
-#### WopiHostOptions
-
-Configuration options for the WOPI host.
-
-```csharp
-public class WopiHostOptions : IDiscoveryOptions
-{
-    public bool UseCobalt { get; set; }
-    public required string StorageProviderAssemblyName { get; set; }
-    public string? LockProviderAssemblyName { get; set; }
-    public Func<WopiCheckFileInfoContext, Task<WopiCheckFileInfo>> OnCheckFileInfo { get; set; }
-    public Func<WopiCheckContainerInfoContext, Task<WopiCheckContainerInfo>> OnCheckContainerInfo { get; set; }
-    public Func<WopiCheckFolderInfoContext, Task<WopiCheckFolderInfo>> OnCheckFolderInfo { get; set; }
-    public Func<WopiCheckEcosystemContext, Task<WopiCheckEcosystem>> OnCheckEcosystem { get; set; }
-    public required Uri ClientUrl { get; set; }
-}
-```
-
-### Extensions
-
-#### ServiceCollectionExtensions
-
-Extension methods for registering WOPI services.
-
-```csharp
-public static class ServiceCollectionExtensions
-{
-    public static IServiceCollection AddWopi(this IServiceCollection services);
-    public static IServiceCollection AddWopi(this IServiceCollection services, Action<WopiHostOptions> configureOptions);
-}
-```
+| Route | Verb | Override header | Operation |
+|---|---|---|---|
+| `/wopi/files/{id}` | `GET` | — | [`CheckFileInfo`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo) |
+| `/wopi/files/{id}/contents` | `GET` | — | [`GetFile`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getfile) |
+| `/wopi/files/{id}/contents` | `POST` | — | [`PutFile`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile) |
+| `/wopi/files/{id}` | `POST` | `LOCK` / `UNLOCK` / `REFRESH_LOCK` / `GET_LOCK` | Lock operations |
+| `/wopi/files/{id}` | `POST` | `PUT_RELATIVE` | [`PutRelativeFile`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile) |
+| `/wopi/files/{id}` | `POST` | `RENAME_FILE` | [`RenameFile`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/renamefile) |
+| `/wopi/files/{id}` | `POST` | `DELETE` | [`DeleteFile`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile) |
+| `/wopi/files/{id}` | `POST` | `PUT_USER_INFO` | [`PutUserInfo`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo) |
+| `/wopi/files/{id}` | `POST` | `COBALT` | MS-FSSHTTP request batch (when [WopiHost.Cobalt](../WopiHost.Cobalt/README.md) is registered) |
+| `/wopi/files/{id}/ancestry` | `GET` | — | [`EnumerateAncestors`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/enumerateancestors) |
+| `/wopi/files/{id}/ecosystem_pointer` | `GET` | — | Ecosystem pointer for the file |
+| `/wopi/containers/{id}` | `GET` | — | [`CheckContainerInfo`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo) |
+| `/wopi/containers/{id}/children` | `GET` | — | [`EnumerateChildren`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/enumeratechildren) |
+| `/wopi/containers/{id}/ancestry` | `GET` | — | [`EnumerateAncestors`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/enumerateancestors) |
+| `/wopi/containers/{id}/ecosystem_pointer` | `GET` | — | Ecosystem pointer for the container |
+| `/wopi/containers/{id}` | `POST` | `CREATE_CHILD_CONTAINER` / `CREATE_CHILD_FILE` / `RENAME_CONTAINER` / `DELETE_CONTAINER` | Container mutations |
+| `/wopi/folders/{id}` | `GET` | — | [`CheckFolderInfo`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/folders/checkfolderinfo) (legacy OneNote) |
+| `/wopi/folders/{id}/children` | `GET` | — | [`EnumerateChildren (folders)`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/folders/enumeratechildren) |
+| `/wopi/ecosystem` | `GET` | — | [`CheckEcosystem`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/checkecosystem) |
+| `/wopi/ecosystem/root_container_pointer` | `GET` | — | [`GetRootContainer`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getrootcontainer) |
+| `/wopibootstrapper` | `GET` / `POST` | `GET_ROOT_CONTAINER` / `GET_NEW_ACCESS_TOKEN` | Office mobile bootstrapper (separate auth scheme — see below) |
 
 ## Security
-
-### The pipeline
 
 ```
 ┌─────────────┐    1. who is the user?       ┌──────────────────────────┐
@@ -382,10 +144,9 @@ public static class ServiceCollectionExtensions
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### What you implement (the common case)
+### What you implement
 
-In almost all cases the only thing you need to write is an `IWopiPermissionProvider` against
-your ACL store. Everything else has working defaults.
+In almost all cases the only seam you need is `IWopiPermissionProvider`:
 
 ```csharp
 public class MyAclPermissionProvider : IWopiPermissionProvider
@@ -394,73 +155,59 @@ public class MyAclPermissionProvider : IWopiPermissionProvider
         ClaimsPrincipal user, IWopiFile file, CancellationToken ct = default) { /* your ACL lookup */ }
 
     public Task<WopiContainerPermissions> GetContainerPermissionsAsync(
-        ClaimsPrincipal user, IWopiFolder container, CancellationToken ct = default) { /* ... */ }
+        ClaimsPrincipal user, IWopiContainer container, CancellationToken ct = default) { /* ... */ }
 }
-```
 
-Wire it up:
-
-```csharp
-services.AddWopi(o =>
-{
-    o.ClientUrl = new Uri("https://office.example.com");
-    o.StorageProviderAssemblyName = "MyStorageProvider";
-});
-
-// REQUIRED in production: configure the access-token signing key.
-// Without this, the host generates a per-process random key on first use and logs a warning.
+services.AddWopi(o => { o.ClientUrl = ...; });
+services.AddFileSystemStorageProvider(Configuration);   // or any other storage provider
+services.AddSingleton<IWopiPermissionProvider, MyAclPermissionProvider>();
 services.ConfigureWopiSecurity(o =>
 {
-    o.SigningKey = Convert.FromBase64String(Configuration["Wopi:Security:SigningKey"]!);
+    o.SigningKey = Convert.FromBase64String(Configuration[$"{WopiSecurityOptions.SectionName}:{nameof(WopiSecurityOptions.SigningKey)}"]!);
     o.DefaultTokenLifetime = TimeSpan.FromMinutes(10);
-    // o.Issuer / o.Audience  — optional, enforced when set
 });
-
-// Override the default permission provider with your ACL implementation.
-services.AddSingleton<IWopiPermissionProvider, MyAclPermissionProvider>();
 ```
 
-### What you can override (rare)
+Without `ConfigureWopiSecurity`, the host generates a random signing key on first use and logs a warning. Fine for local dev; never ship that.
+
+### What you can override (rarely)
 
 | Service | Default | Override when |
 |---|---|---|
-| `IWopiPermissionProvider` | `DefaultWopiPermissionProvider` (reads from token claims, falls back to `WopiHostOptions.DefaultFilePermissions`) | You have a real ACL model — almost always. |
-| `IWopiAccessTokenService` | `JwtAccessTokenService` (signed JWT with HMAC-SHA256, configurable issuer/audience/lifetime/key rotation) | You need opaque reference tokens (revocable), or are integrating an external token service. |
+| `IWopiPermissionProvider` | `DefaultWopiPermissionProvider` (reads from token claims, falls back to `WopiHostOptions.DefaultFilePermissions`/`DefaultContainerPermissions`) | You have a real ACL model — almost always. |
+| `IWopiAccessTokenService` | `JwtAccessTokenService` (HMAC-SHA256, configurable issuer/audience/lifetime/key rotation) | You need opaque revocable tokens or external token issuance. |
 
 ### Issuing a WOPI URL from the frontend
 
-The host's frontend (typically a separate process / page) is responsible for handing the user
-a URL that embeds an `access_token`. With Core registered:
+The host's frontend (often a separate process) hands the user a URL embedding an `access_token`:
 
 ```csharp
 public async Task<IActionResult> Open(string fileId)
 {
-    var file = await _storage.GetWopiResource<IWopiFile>(fileId);
+    var file  = await _storage.GetWopiFile(fileId);
     var perms = await _permissions.GetFilePermissionsAsync(User, file);
     var token = await _tokens.IssueAsync(new WopiAccessTokenRequest
     {
-        UserId           = User.FindFirstValue(ClaimTypes.NameIdentifier)!,
-        UserDisplayName  = User.FindFirstValue(ClaimTypes.Name),
-        UserEmail        = User.FindFirstValue(ClaimTypes.Email),
-        ResourceId       = file.Identifier,
-        ResourceType     = WopiResourceType.File,
-        FilePermissions  = perms,
+        UserId          = User.FindFirstValue(ClaimTypes.NameIdentifier)!,
+        UserDisplayName = User.FindFirstValue(ClaimTypes.Name),
+        UserEmail       = User.FindFirstValue(ClaimTypes.Email),
+        ResourceId      = file.Identifier,
+        ResourceType    = WopiResourceType.File,
+        FilePermissions = perms,
     });
     return Redirect($"{wopiSrcUrl}?access_token={Uri.EscapeDataString(token.Token)}&access_token_ttl={token.ExpiresAt.ToUnixTimeMilliseconds()}");
 }
 ```
 
-If the frontend is a separate process from the WOPI server, both must be configured with the
-**same `WopiSecurityOptions.SigningKey`** so the server can validate tokens the frontend issues.
+If the frontend lives in a different process from the WOPI server, both must be configured with the **same `WopiSecurityOptions.SigningKey`**. The OIDC sample wires this end-to-end — see [`sample/WopiHost.Web.Oidc`](../../sample/WopiHost.Web.Oidc/README.md).
 
 ### Claim layout (`WopiClaimTypes`)
 
-Tokens issued by the default `JwtAccessTokenService` carry these custom claims, read back out
-by `WopiAuthorizationHandler` and `DefaultWopiPermissionProvider`:
+Tokens issued by the default `JwtAccessTokenService` carry these custom claims, read back by `WopiAuthorizationHandler` and `DefaultWopiPermissionProvider`:
 
 | Claim | Meaning |
 |---|---|
-| `wopi:rid` | Resource id the token was issued for. Used for audit/logging; the default authorization handler does **not** reject mismatches because Office uses a single token to navigate file → container. |
+| `wopi:rid` | Resource id the token was issued for. Used for audit; not enforced as a route binding because Office uses one token to navigate file → ancestor container. |
 | `wopi:rtype` | `"File"` or `"Container"`. |
 | `wopi:fperms` | Comma-separated `WopiFilePermissions` flags (when `wopi:rtype` is `File`). |
 | `wopi:cperms` | Comma-separated `WopiContainerPermissions` flags (when `wopi:rtype` is `Container`). |
@@ -468,23 +215,19 @@ by `WopiAuthorizationHandler` and `DefaultWopiPermissionProvider`:
 
 ### Key rotation
 
-To rotate without invalidating outstanding tokens:
-
 ```csharp
 services.ConfigureWopiSecurity(o =>
 {
-    o.SigningKey = newKey;                   // used for signing AND validation
+    o.SigningKey = newKey;                   // signs new tokens, validates new + old
     o.AdditionalValidationKeys.Add(oldKey);  // accepted for validation only
 });
 ```
 
-Leave the old key in `AdditionalValidationKeys` for at least the longest token TTL, then remove it.
+Keep the old key in `AdditionalValidationKeys` for at least one full token TTL, then drop it.
 
-### Bootstrapper
+### Bootstrapper (Office mobile)
 
-The `/wopibootstrapper` endpoint (used by Office mobile clients) is a separate authentication
-scheme — OAuth2 Bearer from your IdP, not the `access_token` query parameter. Register it under
-`WopiAuthenticationSchemes.Bootstrap`:
+`/wopibootstrapper` uses OAuth2 Bearer from your IdP — not the `access_token` query parameter. Register a JWT-bearer handler under `WopiAuthenticationSchemes.Bootstrap`:
 
 ```csharp
 services.AddAuthentication()
@@ -495,186 +238,129 @@ services.AddAuthentication()
     });
 ```
 
-If you don't expose the bootstrapper, no extra scheme registration is needed.
+Skip this section if you are not exposing the bootstrapper. See [Bootstrap endpoint](https://github.com/petrsvihlik/WopiHost/wiki/Bootstrap-Endpoint) on the wiki for the WWW-Authenticate challenge and the three operations.
 
-## Configuration
+## Customizing CheckFileInfo / CheckContainerInfo / CheckFolderInfo / CheckEcosystem
 
-### appsettings.json
-
-```json
-{
-  "Wopi": {
-    "ClientUrl": "https://your-office-online-server.com",
-    "StorageProviderAssemblyName": "YourStorageProvider",
-    "LockProviderAssemblyName": "YourLockProvider",
-    "UseCobalt": false,
-    "Discovery": {
-      "NetZone": "ExternalHttp",
-      "RefreshInterval": "24:00:00"
-    }
-  },
-  "Logging": {
-    "LogLevel": {
-      "WopiHost.Core": "Information"
-    }
-  }
-}
-```
-
-### Environment Variables
-
-```bash
-WOPI__CLIENTURL=https://your-office-online-server.com
-WOPI__STORAGEPROVIDERASSEMBLYNAME=YourStorageProvider
-WOPI__USECOBALT=false
-```
-
-## Middleware
-
-### WopiOriginValidationActionFilter
-
-Validates WOPI request origins to prevent unauthorized access.
+`IWopiHostExtensions` is the single host-customization seam. The shipped [`WopiHostExtensions`](../WopiHost.Abstractions/WopiHostExtensions.cs) base class is pass-through — subclass it and override only the hooks you care about, then register your subclass with DI.
 
 ```csharp
-[ServiceFilter(typeof(WopiOriginValidationActionFilter))]
-public class FilesController : ControllerBase
+public class MyHostExtensions(IAuditLog audit, ITelemetry telemetry) : WopiHostExtensions
 {
-    // Controller implementation
-}
-```
-
-## Error Handling
-
-WOPI Core includes comprehensive error handling:
-
-```csharp
-public class WopiErrorHandler : IExceptionHandler
-{
-    public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
+    public override Task<WopiCheckFileInfo> OnCheckFileInfoAsync(WopiCheckFileInfoContext ctx, CancellationToken ct = default)
     {
-        if (exception is WopiException wopiException)
-        {
-            httpContext.Response.StatusCode = wopiException.StatusCode;
-            await httpContext.Response.WriteAsync(wopiException.Message, cancellationToken);
-            return true;
-        }
-        
-        return false;
+        ctx.CheckFileInfo.IsAnonymousUser = false;
+        return Task.FromResult(ctx.CheckFileInfo);
     }
-}
-```
 
-## Logging
-
-WOPI Core includes structured logging:
-
-```csharp
-// Configure Serilog for WOPI
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .MinimumLevel.Override("WopiHost.Core", LogEventLevel.Debug)
-    .WriteTo.Console()
-    .CreateLogger();
-
-// In your Program.cs
-builder.Host.UseSerilog();
-```
-
-## Health Checks
-
-Add WOPI health checks:
-
-```csharp
-builder.Services.AddHealthChecks()
-    .AddCheck<WopiHealthCheck>("wopi");
-
-public class WopiHealthCheck : IHealthCheck
-{
-    private readonly IWopiStorageProvider _storageProvider;
-    
-    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+    // Spec: SupportsContainers should match the value returned from CheckFileInfo.
+    public override Task<WopiCheckEcosystem> OnCheckEcosystemAsync(WopiCheckEcosystemContext ctx, CancellationToken ct = default)
     {
-        try
-        {
-            // Check storage provider health
-            var rootContainer = _storageProvider.RootContainerPointer;
-            return HealthCheckResult.Healthy();
-        }
-        catch (Exception ex)
-        {
-            return HealthCheckResult.Unhealthy("WOPI storage provider unhealthy", ex);
-        }
+        ctx.CheckEcosystem.SupportsContainers = false;
+        return Task.FromResult(ctx.CheckEcosystem);
+    }
+
+    // Fired after a successful PutFile. Editors comes from X-WOPI-Editors —
+    // a comma-delimited list of UserId values for users who contributed
+    // changes in this PutFile request.
+    public override async Task OnPutFileAsync(WopiPutFileContext ctx, CancellationToken ct = default)
+    {
+        await audit.RecordEditAsync(ctx.File, ctx.Editors, ctx.User, ct);
+    }
+
+    // Fired after a successful PutRelativeFile. IsFileConversion reflects
+    // X-WOPI-FileConversion (presence-only); DeclaredSize reflects X-WOPI-Size.
+    public override Task OnPutRelativeFileAsync(WopiPutRelativeFileContext ctx, CancellationToken ct = default)
+    {
+        if (ctx.IsFileConversion) telemetry.Conversion(ctx.NewFile);
+        return Task.CompletedTask;
     }
 }
+
+// Register BEFORE or AFTER AddWopi — TryAddSingleton respects either order.
+services.AddSingleton<IWopiHostExtensions, MyHostExtensions>();
+services.AddWopi(o =>
+{
+    o.ClientUrl = ...;
+});
+services.AddFileSystemStorageProvider(Configuration);   // or any other storage provider
 ```
 
-## Dependencies
+Throwing inside any hook turns the response into a 500 — for best-effort bookkeeping (audit log, last-edit telemetry), catch exceptions inside the override.
 
-- `WopiHost.Abstractions`: Core WOPI interfaces
-- `WopiHost.Discovery`: WOPI discovery services
-- `Microsoft.AspNetCore.App`: ASP.NET Core framework
-- `Microsoft.Extensions.Configuration.Binder`: Configuration binding
-- `System.IdentityModel.Tokens.Jwt`: JWT token handling
+If the customization needs scoped services that don't fit the hook's context shape — or you want to replace the entire response generation — register a custom [`ICheckFileInfoBuilder`](../WopiHost.Abstractions/ICheckFileInfoBuilder.cs) / [`ICheckContainerInfoBuilder`](../WopiHost.Abstractions/ICheckContainerInfoBuilder.cs) / [`ICheckFolderInfoBuilder`](../WopiHost.Abstractions/ICheckFolderInfoBuilder.cs). The default builders in `WopiHost.Core` fire the matching `IWopiHostExtensions` hook before returning; custom builders own that responsibility themselves.
 
-## Examples
+## Upload-size budget
 
-### Custom File Operations
+Reject oversize uploads at the controller before the body is read:
 
 ```csharp
-[ApiController]
-[Route("api/[controller]")]
-public class CustomFileController : ControllerBase
+services.AddWopi(o =>
 {
-    private readonly IWopiStorageProvider _storageProvider;
-    
-    [HttpPost("files/{fileId}/custom-operation")]
-    public async Task<IActionResult> CustomOperation(string fileId, [FromBody] CustomOperationRequest request)
-    {
-        var file = await _storageProvider.GetWopiResource<IWopiFile>(fileId);
-        if (file == null)
-        {
-            return NotFound();
-        }
-        
-        // Implement custom operation
-        var result = await PerformCustomOperation(file, request);
-        
-        return Ok(result);
-    }
-}
+    o.MaxFileSize = 50 * 1024 * 1024;  // 50 MB; null (default) = no WOPI-level limit
+});
 ```
 
-### Custom Middleware
+`PutFile` checks `Content-Length`; `PutRelativeFile` also honors the declared `X-WOPI-Size`. When the budget is exceeded the controller returns `413 Request Entity Too Large` (a valid response per the WOPI spec) without invoking the storage provider. The underlying server's request-size limits still apply on top.
+
+## Empty `X-WOPI-Lock` placeholder
+
+The WOPI spec for `GetLock` (on an unlocked file) and `PutFile` (on a non-empty unlocked file) requires `X-WOPI-Lock` to be present and set to the empty string. That's the default. IIS in-process hosting strips empty header values before they hit the wire (issue #208), so opt back into the historic single-space workaround on that path:
 
 ```csharp
-public class CustomWopiMiddleware
+services.AddWopi(o =>
 {
-    private readonly RequestDelegate _next;
-    
-    public async Task InvokeAsync(HttpContext context)
-    {
-        // Add custom WOPI headers
-        context.Response.Headers.Add("X-WOPI-Custom-Header", "CustomValue");
-        
-        await _next(context);
-    }
-}
-
-// Register in Program.cs
-app.UseMiddleware<CustomWopiMiddleware>();
+    o.EmptyLockHeaderValue = " ";   // default is "" (spec)
+});
 ```
+
+Kestrel, IIS out-of-process, and any reverse proxy that preserves empty headers (NGINX, Caddy, YARP) need no override.
+
+## Lock-id comparison
+
+By default the host compares lock ids with byte-exact ordinal equality (`OrdinalWopiLockComparer`), which is what the WOPI spec implies. If you observe the Office Online Server / Microsoft 365-for-the-Web quirk where JSON-shaped lock ids round-trip with extra properties added — `cs3org/wopiserver` and SenseNet both ship a tolerant fallback for the same reason — swap in the included `JsonShapedWopiLockComparer`:
+
+```csharp
+services.AddWopi(...);
+services.Replace(ServiceDescriptor.Singleton<IWopiLockComparer, JsonShapedWopiLockComparer>());
+```
+
+Or register your own `IWopiLockComparer` implementation tailored to the specific mutation you observe. Tolerance carries its own correctness risk — distinct locks that happen to share a `S` field are treated as equivalent, which can mask lost updates — so don't relax the strict default speculatively.
+
+## `AddProblemDetails()` / `UseStatusCodePages()` — don't
+
+`WopiHost.Core` does not register `AddProblemDetails()` and the samples do not wire `UseStatusCodePages()`. Both are deliberate. The WOPI spec is prescriptive about error responses: lock failures return `X-WOPI-LockFailureReason` + an empty body, name-negotiation failures return `X-WOPI-InvalidFileNameError` / `X-WOPI-InvalidContainerNameError` + an empty body, and Office Online / Collabora do not read JSON error bodies. A generic `ProblemDetails` middleware that catches every empty-body 4xx and writes `application/problem+json` would silently violate the contract.
+
+If you layer **non-WOPI** JSON endpoints onto a WOPI host (admin / management / custom REST surfaces):
+
+```csharp
+builder.Services.AddProblemDetails();
+
+var app = builder.Build();
+app.UseExceptionHandler();   // OK — WOPI endpoints don't throw on the spec paths
+// app.UseStatusCodePages(); // NOT OK — would inject JSON into WOPI's empty-body 4xx responses
+app.MapWopiEndpoints();
+app.MapMyAdminEndpoints();   // your non-WOPI endpoints
+```
+
+`UseExceptionHandler()` is safe because the WOPI surface uses typed-result returns (`TypedResults.BadRequest()`, `TypedResults.Conflict()`, etc.) and doesn't throw on the spec paths — so it never reaches the exception handler. `UseStatusCodePages()` is not safe: it intercepts every empty-body 4xx, including the WOPI ones. If you genuinely need status-code-pages for your other endpoints, configure it to exclude the WOPI prefix via [`UseWhen(...)`](https://learn.microsoft.com/aspnet/core/fundamentals/middleware/?view=aspnetcore-10.0#branch-the-middleware-pipeline) or path-based filtering. See [#467](https://github.com/petrsvihlik/WopiHost/issues/467) for the full design discussion.
+
+## Lock-aware writable storage (defense in depth)
+
+`services.AddWopiLockAwareWritableStorage()` wraps the registered `IWopiWritableStorageProvider` so that the delete/rename pairs (`DeleteWopiFile`, `DeleteWopiContainer`, `RenameWopiFile`, `RenameWopiContainer`) consult `IWopiLockProvider` first and throw `WopiResourceLockedException` when the target is locked. The WOPI controllers already short-circuit on locks before reaching the storage layer, so on the hot path this decorator is redundant — it earns its keep when:
+
+- non-WOPI code paths in the same host (admin tools, batch jobs, REST APIs) resolve `IWopiWritableStorageProvider` directly and would otherwise clobber a locked file
+- a future controller refactor accidentally drops the lock check
+
+```csharp
+services.AddWopi(...);
+services.AddAzureStorageProvider(Configuration);
+services.AddAzureLockProvider(Configuration);
+services.AddWopiLockAwareWritableStorage();   // must run after the storage + lock providers are registered
+```
+
+The decorator only guards single-resource mutations; the create methods (`CreateWopiChildFile`, `CreateWopiChildContainer` — no prior lock to check) and the read-only members pass through unchanged.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](../../LICENSE.txt) file for details.
-
-## Contributing
-
-Contributions are welcome! Please read our [Contributing Guidelines](../../CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
-
-## Support
-
-For support and questions:
-- Create an issue on [GitHub](https://github.com/petrsvihlik/WopiHost/issues)
-- Check the [documentation](https://github.com/petrsvihlik/WopiHost)
-- Review the [WOPI specification](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/discovery)
+See the [repo README](../../README.md#license).

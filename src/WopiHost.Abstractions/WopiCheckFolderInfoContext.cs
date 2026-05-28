@@ -1,0 +1,11 @@
+using System.Security.Claims;
+
+namespace WopiHost.Abstractions;
+
+/// <summary>
+/// Context for the CheckFolderInfo operation.
+/// </summary>
+/// <param name="User">the current user.</param>
+/// <param name="Folder">the current folder resource.</param>
+/// <param name="CheckFolderInfo">the default created <see cref="WopiCheckFolderInfo"/></param>
+public record WopiCheckFolderInfoContext(ClaimsPrincipal? User, IWopiContainer Folder, WopiCheckFolderInfo CheckFolderInfo);

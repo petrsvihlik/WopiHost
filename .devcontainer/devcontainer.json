@@ -7,6 +7,6 @@
   "features": {},
   "postCreateCommand": "dotnet --list-sdks",
   "containerEnv": {
-    "MYGET_FEED": "${{ secrets.MYGET_FEED }}"
+    "COBALT_PACKAGES_TOKEN": "${{ secrets.COBALT_PACKAGES_TOKEN }}"
   }
 }

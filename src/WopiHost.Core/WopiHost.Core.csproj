@@ -4,7 +4,7 @@
 		<Nullable>enable</Nullable>
 		<Description>WopiHost.Core Class Library</Description>
 		<Authors>Petr Svihlik</Authors>
-		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<TargetFramework>net10.0</TargetFramework>
 		<AssemblyName>WopiHost.Core</AssemblyName>
 		<PackageId>WopiHost.Core</PackageId>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
@@ -15,7 +15,6 @@
 		<GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
 		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
 		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-		<DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -34,7 +33,6 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" />
-		<PackageReference Include="Microsoft.DotNet.PackageValidation" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>

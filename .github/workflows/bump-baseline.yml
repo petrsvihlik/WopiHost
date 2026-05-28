@@ -1,0 +1,137 @@
+name: Bump PackageValidationBaselineVersion
+
+# Keeps Directory.Build.props's PackageValidationBaselineVersion aligned with the latest
+# stable WopiHost package published to NuGet.org.
+#
+# Two triggers, two recovery paths:
+#
+# 1. release: published  — fires automatically after every stable GitHub Release. Picks the
+#    just-released version straight from the tag.
+#
+# 2. workflow_dispatch  — manual re-run. Lets you recover from races where the auto-trigger
+#    saw stale master state (e.g. a revert PR merging shortly after release time, leaving
+#    the file at the wrong baseline with no auto-bump PR queued). With no input, it falls
+#    back to NuGet.org's latest stable WopiHost.Core as the target version.
+#
+# Split out of release.yml so it can be re-triggered without re-running the publish job.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Target baseline version (leave empty to query NuGet.org for the latest stable)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    name: Bump baseline
+    # Skip the auto path for pre-releases and drafts. workflow_dispatch is always allowed —
+    # the operator opts in by triggering it.
+    if: ${{ github.event_name == 'workflow_dispatch' || (!github.event.release.prerelease && !github.event.release.draft) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Determine target version
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            # Strip a leading "v" so both "v8.0.0" and "8.0.0" tag styles work.
+            TARGET="${{ github.event.release.tag_name }}"
+            TARGET="${TARGET#v}"
+            echo "Source: release tag → $TARGET"
+          else
+            TARGET="${{ github.event.inputs.version }}"
+            if [[ -z "$TARGET" ]]; then
+              # No explicit target — query NuGet.org for the latest stable WopiHost.Core
+              # version. WopiHost.Core is the canonical packable assembly (every other
+              # package targets the same baseline). Same flatcontainer query the api-compat
+              # job in pull_request.yml uses for its diffs.
+              echo "Source: NuGet.org (no input version supplied)"
+              versions_json="$(curl -fsSL 'https://api.nuget.org/v3-flatcontainer/wopihost.core/index.json')"
+              # Filter out prereleases (anything containing a '-'), pick the highest by tail-after-sort.
+              TARGET="$(echo "$versions_json" | grep -oE '"[0-9][^"]+"' | tr -d '"' | grep -v -- '-' | sort -V | tail -n 1)"
+              echo "NuGet's latest stable: $TARGET"
+            else
+              echo "Source: workflow_dispatch input → $TARGET"
+            fi
+          fi
+          if [[ -z "$TARGET" ]]; then
+            echo "::error::Could not determine a target version."
+            exit 1
+          fi
+          echo "version=$TARGET" >> "$GITHUB_OUTPUT"
+
+      - name: Update Directory.Build.props
+        id: update
+        shell: bash
+        run: |
+          set -euo pipefail
+          NEW="${{ steps.target.outputs.version }}"
+          FILE="Directory.Build.props"
+          CURRENT="$(sed -n 's:.*<PackageValidationBaselineVersion>\([^<]*\)</PackageValidationBaselineVersion>.*:\1:p' "$FILE" | head -n 1)"
+          echo "Current baseline: ${CURRENT:-<unset>}"
+          echo "New baseline:     $NEW"
+
+          if [[ -z "$CURRENT" ]]; then
+            echo "::error::No <PackageValidationBaselineVersion> element found in $FILE."
+            exit 1
+          fi
+
+          if [[ "$CURRENT" == "$NEW" ]]; then
+            echo "Baseline already matches the target — peter-evans will see no diff and skip the PR."
+            # Don't early-exit: let sed run as a no-op so the action proceeds and logs the
+            # "no changes" outcome explicitly. Removes a class of subtle bugs where a future
+            # edit to the early-exit condition silently stops bumps.
+          fi
+
+          # Refuse to bump *backward* (NEW < CURRENT, semver-aware). Guards against running
+          # workflow_dispatch with an older version by mistake, or a patch release on an older
+          # line dragging the baseline back. The auto-release path can still produce this
+          # situation if you ship a patch on an older major after a newer major shipped —
+          # in that case set the input explicitly and re-run; the operator owns the override.
+          if [[ "$CURRENT" != "$NEW" ]]; then
+            HIGHEST="$(printf '%s\n%s\n' "$CURRENT" "$NEW" | sort -V | tail -n 1)"
+            if [[ "$HIGHEST" != "$NEW" ]]; then
+              echo "::warning::Target $NEW is older than current baseline $CURRENT — refusing to bump backward."
+              exit 0
+            fi
+          fi
+
+          sed -i "s|<PackageValidationBaselineVersion>[^<]*</PackageValidationBaselineVersion>|<PackageValidationBaselineVersion>${NEW}</PackageValidationBaselineVersion>|g" "$FILE"
+
+      - name: Open PR with the bump
+        # peter-evans/create-pull-request is intentionally idempotent: if Directory.Build.props
+        # has no diff (because CURRENT was already at NEW, or because the backward-bump guard
+        # exited early), it logs "no changes" and creates no PR. The action also re-uses the
+        # named branch — re-running this workflow updates the existing PR in place rather than
+        # spawning duplicates.
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: chore/bump-package-validation-baseline-${{ steps.target.outputs.version }}
+          base: master
+          commit-message: "chore: bump PackageValidationBaselineVersion to ${{ steps.target.outputs.version }}"
+          title: "chore: bump PackageValidationBaselineVersion to ${{ steps.target.outputs.version }}"
+          body: |
+            Auto-generated bump of `PackageValidationBaselineVersion` in `Directory.Build.props` to `${{ steps.target.outputs.version }}`.
+
+            ${{ github.event_name == 'release' && format('Triggered by the [{0}]({1}) release.', github.event.release.tag_name, github.event.release.html_url) || 'Triggered manually via workflow_dispatch.' }}
+
+            Keeps the SDK's pack-time package validator comparing the current public surface against the version that's actually published to NuGet.org.
+          labels: |
+            chore
+            automated
+          delete-branch: true

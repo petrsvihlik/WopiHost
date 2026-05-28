@@ -1,0 +1,53 @@
+@page "/Error"
+@layout MainLayout
+
+@using Microsoft.AspNetCore.Diagnostics
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IWebHostEnvironment HostEnvironment
+
+<HeadContent>
+    <PageTitle>Error - WopiHost.Web</PageTitle>
+</HeadContent>
+
+<h1 class="text-danger">Error</h1>
+<h2 class="text-danger">An error occurred while processing your request.</h2>
+
+@if (_exception is not null && _showDetails)
+{
+    <div class="alert alert-danger">
+        <h3>Exception details:</h3>
+        <p>@_exception.Message</p>
+        @if (!string.IsNullOrEmpty(_exception.StackTrace))
+        {
+            <pre>@_exception.StackTrace</pre>
+        }
+    </div>
+}
+else
+{
+    <p>
+        Please try again or contact the system administrator if the problem persists.
+    </p>
+}
+
+<div>
+    <a href="/" class="btn btn-primary">Return to Home</a>
+</div>
+
+@code {
+    private Exception? _exception;
+    private bool _showDetails;
+
+    protected override void OnInitialized()
+    {
+        var http = HttpContextAccessor.HttpContext;
+        // app.UseExceptionHandler stashes the captured exception on IExceptionHandlerFeature so
+        // the error-handler endpoint can render the details. Stack traces leak file paths,
+        // configuration values, and source-line numbers — gate exposure on the Development
+        // environment so a stray production deploy of this sample doesn't echo internals back
+        // to anonymous callers. Matches the gate ASP.NET Core uses for UseDeveloperExceptionPage.
+        _exception = http?.Features.Get<IExceptionHandlerFeature>()?.Error;
+        _showDetails = HostEnvironment.IsDevelopment();
+    }
+}

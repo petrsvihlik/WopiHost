@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Xml.Linq;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using WopiHost.Discovery.Enumerations;
 
@@ -19,7 +20,10 @@ public class WopiDiscovererTests
 
     [MemberNotNull(nameof(_wopiDiscoverer))]
     private void InitDiscoverer(string fileName, NetZoneEnum netZone) => 
-        _wopiDiscoverer = new WopiDiscoverer(new FileSystemDiscoveryFileProvider(Path.Combine(AppContext.BaseDirectory, fileName)), Options.Create(new DiscoveryOptions { NetZone = netZone }));
+        _wopiDiscoverer = new WopiDiscoverer(
+            new FileSystemDiscoveryFileProvider(Path.Combine(AppContext.BaseDirectory, fileName), NullLogger<FileSystemDiscoveryFileProvider>.Instance),
+            Options.Create(new DiscoveryOptions { NetZone = netZone }),
+            NullLogger<WopiDiscoverer>.Instance);
 
     [Theory]
     [InlineData(NetZoneEnum.ExternalHttps, "xlsm", WopiActionEnum.LegacyWebService, "https://excel.officeapps.live.com/x/_vti_bin/excelserviceinternal.asmx?<ui=UI_LLCC&><rs=DC_LLCC&><dchat=DISABLE_CHAT&><hid=HOST_SESSION_ID&><sc=SESSION_CONTEXT&><wopisrc=WOPI_SOURCE&>", XmlOo2019)]
@@ -238,5 +242,18 @@ public class WopiDiscovererTests
         var result = await _wopiDiscoverer.GetActionRequirementsAsync(extension, action);
 
         Assert.DoesNotContain(expectedValue, result);
+    }
+
+    [Fact]
+    public void Dispose_IsIdempotent()
+    {
+        // Two AsyncExpiringLazy instances and one IDisposable proof-key cache live inside the
+        // discoverer. Double-Dispose must short-circuit on the second call so the inner
+        // resources aren't double-disposed; previously the early-return branch was never hit
+        // because nothing in the discovery flow disposes twice.
+        InitDiscoverer(XmlOo2019, NetZoneEnum.ExternalHttps);
+
+        _wopiDiscoverer.Dispose();
+        _wopiDiscoverer.Dispose();
     }
 }

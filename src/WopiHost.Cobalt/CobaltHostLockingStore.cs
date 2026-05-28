@@ -4,28 +4,36 @@ using Cobalt;
 namespace WopiHost.Cobalt;
 
 public class CobaltHostLockingStore(
-    ClaimsPrincipal principal,
     string fileId,
     CoauthoringSessionTracker sessionTracker) : HostLockingStore
 {
-    private readonly ClaimsPrincipal _principal = principal;
+    /// <summary>
+    /// Per-call principal. <see cref="CobaltProcessor"/> caches one
+    /// <see cref="CobaltHostLockingStore"/> per file (it lives inside the cached
+    /// <c>CobaltFile</c>) so the locking store cannot capture a single principal
+    /// at construction; instead each <c>ProcessCobalt</c> invocation sets this
+    /// AsyncLocal before the request runs and clears it after.
+    /// </summary>
+    internal static readonly AsyncLocal<ClaimsPrincipal> CurrentPrincipal = new();
+
     private readonly string _fileId = fileId;
     private readonly CoauthoringSessionTracker _sessionTracker = sessionTracker;
 
-    private string UserId => _principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-    private string UserName => _principal?.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
+    private static ClaimsPrincipal Principal => CurrentPrincipal.Value;
+    private string UserId => Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+    private string UserName => Principal?.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
 
     public override WhoAmIRequest.OutputType HandleWhoAmI(WhoAmIRequest.InputType input)
     {
-        var result = new WhoAmIRequest.OutputType
+        var p = Principal;
+        var login = p?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return new WhoAmIRequest.OutputType
         {
-            UserEmailAddress = _principal?.FindFirst(ClaimTypes.Email).Value,
-            UserIsAnonymous = string.IsNullOrEmpty(_principal?.FindFirst(ClaimTypes.NameIdentifier).Value),
-            UserLogin = _principal?.FindFirst(ClaimTypes.NameIdentifier).Value,
-            UserName = _principal?.FindFirst(ClaimTypes.Name).Value
+            UserEmailAddress = p?.FindFirst(ClaimTypes.Email)?.Value,
+            UserIsAnonymous = string.IsNullOrEmpty(login),
+            UserLogin = login,
+            UserName = p?.FindFirst(ClaimTypes.Name)?.Value,
         };
-
-        return result;
     }
 
     public override ServerTimeRequest.OutputType HandleServerTime(ServerTimeRequest.InputType input)
@@ -35,12 +43,13 @@ public class CobaltHostLockingStore(
         return result;
     }
 
-    public override LockAndCheckOutStatusRequest.OutputType HandleLockAndCheckOutStatus(LockAndCheckOutStatusRequest.InputType input)
+    public override LockStatusRequest.OutputType HandleLockStatus(LockStatusRequest.InputType input)
     {
-        var result = new LockAndCheckOutStatusRequest.OutputType
+        // Replaces the 15.x `HandleLockAndCheckOutStatus`. The output shape
+        // changed too: old (LockType, CheckOutType) → new (LockType, LockId, LockedBy).
+        var result = new LockStatusRequest.OutputType
         {
-            LockType = 1U,
-            CheckOutType = 0U
+            LockType = LockType.SchemaLock
         };
 
         return result;
@@ -186,7 +195,7 @@ public class CobaltHostLockingStore(
         return result;
     }
 
-    public override Dictionary<string, EditorsTableEntry> QueryEditorsTable() =>
+    public override EditorsTable QueryEditorsTable() =>
         _sessionTracker.GetEditorsTable(_fileId);
 
     public override JoinEditingSessionRequest.OutputType HandleJoinEditingSession(JoinEditingSessionRequest.InputType input)
@@ -249,4 +258,34 @@ public class CobaltHostLockingStore(
 
         return result;
     }
+
+    // The methods below were added to HostLockingStore in CobaltCore 16.x.
+    // They cover protocol features WopiHost doesn't implement yet (rename,
+    // delete, version history, editors-property metadata). Stubbed with
+    // empty default outputs so the host accepts the request without erroring;
+    // hosts that need the real behavior should override these.
+
+    public override EnumerateEditorsRequest.OutputType HandleEnumerateEditors(EnumerateEditorsRequest.InputType input) =>
+        new();
+
+    public override EditorsPropertyCheckRequest.OutputType HandleEditorsPropertyCheck(EditorsPropertyCheckRequest.InputType input) =>
+        new();
+
+    public override RenameFileRequest.OutputType HandleRename(RenameFileRequest.InputType input) =>
+        new();
+
+    public override DeleteFileRequest.OutputType HandleDelete(DeleteFileRequest.InputType input) =>
+        new();
+
+    public override GetVersionListRequest.OutputType HandleGetVersionList(GetVersionListRequest.InputType input) =>
+        new();
+
+    public override RestoreVersionRequest.OutputType HandleRestoreVersion(RestoreVersionRequest.InputType input) =>
+        new();
+
+    // Indicates whether the file backing this locking store still exists.
+    // WopiHost only constructs CobaltHostLockingStore for an active WOPI session,
+    // which by definition has a backing file — so `true` is the correct answer
+    // here. If a host wants to surface deletes from a side channel it can override.
+    public override bool FileExists() => true;
 }

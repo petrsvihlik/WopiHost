@@ -1,0 +1,42 @@
+@inherits LayoutComponentBase
+@inject IHttpContextAccessor HttpCtx
+
+@* Default layout for the browse / error / denied pages. Mirrors WopiHost.Web's MainLayout
+   with two OIDC-specific additions:
+     1. Right-aligned auth chrome: "Signed in as X / Sign out" or "Sign in".
+     2. Sign-out is a POST form (anti-forgery-protected), matching how the legacy
+        _Layout.cshtml rendered it. UseAntiforgery is in the pipeline so the
+        <AntiforgeryToken /> below is required for the POST to be accepted. *@
+
+<nav>
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="https://github.com/petrsvihlik/WopiHost">GitHub</a></li>
+    </ul>
+    <ul style="margin-left:auto;">
+        @if (HttpCtx.HttpContext?.User.Identity?.IsAuthenticated == true)
+        {
+            <li>Signed in as <strong>@(HttpCtx.HttpContext.User.Identity.Name ?? "user")</strong></li>
+            <li>
+                <form action="/account/logout" method="post" style="display:inline;">
+                    <AntiforgeryToken />
+                    <button type="submit">Sign out</button>
+                </form>
+            </li>
+        }
+        else
+        {
+            <li><a href="/account/login">Sign in</a></li>
+        }
+    </ul>
+</nav>
+<header></header>
+<main>
+    <section>
+        <h1>WopiHost - OIDC Example</h1>
+        @Body
+    </section>
+</main>
+<footer>
+    <p>&copy; @DateTime.Now.Year - WopiHost.Web.Oidc - <a href="https://github.com/petrsvihlik/WopiHost" target="_blank" rel="noopener">GitHub</a></p>
+</footer>

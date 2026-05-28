@@ -102,10 +102,15 @@ public class UtfString : IParsable<UtfString>
         }
         byte[] utf7Bytes = Encoding.Default.GetBytes(encodedValue);
 
-        // Decode the byte array using UTF-7
-#pragma warning disable SYSLIB0001 // Type or member is obsolete
+        // SYSLIB0001 is suppressed here because the WOPI specification mandates UTF-7 for the
+        // X-WOPI-SuggestedTarget and X-WOPI-RelativeTarget headers — see
+        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile#request-headers
+        // and the MS-WOPI protocol spec section 2.2.5.1.5. The framework deprecation is unrelated
+        // to the protocol requirement; we cannot change to a different encoding without breaking
+        // interop with Office Online / Microsoft 365 for the Web.
+#pragma warning disable SYSLIB0001 // Type or member is obsolete — required by WOPI spec
         Encoding utf7 = Encoding.UTF7;
-#pragma warning restore SYSLIB0001 // Type or member is obsolete
+#pragma warning restore SYSLIB0001
         return utf7.GetString(utf7Bytes);
     }
 
@@ -120,10 +125,10 @@ public class UtfString : IParsable<UtfString>
         {
             return decodedValue;
         }
-        // Encode the byte array using UTF-7
-#pragma warning disable SYSLIB0001 // Type or member is obsolete
+        // SYSLIB0001 suppressed — see DecodeString for rationale (WOPI spec mandates UTF-7).
+#pragma warning disable SYSLIB0001 // Type or member is obsolete — required by WOPI spec
         Encoding utf7 = Encoding.UTF7;
-#pragma warning restore SYSLIB0001 // Type or member is obsolete
+#pragma warning restore SYSLIB0001
 
         byte[] bytes = utf7.GetBytes(decodedValue);
 
