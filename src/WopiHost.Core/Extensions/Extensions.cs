@@ -23,6 +23,44 @@ internal static class Extensions
     }
 
     /// <summary>
+    /// Reads the stream into a byte array but bails out as soon as it sees more than
+    /// <paramref name="maxBytes"/> bytes — so an oversized (or unbounded chunked) body can be
+    /// rejected without ever buffering it in full. Prefer this over the unbounded
+    /// <see cref="ReadBytesAsync(Stream, CancellationToken)"/> whenever the caller enforces a
+    /// size cap (e.g. the spec-defined PutUserInfo limit).
+    /// </summary>
+    /// <param name="input">Stream to read from.</param>
+    /// <param name="maxBytes">Maximum number of bytes to accept.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// <c>WithinLimit</c> is <c>true</c> with the body bytes (length &lt;= <paramref name="maxBytes"/>)
+    /// when the stream stayed within the cap; <c>false</c> with an empty array when it yielded more
+    /// than <paramref name="maxBytes"/> bytes. A value-tuple rather than a nullable array so the
+    /// result never carries a null that callers (or static analysis) have to reason about.
+    /// </returns>
+    public static async Task<(bool WithinLimit, byte[] Bytes)> ReadBytesAsync(this Stream input, int maxBytes, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxBytes);
+
+        // Single backing buffer sized to maxBytes+1 so the read that pushes us past the cap trips
+        // the limit — ReadAsync writes directly at the running offset, no intermediate chunk array
+        // or MemoryStream copy, and the allocation can never exceed maxBytes+1.
+        var buffer = new byte[maxBytes + 1];
+        var total = 0;
+        int read;
+        while ((read = await input.ReadAsync(buffer.AsMemory(total), cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            total += read;
+            if (total > maxBytes)
+            {
+                return (false, []);
+            }
+        }
+        return (true, buffer[..total]);
+    }
+
+    /// <summary>
     /// Tries to parse integer from string. Returns null if parsing fails.
     /// </summary>
     /// <param name="s">String to parse</param>

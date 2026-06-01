@@ -34,6 +34,55 @@ public class ExtensionsTests
     }
 
     [Fact]
+    public async Task ReadBytesAsync_WithCap_WithinLimit_ReturnsContents()
+    {
+        var content = "hello"u8.ToArray();
+        using var input = new MemoryStream(content);
+
+        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 1024);
+
+        Assert.True(withinLimit);
+        Assert.Equal(content, bytes);
+    }
+
+    [Fact]
+    public async Task ReadBytesAsync_WithCap_ExactlyAtLimit_ReturnsContents()
+    {
+        // A body whose length equals the cap must be accepted (the cap is inclusive).
+        var content = new byte[16];
+        using var input = new MemoryStream(content);
+
+        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 16);
+
+        Assert.True(withinLimit);
+        Assert.Equal(16, bytes.Length);
+    }
+
+    [Fact]
+    public async Task ReadBytesAsync_WithCap_OverLimit_ReturnsNotWithinLimit()
+    {
+        // One byte past the cap trips the limit — WithinLimit is false and the rest isn't buffered.
+        var content = new byte[17];
+        using var input = new MemoryStream(content);
+
+        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 16);
+
+        Assert.False(withinLimit);
+        Assert.Empty(bytes);
+    }
+
+    [Fact]
+    public async Task ReadBytesAsync_WithCap_EmptyStream_ReturnsEmpty()
+    {
+        using var input = new MemoryStream([]);
+
+        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 16);
+
+        Assert.True(withinLimit);
+        Assert.Empty(bytes);
+    }
+
+    [Fact]
     public void ToNullableInt_ValidInteger_ReturnsParsedValue()
     {
         Assert.Equal(42, "42".ToNullableInt());
