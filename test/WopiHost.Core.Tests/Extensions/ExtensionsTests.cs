@@ -39,9 +39,10 @@ public class ExtensionsTests
         var content = "hello"u8.ToArray();
         using var input = new MemoryStream(content);
 
-        var result = await input.ReadBytesAsync(maxBytes: 1024);
+        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 1024);
 
-        Assert.Equal(content, result);
+        Assert.True(withinLimit);
+        Assert.Equal(content, bytes);
     }
 
     [Fact]
@@ -51,22 +52,23 @@ public class ExtensionsTests
         var content = new byte[16];
         using var input = new MemoryStream(content);
 
-        var result = await input.ReadBytesAsync(maxBytes: 16);
+        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 16);
 
-        Assert.NotNull(result);
-        Assert.Equal(16, result!.Length);
+        Assert.True(withinLimit);
+        Assert.Equal(16, bytes.Length);
     }
 
     [Fact]
-    public async Task ReadBytesAsync_WithCap_OverLimit_ReturnsNull()
+    public async Task ReadBytesAsync_WithCap_OverLimit_ReturnsNotWithinLimit()
     {
-        // One byte past the cap trips the limit and yields null — without buffering the rest.
+        // One byte past the cap trips the limit — WithinLimit is false and the rest isn't buffered.
         var content = new byte[17];
         using var input = new MemoryStream(content);
 
-        var result = await input.ReadBytesAsync(maxBytes: 16);
+        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 16);
 
-        Assert.Null(result);
+        Assert.False(withinLimit);
+        Assert.Empty(bytes);
     }
 
     [Fact]
@@ -74,10 +76,10 @@ public class ExtensionsTests
     {
         using var input = new MemoryStream([]);
 
-        var result = await input.ReadBytesAsync(maxBytes: 16);
+        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 16);
 
-        Assert.NotNull(result);
-        Assert.Empty(result!);
+        Assert.True(withinLimit);
+        Assert.Empty(bytes);
     }
 
     [Fact]

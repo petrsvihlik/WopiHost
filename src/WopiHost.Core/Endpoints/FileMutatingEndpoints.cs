@@ -336,11 +336,11 @@ internal static class FileMutatingEndpoints
             return TypedResults.BadRequest();
         }
 
-        // Bounded read: returns null the moment the body exceeds the spec cap mid-stream (chunked
-        // transfer-encoding with no Content-Length, or clients that lie about it), so a malicious
-        // or buggy client can't push an unbounded body into our MemoryCache.
-        var bytes = await req.Http.Request.Body.ReadBytesAsync(PutUserInfoMaxBytes, req.CancellationToken).ConfigureAwait(false);
-        if (bytes is null)
+        // Bounded read: WithinLimit goes false the moment the body exceeds the spec cap mid-stream
+        // (chunked transfer-encoding with no Content-Length, or clients that lie about it), so a
+        // malicious or buggy client can't push an unbounded body into our MemoryCache.
+        var (withinLimit, bytes) = await req.Http.Request.Body.ReadBytesAsync(PutUserInfoMaxBytes, req.CancellationToken).ConfigureAwait(false);
+        if (!withinLimit)
         {
             return TypedResults.BadRequest();
         }
