@@ -183,6 +183,18 @@ public sealed partial class WopiRedisLockProvider(
         var snapshot = Deserialize(raw!);
         if (snapshot.IsExpiredAt(_timeProvider.GetUtcNow()))
         {
+            // Proactively evict the stale record rather than waiting for Redis's TTL to reap it,
+            // so this CAS path cleans up on read like GetLockAsync and the Azure/Memory providers.
+            // (Under the fake-clock conformance tests the Redis server clock never moves, so the
+            // server-side EX would not evict at all.) The delete is guarded by the same
+            // value-equality condition the mutation path uses, so a sibling that refreshed or
+            // recreated the lock between our GET and here is never clobbered: the condition fails
+            // and the delete is skipped.
+            var evict = Db.CreateTransaction();
+            evict.AddCondition(Condition.StringEqual(key, raw));
+            _ = evict.KeyDeleteAsync(key);
+            _ = await evict.ExecuteAsync().ConfigureAwait(false);
+            LogLockExpired(_logger, fileId, snapshot.LockId);
             return false;
         }
         if (!_lockComparer.AreEqual(snapshot.LockId, expectedExistingLockId))
