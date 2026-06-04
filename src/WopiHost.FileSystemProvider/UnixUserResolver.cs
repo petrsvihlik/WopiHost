@@ -58,16 +58,19 @@ internal static partial class UnixUserResolver
         }
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    // getpwuid_r writes the platform's full `struct passwd` here, then points `result` at it.
+    // We only read pw_name — the FIRST field on both the glibc and the BSD/macOS layouts — so
+    // we declare just that field and pad the record with an explicit Size large enough for the
+    // largest platform. This sizing is load-bearing: glibc's struct passwd is 56 bytes, but
+    // macOS/BSD's is larger (extra pw_change/pw_class/pw_expire members). Declaring only the
+    // 7 glibc fields (as before) under-sizes the buffer on macOS, so getpwuid_r writes past the
+    // end and corrupts memory — a SIGSEGV (exit 139) on arm64 macOS. 128 bytes comfortably
+    // covers every supported Unix layout; over-allocating is harmless because getpwuid_r writes
+    // only sizeof(struct passwd) for the running platform.
+    [StructLayout(LayoutKind.Sequential, Size = 128)]
     private struct Passwd
     {
         public IntPtr pw_name;
-        public IntPtr pw_passwd;
-        public uint pw_uid;
-        public uint pw_gid;
-        public IntPtr pw_gecos;
-        public IntPtr pw_dir;
-        public IntPtr pw_shell;
     }
 
     // CA5392 wants explicit DLL search paths to limit the loader's search to safe directories

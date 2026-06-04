@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
@@ -20,6 +21,7 @@ namespace WopiHost.FileSystemProvider;
 /// sits at offset 16 and the record is 144 bytes.
 /// </remarks>
 [SupportedOSPlatform("macos")]
+[ExcludeFromCodeCoverage(Justification = "Native macOS stat P/Invoke; cannot execute on the Linux coverage-collection runner — verified by the macOS leg of the filesystem-owner-cross-platform CI job.")]
 internal static partial class MacFileOwner
 {
     public static string GetOwnerName(string filePath)
