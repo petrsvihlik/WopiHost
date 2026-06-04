@@ -34,9 +34,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddWopiServer(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<WopiHostOptions>(configuration.GetSection(WopiHostOptions.SectionName));
-        services.AddSingleton<InMemoryFileIds>();
-        services.AddSingleton<IWopiStorageProvider, WopiFileSystemProvider>();
-        services.AddSingleton<IWopiWritableStorageProvider, WopiFileSystemProvider>();
+        services.AddFileSystemStorageProvider(configuration);
         services.AddSingleton<IWopiLockProvider, MemoryLockProvider.MemoryLockProvider>();
         // The validator plugs in its own IWopiHostExtensions to populate the optional
         // CheckFileInfo URLs the Microsoft validator probes for.
