@@ -4,6 +4,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider.Tests;
@@ -78,6 +79,33 @@ public class ServiceCollectionExtensionsTests : IDisposable
         Assert.Same(storage, writable);
         // ...and that instance is shared across scopes (singleton semantics, not scoped).
         Assert.Same(storage, storageOtherScope);
+    }
+
+    [Fact]
+    public void AddFileSystemStorageProvider_DoesNotOverrideExistingRegistration()
+    {
+        // A host that registers its own provider first must win (TryAdd semantics).
+        var services = BuildServices(out var config);
+        var existing = Mock.Of<IWopiStorageProvider>();
+        services.AddSingleton(existing);
+
+        services.AddFileSystemStorageProvider(config);
+
+        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IWopiStorageProvider));
+        Assert.Same(existing, descriptor.ImplementationInstance);
+    }
+
+    [Fact]
+    public void AddFileSystemStorageProvider_CalledTwice_RegistersProviderOnce()
+    {
+        var services = BuildServices(out var config);
+
+        services.AddFileSystemStorageProvider(config);
+        services.AddFileSystemStorageProvider(config);
+
+        Assert.Single(services, d => d.ServiceType == typeof(WopiFileSystemProvider));
+        Assert.Single(services, d => d.ServiceType == typeof(IWopiStorageProvider));
+        Assert.Single(services, d => d.ServiceType == typeof(IWopiWritableStorageProvider));
     }
 
     [Fact]

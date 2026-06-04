@@ -52,7 +52,8 @@ public partial class Program
                 .BindConfiguration(wopiHostOptionsSection.Path)
                 .ValidateDataAnnotations();
 
-            var wopiHostOptions = wopiHostOptionsSection.Get<WopiHostOptions>();
+            var wopiHostOptions = wopiHostOptionsSection.Get<WopiHostOptions>()
+                ?? throw new InvalidOperationException($"The '{WopiHostOptions.SectionName}' configuration section is missing or invalid.");
 
             // Provider selection lives in the sample's own config section (Sample:*), not in
             // WopiHost.Core's WopiHostOptions — choosing between bundled providers is a composition-
