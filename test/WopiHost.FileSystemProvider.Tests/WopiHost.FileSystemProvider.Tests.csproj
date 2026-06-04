@@ -4,6 +4,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj" />
+		<ProjectReference Include="..\WopiHost.Abstractions.Testing\WopiHost.Abstractions.Testing.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Moq" />
