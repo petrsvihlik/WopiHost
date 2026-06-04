@@ -8,6 +8,8 @@
 	<ItemGroup>
 		<PackageReference Include="Moq" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
 	</ItemGroup>
 	<ItemGroup>
 	  <PackageReference Update="coverlet.collector">
