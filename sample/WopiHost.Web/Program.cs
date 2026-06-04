@@ -1,4 +1,3 @@
-using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.ServiceDefaults;
@@ -31,8 +30,7 @@ builder.Services
 builder.Services.AddWopiDiscovery<WopiOptions>(
     options => builder.Configuration.GetSection(DiscoveryOptions.SectionName).Bind(options));
 
-builder.Services.AddSingleton<InMemoryFileIds>();
-builder.Services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
+builder.Services.AddFileSystemStorageProvider(builder.Configuration);
 
 var app = builder.Build();
 

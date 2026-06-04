@@ -1,7 +1,6 @@
 using System.Net;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
-using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.Web.Components;
@@ -57,8 +56,7 @@ public sealed class WebSampleFactory : IDisposable, IAsyncDisposable
         // Faked discoverer instead of AddWopiDiscovery — avoids HTTP fetch from ClientUrl.
         builder.Services.AddSingleton<IDiscoverer, FakeDiscoverer>();
 
-        builder.Services.AddSingleton<InMemoryFileIds>();
-        builder.Services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
+        builder.Services.AddFileSystemStorageProvider(builder.Configuration);
 
         var app = builder.Build();
         app.UseDeveloperExceptionPage();
