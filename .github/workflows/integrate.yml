@@ -73,8 +73,9 @@ jobs:
       matrix:
         # windows-latest: ACL owner path.
         # macos-latest: Apple Silicon (arm64) -> plain `stat` symbol.
-        # macos-13: Intel (x86_64) -> `stat$INODE64` symbol.
-        os: [windows-latest, macos-latest, macos-13]
+        # The Intel (x86_64) `stat$INODE64` path is exercised only via Rosetta and is
+        # left untested here — the macos-13 runner was dropped to keep CI lean.
+        os: [windows-latest, macos-latest]
     steps:
     - uses: actions/checkout@v6
     - name: Setup .NET 10.0
