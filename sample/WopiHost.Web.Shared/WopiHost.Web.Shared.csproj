@@ -2,10 +2,8 @@
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
-		<TargetFramework>net10.0</TargetFramework>
 		<AssemblyName>WopiHost.Web.Shared</AssemblyName>
 		<RootNamespace>WopiHost.Web.Shared</RootNamespace>
-		<IsPackable>false</IsPackable>
 	</PropertyGroup>
 
 	<ItemGroup>
