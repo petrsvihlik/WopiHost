@@ -130,7 +130,7 @@ internal static class FileMutatingEndpoints
             ? await req.LockProvider.GetLockAsync(req.Id, req.CancellationToken).ConfigureAwait(false)
             : null;
 
-        if (ValidatePutFileLock(existingLock, req.RequestLockId, req.LockComparer, file.Length) is { } mismatch)
+        if (ValidatePutFileLock(existingLock, req.RequestLockId, req.LockComparer, file) is { } mismatch)
         {
             return mismatch;
         }
@@ -146,7 +146,7 @@ internal static class FileMutatingEndpoints
     // placeholder lock id, since an unlocked file has no id to surface.
     // Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile.
     private static WopiLockMismatchResult? ValidatePutFileLock(
-        WopiLockInfo? existingLock, string? requestLockId, IWopiLockComparer comparer, long fileLength)
+        WopiLockInfo? existingLock, string? requestLockId, IWopiLockComparer comparer, IWopiWritableFile file)
     {
         if (existingLock is not null)
         {
@@ -154,7 +154,10 @@ internal static class FileMutatingEndpoints
                 ? new WopiLockMismatchResult(existingLock.LockId)
                 : null;
         }
-        return fileLength != 0 ? new WopiLockMismatchResult(existingLock: null) : null;
+        // Read Length only on the unlocked path. Touching it on the locked path would prime the
+        // file's metadata cache before the write, making WriteAndAck report a stale post-write
+        // version.
+        return file.Length != 0 ? new WopiLockMismatchResult(existingLock: null) : null;
     }
 
     private static async Task<Ok> WriteAndAck(HttpContext httpContext, IWopiHostExtensions extensions, IWopiWritableFile file, string? editors, CancellationToken cancellationToken)
