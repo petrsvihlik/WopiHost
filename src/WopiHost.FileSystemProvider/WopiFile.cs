@@ -56,11 +56,12 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiWritableFil
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Resolves the OS-level owning user on Windows (ACL owner as an <see cref="NTAccount"/>) and
-    /// Linux (file UID → name via <see cref="LinuxFileOwner"/>). macOS and any other platform have
-    /// no ownership lookup wired up, so they return <see cref="string.Empty"/>. Per the
-    /// <see cref="IWopiFile.Owner"/> contract this getter is best-effort and never throws: a failed
-    /// or unsupported lookup degrades to empty rather than faulting <c>CheckFileInfo</c>.
+    /// Resolves the OS-level owning user on Windows (ACL owner as an <see cref="NTAccount"/>),
+    /// Linux (file UID → name via <see cref="LinuxFileOwner"/>) and macOS (file UID → name via
+    /// <see cref="MacFileOwner"/>). Any other platform has no ownership lookup wired up and returns
+    /// <see cref="string.Empty"/>. Per the <see cref="IWopiFile.Owner"/> contract this getter is
+    /// best-effort and never throws: a failed or unsupported lookup degrades to empty rather than
+    /// faulting <c>CheckFileInfo</c>.
     /// </remarks>
     public string Owner
     {
@@ -76,7 +77,11 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiWritableFil
                 {
                     return LinuxFileOwner.GetOwnerName(_fileInfo.FullName);
                 }
-                // macOS / other platforms: no ownership lookup is implemented.
+                if (OperatingSystem.IsMacOS())
+                {
+                    return MacFileOwner.GetOwnerName(_fileInfo.FullName);
+                }
+                // Any other platform: no ownership lookup is implemented.
                 return string.Empty;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
