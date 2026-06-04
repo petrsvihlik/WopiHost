@@ -24,17 +24,14 @@ namespace WopiHost.RedisLockProvider;
 /// <para>
 /// <b>Atomicity.</b> Refresh and Unlock-and-relock use <c>IDatabase.CreateTransaction()</c> with
 /// an <c>AddCondition(Condition.StringEqual(key, snapshot))</c> guard — Redis's <c>WATCH</c>
-/// primitive aborts the <c>MULTI/EXEC</c> if the key's value changed between our read and our
-/// write. The conformance suite's
-/// <c>RefreshLockAsync_ConcurrentSwapBetweenObservationAndCAS_DoesNotRefresh</c> case (and the
-/// <c>TryUnlockAndRelockAsync</c> equivalent) exercise this path: a stale caller's snapshot
-/// no longer matches the resident value, so the transaction aborts and we return false.
+/// primitive aborts the <c>MULTI/EXEC</c> if the key's value changed between the read and the
+/// write. A stale caller's snapshot no longer matches the resident value, so the transaction
+/// aborts and the call returns false.
 /// </para>
 /// <para>
-/// An earlier implementation used Lua scripts (<c>EVAL</c>) to do the compare+set in one
-/// round-trip. The transaction shape costs one extra round-trip (GET, then MULTI/EXEC) but
-/// keeps the implementation in C#, removes the embedded scripting language, and reads more like
-/// the rest of the codebase. The WOPI lock path isn't hot enough to care about the extra hop.
+/// The transaction shape (GET, then MULTI/EXEC) costs one extra round-trip compared to a Lua
+/// <c>EVAL</c> compare+set, but keeps the implementation in C# with no embedded scripting
+/// language. The WOPI lock path isn't hot enough to care about the extra hop.
 /// </para>
 /// </remarks>
 /// <param name="multiplexer">StackExchange.Redis connection multiplexer.</param>
@@ -82,9 +79,9 @@ public sealed partial class WopiRedisLockProvider(
             return null;
         }
         var info = Deserialize(raw!);
-        // Even though we set EX on every write, the fake-clock conformance test advances the
-        // injected TimeProvider without the Redis server clock moving. Re-check expiry against
-        // the .NET-side clock so deterministic tests pass and we evict stale state for free.
+        // Even though every write sets EX, a fake-clock test can advance the injected
+        // TimeProvider without the Redis server clock moving. Re-checking expiry against the
+        // .NET-side clock keeps deterministic tests passing and evicts stale state for free.
         if (info.IsExpiredAt(_timeProvider.GetUtcNow()))
         {
             _ = await Db.KeyDeleteAsync(Key(fileId)).ConfigureAwait(false);
@@ -97,9 +94,9 @@ public sealed partial class WopiRedisLockProvider(
     /// <inheritdoc />
     public async Task<WopiLockInfo?> AddLockAsync(string fileId, string lockId, CancellationToken cancellationToken = default)
     {
-        // Probe + maybe evict if an expired lock is sitting on the key. GetLockAsync handles the
-        // eviction in the "advance fake clock past TTL" case (Redis hasn't really moved). Without
-        // this, the SET NX below would fail against the stale value.
+        // Probe and evict any expired lock sitting on the key. GetLockAsync handles eviction in
+        // the "fake clock advanced past TTL" case where the Redis server clock hasn't really
+        // moved; without it the SET NX below would fail against the stale value.
         var existing = await GetLockAsync(fileId, cancellationToken).ConfigureAwait(false);
         if (existing is not null)
         {
@@ -115,12 +112,12 @@ public sealed partial class WopiRedisLockProvider(
         };
         var ttl = TimeSpan.FromMinutes(WopiLockInfo.ExpirationMinutes);
 
-        // SET ... NX EX <ttl> — atomic create-if-not-exists with TTL. Returns true only if a
-        // sibling AddLock didn't race us.
+        // SET ... NX EX <ttl> — atomic create-if-not-exists with TTL. Returns true only if no
+        // sibling AddLock raced ahead.
         var ok = await Db.StringSetAsync(Key(fileId), Serialize(info), ttl, When.NotExists).ConfigureAwait(false);
         if (!ok)
         {
-            // Lost the race. Re-read to surface the winner's lock id for telemetry, then bail.
+            // Lost the race. Re-read to surface the winner's lock id for telemetry.
             var winner = await GetLockAsync(fileId, cancellationToken).ConfigureAwait(false);
             LogLockAddRejected(_logger, fileId, lockId, winner?.LockId);
             return null;
@@ -158,8 +155,8 @@ public sealed partial class WopiRedisLockProvider(
     /// </summary>
     /// <remarks>
     /// The transaction's <c>AddCondition(StringEqual(key, raw))</c> compares the
-    /// <em>byte-exact</em> resident value against the snapshot we read. If anything mutated
-    /// the value between our read and the EXEC (a sibling refresh, swap, remove, or expiry),
+    /// <em>byte-exact</em> resident value against the snapshot just read. If anything mutated
+    /// the value between the read and the EXEC (a sibling refresh, swap, remove, or expiry),
     /// the condition fails and the transaction aborts. The .NET-side <see cref="IWopiLockComparer"/>
     /// is consulted only for the caller's <paramref name="expectedExistingLockId"/> against the
     /// snapshot's <c>LockId</c>, so tolerant comparers (e.g. <see cref="JsonShapedWopiLockComparer"/>)
@@ -171,8 +168,8 @@ public sealed partial class WopiRedisLockProvider(
         Func<WopiLockInfo, WopiLockInfo> mutate,
         CancellationToken cancellationToken)
     {
-        // StackExchange.Redis APIs don't accept a CancellationToken; honour the caller's
-        // token at the entrance and trust the in-flight Redis round-trips to be short.
+        // StackExchange.Redis APIs don't accept a CancellationToken; the caller's token is
+        // honoured at the entrance and the in-flight Redis round-trips are assumed short.
         cancellationToken.ThrowIfCancellationRequested();
         var key = Key(fileId);
         var raw = await Db.StringGetAsync(key).ConfigureAwait(false);
@@ -185,11 +182,10 @@ public sealed partial class WopiRedisLockProvider(
         {
             // Proactively evict the stale record rather than waiting for Redis's TTL to reap it,
             // so this CAS path cleans up on read like GetLockAsync and the Azure/Memory providers.
-            // (Under the fake-clock conformance tests the Redis server clock never moves, so the
-            // server-side EX would not evict at all.) The delete is guarded by the same
-            // value-equality condition the mutation path uses, so a sibling that refreshed or
-            // recreated the lock between our GET and here is never clobbered: the condition fails
-            // and the delete is skipped.
+            // (Under a fake clock the Redis server clock never moves, so the server-side EX would
+            // not evict at all.) The delete is guarded by the same value-equality condition the
+            // mutation path uses, so a sibling that refreshed or recreated the lock in between is
+            // never clobbered: the condition fails and the delete is skipped.
             var evict = Db.CreateTransaction();
             evict.AddCondition(Condition.StringEqual(key, raw));
             _ = evict.KeyDeleteAsync(key);

@@ -96,7 +96,7 @@ public class WopiFileTests : IDisposable
 
         // Files created by the test process are owned by the current user;
         // stat/statx + getpwuid_r should resolve back to that name (or numeric uid
-        // if the user has been deleted from the passwd db, which we don't expect
+        // if the user has been deleted from the passwd db, which is not expected
         // in a CI environment).
         Assert.Equal(Environment.UserName, _sut.Owner);
     }

@@ -81,8 +81,6 @@ jobs:
       matrix:
         # windows-latest: ACL owner path.
         # macos-latest: Apple Silicon (arm64) -> plain `stat` symbol.
-        # The Intel (x86_64) `stat$INODE64` path is exercised only via Rosetta and is
-        # left untested here — the macos-13 runner was dropped to keep CI lean.
         os: [windows-latest, macos-latest]
     environment:
       name: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'Integrate Pull Request' || '' }}
@@ -122,7 +120,7 @@ jobs:
       run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
     - name: Pack PR nupkgs
       # Use a high version so AssemblyVersion sorts above any baseline release (avoids CP0003 noise).
-      # PackageValidation is intentionally disabled here — we run ApiCompat directly below.
+      # PackageValidation is disabled here because ApiCompat runs directly below.
       run: |
         dotnet pack --configuration Release \
           -p:ContinuousIntegrationBuild=true \

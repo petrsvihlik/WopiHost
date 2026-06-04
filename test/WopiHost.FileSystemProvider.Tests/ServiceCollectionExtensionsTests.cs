@@ -41,8 +41,8 @@ public class ServiceCollectionExtensionsTests : IDisposable
     [Fact]
     public void AddFileSystemStorageProvider_RegistersProviderAndInterfacesAsSingleton()
     {
-        // The whole point of this test: the FS provider must be a singleton, matching
-        // AddAzureStorageProvider. Guards against re-introducing the scoped/singleton drift.
+        // The FS provider must be a singleton, matching AddAzureStorageProvider.
+        // Guards against scoped/singleton drift between the two providers.
         var services = BuildServices(out var config);
 
         services.AddFileSystemStorageProvider(config);

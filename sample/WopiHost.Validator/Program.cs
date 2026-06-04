@@ -7,10 +7,8 @@ using WopiHost.Validator.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add health checks
 builder.Services.AddHealthChecks();
 
-// Add service discovery
 builder.Services.AddServiceDiscovery();
 
 if (builder.Environment.IsDevelopment())
@@ -19,7 +17,6 @@ if (builder.Environment.IsDevelopment())
 }
 builder.Services.AddRazorPages();
 
-// --------- Add Wopi Server and Host pages
 builder.Services.AddWopiLogging();
 builder.Services.AddWopiServer(builder.Configuration);
 builder.Services.AddWopiHostPages(builder.Configuration);
@@ -28,10 +25,8 @@ builder.Services.AddWopiHostPages(builder.Configuration);
 // requests, so the default WopiProofValidator would reject every call.
 builder.Services.AddScoped<IWopiProofValidator, NoOpProofValidator>();
 
-// ---------
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -39,11 +34,8 @@ if (!app.Environment.IsDevelopment())
 app.UseStaticFiles();
 
 app.UseAuthorization();
-// HostPages
 app.MapRazorPages();
-// WOPI protocol endpoints
 app.MapWopiEndpoints();
-// Map health checks
 app.MapHealthChecks("/health");
 
 // Test-only token-issuance endpoint used by the WOPI validator harness. Mints a real signed
@@ -83,7 +75,7 @@ namespace WopiHost.Validator
             var anonymous = new System.Security.Claims.ClaimsPrincipal();
             var filePerms = await permissions.GetFilePermissionsAsync(anonymous, file, ct);
             // The Microsoft WOPI validator uses a single token for both file and container ops, so
-            // we mint one with both surfaces pre-authorized. Real hosts typically issue narrower
+            // this mints one with both surfaces pre-authorized. Real hosts typically issue narrower
             // tokens per session.
             var rootContainer = storage.RootContainer;
             var containerPerms = await permissions.GetContainerPermissionsAsync(anonymous, rootContainer, ct);

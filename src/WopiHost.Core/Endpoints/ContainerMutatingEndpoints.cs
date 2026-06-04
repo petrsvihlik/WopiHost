@@ -108,12 +108,10 @@ internal static class ContainerMutatingEndpoints
             }
         }
 
-        // Single exit for the resolve/build/respond tail — keeps the handler under qlty's
-        // return-statements threshold (specific-mode conflict, provider null, and success
-        // share one return via the switch). The success-arm body is in a local async
-        // function so the switch arm itself stays a single `await` expression, and the
-        // inner awaits land directly on injected dependencies (which Infer# tracks
-        // cleanly — see #471 history).
+        // Single exit for the resolve/build/respond tail (specific-mode conflict, provider null,
+        // and success share one return via the switch). The success-arm body is in a local async
+        // function so the switch arm itself stays a single `await` expression, and the inner
+        // awaits land directly on injected dependencies (which keeps static analysis precise).
         var resolved = await ResolveNewChildContainer(req.Http, req.Storage, req.WritableStorage, req.Id, requestedName, isSpecificMode: req.RelativeTarget is not null, req.CancellationToken).ConfigureAwait(false);
         return resolved switch
         {
@@ -159,7 +157,7 @@ internal static class ContainerMutatingEndpoints
 
     /// <summary>
     /// Sanitises a container name via <see cref="WopiFileNameSanitiser"/>. Container names have
-    /// no concept of extension, so we drop straight to the scrub helper — there's nothing to
+    /// no concept of extension, so this drops straight to the scrub helper — there's nothing to
     /// preserve on the right-hand side. Falls back to a fresh GUID when the scrubbed name is
     /// unusable (empty / path-nav).
     /// </summary>
@@ -261,9 +259,8 @@ internal static class ContainerMutatingEndpoints
     {
         try
         {
-            // Spec: response is JSON with a single required Name property — the NEW name. The
-            // pre-fix impl returned `container.Name` from the snapshot we fetched before the
-            // rename, so clients received the OLD name and got out-of-sync.
+            // Spec: response is JSON with a single required Name property — the NEW name.
+            // Returning the pre-rename snapshot's name would hand clients the OLD name.
             return await writableStorageProvider.RenameWopiContainer(id, requestedName, cancellationToken).ConfigureAwait(false)
                 ? TypedResults.Json(new RenameContainerResponse(requestedName))
                 : TypedResults.NotFound(); // false → missing resource (race with concurrent delete).

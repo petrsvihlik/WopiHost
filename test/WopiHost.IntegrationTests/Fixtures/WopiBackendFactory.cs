@@ -24,8 +24,8 @@ namespace WopiHost.IntegrationTests.Fixtures;
 /// and swaps the <see cref="IDiscoverer"/> for a test-only stub that exposes the in-process
 /// RSA key pair (<see cref="FakeDiscovererWithProofKeys"/>). Lets a dedicated suite exercise
 /// the proof-validation pipeline end-to-end with real signatures — see <see cref="ProofKeys"/>.
-/// Pre-#456 every integration test ran through <see cref="AlwaysValidProofValidator"/>, so the
-/// proof-validation surface had no integration coverage at all.
+/// The default <see cref="AlwaysValidProofValidator"/> mode leaves the proof-validation surface
+/// without integration coverage, so this flag exists to drive it.
 /// </param>
 public sealed class WopiBackendFactory(
     string wopiSigningSecret,

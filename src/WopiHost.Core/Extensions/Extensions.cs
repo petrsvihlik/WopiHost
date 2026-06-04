@@ -43,8 +43,8 @@ internal static class Extensions
         ArgumentNullException.ThrowIfNull(input);
         ArgumentOutOfRangeException.ThrowIfNegative(maxBytes);
 
-        // Single backing buffer sized to maxBytes+1 so the read that pushes us past the cap trips
-        // the limit — ReadAsync writes directly at the running offset, no intermediate chunk array
+        // Single backing buffer sized to maxBytes+1 so the read that crosses the cap trips the
+        // limit — ReadAsync writes directly at the running offset, no intermediate chunk array
         // or MemoryStream copy, and the allocation can never exceed maxBytes+1.
         var buffer = new byte[maxBytes + 1];
         var total = 0;
@@ -137,9 +137,9 @@ internal static class Extensions
             ["access_token"] = accessToken,
         };
         // Preserve identifier casing. The global routing option set by AddWopi()
-        // (`AddRouting(o => o.LowercaseUrls = true)` — introduced in PR #253 / commit 8baf8844
-        // for "spec-compliant lowercase paths" like /wopi/files/{id} instead of
-        // /wopi/Files/{id}) lowercases BOTH route literals AND route parameter values, but the
+        // (`AddRouting(o => o.LowercaseUrls = true)` for spec-compliant lowercase paths like
+        // /wopi/files/{id} instead of /wopi/Files/{id}) lowercases BOTH route literals AND route
+        // parameter values, but the
         // JWT `wopi:resource_id` claim is minted verbatim from file.Identifier /
         // container.Identifier. Without this override, a host with mixed-case ids (think a
         // SharePoint-style provider returning `01ABCDEF`) would build URLs containing

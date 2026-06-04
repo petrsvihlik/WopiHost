@@ -3,7 +3,7 @@
 namespace WopiHost.Validator.Models;
 
 /// <summary>
-/// Configuration object for the the WopiHost.Web application.
+/// Configuration object for the WopiHost.Web application.
 /// </summary>
 public class WopiOptions
 {

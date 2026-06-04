@@ -80,7 +80,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
     {
         // Spec: suggested-mode "must never result in a 400 Bad Request or 409 Conflict. Rather,
         // the host must modify the proposed name as needed to create a new container that is
-        // legally named." Previously we returned 400 on invalid input regardless of mode.
+        // legally named."
         var token = await _fixture.MintContainerTokenAsync(_fixture.RootContainerId);
         using var client = _fixture.WopiBackend.CreateClient();
 
@@ -96,8 +96,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
     public async Task CreateChildContainer_Relative_InvalidName_Returns_400_WithInvalidContainerNameError()
     {
         // Spec: specific-mode 400 "must include an X-WOPI-InvalidContainerNameError header that
-        // describes why the file name was invalid." Pre-fix returned bare BadRequest with no
-        // diagnostic header.
+        // describes why the file name was invalid."
         var token = await _fixture.MintContainerTokenAsync(_fixture.RootContainerId);
         using var client = _fixture.WopiBackend.CreateClient();
 
@@ -235,9 +234,9 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
     [Fact]
     public async Task RenameContainer_Returns_200_WithNewName()
     {
-        // Spec: response JSON has a single required Name property that MUST be the new name.
-        // The pre-fix impl returned the OLD container snapshot's Name (out-of-sync with what
-        // the storage provider actually persisted).
+        // Spec: response JSON has a single required Name property that MUST be the new name,
+        // not the OLD container snapshot's Name (which would be out-of-sync with what the
+        // storage provider actually persisted).
         var childId = await _fixture.CreateTempContainerAsync();
         var token = await _fixture.MintContainerTokenAsync(childId);
         using var client = _fixture.WopiBackend.CreateClient();

@@ -18,8 +18,7 @@ namespace WopiHost.Core.Infrastructure;
 /// (Order ≈ -1000) discards verb mismatches; URL template matching populates the candidate set.
 /// By the time this policy runs, the surviving candidates share both route template and verb,
 /// so header-based discrimination is the last cut and per-endpoint authorization is evaluated
-/// against the single selected endpoint (the property the migration depends on — see
-/// <see href="https://github.com/petrsvihlik/WopiHost/issues/430">issue #430</see>).
+/// against the single selected endpoint.
 /// </para>
 /// <para>
 /// <strong>Selection failure mode.</strong> When the request header is missing or its value is

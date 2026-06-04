@@ -117,7 +117,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public void Ctor_AlreadyScanned_SkipsRescan()
     {
         // Pre-populate the ids so WasScanned is true; ctor should skip ScanAll
-        // but still find the root because we add it manually.
+        // but still find the manually-added root.
         var ids = new InMemoryFileIds(NullLogger<InMemoryFileIds>.Instance);
         ids.AddFile(_root.FullName);
 
@@ -373,8 +373,8 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetWopiResourceByName_MissingContainer_ReturnsNull()
     {
-        // Aligned with WopiAzureStorageProvider's behaviour (#380 item 4.2). Was previously
-        // a FileSystem-only throw — the interface now mandates null on missing parent.
+        // Aligned with WopiAzureStorageProvider's behaviour: the interface mandates null on a
+        // missing parent.
         var result = await _sut.GetWopiFileByName("missing-id", "root.txt");
 
         Assert.Null(result);
@@ -411,9 +411,8 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task CheckValidName_FileNameAtMaxLength_ReturnsTrue()
     {
-        // Documented contract is "length up to FileNameMaxLength" — inclusive. Pre-fix the
-        // implementation used `<` so a name of exactly 250 chars was rejected; the unified
-        // single-segment validator now matches the contract (and the Azure provider).
+        // Documented contract is "length up to FileNameMaxLength" — inclusive. A name of exactly
+        // FileNameMaxLength chars must be accepted, matching the Azure provider.
         var atLimit = new string('a', _sut.FileNameMaxLength);
         Assert.True(await _sut.CheckValidFileName(atLimit));
     }
@@ -442,19 +441,19 @@ public class WopiFileSystemProviderTests : IDisposable
     [InlineData("..")]
     public async Task CheckValidName_FolderNameWithPathSeparatorOrNav_ReturnsFalse(string name)
     {
-        // Pre-fix CheckValidContainerName used Path.GetInvalidPathChars(), which omits the
-        // separators GetInvalidFileNameChars forbids — so a "container name" containing a path
-        // separator passed validation and silently broke the storage layer. We deliberately
-        // don't assert on `"foo\\bar"` here: on Linux, `\` is a legal filename character (not
-        // a separator) and the FS provider correctly follows the OS — the OS-agnostic
-        // backslash rejection lives in the Azure provider instead.
+        // CheckValidContainerName must reject path separators: Path.GetInvalidPathChars() omits
+        // the separators GetInvalidFileNameChars forbids, so a container name containing a path
+        // separator would otherwise pass validation and silently break the storage layer. This
+        // does not assert on `"foo\\bar"`: on Linux, `\` is a legal filename character (not a
+        // separator) and the FS provider correctly follows the OS — the OS-agnostic backslash
+        // rejection lives in the Azure provider instead.
         Assert.False(await _sut.CheckValidContainerName(name));
     }
 
     [Fact]
     public async Task CheckValidName_FolderNameTooLong_ReturnsFalse()
     {
-        // Pre-fix CheckValidContainerName had no length cap, so a 10K-char container name passed.
+        // CheckValidContainerName must cap length; without a cap a 10K-char container name passes.
         var longName = new string('a', _sut.FileNameMaxLength + 1);
         Assert.False(await _sut.CheckValidContainerName(longName));
     }
@@ -598,8 +597,8 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task DeleteWopiResource_FileMissingId_ReturnsFalse()
     {
-        // #380 item 4.2 — return false for missing identifier (was throw FileNotFoundException),
-        // matching WopiAzureStorageProvider and letting the controller map cleanly to 404.
+        // Return false for a missing identifier, matching WopiAzureStorageProvider and letting
+        // the controller map cleanly to 404.
         var ok = await _sut.DeleteWopiFile("missing");
 
         Assert.False(ok);
@@ -641,7 +640,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task DeleteWopiResource_FolderMissingId_ReturnsFalse()
     {
-        // #380 item 4.2 — missing identifier returns false, matching WopiAzureStorageProvider.
+        // Missing identifier returns false, matching WopiAzureStorageProvider.
         var ok = await _sut.DeleteWopiContainer("missing");
 
         Assert.False(ok);
@@ -685,7 +684,6 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task RenameWopiResource_FileMissingId_ReturnsFalse()
     {
-        // #380 item 4.2.
         var ok = await _sut.RenameWopiFile("missing", "x.txt");
 
         Assert.False(ok);
@@ -715,7 +713,6 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task RenameWopiResource_FolderMissingId_ReturnsFalse()
     {
-        // #380 item 4.2.
         var ok = await _sut.RenameWopiContainer("missing", "x");
 
         Assert.False(ok);
@@ -733,9 +730,8 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task RenameWopiContainer_InvalidName_Throws()
     {
-        // Mirror of RenameWopiResource_InvalidName_Throws but for the container variant —
-        // the existing test only exercises the file path, so the container's invalid-name
-        // guard (ArgumentException) was previously uncovered.
+        // Container variant of RenameWopiResource_InvalidName_Throws — exercises the container's
+        // invalid-name guard (ArgumentException), which the file-path test doesn't cover.
         Assert.True(_fileIds.TryGetFileId(_empty.FullName, out var folderId));
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -746,7 +742,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task GetSuggestedContainerName_InvalidName_Throws()
     {
         // The file-name variant is tested via GetSuggestedName_InvalidName_Throws; the
-        // container path uses CheckValidContainerName instead and was missed.
+        // container path uses CheckValidContainerName instead.
         Assert.True(_fileIds.TryGetFileId(_root.FullName, out var rootId));
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -767,7 +763,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task GetWopiContainerByName_UnknownContainer_ReturnsNull()
     {
         // Mirrors GetWopiFileByName's missing-container behavior — the parent-container miss
-        // returns null per the #380 item 4.2 null-on-missing contract.
+        // returns null per the null-on-missing contract.
         var result = await _sut.GetWopiContainerByName("missing-container-id", "anything");
 
         Assert.Null(result);

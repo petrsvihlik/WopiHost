@@ -4,10 +4,10 @@ namespace WopiHost.Abstractions;
 /// Implementation of writable operations for an external storage provider.
 /// </summary>
 /// <remarks>
-/// Per #420 item 1.1, the file and container mutation methods are exposed as distinct typed
-/// pairs rather than a single generic <c>&lt;T&gt;</c> that used <c>typeof(T)</c> as a runtime
-/// discriminator. File-name and container-name validation rules differ (e.g. extension handling,
-/// allowed characters), so the split also makes the semantic mismatch visible in the API surface.
+/// The file and container mutation methods are exposed as distinct typed pairs rather than a
+/// single generic <c>&lt;T&gt;</c> with a runtime type discriminator. File-name and
+/// container-name validation rules differ (e.g. extension handling, allowed characters), so
+/// the split also makes the semantic mismatch visible in the API surface.
 /// </remarks>
 public interface IWopiWritableStorageProvider
 {
@@ -40,10 +40,8 @@ public interface IWopiWritableStorageProvider
     /// <see cref="IWopiStorageProvider.GetWopiFile"/> instead.
     /// </summary>
     /// <remarks>
-    /// Resolves the #420 item 1.2 leak: pre-fix the read-side <c>GetWopiFile</c> returned a
-    /// file that also exposed <c>OpenWriteAsync</c>, letting any caller mutate a file
-    /// they'd fetched in a read-only flow. After the split, writes require a deliberate
-    /// fetch through the writable storage provider.
+    /// Writes require a deliberate fetch through the writable storage provider; the read-side
+    /// <see cref="IWopiStorageProvider.GetWopiFile"/> returns a handle with no write seam.
     /// </remarks>
     /// <param name="identifier">File identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -65,8 +63,7 @@ public interface IWopiWritableStorageProvider
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Contract for the missing/exception split (clarified in #380 item 4.2 so the two in-tree
-    /// providers and any future impl behave the same):
+    /// Contract for the missing/exception split (all providers behave the same):
     /// </para>
     /// <list type="bullet">
     /// <item>

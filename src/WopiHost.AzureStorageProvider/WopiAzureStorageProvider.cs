@@ -96,8 +96,8 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
     /// <inheritdoc/>
     public async Task<IWopiWritableFile?> GetWritableFile(string identifier, CancellationToken cancellationToken = default)
     {
-        // Same WopiBlobFile instance the read-side returns — the concrete class implements
-        // IWopiWritableFile (extends IWopiFile), so the choice is purely about the static
+        // Same WopiBlobFile the read-side returns — the concrete class implements
+        // IWopiWritableFile (extends IWopiFile), so read vs. writable is purely the static
         // type the caller sees.
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
         if (!_idMap.TryGetPath(identifier, out var path))
@@ -133,7 +133,7 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
         // Azure Blob Storage's list API exposes only a prefix filter at the wire level — no
         // suffix / extension / regex support — so the extension filter is applied at the
         // streaming-list boundary inside the loop. Each non-matching blob is dropped before
-        // we allocate a WopiBlobFile for it. The hashset (OrdinalIgnoreCase) gives us O(1)
+        // a WopiBlobFile is allocated for it. The hashset (OrdinalIgnoreCase) gives O(1)
         // membership checks regardless of how many extensions the caller asked for.
         var extensionFilter = (fileExtensions is { Count: > 0 })
             ? new HashSet<string>(fileExtensions, StringComparer.OrdinalIgnoreCase)
@@ -534,12 +534,10 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
         var dest = _containerClient.GetBlobClient(destPath);
 
         // Atomic existence check via conditional-headers (IfNoneMatch="*") rather than a
-        // separate ExistsAsync + StartCopyFromUri pair. The prior shape had a TOCTOU window:
-        // a concurrent rename that landed between our existence probe and our copy could
-        // either silently overwrite the new neighbour or get partially applied. Setting
-        // IfNoneMatch=* tells Azure "fail if the destination already has any ETag" — the
-        // 409 Conflict comes from Blob Storage's own consistency layer, no client-side
-        // race possible.
+        // separate ExistsAsync + StartCopyFromUri pair, which would have a TOCTOU window where
+        // a concurrent rename could overwrite the destination. IfNoneMatch=* tells Azure to
+        // "fail if the destination already has any ETag" — the 409 Conflict comes from Blob
+        // Storage's own consistency layer, so no client-side race is possible.
         // https://learn.microsoft.com/rest/api/storageservices/specifying-conditional-headers-for-blob-service-operations
         try
         {
@@ -554,9 +552,9 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
         }
         catch (RequestFailedException ex) when (ex.Status == 409 || ex.ErrorCode == BlobErrorCode.BlobAlreadyExists)
         {
-            // Preserve the legacy exception shape so callers (RenameWopi{File,Container}) keep
-            // their existing 409-Conflict mapping. Status 409 covers the IfNoneMatch=* rejection
-            // and Azure's own BlobAlreadyExists path; both indicate "destination occupied."
+            // Callers (RenameWopi{File,Container}) map this to a 409 Conflict. Status 409 covers
+            // the IfNoneMatch=* rejection and Azure's own BlobAlreadyExists path; both indicate
+            // "destination occupied."
             throw new InvalidOperationException($"Target blob '{destPath}' already exists.", ex);
         }
 

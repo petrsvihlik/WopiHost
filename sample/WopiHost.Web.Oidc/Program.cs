@@ -47,7 +47,7 @@ builder.Services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
 
 // WOPI access-token signer must use the same key as the WOPI backend. Bind a project-local
 // WopiSigningOptions pointed at the same configuration path (Wopi:Security) — pure frontends
-// don't take a project reference on WopiHost.Core, so we keep our own typed shape for the
+// don't take a project reference on WopiHost.Core, so each keeps its own typed shape for the
 // shared key.
 builder.Services
     .AddOptions<WopiSigningOptions>()
@@ -130,8 +130,7 @@ else
 
 app.UseStaticFiles();
 
-// Auth middleware now has to be wired explicitly — AddRazorComponents doesn't add it the way
-// AddControllersWithViews did via MapControllerRoute.
+// AddRazorComponents does not add the auth middleware, so it must be wired explicitly.
 app.UseAuthentication();
 app.UseAuthorization();
 

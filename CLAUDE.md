@@ -31,6 +31,13 @@ dotnet run --project sample/WopiHost
 ## Code Style & Build Rules
 
 - **Warnings as errors** is enabled globally (`TreatWarningsAsErrors`).
+- **Comment style** (applies to `//` comments and the prose inside `///` XML docs):
+  - Write in third person. Never "we"/"our"/"let's" — describe what the code does ("Resolves the owner"), not what the author did.
+  - Comment only what is genuinely non-obvious or surprising to a new reader: a gotcha, an ABI/spec quirk, a non-local invariant. If the code is self-explanatory, leave no comment.
+  - No meta-commentary: don't justify a choice to a reviewer, don't narrate how the code used to be, don't say "matching X" / "changed to Y".
+  - Never reference GitHub issues or PRs by number (`#123`). If the context matters, inline the explanation itself.
+  - Keep comments short and concrete; prefer deleting a comment to padding it.
+  - Keep the `///` XML doc tags on public APIs (warnings-as-errors require them), but trim their wording to the same bar.
 - .NET analyzers and code style enforcement are on (`EnforceCodeStyleInBuild`).
 - Follow [.NET Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/).
 - Centralized package management via `Directory.Packages.props` — specify versions there, not in individual `.csproj` files.

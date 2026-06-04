@@ -15,8 +15,7 @@ namespace WopiHost.Core.Tests.Endpoints;
 
 /// <summary>
 /// Verifies that <see cref="WopiEndpointRouteBuilderExtensions.MapWopiEndpoints"/> registers
-/// the expected route table — names, templates, and resource-kind metadata. Full HTTP parity
-/// tests against the controller behaviour land in Phase 5 of the #430 migration.
+/// the expected route table — names, templates, and resource-kind metadata.
 /// </summary>
 public sealed class MapWopiEndpointsTests : IAsyncLifetime
 {
@@ -46,7 +45,7 @@ public sealed class MapWopiEndpointsTests : IAsyncLifetime
         builder.Services.AddSingleton(Mock.Of<IWopiWritableStorageProvider>());
         builder.Services.AddSingleton(Mock.Of<ICobaltProcessor>());
         // Override the default WOPI auth scheme so RequireAuthorization() resolves; the no-op
-        // handler short-circuits to NoResult since we never hit endpoints in this test. The
+        // handler short-circuits to NoResult since endpoints are never hit in this test. The
         // Bootstrap group requires WopiAuthenticationSchemes.Bootstrap to be registered for
         // its policy to construct at endpoint-registration time.
         builder.Services.AddAuthentication("test")
@@ -130,7 +129,7 @@ public sealed class MapWopiEndpointsTests : IAsyncLifetime
             "/wopi/folders/{id}/children",
             "/wopi/ecosystem",
             "/wopi/ecosystem/root_container_pointer",
-            // Phase 3: bootstrap GET — different auth scheme, but still a GET route.
+            // Bootstrap GET — different auth scheme, but still a GET route.
             "/wopibootstrapper",
         ];
         foreach (var template in expected)
@@ -163,14 +162,14 @@ public sealed class MapWopiEndpointsTests : IAsyncLifetime
     [Fact]
     public void PutFile_Maps_To_PUT_And_POST_On_Contents()
     {
-        // Phase 3a: PutFile uses MapMethods(["PUT", "POST"], ...) on /{id}/contents.
+        // PutFile uses MapMethods(["PUT", "POST"], ...) on /{id}/contents.
         var verbs = _endpoints
             .Where(e => e.RoutePattern.RawText == "/wopi/files/{id}/contents")
             .SelectMany(e => e.Metadata.GetMetadata<Microsoft.AspNetCore.Routing.HttpMethodMetadata>()?.HttpMethods ?? [])
             .ToHashSet();
-        Assert.Contains("GET", verbs);  // Phase 2: GetFile
-        Assert.Contains("PUT", verbs);  // Phase 3: PutFile
-        Assert.Contains("POST", verbs); // Phase 3: PutFile (alternate verb per spec)
+        Assert.Contains("GET", verbs);
+        Assert.Contains("PUT", verbs);
+        Assert.Contains("POST", verbs); // alternate verb per spec
     }
 
     [Theory]

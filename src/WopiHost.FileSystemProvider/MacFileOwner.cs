@@ -9,11 +9,11 @@ namespace WopiHost.FileSystemProvider;
 /// (UID → name).
 /// </summary>
 /// <remarks>
-/// macOS has no <c>statx</c>, so we P/Invoke <c>stat</c> directly. The wrinkle is the
+/// macOS has no <c>statx</c>, so this P/Invokes <c>stat</c> directly. The wrinkle is the
 /// 64-bit-inode ABI transition: on x86_64 the modern struct is exported under the
 /// <c>stat$INODE64</c> symbol (the bare <c>stat</c> is the deprecated 32-bit-inode
 /// variant), whereas arm64 — which never shipped a 32-bit-inode ABI — exports it as
-/// plain <c>stat</c>. We pick the right entry point by process architecture
+/// plain <c>stat</c>. The entry point is chosen by process architecture
 /// (Rosetta reports <see cref="Architecture.X64"/> and uses the x86_64 ABI, so the
 /// <c>$INODE64</c> symbol is still correct there). Both 64-bit ABIs share the same
 /// <c>struct stat</c> layout, so a single struct definition serves both — <c>st_uid</c>
@@ -39,7 +39,7 @@ internal static partial class MacFileOwner
     }
 
     // Leading fields of the 64-bit-inode `struct stat`; Size pads to the full 144-byte
-    // record so the kernel has room to write the trailing fields we don't read.
+    // record so the kernel has room to write the trailing unread fields.
     // st_dev(4) st_mode(2) st_nlink(2) st_ino(8) -> st_uid at offset 16.
     [StructLayout(LayoutKind.Sequential, Size = 144)]
     private struct StatBuf

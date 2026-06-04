@@ -163,8 +163,7 @@ public class WopiUrlSettings : Dictionary<string, string>
     }
 
     /// <summary>
-    /// Makes a purple, clickable box appear if you set it to 1.
-    /// Sorry, this documentation hasn't been written yet. https://github.com/Microsoft/Office-Online-Test-Tools-and-Documentation/issues/52
+    /// Makes a purple, clickable box appear when set to 1. Microsoft has not documented this value.
     /// </summary>
     public int Perfstats
     {

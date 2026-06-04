@@ -68,9 +68,8 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     /// <inheritdoc/>
     public Task<IWopiWritableFile?> GetWritableFile(string identifier, CancellationToken cancellationToken = default)
     {
-        // Same WopiFile instance the read-side returns — the concrete class implements
-        // IWopiWritableFile (which extends IWopiFile), so the choice between read and writable
-        // is purely about the static type the caller sees.
+        // Same WopiFile the read-side returns — the concrete class implements IWopiWritableFile
+        // (which extends IWopiFile), so read vs. writable is purely the static type the caller sees.
         if (_fileIds.TryGetPath(identifier, out var fullPath))
         {
             return Task.FromResult<IWopiWritableFile?>(new WopiFile(fullPath, identifier));
@@ -102,12 +101,12 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
 
         // Push the extension filter into the OS-level enumeration: one Directory.EnumerateFiles
         // call per requested extension, each with its own glob. Distinct extensions produce
-        // disjoint result sets so no dedup is needed when we concatenate. With no filter, fall
-        // back to a single unfiltered enumeration.
+        // disjoint result sets so the concatenation needs no dedup. With no filter, a single
+        // unfiltered enumeration is used.
         //
         // MatchCasing.CaseInsensitive is explicit because the EnumerationOptions default is
         // PlatformDefault, which means case-sensitive matching on Linux. WOPI requires
-        // case-insensitive extension matching, so we force it here regardless of host OS.
+        // case-insensitive extension matching, so it is forced here regardless of host OS.
         var options = new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive };
         var enumeration = (fileExtensions is { Count: > 0 })
             ? fileExtensions.SelectMany(ext => Directory.EnumerateFiles(absolutePath, "*" + ext, options))
@@ -149,7 +148,6 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     /// <inheritdoc/>
     public async Task<ReadOnlyCollection<IWopiContainer>> GetFileAncestors(string fileId, CancellationToken cancellationToken = default)
     {
-        // Convert file identifier to its parent container's identifier, then walk up.
         var parentId = GetFileParentIdentifier(fileId);
         var result = new List<IWopiContainer>();
         var container = await GetWopiContainer(parentId, cancellationToken).ConfigureAwait(false)
@@ -190,7 +188,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         string name,
         CancellationToken cancellationToken = default)
     {
-        // Missing parent: return null (#380 item 4.2).
+        // Missing parent: return null.
         if (!_fileIds.TryGetPath(containerId, out var dirPath))
         {
             return null;
@@ -233,11 +231,9 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         => Task.FromResult(IsValidSingleSegmentName(name));
 
     // Unified validation for files and containers — on a file-system store the two share the
-    // same namespace (a directory entry is a directory entry) and the same constraints. Pre-fix
-    // CheckValidContainerName used Path.GetInvalidPathChars(), which omits the path separators
-    // GetInvalidFileNameChars() forbids — so "sub/sub" or "foo\bar" passed and broke downstream;
-    // and CheckValidFileName used `< FileNameMaxLength` (strict), rejecting names exactly at the
-    // documented limit. This implementation mirrors WopiBlobContainer's IsValidSingleSegmentName.
+    // same namespace (a directory entry is a directory entry) and the same constraints.
+    // GetInvalidFileNameChars() (not GetInvalidPathChars()) forbids the path separators that
+    // would otherwise let "sub/sub" or "foo\bar" through and break downstream.
     private bool IsValidSingleSegmentName(string name) =>
         !string.IsNullOrWhiteSpace(name)
         && name.Length <= FileNameMaxLength
@@ -304,7 +300,6 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
             throw new ArgumentException($"File '{newPath}' already exists.", nameof(name));
         }
 
-        // Create an empty 0-byte file
         using (new FileStream(newPath, FileMode.CreateNew))
         {
         }
@@ -337,7 +332,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     /// <inheritdoc/>
     public Task<bool> DeleteWopiFile(string identifier, CancellationToken cancellationToken = default)
     {
-        // Missing identifier → return false (#380 item 4.2).
+        // Missing identifier → return false.
         if (!_fileIds.TryGetPath(identifier, out var fullPath) || !File.Exists(fullPath))
         {
             return Task.FromResult(false);
@@ -351,7 +346,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     /// <inheritdoc/>
     public Task<bool> DeleteWopiContainer(string identifier, CancellationToken cancellationToken = default)
     {
-        // Missing identifier → return false (#380 item 4.2). The non-empty case still throws —
+        // Missing identifier → return false. The non-empty case still throws —
         // that's the WOPI 409 path, distinct from 404.
         if (!_fileIds.TryGetPath(identifier, out var fullPath) || !Directory.Exists(fullPath))
         {
@@ -374,7 +369,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(requestedName));
         }
-        // Missing identifier → return false (#380 item 4.2). The target-already-exists case still
+        // Missing identifier → return false. The target-already-exists case still
         // throws — that's the WOPI 409 / X-WOPI-InvalidFileNameError path.
         if (!_fileIds.TryGetPath(identifier, out var fullPath) || !File.Exists(fullPath))
         {

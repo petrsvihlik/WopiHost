@@ -12,8 +12,8 @@ namespace WopiHost.Cobalt;
 /// and co-authoring status to OOS/OWA via the Cobalt protocol.
 /// </summary>
 /// <remarks>
-/// Fixes https://github.com/petrsvihlik/WopiHost/issues/139 — without shared session tracking,
-/// each Cobalt request creates a fresh <see cref="CobaltHostLockingStore"/> that always reports
+/// Without shared session tracking, each Cobalt request creates a fresh
+/// <see cref="CobaltHostLockingStore"/> that always reports
 /// <see cref="CoauthStatusType.Alone"/> and an empty editors table, causing older OOS versions
 /// to show duplicate user names when the same person opens a document in multiple tabs.
 /// </remarks>
@@ -60,7 +60,6 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
             {
                 LogEditorLeft(_logger, userId, fileId);
             }
-            // Clean up empty file entries
             if (files_sessions.IsEmpty)
             {
                 s_sessions.TryRemove(fileId, out _);
@@ -104,12 +103,10 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
     /// Returns the editors table for the Cobalt protocol.
     /// </summary>
     /// <remarks>
-    /// As of MS-FSSHTTP/CobaltCore 16.x the editors table is keyed by
-    /// <see cref="ArrayGuid"/> (per-editor ClientId) and entries are
-    /// <see cref="EditorsTableEntryNew"/>. We don't have a real Cobalt ClientId
-    /// in WopiHost, so we derive a stable one per-user by hashing the user id —
-    /// this preserves the dedup-by-user behavior that the older string-keyed
-    /// table provided.
+    /// The editors table is keyed by <see cref="ArrayGuid"/> (per-editor ClientId)
+    /// and entries are <see cref="EditorsTableEntryNew"/>. WopiHost has no real
+    /// Cobalt ClientId, so a stable one is derived per-user by hashing the user id,
+    /// which collapses a user's multiple tabs to a single editor row.
     /// </remarks>
     public EditorsTable GetEditorsTable(string fileId)
     {

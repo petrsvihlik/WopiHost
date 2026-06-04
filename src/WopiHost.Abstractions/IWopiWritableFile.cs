@@ -9,10 +9,9 @@ namespace WopiHost.Abstractions;
 /// so a read-only flow can't accidentally write through a file it fetched read-only.
 /// </summary>
 /// <remarks>
-/// Resolves #420 item 1.2 — pre-fix, <see cref="OpenWriteAsync"/> lived on <see cref="IWopiFile"/>
-/// itself, so any caller with a file handle could write to it regardless of how the handle was
-/// obtained. The split makes the write capability part of the type the storage layer hands out
-/// for writable flows, and the compiler enforces the gate.
+/// Keeping <see cref="OpenWriteAsync"/> off <see cref="IWopiFile"/> makes the write capability
+/// part of the type the storage layer hands out only for writable flows, so the compiler
+/// enforces the gate.
 /// </remarks>
 public interface IWopiWritableFile : IWopiFile
 {

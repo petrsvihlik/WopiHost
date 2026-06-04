@@ -16,9 +16,9 @@ namespace WopiHost.Cobalt;
 /// <para>
 /// The Cobalt protocol is stateful: schema/exclusive locks, edit deltas, and
 /// co-authoring metadata live inside the <c>CobaltFile</c>'s in-memory blob
-/// stores and must persist across HTTP requests for the same file. Creating a
-/// fresh <c>CobaltFile</c> per request (the previous behavior) makes
-/// co-authoring and delta-based edits impossible.
+/// stores and must persist across HTTP requests for the same file. A fresh
+/// <c>CobaltFile</c> per request would make co-authoring and delta-based edits
+/// impossible.
 /// </para>
 /// <para>
 /// Sessions are cached in a <see cref="ConcurrentDictionary{TKey,TValue}"/>
@@ -48,12 +48,6 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
     }
 
     /// <inheritdoc/>
-    // Binary-protocol orchestration: deserializes a CobaltCore RequestBatch, executes it
-    // against the cached CobaltFile, optionally flushes content via GenericFda, and
-    // serializes the response. Exercised end-to-end by the WOPI Validator + sample apps;
-    // unit-testing it would require constructing real Cobalt protocol bytes which is
-    // brittle and high-maintenance. The argument-validation and dispose contract above
-    // and below are unit-tested in CobaltProcessorTests.
     [ExcludeFromCodeCoverage(Justification = "Binary protocol; covered by integration tests")]
     public async Task<byte[]> ProcessCobalt(IWopiWritableFile file, ClaimsPrincipal principal, byte[] newContent, CancellationToken cancellationToken = default)
     {
@@ -63,8 +57,6 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
 
         var entry = await GetOrCreateSession(file, cancellationToken).ConfigureAwait(false);
 
-        // Wrap the request bytes as a CobaltStream (16.x replaced the Atom-taking
-        // overload of DeserializeInputFromProtocol with one that takes CobaltStream).
         using var newContentStream = new MemoryStream(newContent, writable: false);
         var requestStream = CobaltStream.Get(newContentStream, streamIsImmutable: true);
         var requestBatch = new RequestBatch();
@@ -152,10 +144,8 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
     {
         var disposal = new DisposalEscrow(file.Owner);
 
-        // CobaltCore 16.x retired `TemporaryHostBlobStore`; `LocalHostBlobStore` is
-        // the closest equivalent (in-memory by default; can be backed by a
-        // directory if a `dirPathForFileBackedBlobs` is supplied — left null here
-        // to match the old temp-only behavior).
+        // LocalHostBlobStore is in-memory by default; it can be backed by a
+        // directory if a `dirPathForFileBackedBlobs` is supplied — left null here.
         static CobaltFilePartitionConfig MakePartition(FilePartitionId partition, bool genericFda) => new()
         {
             IsNewFile = true,
@@ -173,8 +163,6 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
             [FilePartitionId.CoauthMetadata] = MakePartition(FilePartitionId.CoauthMetadata, genericFda: false),
         };
 
-        // CobaltCore 16.x changed the CobaltFile ctor to take a
-        // `GetConfigForPartitionAndVersion` delegate instead of a Dictionary.
         var cobaltFile = new CobaltFile(
             disposal,
             (partition, _) => partitionConfigs.TryGetValue(partition, out var cfg) ? cfg : null,
@@ -184,9 +172,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
         if (file.Exists)
         {
             using var stream = await file.OpenReadAsync(cancellationToken).ConfigureAwait(false);
-            // 16.x made `AtomFromStream` an internal sealed type; `Atom.CreateFromArray`
-            // is the public byte[] factory. Buffer the stream so we can hand a byte[]
-            // to it.
+            // Atom.CreateFromArray takes a byte[], so the stream must be buffered first.
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms, cancellationToken).ConfigureAwait(false);
             var srcAtom = Atom.CreateFromArray(ms.ToArray());

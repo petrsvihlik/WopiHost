@@ -12,10 +12,9 @@ var builder = DistributedApplication.CreateBuilder(args);
 //
 // ASPNETCORE_HOSTINGSTARTUPEXCLUDEASSEMBLIES is the documented opposite of the include list
 // (https://learn.microsoft.com/aspnet/core/fundamentals/host/platform-specific-configuration):
-// the host removes named assemblies from the discovered set before attempting to load. We use
-// it here in preference to clearing the include list outright so any legitimate hosting-startup
-// assembly an Aspire user (or a child project's own appsettings) adds keeps working — the fix
-// is scoped to the two known dev-tooling offenders.
+// the host removes named assemblies from the discovered set before attempting to load. Excluding
+// the two known dev-tooling offenders (rather than clearing the include list outright) keeps any
+// legitimate hosting-startup assembly an Aspire user or child project adds working.
 static IResourceBuilder<ProjectResource> ExcludeVsHostingStartups(IResourceBuilder<ProjectResource> p) =>
     p.WithEnvironment(
         "ASPNETCORE_HOSTINGSTARTUPEXCLUDEASSEMBLIES",
@@ -23,7 +22,7 @@ static IResourceBuilder<ProjectResource> ExcludeVsHostingStartups(IResourceBuild
 
 // WOPI backend.
 //
-// Port: pinned to 5050. Kestrel binds directly (isProxied: false) so the URL we hand other
+// Port: pinned to 5050. Kestrel binds directly (isProxied: false) so the URL handed to other
 // resources is the real host-side TCP socket. Direct binding matters for the Collabora dev
 // loop specifically — Collabora-in-Docker reaches the backend via host.docker.internal:5050,
 // and that has to be a port the host kernel is actually listening on (Aspire's reverse proxy
@@ -34,21 +33,20 @@ static IResourceBuilder<ProjectResource> ExcludeVsHostingStartups(IResourceBuild
 // `SocketException 10013 (WSAEACCES) — An attempt was made to access a socket in a way
 // forbidden by its access permissions`, even though `netstat` shows nothing listening. Check
 // the local exclusions with `netsh int ipv4 show excludedportrange protocol=tcp` if 5050 is
-// also unavailable on your machine; move to another free port and update Collabora's "domain"
-// regex below in lockstep.
+// also unavailable; move to another free port and update Collabora's "domain" regex below in
+// lockstep.
 //
 // Why pin the port at all rather than let Aspire allocate? In Aspire 13.x, WithHttpEndpoint
 // with isProxied: false and no port silently hangs the AppHost during graph construction —
-// the dashboard's web server never starts. Reproduced cleanly: removing port: here leaves
-// startup stuck after "Application host directory is: …" with no further output. Pinning a
-// port is the only working combo today. Downstream consumers still read this through a
-// ReferenceExpression so the literal port only appears in two colocated places.
+// startup sticks after "Application host directory is: …" and the dashboard's web server never
+// starts. Downstream consumers still read this through a ReferenceExpression so the literal
+// port only appears in two colocated places.
 //
 // launchProfileName: null bypasses sample/WopiHost/Properties/launchSettings.json so the
-// AppHost is the single source of truth for backend configuration. We re-inject the one
-// load-bearing setting — ASPNETCORE_ENVIRONMENT=Development — explicitly, because
-// sample/WopiHost's Program.cs refuses to honour Wopi:Security:DisableProofValidation
-// outside Development (and the Collabora block below flips that flag on).
+// AppHost is the single source of truth for backend configuration. ASPNETCORE_ENVIRONMENT=
+// Development is re-injected explicitly because sample/WopiHost's Program.cs refuses to honour
+// Wopi:Security:DisableProofValidation outside Development (and the Collabora block below flips
+// that flag on).
 var wopiHost = ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost>("wopihost", launchProfileName: null))
                       .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
                       .WithHttpEndpoint(name: "wopihost-http", port: 5050, isProxied: false)
@@ -93,12 +91,12 @@ if (builder.Configuration.GetValue<bool>("AppHost:UseAzureStorage"))
 // connections.
 //
 // Lifetime defaults to Session (Aspire's default) so the container is torn down on AppHost
-// shutdown. Persistent lifetime was tried but accumulated orphaned containers across runs:
-// Aspire's persistent-resource identity is fingerprinted from the resource config (including
-// the auto-generated REDIS_PASSWORD), so a fresh password each session produces a fresh
-// fingerprint and a fresh container while the previous one lingers as `Exited`. Lock state is
-// short-lived by design (30-min WOPI spec expiry), so there's no data-survival need that
-// would justify pinning the password to stabilise the fingerprint.
+// shutdown. Persistent lifetime accumulates orphaned containers across runs: Aspire's
+// persistent-resource identity is fingerprinted from the resource config (including the
+// auto-generated REDIS_PASSWORD), so a fresh password each session produces a fresh fingerprint
+// and a fresh container while the previous one lingers as `Exited`. Lock state is short-lived by
+// design (30-min WOPI spec expiry), so there's no data-survival need that would justify pinning
+// the password to stabilise the fingerprint.
 if (builder.Configuration.GetValue("AppHost:UseRedisLocks", defaultValue: true))
 {
     var redis = builder.AddRedis("wopi-locks");
@@ -123,8 +121,8 @@ var useCollabora = builder.Configuration.GetValue<bool>("AppHost:UseCollabora");
 var wopiBackendHostForFrontends = useCollabora ? "host.docker.internal" : "localhost";
 
 // Frontends: project references via WithReference give Aspire's service-discovery env vars
-// (services__wopihost__http__0=...), but the existing frontend code reads Wopi:HostUrl directly
-// from IConfiguration — so we ALSO inject Wopi__HostUrl pointing at the same backend port. That
+// (services__wopihost__http__0=...), but the frontend code reads Wopi:HostUrl directly from
+// IConfiguration — so Wopi__HostUrl is ALSO injected, pointing at the same backend port. That
 // way the AppHost owns the URL end-to-end and the frontend's appsettings.json HostUrl entry is
 // only the production default.
 //
@@ -204,26 +202,22 @@ if (useCollabora)
            .WithContainerRuntimeArgs("--add-host", "host.docker.internal:host-gateway")
            // WOPI hosts Collabora is allowed to call back to. coolwsd matches this regex against
            // the WopiSrc host with std::regex_match (full-string match), and the host it sees
-           // carries the port — "host.docker.internal:5050". That's why earlier iterations with
-           // a bare "host\.docker\.internal" 401'd ("websocketunauthorized" / "Unauthorized WOPI
-           // host"): the ":5050" suffix left the full match unsatisfied. Anchoring the known dev
-           // host as a prefix and absorbing the port (or any path) with a trailing ".*" keeps the
-           // pattern scoped to host.docker.internal instead of waving through every hostname.
-           // The "host\.docker\.internal:5050" attempt that also 401'd predates the trace logging
-           // below; if this narrowed form ever regresses, that trace surfaces the exact host
-           // string coolwsd matched against so the regex can be fixed against real data rather
-           // than guessed — see the --o:logging.level=trace note.
+           // carries the port — "host.docker.internal:5050". A bare "host\.docker\.internal" 401s
+           // ("websocketunauthorized" / "Unauthorized WOPI host") because the ":5050" suffix
+           // leaves the full match unsatisfied. Anchoring the known dev host as a prefix and
+           // absorbing the port (or any path) with a trailing ".*" keeps the pattern scoped to
+           // host.docker.internal instead of waving through every hostname. If this narrowed form
+           // regresses, the trace logging below surfaces the exact host string coolwsd matched
+           // against — see the --o:logging.level=trace note.
            .WithEnvironment("domain", @"host\.docker\.internal.*")
            // --o:logging.level=trace so the container log shows the actual host string being
            // matched against (and why the match fails). The CI workflow captures container
-           // logs on failure, so a future run with this trace level will surface coolwsd's
-           // own diagnosis instead of leaving us guessing.
+           // logs on failure, so a failing run surfaces coolwsd's own diagnosis.
            //
-           // Earlier iteration also set --o:logging.protocol=true. That flag traces HTTP
-           // request and response bodies, including the /hosting/discovery response — which
-           // is ~600+ lines of <app>/<action> XML. With docker logs --tail set to anything
-           // reasonable, the XML pushed coolwsd's own WebSocket-auth log lines off the tail
-           // and left us blind. Trace level alone is enough to surface the matching attempt.
+           // Do NOT also set --o:logging.protocol=true: that flag traces HTTP request and response
+           // bodies, including the /hosting/discovery response (~600+ lines of <app>/<action>
+           // XML), which pushes coolwsd's own WebSocket-auth log lines off the docker logs --tail.
+           // Trace level alone is enough to surface the matching attempt.
            .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false --o:logging.level=trace")
            .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
            .WithHttpHealthCheck("/hosting/discovery", endpointName: "collabora");
@@ -235,9 +229,9 @@ if (useCollabora)
     // port even though the AppHost asks for 9980. With a reference, the URL the projects see
     // tracks whatever Aspire actually allocated, in both normal and test runs.
     //
-    // This is the OPPOSITE direction of the documented "container env var → project endpoint
-    // port reference wedges Aspire 13.x" footgun (the `domain` literal above). Here we're
-    // referencing a container endpoint from a project env var, which works fine.
+    // This is the OPPOSITE direction of the "container env var → project endpoint port reference
+    // wedges Aspire 13.x" footgun (the `domain` literal above): referencing a container endpoint
+    // from a project env var works fine.
     var collaboraUrl = collabora.GetEndpoint("collabora");
 
     // Backend: fetches /hosting/discovery from Collabora at startup. Collabora does not sign WOPI

@@ -66,8 +66,7 @@ public class ServiceCollectionExtensionsTests
     public void AddAzureStorageProvider_WithServiceUriAndNoCredential_FallsBackToDefaultCredential()
     {
         // No TokenCredential registered → ServiceCollectionExtensions must build a DefaultAzureCredential.
-        // We can't easily assert "is DefaultAzureCredential" since it's encapsulated in the BlobServiceClient,
-        // but resolution must not throw.
+        // It's encapsulated in the BlobServiceClient and not directly assertable, but resolution must not throw.
         var services = new ServiceCollection();
         AddNullLogging(services);
         var config = BuildConfig(new()

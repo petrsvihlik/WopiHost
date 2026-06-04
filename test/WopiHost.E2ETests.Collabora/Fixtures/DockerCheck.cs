@@ -15,10 +15,10 @@ internal static class DockerCheck
     /// without a running engine, or a context pointing at an offline daemon all surface here.
     /// </summary>
     /// <remarks>
-    /// The check is intentionally minimal — it only tells us "can Aspire start containers right
+    /// The check is intentionally minimal — it only answers "can Aspire start containers right
     /// now". It does <em>not</em> verify Linux-container mode, Docker Compose, image pull
-    /// permissions, or any other capability. If the more specific path fails downstream, we'd
-    /// rather see the real error than mask it with a coarser preflight.
+    /// permissions, or any other capability. A more specific path failing downstream should
+    /// surface the real error rather than be masked by a coarser preflight.
     /// </remarks>
     public static bool IsDockerAvailable()
     {

@@ -82,8 +82,8 @@ internal static class BootstrapEndpoints
     /// </summary>
     /// <remarks>
     /// Both branches are inlined into this method rather than dispatched to separate <c>async</c>
-    /// helpers because awaits on same-class static async methods trip an Infer# null-deref FP
-    /// through the async state machine (#471, mirror of the EndpointHelpers refactor). Every
+    /// helpers because awaits on same-class static async methods trip a null-deref false positive
+    /// through the async state machine. Every
     /// <c>await</c> here lands directly on an injected dependency
     /// (<see cref="IWopiAccessTokenService"/>, <see cref="IWopiStorageProvider"/>,
     /// <see cref="IWopiPermissionProvider"/>, <see cref="ICheckContainerInfoBuilder"/>).

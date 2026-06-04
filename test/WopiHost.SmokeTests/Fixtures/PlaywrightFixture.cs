@@ -9,8 +9,8 @@ namespace WopiHost.SmokeTests.Fixtures;
 /// (cheap; sub-second) for isolation, so tests don't share cookies / storage.
 /// </summary>
 /// <remarks>
-/// On first construction we shell out to <c>Playwright.Program.Main(["install", "chromium"])</c>,
-/// which is idempotent — it is fast when browsers are already cached, and downloads them once
+/// On first construction this shells out to <c>Playwright.Program.Main(["install", "chromium"])</c>,
+/// which is idempotent — fast when browsers are already cached, and downloads them once
 /// otherwise. CI workflows can install upfront via <c>pwsh playwright.ps1 install --with-deps chromium</c>
 /// to avoid the per-test-run check.
 /// </remarks>

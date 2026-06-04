@@ -72,7 +72,7 @@ public partial class WopiAzureLockProvider(
             return info;
         }
 
-        // WOPI-expired. Break the lease so subsequent AddLock calls can take over, then evict.
+        // WOPI-expired: break the lease so subsequent AddLock calls can take over, then evict.
         await TryBreakLeaseAsync(blobClient, cancellationToken).ConfigureAwait(false);
         await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         LogLockExpired(_logger, fileId, info.LockId);
@@ -96,7 +96,7 @@ public partial class WopiAzureLockProvider(
                     LogLockAddRejected(_logger, fileId, lockId, existingInfo.LockId);
                     return null;
                 }
-                // Stale (>30 min old) — clean up so we can take over.
+                // Stale (>30 min old) — clean up so a new lock can take over.
                 await TryBreakLeaseAsync(blobClient, cancellationToken).ConfigureAwait(false);
                 await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             }
@@ -104,21 +104,20 @@ public partial class WopiAzureLockProvider(
             {
                 // Blob exists but metadata is missing/malformed. With the atomic upload-with-
                 // metadata flow below, healthy peers never observe this state — it can only mean
-                // a peer is mid-acquire RIGHT NOW (we lost the race) or a previous attempt
+                // a peer is mid-acquire right now (this call lost the race) or a previous attempt
                 // crashed between Upload and lease acquisition. Either way, treat it as
-                // "lock-attempt in progress" and yield. (Aggressive cleanup here was the prior
-                // bug that broke healthy peers via lease-break + delete in their acquire window.)
+                // "lock-attempt in progress" and yield. Aggressive cleanup here would break
+                // healthy peers via lease-break + delete inside their acquire window.
                 LogLockAddRaceLost(_logger, fileId, lockId);
                 return null;
             }
         }
 
         // Step 2: atomic upload-with-metadata. The blob is never observable in a "no metadata"
-        // state, so any peer's TryReadLock either gets a complete WopiLockInfo (we won) or the
-        // blob doesn't yet exist (their probe hits before our upload lands). IfNoneMatch=*
-        // serves as the create-if-not-exists conditional: a 412 means a sibling acquire raced
-        // ahead and we lost. Some Azure SDK paths surface 409 instead — we treat both as the
-        // race-lost outcome.
+        // state, so any peer's TryReadLock either gets a complete WopiLockInfo or the blob
+        // doesn't yet exist (its probe hits before the upload lands). IfNoneMatch=* serves as
+        // the create-if-not-exists conditional: a 412 means a sibling acquire raced ahead. Some
+        // Azure SDK paths surface 409 instead — both are treated as the race-lost outcome.
         var leaseId = Guid.NewGuid().ToString();
         var now = _timeProvider.GetUtcNow();
         var metadata = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -146,8 +145,8 @@ public partial class WopiAzureLockProvider(
         }
 
         // Step 3: acquire the infinite lease whose id is already announced via metadata. If
-        // this fails, delete the placeholder so we don't leave a no-op blob behind that claims
-        // a lease we don't actually hold.
+        // this fails, delete the placeholder so no no-op blob is left behind claiming a lease
+        // that isn't actually held.
         var leaseClient = blobClient.GetBlobLeaseClient(leaseId);
         try
         {
@@ -182,20 +181,18 @@ public partial class WopiAzureLockProvider(
     }
 
     /// <summary>
-    /// Shared "load → validate → renew lease → SetMetadata under ETag" flow that
-    /// <see cref="RefreshLockAsync"/> and <see cref="TryUnlockAndRelockAsync"/> both need. They
-    /// differ only in <em>which</em> metadata fields the mutation step writes; the load /
-    /// expected-lock-id check / lease renewal / ETag-conditional write / failure-handling
-    /// scaffolding is identical, so it lives here as a single transaction instead of being
-    /// duplicated across both methods.
+    /// Shared "load, validate, renew lease, SetMetadata under ETag" flow for
+    /// <see cref="RefreshLockAsync"/> and <see cref="TryUnlockAndRelockAsync"/>. They differ only
+    /// in <em>which</em> metadata fields the mutation step writes; the load, expected-lock-id
+    /// check, lease renewal, ETag-conditional write, and failure handling are identical.
     /// </summary>
     /// <remarks>
     /// <para>
     /// Atomicity: the ETag captured before lease renewal is the snapshot the
     /// <c>SetMetadataAsync</c> writes against (<c>IfMatch=etag</c>). Any concurrent mutation
-    /// between our load and our write — a sibling <c>UnlockAndRelock</c>, a <c>Remove</c>, even
-    /// another <c>Refresh</c> — changes the blob's ETag and Azure replies 412; we report
-    /// not-applied. Same atomicity guarantee in both call sites.
+    /// between the load and the write — a sibling <c>UnlockAndRelock</c>, a <c>Remove</c>, even
+    /// another <c>Refresh</c> — changes the blob's ETag and Azure replies 412, which is reported
+    /// as not-applied. Same atomicity guarantee in both call sites.
     /// </para>
     /// <para>
     /// Returns <see langword="false"/> on any abort condition: blob missing, malformed
@@ -212,11 +209,6 @@ public partial class WopiAzureLockProvider(
         await EnsureContainerAsync(cancellationToken).ConfigureAwait(false);
         var blobClient = GetLockBlob(fileId);
         var props = await TryGetPropertiesAsync(blobClient, cancellationToken).ConfigureAwait(false);
-        // Three short-circuiting guards collapsed into one if/else-if/else chain that assigns a
-        // single `result` and exits through one `return`. The earlier multi-return shape tripped
-        // qlty's return-count threshold (≤5); the combined-if shape tripped its boolean-logic
-        // threshold. The if/else-if/else preserves the short-circuit semantics with no compound
-        // boolean (each branch carries at most one `||`).
         bool result;
         if (props is null || !TryReadLock(fileId, props, out var info))
         {
@@ -239,9 +231,7 @@ public partial class WopiAzureLockProvider(
     }
 
     /// <summary>
-    /// Bundled "what to write to" inputs for <see cref="ExecuteMutationAsync"/>. Exists so that
-    /// helper can stay below qlty's 5-parameter threshold; passing four positional args plus the
-    /// mutation delegate and the cancellation token would otherwise put it at 6.
+    /// Bundled "what to write to" inputs for <see cref="ExecuteMutationAsync"/>.
     /// </summary>
     private readonly record struct MutationContext(
         BlobClient BlobClient,
@@ -252,8 +242,6 @@ public partial class WopiAzureLockProvider(
     /// <summary>
     /// Inner step of <see cref="TryAtomicLockUpdateAsync"/>: with a validated lease id in hand,
     /// renews the lease and writes the mutated metadata under <c>IfMatch=etag</c> + the lease id.
-    /// Lifted out so the outer validation path and the renew/write path each have a single
-    /// return — qlty's return-count threshold is ≤5, and the combined version exceeded it.
     /// </summary>
     /// <remarks>
     /// A <c>renewed</c> flag tracks which phase the exception fired in so the two failure modes
@@ -348,11 +336,8 @@ public partial class WopiAzureLockProvider(
         }
     }
 
-    // Visible to WopiHost.AzureLockProvider.Tests via InternalsVisibleTo (auto-wired in
-    // Directory.Build.props). The Azure-specific tests need to address the same blob from
-    // outside the provider (direct metadata seeding, lease takeover). Pre-#456 they reflected
-    // into the private method via BindingFlags.NonPublic; exposing it as internal keeps the
-    // production API surface unchanged while letting tests compile against a typed signature.
+    // Internal so the Azure-specific tests can address the same blob from outside the provider
+    // (direct metadata seeding, lease takeover) without changing the production API surface.
     internal BlobClient GetLockBlob(string fileId)
     {
         // Hash the fileId so any caller-supplied identifier is reduced to a safe blob name.
@@ -380,7 +365,7 @@ public partial class WopiAzureLockProvider(
         }
         catch (RequestFailedException)
         {
-            // Best-effort — if the lease is already gone or the blob disappeared, we don't care.
+            // Best-effort — a lease that is already gone or a vanished blob is fine.
         }
     }
 

@@ -32,8 +32,8 @@ internal static partial class LinuxFileOwner
         return UnixUserResolver.ResolveUserNameOrUid(stx.stx_uid);
     }
 
-    // Only the leading fields are read; allocate the full kernel-defined
-    // 256-byte size so statx has room to write the rest of the record.
+    // Only the leading fields are read; the full kernel-defined 256-byte
+    // size gives statx room to write the rest of the record.
     [StructLayout(LayoutKind.Sequential, Size = 256)]
     private struct StatxBuf
     {
@@ -45,11 +45,10 @@ internal static partial class LinuxFileOwner
         public uint stx_gid;
     }
 
-    // CA5392 wants explicit DLL search paths to limit the loader's search to safe directories
-    // and prevent DLL hijacking. The attribute is honored on Windows only — on Linux the dynamic
-    // loader uses LD_LIBRARY_PATH + system paths and ignores the attribute entirely. This whole
-    // class is [SupportedOSPlatform("linux")] so the attribute is effectively a no-op for us, but
-    // it satisfies the analyzer and documents intent.
+    // CA5392 wants explicit DLL search paths to prevent DLL hijacking. The attribute is honored
+    // on Windows only — on Linux the dynamic loader uses LD_LIBRARY_PATH + system paths and
+    // ignores it. This class is [SupportedOSPlatform("linux")] so the attribute is effectively a
+    // no-op here, but it satisfies the analyzer.
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [LibraryImport("libc", EntryPoint = "statx", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
     private static partial int Statx(

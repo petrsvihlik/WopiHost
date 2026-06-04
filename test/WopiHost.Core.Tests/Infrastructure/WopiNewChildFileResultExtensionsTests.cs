@@ -46,7 +46,7 @@ public class WopiNewChildFileResultExtensionsTests
         Assert.IsType<Conflict>(actionResult);
         Assert.True(_response.Headers.ContainsKey(WopiHeaders.VALID_RELATIVE_TARGET));
         // Header value is UTF-7 encoded per the WOPI spec — the round-trip is asserted in
-        // UtfStringTests; here we only check the header was set with non-empty content.
+        // UtfStringTests; this only checks the header was set with non-empty content.
         Assert.NotEmpty(_response.Headers[WopiHeaders.VALID_RELATIVE_TARGET].ToString());
     }
 

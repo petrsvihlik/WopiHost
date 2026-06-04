@@ -68,15 +68,13 @@ public class WopiAuthorizationHandlerTests
     [Fact]
     public async Task Concurrent_Requests_Sharing_Attribute_Do_Not_Race_On_Audit_Log()
     {
-        // Regression test for #380 items 2.5 / 5.3: [Authorize] attribute instances are cached
-        // on the action descriptor and shared by every concurrent request hitting the endpoint.
-        // The previous handler wrote requirement.ResourceId = routeId, then read it back into
-        // an audit log — two interleaved requests would cross-contaminate, logging the wrong
-        // file id (and inviting any custom handler that read the property to make wrong
-        // authorization decisions). After the fix the route id stays in a local; this test
-        // hammers the same shared requirement from many concurrent tasks with distinct route
-        // ids and asserts every captured log line pairs the right route id with the right
-        // claim id.
+        // [Authorize] attribute instances are cached on the action descriptor and shared by
+        // every concurrent request hitting the endpoint. The handler must keep the route id in
+        // a local rather than on the shared requirement, otherwise two interleaved requests
+        // cross-contaminate, logging the wrong file id (and inviting any custom handler that
+        // read the property to make wrong authorization decisions). This test hammers the same
+        // shared requirement from many concurrent tasks with distinct route ids and asserts
+        // every captured log line pairs the right route id with the right claim id.
         var requirement = new WopiAuthorizeAttribute(WopiResourceType.File, Permission.Read);
         var captures = new ConcurrentBag<(string TokenRid, string? RouteId)>();
         var handler = new WopiAuthorizationHandler(new CapturingLogger(captures));
@@ -96,8 +94,8 @@ public class WopiAuthorizationHandlerTests
         foreach (var (tokenRid, routeId) in captures)
         {
             // The {tokenRid} log argument is "token-rid-N" and the {routeId} argument is
-            // "file-N" — they must agree on N. Pre-fix this would fail because both fields
-            // could be plucked from any in-flight request.
+            // "file-N" — they must agree on N. If the fields were plucked from any in-flight
+            // request they could be crossed.
             var tokenIndex = tokenRid["token-rid-".Length..];
             var routeIndex = routeId!["file-".Length..];
             Assert.Equal(tokenIndex, routeIndex);
@@ -386,8 +384,8 @@ public class WopiAuthorizationHandlerTests
     public async Task Unknown_Permission_On_File_Falls_Through_To_False_Arm()
     {
         // Same guard, one level deeper — HasFilePermission's switch also has a `_ => false`
-        // arm. Exercise it with an out-of-range Permission value. Use UserCanWrite so we get
-        // past the early Read-implies-true and ReadOnly checks.
+        // arm. Exercise it with an out-of-range Permission value. UserCanWrite gets past the
+        // early Read-implies-true and ReadOnly checks.
         var requirement = new WopiAuthorizeAttribute(WopiResourceType.File, (Permission)999);
         var ctx = BuildContext(requirement, "fileId",
             Authenticated(

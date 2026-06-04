@@ -73,7 +73,7 @@ public class ServiceCollectionExtensionsTests
     public void AddRedisLockProvider_WhenLockProviderAlreadyRegistered_Throws()
     {
         // A host that wires two IWopiLockProviders would have the second registration silently
-        // win the resolve — pre-#456 there was no guard, post-#456 we fail fast at composition.
+        // win the resolve — the guard fails fast at composition instead.
         var services = NewServicesWith();
         services.AddSingleton<IWopiLockProvider>(A.Fake<IWopiLockProvider>());
 
