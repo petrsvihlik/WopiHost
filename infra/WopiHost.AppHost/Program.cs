@@ -70,7 +70,7 @@ var wopiBackendPort = wopiHost.GetEndpoint("wopihost-http").Property(EndpointPro
 // so the default flow keeps using the file-system provider out of the box. When enabled, the Azurite
 // resource is added and its connection string is forwarded to the WopiHost project as
 // "ConnectionStrings__BlobStorage", which sample/WopiHost reads when configured for the Azure provider.
-if (builder.Configuration.GetValue<bool>("AppHost:UseAzureStorage"))
+if (builder.Configuration.GetValue("AppHost:UseAzureStorage", defaultValue: false))
 {
     var storage = builder.AddAzureStorage("blob-storage")
                          .RunAsEmulator(emu => emu.WithLifetime(ContainerLifetime.Persistent));
@@ -117,7 +117,7 @@ if (builder.Configuration.GetValue("AppHost:UseRedisLocks", defaultValue: true))
 // resolves from inside the Collabora container. In non-Collabora mode there's no in-Docker
 // WOPI client (real OOS/M365 WOPI clients live outside the dev loop and configure their own
 // URL), so localhost is fine for the dashboard.
-var useCollabora = builder.Configuration.GetValue<bool>("AppHost:UseCollabora");
+var useCollabora = builder.Configuration.GetValue("AppHost:UseCollabora", defaultValue: false);
 var wopiBackendHostForFrontends = useCollabora ? "host.docker.internal" : "localhost";
 
 // Frontends: project references via WithReference give Aspire's service-discovery env vars
@@ -149,7 +149,7 @@ ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost_Validator>("wopiho
 // Optional: OIDC frontend sample. Opt-in via "AppHost:IncludeOidcSample"=true so newcomers don't
 // need to register an IdP just to run the default flow. Requires the user to fill in Oidc:* config
 // in sample/WopiHost.Web.Oidc/appsettings.Development.json (see that sample's README for setup).
-if (builder.Configuration.GetValue<bool>("AppHost:IncludeOidcSample"))
+if (builder.Configuration.GetValue("AppHost:IncludeOidcSample", defaultValue: false))
 {
     // OIDC requires HTTPS for cookie/redirect-URI sanity; Aspire picks the port. Note that
     // the OIDC sample's appsettings.Development.json must list whatever URL Aspire picks as
