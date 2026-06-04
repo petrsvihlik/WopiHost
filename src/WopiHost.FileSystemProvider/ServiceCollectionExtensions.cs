@@ -33,13 +33,12 @@ public static class ServiceCollectionExtensions
             .ValidateOnStart();
 
         services.TryAddSingleton<InMemoryFileIds>();
-        // The provider is a stateless wrapper: after construction it holds only immutable fields,
-        // depends solely on singletons (InMemoryFileIds, IHostEnvironment, IConfiguration, ILogger)
-        // — so no scoped captive dependency — and routes all mutable state through the thread-safe
-        // InMemoryFileIds.
-        services.AddSingleton<WopiFileSystemProvider>();
-        services.AddSingleton<IWopiStorageProvider>(sp => sp.GetRequiredService<WopiFileSystemProvider>());
-        services.AddSingleton<IWopiWritableStorageProvider>(sp => sp.GetRequiredService<WopiFileSystemProvider>());
+        // TryAdd: a host registering its own provider first wins, and a repeat call no-ops
+        // instead of double-registering. Singleton is safe — the provider is stateless after
+        // construction and routes all mutable state through the thread-safe InMemoryFileIds.
+        services.TryAddSingleton<WopiFileSystemProvider>();
+        services.TryAddSingleton<IWopiStorageProvider>(sp => sp.GetRequiredService<WopiFileSystemProvider>());
+        services.TryAddSingleton<IWopiWritableStorageProvider>(sp => sp.GetRequiredService<WopiFileSystemProvider>());
 
         return services;
     }
