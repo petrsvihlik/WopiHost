@@ -83,6 +83,13 @@ Abstractions ← Abstractions.Testing (test-helper library; depends on xunit)
 
 Each storage / lock provider package exposes a typed `services.Add{Provider}{StorageOrLock}Provider(...)` extension. The composition root references the provider package(s) it wants and calls the extension directly — no reflection, no assembly-name strings. Available extensions: `AddFileSystemStorageProvider(cfg)`, `AddAzureStorageProvider(cfg)`, `AddMemoryLockProvider()`, `AddAzureLockProvider(cfg)`, `AddRedisLockProvider(cfg)`. The sample retains a small sample-local discriminator (`Sample:StorageProvider`, `Sample:LockProvider`) so the AppHost flag flow can flip providers at runtime — see [sample/WopiHost/ServiceCollectionExtensions.cs](sample/WopiHost/ServiceCollectionExtensions.cs).
 
+Conventions a new provider follows (keeps the set from drifting):
+
+- **Naming.** `Add{Name}StorageProvider` / `Add{Name}LockProvider`. Takes `IConfiguration` only when the provider has settings to bind.
+- **Options.** A provider with configurable settings has a `{Name}{Storage|Lock}ProviderOptions` class bound from a `Wopi:StorageProvider` / `Wopi:LockProvider` section via `AddOptions<T>().Bind(...).ValidateOnStart()`. A provider with **no** settings (e.g. `MemoryLockProvider` — purely in-memory, expiry fixed at the spec's 30 min) deliberately has **no** options class; don't add an empty one for symmetry.
+- **Consume options, not raw config.** Provider implementations inject `IOptions<T>`, not `IConfiguration` — binding/validation stays at the composition root.
+- **Registration.** Storage providers register with `TryAdd*` (a host pre-registering its own implementation wins; a repeat call no-ops). Lock providers throw if an `IWopiLockProvider` is already registered — exactly one lock backend per process, so a second registration is a configuration error, not a silent override.
+
 ### Infrastructure (infra/)
 
 - **WopiHost.AppHost** — .NET Aspire orchestrator for local development. The backend is pinned at `:5000` (the WOPI host URL is referenced by Collabora's `host.docker.internal:5000`); the frontend and validator use `WithHttpsEndpoint()` so Aspire allocates their ports from the OS's free pool — the dashboard shows whatever was bound.

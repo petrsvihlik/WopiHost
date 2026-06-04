@@ -1,7 +1,7 @@
 using FakeItEasy;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider.Tests;
@@ -55,43 +55,34 @@ public class WopiFileSystemProviderTests : IDisposable
         InMemoryFileIds? ids = null,
         IHostEnvironment? env = null)
     {
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [$"{WopiFileSystemProviderOptions.SectionName}:{nameof(WopiFileSystemProviderOptions.RootPath)}"] = rootPath,
-            })
-            .Build();
-        return new WopiFileSystemProvider(ids ?? _fileIds, env ?? _env, config, NullLogger<WopiFileSystemProvider>.Instance);
+        var options = Options.Create(new WopiFileSystemProviderOptions { RootPath = rootPath });
+        return new WopiFileSystemProvider(ids ?? _fileIds, env ?? _env, options, NullLogger<WopiFileSystemProvider>.Instance);
     }
 
     // ---------- Constructor ----------
 
     [Fact]
-    public void Ctor_NullConfiguration_Throws()
+    public void Ctor_NullOptions_Throws()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            new WopiFileSystemProvider(_fileIds, _env, configuration: null!, NullLogger<WopiFileSystemProvider>.Instance));
+            new WopiFileSystemProvider(_fileIds, _env, options: null!, NullLogger<WopiFileSystemProvider>.Instance));
     }
 
     [Fact]
     public void Ctor_NullFileIds_Throws()
     {
-        var config = new ConfigurationBuilder().AddInMemoryCollection(
-            new Dictionary<string, string?>
-            {
-                [$"{WopiFileSystemProviderOptions.SectionName}:{nameof(WopiFileSystemProviderOptions.RootPath)}"] = _root.FullName,
-            }).Build();
+        var options = Options.Create(new WopiFileSystemProviderOptions { RootPath = _root.FullName });
 
         Assert.Throws<ArgumentNullException>(() =>
-            new WopiFileSystemProvider(fileIds: null!, _env, config, NullLogger<WopiFileSystemProvider>.Instance));
+            new WopiFileSystemProvider(fileIds: null!, _env, options, NullLogger<WopiFileSystemProvider>.Instance));
     }
 
     [Fact]
-    public void Ctor_MissingStorageOptionsSection_Throws()
+    public void Ctor_NullRootPath_Throws()
     {
-        var emptyConfig = new ConfigurationBuilder().Build();
+        var options = Options.Create(new WopiFileSystemProviderOptions { RootPath = null! });
         Assert.ThrowsAny<Exception>(() =>
-            new WopiFileSystemProvider(_fileIds, _env, emptyConfig, NullLogger<WopiFileSystemProvider>.Instance));
+            new WopiFileSystemProvider(_fileIds, _env, options, NullLogger<WopiFileSystemProvider>.Instance));
     }
 
     [Fact]

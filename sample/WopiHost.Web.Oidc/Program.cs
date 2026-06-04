@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
-using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.ServiceDefaults;
@@ -42,8 +41,7 @@ builder.Services
 builder.Services.AddWopiDiscovery<WopiOptions>(
     options => builder.Configuration.GetSection(DiscoveryOptions.SectionName).Bind(options));
 
-builder.Services.AddSingleton<InMemoryFileIds>();
-builder.Services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
+builder.Services.AddFileSystemStorageProvider(builder.Configuration);
 
 // WOPI access-token signer must use the same key as the WOPI backend. Bind a project-local
 // WopiSigningOptions pointed at the same configuration path (Wopi:Security) — pure frontends

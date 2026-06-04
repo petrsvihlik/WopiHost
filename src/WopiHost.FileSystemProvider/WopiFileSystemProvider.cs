@@ -1,8 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider;
@@ -24,21 +24,20 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     /// </summary>
     /// <param name="fileIds">In-memory storage for file identifiers.</param>
     /// <param name="env">Provides information about the hosting environment an application is running in.</param>
-    /// <param name="configuration">Application configuration.</param>
+    /// <param name="options">Bound file-system provider options, supplying <c>RootPath</c>.</param>
     /// <param name="logger">Logger.</param>
     public WopiFileSystemProvider(
         InMemoryFileIds fileIds,
         IHostEnvironment env,
-        IConfiguration configuration,
+        IOptions<WopiFileSystemProviderOptions> options,
         ILogger<WopiFileSystemProvider> logger)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(env);
+        ArgumentNullException.ThrowIfNull(options);
         _fileIds = fileIds ?? throw new ArgumentNullException(nameof(fileIds));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        var fileSystemProviderOptions = configuration.GetSection(WopiFileSystemProviderOptions.SectionName)?
-            .Get<WopiFileSystemProviderOptions>() ?? throw new ArgumentNullException(nameof(configuration));
 
-        var wopiRootPath = fileSystemProviderOptions.RootPath;
+        var wopiRootPath = options.Value.RootPath;
         _wopiAbsolutePath = Path.IsPathRooted(wopiRootPath)
             ? wopiRootPath
             : new DirectoryInfo(Path.Combine(env.ContentRootPath, wopiRootPath)).FullName;

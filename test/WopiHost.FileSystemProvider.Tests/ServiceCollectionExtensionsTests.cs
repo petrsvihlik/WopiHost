@@ -33,9 +33,6 @@ public class ServiceCollectionExtensionsTests : IDisposable
         {
             ["Wopi:StorageProvider:RootPath"] = _tempDir.FullName,
         });
-        // The provider constructor resolves IConfiguration from DI (separate from the options
-        // binding wired up inside AddFileSystemStorageProvider), so it must be registered too.
-        services.AddSingleton(config);
         return services;
     }
 
