@@ -47,6 +47,16 @@ dotnet run --project sample/WopiHost
 - Package validation baseline is `8.0.0` — avoid breaking public API changes in NuGet-packaged libraries. Bump in lockstep with releases (auto-bumped by `.github/workflows/release.yml` after each stable release). Packages without a prior release on NuGet.org opt out via `EnablePackageValidation=false` in their `.csproj`.
 - `InternalsVisibleTo` is auto-configured for `*.Tests` assemblies.
 
+## Codebase audit skill
+
+`.claude/skills/codebase-audit/` is the repo's standing health-check — a repeatable, multi-dimension
+code-quality / architecture / WOPI-spec-compliance audit modeled on the prior audit trackers. Invoke
+it (or just ask to "audit the codebase" / "find code smells") to sweep for duplication, leaky
+abstractions, architectural drift, non-idiomatic patterns, security/performance smells, tech debt,
+and spec non-compliance. It only reports **clear net wins** and respects a `do-not-re-file` ledger of
+verified-intentional decisions so repeat runs stay quiet. After a run, fold any newly-confirmed
+intentional decisions back into that ledger.
+
 ## Architecture
 
 This is a modular **WOPI protocol host** implementation that integrates custom data sources with Office Online Server / Microsoft 365 for the Web.
