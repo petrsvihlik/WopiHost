@@ -14,8 +14,18 @@ namespace WopiHost.Abstractions;
 public interface IWopiFile : IWopiResource
 {
     /// <summary>
-    /// A string that uniquely identifies the owner of the file.
+    /// A non-null string that uniquely identifies the owner of the file (for example, a user id,
+    /// principal name, or login name — the meaning is provider-defined). Surfaces on the wire as
+    /// <c>CheckFileInfo.OwnerId</c>.
     /// </summary>
+    /// <remarks>
+    /// This is best-effort metadata: implementations return <see cref="string.Empty"/> when the
+    /// owner can't be determined — the provider doesn't track ownership, the underlying store
+    /// doesn't expose it, the host platform doesn't support the lookup, or reading it failed.
+    /// Implementations MUST NOT return <see langword="null"/> and MUST NOT throw; ownership is
+    /// non-essential to a <c>CheckFileInfo</c> response, so a failed lookup degrades to empty rather
+    /// than failing the request.
+    /// </remarks>
     string Owner { get; }
 
     /// <summary>

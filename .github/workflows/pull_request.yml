@@ -68,6 +68,40 @@ jobs:
         fossa-api-key: ${{ secrets.FOSSA_API_KEY }}
         skip-test: false
 
+  filesystem-owner-cross-platform:
+    # The main `build` job only runs on Linux, so the Windows (ACL) and macOS (stat)
+    # branches of WopiFile.Owner — and the arch-dependent macOS `stat`/`stat$INODE64`
+    # symbol selection — would otherwise never be exercised. This job runs the
+    # dependency-free FileSystemProvider tests on the other OSes/architectures.
+    name: FS owner lookup (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [approve]
+    strategy:
+      fail-fast: false
+      matrix:
+        # windows-latest: ACL owner path.
+        # macos-latest: Apple Silicon (arm64) -> plain `stat` symbol.
+        # macos-13: Intel (x86_64) -> `stat$INODE64` symbol.
+        os: [windows-latest, macos-latest, macos-13]
+    environment:
+      name: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'Integrate Pull Request' || '' }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 1
+    - name: Setup .NET 10.0
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '10.0.x'
+    - name: Set Cobalt packages token
+      # Not needed by this test project (package-source mapping keeps the private feed
+      # scoped to Microsoft.CobaltCore), but set it so any incidental restore stays quiet.
+      shell: bash
+      run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
+    - name: Test (FileSystemProvider — exercises Owner lookup)
+      run: dotnet test test/WopiHost.FileSystemProvider.Tests --verbosity normal
+
   api-compat:
     name: API Compatibility
     runs-on: ubuntu-latest
