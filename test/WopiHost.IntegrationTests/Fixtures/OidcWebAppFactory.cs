@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Mvc.Testing;
+using WopiHost.Discovery;
 using WopiHost.Web.Oidc;
 
 namespace WopiHost.IntegrationTests.Fixtures;
@@ -39,6 +40,12 @@ public sealed class OidcWebAppFactory(Uri authority, string wopiSigningSecret, s
 
                 RelaxOidcCookiePolicyForInMemoryHttpTestServer(options);
             });
+
+            // Stub discovery so the authenticated Browse page renders from canned capabilities
+            // rather than fetching from the unreachable test ClientUrl — without this the
+            // discovery HttpClient hangs until the resilience handler's 30s timeout and the page 500s.
+            services.RemoveAll<IDiscoverer>();
+            services.AddSingleton<IDiscoverer, FakeDiscoverer>();
         });
 
         builder.UseEnvironment("Development");
