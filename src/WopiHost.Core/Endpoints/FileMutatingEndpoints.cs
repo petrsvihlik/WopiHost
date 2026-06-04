@@ -125,34 +125,39 @@ internal static class FileMutatingEndpoints
         if (file is null) return TypedResults.NotFound();
         if (CheckMaxFileSize(req.Http, req.Options.Value.MaxFileSize) is { } tooLarge) return tooLarge;
 
-        // PutFile branches on the FILE'S current lock state, not on whether X-WOPI-Lock was
-        // sent. Spec: "When a host receives a PutFile request on a file that's not locked, the
-        // host checks the current size of the file." Keying off the request header instead would
-        // overwrite locked 0-byte files when the client omits the header and acquire locks as a
-        // side effect when the client sends one against an unlocked file. Spec:
-        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile.
+        // PutFile branches on the FILE'S current lock state, not on whether X-WOPI-Lock was sent.
         var existingLock = req.LockProvider is not null
             ? await req.LockProvider.GetLockAsync(req.Id, req.CancellationToken).ConfigureAwait(false)
             : null;
 
+        if (ValidatePutFileLock(existingLock, req.RequestLockId, req.LockComparer, file) is { } mismatch)
+        {
+            return mismatch;
+        }
+        return await WriteAndAck(req.Http, req.Extensions, file, req.Editors, req.CancellationToken).ConfigureAwait(false);
+    }
+
+    // Decides whether a PutFile may proceed, given the file's current lock state. Returns the 409
+    // result to short-circuit with, or null when the write may proceed.
+    //
+    // Keying off the file's lock (not the request header) is spec-mandated: a locked file requires
+    // X-WOPI-Lock to match the stored id (missing/empty counts as a mismatch), while an unlocked
+    // file admits only the 0-byte create-new flow — any other size is a 409 carrying the empty
+    // placeholder lock id, since an unlocked file has no id to surface.
+    // Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile.
+    private static WopiLockMismatchResult? ValidatePutFileLock(
+        WopiLockInfo? existingLock, string? requestLockId, IWopiLockComparer comparer, IWopiWritableFile file)
+    {
         if (existingLock is not null)
         {
-            // File is locked → X-WOPI-Lock must match the current lock id. Missing/empty header
-            // counts as a mismatch (sent="" vs current=existing). Spec: 409 with the current
-            // lock id in X-WOPI-Lock.
-            if (string.IsNullOrEmpty(req.RequestLockId) || !req.LockComparer.AreEqual(existingLock.LockId, req.RequestLockId))
-            {
-                return new WopiLockMismatchResult(existingLock.LockId);
-            }
-            return await WriteAndAck(req.Http, req.Extensions, file, req.Editors, req.CancellationToken).ConfigureAwait(false);
+            return string.IsNullOrEmpty(requestLockId) || !comparer.AreEqual(existingLock.LockId, requestLockId)
+                ? new WopiLockMismatchResult(existingLock.LockId)
+                : null;
         }
-
-        // File is unlocked → size decides. 0-byte file is the create-new flow per spec; any
-        // other size returns 409 with X-WOPI-Lock set to the empty placeholder regardless of
-        // whether the client sent X-WOPI-Lock (an unlocked file has no lock id to surface).
-        return file.Length != 0
-            ? new WopiLockMismatchResult(existingLock: null)
-            : await WriteAndAck(req.Http, req.Extensions, file, req.Editors, req.CancellationToken).ConfigureAwait(false);
+        // Read Length only on the unlocked path. Touching it on the locked path would prime the
+        // file's metadata cache before the write, making WriteAndAck report a stale post-write
+        // version.
+        return file.Length != 0 ? new WopiLockMismatchResult(existingLock: null) : null;
     }
 
     private static async Task<Ok> WriteAndAck(HttpContext httpContext, IWopiHostExtensions extensions, IWopiWritableFile file, string? editors, CancellationToken cancellationToken)
