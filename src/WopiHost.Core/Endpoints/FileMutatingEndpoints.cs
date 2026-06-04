@@ -336,23 +336,16 @@ internal static class FileMutatingEndpoints
             return TypedResults.BadRequest();
         }
 
-        // Read up to MAX+1 so we can detect bodies that exceed the cap mid-stream (chunked
-        // transfer-encoding with no Content-Length, or clients that lie about it). Single
-        // backing buffer — ReadAsync writes directly at the running offset, no intermediate
-        // chunk array or MemoryStream copy.
-        var buffer = new byte[PutUserInfoMaxBytes + 1];
-        var total = 0;
-        int read;
-        while ((read = await req.Http.Request.Body.ReadAsync(buffer.AsMemory(total), req.CancellationToken).ConfigureAwait(false)) > 0)
+        // Bounded read: WithinLimit goes false the moment the body exceeds the spec cap mid-stream
+        // (chunked transfer-encoding with no Content-Length, or clients that lie about it), so a
+        // malicious or buggy client can't push an unbounded body into our MemoryCache.
+        var (withinLimit, bytes) = await req.Http.Request.Body.ReadBytesAsync(PutUserInfoMaxBytes, req.CancellationToken).ConfigureAwait(false);
+        if (!withinLimit)
         {
-            total += read;
-            if (total > PutUserInfoMaxBytes)
-            {
-                return TypedResults.BadRequest();
-            }
+            return TypedResults.BadRequest();
         }
 
-        var userInfo = System.Text.Encoding.UTF8.GetString(buffer, 0, total);
+        var userInfo = System.Text.Encoding.UTF8.GetString(bytes);
 
         req.MemoryCache.Set(
             $"{UserInfoCacheKeyPrefix}{req.Http.User.GetUserId()}",
