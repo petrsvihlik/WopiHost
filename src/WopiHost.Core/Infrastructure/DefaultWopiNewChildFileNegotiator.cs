@@ -45,7 +45,7 @@ public sealed class DefaultWopiNewChildFileNegotiator(
             // Compute a sanitised stem + original extension, then dedupe via GetSuggestedFileName.
             // The suggestion is best-effort — when the sanitised candidate still fails validation
             // (provider rules beyond forbidden-char swap, e.g. reserved names like CON on Windows),
-            // we omit the header rather than emit a name we know is invalid.
+            // the header is omitted rather than emitting a name known to be invalid.
             var sanitised = await TryBuildValidSuggestionAsync(request, relativeTarget, cancellationToken).ConfigureAwait(false);
             return WopiNewChildFileResult.BadRequest(sanitised);
         }
@@ -63,10 +63,8 @@ public sealed class DefaultWopiNewChildFileNegotiator(
         if (!request.OverwriteRelativeTarget)
         {
             // Suggest a deduplicated alternative for X-WOPI-ValidRelativeTarget.
-            // Pre-#420 #1.1: PutRelativeFile was passing the file id here instead of the
-            // parent container id, so GetSuggestedFileName resolved against the wrong location
-            // and degenerated to echoing the requested name back. Centralizing here pins the
-            // correct containerId in one place.
+            // GetSuggestedFileName must resolve against the parent container id; passing the file
+            // id would degenerate to echoing the requested name back.
             var suggestedName = await writable.GetSuggestedFileName(request.ContainerId, relativeTarget, cancellationToken).ConfigureAwait(false);
             return WopiNewChildFileResult.Conflict(suggestedName);
         }
@@ -75,7 +73,7 @@ public sealed class DefaultWopiNewChildFileNegotiator(
         // and asked to overwrite, but the host's ACL may still deny overwrite of THIS specific
         // existing file. The decision is per-target and only resolvable now that `existing` is
         // in scope (it isn't known at token-mint time, so it can't be encoded as a
-        // WopiFilePermissions flag on the access token). See #455 and
+        // WopiFilePermissions flag on the access token). Spec:
         // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile —
         // "If the user is not authorized to overwrite the target file, the host must respond
         // with a 501 Not Implemented."
@@ -85,8 +83,8 @@ public sealed class DefaultWopiNewChildFileNegotiator(
         }
 
         // Overwrite is allowed — a file matching the target name might still be locked.
-        // Lock probe inlined (no helper method) so Infer# can see through it — cross-method
-        // async helpers trip its null-deref FP, see PR #424 review feedback and #363 / #412.
+        // Lock probe inlined (no helper method) so static analysis can see through it; cross-method
+        // async helpers trip a null-deref false positive.
         if (lockProvider is not null)
         {
             var existingLock = await lockProvider.GetLockAsync(existing.Identifier, cancellationToken).ConfigureAwait(false);
@@ -97,9 +95,9 @@ public sealed class DefaultWopiNewChildFileNegotiator(
         }
 
         // Overwrite-allowed + unlocked — upgrade the existing file (fetched via the read-side
-        // interface as IWopiFile) to IWopiWritableFile so the caller can mutate it. After
-        // #420 item 1.2 the write seam is gated by the writable interface; the read-side
-        // GetWopiFileByName intentionally returns the narrower IWopiFile.
+        // interface as IWopiFile) to IWopiWritableFile so the caller can mutate it. The write
+        // seam is gated by the writable interface; the read-side GetWopiFileByName intentionally
+        // returns the narrower IWopiFile.
         var writableExisting = await writable.GetWritableFile(existing.Identifier, cancellationToken).ConfigureAwait(false);
         return writableExisting is not null
             ? WopiNewChildFileResult.Success(writableExisting)
@@ -123,8 +121,7 @@ public sealed class DefaultWopiNewChildFileNegotiator(
             // proposed name as needed to create a new file that's both legally named and doesn't
             // overwrite any existing file, while preserving the file extension."
             // Try sanitising the requested name first; if that still fails, fall back to the
-            // caller-supplied stem + original extension (the same shape we use for
-            // extension-only inputs).
+            // caller-supplied stem + original extension (the same shape as extension-only inputs).
             suggestedTarget = await TryBuildValidSuggestionAsync(request, suggestedTarget, cancellationToken).ConfigureAwait(false)
                 ?? request.SuggestedExtensionFallbackStem + WopiFileNameSanitiser.ExtractExtension(suggestedTarget);
         }

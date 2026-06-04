@@ -81,13 +81,12 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiWritableFil
                 {
                     return MacFileOwner.GetOwnerName(_fileInfo.FullName);
                 }
-                // Any other platform: no ownership lookup is implemented.
                 return string.Empty;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 // The file vanished, access was denied, or the native lookup failed. Ownership is
-                // non-essential metadata, so honour the contract and degrade to empty.
+                // non-essential metadata, so the contract degrades to empty rather than throwing.
                 return string.Empty;
             }
         }

@@ -31,10 +31,8 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
     private readonly IOptions<DiscoveryOptions> _discoveryOptions;
     private readonly ILogger<WopiDiscoverer> _logger;
 
-    // Eagerly constructed in the ctor (and stored in readonly fields) so
-    // Infer# can statically track the SemaphoreSlim allocation through to
-    // Dispose(). The previous lazy `??=` pattern hid ownership from the
-    // analyzer and was reported as PULSE_RESOURCE_LEAK.
+    // Eagerly constructed in the ctor and held in readonly fields so the
+    // SemaphoreSlim they own is deterministically released in Dispose().
     private readonly AsyncExpiringLazy<IEnumerable<XElement>> _apps;
     private readonly AsyncExpiringLazy<XElement> _proofKey;
     private bool _disposed;

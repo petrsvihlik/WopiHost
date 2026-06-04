@@ -24,13 +24,12 @@ namespace WopiHost.Core.Infrastructure;
 /// <para>
 /// <strong>Resource kind dispatch.</strong> Read from
 /// <see cref="WopiResourceKindMetadata"/>; defaults to <see cref="WopiResourceType.File"/> when
-/// absent (matches the historic controller behaviour where files are the common case and
-/// Containers / Folders explicitly switch the dimension).
+/// absent (files are the common case; Containers / Folders explicitly switch the dimension).
 /// </para>
 /// <para>
 /// <strong>Outcome classification.</strong> Result types implementing
 /// <see cref="IWopiOutcomeResult"/> win (the lock-mismatch case — 409 is shared with generic
-/// conflict but dashboards need them separated). Otherwise we read the response status code,
+/// conflict but dashboards need them separated). Otherwise the response status code is read,
 /// which is set on <c>HttpResponse</c> by the time <c>next()</c> returns since Minimal-API
 /// results are executed synchronously inside the pipeline. Unhandled exceptions surface as
 /// <see cref="WopiTelemetry.Outcomes.Cancelled"/> when the request was aborted by the client,

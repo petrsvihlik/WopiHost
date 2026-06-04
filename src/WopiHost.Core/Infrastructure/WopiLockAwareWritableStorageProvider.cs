@@ -67,11 +67,9 @@ public sealed class WopiLockAwareWritableStorageProvider(
         => _inner.GetSuggestedContainerName(containerId, name, cancellationToken);
 
     // The lock probe (GetLockAsync + throw-if-locked) is inlined into each of the four
-    // mutating methods below rather than extracted into a private async helper. Infer# can't
-    // see through cross-method async calls and flags the helper's returned Task as potentially
-    // null at every caller (verified again on PR #424 — 4 NULLPTR_DEREFERENCE findings when
-    // the four bodies shared a `private async Task GuardLockAsync(...)`). Same trade-off the
-    // codebase made earlier for the lock provider — see #363, #412.
+    // mutating methods below rather than extracted into a private async helper. Static analysis
+    // can't see through cross-method async calls and flags a shared helper's returned Task as
+    // potentially null at every caller, so inlining avoids the false positive.
 
     /// <inheritdoc />
     public async Task<bool> DeleteWopiFile(string identifier, CancellationToken cancellationToken = default)

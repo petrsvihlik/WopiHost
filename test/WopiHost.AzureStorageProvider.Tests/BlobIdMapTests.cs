@@ -28,9 +28,9 @@ public class BlobIdMapTests
     [Fact]
     public void ScanAll_BlobsDifferingOnlyByCase_RegistersBoth()
     {
-        // Regression test: previously BlobIdMap case-folded the path before hashing, which
-        // collapsed Foo/file.txt and foo/file.txt onto the same id and silently dropped one
-        // from the map. Azure stores them as distinct blobs — the provider must too.
+        // BlobIdMap must not case-fold the path before hashing: that would collapse Foo/file.txt
+        // and foo/file.txt onto the same id and silently drop one. Azure stores them as distinct
+        // blobs — the provider must too.
         var map = NewMap();
         map.ScanAll(["Foo/file.txt", "foo/file.txt"]);
 
@@ -86,7 +86,7 @@ public class BlobIdMapTests
 
         Assert.True(map.Remove(id));
         Assert.False(map.TryGetPath(id, out _));
-        Assert.False(map.Remove(id)); // second call returns false
+        Assert.False(map.Remove(id));
     }
 
     [Fact]
@@ -130,9 +130,8 @@ public class BlobIdMapTests
         var map = NewMap();
         map.ScanAll(["a/b/c/leaf.txt"]);
 
-        // Leaf
         Assert.True(map.TryGetFileId("a/b/c/leaf.txt", out _));
-        // Each intermediate folder is registered
+        // Each intermediate folder is registered, not just the leaf.
         Assert.True(map.TryGetFileId("a/b/c", out _));
         Assert.True(map.TryGetFileId("a/b", out _));
         Assert.True(map.TryGetFileId("a", out _));

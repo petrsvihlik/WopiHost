@@ -5,12 +5,9 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 namespace WopiHost.Web.Oidc.Endpoints;
 
 /// <summary>
-/// Sign-in and sign-out endpoints. Replaces the legacy <c>AccountController</c> after the
-/// Razor Components migration — Razor Components static SSR can't issue auth challenges from
+/// Sign-in and sign-out endpoints. Razor Components static SSR can't issue auth challenges from
 /// component code, so the OIDC scheme is invoked via <see cref="Results.Challenge"/> /
-/// <see cref="Results.SignOut"/>. URL shapes (<c>/account/login</c>, <c>/account/logout</c>)
-/// stay identical so IdP redirect-URI config and the layout's sign-in/out form actions don't
-/// need to change.
+/// <see cref="Results.SignOut"/>.
 /// </summary>
 internal static class AccountEndpoints
 {

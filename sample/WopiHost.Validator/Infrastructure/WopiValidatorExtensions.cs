@@ -5,8 +5,7 @@ namespace WopiHost.Validator.Infrastructure;
 /// <summary>
 /// Validator-specific <see cref="IWopiHostExtensions"/>. The Microsoft WOPI-Validator suite
 /// checks for several optional CheckFileInfo URLs (<c>HostEditUrl</c>, <c>BreadcrumbBrandUrl</c>,
-/// etc.) on the canonical <c>.wopitest</c> probe file; populating them here keeps the test
-/// matrix green.
+/// etc.) on the canonical <c>.wopitest</c> probe file, which are populated here.
 /// </summary>
 public class WopiValidatorExtensions : WopiHostExtensions
 {
@@ -18,7 +17,7 @@ public class WopiValidatorExtensions : WopiHostExtensions
         wopiCheckFileInfo.AllowAdditionalMicrosoftServices = true;
         wopiCheckFileInfo.AllowErrorReportPrompt = true;
 
-        // ##183 required for WOPI-Validator
+        // Required for the WOPI-Validator probe file.
         if (wopiCheckFileInfo.BaseFileName.EndsWith(".wopitest", StringComparison.OrdinalIgnoreCase))
         {
             wopiCheckFileInfo.CloseUrl = new("https://example.com/close");

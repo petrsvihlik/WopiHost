@@ -21,13 +21,13 @@ namespace WopiHost.E2ETests.Collabora.Fixtures;
 /// <para>
 /// Docker is required. The fixture probes <c>docker info</c> at construction time and stores
 /// the result in <see cref="IsDockerAvailable"/>; tests check this and skip when the engine is
-/// unreachable. We do NOT throw from <see cref="InitializeAsync"/> on missing Docker — that
+/// unreachable. <see cref="InitializeAsync"/> does NOT throw on missing Docker — that
 /// would surface as a hard failure rather than a skip on contributor machines.
 /// </para>
 /// <para>
 /// Redis is explicitly disabled (<c>AppHost:UseRedisLocks=false</c>) so the e2e test cycle
 /// only depends on a single container (Collabora) rather than two. The memory lock provider
-/// is sufficient for the single-process happy-path scenarios we test here.
+/// is sufficient for the single-process happy-path scenarios covered here.
 /// </para>
 /// </remarks>
 public sealed class CollaboraAppFixture : IAsyncLifetime
@@ -54,8 +54,8 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
     {
         if (!IsDockerAvailable)
         {
-            // Don't start anything — tests will inspect IsDockerAvailable and skip. Throwing
-            // here would surface as a fixture init failure (red) rather than a clean skip.
+            // Start nothing — tests inspect IsDockerAvailable and skip. Throwing here would
+            // surface as a fixture init failure (red) rather than a clean skip.
             return;
         }
 
@@ -64,8 +64,8 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
         // (resource-graph discovery) BEFORE returning, so post-CreateAsync configuration
         // mutations on the returned builder are too late to flip the resource graph. The
         // configureBuilder overload is the documented seam — its callback fires before the
-        // AppHost reads `builder.Configuration.GetValue<bool>(...)`. Command-line --args were
-        // tried first and silently no-op'd (the resource graph kept Redis on, Collabora off).
+        // AppHost reads `builder.Configuration.GetValue<bool>(...)`. Command-line --args silently
+        // no-op here (the resource graph keeps Redis on, Collabora off).
         var appBuilder = await DistributedApplicationTestingBuilder
             .CreateAsync<Projects.WopiHost_AppHost>([], (_, settings) =>
             {
@@ -78,12 +78,11 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
             })
             .ConfigureAwait(false);
 
-        // Sanity check: if the AppHost:UseCollabora flag didn't propagate (it's been a recurring
-        // gotcha — args and `appBuilder.Configuration[..]="true"` *after* CreateAsync silently
-        // no-op because the AppHost has already read the value during entry-point invocation;
-        // the configureBuilder callback is the only seam that runs *before* that read), the
-        // Collabora container won't be in the resource graph. Fail fast here with a clear
-        // message rather than wait through the timeouts below.
+        // Sanity check: if the AppHost:UseCollabora flag didn't propagate (args and
+        // `appBuilder.Configuration[..]="true"` *after* CreateAsync silently no-op because the
+        // AppHost has already read the value during entry-point invocation; the configureBuilder
+        // callback is the only seam that runs *before* that read), the Collabora container won't
+        // be in the resource graph. Fail fast here rather than wait through the timeouts below.
         var resourceNames = appBuilder.Resources.Select(r => r.Name).ToList();
         if (!resourceNames.Contains("collabora"))
         {
@@ -99,14 +98,14 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
         // Wait for the resources whose readiness gates the test. Collabora has an HTTP health
         // check (/hosting/discovery) wired in the AppHost, so WaitForResourceHealthyAsync is
         // the right blocker. The frontend's readiness already implies the backend is up (it
-        // WaitFors the backend internally), so we wait on the chain end.
+        // WaitFors the backend internally), so the wait targets the chain end.
         var notifications = _app.Services.GetRequiredService<ResourceNotificationService>();
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)); // generous for first-run image pull
 
         // Wait for each resource to be reported in a Running state by Aspire's resource
         // notification service. Note that Running != accepting traffic — Aspire's Running
-        // signal only means the orchestrator has issued the start command. We backstop with
-        // an explicit HTTP poll against Collabora's /hosting/discovery below to confirm the
+        // signal only means the orchestrator has issued the start command. The explicit HTTP
+        // poll against Collabora's /hosting/discovery below backstops this to confirm the
         // container is actually serving.
         await notifications.WaitForResourceAsync("collabora", KnownResourceStates.Running, cts.Token).ConfigureAwait(false);
         await notifications.WaitForResourceAsync("wopihost", KnownResourceStates.Running, cts.Token).ConfigureAwait(false);
@@ -146,7 +145,7 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
             catch (TaskCanceledException) when (!cts.Token.IsCancellationRequested)
             {
                 // Per-request HttpClient.Timeout elapsed (Collabora not yet bound). Distinct
-                // from cts.Token cancellation — that one means we hit the overall deadline.
+                // from cts.Token cancellation — that one means the overall deadline was hit.
             }
             await Task.Delay(TimeSpan.FromSeconds(1), cts.Token).ConfigureAwait(false);
         }
@@ -213,8 +212,8 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
         try
         {
             // First find the container name. Aspire names containers after the resource with a
-            // hash suffix; match any "collabora*" we have running. Defensive fallback: if name
-            // discovery fails, dump *all* running containers' logs (only one in our setup).
+            // hash suffix; match any running "collabora*". Defensive fallback: if name discovery
+            // fails, dump *all* running containers' logs (only one in this setup).
             using var psProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
                 FileName = "docker",
@@ -256,7 +255,7 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
             var stdout = await stdoutTask.ConfigureAwait(false);
             var stderr = await stderrTask.ConfigureAwait(false);
 
-            // Lines we care about for diagnosing websocket / WOPI-host rejection:
+            // Lines relevant to diagnosing websocket / WOPI-host rejection:
             //   - "WOPI" / "wopi" — matches host strings, allowed-host checks, WopiSrc parsing
             //   - "WebSocket" / "websocket" — handshake + upgrade
             //   - "Unauthorized" / "unauthoriz" — coolwsd's literal denial message
@@ -265,7 +264,7 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
             //   - "ERR" / "WRN" — coolwsd's own severity tags
             //   - "Reject" / "reject" — generic denial
             //   - "isWopiHostAllowed" / "FrameAncestors" — specific check names from coolwsd
-            // Keep narrow on purpose; the full tail below catches anything we missed.
+            // Kept narrow on purpose; the full tail below catches anything missed.
             var filterKeywords = new[]
             {
                 "WOPI", "wopi", "WebSocket", "websocket", "Unauthorized", "unauthoriz",
@@ -324,9 +323,9 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
     {
         // sample/WopiHost/appsettings.json sets WopiHost.FileSystemProvider:RootPath="../wopi-docs".
         // The path is relative to the *sample's* directory at runtime, so absolute = repo-root/sample/wopi-docs.
-        // We walk up from the test binary location until we hit the repo root (the directory
-        // containing WOPI.slnx) and then point at sample/wopi-docs from there. Robust to the
-        // artifacts/ layout (UseArtifactsOutput) which puts test dlls several levels below.
+        // Walks up from the test binary location until the repo root (the directory containing
+        // WOPI.slnx), then points at sample/wopi-docs from there. Robust to the artifacts/ layout
+        // (UseArtifactsOutput) which puts test dlls several levels below.
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "WOPI.slnx")))
         {

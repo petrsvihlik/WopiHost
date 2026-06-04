@@ -44,9 +44,8 @@ public partial class HttpDiscoveryFileProvider(HttpClient httpClient, ILogger<Ht
             throw new DiscoveryException($"The WOPI Client at '{_httpClient.BaseAddress}' did not respond within the configured HttpClient.Timeout.", e);
         }
         // Malformed XML from the WOPI client (or a server returning 200 with a non-XML body —
-        // e.g. an error page) used to propagate as XmlException, which callers couldn't catch
-        // cleanly alongside the rest of the discovery failure surface. Wrap to keep the
-        // single-exception-type contract.
+        // e.g. an error page) surfaces as XmlException. Wrap it so callers see a single
+        // discovery-failure exception type.
         catch (XmlException e)
         {
             LogDiscoveryFetchFailed(_logger, e, _httpClient.BaseAddress);

@@ -103,9 +103,8 @@ public class AsyncExpiringLazyTests
     [Fact]
     public async Task Value_ConcurrentFirstTimeCallers_InvokeProviderExactlyOnce()
     {
-        // Regression test for #303: previously Value() released the lock between
-        // the cache-miss check and the fetch, so N concurrent first-time callers
-        // each fanned out and ran the (network-bound) provider.
+        // Value() must hold the lock across the cache-miss check and the fetch; otherwise
+        // N concurrent first-time callers each fan out and run the (network-bound) provider.
         var calls = 0;
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -140,9 +139,9 @@ public class AsyncExpiringLazyTests
     [Fact]
     public async Task Value_TwoInstances_DoNotShareLock()
     {
-        // Regression test: previously the lock was static, so two instances
-        // of AsyncExpiringLazy<string> serialized through one semaphore even
-        // though they cache independent values.
+        // The lock must be instance-scoped: a static lock would serialize two instances
+        // of AsyncExpiringLazy<string> through one semaphore even though they cache
+        // independent values.
         var gateA = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var gateB = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -205,7 +204,7 @@ public class AsyncExpiringLazyTests
     {
         // Double-Dispose must short-circuit on the second call — the inner SemaphoreSlim is
         // disposed exactly once. Hits the `_disposed = true` early-return branch on the second
-        // invocation; previously uncovered because nothing in the discovery flow disposes twice.
+        // invocation.
         var sut = CreateSut(_ => Task.FromResult(new TemporaryValue<string>
         {
             Result = "x",

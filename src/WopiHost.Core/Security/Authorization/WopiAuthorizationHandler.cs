@@ -13,7 +13,7 @@ namespace WopiHost.Core.Security.Authorization;
 /// </summary>
 /// <remarks>
 /// <para>
-/// We intentionally do not enforce a strict route-id ↔ <see cref="WopiClaimTypes.ResourceId"/>
+/// This handler intentionally does not enforce a strict route-id ↔ <see cref="WopiClaimTypes.ResourceId"/>
 /// match. WOPI clients (including Office for the web) and the Microsoft WOPI validator use a
 /// single token to navigate from a file to its ancestor container, list siblings, etc. — so a
 /// strict per-resource binding would break the protocol's assumed cross-resource access.
@@ -38,7 +38,7 @@ public partial class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> 
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, WopiAuthorizeAttribute requirement, HttpContext resource)
     {
         // Per-request resource id stays in a local — never written onto the (shared) requirement.
-        // See class doc and #380 items 2.5 / 5.3.
+        // See class doc for why.
         var routeResourceId = resource.Request.RouteValues.TryGetValue("id", out var fileIdRaw)
             ? fileIdRaw?.ToString()
             : null;
@@ -78,7 +78,7 @@ public partial class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> 
         // Unlike the resource-route dispatch (Extensions.GetWopiSrc), this site can't route
         // through IWopiResource.Kind because the resource type comes from the
         // [WopiAuthorize(...)] attribute (compile-time metadata), not from a resolved
-        // resource instance. The explicit switch is the right shape here (#420 item 2.11).
+        // resource instance.
         return requirement.ResourceType switch
         {
             WopiResourceType.File => HasFilePermission(user, requirement.Permission),

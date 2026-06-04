@@ -135,8 +135,8 @@ public class InMemoryFileIdsTests : IDisposable
     [Fact]
     public void UpdateFile_OldPath_NoLongerResolvesViaReverseLookup()
     {
-        // #409 item 2.2: the path→id reverse map must drop the old binding when an id is
-        // rebound to a new path, otherwise stale entries pile up unboundedly.
+        // The path→id reverse map must drop the old binding when an id is rebound to a new
+        // path, otherwise stale entries pile up unboundedly.
         var oldPath = Path.Combine(_tempDir.FullName, "old.docx");
         var newPath = Path.Combine(_tempDir.FullName, "new.docx");
         var id = _sut.AddFile(oldPath);
@@ -162,8 +162,8 @@ public class InMemoryFileIdsTests : IDisposable
     [Fact]
     public void ScanAll_Rescan_DropsBindingsForRemovedFiles()
     {
-        // Confirm both maps are reset on rescan — pre-#409-item-2.2 the forward map was cleared
-        // but a parallel reverse map could have lingered if one was added in isolation.
+        // Confirm both maps are reset on rescan — clearing only the forward map would let a
+        // parallel reverse-map entry linger.
         var stalePath = Path.Combine(_tempDir.FullName, "stale.docx");
         File.WriteAllText(stalePath, string.Empty);
         _sut.ScanAll(_tempDir.FullName);
@@ -178,9 +178,9 @@ public class InMemoryFileIdsTests : IDisposable
     [Fact]
     public async Task AddFile_ConcurrentDistinctPaths_AllEntriesObservable()
     {
-        // #409 item 2.2: pre-fix used a non-concurrent Dictionary, so parallel writers could
-        // corrupt the bucket array or lose entries silently. Verify each parallel add survives
-        // and is reachable in both directions.
+        // A non-concurrent Dictionary would let parallel writers corrupt the bucket array or
+        // lose entries silently. Verify each parallel add survives and is reachable in both
+        // directions.
         const int writers = 64;
         var paths = Enumerable.Range(0, writers)
             .Select(i => Path.Combine(_tempDir.FullName, $"f{i}.docx"))

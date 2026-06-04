@@ -20,8 +20,8 @@ internal static partial class EndpointHelpers
     /// tail. The <c>[^/?#]+</c> character class is defensive — <see cref="Uri.AbsolutePath"/>
     /// never includes query / fragment, but rejecting those characters costs nothing.
     /// <see cref="RegexOptions.CultureInvariant"/> pairs with <see cref="RegexOptions.IgnoreCase"/>
-    /// so the literal "files" / "containers" match is locale-independent (Turkish dotless-I
-    /// would otherwise surprise us).
+    /// so the literal "files" / "containers" match is locale-independent (the Turkish dotless-I
+    /// would otherwise break it).
     /// </summary>
     [GeneratedRegex(@"/(files|containers)/([^/?#]+)/?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex WopiSrcPathRegex();
@@ -35,10 +35,9 @@ internal static partial class EndpointHelpers
     /// caller dispatches on which one was set via subsequent <c>!= null</c> checks.
     /// </summary>
     /// <remarks>
-    /// Whitespace-only header values count as absent (matches the
-    /// <c>string.IsNullOrWhiteSpace</c> semantics the hand-rolled call sites used). .NET 10's
-    /// <c>Microsoft.Extensions.Validation</c> doesn't fit this seam — see #466 for the
-    /// investigation; the validation pipeline is 400-shaped only and can't express 501 NI.
+    /// Whitespace-only header values count as absent (<c>string.IsNullOrWhiteSpace</c> semantics).
+    /// .NET 10's <c>Microsoft.Extensions.Validation</c> doesn't fit this seam: the validation
+    /// pipeline is 400-shaped only and can't express 501 NI.
     /// </remarks>
     public static StatusCodeHttpResult? EnsureExactlyOneOf(string? a, string? b)
         => string.IsNullOrWhiteSpace(a) == string.IsNullOrWhiteSpace(b)
@@ -50,8 +49,8 @@ internal static partial class EndpointHelpers
     /// resource identifier. Accepts absolute URIs whose path ends with <c>/files/{id}</c> or
     /// <c>/containers/{id}</c> (case-insensitive). When the path contains multiple candidate
     /// segments — e.g. <c>/files/archive/containers/abc</c> — the trailing pair wins, which
-    /// matches the WOPI spec's "the resource is at the URL tail" intent and avoids the
-    /// first-match-wins ambiguity of the previous segment-scan implementation.
+    /// matches the WOPI spec's "the resource is at the URL tail" intent and avoids
+    /// first-match-wins ambiguity.
     /// </summary>
     public static bool TryParseWopiSrc(string wopiSrc, out WopiResourceType resourceType, out string resourceId)
     {

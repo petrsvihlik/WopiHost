@@ -7,7 +7,7 @@ namespace WopiHost.FileSystemProvider;
 /// <summary>
 /// Resolves a Unix user id (UID) to its login name via libc's <c>getpwuid_r</c>.
 /// Shared by the Linux and macOS file-owner helpers, which differ only in how they
-/// obtain the file's UID (<c>statx</c> on Linux, <c>stat</c> on macOS) — the UID → name
+/// obtain the file's UID (<c>statx</c> on Linux, <c>stat</c> on macOS); the UID → name
 /// step is identical POSIX on both.
 /// </summary>
 [SupportedOSPlatform("linux")]
@@ -59,25 +59,23 @@ internal static partial class UnixUserResolver
     }
 
     // getpwuid_r writes the platform's full `struct passwd` here, then points `result` at it.
-    // We only read pw_name — the FIRST field on both the glibc and the BSD/macOS layouts — so
-    // we declare just that field and pad the record with an explicit Size large enough for the
-    // largest platform. This sizing is load-bearing: glibc's struct passwd is 56 bytes, but
-    // macOS/BSD's is larger (extra pw_change/pw_class/pw_expire members). Declaring only the
-    // 7 glibc fields (as before) under-sizes the buffer on macOS, so getpwuid_r writes past the
-    // end and corrupts memory — a SIGSEGV (exit 139) on arm64 macOS. 128 bytes comfortably
-    // covers every supported Unix layout; over-allocating is harmless because getpwuid_r writes
-    // only sizeof(struct passwd) for the running platform.
+    // Only pw_name is read — the FIRST field on both the glibc and the BSD/macOS layouts — so
+    // just that field is declared and the record is padded with an explicit Size large enough
+    // for the largest platform. This sizing is load-bearing: glibc's struct passwd is 56 bytes,
+    // but macOS/BSD's is larger (extra pw_change/pw_class/pw_expire members). Under-sizing the
+    // buffer makes getpwuid_r write past the end and corrupt memory — a SIGSEGV on arm64 macOS.
+    // 128 bytes comfortably covers every supported Unix layout; over-allocating is harmless
+    // because getpwuid_r writes only sizeof(struct passwd) for the running platform.
     [StructLayout(LayoutKind.Sequential, Size = 128)]
     private struct Passwd
     {
         public IntPtr pw_name;
     }
 
-    // CA5392 wants explicit DLL search paths to limit the loader's search to safe directories
-    // and prevent DLL hijacking. The attribute is honored on Windows only — on Linux/macOS the
-    // dynamic loader uses its own search rules and ignores the attribute entirely. This whole
-    // class is [SupportedOSPlatform] linux/macos so the attribute is effectively a no-op for us,
-    // but it satisfies the analyzer and documents intent.
+    // CA5392 wants explicit DLL search paths to prevent DLL hijacking. The attribute is honored
+    // on Windows only — on Linux/macOS the dynamic loader uses its own search rules and ignores
+    // it. This class is [SupportedOSPlatform] linux/macos so the attribute is effectively a no-op
+    // here, but it satisfies the analyzer.
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [LibraryImport("libc", EntryPoint = "getpwuid_r", SetLastError = false)]
     private static partial int GetPwUid_R(

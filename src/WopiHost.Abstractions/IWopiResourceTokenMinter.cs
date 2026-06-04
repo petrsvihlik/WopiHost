@@ -26,12 +26,6 @@ namespace WopiHost.Abstractions;
 /// revocable tokens, an external token-issuance service, or an extra audit step before issuing)
 /// can replace the default registration; the WOPI endpoints will pick up the override.
 /// </para>
-/// <para>
-/// Architecturally also a workaround for an Infer# precision loss: routing the per-resource
-/// token mint through an injected interface (this) instead of a static helper means the await
-/// at the call site lands on an injected dependency, which the analyzer tracks cleanly. See
-/// the historical notes in <c>.github/infer-allowlist.txt</c> and #471 for the full story.
-/// </para>
 /// </remarks>
 public interface IWopiResourceTokenMinter
 {

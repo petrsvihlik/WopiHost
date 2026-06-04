@@ -25,8 +25,7 @@ public class DefaultCheckContainerInfoBuilder(
 
         // Spec: IsAnonymousUser "should match the IsAnonymousUser value returned in
         // CheckFileInfo" — and the file / folder builders both set it from the auth state.
-        // CheckContainerInfo was previously omitting it (left as default `false`), so
-        // anonymous users were reported as authenticated in the container response.
+        // Omitting it would report anonymous users as authenticated in the container response.
         var isAnonymous = user.Identity?.IsAuthenticated != true;
 
         var checkContainerInfo = new WopiCheckContainerInfo

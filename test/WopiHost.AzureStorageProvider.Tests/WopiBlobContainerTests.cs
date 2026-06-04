@@ -58,10 +58,10 @@ public class WopiBlobContainerTests(AzuriteFixture azurite)
     [Fact]
     public async Task Size_CachedAfterFirstAccess()
     {
-        // Successive reads should return the same value without re-enumerating. We can't
-        // observe the round-trip count directly, but if the value changes after a mutation
-        // we know the property re-read. This pin is for the cache invariant: once read,
-        // the value is stable for the lifetime of the WopiBlobContainer instance.
+        // Successive reads should return the same value without re-enumerating. The round-trip
+        // count isn't directly observable, but a value that changes after a mutation would prove
+        // the property re-read. Pins the cache invariant: once read, the value is stable for
+        // the lifetime of the WopiBlobContainer instance.
         var container = await CreateContainerAsync();
         await UploadAsync(container, "folder/a.bin", new byte[4]);
 

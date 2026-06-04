@@ -7,8 +7,7 @@ namespace WopiHost.Core.Tests.Infrastructure;
 /// </summary>
 /// <remarks>
 /// Without this, xUnit runs the telemetry test classes in parallel and one class's listener
-/// leaks into another's assertions about &quot;no listener&quot; (CI flake — see PR #356 / run
-/// 25456873777).
+/// leaks into another's assertions about &quot;no listener&quot;.
 /// </remarks>
 [CollectionDefinition(Name)]
 public sealed class WopiTelemetryCollection

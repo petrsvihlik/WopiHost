@@ -249,8 +249,7 @@ public class WopiDiscovererTests
     {
         // Two AsyncExpiringLazy instances and one IDisposable proof-key cache live inside the
         // discoverer. Double-Dispose must short-circuit on the second call so the inner
-        // resources aren't double-disposed; previously the early-return branch was never hit
-        // because nothing in the discovery flow disposes twice.
+        // resources aren't double-disposed.
         InitDiscoverer(XmlOo2019, NetZoneEnum.ExternalHttps);
 
         _wopiDiscoverer.Dispose();

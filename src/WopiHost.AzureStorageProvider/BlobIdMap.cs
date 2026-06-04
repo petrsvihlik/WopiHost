@@ -30,10 +30,8 @@ namespace WopiHost.AzureStorageProvider;
 /// <strong>Two dictionaries, kept in sync.</strong> <c>_idToPath</c> drives id→path lookups
 /// (which fire on every WOPI route that resolves <c>{id}</c>); <c>_pathToId</c> is the inverse
 /// for the listing path, where the provider walks the blob namespace and needs to look up the id
-/// for each blob name. Pre-#456 the inverse lookup was an O(n) linear scan of <c>_idToPath</c>;
-/// in containers with thousands of blobs, listing degenerated to O(n²) total work across the
-/// hydration loop. The reverse dict matches what <c>WopiHost.FileSystemProvider</c>'s
-/// <c>InMemoryFileIds</c> already does.
+/// for each blob name. The reverse dictionary keeps that lookup O(1); without it the listing
+/// hydration loop would degenerate to O(n^2) in containers with thousands of blobs.
 /// </para>
 /// </remarks>
 public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
@@ -44,8 +42,8 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
     /// <remarks>
     /// Plain Azure Blob Storage has no concept of an empty directory. To keep parity with
     /// <c>WopiFileSystemProvider</c>'s ability to create an empty folder via
-    /// <see cref="IWopiWritableStorageProvider.CreateWopiChildContainer"/>, we drop a 0-byte
-    /// blob with this name into the folder. The provider hides marker blobs from listings so
+    /// <see cref="IWopiWritableStorageProvider.CreateWopiChildContainer"/>, a 0-byte blob with
+    /// this name is dropped into the folder. The provider hides marker blobs from listings so
     /// callers never see them.
     /// </remarks>
     public const string FolderMarker = ".wopi.folder";

@@ -37,7 +37,7 @@ public sealed class WopiTelemetryTests : IDisposable
     [Fact]
     public void StartActivity_NoListener_ReturnsNull()
     {
-        // Use a private listener that ignores our source so StartActivity has no listener for it.
+        // Use a private listener that ignores the source so StartActivity has no listener for it.
         _listener.Dispose();
 
         using var activity = WopiTelemetry.StartActivity("Lock");

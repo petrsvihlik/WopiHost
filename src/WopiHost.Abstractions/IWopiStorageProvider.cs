@@ -6,10 +6,10 @@ namespace WopiHost.Abstractions;
 /// Implementation of read operations for an external storage provider.
 /// </summary>
 /// <remarks>
-/// Per #420 item 1.1, file and container access points are exposed as distinct typed methods
-/// rather than a single generic <c>GetWopiResource&lt;T&gt;</c> that used <c>typeof(T)</c> as a
-/// runtime discriminator. Each method returns the precise resource interface; there are no
-/// scenarios where a caller wants the union of both.
+/// File and container access points are exposed as distinct typed methods rather than a single
+/// generic <c>GetWopiResource&lt;T&gt;</c> with a runtime type discriminator. Each method
+/// returns the precise resource interface; there are no scenarios where a caller wants the
+/// union of both.
 /// </remarks>
 public interface IWopiStorageProvider
 {
@@ -109,7 +109,7 @@ public interface IWopiStorageProvider
     /// <remarks>
     /// Returns <see langword="null"/> when either the parent container itself does not exist
     /// or the file is not present under it. Consistent with <see cref="GetWopiFile"/>'s
-    /// null-on-missing behaviour (#380 item 4.2).
+    /// null-on-missing behaviour.
     /// </remarks>
     /// <param name="containerId">Parent container id to search within.</param>
     /// <param name="name">The exact name to look for.</param>
@@ -122,7 +122,7 @@ public interface IWopiStorageProvider
     /// <remarks>
     /// Returns <see langword="null"/> when either the parent container itself does not exist
     /// or the child container is not present under it. Consistent with <see cref="GetWopiContainer"/>'s
-    /// null-on-missing behaviour (#380 item 4.2).
+    /// null-on-missing behaviour.
     /// </remarks>
     /// <param name="containerId">Parent container id to search within.</param>
     /// <param name="name">The exact name to look for.</param>

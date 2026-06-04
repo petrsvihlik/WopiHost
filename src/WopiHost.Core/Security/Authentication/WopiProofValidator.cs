@@ -37,8 +37,7 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
     /// Validates the WOPI proof headers on the given request.
     /// </summary>
     /// <param name="request">Framework-neutral request envelope (proxy-aware URL + header
-    /// reader). Pre-#457 this was an <c>HttpContext</c>; refactored so
-    /// <c>WopiHost.Abstractions</c> no longer depends on ASP.NET.</param>
+    /// reader) so <c>WopiHost.Abstractions</c> does not depend on ASP.NET.</param>
     /// <param name="accessToken">The access token from the request.</param>
     /// <returns>True if the request's proof headers are valid, false otherwise.</returns>
     public async Task<bool> ValidateProofAsync(WopiRequestInfo request, string accessToken)
@@ -78,15 +77,14 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
             }
 
             // WOPI spec signs the EXACT URL the client called, case-sensitive on path/query.
-            // The adapter built request.RequestUrl from the proxy-aware reconstruction (i.e.
-            // X-Forwarded-Proto / X-Forwarded-Host honoured); .OriginalString preserves it
-            // byte-for-byte. The .ToUpperInvariant() that follows matches WOPI's signature
-            // contract — case-folded uniformly across host case quirks.
+            // request.RequestUrl comes from the proxy-aware reconstruction (X-Forwarded-Proto /
+            // X-Forwarded-Host honoured); .OriginalString preserves it byte-for-byte. The
+            // .ToUpperInvariant() that follows matches WOPI's signature contract — case-folded
+            // uniformly across host case quirks.
             //
             // Null RequestUrl: the adapter couldn't reconstruct a usable URL (synthesised
             // context, blank scheme/host). Without a URL there's nothing to sign against —
-            // fail validation. Pre-#457 this produced "://" and signature mismatch; same
-            // observable outcome via a typed null check.
+            // fail validation.
             if (request.RequestUrl is null)
             {
                 LogProofHeadersMissing(logger);
@@ -143,7 +141,7 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
     /// Returns true for exceptions that must NOT be silently coerced into "validation failed."
     /// These are the canonical async-rude / process-fatal exceptions: catching them here would
     /// mask a torn process state and let the request continue against a broken host. The
-    /// runtime considers them "always rethrow" — we mirror that convention for the proof gate.
+    /// runtime considers them "always rethrow"; the proof gate mirrors that convention.
     /// </summary>
     private static bool IsCriticalUnwindException(Exception ex) => ex is
         OutOfMemoryException or

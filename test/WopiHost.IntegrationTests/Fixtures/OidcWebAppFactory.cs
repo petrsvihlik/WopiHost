@@ -61,7 +61,7 @@ public sealed class OidcWebAppFactory(Uri authority, string wopiSigningSecret, s
     /// the Secure flag.
     /// </para>
     /// <para>
-    /// <strong>Why we can't keep the defaults in tests.</strong> <see cref="HttpClient"/>
+    /// <strong>Why the defaults can't stay in tests.</strong> <see cref="HttpClient"/>
     /// silently drops Secure cookies on plaintext <c>http://localhost</c>, and TestServer's
     /// transport is in-memory HTTP only (no TLS). The alternative would be to switch the test
     /// host to Kestrel with a dev cert — a meaningful architecture change for a single test

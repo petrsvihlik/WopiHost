@@ -10,9 +10,7 @@ namespace WopiHost.Core.Tests.Infrastructure;
 
 /// <summary>
 /// Tests for the default <see cref="ICheckFileInfoBuilder"/>, <see cref="ICheckContainerInfoBuilder"/>,
-/// and <see cref="ICheckFolderInfoBuilder"/> implementations. Ported from the now-deleted
-/// <c>WopiExtensionsTests</c> when the <c>GetWopiCheckFileInfo</c> / <c>GetWopiCheckContainerInfo</c> /
-/// <c>BuildCheckFolderInfo</c> extension methods were replaced by these builders.
+/// and <see cref="ICheckFolderInfoBuilder"/> implementations.
 /// </summary>
 public class DefaultCheckInfoBuilderTests
 {
@@ -363,9 +361,9 @@ public class DefaultCheckInfoBuilderTests
         Assert.False(result.IsAnonymousUser);
     }
 
-    // Note: OnCheckFolderInfo callback firing is no longer the builder's responsibility — it
-    // moved to FoldersController.CheckFolderInfo as part of #363's resolution. The callback
-    // round-trip is covered by FoldersControllerTests.CheckFolderInfo_CallsOnCheckFolderInfoEvent.
+    // OnCheckFolderInfo callback firing is not the builder's responsibility — it lives in
+    // FoldersController.CheckFolderInfo. The callback round-trip is covered by
+    // FoldersControllerTests.CheckFolderInfo_CallsOnCheckFolderInfoEvent.
 
     [Fact]
     public async Task GetWopiCheckContainerInfo_CallsOnCheckContainerInfoEvent()
@@ -420,9 +418,8 @@ public class DefaultCheckInfoBuilderTests
     public async Task GetWopiCheckContainerInfo_AnonymousUser_ReportsIsAnonymousUserTrue()
     {
         // Spec: IsAnonymousUser "should match the IsAnonymousUser value returned in
-        // CheckFileInfo." The file + folder builders both set it from auth state; the
-        // container builder previously omitted it, so anonymous users were reported as
-        // authenticated in the container response.
+        // CheckFileInfo." All three builders (file, folder, container) must set it from auth
+        // state, otherwise anonymous users get reported as authenticated.
         var mockFolder = new Mock<IWopiContainer>();
         mockFolder.Setup(f => f.Name).Returns("AnonContainer");
         var mockSecurityHandler = new Mock<IWopiPermissionProvider>();

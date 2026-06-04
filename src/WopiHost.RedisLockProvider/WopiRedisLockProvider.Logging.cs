@@ -3,8 +3,7 @@ using Microsoft.Extensions.Logging;
 namespace WopiHost.RedisLockProvider;
 
 /// <summary>
-/// LoggerMessage-generated log sinks for <see cref="WopiRedisLockProvider"/>. Kept in a separate
-/// partial so the operational story (event ids, log levels, messages) is reviewable in one place.
+/// LoggerMessage-generated log sinks for <see cref="WopiRedisLockProvider"/>.
 /// </summary>
 public sealed partial class WopiRedisLockProvider
 {

@@ -45,8 +45,6 @@ public class CobaltHostLockingStore(
 
     public override LockStatusRequest.OutputType HandleLockStatus(LockStatusRequest.InputType input)
     {
-        // Replaces the 15.x `HandleLockAndCheckOutStatus`. The output shape
-        // changed too: old (LockType, CheckOutType) → new (LockType, LockId, LockedBy).
         var result = new LockStatusRequest.OutputType
         {
             LockType = LockType.SchemaLock
@@ -259,8 +257,7 @@ public class CobaltHostLockingStore(
         return result;
     }
 
-    // The methods below were added to HostLockingStore in CobaltCore 16.x.
-    // They cover protocol features WopiHost doesn't implement yet (rename,
+    // The methods below cover protocol features WopiHost doesn't implement yet (rename,
     // delete, version history, editors-property metadata). Stubbed with
     // empty default outputs so the host accepts the request without erroring;
     // hosts that need the real behavior should override these.

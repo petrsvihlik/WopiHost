@@ -4,9 +4,7 @@ using WopiHost.E2ETests.Collabora.Fixtures;
 namespace WopiHost.E2ETests.Collabora;
 
 /// <summary>
-/// End-to-end happy-path tests for the WopiHost ↔ Collabora editing loop. Tracked under
-/// <see href="https://github.com/petrsvihlik/WopiHost/issues/357">issue #357</see>
-/// "Approach B". Two tests:
+/// End-to-end happy-path tests for the WopiHost ↔ Collabora editing loop. Two tests:
 /// </summary>
 /// <list type="bullet">
 ///   <item>
@@ -38,7 +36,7 @@ namespace WopiHost.E2ETests.Collabora;
 /// </para>
 /// <para>
 /// <b>Selector strategy</b>: Collabora's editor UI iterates rapidly and DOM selectors drift
-/// between releases. We pin only the markers that have stayed stable across at least three
+/// between releases. The tests pin only the markers that have stayed stable across at least three
 /// CODE versions: <c>iframe[name='office_frame']</c> (the WopiHost.Web sample's own iframe),
 /// <c>#document-container</c> / <c>#document-canvas</c> (Collabora's main canvas area), and
 /// the <c>postMessage</c> API surface (Collabora's documented host-protocol channel, much
@@ -52,7 +50,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
 {
     private const string SampleDocxName = "test.docx";
 
-    /// <summary>How long we'll wait for Collabora's iframe to render the document area. Generous
+    /// <summary>How long to wait for Collabora's iframe to render the document area. Generous
     /// because CODE's startup + WebSocket handshake commonly takes 8–15 s on a cold cache.</summary>
     private static readonly TimeSpan s_iframeReadyTimeout = TimeSpan.FromSeconds(60);
 
@@ -70,7 +68,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         _context = await playwright.Browser.NewContextAsync(new BrowserNewContextOptions
         {
             // The frontend ships HTTPS only with a dev cert; Aspire's per-run cert isn't in
-            // Chromium's trust store, so we accept the test-only cert explicitly.
+            // Chromium's trust store, so the test-only cert is accepted explicitly.
             IgnoreHTTPSErrors = true,
         });
 
@@ -88,8 +86,8 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         }
 
         // Restore the original docx so the next run starts from the same fixture state, even
-        // if the save test mutated it. Skip the rewrite when the file is byte-identical so we
-        // don't churn the working tree's modified-time for diagnostics.
+        // if the save test mutated it. Skip the rewrite when the file is byte-identical to avoid
+        // churning the working tree's modified-time for diagnostics.
         if (_originalDocxBytes is not null)
         {
             var docxPath = Path.Combine(app.WopiDocsPath, SampleDocxName);
@@ -114,7 +112,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
 
     /// <summary>
     /// Init script installed on every test page to capture Collabora's postMessage stream.
-    /// We unwrap <c>e.data</c> (always a JSON string from Collabora) into structured fields
+    /// Unwraps <c>e.data</c> (always a JSON string from Collabora) into structured fields
     /// so the subsequent C# searches don't have to deal with JSON-in-JSON escaping.
     /// Without the unwrap, <c>JSON.stringify(window.__collaboraMessages)</c> turns
     /// <c>{"MessageId":"Action_Load_Resp"}</c> into <c>"{\"MessageId\":\"Action_Load_Resp\"}"</c>
@@ -174,9 +172,9 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         }
         catch (PlaywrightException)
         {
-            // Surface the actual page so we can tell whether the table is missing, empty, or
-            // we landed on an error / auth-redirect page. Without this the failure message is
-            // just "selector not found" which is useless for triage.
+            // Surface the actual page to disambiguate a missing/empty table from an error /
+            // auth-redirect page. Without this the failure message is just "selector not found",
+            // which is useless for triage.
             var body = await page.ContentAsync();
             throw new Xunit.Sdk.XunitException(
                 $"Edit link for {SampleDocxName} not visible at {app.WebFrontendUrl.AbsoluteUri}. Page content was:\n{body}");
@@ -209,14 +207,14 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             }), '*');
         }");
 
-        // Step 5: poll the captured postMessages until we see proof the document actually
-        // loaded. Action_Load_Resp{success:false} is the failure-mode signal we explicitly
-        // look for to fast-fail with a useful message instead of timing out blind.
+        // Step 5: poll the captured postMessages until there's proof the document actually
+        // loaded. Action_Load_Resp{success:false} is the failure-mode signal checked explicitly
+        // to fast-fail with a useful message instead of timing out blind.
         //
         // The capture script unwraps Collabora's JSON-in-JSON envelope into top-level
         // `messageId`/`status`/`success` fields on each entry, so the JS-side filtering uses
-        // straight property comparisons (no string-escape gymnastics). We do the find on the
-        // JS side and pass back a single boolean per loop iteration to keep the round-trip
+        // straight property comparisons (no string-escape gymnastics). The find runs on the
+        // JS side and passes back a single boolean per loop iteration to keep the round-trip
         // tiny and the C# code obvious.
         var loadDeadline = DateTime.UtcNow + s_iframeReadyTimeout;
         while (DateTime.UtcNow < loadDeadline)
@@ -262,7 +260,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         var page = await _context.NewPageAsync();
 
         // Install a postMessage capture on EVERY page (host page + iframe contentWindow) before
-        // any navigation, so we see Collabora's host-integration events (App_LoadingStatus,
+        // any navigation, to capture Collabora's host-integration events (App_LoadingStatus,
         // Document_LoadedSuccessfully, Action_Save_Resp, etc.) from their first emission. The
         // events are JSON-encoded; the shared capture script parses them into structured fields
         // so subsequent C# searches don't have to deal with JSON-in-JSON escaping.
@@ -280,9 +278,8 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // Step 0: send Host_PostmessageReady to opt the host page into Collabora's postMessage
         // protocol. Without this, CODE 25.04 sends nothing back to the parent window — including
         // App_LoadingStatus, Document_LoadedSuccessfully, and (critically) Action_Save_Resp.
-        // The previous run captured zero postMessages from Collabora, which is what tipped me off
-        // that the host integration was untriggered. This is documented at
-        // https://sdk.collaboraonline.com/docs/postmessage_api.html (the host MUST initiate).
+        // The host MUST initiate, per
+        // https://sdk.collaboraonline.com/docs/postmessage_api.html.
         await page.EvaluateAsync(@"() => {
             var frame = document.querySelector('iframe[name=""office_frame""]');
             frame.contentWindow.postMessage(JSON.stringify({
@@ -306,10 +303,10 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // "subtree intercepts pointer events" — Playwright then times out at 5 s.
         //
         // The dialog's close affordance has varied across CODE versions: 25.04 ships an
-        // <button class="iframe-welcome-close">, older versions had a "Close" link. We try
-        // each in turn, fall back to pressing Escape on the iframe contentWindow (Collabora's
-        // dialog manager closes on Esc), and finally just remove the wrapper from the DOM if
-        // we're confident it's a welcome overlay (defensive against further selector drift).
+        // <button class="iframe-welcome-close">, older versions had a "Close" link. Each is
+        // tried in turn, falling back to pressing Escape on the iframe contentWindow (Collabora's
+        // dialog manager closes on Esc), and finally just removing the wrapper from the DOM
+        // (defensive against further selector drift).
         await TryDismissAsync(officeFrame.Locator(".iframe-welcome-close"), timeoutMs: 3_000);
         await TryDismissAsync(officeFrame.Locator(".iframe-welcome-wrap button:has-text('Close')"), timeoutMs: 1_500);
         await page.EvaluateAsync(@"() => {
@@ -326,8 +323,8 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // "Editing" entry switches the doc into edit mode so subsequent typing actually
         // mutates content. Wrapped to swallow any failure (selector drift, leftover overlay,
         // timeout) because the save assertion below is the real test — if Collabora kept the
-        // doc read-only, the write won't happen and we'll get a useful diagnostic dump.
-        // We catch the broad Exception bucket here because Playwright's timeout surfaces as
+        // doc read-only, the write won't happen and the diagnostic dump explains it.
+        // Catches the broad Exception bucket because Playwright's timeout surfaces as
         // System.TimeoutException (from WrapApiCallAsync), NOT as a PlaywrightException.
         try
         {
@@ -336,7 +333,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         }
         catch (Exception ex) when (ex is PlaywrightException or TimeoutException)
         {
-            // View-mode dropdown not where we expect, or the click was intercepted. Fall
+            // View-mode dropdown not where expected, or the click was intercepted. Fall
             // through — the save assertion below will catch any resulting no-op write.
         }
 
@@ -346,8 +343,8 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // event and routes it through loolwsd's tile pipeline).
         // Force=true skips the visible/enabled/stable check so a *second* modal popping up
         // mid-click (e.g. the "Welcome" dialog on a fresh session) doesn't make the click
-        // retry-loop and time out. We don't need pointer-event semantics for this test — we
-        // only need focus + subsequent keyboard input, both of which work under Force.
+        // retry-loop and time out. Pointer-event semantics aren't needed here — only focus +
+        // subsequent keyboard input, both of which work under Force.
         await officeFrame.Locator("#document-container").ClickAsync(new() { Force = true });
 
         // Step 2: type a marker into the document. The actual text doesn't matter — what
@@ -356,7 +353,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         await page.Keyboard.TypeAsync("wopihost-e2e-marker", new KeyboardTypeOptions { Delay = 30 });
 
         // Give Collabora's WebSocket pipeline a moment to settle so the document model is
-        // marked dirty before we ask it to save. Without this, Action_Save can race the typing
+        // marked dirty before the save request. Without this, Action_Save can race the typing
         // and be a no-op (loolwsd hasn't yet processed the keystrokes into a model change).
         await Task.Delay(TimeSpan.FromSeconds(2));
 
@@ -365,7 +362,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // so it's much more stable than poking the toolbar Save icon — that icon's DOM id
         // has changed at least once between CODE majors. Action_Save with default options
         // does a synchronous save back to the host via PutFile.
-        // We dispatch from the parent page because that's what a real WOPI host frontend does
+        // Dispatched from the parent page because that's what a real WOPI host frontend does
         // and what's authorised on Collabora's side (the iframe's window.parent).
         await page.EvaluateAsync(@"() => {
             const frame = document.querySelector(""iframe[name='office_frame']"");
@@ -378,8 +375,8 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
 
         // Step 4: poll for the on-disk write. The PutFile request travels Collabora → host
         // backend → file-system provider; even after Action_Save returns, the writeback can
-        // take a few seconds. We give it up to 60 s with a 250 ms poll cadence — the previous
-        // 30 s budget was sometimes too tight given Collabora's autosave debouncing on CI.
+        // take a few seconds. Allow up to 60 s with a 250 ms poll cadence — a shorter budget can
+        // be too tight given Collabora's autosave debouncing on CI.
         var saveDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(60);
         var changed = false;
         while (DateTime.UtcNow < saveDeadline)
@@ -394,8 +391,6 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             await Task.Delay(250);
         }
 
-        // (helper) — `static` would be nicer but the class is sealed and the locator is an
-        // instance arg, so a private instance method keeps the call sites clean.
         static async Task TryDismissAsync(ILocator locator, int timeoutMs)
         {
             try
@@ -412,11 +407,10 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         if (!changed)
         {
             // Pull the postMessage trail + the editor's read-only state to disambiguate WHY the
-            // save was a no-op. Three classes of failure mode we expect to be able to read off
-            // the captured events:
+            // save was a no-op. Three classes of failure mode readable off the captured events:
             //   - Document_LoadedSuccessfully with permissions != edit  → CheckFileInfo wire content not granting UserCanWrite.
             //   - Action_Save_Resp with success: false                  → host-side save handler failed (lock conflict, IO error).
-            //   - No Action_Save_Resp at all                            → Collabora ignored our save trigger (doc in view mode).
+            //   - No Action_Save_Resp at all                            → Collabora ignored the save trigger (doc in view mode).
             // Stringify on the JS side. `EvaluateAsync<object>` over an array returns a boxed
             // JS array whose .ToString() is "System.Object[]" — useless. JSON.stringify with
             // indentation gives a readable, copy-pasteable diagnostic.

@@ -5,7 +5,7 @@ namespace WopiHost.Abstractions;
 /// when the caller only needs to enumerate metadata or stream content out.
 /// </summary>
 /// <remarks>
-/// Per #420 item 1.2, the write seam is split off into <see cref="IWopiWritableFile"/> so a
+/// The write seam is split off into <see cref="IWopiWritableFile"/> so a
 /// read-only flow can't accidentally call <c>OpenWriteAsync</c> on a file it fetched read-only.
 /// Callers that need to mutate file content fetch via
 /// <see cref="IWopiWritableStorageProvider.GetWritableFile"/> or take the writable file directly

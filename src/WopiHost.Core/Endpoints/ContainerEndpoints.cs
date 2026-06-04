@@ -82,9 +82,9 @@ internal static class ContainerEndpoints
 
         var ancestors = await req.Storage.GetContainerAncestors(req.Id, req.CancellationToken).ConfigureAwait(false);
         // Fresh container-scoped token per ancestor URL — see IWopiResourceTokenMinter for the
-        // token-trading prevention rationale. Going through the injected minter keeps Infer#'s
-        // async-state-machine analysis clean (#471): the await lands on an injected interface
-        // method, not a same-class or shared static async helper.
+        // token-trading prevention rationale. Going through the injected minter keeps the
+        // async-state-machine analysis precise: the await lands on an injected interface method,
+        // not a same-class or shared static async helper.
         var children = new List<ChildContainer>();
         foreach (var ancestor in ancestors)
         {
@@ -110,7 +110,7 @@ internal static class ContainerEndpoints
         // container's id, so reusing it for child URLs trips "preventing token trading"
         // (https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading).
         // Routed through IWopiResourceTokenMinter so the await lands on an injected interface
-        // method — see #471 for the Infer# precision-loss this shape avoids.
+        // method, which keeps the async-state-machine analysis precise.
         await foreach (var wopiFile in req.Storage.GetWopiFiles(req.Id, fileExtensions, req.CancellationToken).ConfigureAwait(false))
         {
             var fileToken = await req.TokenMinter.MintForFileAsync(req.Http.User, wopiFile, req.CancellationToken).ConfigureAwait(false);

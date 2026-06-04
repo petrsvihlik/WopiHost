@@ -20,17 +20,14 @@ public static class ServiceCollectionExtensions
         Action<DiscoveryOptions> configureDiscoveryOptions)
         where TOptions : class, IDiscoveryOptions
     {
-        // Configure discovery options
         services.Configure<DiscoveryOptions>(configureDiscoveryOptions);
 
-        // Add HTTP client for discovery with automatic configuration
         services.AddHttpClient<IDiscoveryFileProvider, HttpDiscoveryFileProvider>((sp, client) =>
         {
             var wopiOptions = sp.GetRequiredService<IOptions<TOptions>>();
             client.BaseAddress = wopiOptions.Value.ClientUrl;
         });
 
-        // Add discoverer
         services.AddSingleton<IDiscoverer, WopiDiscoverer>();
 
         return services;

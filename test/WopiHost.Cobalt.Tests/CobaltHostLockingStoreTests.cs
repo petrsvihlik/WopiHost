@@ -7,9 +7,9 @@ namespace WopiHost.Cobalt.Tests;
 
 /// <summary>
 /// Behavior tests for <see cref="CobaltHostLockingStore"/>'s coauth/editing-session handlers
-/// — the bridge between Cobalt's HostLockingStore contract and our
+/// — the bridge between Cobalt's HostLockingStore contract and
 /// <see cref="CoauthoringSessionTracker"/>. The stub handlers (e.g. <c>HandleGetSchemaLock</c>)
-/// that just return a default output have no behavior worth verifying; we focus on the ones
+/// that just return a default output have no behavior worth verifying; the tests cover the ones
 /// that actually delegate to the tracker or read principal claims.
 /// </summary>
 public class CobaltHostLockingStoreTests
@@ -263,8 +263,8 @@ public class CobaltHostLockingStoreTests
     // The handlers below are intentional pass-throughs that return a default OutputType.
     // They cover protocol features WopiHost doesn't implement (exclusive locks, version
     // history, editor metadata, rename/delete via Cobalt instead of WOPI). The contract
-    // is just "don't throw" — which is what these tests verify. Keeping them as
-    // separate facts so a regression on any one handler is precise in the test report.
+    // is just "don't throw" — which is what these tests verify. They are kept as separate
+    // facts so a regression on any one handler is precise in the test report.
 
     [Fact]
     public void HandleGetExclusiveLock_DoesNotThrow()

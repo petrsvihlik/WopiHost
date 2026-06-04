@@ -33,10 +33,10 @@ public static class ServiceCollectionExtensions
             .ValidateOnStart();
 
         services.TryAddSingleton<InMemoryFileIds>();
-        // Singleton, matching AddAzureStorageProvider. The provider is a stateless wrapper:
-        // after construction it holds only immutable fields, depends solely on singletons
-        // (InMemoryFileIds, IHostEnvironment, IConfiguration, ILogger) — so no scoped captive
-        // dependency — and routes all mutable state through the thread-safe InMemoryFileIds.
+        // The provider is a stateless wrapper: after construction it holds only immutable fields,
+        // depends solely on singletons (InMemoryFileIds, IHostEnvironment, IConfiguration, ILogger)
+        // — so no scoped captive dependency — and routes all mutable state through the thread-safe
+        // InMemoryFileIds.
         services.AddSingleton<WopiFileSystemProvider>();
         services.AddSingleton<IWopiStorageProvider>(sp => sp.GetRequiredService<WopiFileSystemProvider>());
         services.AddSingleton<IWopiWritableStorageProvider>(sp => sp.GetRequiredService<WopiFileSystemProvider>());

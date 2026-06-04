@@ -98,7 +98,7 @@ public sealed class WebSampleSmokeTests(PlaywrightFixture playwright) : IAsyncLi
     [Fact]
     public async Task Index_loads_with_no_javascript_errors()
     {
-        // We only assert on JS errors (PageError) — resource load failures (favicon, fake-discoverer
+        // Asserts only on JS errors (PageError) — resource load failures (favicon, fake-discoverer
         // icon URIs, the ~/css/site.css that StaticWebAssets disablement skips) come through as
         // Console errors and are noise from the test setup, not bugs in the sample.
         var page = await _context.NewPageAsync();

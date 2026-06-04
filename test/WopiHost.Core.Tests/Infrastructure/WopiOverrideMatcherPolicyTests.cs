@@ -18,9 +18,8 @@ namespace WopiHost.Core.Tests.Infrastructure;
 /// End-to-end exercise of <see cref="WopiOverrideMatcherPolicy"/> against an in-memory
 /// <see cref="TestServer"/>. Maps synthetic POST endpoints sharing the same route template and
 /// HTTP verb, each tagged with a distinct <see cref="WopiOverrideMetadata"/>, and asserts the
-/// behaviours the Minimal-API migration depends on (issue #430):
-/// dispatch by header, per-endpoint authorization, pass-through for metadata-less endpoints,
-/// fallback to 404/405 when no candidate matches.
+/// override-dispatch behaviours: dispatch by header, per-endpoint authorization, pass-through
+/// for metadata-less endpoints, fallback to 404/405 when no candidate matches.
 /// </summary>
 public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
 {
