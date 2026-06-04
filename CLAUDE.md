@@ -39,6 +39,7 @@ dotnet run --project sample/WopiHost
   - Keep comments short and concrete; prefer deleting a comment to padding it.
   - Keep the `///` XML doc tags on public APIs (warnings-as-errors require them), but trim their wording to the same bar.
 - .NET analyzers and code style enforcement are on (`EnforceCodeStyleInBuild`).
+- **Nullable reference types** are enabled solution-wide from the root `Directory.Build.props`. Don't re-declare `<Nullable>` in individual projects — keep the single source of truth.
 - Follow [.NET Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/).
 - Centralized package management via `Directory.Packages.props` — specify versions there, not in individual `.csproj` files.
 - Single-targeted on `net10.0` (libraries, samples, infra, tests). The v8 line was the last to support `net8.0` / `net9.0`; v9 onward is net10 only. The `tools/wopi-validator/` helper project stays on `net8.0` because the upstream `Microsoft.Office.WopiValidator` NuGet does.

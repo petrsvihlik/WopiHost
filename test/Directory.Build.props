@@ -9,7 +9,6 @@
 		<Authors>Petr Svihlik</Authors>
 		<IsPackable>false</IsPackable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
 		<!-- xUnit v3 requires test projects to be built as console apps so the framework's
 		     Microsoft.Testing.Platform entry point can run them. The vstest path
 		     (Microsoft.NET.Test.Sdk + xunit.runner.visualstudio) continues to work. -->

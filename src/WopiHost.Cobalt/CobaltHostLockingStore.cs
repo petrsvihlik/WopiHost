@@ -14,12 +14,12 @@ public class CobaltHostLockingStore(
     /// at construction; instead each <c>ProcessCobalt</c> invocation sets this
     /// AsyncLocal before the request runs and clears it after.
     /// </summary>
-    internal static readonly AsyncLocal<ClaimsPrincipal> CurrentPrincipal = new();
+    internal static readonly AsyncLocal<ClaimsPrincipal?> CurrentPrincipal = new();
 
     private readonly string _fileId = fileId;
     private readonly CoauthoringSessionTracker _sessionTracker = sessionTracker;
 
-    private static ClaimsPrincipal Principal => CurrentPrincipal.Value;
+    private static ClaimsPrincipal? Principal => CurrentPrincipal.Value;
     private string UserId => Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
     private string UserName => Principal?.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
 

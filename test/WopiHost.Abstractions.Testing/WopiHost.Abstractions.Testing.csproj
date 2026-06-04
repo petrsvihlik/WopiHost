@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Nullable>enable</Nullable>
 		<TargetFramework>net10.0</TargetFramework>
 		<AssemblyName>WopiHost.Abstractions.Testing</AssemblyName>
 		<!-- This is a class library that exposes abstract xUnit test classes for downstream
