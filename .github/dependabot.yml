@@ -23,6 +23,16 @@ updates:
     open-pull-requests-limit: 20
     commit-message:
       prefix: "chore(deps)"
+    # Bundle same-day minor/patch bumps into one PR. Major bumps are left
+    # ungrouped (one PR each) so a potentially-breaking change is reviewed on
+    # its own and one bad dependency can't block the whole batch from merging.
+    groups:
+      nuget:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: github-actions
     directory: "/"
@@ -30,3 +40,10 @@ updates:
       interval: daily
     commit-message:
       prefix: "chore(ci)"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
