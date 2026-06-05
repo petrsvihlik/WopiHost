@@ -71,3 +71,21 @@ add it here with the reason. This ledger is what keeps repeat audits quiet and f
   (`MapDefaultEndpoints`) already lives in `ServiceDefaults`; folding logging setup into
   `AddServiceDefaults` would change logging for every consumer, including the Serilog backend and
   test hosts.
+
+## Spec / provider behavior (added 2026-06-05)
+
+- **`RenameContainer` returns 400 on an invalid name without `RenameFile`'s sanitise-retry — and
+  that's spec-correct.** The RenameContainer spec omits the "host should try to generate a different
+  name" language that RenameFile carries, so the divergence is intentional, not drift.
+- **Redis lock options chain only `.ValidateOnStart()` (no `.Validate` for `ConnectionString`).**
+  The connection string is optional on the DI-supplied `IConnectionMultiplexer` / Aspire path; a
+  `.Validate` requiring it would break that path.
+- **`CollectionExtensions.Merge` (`WopiHost.Url`) being unused in production is not a removal
+  candidate.** It's `public` API in a NuGet-packaged library (package-validation baseline) — deletion
+  is a breaking change.
+- **`WopiHost.ServiceDefaults` OTel meters/sources for `WopiHost.Web` / `Discovery` / `FileSystem`
+  that nothing emits to are harmless aspirational placeholders.** Registering a non-existent
+  meter/source is a no-op; removing them is consistency-for-its-own-sake.
+- **`ProcessLock` assigning `X-WOPI-ItemVersion = file.Version` unconditionally is fine.** Assigning
+  a null string to `Headers[...]` yields `StringValues.Empty`, which suppresses the header — no need
+  to null-guard it the way `GetFile` does.

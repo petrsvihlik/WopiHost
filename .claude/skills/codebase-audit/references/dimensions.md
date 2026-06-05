@@ -121,3 +121,36 @@ These are "two things that should match but don't." The providers are the usual 
   permission-claim round-trip integration test; another added real-proof-key validation coverage).
 - A provider lacking the shared conformance subclass.
 - Docker-gated suites (Azurite/Redis/Collabora) — note when a path is CI-only-verifiable.
+
+## 11. Documentation accuracy — wiki + READMEs (High when actively misleading)
+
+The docs must match the current API/behavior exactly — a wrong type name or a sample that won't
+compile sends users down a dead end. Scope: the GitHub **wiki** (fetch it with
+`scripts/fetch-wiki.sh` — it's a separate repo) AND every `README.md` (root, `sample/`, each
+`src/*`, each `test/*`). The big risk is **post-migration drift**: docs that still describe the
+pre-v9 world (MVC controllers, old method names, old id scheme).
+
+For each doc claim, verify against source before trusting it:
+
+- **Removed / renamed types referenced.** Grep the codebase for every type, interface, method, and
+  namespace a doc names — an unresolved reference is drift. Prime suspects after the controller→
+  Minimal-API move: `FilesController` / `ContainersController` / `FoldersController` /
+  `EcosystemController` / `WopiBootstrapperController` (gone → `MapWopiEndpoints()` + `Endpoints/*`),
+  and the renamed stream methods `IWopiFile.GetReadStream` / `GetWriteStream`
+  (gone → `IWopiFile.OpenReadAsync` / `IWopiWritableFile.OpenWriteAsync`).
+- **Wrong member types/shapes.** e.g. `Checksum` is `ReadOnlyMemory<byte>?` not `byte[]?`; `IWopiFile`
+  has `Length` and no `Size`; lock expiry is the method `IsExpiredAt(now)`, not an `Expired` flag.
+- **Code samples that wouldn't compile** against the current API (registration calls, ctor args,
+  `using`s, signatures). `WopiFileSystemProvider`'s ctor takes `IOptions<…>`, not `IConfiguration`.
+- **Config keys / section names** that don't exist on the bound options class — verify each
+  `Wopi:StorageProvider` / `Wopi:LockProvider` / `Wopi:Security` / `Wopi:Discovery` /
+  `Sample:*` / `AppHost:*` key against its options type.
+- **ID-scheme claims.** Ids are deterministic SHA-256 hex of a canonical path (stable across
+  restarts), case-folded on the file system, case-sensitive on Azure — not base64 paths, not MD5,
+  not "short tokens", not "unstable across restarts".
+- **Package names/IDs**, install snippets, project names, and **target framework** (`net10.0` only).
+- **Broken internal links** between wiki pages or to repo paths that no longer exist.
+
+Report each as `Doc page:line | what the doc says → what the code is → fix`, with the source
+file:line you verified against. Wiki fixes are pushed to the `.wiki.git` repo; README fixes go
+through the normal repo PR flow.
