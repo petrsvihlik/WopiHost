@@ -60,6 +60,13 @@ add it here with the reason. This ledger is what keeps repeat audits quiet and f
 - **`Wopi:Security:DisableProofValidation` is a dev-only flag, by design.** It swaps in a no-op
   proof validator for clients (Collabora) that don't sign callbacks, and throws on startup outside
   Development. Not a security hole.
+- **`AppHost:UseCollabora` defaulting `true` (code default in `infra/WopiHost.AppHost/Program.cs`)
+  is intentional.** Collabora is the owner-chosen out-of-box VS "Play" / `dotnet run` experience —
+  it joins Redis locks as a Docker-backed AppHost default. A *code* default is deliberately used (not
+  a committed `appsettings.Development.json` flag, nor a `launchSettings.json` env var) precisely
+  because it's the lowest-precedence config source: `appsettings.*` / env var / cmdline all override
+  it off, so a Docker-less contributor can opt out locally. Don't re-file as "forces a Docker
+  dependency on every contributor" — that was the old *committed-flag* finding (#517), resolved.
 
 ## Intentionally-kept duplication
 
