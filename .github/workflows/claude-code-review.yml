@@ -3,21 +3,19 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    paths-ignore:
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - 'LICENSE'
+      - '.claude/**'
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-
+    # Internal PRs only. The Claude GitHub App's OIDC token exchange doesn't work with
+    # the secret-less fork-PR context, so fork PRs are skipped here — review one manually
+    # by commenting `@claude review this` (handled by claude.yml).
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -27,18 +25,23 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
       - name: Run Claude Code Review
         id: claude-review
+        # Informational: a reviewer hiccup never fails the PR's checks.
+        continue-on-error: true
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
-
+          prompt: |
+            Review this pull request against the conventions in CLAUDE.md. Report only
+            clear, high-signal findings: real correctness bugs, WOPI spec violations,
+            security issues, concurrency/TOCTOU hazards, leaky abstractions, and
+            net-negative changes. Skip style nits and speculative refactors — a finding
+            ships only if a maintainer would be unambiguously better off applying it. If
+            the change looks good, say so in one line. Post issues as inline comments on
+            the relevant lines plus a brief summary.
+          claude_args: "--max-turns 25"
