@@ -1,0 +1,121 @@
+name: 🔒 Security Vulnerability
+description: Report a security vulnerability in WopiHost
+title: "[Security]: "
+labels: ["security"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚠️ Read this first
+
+        **This is a public issue — anything you write here is visible to everyone.**
+
+        If the vulnerability is sensitive or exploitable, **do not file it here.** Report it
+        privately instead so the details stay between you and the maintainers until a fix ships:
+
+        👉 **[Report a vulnerability privately](https://github.com/petrsvihlik/WopiHost/security/advisories/new)**
+
+        Use this public template **only** for low-sensitivity issues, and keep the description
+        high-level — no weaponizable proof-of-concept. When in doubt, use the private channel.
+
+        See the [Security Policy](https://github.com/petrsvihlik/WopiHost/blob/master/SECURITY.md)
+        for details and what to expect after reporting.
+
+  - type: checkboxes
+    id: disclosure-ack
+    attributes:
+      label: Responsible disclosure
+      description: Please confirm before continuing.
+      options:
+        - label: I have read the Security Policy and confirm this report contains no sensitive exploit details that warrant private reporting.
+          required: true
+        - label: I am not aware of this issue being publicly disclosed or exploited elsewhere.
+          required: false
+
+  - type: input
+    id: affected-package
+    attributes:
+      label: Affected package(s)
+      description: Which WopiHost NuGet package(s) and version are affected?
+      placeholder: "e.g., WopiHost.Core 9.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Estimated severity
+      description: Your rough assessment (the maintainers will re-evaluate).
+      options:
+        - Low
+        - Medium
+        - High
+        - Critical
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A high-level description of the vulnerability and the affected component.
+      placeholder: "What is the weakness, and where is it?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: What can an attacker achieve? (e.g. unauthorized file access, token forgery, path traversal, DoS)
+      placeholder: "Who is affected and what is the worst-case outcome?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: How to reproduce (high-level)
+      description: |
+        Outline the conditions to trigger it. Keep it high-level here — if a detailed
+        proof-of-concept is required, please switch to private reporting.
+      placeholder: |
+        1. Configure the host with '...'
+        2. Send a WOPI request with '...'
+        3. Observe '...'
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected-config
+    attributes:
+      label: Affected configuration
+      description: Anything that scopes the issue — provider in use, auth setup, proof validation on/off, OS, .NET version.
+      placeholder: "e.g., FileSystemProvider on Linux, proof validation enabled, .NET 10"
+    validations:
+      required: false
+
+  - type: textarea
+    id: suggested-fix
+    attributes:
+      label: Suggested fix or mitigation
+      description: If you have a fix or workaround in mind, describe it here.
+      placeholder: "Optional"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: contribution-intent
+    attributes:
+      label: Contribution intent
+      description: How would you like to help resolve this?
+      options:
+        - I'd like to submit a PR with a fix (coordinate privately first)
+        - I can help test a fix once available
+        - I can provide more details privately if needed
+        - I'm just reporting it
+    validations:
+      required: true
