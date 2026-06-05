@@ -21,6 +21,7 @@ permissions:
   pull-requests: write
   issues: write
   actions: read
+  id-token: write # required: the Claude GitHub App fetches a GitHub OIDC token to authenticate
 
 jobs:
   approve:
@@ -40,12 +41,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
+      # continue-on-error keeps this informational: a reviewer hiccup never fails the PR's checks.
       - uses: anthropics/claude-code-action@v1
+        continue-on-error: true
         with:
           # Pro/Max subscription token from `claude setup-token` — no per-use API
           # billing. Swap for `anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}`
           # to bill the API instead.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # GitHub API auth (posting the review) is handled by the Claude GitHub App via
+          # the OIDC token (id-token: write above). The app must be installed on the repo:
+          # https://github.com/apps/claude
           # Informational: posts review comments, never fails the check.
           prompt: |
             Review this pull request against the conventions in CLAUDE.md.
