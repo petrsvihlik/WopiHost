@@ -145,5 +145,5 @@ internal readonly record struct EnumerateContainerChildrenRequest(
     HttpContext Http,
     IWopiStorageProvider Storage,
     IWopiResourceTokenMinter TokenMinter,
-    [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? FileExtensionFilterList,
+    [FromHeader(Name = WopiHeaders.FileExtensionFilterList)] string? FileExtensionFilterList,
     CancellationToken CancellationToken);

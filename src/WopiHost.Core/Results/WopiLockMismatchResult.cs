@@ -25,7 +25,7 @@ namespace WopiHost.Core.Results;
 /// empty-lock placeholder (see <see cref="WopiHostOptions.EmptyLockHeaderValue"/>). The value
 /// is resolved from <see cref="HttpContext.RequestServices"/> at execution time so hosts
 /// running under IIS in-process can opt back into the historic single-space workaround without
-/// recompiling. Falls back to <see cref="WopiHeaders.EMPTY_LOCK_VALUE"/> (empty string, spec
+/// recompiling. Falls back to <see cref="WopiHeaders.EmptyLockValue"/> (empty string, spec
 /// compliant) when no service provider is available.
 /// </remarks>
 public sealed class WopiLockMismatchResult(string? existingLock = null, string? reason = null)
@@ -43,11 +43,11 @@ public sealed class WopiLockMismatchResult(string? existingLock = null, string? 
         ArgumentNullException.ThrowIfNull(httpContext);
         var emptyValue = httpContext.RequestServices?
             .GetService<IOptions<WopiHostOptions>>()?.Value.EmptyLockHeaderValue
-            ?? WopiHeaders.EMPTY_LOCK_VALUE;
-        httpContext.Response.Headers[WopiHeaders.LOCK] = existingLock ?? emptyValue;
+            ?? WopiHeaders.EmptyLockValue;
+        httpContext.Response.Headers[WopiHeaders.Lock] = existingLock ?? emptyValue;
         if (!string.IsNullOrEmpty(reason))
         {
-            httpContext.Response.Headers[WopiHeaders.LOCK_FAILURE_REASON] = reason;
+            httpContext.Response.Headers[WopiHeaders.LockFailureReason] = reason;
         }
         httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
         return Task.CompletedTask;

@@ -48,8 +48,8 @@ internal sealed partial class WopiTelemetryEndpointFilter(ILogger<WopiTelemetryE
             ? WopiTelemetry.Tags.ContainerId
             : WopiTelemetry.Tags.FileId;
         var resourceId = NullIfEmpty(httpContext.Request.RouteValues.TryGetValue("id", out var rawId) ? rawId?.ToString() : null);
-        var wopiOverride = NullIfEmpty(httpContext.Request.Headers[WopiHeaders.WOPI_OVERRIDE].ToString());
-        var lockId = NullIfEmpty(httpContext.Request.Headers[WopiHeaders.LOCK].ToString());
+        var wopiOverride = NullIfEmpty(httpContext.Request.Headers[WopiHeaders.WopiOverride].ToString());
+        var lockId = NullIfEmpty(httpContext.Request.Headers[WopiHeaders.Lock].ToString());
         var userId = NullIfEmpty(httpContext.User?.FindFirstValue(ClaimTypes.NameIdentifier));
 
         using var activity = WopiTelemetry.StartActivity(operation, resourceId, resourceTagKey, wopiOverride);

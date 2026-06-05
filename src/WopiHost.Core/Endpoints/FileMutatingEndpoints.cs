@@ -13,7 +13,7 @@ using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
 using WopiHost.Core.Results;
 
-// Shared typed-union for ProcessLock / ProcessLockCore and the LOCK / UNLOCK / REFRESH_LOCK /
+// Shared typed-union for ProcessLock / ProcessLockCore and the Lock / UNLOCK / REFRESH_LOCK /
 // GET_LOCK / UNLOCK_AND_RELOCK sub-helpers. Declared as a file-scoped alias so every call site
 // in the lock dispatch agrees on the same union shape — Results<T...> doesn't widen narrower
 // unions automatically.
@@ -109,7 +109,7 @@ internal static class FileMutatingEndpoints
                 WopiFileOperations.Unlock,
                 WopiFileOperations.RefreshLock,
                 WopiFileOperations.GetLock))
-            .WithSummary("Lock state machine (LOCK / UNLOCK / REFRESH_LOCK / GET_LOCK / UNLOCK_AND_RELOCK).")
+            .WithSummary("Lock state machine (Lock / UNLOCK / REFRESH_LOCK / GET_LOCK / UNLOCK_AND_RELOCK).")
             .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock. " +
                 "Dispatches by X-WOPI-Override inside the handler. Returns 409 with X-WOPI-Lock on every mismatch path.")
             .RequireWopiPermission(WopiResourceType.File, Permission.Update);
@@ -165,7 +165,7 @@ internal static class FileMutatingEndpoints
         await httpContext.CopyToWriteStream(file, cancellationToken).ConfigureAwait(false);
         if (file.Version is not null)
         {
-            httpContext.Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
+            httpContext.Response.Headers[WopiHeaders.ItemVersion] = file.Version;
         }
         await InvokePutFileCallbackAsync(httpContext, extensions, file, editors, cancellationToken).ConfigureAwait(false);
         return TypedResults.Ok();
@@ -206,7 +206,7 @@ internal static class FileMutatingEndpoints
             var sanitised = await TryBuildValidFileNameAsync(req.WritableStorage, requestedFullName, fallbackStem: file.Name, req.CancellationToken).ConfigureAwait(false);
             if (sanitised is null)
             {
-                req.Http.Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
+                req.Http.Response.Headers[WopiHeaders.InvalidFileName] = "Specified name is illegal";
                 return TypedResults.BadRequest();
             }
             requestedFullName = sanitised;
@@ -226,7 +226,7 @@ internal static class FileMutatingEndpoints
         }
         catch (ArgumentException)
         {
-            httpContext.Response.Headers[WopiHeaders.INVALID_FILE_NAME] = "Specified name is illegal";
+            httpContext.Response.Headers[WopiHeaders.InvalidFileName] = "Specified name is illegal";
             return TypedResults.BadRequest();
         }
         catch (FileNotFoundException) { return TypedResults.NotFound(); }
@@ -398,7 +398,7 @@ internal static class FileMutatingEndpoints
         var responseBytes = await req.CobaltProcessor.ProcessCobalt(file, req.Http.User, bytes, req.CancellationToken).ConfigureAwait(false);
         if (!string.IsNullOrEmpty(req.CorrelationId))
         {
-            req.Http.Response.Headers.Append(WopiHeaders.CORRELATION_ID, req.CorrelationId);
+            req.Http.Response.Headers.Append(WopiHeaders.CorrelationId, req.CorrelationId);
             req.Http.Response.Headers.Append("request-id", req.CorrelationId);
         }
         return TypedResults.Bytes(responseBytes, MediaTypeNames.Application.Octet);
@@ -409,7 +409,7 @@ internal static class FileMutatingEndpoints
     {
         var file = await req.Storage.GetWopiFile(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
-        req.Http.Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
+        req.Http.Response.Headers[WopiHeaders.ItemVersion] = file.Version;
         return await ProcessLockCore(req).ConfigureAwait(false);
     }
 
@@ -447,7 +447,7 @@ internal static class FileMutatingEndpoints
         if ((newLockIdentifier is not null && newLockIdentifier.Length > WopiLockInfo.MaxLockIdLength)
             || (oldLockIdentifier is not null && oldLockIdentifier.Length > WopiLockInfo.MaxLockIdLength))
         {
-            httpContext.Response.Headers[WopiHeaders.LOCK_FAILURE_REASON] =
+            httpContext.Response.Headers[WopiHeaders.LockFailureReason] =
                 $"Lock id exceeds maximum length of {WopiLockInfo.MaxLockIdLength} characters";
             return TypedResults.BadRequest();
         }
@@ -459,7 +459,7 @@ internal static class FileMutatingEndpoints
                 or WopiFileOperations.Unlock or WopiFileOperations.RefreshLock
             && string.IsNullOrWhiteSpace(newLockIdentifier))
         {
-            httpContext.Response.Headers[WopiHeaders.LOCK_FAILURE_REASON] = "X-WOPI-Lock header is required";
+            httpContext.Response.Headers[WopiHeaders.LockFailureReason] = "X-WOPI-Lock header is required";
             return TypedResults.BadRequest();
         }
         return null;
@@ -490,7 +490,7 @@ internal static class FileMutatingEndpoints
 
     private static Ok HandleGetLock(HttpContext httpContext, WopiLockInfo? existingLock, IOptions<WopiHostOptions> options)
     {
-        httpContext.Response.Headers[WopiHeaders.LOCK] = existingLock is not null
+        httpContext.Response.Headers[WopiHeaders.Lock] = existingLock is not null
             ? existingLock.LockId
             : options.Value.EmptyLockHeaderValue;
         return TypedResults.Ok();
@@ -594,7 +594,7 @@ internal static class FileMutatingEndpoints
         // Per spec, X-WOPI-FileConversion is presence-only; treat any bound value (including
         // empty string) as "header was present."
         var isConversion = fileConversion is not null
-            || httpContext.Request.Headers.ContainsKey(WopiHeaders.FILE_CONVERSION);
+            || httpContext.Request.Headers.ContainsKey(WopiHeaders.FileConversion);
         await extensions.OnPutRelativeFileAsync(
             new WopiPutRelativeFileContext(httpContext.User, original, newFile, isConversion, declaredSize),
             ct).ConfigureAwait(false);
@@ -634,8 +634,8 @@ internal readonly record struct PutFileRequest(
     IOptions<WopiHostOptions> Options,
     [FromServices] IWopiLockProvider? LockProvider,
     IWopiLockComparer LockComparer,
-    [FromHeader(Name = WopiHeaders.LOCK)] string? RequestLockId,
-    [FromHeader(Name = WopiHeaders.EDITORS)] string? Editors,
+    [FromHeader(Name = WopiHeaders.Lock)] string? RequestLockId,
+    [FromHeader(Name = WopiHeaders.Editors)] string? Editors,
     CancellationToken CancellationToken);
 
 /// <summary>Parameter bundle for <see cref="FileMutatingEndpoints.RenameFile"/>.</summary>
@@ -646,8 +646,8 @@ internal readonly record struct RenameFileRequest(
     [FromServices] IWopiWritableStorageProvider? WritableStorage,
     [FromServices] IWopiLockProvider? LockProvider,
     IWopiLockComparer LockComparer,
-    [FromHeader(Name = WopiHeaders.REQUESTED_NAME)] UtfString RequestedName,
-    [FromHeader(Name = WopiHeaders.LOCK)] string? LockIdentifier,
+    [FromHeader(Name = WopiHeaders.RequestedName)] UtfString RequestedName,
+    [FromHeader(Name = WopiHeaders.Lock)] string? LockIdentifier,
     CancellationToken CancellationToken);
 
 /// <summary>Parameter bundle for <see cref="FileMutatingEndpoints.PutRelativeFile"/>.</summary>
@@ -663,11 +663,11 @@ internal readonly record struct PutRelativeFileRequest(
     IWopiResourceTokenMinter TokenMinter,
     [FromServices] IWopiLockProvider? LockProvider,
     [FromServices] ICobaltProcessor? CobaltProcessor,
-    [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? SuggestedTarget,
-    [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? RelativeTarget,
-    [FromHeader(Name = WopiHeaders.OVERWRITE_RELATIVE_TARGET)] bool? OverwriteRelativeTarget,
-    [FromHeader(Name = WopiHeaders.FILE_CONVERSION)] string? FileConversion,
-    [FromHeader(Name = WopiHeaders.SIZE)] long? DeclaredSize,
+    [FromHeader(Name = WopiHeaders.SuggestedTarget)] UtfString? SuggestedTarget,
+    [FromHeader(Name = WopiHeaders.RelativeTarget)] UtfString? RelativeTarget,
+    [FromHeader(Name = WopiHeaders.OverwriteRelativeTarget)] bool? OverwriteRelativeTarget,
+    [FromHeader(Name = WopiHeaders.FileConversion)] string? FileConversion,
+    [FromHeader(Name = WopiHeaders.Size)] long? DeclaredSize,
     CancellationToken CancellationToken);
 
 /// <summary>Parameter bundle for <see cref="FileMutatingEndpoints.PutUserInfo"/>.</summary>
@@ -694,7 +694,7 @@ internal readonly record struct ProcessCobaltRequest(
     HttpContext Http,
     [FromServices] IWopiWritableStorageProvider? WritableStorage,
     [FromServices] ICobaltProcessor? CobaltProcessor,
-    [FromHeader(Name = WopiHeaders.CORRELATION_ID)] string? CorrelationId,
+    [FromHeader(Name = WopiHeaders.CorrelationId)] string? CorrelationId,
     CancellationToken CancellationToken);
 
 /// <summary>Parameter bundle for <see cref="FileMutatingEndpoints.ProcessLock"/>.</summary>
@@ -705,9 +705,9 @@ internal readonly record struct ProcessLockRequest(
     IOptions<WopiHostOptions> Options,
     [FromServices] IWopiLockProvider? LockProvider,
     IWopiLockComparer LockComparer,
-    [FromHeader(Name = WopiHeaders.WOPI_OVERRIDE)] string? WopiOverrideHeader,
-    [FromHeader(Name = WopiHeaders.OLD_LOCK)] string? OldLockIdentifier,
-    [FromHeader(Name = WopiHeaders.LOCK)] string? NewLockIdentifier,
+    [FromHeader(Name = WopiHeaders.WopiOverride)] string? WopiOverrideHeader,
+    [FromHeader(Name = WopiHeaders.OldLock)] string? OldLockIdentifier,
+    [FromHeader(Name = WopiHeaders.Lock)] string? NewLockIdentifier,
     CancellationToken CancellationToken);
 
 /// <summary>

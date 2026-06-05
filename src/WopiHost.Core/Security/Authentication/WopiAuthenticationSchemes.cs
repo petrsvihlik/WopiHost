@@ -9,7 +9,7 @@ public static class WopiAuthenticationSchemes
     /// Scheme for <c>/wopi/*</c> endpoints — the WOPI client's <c>access_token</c> query parameter.
     /// Backed by <see cref="AccessTokenHandler"/>.
     /// </summary>
-    public const string AccessToken = AccessTokenDefaults.AUTHENTICATION_SCHEME;
+    public const string AccessToken = AccessTokenDefaults.AuthenticationScheme;
 
     /// <summary>
     /// Scheme for the <c>/wopibootstrapper</c> endpoint — OAuth2 Bearer from the host's

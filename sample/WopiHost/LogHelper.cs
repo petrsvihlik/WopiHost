@@ -1,4 +1,4 @@
-﻿using Serilog;
+using Serilog;
 using WopiHost.Core.Infrastructure;
 
 namespace WopiHost;
@@ -20,14 +20,14 @@ public static class LogHelper
 
         var request = httpContext.Request;
 
-        if(request.Headers.TryGetValue(WopiHeaders.CORRELATION_ID, out var correlationId))
+        if(request.Headers.TryGetValue(WopiHeaders.CorrelationId, out var correlationId))
         {
-            diagnosticContext.Set(nameof(WopiHeaders.CORRELATION_ID), correlationId.ToString());
+            diagnosticContext.Set(nameof(WopiHeaders.CorrelationId), correlationId.ToString());
         }
 
-        if (request.Headers.TryGetValue(WopiHeaders.SESSION_ID, out var sessionId))
+        if (request.Headers.TryGetValue(WopiHeaders.SessionId, out var sessionId))
         {
-            diagnosticContext.Set(nameof(WopiHeaders.SESSION_ID), sessionId.ToString());
+            diagnosticContext.Set(nameof(WopiHeaders.SessionId), sessionId.ToString());
         }
     }
 }

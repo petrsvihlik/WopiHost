@@ -24,7 +24,7 @@ public static class HttpRequestExtensions
     public static string GetAccessToken(this HttpRequest request)
     {
         // First try to get from query string
-        if (request.Query.TryGetValue(AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME, out StringValues tokenFromQuery) && 
+        if (request.Query.TryGetValue(AccessTokenDefaults.AccessTokenQueryName, out StringValues tokenFromQuery) && 
             !StringValues.IsNullOrEmpty(tokenFromQuery))
         {
             return tokenFromQuery.ToString();
@@ -32,7 +32,7 @@ public static class HttpRequestExtensions
         
         // Then try to get from form data in POST requests
         if (request.HasFormContentType && 
-            request.Form.TryGetValue(AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME, out StringValues tokenFromForm) && 
+            request.Form.TryGetValue(AccessTokenDefaults.AccessTokenQueryName, out StringValues tokenFromForm) && 
             !StringValues.IsNullOrEmpty(tokenFromForm))
         {
             return tokenFromForm.ToString();

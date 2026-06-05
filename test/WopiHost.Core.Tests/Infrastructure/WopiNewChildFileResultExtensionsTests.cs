@@ -44,10 +44,10 @@ public class WopiNewChildFileResultExtensionsTests
         var actionResult = result.ToErrorResult(_response);
 
         Assert.IsType<Conflict>(actionResult);
-        Assert.True(_response.Headers.ContainsKey(WopiHeaders.VALID_RELATIVE_TARGET));
+        Assert.True(_response.Headers.TryGetValue(WopiHeaders.ValidRelativeTarget, out var target));
         // Header value is UTF-7 encoded per the WOPI spec — the round-trip is asserted in
         // UtfStringTests; this only checks the header was set with non-empty content.
-        Assert.NotEmpty(_response.Headers[WopiHeaders.VALID_RELATIVE_TARGET].ToString());
+        Assert.NotEmpty(target.ToString());
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class WopiNewChildFileResultExtensionsTests
         // WopiLockMismatchResult writes the lock header on ExecuteAsync, so trigger the side
         // effect explicitly before asserting on response headers.
         await lockMismatch.ExecuteAsync(_response.HttpContext);
-        Assert.Equal("active-lock-id", _response.Headers[WopiHeaders.LOCK].ToString());
+        Assert.Equal("active-lock-id", _response.Headers[WopiHeaders.Lock].ToString());
     }
 
     [Fact]

@@ -35,7 +35,7 @@ public class AccessTokenHandlerTests
         {
             ctx.Request.Query = new QueryCollection(new Dictionary<string, StringValues>
             {
-                { AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME, token }
+                { AccessTokenDefaults.AccessTokenQueryName, token }
             });
         }
         return ctx;
@@ -116,7 +116,7 @@ public class AccessTokenHandlerTests
         var result = await _handler.AuthenticateAsync();
 
         Assert.True(result.Succeeded);
-        var saved = result.Properties?.GetTokenValue(AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME);
+        var saved = result.Properties?.GetTokenValue(AccessTokenDefaults.AccessTokenQueryName);
         Assert.Equal(token, saved);
     }
 
@@ -142,7 +142,7 @@ public class AccessTokenHandlerTests
         var result = await handler.AuthenticateAsync();
 
         Assert.True(result.Succeeded);
-        var saved = result.Properties?.GetTokenValue(AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME);
+        var saved = result.Properties?.GetTokenValue(AccessTokenDefaults.AccessTokenQueryName);
         Assert.Null(saved);
     }
 

@@ -96,7 +96,7 @@ internal readonly record struct EnumerateFolderChildrenRequest(
     HttpContext Http,
     IWopiStorageProvider Storage,
     IWopiResourceTokenMinter TokenMinter,
-    [FromHeader(Name = WopiHeaders.FILE_EXTENSION_FILTER_LIST)] string? FileExtensionFilterList,
+    [FromHeader(Name = WopiHeaders.FileExtensionFilterList)] string? FileExtensionFilterList,
     CancellationToken CancellationToken);
 
 /// <summary>

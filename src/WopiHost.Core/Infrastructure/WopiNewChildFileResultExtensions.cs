@@ -31,11 +31,11 @@ internal static class WopiNewChildFileResultExtensions
                 // a sanitised name. Only emit when the negotiator has computed a suggestion.
                 if (result.ValidRelativeTargetSuggestion is not null)
                 {
-                    response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(result.ValidRelativeTargetSuggestion).ToString(true);
+                    response.Headers[WopiHeaders.ValidRelativeTarget] = UtfString.FromDecoded(result.ValidRelativeTargetSuggestion).ToString(true);
                 }
                 return TypedResults.BadRequest();
             case WopiNewChildFileOutcome.Conflict:
-                response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(result.ValidRelativeTargetSuggestion!).ToString(true);
+                response.Headers[WopiHeaders.ValidRelativeTarget] = UtfString.FromDecoded(result.ValidRelativeTargetSuggestion!).ToString(true);
                 return TypedResults.Conflict();
             case WopiNewChildFileOutcome.Locked:
                 return new WopiLockMismatchResult(result.ExistingLockId!, reason: "File already exists and is currently locked");

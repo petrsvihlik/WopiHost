@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Serilog;
 using Serilog.Events;
 using WopiHost.Abstractions;
@@ -129,7 +129,7 @@ public partial class Program
             app.UseSerilogRequestLogging(options =>
             {
                 options.EnrichDiagnosticContext = LogHelper.EnrichWithWopiDiagnostics;
-                options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} with [WOPI CorrelationID: {" + nameof(WopiHeaders.CORRELATION_ID) + "}, WOPI SessionID: {" + nameof(WopiHeaders.SESSION_ID) + "}] responded {StatusCode} in {Elapsed:0.0000} ms";
+                options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} with [WOPI CorrelationID: {" + nameof(WopiHeaders.CorrelationId) + "}, WOPI SessionID: {" + nameof(WopiHeaders.SessionId) + "}] responded {StatusCode} in {Elapsed:0.0000} ms";
             });
 
             app.UseAuthentication();
