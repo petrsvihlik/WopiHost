@@ -36,12 +36,9 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: |
-            Review this pull request against the conventions in CLAUDE.md. Report only
-            clear, high-signal findings: real correctness bugs, WOPI spec violations,
-            security issues, concurrency/TOCTOU hazards, leaky abstractions, and
-            net-negative changes. Skip style nits and speculative refactors — a finding
-            ships only if a maintainer would be unambiguously better off applying it. If
-            the change looks good, say so in one line. Post issues as inline comments on
-            the relevant lines plus a brief summary.
-          claude_args: "--max-turns 25"
+          # The code-review plugin owns the structured review + posting (buffered inline
+          # comments + summary) and reads CLAUDE.md for repo conventions. A freeform prompt
+          # was tried first and posted nothing ("No buffered inline comments").
+          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
+          plugins: 'code-review@claude-code-plugins'
+          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
