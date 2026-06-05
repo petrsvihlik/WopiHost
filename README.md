@@ -23,7 +23,7 @@ A modular **WOPI host** implementation for .NET that lets you plug your own data
 | [WopiHost.AzureStorageProvider](src/WopiHost.AzureStorageProvider/README.md) | Storage backed by Azure Blob Storage | [![NuGet](https://img.shields.io/nuget/v/WopiHost.AzureStorageProvider.svg)](https://www.nuget.org/packages/WopiHost.AzureStorageProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.AzureStorageProvider.svg)](https://www.nuget.org/packages/WopiHost.AzureStorageProvider) |
 | [WopiHost.AzureLockProvider](src/WopiHost.AzureLockProvider/README.md) | Distributed lock store backed by Azure Blob leases (strongest cross-instance exclusion) | [![NuGet](https://img.shields.io/nuget/v/WopiHost.AzureLockProvider.svg)](https://www.nuget.org/packages/WopiHost.AzureLockProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.AzureLockProvider.svg)](https://www.nuget.org/packages/WopiHost.AzureLockProvider) |
 | [WopiHost.RedisLockProvider](src/WopiHost.RedisLockProvider/README.md) | Best-effort distributed lock store backed by Redis (Lua-scripted compare-and-swap) | [![NuGet](https://img.shields.io/nuget/v/WopiHost.RedisLockProvider.svg)](https://www.nuget.org/packages/WopiHost.RedisLockProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.RedisLockProvider.svg)](https://www.nuget.org/packages/WopiHost.RedisLockProvider) |
-| [WopiHost.Cobalt](src/WopiHost.Cobalt/README.md) | Optional MS-FSSHTTP support (requires `Microsoft.CobaltCore`, see [below](#cobalt-build-note)) | _not published_ | — |
+| [WopiHost.Cobalt](src/WopiHost.Cobalt/README.md) | Optional MS-FSSHTTP support (off by default; needs the private `Microsoft.CobaltCore` feed — see [Cobalt](https://github.com/petrsvihlik/WopiHost/wiki/Cobalt)) | _not published_ | — |
 
 ## Why use it?
 
@@ -77,17 +77,8 @@ Everything beyond the basics lives in the **[wiki](https://github.com/petrsvihli
 | [Extending WopiHost](https://github.com/petrsvihlik/WopiHost/wiki/Extending-WopiHost) | Custom storage and lock providers, permissions, the minimal-host snippet. |
 | [CheckFileInfo customization](https://github.com/petrsvihlik/WopiHost/wiki/CheckFileInfo-Customization) | Overriding the response payload via `IWopiHostExtensions` hooks. |
 | [Bootstrap endpoint](https://github.com/petrsvihlik/WopiHost/wiki/Bootstrap-Endpoint) | Wiring `/wopibootstrapper` for Office mobile. |
-| [Cobalt](https://github.com/petrsvihlik/WopiHost/wiki/Cobalt) | What MS-FSSHTTP buys you and why the build complains. |
+| [Cobalt](https://github.com/petrsvihlik/WopiHost/wiki/Cobalt) | What MS-FSSHTTP buys you, and how to enable the optional Cobalt build. |
 | [Useful resources](https://github.com/petrsvihlik/WopiHost/wiki/Useful-Resources) · [Interesting WOPI projects](https://github.com/petrsvihlik/WopiHost/wiki/Interesting-WOPI-projects) | Specs, external write-ups, other implementations worth a look. |
-
-## Cobalt build note
-
-If your first build fails with `Microsoft.CobaltCore.*.nupkg` not found, that is expected. Cobalt support depends on `Microsoft.CobaltCore.dll`, which ships with Office Online Server / OWA / SharePoint and **cannot be redistributed**. You have two options:
-
-- **Build the package yourself** from a SharePoint / OOS / OWA installation you are licensed for — see [Craft your own Microsoft.CobaltCore NuGet package](https://github.com/petrsvihlik/WopiHost/wiki/Craft-your-own-Microsoft.CobaltCore-NuGet-package).
-- **Skip Cobalt** — unload `WopiHost.Cobalt` (and its tests) from the solution. Office Online Server 2016+ does not require Cobalt; the protocol still works, just less efficiently for co-authoring on legacy clients.
-
-See the [Cobalt wiki page](https://github.com/petrsvihlik/WopiHost/wiki/Cobalt) for context on what Cobalt buys you and when to bother.
 
 ## Compatible WOPI clients
 

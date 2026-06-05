@@ -110,7 +110,7 @@ public class HttpDiscoveryFileProviderTests
     public async Task GetDiscoveryXmlAsync_OnMalformedXml_ThrowsDiscoveryException()
     {
         // A WOPI client that returns 200 with a non-XML body (HTML error pages, JSON, raw text)
-        // used to leak System.Xml.XmlException all the way out. The provider now wraps that into
+        // would otherwise leak System.Xml.XmlException. The provider wraps it into
         // DiscoveryException so callers see a single failure type for "discovery didn't work."
         const string nonXmlBody = "<html><body>This is not the discovery XML you're looking for.</body><unclosed>";
         var handler = new FakeHttpMessageHandler(_ =>

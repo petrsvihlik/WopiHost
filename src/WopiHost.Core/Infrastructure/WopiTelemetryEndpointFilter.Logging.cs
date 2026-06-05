@@ -5,14 +5,12 @@ namespace WopiHost.Core.Infrastructure;
 /// <summary>
 /// Source-generated <see cref="LoggerMessageAttribute"/> declarations for
 /// <see cref="WopiTelemetryEndpointFilter"/>. Lives in a partial so the source generator
-/// can emit the strongly-typed delegate without us paying the per-call allocation of
+/// can emit the strongly-typed delegate without the per-call allocation of
 /// <c>logger.LogX(string, params object?[])</c>.
 /// </summary>
 /// <remarks>
 /// <c>userId</c> intentionally stays out of the message template — the telemetry filter
-/// already pushes it into the log scope under <see cref="WopiTelemetry.Tags.UserId"/>, and
-/// keeping it out of the positional parameter list pins the param count under qlty's
-/// function-parameters threshold without further structural gymnastics.
+/// already pushes it into the log scope under <see cref="WopiTelemetry.Tags.UserId"/>.
 /// </remarks>
 internal sealed partial class WopiTelemetryEndpointFilter
 {

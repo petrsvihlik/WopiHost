@@ -14,7 +14,7 @@ namespace WopiHost.Web.Services;
 /// </summary>
 /// <remarks>
 /// The token format is a contract with the WopiHost server's <c>JwtAccessTokenService</c>: same
-/// HMAC key, same claim layout. We sign the JWT inline here rather than depending on the
+/// HMAC key, same claim layout. The JWT is signed inline here rather than depending on the
 /// server's Core library so this sample stays a thin frontend (no controllers/auth pipeline).
 /// </remarks>
 public sealed class WopiAccessTokenMinter

@@ -24,8 +24,7 @@ public enum WopiResourceType
 /// <remarks>
 /// The per-request resource id is <em>not</em> part of this requirement. It belongs to the
 /// authorization handler, which derives it from <c>HttpContext.Request.RouteValues["id"]</c>
-/// when needed. Mixing per-request state into the (shared) requirement was the cause of the
-/// race fixed alongside this contract — see #380 items 2.5 and 5.3.
+/// when needed. Mixing per-request state into the (shared) requirement races across requests.
 /// </remarks>
 public interface IWopiAuthorizationRequirement
 {

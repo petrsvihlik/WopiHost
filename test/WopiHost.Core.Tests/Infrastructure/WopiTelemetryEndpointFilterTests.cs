@@ -204,9 +204,9 @@ public class WopiTelemetryEndpointFilterTests
 
         // Override / lock id flow into the activity tags via StartActivity.
         Assert.Equal("LOCK", captured.Activity?.GetTagItem(WopiTelemetry.Tags.Override));
-        // Lock id and user id only land on the log scope, not the activity tag. The fact that the
-        // call returned successfully without throwing (e.g., a null-reference reading the claim)
-        // is the assertion we care about — exercises the `lockId/userId is not null` branches.
+        // Lock id and user id only land on the log scope, not the activity tag. The call
+        // returning successfully without throwing (e.g., a null-reference reading the claim)
+        // is the assertion — exercises the `lockId/userId is not null` branches.
         Assert.Equal("abc", captured.Activity?.GetTagItem(WopiTelemetry.Tags.FileId));
     }
 

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Moq;
 using WopiHost.Abstractions;
 using Xunit;
 
@@ -66,8 +67,7 @@ public class ServiceCollectionExtensionsTests
     public void AddAzureStorageProvider_WithServiceUriAndNoCredential_FallsBackToDefaultCredential()
     {
         // No TokenCredential registered → ServiceCollectionExtensions must build a DefaultAzureCredential.
-        // We can't easily assert "is DefaultAzureCredential" since it's encapsulated in the BlobServiceClient,
-        // but resolution must not throw.
+        // It's encapsulated in the BlobServiceClient and not directly assertable, but resolution must not throw.
         var services = new ServiceCollection();
         AddNullLogging(services);
         var config = BuildConfig(new()
@@ -116,6 +116,45 @@ public class ServiceCollectionExtensionsTests
         var ex = Assert.Throws<OptionsValidationException>(
             () => sp.GetRequiredService<IOptions<WopiAzureStorageProviderOptions>>().Value);
         Assert.Contains("ConnectionString", ex.Message);
+    }
+
+    [Fact]
+    public void AddAzureStorageProvider_DoesNotOverrideExistingRegistration()
+    {
+        // A host that registers its own provider first must win (TryAdd semantics).
+        var services = new ServiceCollection();
+        AddNullLogging(services);
+        var existing = Mock.Of<IWopiStorageProvider>();
+        services.AddSingleton(existing);
+        var config = BuildConfig(new()
+        {
+            ["Wopi:StorageProvider:ConnectionString"] = "UseDevelopmentStorage=true",
+            ["Wopi:StorageProvider:ContainerName"] = "wopi-files",
+        });
+
+        services.AddAzureStorageProvider(config);
+
+        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IWopiStorageProvider));
+        Assert.Same(existing, descriptor.ImplementationInstance);
+    }
+
+    [Fact]
+    public void AddAzureStorageProvider_CalledTwice_RegistersProviderOnce()
+    {
+        var services = new ServiceCollection();
+        AddNullLogging(services);
+        var config = BuildConfig(new()
+        {
+            ["Wopi:StorageProvider:ConnectionString"] = "UseDevelopmentStorage=true",
+            ["Wopi:StorageProvider:ContainerName"] = "wopi-files",
+        });
+
+        services.AddAzureStorageProvider(config);
+        services.AddAzureStorageProvider(config);
+
+        Assert.Single(services, d => d.ServiceType == typeof(WopiAzureStorageProvider));
+        Assert.Single(services, d => d.ServiceType == typeof(IWopiStorageProvider));
+        Assert.Single(services, d => d.ServiceType == typeof(IWopiWritableStorageProvider));
     }
 
     [Fact]

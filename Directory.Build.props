@@ -4,6 +4,7 @@
 		<EnableNETAnalyzers>true</EnableNETAnalyzers>
 		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
@@ -22,6 +23,31 @@
 		     The runsettings currently carries a TestCaseFilter that excludes the E2E suite
 		     from default runs; see .runsettings and test/WopiHost.E2ETests.Collabora/README.md. -->
 		<RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
+	</PropertyGroup>
+
+	<!-- WopiHost.Cobalt depends on the proprietary Microsoft.CobaltCore package, restored from a
+	     private GitHub Packages feed. Gate the whole Cobalt surface on whether that feed is
+	     reachable so a fork / external clone with no access still builds the rest of the solution.
+	     Reachable when the token is set (COBALT_PACKAGES_TOKEN, e.g. on CI) OR a user-level
+	     NuGet.Config declares the private feed (a maintainer who ran `dotnet nuget add source`).
+	     The user-config path differs per OS, so probe every known location. Force either way with
+	     -p:IncludeCobalt=true|false. nuget.config maps the cobalt feed to Microsoft.CobaltCore only,
+	     so when it's absent restore never touches the feed and Cobalt + its tests compile as no-ops. -->
+	<PropertyGroup>
+		<_CobaltFeedMarker>nuget.pkg.github.com/petrsvihlik</_CobaltFeedMarker>
+		<_NuGetUserConfigWin Condition="'$(APPDATA)' != ''">$(APPDATA)\NuGet\NuGet.Config</_NuGetUserConfigWin>
+		<_NuGetUserConfigNix Condition="'$(HOME)' != ''">$(HOME)/.nuget/NuGet/NuGet.Config</_NuGetUserConfigNix>
+		<_NuGetUserConfigXdg Condition="'$(XDG_CONFIG_HOME)' != ''">$(XDG_CONFIG_HOME)/NuGet/NuGet.Config</_NuGetUserConfigXdg>
+		<_NuGetUserConfigXdg Condition="'$(_NuGetUserConfigXdg)' == '' and '$(HOME)' != ''">$(HOME)/.config/NuGet/NuGet.Config</_NuGetUserConfigXdg>
+		<!-- Read each existing candidate once; the Exists() guard short-circuits so a missing file is never read. -->
+		<_NuGetUserConfigTextWin Condition="'$(_NuGetUserConfigWin)' != '' and Exists('$(_NuGetUserConfigWin)')">$([System.IO.File]::ReadAllText('$(_NuGetUserConfigWin)'))</_NuGetUserConfigTextWin>
+		<_NuGetUserConfigTextNix Condition="'$(_NuGetUserConfigNix)' != '' and Exists('$(_NuGetUserConfigNix)')">$([System.IO.File]::ReadAllText('$(_NuGetUserConfigNix)'))</_NuGetUserConfigTextNix>
+		<_NuGetUserConfigTextXdg Condition="'$(_NuGetUserConfigXdg)' != '' and Exists('$(_NuGetUserConfigXdg)')">$([System.IO.File]::ReadAllText('$(_NuGetUserConfigXdg)'))</_NuGetUserConfigTextXdg>
+		<IncludeCobalt Condition="'$(IncludeCobalt)' == '' and '$(COBALT_PACKAGES_TOKEN)' != ''">true</IncludeCobalt>
+		<IncludeCobalt Condition="'$(IncludeCobalt)' == '' and $(_NuGetUserConfigTextWin.Contains('$(_CobaltFeedMarker)'))">true</IncludeCobalt>
+		<IncludeCobalt Condition="'$(IncludeCobalt)' == '' and $(_NuGetUserConfigTextNix.Contains('$(_CobaltFeedMarker)'))">true</IncludeCobalt>
+		<IncludeCobalt Condition="'$(IncludeCobalt)' == '' and $(_NuGetUserConfigTextXdg.Contains('$(_CobaltFeedMarker)'))">true</IncludeCobalt>
+		<IncludeCobalt Condition="'$(IncludeCobalt)' == ''">false</IncludeCobalt>
 	</PropertyGroup>
 
 	<!-- Non-packable projects (samples, infra, tests): silence CS1591 since they don't

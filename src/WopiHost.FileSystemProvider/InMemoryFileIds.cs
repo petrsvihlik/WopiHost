@@ -14,8 +14,8 @@ namespace WopiHost.FileSystemProvider;
 /// </para>
 /// <para>
 /// Backed by two <see cref="ConcurrentDictionary{TKey, TValue}"/> instances — the primary
-/// id→path map plus a path→id reverse-lookup map — so <see cref="TryGetFileId"/> is O(1) instead
-/// of the O(n) <c>FirstOrDefault</c> scan of the pre-#409-item-2.2 implementation. Reads
+/// id→path map plus a path→id reverse-lookup map — so <see cref="TryGetFileId"/> is O(1) rather
+/// than an O(n) scan. Reads
 /// (<see cref="TryGetFileId"/> / <see cref="TryGetPath"/> / <see cref="GetPath"/> /
 /// <see cref="WasScanned"/>) are lock-free. Mutations (<see cref="AddFile"/> /
 /// <see cref="UpdateFile"/> / <see cref="RemoveId"/> / <see cref="ScanAll"/>) serialize on a
@@ -77,7 +77,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
         {
             if (_idToPath.TryRemove(fileId, out var path))
             {
-                // Drop the reverse entry only if it still points at this id — otherwise we'd
+                // Drop the reverse entry only if it still points at this id — otherwise this would
                 // clobber a newer binding that re-attached the same path to a different id.
                 ((ICollection<KeyValuePair<string, string>>)_pathToId)
                     .Remove(new KeyValuePair<string, string>(path, fileId));

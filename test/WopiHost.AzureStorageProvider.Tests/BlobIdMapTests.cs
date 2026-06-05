@@ -28,9 +28,9 @@ public class BlobIdMapTests
     [Fact]
     public void ScanAll_BlobsDifferingOnlyByCase_RegistersBoth()
     {
-        // Regression test: previously BlobIdMap case-folded the path before hashing, which
-        // collapsed Foo/file.txt and foo/file.txt onto the same id and silently dropped one
-        // from the map. Azure stores them as distinct blobs — the provider must too.
+        // BlobIdMap must not case-fold the path before hashing: that would collapse Foo/file.txt
+        // and foo/file.txt onto the same id and silently drop one. Azure stores them as distinct
+        // blobs — the provider must too.
         var map = NewMap();
         map.ScanAll(["Foo/file.txt", "foo/file.txt"]);
 
@@ -86,7 +86,7 @@ public class BlobIdMapTests
 
         Assert.True(map.Remove(id));
         Assert.False(map.TryGetPath(id, out _));
-        Assert.False(map.Remove(id)); // second call returns false
+        Assert.False(map.Remove(id));
     }
 
     [Fact]
@@ -99,6 +99,22 @@ public class BlobIdMapTests
 
         Assert.True(map.TryGetPath(id, out var path));
         Assert.Equal("after.txt", path);
+    }
+
+    [Fact]
+    public void Update_UnknownId_RegistersFreshMapping()
+    {
+        // Update on an id the map hasn't seen has no stale reverse entry to drop, so it just
+        // installs the forward + reverse mapping fresh (rather than throwing).
+        var map = NewMap();
+        var id = BlobIdMap.IdFromPath("never-added.txt");
+
+        map.Update(id, "now-here.txt");
+
+        Assert.True(map.TryGetPath(id, out var path));
+        Assert.Equal("now-here.txt", path);
+        Assert.True(map.TryGetFileId("now-here.txt", out var roundTrip));
+        Assert.Equal(id, roundTrip);
     }
 
     [Fact]
@@ -130,9 +146,8 @@ public class BlobIdMapTests
         var map = NewMap();
         map.ScanAll(["a/b/c/leaf.txt"]);
 
-        // Leaf
         Assert.True(map.TryGetFileId("a/b/c/leaf.txt", out _));
-        // Each intermediate folder is registered
+        // Each intermediate folder is registered, not just the leaf.
         Assert.True(map.TryGetFileId("a/b/c", out _));
         Assert.True(map.TryGetFileId("a/b", out _));
         Assert.True(map.TryGetFileId("a", out _));
@@ -182,5 +197,37 @@ public class BlobIdMapTests
 
         Assert.False(map.TryGetFileId("orphan.txt", out _));
         Assert.True(map.TryGetFileId("fresh.txt", out _));
+    }
+
+    [Fact]
+    public async Task Concurrent_AddAndRemove_LeavesMapsConsistent()
+    {
+        // BlobIdMap is a shared singleton hit by concurrent request paths. Stress the compound
+        // rebinds: one worker keeps adding a path, another keeps removing it. Whatever the
+        // interleaving, the forward and reverse maps must stay consistent (no dangling reverse
+        // entry, no torn-state exception). Pre-fix (plain Dictionary, no lock) this corrupts.
+        var map = NewMap();
+        const int rounds = 500;
+        const string path = "folder/shared.docx";
+
+        var add = Task.Run(() =>
+        {
+            for (var i = 0; i < rounds; i++) map.Add(path);
+        });
+        var remove = Task.Run(() =>
+        {
+            for (var i = 0; i < rounds; i++)
+            {
+                if (map.TryGetFileId(path, out var id)) map.Remove(id);
+            }
+        });
+        await Task.WhenAll(add, remove);
+
+        // Every id still present must round-trip through the reverse map and back.
+        if (map.TryGetFileId(path, out var finalId))
+        {
+            Assert.True(map.TryGetPath(finalId, out var roundTrip));
+            Assert.Equal(path, roundTrip);
+        }
     }
 }

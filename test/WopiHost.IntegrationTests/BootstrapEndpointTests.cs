@@ -20,8 +20,8 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
     private const string SharedSigningSecret = "bootstrap-tests-shared-key-32bytes!";
     // The proof-validation filter that's attached to every WOPI endpoint (including bootstrap)
     // rejects requests without an access_token in query string — production hosts would either
-    // disable proof validation or have a custom proof validator that exempts bootstrap. For
-    // these tests we pass any value and let AlwaysValidProofValidator accept it.
+    // disable proof validation or have a custom proof validator that exempts bootstrap. These
+    // tests pass any value and let AlwaysValidProofValidator accept it.
     private const string BootstrapDummyToken = "dummy-token-for-proof-filter";
     private readonly Fixture _fixture = fixture;
 

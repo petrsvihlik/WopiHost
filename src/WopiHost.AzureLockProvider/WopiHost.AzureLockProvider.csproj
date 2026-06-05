@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Nullable>enable</Nullable>
 		<Description>WopiHost.AzureLockProvider Class Library — distributed lock provider backed by Azure Blob leases.</Description>
 		<Authors>Petr Svihlik</Authors>
 		<TargetFramework>net10.0</TargetFramework>

@@ -6,7 +6,7 @@ namespace WopiHost.Core.Infrastructure;
 /// Cross-platform forbidden-character sanitisation shared by the file-name + container-name
 /// negotiation paths. WOPI's spec is silent on which characters are forbidden — the upstream
 /// provider's <see cref="IWopiWritableStorageProvider.CheckValidFileName"/> is the source of
-/// truth — but every concrete provider we ship rejects the same Windows-portable set, so a
+/// truth — but every concrete provider in this repo rejects the same Windows-portable set, so a
 /// central best-effort scrub lets the spec's "host should try to generate a different name based
 /// on the requested name" branch land at a candidate that's almost always acceptable to the
 /// provider on the second swing.

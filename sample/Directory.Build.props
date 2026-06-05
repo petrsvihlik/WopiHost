@@ -1,0 +1,14 @@
+<Project>
+	<!-- Chain to the repo-root Directory.Build.props so samples inherit shared settings
+	     (UseArtifactsOutput, TreatWarningsAsErrors, analyzers, etc.). MSBuild otherwise stops
+	     at the first Directory.Build.props it finds walking up. -->
+	<Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..'))" />
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<PreserveCompilationContext>true</PreserveCompilationContext>
+		<PublishReadyToRun>true</PublishReadyToRun>
+		<!-- Samples are runnable examples, never shipped to NuGet. -->
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+</Project>

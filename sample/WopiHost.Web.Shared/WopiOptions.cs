@@ -33,6 +33,4 @@ public class WopiOptions : IDiscoveryOptions
     /// on WOPI URLs. Leave unset to fall back to <see cref="System.Globalization.CultureInfo.CurrentUICulture"/>.
     /// </summary>
     public string? UiCulture { get; set; }
-
-    //TODO: create configuration sections related to host and client and group the related settings (e.g. discovery stuff and WopiUrlSettings should be together with the client)
 }

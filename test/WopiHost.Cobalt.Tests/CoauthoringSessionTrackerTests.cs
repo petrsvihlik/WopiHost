@@ -48,8 +48,8 @@ public class CoauthoringSessionTrackerTests
     [Fact]
     public void AddOrRefreshSession_SameUserTwice_DeduplicatesByUserId()
     {
-        // Multiple browser tabs from the same user must collapse into a single editor —
-        // the bug #139 was reporting duplicate user names in OOS.
+        // Multiple browser tabs from the same user must collapse into a single editor,
+        // otherwise OOS shows duplicate user names.
         var fileId = NewFileId();
         _tracker.AddOrRefreshSession(fileId, "user-1", "Alice");
         _tracker.AddOrRefreshSession(fileId, "user-1", "Alice");
@@ -154,8 +154,7 @@ public class CoauthoringSessionTrackerTests
     public void GetEditorsTable_UsesStableClientIdPerUser()
     {
         // Same user across two refreshes (same fileId) must hash to the same ArrayGuid
-        // so the editors-table key collapses — this is what enforces the dedup-by-user
-        // behavior that the older string-keyed table provided.
+        // so the editors-table key collapses — this is what enforces dedup-by-user.
         var fileId = NewFileId();
         _tracker.AddOrRefreshSession(fileId, "user-1", "Alice");
         var firstKey = _tracker.GetEditorsTable(fileId).Keys.Single();

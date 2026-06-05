@@ -41,14 +41,18 @@ public interface IWopiFile : IWopiResource
     string Owner { get; }
     bool Exists { get; }
     long Length { get; }
-    long Size { get; }
     DateTime LastWriteTimeUtc { get; }
-    string Extension { get; }            // without leading dot
+    string Extension { get; }                   // without leading dot
     string? Version { get; }
-    byte[]? Checksum { get; }            // SHA-256
+    ReadOnlyMemory<byte>? Checksum { get; }     // SHA-256
 
-    Task<Stream> GetReadStream(CancellationToken cancellationToken = default);
-    Task<Stream> GetWriteStream(CancellationToken cancellationToken = default);
+    Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default);
+}
+
+// The write seam lives on the writable sub-interface, returned only from the writable provider.
+public interface IWopiWritableFile : IWopiFile
+{
+    Task<Stream> OpenWriteAsync(CancellationToken cancellationToken = default);
 }
 
 public interface IWopiContainer : IWopiResource { }
@@ -91,7 +95,7 @@ For the full token pipeline (claim layout, key rotation, the bootstrapper authen
 
 ## Lock comparison
 
-Every controller-level lock check and both providers' atomic compare-and-swap go through `IWopiLockComparer`. The default — `OrdinalWopiLockComparer` (byte-exact ordinal equality) — is the safe choice and matches the spec's implicit contract.
+Every endpoint-level lock check and both providers' atomic compare-and-swap go through `IWopiLockComparer`. The default — `OrdinalWopiLockComparer` (byte-exact ordinal equality) — is the safe choice and matches the spec's implicit contract.
 
 `JsonShapedWopiLockComparer` ships as an opt-in fallback for hosts that observe Office Online Server / Microsoft 365-for-the-Web round-tripping JSON-format lock ids with extra properties added (the same quirk that drives `cs3org/wopiserver`'s `wopilockstrictcheck=False` mode). It treats two JSON locks as equivalent when their `S` (sequence) field matches and falls back to ordinal for non-JSON inputs. Tolerance has its own correctness cost — distinct locks that share an `S` field are treated as equal, masking lost updates — so don't relax the strict default speculatively.
 
@@ -113,7 +117,7 @@ public class MyLockComparer : IWopiLockComparer
 
 ## Lock model & limits
 
-`WopiLockInfo` carries `LockId`, `FileId`, `DateCreated`, and a computed `Expired` flag. Two spec-mandated constants live alongside it:
+`WopiLockInfo` carries `LockId`, `FileId`, `DateCreated`, and a computed `IsExpiredAt(DateTimeOffset now)` method. Two spec-mandated constants live alongside it:
 
 - `WopiLockInfo.ExpirationMinutes = 30` — the WOPI spec requires locks auto-expire after 30 minutes if not refreshed.
 - `WopiLockInfo.MaxLockIdLength = 1024` — WopiHost advertises `SupportsExtendedLockLength` in `CheckFileInfo`, so this is the contract limit; `ProcessLock` rejects oversize lock ids with 400.
@@ -148,7 +152,7 @@ public class AzureBlobStorageProvider(BlobContainerClient container)
     // IWopiWritableStorageProvider — same pattern: file and container methods split apart so
     // implementations don't need to runtime-switch on a type parameter.
     public int FileNameMaxLength => 250;
-    public Task<IWopiFile?>   CreateWopiChildFile     (string containerId, string name, CancellationToken ct = default) => /* ... */;
+    public Task<IWopiWritableFile?> CreateWopiChildFile  (string containerId, string name, CancellationToken ct = default) => /* ... */;
     public Task<IWopiContainer?> CreateWopiChildContainer(string containerId, string name, CancellationToken ct = default) => /* ... */;
     public Task<bool> DeleteWopiFile     (string identifier, CancellationToken ct = default) => /* ... */;
     public Task<bool> DeleteWopiContainer(string identifier, CancellationToken ct = default) => /* ... */;

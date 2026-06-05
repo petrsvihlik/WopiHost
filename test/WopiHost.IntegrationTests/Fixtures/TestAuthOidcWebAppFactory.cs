@@ -30,7 +30,7 @@ public sealed class TestAuthOidcWebAppFactory(string wopiSigningSecret, string w
 
         builder.ConfigureServices(services =>
         {
-            // Replace the default cookie scheme with our test handler so [Authorize] passes when
+            // Replace the default cookie scheme with the test handler so [Authorize] passes when
             // a request includes the test-user headers (see TestAuthClientExtensions.AsUser).
             var defaultScheme = TestAuthHandler.SchemeName;
             services.AddAuthentication(options =>

@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.Versioning;
 using System.Security.Principal;
 using WopiHost.Abstractions;
 
@@ -55,28 +54,41 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiWritableFil
         return Task.FromResult<Stream>(_fileInfo.Open(FileMode.Truncate));
     }
 
-    /// <summary>
-    /// A string that uniquely identifies the owner of the file.
-    /// Supported only on Windows and Linux. Throws
-    /// <see cref="PlatformNotSupportedException"/> on other platforms.
-    /// https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416
-    /// </summary>
-    [SupportedOSPlatform("linux")]
-    [SupportedOSPlatform("windows")]
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Resolves the OS-level owning user on Windows (ACL owner as an <see cref="NTAccount"/>),
+    /// Linux (file UID → name via <see cref="LinuxFileOwner"/>) and macOS (file UID → name via
+    /// <see cref="MacFileOwner"/>). Any other platform has no ownership lookup wired up and returns
+    /// <see cref="string.Empty"/>. Per the <see cref="IWopiFile.Owner"/> contract this getter is
+    /// best-effort and never throws: a failed or unsupported lookup degrades to empty rather than
+    /// faulting <c>CheckFileInfo</c>.
+    /// </remarks>
     public string Owner
     {
         get
         {
-            if (OperatingSystem.IsWindows())
+            try
             {
-                return _fileInfo.GetAccessControl().GetOwner(typeof(NTAccount))?.ToString() ?? string.Empty;
+                if (OperatingSystem.IsWindows())
+                {
+                    return _fileInfo.GetAccessControl().GetOwner(typeof(NTAccount))?.ToString() ?? string.Empty;
+                }
+                if (OperatingSystem.IsLinux())
+                {
+                    return LinuxFileOwner.GetOwnerName(_fileInfo.FullName);
+                }
+                if (OperatingSystem.IsMacOS())
+                {
+                    return MacFileOwner.GetOwnerName(_fileInfo.FullName);
+                }
+                return string.Empty;
             }
-            if (OperatingSystem.IsLinux())
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                return LinuxFileOwner.GetOwnerName(_fileInfo.FullName);
+                // The file vanished, access was denied, or the native lookup failed. Ownership is
+                // non-essential metadata, so the contract degrades to empty rather than throwing.
+                return string.Empty;
             }
-            throw new PlatformNotSupportedException(
-                "WopiFile.Owner is only supported on Windows and Linux.");
         }
     }
 }

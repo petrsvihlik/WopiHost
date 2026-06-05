@@ -14,11 +14,11 @@ namespace WopiHost.IntegrationTests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <strong>Why this exists.</strong> The PR #479 migration moved <c>AccountController</c> to a
-/// minimal-API <c>AccountEndpoints</c> (<c>Results.Challenge</c> / <c>Results.SignOut</c>).
+/// <strong>Why this exists.</strong> Sign-in/out is served by minimal-API
+/// <c>AccountEndpoints</c> (<c>Results.Challenge</c> / <c>Results.SignOut</c>).
 /// <see cref="WopiTokenRoundTripTests"/> only exercises <c>[Authorize]</c> enforcement via
-/// <c>TestAuthHandler</c>, which short-circuits the real OIDC handshake. Issue #480 closed the
-/// coverage gap by driving the actual sign-in/out endpoints.
+/// <c>TestAuthHandler</c>, which short-circuits the real OIDC handshake. This suite drives the
+/// actual sign-in/out endpoints to close that coverage gap.
 /// </para>
 /// <para>
 /// <strong>Why two HttpClients.</strong> The TestServer in-memory handler routes every request
@@ -81,8 +81,8 @@ public partial class OidcSignInTests : IClassFixture<OidcSignInTests.AppFactory>
         //      is enough, since the form action is the same URL.
         //  (b) The OIDC handler requested response_mode=form_post, so the mock IdP answers
         //      with 200 + HTML containing an auto-submitting <form action="/signin-oidc"
-        //      method="post"> carrying hidden inputs `code` and `state`. We scrape those and
-        //      replay them as a POST to the callback in Phase 3.
+        //      method="post"> carrying hidden inputs `code` and `state`. The test scrapes those
+        //      and replays them as a POST to the callback in Phase 3.
         using var idpClient = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
         using var loginForm = new FormUrlEncodedContent(new Dictionary<string, string>
         {
@@ -105,7 +105,7 @@ public partial class OidcSignInTests : IClassFixture<OidcSignInTests.AppFactory>
         Assert.Equal(HttpStatusCode.Redirect, callbackResp.StatusCode);
         Assert.Equal("/", callbackResp.Headers.Location?.OriginalString);
 
-        // Phase 4 — The auth cookie now resolves [Authorize] and we get the Browse page.
+        // Phase 4 — The auth cookie now resolves [Authorize] and returns the Browse page.
         var homeResp = await testClient.GetAsync("/");
         Assert.Equal(HttpStatusCode.OK, homeResp.StatusCode);
     }

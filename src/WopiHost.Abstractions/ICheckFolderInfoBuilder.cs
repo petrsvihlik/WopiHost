@@ -8,11 +8,10 @@ namespace WopiHost.Abstractions;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Synchronous on purpose — see #363. The host-customization hook
+/// Synchronous on purpose. The host-customization hook
 /// <see cref="IWopiHostExtensions.OnCheckFolderInfoAsync"/> is fired by the controller after
 /// the builder returns, so the controller's only <c>await</c> on this path is the direct hook
-/// invocation. An async builder would re-introduce the Infer# null-deref FP that the issue
-/// tracks. Replacements should preserve the sync shape.
+/// invocation. Replacements should preserve the sync shape.
 /// </para>
 /// <para>
 /// Unlike the file and container builders, this contract does <em>not</em> invoke the

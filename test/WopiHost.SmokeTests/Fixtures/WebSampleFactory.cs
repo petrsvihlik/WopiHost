@@ -1,7 +1,6 @@
 using System.Net;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
-using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.Web.Components;
@@ -15,10 +14,10 @@ namespace WopiHost.SmokeTests.Fixtures;
 /// Playwright (which drives a browser) can reach it.
 /// </summary>
 /// <remarks>
-/// We don't use <c>WebApplicationFactory&lt;T&gt;</c> here because its <c>StartServer</c>
-/// hard-casts <c>IServer</c> to <c>TestServer</c>, which crashes the moment we swap in Kestrel.
-/// Instead we replicate the relevant pieces of <c>sample/WopiHost.Web/Program.cs</c>
-/// (Razor Components, discovery, storage provider) and bind Kestrel ourselves. The DI wiring is
+/// <c>WebApplicationFactory&lt;T&gt;</c> is avoided here because its <c>StartServer</c>
+/// hard-casts <c>IServer</c> to <c>TestServer</c>, which crashes once Kestrel is swapped in.
+/// Instead this replicates the relevant pieces of <c>sample/WopiHost.Web/Program.cs</c>
+/// (Razor Components, discovery, storage provider) and binds Kestrel directly. The DI wiring is
 /// intentionally minimal — just enough to make the Browse page render — and the
 /// <see cref="IDiscoverer"/> registration is replaced with a <see cref="FakeDiscoverer"/> so
 /// the page doesn't try to fetch discovery XML from an unreachable test hostname.
@@ -57,8 +56,7 @@ public sealed class WebSampleFactory : IDisposable, IAsyncDisposable
         // Faked discoverer instead of AddWopiDiscovery — avoids HTTP fetch from ClientUrl.
         builder.Services.AddSingleton<IDiscoverer, FakeDiscoverer>();
 
-        builder.Services.AddSingleton<InMemoryFileIds>();
-        builder.Services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
+        builder.Services.AddFileSystemStorageProvider(builder.Configuration);
 
         var app = builder.Build();
         app.UseDeveloperExceptionPage();

@@ -78,7 +78,7 @@ public sealed partial class WopiTokenRoundTripTests(WopiTokenRoundTripTests.Fixt
         hostpage.EnsureSuccessStatusCode();
         var token = ExtractAccessToken(await hostpage.Content.ReadAsStringAsync());
 
-        // 2. Backend validates the token and answers CheckFileInfo with our user identity.
+        // 2. Backend validates the token and answers CheckFileInfo with the user identity.
         using var backend = _fixture.WopiBackend.CreateClient();
         var checkInfoResponse = await backend.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
 

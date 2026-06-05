@@ -66,8 +66,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     [Fact]
     public async Task GetWopiResourceByName_UnknownContainer_ReturnsNull()
     {
-        // #380 item 4.2 — missing parent returns null, consistent with WopiFileSystemProvider.
-        // Was previously the only impl that returned null here; this pins the contract for both.
+        // Missing parent returns null, consistent with WopiFileSystemProvider — pins the contract for both.
         var (provider, _) = await CreateProviderAsync();
         var result = await provider.GetWopiFileByName("does-not-exist", "anything.txt");
 
@@ -167,9 +166,8 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         // WOPI spec forbids wildcards in the filter list. The provider treats any glob-looking
         // character as a literal — passing "*.docx" matches only a file named literally "*.docx"
-        // (which Azure won't let us upload anyway), so the result is empty. This pin guards
-        // against anyone reintroducing a regex/glob translator on the assumption that the old
-        // semantic is still in effect.
+        // (which Azure won't accept as a blob name anyway), so the result is empty. Guards
+        // against reintroducing a regex/glob translator.
         var (provider, container) = await CreateProviderAsync();
         await UploadAsync(container, "doc.docx");
 

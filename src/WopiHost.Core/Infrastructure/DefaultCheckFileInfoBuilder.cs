@@ -29,7 +29,7 @@ public class DefaultCheckFileInfoBuilder(
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(request);
 
-        // #181 make sure the BaseFileName always has an extension
+        // Make sure the BaseFileName always has an extension.
         var baseFileName = file.Name.EndsWith(file.Extension, StringComparison.OrdinalIgnoreCase)
             ? file.Name
             : file.Name + "." + file.Extension.TrimStart('.');
@@ -107,7 +107,7 @@ public class DefaultCheckFileInfoBuilder(
         // contract documents RequestUrl as nullable specifically for this case.
         if (linkGenerator is not null && request.RequestUrl is not null)
         {
-            // The Uri the adapter handed us already incorporates the proxy-aware scheme + host
+            // The Uri the adapter produced already incorporates the proxy-aware scheme + host
             // (X-Forwarded-Proto / X-Forwarded-Host honoured), so LinkGenerator receives the
             // upstream-facing values rather than the post-proxy hostname.
             var scheme = request.RequestUrl.Scheme;

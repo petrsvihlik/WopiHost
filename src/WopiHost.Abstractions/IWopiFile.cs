@@ -5,7 +5,7 @@ namespace WopiHost.Abstractions;
 /// when the caller only needs to enumerate metadata or stream content out.
 /// </summary>
 /// <remarks>
-/// Per #420 item 1.2, the write seam is split off into <see cref="IWopiWritableFile"/> so a
+/// The write seam is split off into <see cref="IWopiWritableFile"/> so a
 /// read-only flow can't accidentally call <c>OpenWriteAsync</c> on a file it fetched read-only.
 /// Callers that need to mutate file content fetch via
 /// <see cref="IWopiWritableStorageProvider.GetWritableFile"/> or take the writable file directly
@@ -14,8 +14,18 @@ namespace WopiHost.Abstractions;
 public interface IWopiFile : IWopiResource
 {
     /// <summary>
-    /// A string that uniquely identifies the owner of the file.
+    /// A non-null string that uniquely identifies the owner of the file (for example, a user id,
+    /// principal name, or login name — the meaning is provider-defined). Surfaces on the wire as
+    /// <c>CheckFileInfo.OwnerId</c>.
     /// </summary>
+    /// <remarks>
+    /// This is best-effort metadata: implementations return <see cref="string.Empty"/> when the
+    /// owner can't be determined — the provider doesn't track ownership, the underlying store
+    /// doesn't expose it, the host platform doesn't support the lookup, or reading it failed.
+    /// Implementations MUST NOT return <see langword="null"/> and MUST NOT throw; ownership is
+    /// non-essential to a <c>CheckFileInfo</c> response, so a failed lookup degrades to empty rather
+    /// than failing the request.
+    /// </remarks>
     string Owner { get; }
 
     /// <summary>

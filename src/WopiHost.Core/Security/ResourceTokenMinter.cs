@@ -64,8 +64,8 @@ public sealed partial class ResourceTokenMinter(
     }
 
     /// <summary>
-    /// Synchronous request-shape builder. No async state machine on this path means Infer# stays
-    /// clean even when the await above it is on a same-class method (see #471 history).
+    /// Synchronous request-shape builder. No async state machine on this path means static
+    /// analysis stays clean even when the await above it is on a same-class method.
     /// <see cref="WopiAccessTokenRequest"/> exposes both <see cref="WopiAccessTokenRequest.FilePermissions"/>
     /// and <see cref="WopiAccessTokenRequest.ContainerPermissions"/>; the token-issuing path
     /// consults the set whose <see cref="WopiAccessTokenRequest.ResourceType"/> matches and

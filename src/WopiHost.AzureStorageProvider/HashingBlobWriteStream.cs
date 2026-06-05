@@ -5,7 +5,7 @@ namespace WopiHost.AzureStorageProvider;
 
 /// <summary>
 /// Wraps the blob upload stream returned by <see cref="BlobClient.OpenWriteAsync(bool, Azure.Storage.Blobs.Models.BlobOpenWriteOptions, System.Threading.CancellationToken)"/>
-/// so callers can stream large content while we incrementally compute SHA-256 of the new payload.
+/// so callers can stream large content while SHA-256 of the new payload is computed incrementally.
 /// On dispose, the hash is finalized and written back as the <see cref="WopiBlobFile.Sha256MetadataKey"/>
 /// metadata key, preserving the metadata that existed before the write.
 /// </summary>
@@ -71,16 +71,15 @@ internal sealed class HashingBlobWriteStream(Stream inner, BlobClient blobClient
         await blobClient.SetMetadataAsync(_metadataToWrite).ConfigureAwait(false);
 
         // Stream has a finalizer; skip it now that DisposeAsync has done the work. The sync
-        // Stream.Dispose() base already calls SuppressFinalize, but the async path is on us.
+        // Stream.Dispose() base already calls SuppressFinalize, but the async path must do so here.
         GC.SuppressFinalize(this);
     }
 
     protected override void Dispose(bool disposing)
     {
-        // Synchronous dispose is unavoidable for callers that don't await DisposeAsync; do the
-        // expensive bits inline. Intentionally no GetAwaiter().GetResult() on user-facing async
-        // calls here — we already removed sync-over-async from the lock provider; this stream is the
-        // last necessary sync-over-async boundary because Stream.Dispose can't be async.
+        // Synchronous dispose is unavoidable for callers that don't await DisposeAsync; the
+        // expensive bits run inline. No GetAwaiter().GetResult() on user-facing async calls here —
+        // this stream is a necessary sync-over-async boundary because Stream.Dispose can't be async.
         if (_disposed || !disposing)
         {
             return;
@@ -95,7 +94,7 @@ internal sealed class HashingBlobWriteStream(Stream inner, BlobClient blobClient
     /// <summary>
     /// Finalizes the SHA-256 hasher and stores the lowercase-hex digest under the blob metadata
     /// key. Shared between <see cref="Dispose(bool)"/> and <see cref="DisposeAsync"/> so the
-    /// two paths can never drift on the hex/casing/metadata-key contract (#409 item 2.12).
+    /// two paths can never drift on the hex/casing/metadata-key contract.
     /// </summary>
     private void FinalizeMetadataPayload()
     {

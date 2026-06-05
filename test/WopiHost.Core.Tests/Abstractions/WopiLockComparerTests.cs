@@ -47,7 +47,7 @@ public class WopiLockComparerTests
         [Fact]
         public void SameSField_DifferentExtraProperties_AreEqual()
         {
-            // The OOS quirk we're absorbing: stored lock has the original payload, the client
+            // The OOS quirk being absorbed: stored lock has the original payload, the client
             // sends back the same logical lock with an extra property added.
             var stored = """{"S":"abc-123","F":4}""";
             var fromClient = """{"S":"abc-123","F":4,"V":1}""";

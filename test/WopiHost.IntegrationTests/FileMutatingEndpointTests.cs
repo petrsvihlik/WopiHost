@@ -59,8 +59,8 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
     public async Task PutFile_OnLockedFile_MissingLockHeader_NonEmpty_Returns_409_WithCurrentLock()
     {
         // Spec: file is locked + X-WOPI-Lock missing → lock mismatch → 409 with the CURRENT
-        // lock id in X-WOPI-Lock. Previous impl returned 409 with an EMPTY X-WOPI-Lock because
-        // it branched on the request header's absence, not the file's lock state.
+        // lock id in X-WOPI-Lock. The mismatch is driven by the file's lock state, not the
+        // request header's absence.
         var fileId = await _fixture.CreateTempFileAsync("locked-non-empty"u8.ToArray());
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
@@ -86,9 +86,9 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
     public async Task PutFile_OnLockedFile_MissingLockHeader_ZeroByte_Returns_409_WithCurrentLock()
     {
         // Spec: file is locked → ANY PutFile without a matching X-WOPI-Lock is a mismatch,
-        // INCLUDING the 0-byte create-new fast path. The previous impl skipped the lock-state
-        // check on the no-header path and silently overwrote locked 0-byte files — a real
-        // security smell against malicious / buggy clients.
+        // INCLUDING the 0-byte create-new fast path. Skipping the lock-state check on the
+        // no-header path would silently overwrite locked 0-byte files — a security smell
+        // against malicious / buggy clients.
         var fileId = await _fixture.CreateTempFileAsync([]);  // 0-byte file
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
@@ -114,9 +114,8 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
     public async Task PutFile_OnUnlockedFile_WithLockHeader_NonEmpty_Returns_409_WithEmptyLock()
     {
         // Spec: file is unlocked → size decides; non-zero → 409 with the empty-lock placeholder
-        // in X-WOPI-Lock. The previous impl, when X-WOPI-Lock was sent against an unlocked file,
-        // would invoke ProcessLockCore → AddLockAsync and ACQUIRE the lock as a side effect,
-        // then write. PutFile is supposed to validate against an existing lock, not establish one.
+        // in X-WOPI-Lock. PutFile must validate against an existing lock, not establish one — an
+        // X-WOPI-Lock sent against an unlocked file must NOT acquire the lock as a side effect.
         var fileId = await _fixture.CreateTempFileAsync("existing-content"u8.ToArray());
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
@@ -209,8 +208,8 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
     {
         // Spec: "If the host can't rename the file because the name requested is invalid or
         // conflicts with an existing file, the host should try to generate a different name
-        // based on the requested name that meets the file name requirements." Previously we
-        // returned 400 immediately on invalid name. Now we sanitise '/' → '_' and proceed.
+        // based on the requested name that meets the file name requirements." An invalid name
+        // is sanitised ('/' → '_') and the rename proceeds rather than 400ing immediately.
         var fileId = await _fixture.CreateTempFileAsync("rename-me"u8.ToArray(), extension: ".txt");
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
@@ -291,7 +290,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
     {
         // Spec: suggested-mode MUST NOT return 400 — the host modifies the name to be valid.
         // "bad/name.txt" contains a forbidden '/' char; the negotiator sanitises it to a valid
-        // candidate, the file gets created, and we get 200.
+        // candidate, the file gets created, and the response is 200.
         var parentFileId = await _fixture.CreateTempFileAsync("anchor"u8.ToArray(), extension: ".txt");
         var token = await _fixture.MintFileTokenAsync(parentFileId, WopiFilePermissions.UserCanWrite);
         using var client = _fixture.WopiBackend.CreateClient();
@@ -522,8 +521,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
     [Fact]
     public async Task ProcessCobalt_OnMissingFile_Returns_404()
     {
-        // ProcessCobalt previously threw InvalidOperationException when the file was missing,
-        // surfacing as 500. Now returns 404 — matches the rest of the surface.
+        // ProcessCobalt returns 404 when the file is missing — matches the rest of the surface.
         var missing = new string('1', 64);
         var token = await _fixture.MintFileTokenAsync(missing);
         using var client = _fixture.WopiBackend.CreateClient();
@@ -557,8 +555,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
     [Fact]
     public async Task ProcessLock_OnMissingFile_Returns_404()
     {
-        // Spec: Lock/Unlock/RefreshLock all list 404 for "Resource not found". Previous impl
-        // threw InvalidOperationException → surfaced as 500.
+        // Spec: Lock/Unlock/RefreshLock all list 404 for "Resource not found".
         var missing = new string('0', 64);
         var token = await _fixture.MintFileTokenAsync(missing);
         using var client = _fixture.WopiBackend.CreateClient();
@@ -601,7 +598,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
     public async Task Lock_MissingNewLockIdentifier_Returns_400()
     {
         // Spec: Lock lists 400 Bad Request — "X-WOPI-Lock was not provided or was empty" — as
-        // a distinct status from 409 (lock mismatch). Previous impl returned 409.
+        // a distinct status from 409 (lock mismatch).
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();

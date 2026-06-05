@@ -12,8 +12,8 @@ namespace WopiHost.IntegrationTests;
 
 /// <summary>
 /// End-to-end coverage of <c>WopiProofValidator</c> against the production filter pipeline.
-/// Every other integration test class swaps the validator for <see cref="AlwaysValidProofValidator"/>;
-/// pre-#456 that meant the proof-validation surface had no integration coverage at all. This
+/// Every other integration test class swaps the validator for <see cref="AlwaysValidProofValidator"/>,
+/// leaving the proof-validation surface without integration coverage. This
 /// suite wires the real validator (via <see cref="WopiBackendFactory"/>'s
 /// <c>useRealProofValidator</c> flag) and a discoverer that publishes a known RSA key pair
 /// (<see cref="FakeDiscovererWithProofKeys"/>), so each test exercises the same code path
@@ -133,8 +133,8 @@ public sealed class ProofValidationIntegrationTests : IAsyncLifetime, IDisposabl
     public async Task ProofValidator_Rejects_RequestMissingProofHeader()
     {
         // No X-WOPI-Proof / X-WOPI-TimeStamp headers — the validator's first guard fails and the
-        // request 500s. Pre-#456 this path was untested at the integration level; the unit test
-        // covered ValidateProofAsync directly but never asserted the filter wired it correctly.
+        // request 500s. The unit tests cover ValidateProofAsync directly; this asserts the
+        // filter wires it correctly at the integration level.
         using var client = CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, BuildRequestUrl());
 

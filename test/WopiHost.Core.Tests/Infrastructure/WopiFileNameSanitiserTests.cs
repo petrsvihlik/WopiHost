@@ -45,10 +45,9 @@ public class WopiFileNameSanitiserTests
     public void ScrubOrNull_AllSpaces_ReturnsUnderscores_NotNull(string input)
     {
         // Pins the subtle ordering: Replace(' ', '_') runs before Trim(), so an all-spaces input
-        // becomes a non-empty run of underscores rather than null. If we wanted "all spaces → null"
-        // we'd need to either drop ' ' from ForbiddenChars and rely on Trim, or check empty BEFORE
-        // the Replace. The current behaviour is intentional — a stem of underscores is a usable
-        // (if ugly) filename; the caller's fallback path handles it via CheckValidFileName.
+        // becomes a non-empty run of underscores rather than null. The behaviour is intentional
+        // — a stem of underscores is a usable (if ugly) filename; the caller's fallback path
+        // handles it via CheckValidFileName.
         Assert.Equal(new string('_', input.Length), WopiFileNameSanitiser.ScrubOrNull(input));
     }
 
@@ -92,10 +91,9 @@ public class WopiFileNameSanitiserTests
     [Fact]
     public async Task TryBuildValidCandidateAsync_EmptyOrPathNavStem_SubstitutesFallback()
     {
-        // Input ".docx" → ExtractExtension yields ".docx" (no, wait — leading-dot-only means
-        // ext = "" by the helper contract). So stem = ".docx", scrubbed = ".docx" (no forbidden
-        // chars), not in {".", ".."} → returns ".docx" as candidate. To actually exercise the
-        // fallback substitution we need a stem that scrubs to null. Use ".." which IS path-nav.
+        // Exercising the fallback substitution requires a stem that scrubs to null. ".." is
+        // path-nav and scrubs to null, whereas a leading-dot-only input like ".docx" yields
+        // ext = "" by the helper contract and would survive as its own candidate.
         var writable = new Mock<IWopiWritableStorageProvider>();
         writable.Setup(w => w.CheckValidFileName("fallback.docx", It.IsAny<CancellationToken>())).ReturnsAsync(true);
 

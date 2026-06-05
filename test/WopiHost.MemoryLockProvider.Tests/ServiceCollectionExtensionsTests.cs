@@ -10,7 +10,7 @@ namespace WopiHost.MemoryLockProvider.Tests;
 /// Unit tests for <see cref="ServiceCollectionExtensions.AddMemoryLockProvider"/>. The
 /// conformance suite bypasses DI (it constructs the provider directly), so the registration
 /// extension's behaviour — null-arg guards, lifetime, and the duplicate-registration check
-/// added in #456 — needs its own coverage.
+/// — needs its own coverage.
 /// </summary>
 public class ServiceCollectionExtensionsTests
 {
@@ -37,7 +37,7 @@ public class ServiceCollectionExtensionsTests
     public void AddMemoryLockProvider_WhenLockProviderAlreadyRegistered_Throws()
     {
         // A host that wires two IWopiLockProviders would have the second registration silently
-        // win the resolve — pre-#456 there was no guard, post-#456 we fail fast at composition.
+        // win the resolve — the guard fails fast at composition instead.
         var services = NewServicesWithLogging();
         services.AddSingleton<IWopiLockProvider>(new FakeLockProvider());
 
