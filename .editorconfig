@@ -7,10 +7,11 @@
 dotnet_diagnostic.CA2007.severity = none
 
 # CA1707: Identifiers should not contain underscores
-# Test methods follow xunit's `Method_Scenario_Expectation` convention. Because xunit's
-# discovery scope spans src/ and test/ and the analyzer can't condition on test-class
-# membership, the disable is broader than ideal — production code is held to the convention
-# by review.
+# Off globally, for two reasons: (1) test methods follow xunit's `Method_Scenario_Expectation`
+# convention; (2) WopiHost.Core exposes public header constants in SCREAMING_SNAKE_CASE
+# (WopiHeaders.ITEM_VERSION, FILE_CONVERSION, …) whose rename is a breaking change to the packaged
+# API. Production naming is otherwise held by review — promoting this to src/ requires renaming
+# those constants first (a major-bump change).
 dotnet_diagnostic.CA1707.severity = none
 
 # CA1822: Mark members as static
@@ -21,9 +22,15 @@ dotnet_diagnostic.CA1822.severity = silent
 
 
 # CA1056: Uri properties should not be strings
+# WOPI surfaces many URLs as plain strings (WopiSrc, host/client URLs, action URLs) because they
+# flow to and from JSON payloads, headers, and config as strings; wrapping each in System.Uri adds
+# conversions with no safety win. Kept as a hint rather than enforced.
 dotnet_diagnostic.CA1056.severity = suggestion
 
 # CA1819: Properties should not return arrays
+# The byte[] signing-key options legitimately expose arrays — they're bound from a base64 string by
+# IConfiguration's BinaryConverter, which only targets byte[] — and carry an explicit
+# [SuppressMessage]. Downgraded to a hint so the analyzer still surfaces other cases.
 dotnet_diagnostic.CA1819.severity = suggestion
 
 # IDE0005: Remove unnecessary using directives

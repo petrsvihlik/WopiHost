@@ -19,6 +19,8 @@
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
     <IsPackable>false</IsPackable>
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <!-- NU1701: the upstream Microsoft.Office.WopiValidator package targets an older framework, so
+         this never-shipped tool stays on net8.0 to consume it. -->
     <NoWarn>$(NoWarn);NU1701</NoWarn>
   </PropertyGroup>
 
