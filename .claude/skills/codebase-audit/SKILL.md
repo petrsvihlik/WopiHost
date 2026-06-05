@@ -28,10 +28,12 @@ false-positives or intentional design. Every run MUST load it and suppress anyth
 
 1. Read `references/do-not-refile.md` — the verified-intentional ledger. Treat each entry as
    out-of-bounds unless the surrounding code has materially changed.
-2. Read the root `CLAUDE.md` — the repo's own conventions (comment style, provider model, DI
+2. Read `references/playbook.md` — accumulated techniques that find real bugs here, the noisy lead
+   categories to interpret-not-auto-file, and dead-ends. This is the skill's how-to-look memory.
+3. Read the root `CLAUDE.md` — the repo's own conventions (comment style, provider model, DI
    rules, nullable/warnings-as-errors, net10 targeting, centralized packages). Findings are
    measured against these, and several "smells" are actually documented conventions.
-3. Check currently-open issues/PRs (`gh issue list`, `gh pr list`) so you cross-reference existing
+4. Check currently-open issues/PRs (`gh issue list`, `gh pr list`) so you cross-reference existing
    trackers rather than re-filing them.
 
 Then run the scan, verify, and report.
@@ -93,8 +95,14 @@ the whole codebase in one pass.
 2. **Parallel area scans.** Fan out one reviewer per area; each covers *all* dimensions for its
    slice. Areas: `src/WopiHost.Core` + `src/WopiHost.Abstractions`; the storage/lock providers
    (`*Provider`); `src/WopiHost.Discovery` + `Url` + `Cobalt`; `sample/` frontends; `infra/`;
-   `test/`. Give each reviewer `references/dimensions.md` (the per-dimension checklist) and the
-   do-not-re-file ledger, and have it return candidate findings with `file:line` anchors.
+   `test/`; and **docs** (the wiki + every README). Give each reviewer `references/dimensions.md`
+   (the per-dimension checklist) and the do-not-re-file ledger, and have it return candidate findings
+   with `file:line` anchors.
+   - The **docs reviewer** first runs `scripts/fetch-wiki.sh` to clone the wiki (a separate repo),
+     then verifies the wiki + READMEs against the current API per dimension 11 — every type/member/
+     config-key a doc names must resolve in source. This is the load-bearing guard for "superbly
+     accurate docs"; post-migration staleness (controllers, old stream-method names, old id scheme)
+     is the usual culprit.
    - If subagents/Workflow are available, this is a natural fan-out (the past audits used "four
      parallel scans"). If not, walk the areas sequentially.
 
@@ -170,9 +178,26 @@ Rules for the report:
 - Cross-reference existing issues/PRs by number when a finding is already tracked, instead of
   duplicating it.
 
-## Closing the loop (so the ledger compounds)
+## Self-improvement (do this at the end of every run)
 
-After the user triages the report, append any newly-confirmed-intentional items to
-`references/do-not-refile.md`. That file is the institutional memory; keeping it current is what
-makes the next run faster and quieter. If you fix findings in the same session, note the resolving
-PR next to the item (the past trackers used `→ #PR`).
+This skill is meant to get sharper each time it runs. Whenever a run teaches you something that
+would make the *next* run faster, sharper, or quieter, write it back into the skill's own files —
+then commit it. The goal is compounding: a year from now the skill should embody everything every
+past run learned about auditing this repo. Capture, specifically:
+
+- **A candidate that turned out intentional / a false positive** → add it to
+  `references/do-not-refile.md` with the reason, so it isn't re-investigated.
+- **A technique that found (or would have found) a real bug** → add it to `references/playbook.md`
+  under "Techniques that pay off." (E.g. the sibling-implementation-drift diff that surfaced the
+  `BlobIdMap` race — generalize the move, don't just record the instance.)
+- **A lead category that wasted time** (the mechanical scan or a reviewer kept chasing a pattern
+  that's a false positive here) → add it to the playbook's "Noisy leads" so future runs interpret it
+  instead of filing it. If it's a *stable, mechanical* pattern, also refine
+  `scripts/mechanical-scan.sh`.
+- **A genuinely new class of high-value smell** not yet in the checklist → add it to
+  `references/dimensions.md`.
+- **A finding you fixed this session** → note the resolving PR next to the item (`→ #PR`).
+
+Keep these files lean and true: only record things that will pay off, and prune entries that stop
+being accurate. A bloated ledger is as useless as an empty one. When you commit skill updates,
+say what the run taught — that's the audit trail of the skill improving itself.
