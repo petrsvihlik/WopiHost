@@ -293,6 +293,12 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(containerId);
+        // Reject names that aren't a single path segment (separators, '.', '..') before combining —
+        // the name is client-controlled (relative/suggested target), so this is the path-traversal guard.
+        if (!await CheckValidFileName(name, cancellationToken).ConfigureAwait(false))
+        {
+            throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(name));
+        }
         var fullPath = ResolveContainerPath(containerId);
         var newPath = Path.Combine(fullPath, name);
         if (File.Exists(newPath))
@@ -316,6 +322,12 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(containerId);
+        // Reject names that aren't a single path segment (separators, '.', '..') before combining —
+        // the name is client-controlled, so this is the path-traversal guard.
+        if (!await CheckValidContainerName(name, cancellationToken).ConfigureAwait(false))
+        {
+            throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(name));
+        }
         var fullPath = ResolveContainerPath(containerId);
         var newPath = Path.Combine(fullPath, name);
         var dirInfo = new DirectoryInfo(newPath);

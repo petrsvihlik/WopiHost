@@ -546,6 +546,18 @@ public class WopiFileSystemProviderTests : IDisposable
             _sut.CreateWopiChildFile("missing", "x.txt"));
     }
 
+    [Theory]
+    [InlineData("../escape.txt")]
+    [InlineData("sub/escape.txt")]
+    [InlineData("..")]
+    public async Task CreateWopiChildResource_FileWithTraversalName_Throws(string name)
+    {
+        // The name is client-controlled (relative/suggested target); a name that isn't a single
+        // path segment must be rejected before Path.Combine so it can't escape the root.
+        var rootId = _sut.RootContainer.Identifier;
+        await Assert.ThrowsAsync<ArgumentException>(() => _sut.CreateWopiChildFile(rootId, name));
+    }
+
     [Fact]
     public async Task CreateWopiChildResource_Folder_CreatesAndReturnsFolder()
     {
@@ -570,6 +582,16 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
             _sut.CreateWopiChildContainer("missing", "x"));
+    }
+
+    [Theory]
+    [InlineData("../escape")]
+    [InlineData("sub/escape")]
+    [InlineData("..")]
+    public async Task CreateWopiChildResource_FolderWithTraversalName_Throws(string name)
+    {
+        var rootId = _sut.RootContainer.Identifier;
+        await Assert.ThrowsAsync<ArgumentException>(() => _sut.CreateWopiChildContainer(rootId, name));
     }
 
     // ---------- DeleteWopiFile / DeleteWopiContainer ----------
