@@ -102,7 +102,7 @@ Conventions a new provider follows (keeps the set from drifting):
 
 ### Infrastructure (infra/)
 
-- **WopiHost.AppHost** — .NET Aspire orchestrator for local development. The backend is pinned at `:5000` (the WOPI host URL is referenced by Collabora's `host.docker.internal:5000`); the frontend and validator use `WithHttpsEndpoint()` so Aspire allocates their ports from the OS's free pool — the dashboard shows whatever was bound.
+- **WopiHost.AppHost** — .NET Aspire orchestrator for local development. The backend is pinned at `:5050` (the WOPI host URL is referenced by Collabora's `host.docker.internal:5050`; the AppHost pins 5050 rather than 5000 because on Windows port 5000 sits in the kernel-excluded range); the frontend and validator use `WithHttpsEndpoint()` so Aspire allocates their ports from the OS's free pool — the dashboard shows whatever was bound.
 - **WopiHost.ServiceDefaults** — Shared service configuration: OpenTelemetry, health checks, HTTP resilience, service discovery.
 
 ### Sample Apps (sample/)
@@ -120,7 +120,7 @@ The Aspire AppHost reads a few `AppHost:*` flags from configuration so the defau
 |---|---|
 | `AppHost:UseAzureStorage` | Azurite emulator + `BlobStorage` connection string forwarded to the WOPI host. |
 | `AppHost:UseRedisLocks` | **Default: `true` when launched via the AppHost.** Adds a Redis container; the WOPI host swaps `Sample:LockProvider` to `Redis` (so `AddSampleLockProvider` dispatches to `AddRedisLockProvider`) and receives the Aspire-allocated connection string via `Wopi:LockProvider:ConnectionString`. Set to `false` to fall back to `Memory` (single-process) — useful on contributor machines without Docker. Aspire already manages Docker resources, so the realistic distributed-lock backend is the right default for the orchestrated dev loop. |
-| `AppHost:UseCollabora` | `collabora/code` container as a real WOPI client for end-to-end editing. Auto-overrides `Wopi:ClientUrl`, `Wopi:HostUrl`, `Wopi:Discovery:NetZone`, and `Wopi:Security:DisableProofValidation` on the affected projects. See the **End-to-end editing with Collabora Online** section in the root README for the full wiring (`host.docker.internal:5000`, NetZone gotcha, proof-key gotcha). |
+| `AppHost:UseCollabora` | `collabora/code` container as a real WOPI client for end-to-end editing. Auto-overrides `Wopi:ClientUrl`, `Wopi:HostUrl`, `Wopi:Discovery:NetZone`, and `Wopi:Security:DisableProofValidation` on the affected projects. See the **End-to-end editing with Collabora Online** section in the root README for the full wiring (`host.docker.internal:5050`, NetZone gotcha, proof-key gotcha). |
 | `AppHost:IncludeOidcSample` | `WopiHost.Web.Oidc` frontend (requires IdP setup — see its README). |
 
 Never commit `appsettings.Development.json` with these flags enabled — they impose external dependencies on every contributor.
