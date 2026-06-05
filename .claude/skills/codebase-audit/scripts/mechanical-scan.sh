@@ -58,4 +58,26 @@ scan -t cs '^namespace [A-Za-z0-9_.]+$' src sample infra test 2>/dev/null || sca
 section "Header constants with a trailing space before the closing quote (wire-format bug)"
 scan -t cs '"[A-Za-z-]+ "' src 2>/dev/null || scan '"[A-Za-z-]+ "' src
 
+section "Culture-sensitive ToUpper()/ToLower() (protocol strings want *Invariant / Ordinal)"
+scan -t cs '\.To(Upper|Lower)\(\)' src 2>/dev/null || scan '\.To(Upper|Lower)\(\)' src
+
+section "async void (valid only on event handlers; elsewhere it swallows exceptions)"
+scan -t cs 'async void ' src sample infra 2>/dev/null || scan 'async void ' src sample infra
+
+section "Non-specific throw (prefer ArgumentException/InvalidOperationException over Exception)"
+scan -t cs 'throw new (Exception|ApplicationException|SystemException)\(' src sample 2>/dev/null || scan 'throw new (Exception|ApplicationException|SystemException)\(' src sample
+
+section "Rethrow that may lose the stack trace ('throw ex;' — use bare 'throw;')"
+scan -t cs 'throw [a-z][A-Za-z0-9_]*;' src sample 2>/dev/null || scan 'throw [a-z][A-Za-z0-9_]*;' src sample
+
+section "Weak RNG for security values (new Random — use RandomNumberGenerator for tokens/nonces)"
+scan -t cs 'new Random\(' src 2>/dev/null || scan 'new Random\(' src
+
+section "Suppressed analyzer rules (NoWarn / editorconfig severity=none — verify each is justified; leads for dim 13)"
+if command -v rg >/dev/null 2>&1; then
+  rg -n --no-heading -g '!**/artifacts/**' -g '!**/bin/**' -g '!**/obj/**' '<NoWarn>|severity[[:space:]]*=[[:space:]]*(none|silent)' src sample infra test Directory.Build.props Directory.Packages.props .editorconfig 2>/dev/null
+else
+  grep -rnE --exclude-dir={artifacts,bin,obj} '<NoWarn>|severity[[:space:]]*=[[:space:]]*(none|silent)' src sample infra test Directory.Build.props Directory.Packages.props .editorconfig 2>/dev/null
+fi
+
 printf '\n--- end of mechanical scan. These are LEADS; verify each in source. ---\n'
