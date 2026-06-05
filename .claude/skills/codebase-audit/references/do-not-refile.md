@@ -33,6 +33,11 @@ add it here with the reason. This ledger is what keeps repeat audits quiet and f
 - **`WopiSecurityOptions.SigningKey` stays `byte[]?` (CA1819 suppressed).** The `IConfiguration`
   `BinaryConverter` only targets `byte[]`, and `SymmetricSecurityKey(byte[])` consumes it directly.
   The suppression has a documented rationale next to the field.
+- **The committed `<NoWarn>` suppressions are intentional (dimension 13 lead, but justified).**
+  `CS1591` in the root `Directory.Build.props` silences missing-XML-doc warnings on non-packable
+  projects (samples/infra/tests don't ship docs); `xUnit1051` in `test/Directory.Build.props` is a
+  test-only analyzer relaxation. Both are documented inline. Don't file them as suppressed-rule
+  findings unless a *packaged* library starts carrying a broad `<NoWarn>`.
 - **Typed id/token value types (`WopiResourceId`, `WopiLockToken`) were considered and decided
   against.** Bare `string` resource ids and lock tokens are the intended state. The two design
   issues (#514, #515) were closed as *not planned*: the payoff is purely preventive (no known
