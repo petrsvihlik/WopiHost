@@ -99,6 +99,21 @@ These are "two things that should match but don't." The providers are the usual 
 - Broad `catch (Exception)` that swallows without filtering async-rude exceptions
   (OOM/SO/ThreadAbort) or without structured logging — especially in auth/proof validation.
 - A dev-only escape hatch (e.g. proof-validation disable) that isn't refused outside Development.
+- **Path traversal in the file-system provider (highest-severity class here).** A resource id or
+  relative/suggested target that resolves outside the configured root (`..`, absolute paths, UNC,
+  alternate data streams). Confirm the provider canonicalizes and re-roots (`Path.GetFullPath` +
+  `StartsWith(root)`) before any `File.*`/`Directory.*` call — a WOPI host acts on client-supplied
+  targets, so an unrooted path is arbitrary file read/write.
+- **Non-constant-time comparison of secrets.** `==` / `string.Equals` / `SequenceEqual` on a proof
+  signature, HMAC, access token, or lock id is a timing side-channel; crypto/auth comparisons use
+  `CryptographicOperations.FixedTimeEquals`.
+- **Secrets in logs / exceptions.** Access tokens, signing/proof keys, `Authorization` or
+  `X-WOPI-Proof` header values, or file contents passed to `ILogger` or an exception message. Redact.
+- **Weak randomness for security values.** `System.Random` (or `Guid.NewGuid()`) minting a token,
+  nonce, or anything that must be unguessable → `RandomNumberGenerator`.
+- **Token/JWT validation that doesn't validate.** `TokenValidationParameters` with
+  `ValidateIssuer`/`ValidateAudience`/`ValidateLifetime`/signature checks disabled, outside the one
+  documented dev no-op proof validator.
 
 ## 8. Performance (Medium/Low)
 
@@ -201,3 +216,58 @@ libraries it is not. Note the constraint in the finding rather than blindly reco
 Report each as: the construct, its `file:line`, why it earns nothing, and the subtractive remediation
 (`inline` / `collapse` / `delete` / `replace with literal`) — plus the removal-cost note if it's
 public API.
+
+## 13. Public API & .NET design guidelines (Medium/High on packaged libraries)
+
+This repo ships ~10 NuGet packages with a package-validation baseline, so the **public surface** of
+the `src/*` libraries is a contract. Hold it to the
+[.NET Framework Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/) —
+the rules the framework holds itself to. Scope this dimension to **public/protected** members of
+packaged libraries (`Abstractions`, `Core`, `Discovery`, `Url`, the providers, `Cobalt`); internal,
+sample, infra, and test code are held to a looser bar. Most items map to a `CAxxxx` analyzer rule, so
+a *suppressed* one (`<NoWarn>` / `#pragma warning disable CAxxxx` / `.editorconfig severity = none`)
+is a prime lead — open it and confirm the suppression is justified (some are; see the ledger).
+
+- **Naming.** PascalCase types/members; `I`-prefixed interfaces; async methods end in `Async`; no
+  abbreviations / Hungarian; types are nouns, methods verbs; enum names singular (flags plural).
+- **Collections & arrays on the surface.** Return `IReadOnlyList<T>` / `IEnumerable<T>`, not `List<T>`
+  or `T[]` (CA1819); accept the narrowest interface that works. (Accepted exception:
+  `WopiSecurityOptions.SigningKey` stays `byte[]` — see ledger.)
+- **Type design.** `struct` only for small, immutable value types with value semantics; `sealed` by
+  default unless inheritance is designed-for; abstract base vs interface chosen deliberately; no
+  public mutable static state.
+- **Member design.** Properties are cheap and side-effect-free (else a method); avoid `ref`/`out`
+  where a return value or a record/tuple is clearer; `CancellationToken` is the last parameter and
+  defaulted; favour overloads over ambiguous optional args on the public surface.
+- **Exceptions.** Throw the most specific type (`ArgumentNullException.ThrowIfNull`, `ArgumentException`,
+  `InvalidOperationException`) — never bare `Exception`/`ApplicationException`/`SystemException`;
+  preserve the stack with `throw;` not `throw ex;`.
+- **Over-exposed surface.** A `public` type/member with no external consumer that could be `internal`
+  — every public symbol is a maintenance + package-validation liability. (Lens overlaps dimension 12;
+  here the question is "should this be in the contract at all," not "is the abstraction earning its
+  keep.")
+- **Nullability matches behavior.** A public member annotated non-null that can return null (or the
+  reverse), or `!` null-forgiving used to paper over a real nullable on the contract.
+
+Report each as `path:line | guideline → why it matters on the public API → fix`, and flag whether the
+fix is itself a breaking change (package-validation baseline) so it can be timed with a major bump.
+
+## 14. Library hygiene & runtime correctness (Medium)
+
+Cross-cutting correctness for code that ships as a library and runs inside someone else's host.
+
+- **`ConfigureAwait(false)` in library code.** Every `await` in a packaged `src/*` library that
+  doesn't need the original sync context should use `ConfigureAwait(false)`, so a consumer that blocks
+  on the call can't deadlock. `AsyncExpiringLazy` already does this — new awaits should match. (Don't
+  flag sample/ASP.NET request paths, where the context is benign.)
+- **Disposal & stream leaks.** Internally-created `IDisposable`/`IAsyncDisposable` is wrapped in
+  `using`/`await using`; a stream opened then not disposed on an error path is a leak; the
+  caller-owns-disposal contract on `OpenReadAsync`/`OpenWriteAsync` is documented.
+- **Globalization / ordinal correctness.** Protocol strings (header names, `X-WOPI-Override` values,
+  ids, lock tokens) compare and case-fold with `StringComparison.Ordinal[IgnoreCase]` and
+  `ToUpperInvariant()` — never the current culture (`ToUpper()`, default `string.Equals`). A
+  culture-sensitive compare on a wire value is a latent bug (Turkish-I etc.).
+- **`async void`.** Only valid on event handlers; elsewhere it swallows exceptions and can crash the
+  host — make it `async Task`.
+- **`DateTimeOffset` for protocol time.** Lock expiry / WOPI timestamps use `DateTimeOffset` (the lock
+  providers already do); a bare `DateTime.Now`/`UtcNow` on an expiry or wire path is a smell.

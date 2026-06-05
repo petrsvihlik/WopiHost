@@ -134,10 +134,16 @@ the whole codebase in one pass.
 See `references/dimensions.md` for the dimension checklist (WOPI spec compliance, leaky
 abstractions, architectural inconsistencies, duplication, refactoring, .NET/Minimal-API idiom,
 security, performance, tech debt, test-coverage gaps, documentation accuracy, **over-engineering /
-simplification**) — each with the concrete patterns earlier audits actually found, so a new run
-knows what "good" looks like here. Dimension 12 (over-engineering) is the subtractive counterpart to
-the rest: its findings *remove* complexity rather than add it, and it's where the typed-id-style
-"introduce a wrapper" instinct gets inverted into "delete the wrapper that earns nothing."
+simplification**, **public API & .NET design guidelines**, **library hygiene & runtime
+correctness**) — each with the concrete patterns earlier audits actually found, so a new run knows
+what "good" looks like here. Two dimensions have a distinct lens worth calling out:
+- **Dimension 12 (over-engineering)** is the subtractive counterpart to the rest: its findings
+  *remove* complexity, and it's where the typed-id-style "introduce a wrapper" instinct gets inverted
+  into "delete the wrapper that earns nothing."
+- **Dimension 13 (public API / .NET design guidelines)** measures the *packaged* libraries' public
+  surface against the [.NET Framework Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/),
+  since those 10 NuGet contracts can only be broken at a major bump — suppressed `CAxxxx` rules are
+  its prime leads.
 
 ## Severity
 
