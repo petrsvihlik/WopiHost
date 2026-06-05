@@ -95,7 +95,7 @@ public sealed class ContainerEndpointTests(ReadOnlyEndpointsFixture fixture)
     {
         // Spec: each ChildFile and ChildContainer URL embeds an access token. Per "preventing
         // token trading", that token MUST be freshly minted per-child rather than the inbound
-        // parent-container token reused verbatim. We verify (a) each child URL's token differs
+        // parent-container token reused verbatim. This checks (a) each child URL's token differs
         // from the inbound one, and (b) the child tokens carry the resource type the URL
         // implies (File vs Container). Per-id binding is verified by the file-side ancestry
         // test — duplicating the casing-sensitive path-extraction assertion here adds noise
@@ -121,9 +121,9 @@ public sealed class ContainerEndpointTests(ReadOnlyEndpointsFixture fixture)
 
             var jwt = handler.ReadJwtToken(childToken);
             // Per-resource binding: URL path id must equal the JWT resource-id claim verbatim.
-            // The previous LowercaseUrls=true routing-option default was case-folding the URL
-            // path while leaving the JWT claim intact (minted from raw file.Identifier) —
-            // GetWopiSrc now passes LinkOptions { LowercaseUrls = false } to keep them aligned.
+            // GetWopiSrc passes LinkOptions { LowercaseUrls = false } so the URL path keeps its
+            // case and stays aligned with the JWT claim (minted from raw file.Identifier); the
+            // default LowercaseUrls=true would case-fold the path while leaving the claim intact.
             var childId = uri.AbsolutePath.Split('/').Last();
             Assert.Equal(childId, jwt.Claims.First(c => c.Type == WopiClaimTypes.ResourceId).Value);
             Assert.Equal("File", jwt.Claims.First(c => c.Type == WopiClaimTypes.ResourceType).Value);

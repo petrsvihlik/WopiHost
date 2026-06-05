@@ -36,7 +36,7 @@ Task<bool>          RemoveLockAsync(string fileId, CancellationToken ct = defaul
 Task<bool>          TryUnlockAndRelockAsync(string fileId, string newLockId, string expectedExistingLockId, CancellationToken ct = default);
 ```
 
-`GetLockAsync` returns `null` when the lock isn't present (or has expired and was evicted). `WopiLockInfo` carries `LockId`, `FileId`, `DateCreated`, and a computed `Expired` flag.
+`GetLockAsync` returns `null` when the lock isn't present (or has expired and was evicted). `WopiLockInfo` carries `LockId`, `FileId`, `DateCreated`, and a computed `IsExpiredAt(DateTimeOffset now)` method.
 
 `TryUnlockAndRelockAsync` is implemented with `ConcurrentDictionary.TryUpdate` against a snapshot — a true compare-and-swap, so a concurrent `UnlockAndRelock` from another caller correctly loses the race instead of silently overwriting.
 

@@ -4,9 +4,8 @@
 /// Object that represents a container with files.
 /// </summary>
 /// <remarks>
-/// #425 item 1.4: the type carries two metadata members (<see cref="Size"/>,
-/// <see cref="ChildCount"/>) so a marker interface doesn't just exist to tag the kind.
-/// The two members are implementable by every storage backend that can already enumerate
+/// The type carries two metadata members (<see cref="Size"/>, <see cref="ChildCount"/>).
+/// Both are implementable by every storage backend that can already enumerate
 /// (file system: <see cref="System.IO.DirectoryInfo"/>; blob: prefix-scan); providers may
 /// compute lazily or eagerly as the underlying store allows.
 /// </remarks>

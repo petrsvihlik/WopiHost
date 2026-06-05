@@ -13,12 +13,10 @@ namespace WopiHost.MemoryLockProvider;
 /// Operations are inherently synchronous and are wrapped in <see cref="Task.FromResult{T}"/> to
 /// satisfy the async contract.
 /// <para>
-/// The dictionary was a static field in earlier versions, which meant two provider instances in
-/// the same process saw a shared store — surprising for a per-instance-shaped class and
-/// hostile to test isolation (#380 item 2.3). It's an instance field now; for processes that
-/// genuinely need a shared dictionary across providers, register a single
-/// <see cref="MemoryLockProvider"/> as <c>Singleton</c> (the default registration path does this
-/// via <c>services.AddMemoryLockProvider()</c>).
+/// The dictionary is an instance field, so two provider instances in the same process have
+/// independent stores. For processes that genuinely need a shared dictionary across providers,
+/// register a single <see cref="MemoryLockProvider"/> as <c>Singleton</c> (the default
+/// registration path does this via <c>services.AddMemoryLockProvider()</c>).
 /// </para>
 /// </remarks>
 public partial class MemoryLockProvider : IWopiLockProvider
@@ -37,10 +35,10 @@ public partial class MemoryLockProvider : IWopiLockProvider
     /// <remarks>
     /// When <paramref name="timeProvider"/> or <paramref name="lockComparer"/> is <see langword="null"/>,
     /// the provider falls back to the default implementation and emits a single Information-level
-    /// log line on construction. Pre-#456 the fallback was silent — users that registered a custom
-    /// <see cref="IWopiLockComparer"/> (e.g. <c>JsonShapedWopiLockComparer</c>) but accidentally
-    /// constructed the provider without DI would see ordinal comparison without any signal that
-    /// their override had been bypassed.
+    /// log line on construction. The log line signals the fallback so a custom
+    /// <see cref="IWopiLockComparer"/> (e.g. <c>JsonShapedWopiLockComparer</c>) that was registered
+    /// but bypassed by constructing the provider without DI does not silently revert to ordinal
+    /// comparison unnoticed.
     /// </remarks>
     public MemoryLockProvider(
         ILogger<MemoryLockProvider> logger,
@@ -113,8 +111,8 @@ public partial class MemoryLockProvider : IWopiLockProvider
         {
             DateCreated = _timeProvider.GetUtcNow(),
         };
-        // Same atomic CAS pattern as TryUnlockAndRelockAsync — without this, a concurrent
-        // UnlockAndRelock between our compare and our write would silently extend the wrong lock.
+        // Same atomic CAS pattern as TryUnlockAndRelockAsync — without it, a concurrent
+        // UnlockAndRelock between the compare and the write would silently extend the wrong lock.
         return Task.FromResult(_locks.TryUpdate(fileId, updated, existing));
     }
 
@@ -153,7 +151,7 @@ public partial class MemoryLockProvider : IWopiLockProvider
             LockId = newLockId,
         };
         // TryUpdate is the atomic CAS: succeeds only if the dictionary's current value still
-        // equals the snapshot we read. Any concurrent mutation (refresh, swap, removal) makes
+        // equals the snapshot just read. Any concurrent mutation (refresh, swap, removal) makes
         // the comparand stale and the swap returns false.
         return Task.FromResult(_locks.TryUpdate(fileId, updated, existing));
     }

@@ -74,7 +74,7 @@ public class DefaultWopiNewChildFileNegotiatorTests
     public async Task RelativeTarget_InvalidName_OmitsSuggestionWhenSanitiseStillFails()
     {
         // Sanitised candidate also fails (e.g. provider rejects reserved names like CON);
-        // omit X-WOPI-ValidRelativeTarget rather than emit a name we know is invalid.
+        // omit X-WOPI-ValidRelativeTarget rather than emit a known-invalid name.
         _writable.Setup(w => w.CheckValidFileName(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
@@ -132,9 +132,9 @@ public class DefaultWopiNewChildFileNegotiatorTests
     [Fact]
     public async Task RelativeTarget_Collision_Overwrite_PermissionProviderDenies_ReturnsNotImplemented()
     {
-        // Spec (#455): "If the user is not authorized to overwrite the target file, the host must
-        // respond with a 501 Not Implemented." The endpoint-level Permission.Create gate already
-        // passed (we're inside the negotiator), but the per-target permission provider rules out
+        // Spec: "If the user is not authorized to overwrite the target file, the host must
+        // respond with a 501 Not Implemented." The endpoint-level Permission.Create gate has
+        // already passed at the negotiator, but the per-target permission provider rules out
         // overwriting THIS specific file. The lock probe must NOT run — denying overwrite is a
         // strictly stronger signal than "the existing file is locked," so 501 wins.
         var existing = Mock.Of<IWopiFile>(f => f.Identifier == "existing-id");
@@ -193,7 +193,7 @@ public class DefaultWopiNewChildFileNegotiatorTests
     public async Task RelativeTarget_Collision_Overwrite_Unlocked_GetWritableFileReturnsNull_ReturnsInternalError()
     {
         // The writable provider's contract says GetWritableFile returns non-null for a file the
-        // read-side already resolved by name. A null here is defensive — covers line 86.
+        // read-side already resolved by name. A null here exercises the defensive path.
         var existing = Mock.Of<IWopiFile>(f => f.Identifier == "existing-id");
         _writable.Setup(w => w.CheckValidFileName("doc.docx", It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _storage.Setup(s => s.GetWopiFileByName(Container, "doc.docx", It.IsAny<CancellationToken>())).ReturnsAsync(existing);
@@ -209,8 +209,7 @@ public class DefaultWopiNewChildFileNegotiatorTests
     public async Task RelativeTarget_Collision_Overwrite_NoLockProvider_SkipsLockProbe()
     {
         // Hosts without a lock provider registered still need to honor overwrite — the lock probe
-        // is conditional on lockProvider being non-null. Covers the "lockProvider is null" branch
-        // (we exercise both halves: this test for the null case, the previous two for non-null).
+        // is conditional on lockProvider being non-null. Covers the "lockProvider is null" branch.
         var existing = Mock.Of<IWopiFile>(f => f.Identifier == "existing-id");
         var writableExisting = Mock.Of<IWopiWritableFile>();
         _writable.Setup(w => w.CheckValidFileName("doc.docx", It.IsAny<CancellationToken>())).ReturnsAsync(true);

@@ -20,9 +20,6 @@ namespace WopiHost.IntegrationTests;
 /// response, downgrading access, or evaluate to <see langword="true"/>, leaking edit rights
 /// to a view-only token). This integration test pins both directions.
 /// </para>
-/// <para>
-/// Source: audit item #456 — "No integration test for permission claim round-trip."
-/// </para>
 /// </remarks>
 [Collection("ReadOnlyEndpoints")]
 public sealed class PermissionClaimRoundTripTests(ReadOnlyEndpointsFixture fixture)
@@ -65,11 +62,10 @@ public sealed class PermissionClaimRoundTripTests(ReadOnlyEndpointsFixture fixtu
         // DefaultWopiPermissionProvider + CheckFileInfo builder pipeline).
         //
         // Why NOT use WopiFilePermissions.None for the negative case: JwtAccessTokenService
-        // intentionally skips emitting the wopi:fperms claim when permissions equal None
-        // (line 72 in JwtAccessTokenService), and the provider then falls back to
-        // WopiHostOptions.DefaultFilePermissions — which is non-empty by default. The
-        // None-suppression is a separate design decision; this test pins the round-trip
-        // for non-None values where the claim IS emitted.
+        // intentionally skips emitting the wopi:fperms claim when permissions equal None, and
+        // the provider then falls back to WopiHostOptions.DefaultFilePermissions — which is
+        // non-empty by default. The None-suppression is a separate design decision; this test
+        // pins the round-trip for non-None values where the claim IS emitted.
         var token = await _fixture.MintFileTokenAsync(_fixture.FirstFileId, WopiFilePermissions.UserCanRename);
         using var client = _fixture.WopiBackend.CreateClient();
 

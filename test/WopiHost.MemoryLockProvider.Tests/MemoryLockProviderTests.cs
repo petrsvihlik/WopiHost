@@ -18,8 +18,8 @@ public class MemoryLockProviderTests
     {
         // Seeds a stale record directly into the provider's per-instance state. The
         // TimeProvider-based expiry path is covered by the conformance suite; this case
-        // additionally exercises the "I observed an entry whose DateCreated predates my clock"
-        // eviction branch with a system clock (no fake), which the conformance suite can't model
+        // additionally exercises the "entry whose DateCreated predates the clock" eviction
+        // branch with a system clock (no fake), which the conformance suite can't model
         // without reaching into impl-specific state.
         var provider = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance);
         var fileId = $"expired-direct-{Guid.NewGuid()}";
@@ -39,9 +39,8 @@ public class MemoryLockProviderTests
     [Fact]
     public void TwoInstances_OwnIndependentLockState()
     {
-        // Pins #380 item 2.3 — pre-fix the provider used a static dictionary, so two instances
-        // shared a single lock store. Now state is per-instance; a lock seeded into one provider
-        // must not appear on a sibling.
+        // State must be per-instance: a static dictionary would make two instances share a single
+        // lock store. A lock seeded into one provider must not appear on a sibling.
         var providerA = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance);
         var providerB = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance);
 

@@ -26,8 +26,8 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         services.AddMemoryCache();
         services.AddRouting(options => options.LowercaseUrls = true);
-        // AddAuthorization (not AddAuthorizationCore) — middleware-tier services for
-        // app.UseAuthorization() were previously brought in by AddControllers.
+        // AddAuthorization (not AddAuthorizationCore) — brings in the middleware-tier services
+        // that app.UseAuthorization() needs.
         services.AddAuthorization();
 
         services.AddSingleton<IAuthorizationHandler, WopiAuthorizationHandler>();

@@ -73,54 +73,51 @@ public class WopiFileTests : IDisposable
     [Fact]
     public void Owner_OnSupportedPlatform_ReturnsNonEmpty()
     {
-        if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux())
+        // Windows (ACL owner), Linux (statx) and macOS (stat) all resolve a real owner.
+        if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
         {
             Assert.False(string.IsNullOrEmpty(_sut.Owner));
         }
         else
         {
-            // CA1416 suppressed: the surrounding else branch already guards
-            // for non-Windows/non-Linux, but the analyzer can't follow that
-            // through the lambda capture.
-#pragma warning disable CA1416
-            Assert.Throws<PlatformNotSupportedException>(() => _ = _sut.Owner);
-#pragma warning restore CA1416
+            // No ownership lookup is wired up for other platforms, so the contract
+            // degrades to empty rather than throwing PlatformNotSupportedException.
+            Assert.Equal(string.Empty, _sut.Owner);
         }
     }
 
     [Fact]
-    public void Owner_OnLinux_MatchesProcessUserName()
+    public void Owner_OnUnix_MatchesProcessUserName()
     {
-        if (!OperatingSystem.IsLinux())
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
         {
             return;
         }
 
         // Files created by the test process are owned by the current user;
-        // statx + getpwuid_r should resolve back to that name (or numeric uid
-        // if the user has been deleted from /etc/passwd, which we don't expect
+        // stat/statx + getpwuid_r should resolve back to that name (or numeric uid
+        // if the user has been deleted from the passwd db, which is not expected
         // in a CI environment).
         Assert.Equal(Environment.UserName, _sut.Owner);
     }
 
     [Fact]
-    public void Owner_OnLinux_FileDeleted_Throws()
+    public void Owner_OnUnix_FileDeleted_ReturnsEmpty()
     {
-        if (!OperatingSystem.IsLinux())
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
         {
             return;
         }
 
         // Construct against a real file (FileVersionInfo.GetVersionInfo throws
         // FileNotFoundException for missing paths on Unix), then remove it so
-        // statx fails with ENOENT and LinuxFileOwner surfaces that as IOException.
+        // stat/statx fails with ENOENT. The owner helper surfaces that as IOException,
+        // which the Owner getter swallows to honour the best-effort contract.
         var transient = Path.Combine(_tempDir.FullName, "transient.docx");
         File.WriteAllText(transient, "x");
         var sut = new WopiFile(transient, "id-transient");
         File.Delete(transient);
 
-#pragma warning disable CA1416 // Linux-only test path; analyzer can't follow the early-return guard through the lambda
-        Assert.ThrowsAny<IOException>(() => _ = sut.Owner);
-#pragma warning restore CA1416
+        Assert.Equal(string.Empty, sut.Owner);
     }
 }

@@ -31,13 +31,31 @@ dotnet run --project sample/WopiHost
 ## Code Style & Build Rules
 
 - **Warnings as errors** is enabled globally (`TreatWarningsAsErrors`).
+- **Comment style** (applies to `//` comments and the prose inside `///` XML docs):
+  - Write in third person. Never "we"/"our"/"let's" — describe what the code does ("Resolves the owner"), not what the author did.
+  - Comment only what is genuinely non-obvious or surprising to a new reader: a gotcha, an ABI/spec quirk, a non-local invariant. If the code is self-explanatory, leave no comment.
+  - No meta-commentary: don't justify a choice to a reviewer, don't narrate how the code used to be, don't say "matching X" / "changed to Y".
+  - Never reference GitHub issues or PRs by number (`#123`). If the context matters, inline the explanation itself.
+  - Keep comments short and concrete; prefer deleting a comment to padding it.
+  - Keep the `///` XML doc tags on public APIs (warnings-as-errors require them), but trim their wording to the same bar.
 - .NET analyzers and code style enforcement are on (`EnforceCodeStyleInBuild`).
+- **Nullable reference types** are enabled solution-wide from the root `Directory.Build.props`. Don't re-declare `<Nullable>` in individual projects — keep the single source of truth.
 - Follow [.NET Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/).
 - Centralized package management via `Directory.Packages.props` — specify versions there, not in individual `.csproj` files.
 - Single-targeted on `net10.0` (libraries, samples, infra, tests). The v8 line was the last to support `net8.0` / `net9.0`; v9 onward is net10 only. The `tools/wopi-validator/` helper project stays on `net8.0` because the upstream `Microsoft.Office.WopiValidator` NuGet does.
 - Build output is centralized under `artifacts/` at the repo root (`UseArtifactsOutput=true` in `Directory.Build.props`) — there are no per-project `bin/`/`obj/` folders.
 - Package validation baseline is `8.0.0` — avoid breaking public API changes in NuGet-packaged libraries. Bump in lockstep with releases (auto-bumped by `.github/workflows/release.yml` after each stable release). Packages without a prior release on NuGet.org opt out via `EnablePackageValidation=false` in their `.csproj`.
 - `InternalsVisibleTo` is auto-configured for `*.Tests` assemblies.
+
+## Codebase audit skill
+
+`.claude/skills/codebase-audit/` is the repo's standing health-check — a repeatable, multi-dimension
+code-quality / architecture / WOPI-spec-compliance audit modeled on the prior audit trackers. Invoke
+it (or just ask to "audit the codebase" / "find code smells") to sweep for duplication, leaky
+abstractions, architectural drift, non-idiomatic patterns, security/performance smells, tech debt,
+and spec non-compliance. It only reports **clear net wins** and respects a `do-not-re-file` ledger of
+verified-intentional decisions so repeat runs stay quiet. After a run, fold any newly-confirmed
+intentional decisions back into that ledger.
 
 ## Architecture
 
@@ -55,7 +73,7 @@ This is a modular **WOPI protocol host** implementation that integrates custom d
 - **WopiHost.AzureStorageProvider** — Azure Blob storage provider (alternative to FileSystemProvider). See its README for the connection-string config flow.
 - **WopiHost.AzureLockProvider** — Azure-blob-backed distributed lock provider (alternative to MemoryLockProvider). Strongest cross-instance exclusion via Azure blob leases.
 - **WopiHost.RedisLockProvider** — Redis-backed distributed lock provider. Best-effort, single-Redis (does not implement Redlock — see its README for rationale). Atomicity via Lua scripts; TTL-driven WOPI expiry.
-- **WopiHost.Abstractions.Testing** — Shared `LockProviderConformanceTests` xUnit class that every `IWopiLockProvider` implementation runs through. Provider-specific test projects derive a sealed subclass and supply a factory; xUnit picks up the inherited `[Fact]` tests automatically. Adding a future provider = one more conformance subclass.
+- **WopiHost.Abstractions.Testing** — Shared `LockProviderConformanceTests` and `StorageProviderConformanceTests` xUnit classes that every `IWopiLockProvider` / `IWopiStorageProvider` implementation runs through. Provider-specific test projects derive a sealed subclass and supply a factory; xUnit picks up the inherited `[Fact]` tests automatically. Adding a future provider = one more conformance subclass.
 
 ### Dependency Chain
 
@@ -75,9 +93,16 @@ Abstractions ← Abstractions.Testing (test-helper library; depends on xunit)
 
 Each storage / lock provider package exposes a typed `services.Add{Provider}{StorageOrLock}Provider(...)` extension. The composition root references the provider package(s) it wants and calls the extension directly — no reflection, no assembly-name strings. Available extensions: `AddFileSystemStorageProvider(cfg)`, `AddAzureStorageProvider(cfg)`, `AddMemoryLockProvider()`, `AddAzureLockProvider(cfg)`, `AddRedisLockProvider(cfg)`. The sample retains a small sample-local discriminator (`Sample:StorageProvider`, `Sample:LockProvider`) so the AppHost flag flow can flip providers at runtime — see [sample/WopiHost/ServiceCollectionExtensions.cs](sample/WopiHost/ServiceCollectionExtensions.cs).
 
+Conventions a new provider follows (keeps the set from drifting):
+
+- **Naming.** `Add{Name}StorageProvider` / `Add{Name}LockProvider`. Takes `IConfiguration` only when the provider has settings to bind.
+- **Options.** A provider with configurable settings has a `{Name}{Storage|Lock}ProviderOptions` class bound from a `Wopi:StorageProvider` / `Wopi:LockProvider` section via `AddOptions<T>().Bind(...).ValidateOnStart()`. A provider with **no** settings (e.g. `MemoryLockProvider` — purely in-memory, expiry fixed at the spec's 30 min) deliberately has **no** options class; don't add an empty one for symmetry.
+- **Consume options, not raw config.** Provider implementations inject `IOptions<T>`, not `IConfiguration` — binding/validation stays at the composition root.
+- **Registration.** Storage providers register with `TryAdd*` (a host pre-registering its own implementation wins; a repeat call no-ops). Lock providers throw if an `IWopiLockProvider` is already registered — exactly one lock backend per process, so a second registration is a configuration error, not a silent override.
+
 ### Infrastructure (infra/)
 
-- **WopiHost.AppHost** — .NET Aspire orchestrator for local development. The backend is pinned at `:5000` (the WOPI host URL is referenced by Collabora's `host.docker.internal:5000`); the frontend and validator use `WithHttpsEndpoint()` so Aspire allocates their ports from the OS's free pool — the dashboard shows whatever was bound.
+- **WopiHost.AppHost** — .NET Aspire orchestrator for local development. The backend is pinned at `:5050` (the WOPI host URL is referenced by Collabora's `host.docker.internal:5050`; the AppHost pins 5050 rather than 5000 because on Windows port 5000 sits in the kernel-excluded range); the frontend and validator use `WithHttpsEndpoint()` so Aspire allocates their ports from the OS's free pool — the dashboard shows whatever was bound.
 - **WopiHost.ServiceDefaults** — Shared service configuration: OpenTelemetry, health checks, HTTP resilience, service discovery.
 
 ### Sample Apps (sample/)
@@ -89,16 +114,16 @@ Each storage / lock provider package exposes a typed `services.Add{Provider}{Sto
 
 ### AppHost opt-in flags
 
-The Aspire AppHost reads a few `AppHost:*` flags from configuration so the default first-run flow stays minimal. Set them in `infra/WopiHost.AppHost/appsettings.Development.json`:
+The Aspire AppHost reads a few `AppHost:*` flags from configuration. Override them locally in `infra/WopiHost.AppHost/appsettings.Development.json` or via environment variables:
 
 | Flag | Adds |
 |---|---|
 | `AppHost:UseAzureStorage` | Azurite emulator + `BlobStorage` connection string forwarded to the WOPI host. |
 | `AppHost:UseRedisLocks` | **Default: `true` when launched via the AppHost.** Adds a Redis container; the WOPI host swaps `Sample:LockProvider` to `Redis` (so `AddSampleLockProvider` dispatches to `AddRedisLockProvider`) and receives the Aspire-allocated connection string via `Wopi:LockProvider:ConnectionString`. Set to `false` to fall back to `Memory` (single-process) — useful on contributor machines without Docker. Aspire already manages Docker resources, so the realistic distributed-lock backend is the right default for the orchestrated dev loop. |
-| `AppHost:UseCollabora` | `collabora/code` container as a real WOPI client for end-to-end editing. Auto-overrides `Wopi:ClientUrl`, `Wopi:HostUrl`, `Wopi:Discovery:NetZone`, and `Wopi:Security:DisableProofValidation` on the affected projects. See the **End-to-end editing with Collabora Online** section in the root README for the full wiring (`host.docker.internal:5000`, NetZone gotcha, proof-key gotcha). |
+| `AppHost:UseCollabora` | **Default: `true` when launched via the AppHost** (a code default in `Program.cs`, mirroring `UseRedisLocks`), so VS F5 / `dotnet run` launches with Collabora out of the box (requires Docker). Adds a `collabora/code` container as a real WOPI client for end-to-end editing and auto-overrides `Wopi:ClientUrl`, `Wopi:HostUrl`, `Wopi:Discovery:NetZone`, and `Wopi:Security:DisableProofValidation` on the affected projects. Set `AppHost:UseCollabora=false` (in `appsettings.Development.json`, an env var, or the command line — all override the code default) to run without Docker/Collabora. See the **End-to-end editing with Collabora Online** section in the root README for the full wiring (`host.docker.internal:5050`, NetZone gotcha, proof-key gotcha). |
 | `AppHost:IncludeOidcSample` | `WopiHost.Web.Oidc` frontend (requires IdP setup — see its README). |
 
-Never commit `appsettings.Development.json` with these flags enabled — they impose external dependencies on every contributor.
+The orchestrated dev loop intentionally defaults to Redis locks and Collabora (both Docker-backed): both are code defaults in `Program.cs` (`GetValue("AppHost:UseRedisLocks"/"AppHost:UseCollabora", defaultValue: true)`), not committed `appsettings.Development.json` flags. A code default is the overridable kind — `appsettings.json`, `appsettings.Development.json`, an env var, or the command line all take precedence over it, so a contributor without Docker can flip either off locally. (A `launchSettings.json` env var would sit *above* `appsettings.*` in precedence and silently defeat that override, so the default deliberately lives in code instead.) The remaining flags (`UseAzureStorage`, `IncludeOidcSample`) stay opt-in — don't commit `appsettings.Development.json` with those enabled, as they impose external dependencies on every contributor.
 
 ## Key WOPI Concepts
 

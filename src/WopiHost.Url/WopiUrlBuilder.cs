@@ -52,14 +52,14 @@ public partial class WopiUrlBuilder(
         }
         if (urlSettings is not null)
         {
-            foreach (var kvp in urlSettings) combinedUrlSettings[kvp.Key] = kvp.Value; // overrides
+            foreach (var kvp in urlSettings) combinedUrlSettings[kvp.Key] = kvp.Value;
         }
 
         // Single source of truth for the WopiSrc value: the wopiFileUrl parameter. The
         // WOPI_SOURCE placeholder, when present in a template, gets substituted with this
         // value (URL-escaped by ResolveOptionalParameter). Any caller-provided WOPI_SOURCE
-        // value in urlSettings is overwritten so we never produce two different WopiSrc
-        // values in the same URL.
+        // value in urlSettings is overwritten so a URL never carries two different WopiSrc
+        // values.
         combinedUrlSettings[WopiUrlSettings.Placeholders.WopiSource] = wopiFileUrl.ToString();
 
         var template = await _wopiDiscoverer.GetUrlTemplateAsync(extension, action).ConfigureAwait(false);
@@ -71,7 +71,6 @@ public partial class WopiUrlBuilder(
 
         var templateHasWopiSourcePlaceholder = template.Contains(WopiUrlSettings.Placeholders.WopiSource, StringComparison.Ordinal);
 
-        // Resolve optional parameters
         var url = UrlParamRegex().Replace(template, m => ResolveOptionalParameter(m.Groups["name"].Value, m.Groups["value"].Value, combinedUrlSettings) ?? string.Empty);
         url = url.TrimEnd('&');
 

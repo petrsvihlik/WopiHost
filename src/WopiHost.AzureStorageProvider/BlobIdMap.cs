@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using WopiHost.Abstractions;
@@ -30,10 +31,8 @@ namespace WopiHost.AzureStorageProvider;
 /// <strong>Two dictionaries, kept in sync.</strong> <c>_idToPath</c> drives id→path lookups
 /// (which fire on every WOPI route that resolves <c>{id}</c>); <c>_pathToId</c> is the inverse
 /// for the listing path, where the provider walks the blob namespace and needs to look up the id
-/// for each blob name. Pre-#456 the inverse lookup was an O(n) linear scan of <c>_idToPath</c>;
-/// in containers with thousands of blobs, listing degenerated to O(n²) total work across the
-/// hydration loop. The reverse dict matches what <c>WopiHost.FileSystemProvider</c>'s
-/// <c>InMemoryFileIds</c> already does.
+/// for each blob name. The reverse dictionary keeps that lookup O(1); without it the listing
+/// hydration loop would degenerate to O(n^2) in containers with thousands of blobs.
 /// </para>
 /// </remarks>
 public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
@@ -44,14 +43,20 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
     /// <remarks>
     /// Plain Azure Blob Storage has no concept of an empty directory. To keep parity with
     /// <c>WopiFileSystemProvider</c>'s ability to create an empty folder via
-    /// <see cref="IWopiWritableStorageProvider.CreateWopiChildContainer"/>, we drop a 0-byte
-    /// blob with this name into the folder. The provider hides marker blobs from listings so
+    /// <see cref="IWopiWritableStorageProvider.CreateWopiChildContainer"/>, a 0-byte blob with
+    /// this name is dropped into the folder. The provider hides marker blobs from listings so
     /// callers never see them.
     /// </remarks>
     public const string FolderMarker = ".wopi.folder";
 
-    private readonly Dictionary<string, string> _idToPath = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> _pathToId = new(StringComparer.Ordinal);
+    // BlobIdMap is a singleton shared across concurrent request paths, so the maps must be
+    // thread-safe. Reads (TryGetPath/TryGetFileId) stay lock-free on ConcurrentDictionary; the
+    // compound rebinds in Add/Remove/Update/ScanAll serialize on _writeLock to keep the two maps
+    // consistent across their multi-step write sequences. Mirrors WopiHost.FileSystemProvider's
+    // InMemoryFileIds.
+    private readonly ConcurrentDictionary<string, string> _idToPath = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, string> _pathToId = new(StringComparer.Ordinal);
+    private readonly Lock _writeLock = new();
 
     /// <summary>Whether <see cref="ScanAll(IEnumerable{string})"/> has been called.</summary>
     public bool WasScanned { get; private set; }
@@ -72,20 +77,26 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
         // path (theoretically possible only when path strings collide on SHA-256 — practically
         // impossible) the old reverse entry would dangle, but the forward write below would
         // still rebind it. The realistic case "same id, same path" no-ops both writes.
-        _idToPath[id] = path;
-        _pathToId[path] = id;
+        lock (_writeLock)
+        {
+            _idToPath[id] = path;
+            _pathToId[path] = id;
+        }
         return id;
     }
 
     /// <summary>Removes a mapping by id.</summary>
     public bool Remove(string fileId)
     {
-        if (!_idToPath.Remove(fileId, out var path))
+        lock (_writeLock)
         {
-            return false;
+            if (!_idToPath.TryRemove(fileId, out var path))
+            {
+                return false;
+            }
+            _ = _pathToId.TryRemove(path, out _);
+            return true;
         }
-        _ = _pathToId.Remove(path);
-        return true;
     }
 
     /// <summary>Updates the path for an existing id (used after a rename to keep the id stable).</summary>
@@ -94,12 +105,15 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
         // Drop the old reverse entry first so a rename that moves blob A → blob B doesn't leave
         // _pathToId[oldPath]=A behind. If the id wasn't previously known, there's no reverse
         // entry to drop — the forward write below registers the new mapping fresh.
-        if (_idToPath.TryGetValue(fileId, out var oldPath) && !string.Equals(oldPath, newPath, StringComparison.Ordinal))
+        lock (_writeLock)
         {
-            _ = _pathToId.Remove(oldPath);
+            if (_idToPath.TryGetValue(fileId, out var oldPath) && !string.Equals(oldPath, newPath, StringComparison.Ordinal))
+            {
+                _ = _pathToId.TryRemove(oldPath, out _);
+            }
+            _idToPath[fileId] = newPath;
+            _pathToId[newPath] = fileId;
         }
-        _idToPath[fileId] = newPath;
-        _pathToId[newPath] = fileId;
     }
 
     /// <summary>
@@ -109,40 +123,44 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
     /// </summary>
     public void ScanAll(IEnumerable<string> blobPaths)
     {
-        _idToPath.Clear();
-        _pathToId.Clear();
-        // Root container is always identified by the empty string.
-        var rootId = IdFromPath(string.Empty);
-        _idToPath[rootId] = string.Empty;
-        _pathToId[string.Empty] = rootId;
-
-        var seenDirs = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var path in blobPaths)
+        lock (_writeLock)
         {
-            // Hide folder markers from the file map but make sure the parent folder is registered.
-            var fileName = path[(path.LastIndexOf('/') + 1)..];
-            if (fileName == FolderMarker)
+            _idToPath.Clear();
+            _pathToId.Clear();
+            // Root container is always identified by the empty string.
+            var rootId = IdFromPath(string.Empty);
+            _idToPath[rootId] = string.Empty;
+            _pathToId[string.Empty] = rootId;
+
+            var seenDirs = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var path in blobPaths)
             {
-                var parent = path[..^FolderMarker.Length].TrimEnd('/');
-                AddDirectoryAndAncestors(parent, seenDirs);
-                continue;
+                // Hide folder markers from the file map but make sure the parent folder is registered.
+                var fileName = path[(path.LastIndexOf('/') + 1)..];
+                if (fileName == FolderMarker)
+                {
+                    var parent = path[..^FolderMarker.Length].TrimEnd('/');
+                    AddDirectoryAndAncestors(parent, seenDirs);
+                    continue;
+                }
+
+                var id = IdFromPath(path);
+                _idToPath[id] = path;
+                _pathToId[path] = id;
+
+                var lastSlash = path.LastIndexOf('/');
+                if (lastSlash > 0)
+                {
+                    AddDirectoryAndAncestors(path[..lastSlash], seenDirs);
+                }
             }
 
-            var id = IdFromPath(path);
-            _idToPath[id] = path;
-            _pathToId[path] = id;
-
-            var lastSlash = path.LastIndexOf('/');
-            if (lastSlash > 0)
-            {
-                AddDirectoryAndAncestors(path[..lastSlash], seenDirs);
-            }
+            WasScanned = true;
+            LogScannedEntries(logger, _idToPath.Count);
         }
-
-        WasScanned = true;
-        LogScannedEntries(logger, _idToPath.Count);
     }
 
+    // Caller holds _writeLock. The dictionary writes here are part of the ScanAll rebind.
     private void AddDirectoryAndAncestors(string dirPath, HashSet<string> seen)
     {
         var current = dirPath;

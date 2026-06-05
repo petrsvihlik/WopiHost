@@ -23,6 +23,7 @@ public class DefaultWopiPermissionProvider(IOptionsMonitor<WopiHostOptions> opti
     /// <inheritdoc/>
     public Task<WopiFilePermissions> GetFilePermissionsAsync(ClaimsPrincipal user, IWopiFile file, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var claim = user.FindFirst(WopiClaimTypes.FilePermissions)?.Value;
         if (!string.IsNullOrEmpty(claim) && Enum.TryParse<WopiFilePermissions>(claim, ignoreCase: true, out var fromClaim))
         {
@@ -34,6 +35,7 @@ public class DefaultWopiPermissionProvider(IOptionsMonitor<WopiHostOptions> opti
     /// <inheritdoc/>
     public Task<WopiContainerPermissions> GetContainerPermissionsAsync(ClaimsPrincipal user, IWopiContainer container, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var claim = user.FindFirst(WopiClaimTypes.ContainerPermissions)?.Value;
         if (!string.IsNullOrEmpty(claim) && Enum.TryParse<WopiContainerPermissions>(claim, ignoreCase: true, out var fromClaim))
         {

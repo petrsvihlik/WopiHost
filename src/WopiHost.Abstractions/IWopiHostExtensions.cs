@@ -1,8 +1,7 @@
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Host-customization seam for WOPI request handling. Replaces the per-callback delegate
-/// properties that previously lived on the host options. Hosts plug in audit, telemetry, and
+/// Host-customization seam for WOPI request handling. Hosts plug in audit, telemetry, and
 /// final response mutations here without replacing whole builders.
 /// </summary>
 /// <remarks>

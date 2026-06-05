@@ -7,7 +7,7 @@ using Xunit;
 namespace WopiHost.IntegrationTests;
 
 /// <summary>
-/// Spec-correctness test for the PutRelativeFile 501 path described in #455.
+/// Spec-correctness test for the PutRelativeFile 501 path.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -79,7 +79,7 @@ public sealed class PutRelativeFileOverwrite501Tests : IClassFixture<PutRelative
         var token = await _fixture.MintFileTokenAsync(parentFileId, WopiFilePermissions.UserCanWrite);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        // Use a name we know doesn't exist — GUID-stemmed so it can't collide.
+        // Use a non-existent name — GUID-stemmed so it can't collide.
         var freshName = $"fresh-{Guid.NewGuid():N}.txt";
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{parentFileId}?access_token={Uri.EscapeDataString(token)}")
         {

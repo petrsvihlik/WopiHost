@@ -26,12 +26,12 @@ public partial class JwtAccessTokenService(
     private readonly JwtSecurityTokenHandler _handler = new() { MapInboundClaims = true };
 
     // Lazy<T> default is LazyThreadSafetyMode.ExecutionAndPublication: exactly one factory
-    // invocation across all threads, the rest block on the result. Pre-#409-item-2.4 the
-    // null-check + assignment in GetSigningKey raced on first request, so concurrent first
-    // callers each minted a *different* random key and tokens signed during the race window
-    // would fail validation under whichever key lost the publish (the log line also fired
-    // multiple times). Field-initializer form keeps the factory cold until first read so the
-    // production path (SecurityKey / SigningKey configured) never pays the entropy cost.
+    // invocation across all threads, the rest block on the result. A plain null-check +
+    // assignment would race on first request, so concurrent first callers would each mint a
+    // *different* random key and tokens signed during the race window would fail validation
+    // under whichever key lost the publish. Field-initializer form keeps the factory cold until
+    // first read so the production path (SecurityKey / SigningKey configured) never pays the
+    // entropy cost.
     private readonly Lazy<SymmetricSecurityKey> _ephemeralDevKey = new(() =>
     {
         var keyBytes = RandomNumberGenerator.GetBytes(64);

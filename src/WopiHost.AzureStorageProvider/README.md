@@ -67,7 +67,7 @@ The runnable sample exposes a small `Sample:StorageProvider` discriminator (`Fil
 | `IWopiFile.Owner` | Blob metadata key `wopi_owner` (empty string when unset) |
 | `IWopiFile.Checksum` (SHA-256) | Blob metadata key `wopi_sha256` (lowercase hex), computed during upload |
 | Folder | Virtual blob-name prefix (`/` delimiter) + zero-byte marker `.wopi.folder` for materialising empty folders |
-| Identifier | Hex-MD5 of the lowercased blob path (matches `WopiHost.FileSystemProvider`) |
+| Identifier | SHA-256 hex of the blob path, used as-is (Azure blob names are case-sensitive). Same hashing as `WopiHost.FileSystemProvider`, which case-folds the path first because file systems aren't. |
 
 The provider scans the container at first access to populate the in-memory id-to-path map. Identifiers are stable across process restarts (deterministic from path) but not across renames — a rename re-points the existing id to the new path so the WOPI URL doesn't break mid-edit.
 
@@ -76,7 +76,7 @@ The provider scans the container at first access to populate the in-memory id-to
 - **Folder rename / delete-folder** are O(N) over the children — plain Blob has no atomic prefix rename. If you do this often, consider switching to ADLS Gen2 (not currently supported, see [issue #26](https://github.com/petrsvihlik/WopiHost/issues/26)) for atomic rename via the DFS endpoint.
 - **Empty folders** are materialised by writing a zero-byte `.wopi.folder` blob. Listings filter it out; deleting an empty folder removes the marker and drops the id.
 - **SHA-256** is computed streaming on upload via [`HashingBlobWriteStream`](HashingBlobWriteStream.cs) and stored as metadata. Pre-existing blobs that were not written through this provider will return `null` from `Checksum` until they are next written.
-- **Owner** is read from blob metadata; the provider doesn't *set* an owner on its own. Hosts that care about ownership should set `wopi_owner` themselves (e.g. via a custom write pipeline that enriches metadata after `GetWriteStream`).
+- **Owner** is read from blob metadata; the provider doesn't *set* an owner on its own. Hosts that care about ownership should set `wopi_owner` themselves (e.g. via a custom write pipeline that enriches metadata after `OpenWriteAsync`).
 
 ## Local development
 

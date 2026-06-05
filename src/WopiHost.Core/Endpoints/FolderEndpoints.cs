@@ -45,7 +45,7 @@ internal static class FolderEndpoints
         if (folder is null) return TypedResults.NotFound();
 
         // Build sync, then fire the host hook — keeps the only `await` on a direct interface
-        // call, mirroring the controller version's structure to avoid the Infer# FP at #363.
+        // call, which keeps static analysis of the async state machine precise.
         var checkFolderInfo = req.Builder.Build(folder, req.Http.User);
         checkFolderInfo = await req.Extensions.OnCheckFolderInfoAsync(
             new WopiCheckFolderInfoContext(req.Http.User, folder, checkFolderInfo),
@@ -64,7 +64,7 @@ internal static class FolderEndpoints
         var files = new List<ChildFile>();
         var fileExtensions = req.FileExtensionFilterList?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         // Mint per-file resource-scoped tokens — see IWopiResourceTokenMinter for the
-        // token-trading prevention rationale and the #471 Infer# context.
+        // token-trading prevention rationale.
         await foreach (var wopiFile in req.Storage.GetWopiFiles(req.Id, fileExtensions, req.CancellationToken).ConfigureAwait(false))
         {
             var fileToken = await req.TokenMinter.MintForFileAsync(req.Http.User, wopiFile, req.CancellationToken).ConfigureAwait(false);
@@ -76,8 +76,7 @@ internal static class FolderEndpoints
             });
         }
 
-        // Folder shape matches the legacy FoldersController.EnumerateChildren payload
-        // (only ChildFiles — no ChildContainers, by design of the historic folder surface).
+        // The folder surface returns only ChildFiles — no ChildContainers, by design.
         return TypedResults.Json(new FolderChildrenResponse(files));
     }
 }

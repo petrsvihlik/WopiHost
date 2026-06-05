@@ -27,11 +27,9 @@ public class IndexModel(
     {
         ViewData["Title"] = "Welcome to WOPI HOST test page";
 
-        // setup title
         ContainerId ??= storageProvider.RootContainer.Identifier;
         ContainerName = (await storageProvider.GetWopiContainer(ContainerId, cancellationToken))?.Name
             ?? throw new InvalidOperationException("Container not found");
-        // calc breadcrumb
         if (ContainerId != storageProvider.RootContainer.Identifier)
         {
             var ancestors = await storageProvider.GetContainerAncestors(ContainerId, cancellationToken);
@@ -59,7 +57,6 @@ public class IndexModel(
             }
         }
 
-        // allow to navigate to parent container
         if (!string.IsNullOrWhiteSpace(ParentContainerId))
         {
             var parentContainer = await storageProvider.GetWopiContainer(ParentContainerId, cancellationToken)
@@ -70,7 +67,6 @@ public class IndexModel(
                 Name = ".."
             });
         }
-        // get child containers
         await foreach (var container in storageProvider.GetWopiContainers(ContainerId, cancellationToken))
         {
             Containers.Add(new ContainerViewModel
@@ -80,7 +76,6 @@ public class IndexModel(
             });
         }
 
-        // get files
         await foreach (var file in storageProvider.GetWopiFiles(ContainerId, cancellationToken: cancellationToken))
         {
             Files.Add(new FileViewModel

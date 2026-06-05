@@ -15,7 +15,7 @@ public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>
 {
     // Instance-scoped on purpose: a static lock would be shared across every
     // AsyncExpiringLazy<T> with the same closed generic type, serializing
-    // unrelated callers (also fixed in #303).
+    // unrelated callers.
     private readonly SemaphoreSlim _syncLock = new(initialCount: 1);
     private readonly Func<TemporaryValue<T>, Task<TemporaryValue<T>>> _valueProvider = valueProvider ?? throw new ArgumentNullException(nameof(valueProvider));
     private TemporaryValue<T> _value;
@@ -45,8 +45,8 @@ public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>
     {
         // Hold the lock for the entire operation so concurrent first-time
         // callers do not each invoke the (typically network-bound) value
-        // provider. Releasing between the cache check and the fetch was the
-        // bug fixed in #303.
+        // provider. Releasing between the cache check and the fetch would let
+        // multiple callers fetch concurrently.
         await _syncLock.WaitAsync().ConfigureAwait(false);
         try
         {
@@ -71,8 +71,14 @@ public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>
     public async Task Invalidate()
     {
         await _syncLock.WaitAsync().ConfigureAwait(false);
-        _value = default;
-        _syncLock.Release();
+        try
+        {
+            _value = default;
+        }
+        finally
+        {
+            _syncLock.Release();
+        }
     }
 
     /// <summary>

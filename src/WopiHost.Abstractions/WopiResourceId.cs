@@ -32,9 +32,9 @@ namespace WopiHost.Abstractions;
 ///   </description></item>
 /// </list>
 /// <para>
-/// The hash is SHA-256 (not MD5) so the id-minting path is FIPS-compatible and silent under the
-/// <c>CA5351</c> analyzer. Cryptographic strength is not required — these are opaque keys — but
-/// a non-weak primitive avoids policy/compliance friction on hosts that disable broken algorithms.
+/// The hash is SHA-256 (not MD5) so the id-minting path is FIPS-compatible. Cryptographic
+/// strength is not required — these are opaque keys — but a non-weak primitive avoids
+/// policy/compliance friction on hosts that disable broken algorithms.
 /// </para>
 /// </remarks>
 public static class WopiResourceId

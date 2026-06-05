@@ -142,10 +142,8 @@ public abstract class LockProviderConformanceTests
     public async Task RefreshLockAsync_MismatchedExpectedLock_ReturnsFalseAndDoesNotMutate()
     {
         // Spec: RefreshLock honours the caller's lock id only when it matches the stored id.
-        // Pre-#1.6 the abstraction couldn't enforce this — the controller had to compare ids
-        // separately, racing against any concurrent UnlockAndRelock. Now the provider performs
-        // an atomic compare-and-refresh; a stale caller observes false here and the stored id
-        // / timestamp are untouched.
+        // The provider performs an atomic compare-and-refresh; a stale caller observes false
+        // here and the stored id / timestamp are untouched.
         var clock = new ControllableTimeProvider(DateTimeOffset.UtcNow);
         var sut = await CreateSutAsync(clock);
         var fileId = $"refresh-mismatch-{Guid.NewGuid()}";

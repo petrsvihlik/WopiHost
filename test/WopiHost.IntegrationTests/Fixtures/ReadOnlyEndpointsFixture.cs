@@ -18,6 +18,7 @@ namespace WopiHost.IntegrationTests.Fixtures;
 public sealed class ReadOnlyEndpointsFixture : IDisposable
 {
     private const string SharedSigningSecret = "readonly-endpoints-shared-key-32bytes!";
+    private static readonly FixtureUser s_user = new("readonly-user", "ReadOnly User", "readonly@example.com");
 
     public WopiBackendFactory WopiBackend { get; }
     public string FirstFileId { get; }
@@ -33,40 +34,11 @@ public sealed class ReadOnlyEndpointsFixture : IDisposable
         FirstFileId = ResolveFirstFileId(storage).GetAwaiter().GetResult();
     }
 
-    public async Task<string> MintFileTokenAsync(string fileId, WopiFilePermissions permissions = WopiFilePermissions.UserCanWrite)
-    {
-        using var scope = WopiBackend.Services.CreateScope();
-        var tokens = scope.ServiceProvider.GetRequiredService<IWopiAccessTokenService>();
-        var token = await tokens.IssueAsync(new WopiAccessTokenRequest
-        {
-            UserId = "readonly-user",
-            UserDisplayName = "ReadOnly User",
-            UserEmail = "readonly@example.com",
-            ResourceId = fileId,
-            ResourceType = WopiResourceType.File,
-            FilePermissions = permissions,
-        });
-        return token.Token;
-    }
+    public Task<string> MintFileTokenAsync(string fileId, WopiFilePermissions permissions = WopiFilePermissions.UserCanWrite)
+        => FixtureTokens.MintFileTokenAsync(WopiBackend, s_user, fileId, permissions);
 
-    public async Task<string> MintContainerTokenAsync(string containerId)
-    {
-        using var scope = WopiBackend.Services.CreateScope();
-        var tokens = scope.ServiceProvider.GetRequiredService<IWopiAccessTokenService>();
-        var token = await tokens.IssueAsync(new WopiAccessTokenRequest
-        {
-            UserId = "readonly-user",
-            UserDisplayName = "ReadOnly User",
-            UserEmail = "readonly@example.com",
-            ResourceId = containerId,
-            ResourceType = WopiResourceType.Container,
-            ContainerPermissions = WopiContainerPermissions.UserCanCreateChildContainer
-                | WopiContainerPermissions.UserCanCreateChildFile
-                | WopiContainerPermissions.UserCanDelete
-                | WopiContainerPermissions.UserCanRename,
-        });
-        return token.Token;
-    }
+    public Task<string> MintContainerTokenAsync(string containerId)
+        => FixtureTokens.MintContainerTokenAsync(WopiBackend, s_user, containerId);
 
     private static async Task<string> ResolveFirstFileId(IWopiStorageProvider storage)
     {

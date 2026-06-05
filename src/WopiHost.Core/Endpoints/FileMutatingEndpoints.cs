@@ -62,8 +62,7 @@ internal static class FileMutatingEndpoints
 
         // All POST overloads on /{id} share a route + verb and are discriminated by
         // X-WOPI-Override via WopiOverrideMatcherPolicy. Each is its own endpoint with its own
-        // RequireAuthorization — the security property the migration depends on (per-override
-        // permissions stay distinct).
+        // RequireAuthorization so per-override permissions stay distinct.
         mutating.MapPost("/{id}", RenameFile)
             .WithMetadata(new WopiOverrideMetadata(WopiFileOperations.RenameFile))
             .WithSummary("RenameFile (X-WOPI-Override: RENAME_FILE).")
@@ -126,35 +125,39 @@ internal static class FileMutatingEndpoints
         if (file is null) return TypedResults.NotFound();
         if (CheckMaxFileSize(req.Http, req.Options.Value.MaxFileSize) is { } tooLarge) return tooLarge;
 
-        // PutFile branches on the FILE'S current lock state, not on whether X-WOPI-Lock was
-        // sent. Spec: "When a host receives a PutFile request on a file that's not locked, the
-        // host checks the current size of the file." Earlier impl keyed off the request header
-        // (string.IsNullOrEmpty(requestLockId)) — which silently overwrote locked 0-byte files
-        // when the client omitted the header (#A) and acquired locks as a side effect when the
-        // client sent one against an unlocked file (#B). Both deviated from
-        // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile.
+        // PutFile branches on the FILE'S current lock state, not on whether X-WOPI-Lock was sent.
         var existingLock = req.LockProvider is not null
             ? await req.LockProvider.GetLockAsync(req.Id, req.CancellationToken).ConfigureAwait(false)
             : null;
 
+        if (ValidatePutFileLock(existingLock, req.RequestLockId, req.LockComparer, file) is { } mismatch)
+        {
+            return mismatch;
+        }
+        return await WriteAndAck(req.Http, req.Extensions, file, req.Editors, req.CancellationToken).ConfigureAwait(false);
+    }
+
+    // Decides whether a PutFile may proceed, given the file's current lock state. Returns the 409
+    // result to short-circuit with, or null when the write may proceed.
+    //
+    // Keying off the file's lock (not the request header) is spec-mandated: a locked file requires
+    // X-WOPI-Lock to match the stored id (missing/empty counts as a mismatch), while an unlocked
+    // file admits only the 0-byte create-new flow — any other size is a 409 carrying the empty
+    // placeholder lock id, since an unlocked file has no id to surface.
+    // Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile.
+    private static WopiLockMismatchResult? ValidatePutFileLock(
+        WopiLockInfo? existingLock, string? requestLockId, IWopiLockComparer comparer, IWopiWritableFile file)
+    {
         if (existingLock is not null)
         {
-            // File is locked → X-WOPI-Lock must match the current lock id. Missing/empty header
-            // counts as a mismatch (sent="" vs current=existing). Spec: 409 with the current
-            // lock id in X-WOPI-Lock.
-            if (string.IsNullOrEmpty(req.RequestLockId) || !req.LockComparer.AreEqual(existingLock.LockId, req.RequestLockId))
-            {
-                return new WopiLockMismatchResult(existingLock.LockId);
-            }
-            return await WriteAndAck(req.Http, req.Extensions, file, req.Editors, req.CancellationToken).ConfigureAwait(false);
+            return string.IsNullOrEmpty(requestLockId) || !comparer.AreEqual(existingLock.LockId, requestLockId)
+                ? new WopiLockMismatchResult(existingLock.LockId)
+                : null;
         }
-
-        // File is unlocked → size decides. 0-byte file is the create-new flow per spec; any
-        // other size returns 409 with X-WOPI-Lock set to the empty placeholder regardless of
-        // whether the client sent X-WOPI-Lock (an unlocked file has no lock id to surface).
-        return file.Length != 0
-            ? new WopiLockMismatchResult(existingLock: null)
-            : await WriteAndAck(req.Http, req.Extensions, file, req.Editors, req.CancellationToken).ConfigureAwait(false);
+        // Read Length only on the unlocked path. Touching it on the locked path would prime the
+        // file's metadata cache before the write, making WriteAndAck report a stale post-write
+        // version.
+        return file.Length != 0 ? new WopiLockMismatchResult(existingLock: null) : null;
     }
 
     private static async Task<Ok> WriteAndAck(HttpContext httpContext, IWopiHostExtensions extensions, IWopiWritableFile file, string? editors, CancellationToken cancellationToken)
@@ -188,8 +191,7 @@ internal static class FileMutatingEndpoints
         var requestedFullName = req.RequestedName + '.' + file.Extension;
 
         // Parent container id is the dedup scope for GetSuggestedFileName — passing the file id
-        // here is a long-standing bug that degenerates the provider into echoing the requested
-        // name back. Same fix shape as the pre-#420 PutRelativeFile correction; the storage
+        // here degenerates the provider into echoing the requested name back. The storage
         // contract is GetSuggestedFileName(CONTAINER, name).
         var ancestors = await req.Storage.GetFileAncestors(req.Id, req.CancellationToken).ConfigureAwait(false);
         var parentContainer = ancestors.LastOrDefault()
@@ -306,7 +308,7 @@ internal static class FileMutatingEndpoints
         // Mint a fresh token bound to the NEW file's resource id; reusing the inbound token
         // (scoped to the source file) violates the WOPI "preventing token trading" guidance and
         // would fail downstream authorization for any host whose tokens encode resource id.
-        // See IWopiResourceTokenMinter for the centralized mint + the #471 Infer# context.
+        // See IWopiResourceTokenMinter for the centralized mint.
         var newFileToken = await req.TokenMinter.MintForFileAsync(req.Http.User, newFile, req.CancellationToken).ConfigureAwait(false);
         return TypedResults.Json(new ChildFile(newFile.Name + '.' + newFile.Extension, req.Http.GetWopiSrc(newFile, newFileToken.Token))
         {
@@ -320,7 +322,7 @@ internal static class FileMutatingEndpoints
     /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo"/>.
     /// "The UserInfo string is provided in the body of the request, and has a maximum size of
     /// 1024 ASCII characters." Cap the read so a malicious or buggy client can't push an
-    /// unbounded body into our MemoryCache.
+    /// unbounded body into the MemoryCache.
     /// </summary>
     private const int PutUserInfoMaxBytes = 1024;
 
@@ -338,7 +340,7 @@ internal static class FileMutatingEndpoints
 
         // Bounded read: WithinLimit goes false the moment the body exceeds the spec cap mid-stream
         // (chunked transfer-encoding with no Content-Length, or clients that lie about it), so a
-        // malicious or buggy client can't push an unbounded body into our MemoryCache.
+        // malicious or buggy client can't push an unbounded body into the MemoryCache.
         var (withinLimit, bytes) = await req.Http.Request.Body.ReadBytesAsync(PutUserInfoMaxBytes, req.CancellationToken).ConfigureAwait(false);
         if (!withinLimit)
         {
@@ -408,38 +410,29 @@ internal static class FileMutatingEndpoints
         var file = await req.Storage.GetWopiFile(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
         req.Http.Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
-        return await ProcessLockCore(req.Id, req.Http, req.LockProvider, req.Options, req.LockComparer,
-            req.WopiOverrideHeader, req.OldLockIdentifier, req.NewLockIdentifier, req.CancellationToken).ConfigureAwait(false);
+        return await ProcessLockCore(req).ConfigureAwait(false);
     }
 
-    private static async Task<ProcessLockResult> ProcessLockCore(
-        string id,
-        HttpContext httpContext,
-        IWopiLockProvider? lockProvider,
-        IOptions<WopiHostOptions> options,
-        IWopiLockComparer comparer,
-        string? wopiOverrideHeader,
-        string? oldLockIdentifier,
-        string? newLockIdentifier,
-        CancellationToken cancellationToken)
+    private static async Task<ProcessLockResult> ProcessLockCore(ProcessLockRequest req)
     {
-        if (lockProvider is null)
+        if (req.LockProvider is null)
         {
             return new WopiLockMismatchResult(reason: "Locking is not supported");
         }
-        if (ValidateLockHeaders(httpContext, wopiOverrideHeader, oldLockIdentifier, newLockIdentifier) is { } headerError)
+        if (ValidateLockHeaders(req.Http, req.WopiOverrideHeader, req.OldLockIdentifier, req.NewLockIdentifier) is { } headerError)
         {
             return headerError;
         }
-        var existingLock = await lockProvider.GetLockAsync(id, cancellationToken).ConfigureAwait(false);
-        return await DispatchLockOperation(id, httpContext, lockProvider, options, comparer,
-            wopiOverrideHeader, oldLockIdentifier, newLockIdentifier, existingLock, cancellationToken).ConfigureAwait(false);
+        var op = new LockOperationRequest(
+            req.Id, req.Http, req.LockProvider, req.Options, req.LockComparer,
+            req.WopiOverrideHeader, req.OldLockIdentifier, req.NewLockIdentifier, req.CancellationToken);
+        var existingLock = await req.LockProvider.GetLockAsync(req.Id, req.CancellationToken).ConfigureAwait(false);
+        return await DispatchLockOperation(op, existingLock).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Spec validation gate: enforces lock-id max length and X-WOPI-Lock-required-for-mutation
-    /// rules <em>before</em> dispatching to the per-operation handler. Pre-#456 this lived inline
-    /// in ProcessLockCore (50-line method, two coupled guard chains). Splitting it out leaves
+    /// rules <em>before</em> dispatching to the per-operation handler. Keeping it separate leaves
     /// ProcessLockCore as a pure dispatch state machine and lets the validation rules be tested
     /// or audited in isolation.
     /// </summary>
@@ -483,23 +476,15 @@ internal static class FileMutatingEndpoints
     /// endpoint metadata, so the default arm is defense-in-depth for anyone bypassing the policy.
     /// </remarks>
     private static async Task<ProcessLockResult> DispatchLockOperation(
-        string id,
-        HttpContext httpContext,
-        IWopiLockProvider lockProvider,
-        IOptions<WopiHostOptions> options,
-        IWopiLockComparer comparer,
-        string? wopiOverrideHeader,
-        string? oldLockIdentifier,
-        string? newLockIdentifier,
-        WopiLockInfo? existingLock,
-        CancellationToken cancellationToken) => wopiOverrideHeader switch
+        LockOperationRequest op,
+        WopiLockInfo? existingLock) => op.WopiOverrideHeader switch
         {
-            WopiFileOperations.GetLock => HandleGetLock(httpContext, existingLock, options),
-            WopiFileOperations.Lock or WopiFileOperations.Put => oldLockIdentifier is null
-                ? await HandleLock(id, newLockIdentifier!, existingLock, lockProvider, comparer, cancellationToken).ConfigureAwait(false)
-                : await HandleUnlockAndRelock(id, oldLockIdentifier, newLockIdentifier!, existingLock, lockProvider, comparer, cancellationToken).ConfigureAwait(false),
-            WopiFileOperations.Unlock => await HandleUnlock(id, newLockIdentifier!, existingLock, lockProvider, comparer, cancellationToken).ConfigureAwait(false),
-            WopiFileOperations.RefreshLock => await HandleRefreshLock(newLockIdentifier!, existingLock, lockProvider, comparer, cancellationToken).ConfigureAwait(false),
+            WopiFileOperations.GetLock => HandleGetLock(op.Http, existingLock, op.Options),
+            WopiFileOperations.Lock or WopiFileOperations.Put => op.OldLockIdentifier is null
+                ? await HandleLock(op.Id, op.NewLockIdentifier!, existingLock, op.LockProvider, op.Comparer, op.CancellationToken).ConfigureAwait(false)
+                : await HandleUnlockAndRelock(op.Id, op.OldLockIdentifier, op.NewLockIdentifier!, existingLock, op.LockProvider, op.Comparer, op.CancellationToken).ConfigureAwait(false),
+            WopiFileOperations.Unlock => await HandleUnlock(op.Id, op.NewLockIdentifier!, existingLock, op.LockProvider, op.Comparer, op.CancellationToken).ConfigureAwait(false),
+            WopiFileOperations.RefreshLock => await HandleRefreshLock(op.NewLockIdentifier!, existingLock, op.LockProvider, op.Comparer, op.CancellationToken).ConfigureAwait(false),
             _ => TypedResults.StatusCode(StatusCodes.Status501NotImplemented),
         };
 
@@ -520,12 +505,10 @@ internal static class FileMutatingEndpoints
     {
         if (existingLock is not null)
         {
-            // Pre-#456 this hardcoded OrdinalWopiLockComparer.Instance, ignoring the runtime
-            // comparer threaded through ProcessLockCore. Hosts that registered a JSON-shaped
-            // comparer to absorb OOS-style lock-id mutations would silently fall back to
-            // ordinal here — locks acquired via Lock-on-existing-lock would mismatch even
-            // when the configured comparer would have considered them equal. Now uses the
-            // runtime comparer like every sibling Handle* method.
+            // Uses the runtime comparer threaded through ProcessLockCore. Hardcoding ordinal here
+            // would make hosts that registered a JSON-shaped comparer (to absorb OOS-style
+            // lock-id mutations) silently mismatch locks acquired via Lock-on-existing-lock even
+            // when the configured comparer would consider them equal.
             return await LockOrRefresh(newLockIdentifier, existingLock, lockProvider, comparer, ct).ConfigureAwait(false);
         }
         return await lockProvider.AddLockAsync(id, newLockIdentifier, ct).ConfigureAwait(false) is not null
@@ -566,8 +549,8 @@ internal static class FileMutatingEndpoints
             return new WopiLockMismatchResult(existingLock.LockId);
         }
         // Atomic compare-and-refresh: provider receives expected lock id; if a concurrent
-        // UnlockAndRelock swapped the stored id between our snapshot and this call, the refresh
-        // aborts cleanly. Pre-fix this was a check-then-act race.
+        // UnlockAndRelock swapped the stored id between the snapshot and this call, the refresh
+        // aborts cleanly (avoids a check-then-act race).
         return await lockProvider.RefreshLockAsync(existingLock.FileId, newLock, ct).ConfigureAwait(false)
             ? TypedResults.Ok()
             : new WopiLockMismatchResult(reason: "Could not refresh lock");
@@ -638,10 +621,9 @@ public sealed record RenameFileResponse(string Name);
 // IWopiLockComparer is NOT in that bucket — AddWopi() unconditionally TryAddSingleton's an
 // OrdinalWopiLockComparer (hosts override with JsonShapedWopiLockComparer if needed). The
 // service is always present in the container by the time MapWopiEndpoints runs, so the
-// parameter is plain (non-nullable, no [FromServices]). Pre-#456 the records carried
-// IWopiLockComparer? + a null-coalesce fallback at the call sites, which silently masked a
-// host's choice to register JsonShapedWopiLockComparer — every lock-compare went through
-// Ordinal even when the configured comparer was JSON-aware.
+// parameter is plain (non-nullable, no [FromServices]). Declaring it nullable with a
+// null-coalesce fallback at the call sites would silently mask a host's choice to register
+// JsonShapedWopiLockComparer, routing every lock-compare through Ordinal.
 
 /// <summary>Parameter bundle for <see cref="FileMutatingEndpoints.PutFile"/>.</summary>
 internal readonly record struct PutFileRequest(
@@ -726,4 +708,21 @@ internal readonly record struct ProcessLockRequest(
     [FromHeader(Name = WopiHeaders.WOPI_OVERRIDE)] string? WopiOverrideHeader,
     [FromHeader(Name = WopiHeaders.OLD_LOCK)] string? OldLockIdentifier,
     [FromHeader(Name = WopiHeaders.LOCK)] string? NewLockIdentifier,
+    CancellationToken CancellationToken);
+
+/// <summary>
+/// Validated lock-operation context handed to the dispatch switch once
+/// <see cref="FileMutatingEndpoints.ProcessLockCore"/> has confirmed the lock provider is present
+/// and the headers pass validation. Distinct from <see cref="ProcessLockRequest"/>: it carries no
+/// storage handle and its <see cref="LockProvider"/> is non-null.
+/// </summary>
+internal readonly record struct LockOperationRequest(
+    string Id,
+    HttpContext Http,
+    IWopiLockProvider LockProvider,
+    IOptions<WopiHostOptions> Options,
+    IWopiLockComparer Comparer,
+    string? WopiOverrideHeader,
+    string? OldLockIdentifier,
+    string? NewLockIdentifier,
     CancellationToken CancellationToken);

@@ -69,8 +69,8 @@ public class JwtAccessTokenServiceTests
     [Fact]
     public async Task Validation_Rejects_Expired_Token()
     {
-        // JwtSecurityTokenHandler's lifetime check uses wall-clock time, not our TimeProvider,
-        // so we issue a very short-lived token with zero skew and wait past it.
+        // JwtSecurityTokenHandler's lifetime check uses wall-clock time, not the TimeProvider,
+        // so the token is issued very short-lived with zero skew and the test waits past it.
         var svc = BuildService(new WopiSecurityOptions
         {
             SigningKey = JwtAccessTokenService.DeriveHmacKey("k"),
@@ -315,12 +315,12 @@ public class JwtAccessTokenServiceTests
     [Fact]
     public async Task EphemeralKey_ConcurrentFirstRequests_AllTokensValidate()
     {
-        // #420 item 2.4: the singleton-scoped service used to lazily materialize _ephemeralDevKey
-        // via a non-atomic null-check + assignment in GetSigningKey. Concurrent first callers each
-        // minted a *different* random key; whichever assignment lost the publish race signed
-        // tokens with a key the service then discarded — those tokens would fail ValidateAsync
-        // because the service holds the winning key. Lazy<T> in ExecutionAndPublication mode
-        // (the default) makes the factory run exactly once. Pin the invariant.
+        // The singleton-scoped service materializes the ephemeral dev key exactly once via
+        // Lazy<T> in ExecutionAndPublication mode (the default). A non-atomic null-check +
+        // assignment would let concurrent first callers each mint a *different* random key;
+        // whichever assignment lost the publish race would sign tokens with a key the service
+        // then discarded, and those tokens would fail ValidateAsync because the service holds
+        // the winning key.
         var svc = BuildService(new WopiSecurityOptions()); // no SigningKey/SecurityKey → ephemeral path
 
         const int concurrency = 32;

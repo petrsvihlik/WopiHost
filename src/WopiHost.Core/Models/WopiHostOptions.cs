@@ -37,8 +37,8 @@ public class WopiHostOptions : IDiscoveryOptions
     /// </para>
     /// <para>
     /// Set to <c>" "</c> (a single space) when hosting under <em>IIS in-process</em>, which strips
-    /// empty header values before they reach the wire (see issue #208). The space is technically
-    /// non-spec but is the historic workaround and what every WOPI client treats as "no lock". Also
+    /// empty header values before they reach the wire. The space is technically
+    /// non-spec but is the established workaround and what every WOPI client treats as "no lock". Also
     /// useful as an escape hatch behind any other downstream component that drops empty headers.
     /// </para>
     /// </remarks>
@@ -64,10 +64,8 @@ public class WopiHostOptions : IDiscoveryOptions
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Resolves #425 item 2.7: pre-fix the entries were stored with
-    /// <see cref="Microsoft.Extensions.Caching.Memory.CacheItemPriority.NeverRemove"/> and no
-    /// expiry, pinning per-user data indefinitely — unbounded memory in any host that sees
-    /// many distinct users. With an absolute expiry, total memory is bounded by
+    /// Without an expiry the entries would pin per-user data indefinitely — unbounded memory in
+    /// any host that sees many distinct users. With an absolute expiry, total memory is bounded by
     /// <c>UserInfoCacheLifetime × distinct-active-users</c>.
     /// </para>
     /// <para>

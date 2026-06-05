@@ -33,27 +33,20 @@ public static class ServiceCollectionExtensions
     }
     public static IServiceCollection AddWopiServer(this IServiceCollection services, IConfiguration configuration)
     {
-        // ------ add Wopi Server .Core services
-
-        // Configuration
         services.Configure<WopiHostOptions>(configuration.GetSection(WopiHostOptions.SectionName));
-        // Add file provider
-        services.AddSingleton<InMemoryFileIds>();
-        services.AddSingleton<IWopiStorageProvider, WopiFileSystemProvider>();
-        services.AddSingleton<IWopiWritableStorageProvider, WopiFileSystemProvider>();
-        // Add lock provider
+        services.AddFileSystemStorageProvider(configuration);
         services.AddSingleton<IWopiLockProvider, MemoryLockProvider.MemoryLockProvider>();
-        // Add WOPI; the validator plugs in its own IWopiHostExtensions to populate the
-        // optional CheckFileInfo URLs the Microsoft validator probes for.
+        // The validator plugs in its own IWopiHostExtensions to populate the optional
+        // CheckFileInfo URLs the Microsoft validator probes for.
         services.AddSingleton<IWopiHostExtensions, WopiValidatorExtensions>();
         services.AddWopi();
-        // Validator runs against a known fixed signing key so tests are reproducible across restarts.
+        // A fixed signing key keeps tests reproducible across restarts.
         services.ConfigureWopiSecurity(o =>
         {
             o.SigningKey = JwtAccessTokenService.DeriveHmacKey("wopi-validator-dev-key");
         });
         // Wrap the default JwtAccessTokenService so the Microsoft WOPI validator's literal-string
-        // token (configured in the GitHub workflow on master) is accepted alongside real JWTs.
+        // token is accepted alongside real JWTs.
         services.AddSingleton<JwtAccessTokenService>();
         services.AddSingleton<IWopiAccessTokenService, SentinelOrJwtAccessTokenService>();
         return services;
@@ -61,7 +54,6 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddWopiHostPages(this IServiceCollection services, IConfiguration configuration)
     {
-        // ------- add Wopi Host services
         services.Configure<DiscoveryOptions>(configuration.GetSection(DiscoveryOptions.SectionName));
         services.Configure<WopiOptions>(configuration.GetSection(WopiOptions.SectionName));
 

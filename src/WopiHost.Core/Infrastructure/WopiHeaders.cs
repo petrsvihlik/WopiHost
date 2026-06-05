@@ -30,9 +30,9 @@ public static class WopiHeaders
     /// tests that pin the spec-compliant default.
     /// </para>
     /// <para>
-    /// Hosting under IIS in-process strips empty header values before they reach the wire (see
-    /// issue #208). Hosts on that path should set <c>WopiHostOptions.EmptyLockHeaderValue = " "</c>
-    /// to opt into the historic single-space workaround.
+    /// Hosting under IIS in-process strips empty header values before they reach the wire.
+    /// Hosts on that path should set <c>WopiHostOptions.EmptyLockHeaderValue = " "</c>
+    /// to opt into the single-space workaround.
     /// </para>
     /// </remarks>
     public const string EMPTY_LOCK_VALUE = "";

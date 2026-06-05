@@ -61,10 +61,10 @@ public partial class WopiUrlGeneratorTests
     [Fact]
     public async Task GetFileUrlAsync_TemplateContainsWopiSourcePlaceholder_SubstitutesAndDoesNotAppendDuplicate()
     {
-        // Modern OOS / M365 templates carry `<wopisrc=WOPI_SOURCE&>`. Prior to the WOPI_SOURCE fix
-        // the builder would unconditionally append `&WOPISrc=...`, producing two WopiSrc params
-        // (lowercase from the substitution + uppercase from the append). The placeholder must now
-        // be auto-populated from the wopiFileUrl parameter and the unconditional append skipped.
+        // Modern OOS / M365 templates carry `<wopisrc=WOPI_SOURCE&>`. Unconditionally appending
+        // `&WOPISrc=...` would produce two WopiSrc params (lowercase from the substitution +
+        // uppercase from the append). The placeholder must be auto-populated from the wopiFileUrl
+        // parameter and the unconditional append skipped.
         const string template = "https://office.example.com/x/_vti_bin/excelserviceinternal.asmx?<ui=UI_LLCC&><wopisrc=WOPI_SOURCE&>";
         A.CallTo(() => _discoverer.GetUrlTemplateAsync("xlsm", WopiActionEnum.LegacyWebService)).ReturnsLazily(() => template);
 

@@ -173,10 +173,10 @@ public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
     [Fact]
     public async Task Dispose_AfterDisposeAsync_IsNoOp()
     {
-        // #409 item 2.12: a caller that does `await using` followed by an explicit sync Dispose
-        // (or any other cross-method redispose) must not retrigger the inner-stream close, the
-        // hasher finalization, or the metadata write. The `_disposed` flag at the top of both
-        // paths is what guarantees that — pin it cross-method.
+        // A caller that does `await using` followed by an explicit sync Dispose (or any other
+        // cross-method redispose) must not retrigger the inner-stream close, the hasher
+        // finalization, or the metadata write. The `_disposed` flag at the top of both paths
+        // guarantees that — pinned cross-method here.
         var (blob, _) = await CreateBlobAsync();
         const string payload = "cross-method-async-first";
         var bytes = Encoding.UTF8.GetBytes(payload);

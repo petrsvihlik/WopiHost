@@ -3,7 +3,7 @@
 namespace WopiHost.Validator.Models;
 
 /// <summary>
-/// Configuration object for the the WopiHost.Web application.
+/// Configuration object for the WopiHost.Web application.
 /// </summary>
 public class WopiOptions
 {
@@ -29,6 +29,4 @@ public class WopiOptions
     /// The hard-coded userId to use WopiSecurityHandler
     /// </summary>
     public string UserId { get; set; } = "Anonymous";
-
-    //TODO: create configuration sections related to host and client and group the related settings (e.g. discovery stuff and WopiUrlSettings should be together with the client)
 }

@@ -4,9 +4,11 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\WopiHost.AzureStorageProvider\WopiHost.AzureStorageProvider.csproj" />
+		<ProjectReference Include="..\WopiHost.Abstractions.Testing\WopiHost.Abstractions.Testing.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Testcontainers.Azurite" />
+		<PackageReference Include="Moq" />
 	</ItemGroup>
 	<ItemGroup>
 	  <PackageReference Update="coverlet.collector">

@@ -16,10 +16,10 @@ public static class ServiceCollectionExtensions
     /// providers is composition-root concern, not a contract the library should expose.
     /// </summary>
     /// <remarks>
-    /// Real hosts won't ship a discriminator at all — they reference one provider package and
-    /// call its typed extension directly (e.g. <c>services.AddFileSystemStorageProvider(cfg)</c>).
-    /// The enum-based switch exists here so the AppHost flag flow and Aspire orchestration can
-    /// flip providers at runtime without recompiling the sample.
+    /// Real hosts reference one provider package and call its typed extension directly
+    /// (e.g. <c>services.AddFileSystemStorageProvider(cfg)</c>). The enum-based switch exists here
+    /// so the AppHost flag flow and Aspire orchestration can flip providers at runtime without
+    /// recompiling the sample.
     /// </remarks>
     public enum SampleStorageProvider
     {

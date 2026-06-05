@@ -16,10 +16,9 @@ public static class WopiExtensions
     /// <returns>base64 encoded sha256 checksum</returns>
     /// <remarks>
     /// Uses the static <see cref="SHA256.HashDataAsync(Stream, CancellationToken)"/> one-shot
-    /// API rather than an instance-cached <see cref="SHA256"/>. A previous revision held a static
-    /// <see cref="SHA256"/> instance and called <c>ComputeHashAsync</c> on it from concurrent
-    /// CheckFileInfo requests; <see cref="SHA256"/> instance methods are not thread-safe, so that
-    /// pattern could corrupt the hash or throw under load.
+    /// API rather than an instance-cached <see cref="SHA256"/>. <see cref="SHA256"/> instance
+    /// methods are not thread-safe, so a shared instance called from concurrent CheckFileInfo
+    /// requests could corrupt the hash or throw under load.
     /// </remarks>
     public static async Task<string> GetEncodedSha256(this IWopiFile file, CancellationToken cancellationToken = default)
     {

@@ -1,4 +1,3 @@
-using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.ServiceDefaults;
@@ -8,10 +7,8 @@ using WopiHost.Web.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add service defaults from Aspire
 builder.AddServiceDefaults();
 
-// Add logging
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
@@ -25,7 +22,6 @@ builder.Services.AddRazorComponents();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<WopiAccessTokenMinter>();
 
-// Configuration
 builder.Services
     .AddOptionsWithValidateOnStart<WopiOptions>()
     .Bind(builder.Configuration.GetRequiredSection(WopiOptions.SectionName))
@@ -34,14 +30,12 @@ builder.Services
 builder.Services.AddWopiDiscovery<WopiOptions>(
     options => builder.Configuration.GetSection(DiscoveryOptions.SectionName).Bind(options));
 
-builder.Services.AddSingleton<InMemoryFileIds>();
-builder.Services.AddScoped<IWopiStorageProvider, WopiFileSystemProvider>();
+builder.Services.AddFileSystemStorageProvider(builder.Configuration);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline. The developer exception page leaks stack traces and
-// configuration values, so gate it behind the Development environment — production deployments
-// fall through to the /Error handler below.
+// The developer exception page leaks stack traces and configuration values, so gate it behind
+// the Development environment — production deployments fall through to the /Error handler below.
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -53,7 +47,6 @@ else
 
 //app.UseHttpsRedirection();
 
-// Add static files to the request pipeline
 app.UseStaticFiles();
 
 // Razor Components stamp anti-forgery metadata on each endpoint, so app.UseAntiforgery() must
@@ -64,10 +57,8 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>();
 
-// Map health check endpoints
 app.MapHealthChecks("/health");
 
-// Map default endpoints from Aspire
 app.MapDefaultEndpoints();
 
 app.Run();

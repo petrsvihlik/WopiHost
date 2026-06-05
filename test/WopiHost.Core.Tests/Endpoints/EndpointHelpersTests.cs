@@ -5,11 +5,9 @@ using WopiHost.Core.Endpoints;
 namespace WopiHost.Core.Tests.Endpoints;
 
 /// <summary>
-/// Unit tests for <see cref="EndpointHelpers.TryParseWopiSrc"/>. Relocated from the deleted
-/// WopiBootstrapperControllerTests.TryParseWopiSrc_* tests as part of the #430 phase 4 / 5
-/// migration — the parser implementation moved from the controller to EndpointHelpers in
-/// phase 3 and the tests follow it here. IssueEcosystemPointerAsync is covered by the
-/// EndpointSmokeTests integration suite (FileEcosystemPointer / ContainerEcosystemPointer).
+/// Unit tests for <see cref="EndpointHelpers.TryParseWopiSrc"/>. IssueEcosystemPointerAsync is
+/// covered by the EndpointSmokeTests integration suite (FileEcosystemPointer /
+/// ContainerEcosystemPointer).
 /// </summary>
 public class EndpointHelpersTests
 {
@@ -23,9 +21,7 @@ public class EndpointHelpersTests
     [InlineData("https://wopi.example.com/some/wopi/Files/CASE_INSENSITIVE", WopiResourceType.File, "CASE_INSENSITIVE")]
     [InlineData("https://wopi.example.com/wopi/CONTAINERS/abc", WopiResourceType.Container, "abc")]
     // Trailing-anchor wins: the path contains both an earlier "files" segment and a later
-    // "containers" segment. The current regex-based parser correctly resolves to the resource
-    // at the URL tail (containers/abc); the previous segment-scan implementation would have
-    // mis-parsed this as files/archive.
+    // "containers" segment. The parser resolves to the resource at the URL tail (containers/abc).
     [InlineData("https://wopi.example.com/files/archive/containers/abc", WopiResourceType.Container, "abc")]
     [InlineData("https://wopi.example.com/containers/parent/files/child", WopiResourceType.File, "child")]
     public void TryParseWopiSrc_ValidUrls(string url, WopiResourceType expectedType, string expectedId)
@@ -51,10 +47,10 @@ public class EndpointHelpersTests
         Assert.False(ok);
     }
 
-    // EnsureExactlyOneOf — replaces the hand-rolled mutex check used in name-negotiation
-    // endpoints (PutRelativeFile, CreateChildFile, CreateChildContainer). The spec mandates
-    // 501 — not 400 — when both targets are present OR both are absent; whitespace-only values
-    // count as absent so a header sent with an empty token doesn't sneak past the gate.
+    // EnsureExactlyOneOf is used by the name-negotiation endpoints (PutRelativeFile,
+    // CreateChildFile, CreateChildContainer). The spec mandates 501 — not 400 — when both
+    // targets are present OR both are absent; whitespace-only values count as absent so a
+    // header sent with an empty token doesn't sneak past the gate.
     [Theory]
     [InlineData(null, null)]
     [InlineData("", "")]

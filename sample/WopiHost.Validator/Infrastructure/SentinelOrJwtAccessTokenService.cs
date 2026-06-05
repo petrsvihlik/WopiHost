@@ -12,10 +12,8 @@ namespace WopiHost.Validator.Infrastructure;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The Microsoft WOPI validator harness in <c>.github/workflows/wopi-validator.yml</c> is
-/// configured (on the master branch) to pass the literal string <c>"Anonymous"</c> as
-/// <c>--token</c>. The <c>pull_request_target</c> trigger uses the workflow from master, so
-/// until that file is updated we need the host to accept that sentinel — otherwise
+/// The Microsoft WOPI validator harness passes the literal string <c>"Anonymous"</c> as
+/// <c>--token</c>, so the host must accept that sentinel — otherwise
 /// CheckFileInfo returns 401 on every WOPI test and nothing runs.
 /// </para>
 /// <para>

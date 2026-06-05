@@ -128,7 +128,7 @@ internal static class FileEndpoints
 
         var ancestors = await req.Storage.GetFileAncestors(req.Id, req.CancellationToken).ConfigureAwait(false);
         // Mint a fresh container-scoped token per ancestor URL — see IWopiResourceTokenMinter
-        // for the token-trading prevention rationale and the #471 Infer# context.
+        // for the token-trading prevention rationale.
         var children = new List<ChildContainer>();
         foreach (var ancestor in ancestors)
         {

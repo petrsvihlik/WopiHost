@@ -49,7 +49,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton<BlobIdMap>();
 
-        services.AddSingleton(sp =>
+        services.TryAddSingleton(sp =>
         {
             var opts = sp.GetRequiredService<IOptions<WopiAzureStorageProviderOptions>>().Value;
             BlobServiceClient serviceClient;
@@ -65,9 +65,11 @@ public static class ServiceCollectionExtensions
             return serviceClient.GetBlobContainerClient(opts.ContainerName);
         });
 
-        services.AddSingleton<WopiAzureStorageProvider>();
-        services.AddSingleton<IWopiStorageProvider>(sp => sp.GetRequiredService<WopiAzureStorageProvider>());
-        services.AddSingleton<IWopiWritableStorageProvider>(sp => sp.GetRequiredService<WopiAzureStorageProvider>());
+        // TryAdd: a host registering its own provider (or BlobContainerClient) first wins, and a
+        // repeat call no-ops instead of double-registering.
+        services.TryAddSingleton<WopiAzureStorageProvider>();
+        services.TryAddSingleton<IWopiStorageProvider>(sp => sp.GetRequiredService<WopiAzureStorageProvider>());
+        services.TryAddSingleton<IWopiWritableStorageProvider>(sp => sp.GetRequiredService<WopiAzureStorageProvider>());
 
         return services;
     }
