@@ -21,6 +21,7 @@ permissions:
   pull-requests: write
   issues: write
   actions: read
+  id-token: write # required: the Claude GitHub App fetches a GitHub OIDC token to authenticate
 
 jobs:
   approve:
@@ -48,10 +49,9 @@ jobs:
           # billing. Swap for `anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}`
           # to bill the API instead.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # Use the workflow's own token for GitHub API ops (posting the review). This
-          # skips the action's default OIDC -> Claude-GitHub-App token exchange, which
-          # would otherwise require `id-token: write` plus the app installed on the repo.
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # GitHub API auth (posting the review) is handled by the Claude GitHub App via
+          # the OIDC token (id-token: write above). The app must be installed on the repo:
+          # https://github.com/apps/claude
           # Informational: posts review comments, never fails the check.
           prompt: |
             Review this pull request against the conventions in CLAUDE.md.
