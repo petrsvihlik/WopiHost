@@ -61,12 +61,13 @@ public interface IDiscoverer
     Task<bool>    SupportsExtensionAsync(string extension);
     Task<bool>    SupportsActionAsync(string extension, WopiActionEnum action);
     Task<IEnumerable<string>> GetActionRequirementsAsync(string extension, WopiActionEnum action);
-    Task<bool>    RequiresCobaltAsync(string extension, WopiActionEnum action);
     Task<string?> GetApplicationNameAsync(string extension);
     Task<Uri?>    GetApplicationFavIconAsync(string extension);
     Task<WopiProofKeys> GetProofKeysAsync();
 }
 ```
+
+`RequiresCobaltAsync(extension, action)` is callable on any `IDiscoverer` too, but it's an extension method (`IDiscovererExtensions`), not an interface member.
 
 `GetProofKeysAsync` returns the public keys used by [`WopiProofValidator`](../WopiHost.Core/Security/WopiProofValidator.cs) to verify the `X-WOPI-Proof` header. Don't call it directly unless you're implementing your own proof validation.
 

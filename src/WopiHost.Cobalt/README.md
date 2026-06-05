@@ -51,7 +51,7 @@ If you prefer direct DI, the package exposes a single concrete: register `Cobalt
 services.AddSingleton<ICobaltProcessor, CobaltProcessor>();
 ```
 
-When `ICobaltProcessor` is in the container, `WopiHost.Core`'s `FilesController` flips `WopiHostCapabilities.SupportsCobalt = true` automatically, so the WOPI client knows to use it.
+When `ICobaltProcessor` is in the container, `WopiHost.Core`'s file endpoints flip `WopiHostCapabilities.SupportsCobalt = true` automatically, so the WOPI client knows to use it.
 
 ## Configuration
 
@@ -72,16 +72,16 @@ When `ICobaltProcessor` is in the container, `WopiHost.Core`'s `FilesController`
 public interface ICobaltProcessor
 {
     Task<byte[]> ProcessCobalt(
-        IWopiFile file,
+        IWopiWritableFile file,
         ClaimsPrincipal principal,
         byte[] newContent,
         CancellationToken cancellationToken = default);
 }
 ```
 
-`FilesController` invokes this from the [`POST /wopi/files/{id}` with `X-WOPI-Override: COBALT`](https://learn.microsoft.com/openspecs/sharepoint_protocols/ms-fsshttp/) handler. Each call deserializes the request batch, executes it against the `CobaltFile` for that WOPI file, flushes content via `IWopiFile.GetWriteStream()` when there's a `PutChangesRequest` for the content partition, and returns the serialized response batch.
+The `COBALT`-override file endpoint ([`POST /wopi/files/{id}` with `X-WOPI-Override: COBALT`](https://learn.microsoft.com/openspecs/sharepoint_protocols/ms-fsshttp/)) invokes this. Each call deserializes the request batch, executes it against the `CobaltFile` for that WOPI file, flushes content via `IWopiWritableFile.OpenWriteAsync()` when there's a `PutChangesRequest` for the content partition, and returns the serialized response batch.
 
-The Cobalt protocol is stateful (schema/exclusive locks, edit deltas, co-authoring metadata), so `CobaltProcessor` keeps a long-lived `CobaltFile` per WOPI file id in a `ConcurrentDictionary` and evicts idle sessions on a periodic timer (60-minute idle timeout). The first call for a file id reads the file content via `IWopiFile.GetReadStream()` to seed the session; subsequent calls reuse it.
+The Cobalt protocol is stateful (schema/exclusive locks, edit deltas, co-authoring metadata), so `CobaltProcessor` keeps a long-lived `CobaltFile` per WOPI file id in a `ConcurrentDictionary` and evicts idle sessions on a periodic timer (60-minute idle timeout). The first call for a file id reads the file content via `IWopiFile.OpenReadAsync()` to seed the session; subsequent calls reuse it.
 
 ## License
 

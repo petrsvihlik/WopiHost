@@ -21,7 +21,7 @@ Three runnable samples + a folder of test documents. The recommended way to laun
 | `Sample:StorageProvider` | `"FileSystem"` | Sample-local discriminator picking which storage provider's typed extension to call. Values: `FileSystem` ([src/WopiHost.FileSystemProvider](../src/WopiHost.FileSystemProvider/README.md)) or `Azure` ([src/WopiHost.AzureStorageProvider](../src/WopiHost.AzureStorageProvider/README.md)). Lives in the sample only — real hosts reference one provider package and call its typed extension directly. |
 | `Wopi:StorageProvider:RootPath` | `"../wopi-docs"` | Root of the directory tree the file-system provider exposes. |
 | `Sample:LockProvider` | `"Memory"` | Sample-local lock-provider discriminator. Values: `Memory`, `Azure`, `Redis` — see the per-provider READMEs. |
-| `Wopi:UseCobalt` | `false` | Reflectively register [WopiHost.Cobalt](../src/WopiHost.Cobalt/README.md) when `true`. Requires a private `Microsoft.CobaltCore` package. |
+| `Wopi:UseCobalt` | `false` | Registers [WopiHost.Cobalt](../src/WopiHost.Cobalt/README.md) when `true`. Requires a private `Microsoft.CobaltCore` package. |
 | `Wopi:ClientUrl` | `"https://ffc-onenote.officeapps.live.com"` | Base URI of the WOPI client (Office Online Server / M365 for the Web / Collabora). Used by discovery. The AppHost overrides this to `http://localhost:9980` when run with `AppHost:UseCollabora=true` — see [End-to-end editing with Collabora Online](https://github.com/petrsvihlik/WopiHost/wiki/Collabora-Online) on the wiki. |
 
 ### `WopiHost.Web` ([appsettings.json](WopiHost.Web/appsettings.json))
@@ -58,7 +58,7 @@ After cloning [Microsoft/wopi-validator-core](https://github.com/Microsoft/wopi-
 ```bash
 dotnet run --project src/WopiValidator/WopiValidator.csproj --framework net10.0 \
   -s -e OfficeOnline \
-  -w http://localhost:28752/wopi/files/Llx0ZXN0LndvcGl0ZXN0 \
+  -w http://localhost:28752/wopi/files/WOPITEST \
   -t Anonymous \
   -l 0
 ```
