@@ -102,6 +102,22 @@ public class BlobIdMapTests
     }
 
     [Fact]
+    public void Update_UnknownId_RegistersFreshMapping()
+    {
+        // Update on an id the map hasn't seen has no stale reverse entry to drop, so it just
+        // installs the forward + reverse mapping fresh (rather than throwing).
+        var map = NewMap();
+        var id = BlobIdMap.IdFromPath("never-added.txt");
+
+        map.Update(id, "now-here.txt");
+
+        Assert.True(map.TryGetPath(id, out var path));
+        Assert.Equal("now-here.txt", path);
+        Assert.True(map.TryGetFileId("now-here.txt", out var roundTrip));
+        Assert.Equal(id, roundTrip);
+    }
+
+    [Fact]
     public void ScanAll_EmptyEnumeration_RegistersOnlyRoot()
     {
         var map = NewMap();
