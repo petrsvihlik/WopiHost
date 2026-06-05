@@ -8,7 +8,8 @@ using WopiHost.Abstractions;
 namespace WopiHost.FileSystemProvider;
 
 /// <summary>
-/// Provides files and folders based on a base64-encoded paths.
+/// Provides files and folders from a local directory tree, addressing each resource by a
+/// deterministic SHA-256 hash of its canonical path (see <see cref="InMemoryFileIds"/>).
 /// </summary>
 public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorageProvider
 {
