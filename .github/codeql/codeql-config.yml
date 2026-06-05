@@ -1,14 +1,11 @@
 name: WopiHost CodeQL config
 
-# Scope the scan to first-party source. The default scan produced ~85% noise from:
-#   - artifacts/** — generated build output (source generators: Regex/OpenApi, Razor, xunit entry
-#     points). Never hand-written, never shipped as source.
-#   - test/** — test-only nits (resource disposal in short-lived test procs, useless upcasts,
-#     broad catches in fixtures). Low value and not shipped.
-# Excluding them leaves the real signal in src/, sample/, and infra/.
-paths-ignore:
-  - 'artifacts/**'
-  - 'test/**'
-
+# Enables the broader security-and-quality query suite (the default is security only).
+#
+# Note on noise from artifacts/** (generated source: Regex/OpenApi generators) and test/**:
+# `paths-ignore` does NOT work for compiled languages — CodeQL analyzes whatever the build
+# compiles and ignores location filters for C#/Java/Go/C++ (only JS/TS, Python, Ruby honor it).
+# Those non-shipping alerts are therefore handled by dismissing them in the Security tab
+# (durable across rescans), not by a path filter here.
 queries:
   - uses: security-and-quality
