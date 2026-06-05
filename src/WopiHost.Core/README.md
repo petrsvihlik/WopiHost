@@ -3,7 +3,7 @@
 [![NuGet](https://img.shields.io/nuget/v/WopiHost.Core.svg)](https://www.nuget.org/packages/WopiHost.Core)
 [![NuGet](https://img.shields.io/nuget/dt/WopiHost.Core.svg)](https://www.nuget.org/packages/WopiHost.Core)
 
-The WOPI server: ASP.NET Core controllers, authentication, authorization, proof-key validation, and the access-token pipeline. Reference this package in your host along with a storage provider (e.g. [WopiHost.FileSystemProvider](../WopiHost.FileSystemProvider/README.md)) and a lock provider (e.g. [WopiHost.MemoryLockProvider](../WopiHost.MemoryLockProvider/README.md)).
+The WOPI server: ASP.NET Core Minimal-API endpoints, authentication, authorization, proof-key validation, and the access-token pipeline. Reference this package in your host along with a storage provider (e.g. [WopiHost.FileSystemProvider](../WopiHost.FileSystemProvider/README.md)) and a lock provider (e.g. [WopiHost.MemoryLockProvider](../WopiHost.MemoryLockProvider/README.md)).
 
 ## Install
 
@@ -139,7 +139,7 @@ WOPI uses a small set of routes; verb + `X-WOPI-Override` header pick the operat
 │         enforced — WOPI tokens are session-scoped; layer a custom      │
 │         IAuthorizationHandler if you need strict per-resource binding) │
 │                                                                        │
-│  Controller runs (IWopiPermissionProvider also called for CheckFileInfo│
+│  Endpoint handler runs (IWopiPermissionProvider also called for CheckFileInfo│
 │      to populate UserCan* response flags)                              │
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -292,7 +292,7 @@ If the customization needs scoped services that don't fit the hook's context sha
 
 ## Upload-size budget
 
-Reject oversize uploads at the controller before the body is read:
+Reject oversize uploads in the endpoint before the body is read:
 
 ```csharp
 services.AddWopi(o =>
@@ -301,7 +301,7 @@ services.AddWopi(o =>
 });
 ```
 
-`PutFile` checks `Content-Length`; `PutRelativeFile` also honors the declared `X-WOPI-Size`. When the budget is exceeded the controller returns `413 Request Entity Too Large` (a valid response per the WOPI spec) without invoking the storage provider. The underlying server's request-size limits still apply on top.
+`PutFile` checks `Content-Length`; `PutRelativeFile` also honors the declared `X-WOPI-Size`. When the budget is exceeded the endpoint returns `413 Request Entity Too Large` (a valid response per the WOPI spec) without invoking the storage provider. The underlying server's request-size limits still apply on top.
 
 ## Empty `X-WOPI-Lock` placeholder
 
@@ -347,10 +347,10 @@ app.MapMyAdminEndpoints();   // your non-WOPI endpoints
 
 ## Lock-aware writable storage (defense in depth)
 
-`services.AddWopiLockAwareWritableStorage()` wraps the registered `IWopiWritableStorageProvider` so that the delete/rename pairs (`DeleteWopiFile`, `DeleteWopiContainer`, `RenameWopiFile`, `RenameWopiContainer`) consult `IWopiLockProvider` first and throw `WopiResourceLockedException` when the target is locked. The WOPI controllers already short-circuit on locks before reaching the storage layer, so on the hot path this decorator is redundant — it earns its keep when:
+`services.AddWopiLockAwareWritableStorage()` wraps the registered `IWopiWritableStorageProvider` so that the delete/rename pairs (`DeleteWopiFile`, `DeleteWopiContainer`, `RenameWopiFile`, `RenameWopiContainer`) consult `IWopiLockProvider` first and throw `WopiResourceLockedException` when the target is locked. The WOPI endpoints already short-circuit on locks before reaching the storage layer, so on the hot path this decorator is redundant — it earns its keep when:
 
 - non-WOPI code paths in the same host (admin tools, batch jobs, REST APIs) resolve `IWopiWritableStorageProvider` directly and would otherwise clobber a locked file
-- a future controller refactor accidentally drops the lock check
+- a future endpoint refactor accidentally drops the lock check
 
 ```csharp
 services.AddWopi(...);
