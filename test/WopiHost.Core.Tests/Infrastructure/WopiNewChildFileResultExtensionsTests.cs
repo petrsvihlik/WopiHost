@@ -44,10 +44,10 @@ public class WopiNewChildFileResultExtensionsTests
         var actionResult = result.ToErrorResult(_response);
 
         Assert.IsType<Conflict>(actionResult);
-        Assert.True(_response.Headers.ContainsKey(WopiHeaders.ValidRelativeTarget));
+        Assert.True(_response.Headers.TryGetValue(WopiHeaders.ValidRelativeTarget, out var target));
         // Header value is UTF-7 encoded per the WOPI spec — the round-trip is asserted in
         // UtfStringTests; this only checks the header was set with non-empty content.
-        Assert.NotEmpty(_response.Headers[WopiHeaders.ValidRelativeTarget].ToString());
+        Assert.NotEmpty(target.ToString());
     }
 
     [Fact]
