@@ -25,6 +25,22 @@
 		<RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
 	</PropertyGroup>
 
+	<!-- WopiHost.Cobalt depends on the proprietary Microsoft.CobaltCore package, restored from a
+	     private GitHub Packages feed that needs COBALT_PACKAGES_TOKEN. Gate the whole Cobalt
+	     surface on availability so a fork / external clone with no access still builds the rest of
+	     the solution. Available when either the feed is authenticated (the token is set, e.g. on
+	     CI) or the package is already in the local NuGet cache (a maintainer who restored it once).
+	     Force either way with -p:IncludeCobalt=true|false. nuget.config maps the cobalt feed to
+	     Microsoft.CobaltCore only, so omitting that package means restore never touches the feed. -->
+	<PropertyGroup>
+		<_CobaltPackagesRoot Condition="'$(NUGET_PACKAGES)' != ''">$(NUGET_PACKAGES)</_CobaltPackagesRoot>
+		<_CobaltPackagesRoot Condition="'$(_CobaltPackagesRoot)' == '' and '$(USERPROFILE)' != ''">$(USERPROFILE)\.nuget\packages</_CobaltPackagesRoot>
+		<_CobaltPackagesRoot Condition="'$(_CobaltPackagesRoot)' == '' and '$(HOME)' != ''">$(HOME)/.nuget/packages</_CobaltPackagesRoot>
+		<IncludeCobalt Condition="'$(IncludeCobalt)' == '' and '$(COBALT_PACKAGES_TOKEN)' != ''">true</IncludeCobalt>
+		<IncludeCobalt Condition="'$(IncludeCobalt)' == '' and '$(_CobaltPackagesRoot)' != '' and Exists('$(_CobaltPackagesRoot)/microsoft.cobaltcore')">true</IncludeCobalt>
+		<IncludeCobalt Condition="'$(IncludeCobalt)' == ''">false</IncludeCobalt>
+	</PropertyGroup>
+
 	<!-- Non-packable projects (samples, infra, tests): silence CS1591 since they don't
 	     ship to consumers and don't need XML docs on every public member. -->
 	<PropertyGroup Condition="$(IsPackable) != 'true' OR $(PackageId) == ''">

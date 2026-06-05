@@ -2,6 +2,12 @@
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
 	</PropertyGroup>
+	<!-- These tests exercise the proprietary Cobalt types; when Microsoft.CobaltCore isn't available
+	     the project (like WopiHost.Cobalt itself) builds as a no-op so the solution stays green on a
+	     fork / external clone. See $(IncludeCobalt) in the root Directory.Build.props. -->
+	<PropertyGroup Condition="'$(IncludeCobalt)' != 'true'">
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+	</PropertyGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\..\src\WopiHost.Cobalt\WopiHost.Cobalt.csproj" />
 	</ItemGroup>

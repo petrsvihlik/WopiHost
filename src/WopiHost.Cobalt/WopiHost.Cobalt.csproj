@@ -37,8 +37,15 @@
     <ProjectReference Include="..\WopiHost.Abstractions\WopiHost.Abstractions.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(IncludeCobalt)' == 'true'">
     <PackageReference Include="Microsoft.CobaltCore" VersionOverride="16.0.19725.20210" />
   </ItemGroup>
+
+  <!-- Every source file here needs the proprietary Microsoft.CobaltCore types, so when the package
+       isn't available the project builds as a no-op (only SDK-generated assembly attributes compile).
+       Consumers reference it conditionally on $(IncludeCobalt), so nothing depends on the empty output. -->
+  <PropertyGroup Condition="'$(IncludeCobalt)' != 'true'">
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
 
 </Project>
