@@ -45,7 +45,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: csharp
-          queries: security-and-quality
+          config-file: ./.github/codeql/codeql-config.yml
 
       - name: Restore dependencies
         run: dotnet restore WOPI.slnx
