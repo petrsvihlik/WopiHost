@@ -25,6 +25,12 @@ run is faster and sharper. Keep entries earning their place; prune ones that sto
   (ports, file paths, lifetimes). *(2026-06-05: CLAUDE.md said backend `:5000`, code uses `:5050`.)*
 - **Spec cross-check by operation.** For each WOPI operation, open its Microsoft Learn page and walk
   the required headers / status codes against the handler — exact strings matter.
+- **Doc-symbol grep (docs accuracy).** Pull every type/interface/method/namespace/config-key a doc
+  (wiki page or README) names and grep the codebase for each — an unresolved reference is drift.
+  Fast high-yield variant: grep all docs for known removed/renamed symbols at once. *(The 2026-06-05
+  doc pass caught most issues with `FilesController`, `GetReadStream`, `GetWriteStream`, `Hex-MD5`,
+  "not across restarts", and "`Expired` flag".)* After any breaking rename/removal, add the old
+  symbol to this grep list so the docs are re-checked for it next run.
 
 ## Noisy leads — interpret, don't auto-file
 

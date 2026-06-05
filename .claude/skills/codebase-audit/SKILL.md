@@ -95,8 +95,14 @@ the whole codebase in one pass.
 2. **Parallel area scans.** Fan out one reviewer per area; each covers *all* dimensions for its
    slice. Areas: `src/WopiHost.Core` + `src/WopiHost.Abstractions`; the storage/lock providers
    (`*Provider`); `src/WopiHost.Discovery` + `Url` + `Cobalt`; `sample/` frontends; `infra/`;
-   `test/`. Give each reviewer `references/dimensions.md` (the per-dimension checklist) and the
-   do-not-re-file ledger, and have it return candidate findings with `file:line` anchors.
+   `test/`; and **docs** (the wiki + every README). Give each reviewer `references/dimensions.md`
+   (the per-dimension checklist) and the do-not-re-file ledger, and have it return candidate findings
+   with `file:line` anchors.
+   - The **docs reviewer** first runs `scripts/fetch-wiki.sh` to clone the wiki (a separate repo),
+     then verifies the wiki + READMEs against the current API per dimension 11 — every type/member/
+     config-key a doc names must resolve in source. This is the load-bearing guard for "superbly
+     accurate docs"; post-migration staleness (controllers, old stream-method names, old id scheme)
+     is the usual culprit.
    - If subagents/Workflow are available, this is a natural fan-out (the past audits used "four
      parallel scans"). If not, walk the areas sequentially.
 
