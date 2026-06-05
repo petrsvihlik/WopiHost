@@ -71,8 +71,14 @@ public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>
     public async Task Invalidate()
     {
         await _syncLock.WaitAsync().ConfigureAwait(false);
-        _value = default;
-        _syncLock.Release();
+        try
+        {
+            _value = default;
+        }
+        finally
+        {
+            _syncLock.Release();
+        }
     }
 
     /// <summary>

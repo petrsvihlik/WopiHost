@@ -182,4 +182,36 @@ public class BlobIdMapTests
         Assert.False(map.TryGetFileId("orphan.txt", out _));
         Assert.True(map.TryGetFileId("fresh.txt", out _));
     }
+
+    [Fact]
+    public async Task Concurrent_AddAndRemove_LeavesMapsConsistent()
+    {
+        // BlobIdMap is a shared singleton hit by concurrent request paths. Stress the compound
+        // rebinds: one worker keeps adding a path, another keeps removing it. Whatever the
+        // interleaving, the forward and reverse maps must stay consistent (no dangling reverse
+        // entry, no torn-state exception). Pre-fix (plain Dictionary, no lock) this corrupts.
+        var map = NewMap();
+        const int rounds = 500;
+        const string path = "folder/shared.docx";
+
+        var add = Task.Run(() =>
+        {
+            for (var i = 0; i < rounds; i++) map.Add(path);
+        });
+        var remove = Task.Run(() =>
+        {
+            for (var i = 0; i < rounds; i++)
+            {
+                if (map.TryGetFileId(path, out var id)) map.Remove(id);
+            }
+        });
+        await Task.WhenAll(add, remove);
+
+        // Every id still present must round-trip through the reverse map and back.
+        if (map.TryGetFileId(path, out var finalId))
+        {
+            Assert.True(map.TryGetPath(finalId, out var roundTrip));
+            Assert.Equal(path, roundTrip);
+        }
+    }
 }
