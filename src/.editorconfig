@@ -16,3 +16,9 @@ dotnet_diagnostic.CA2007.severity = warning
 # Off globally for the xunit test-naming convention (root .editorconfig); re-enabled here so
 # externally-visible names in the shipped libraries stay underscore-free.
 dotnet_diagnostic.CA1707.severity = warning
+
+# CA1056: Uri properties should not be strings
+# The libraries already model every URL property as System.Uri (CheckFileInfo, CheckFolderInfo,
+# provider options, …) — enforce it so a future string-typed URL property on the public surface
+# fails the build instead of silently regressing the typing.
+dotnet_diagnostic.CA1056.severity = warning

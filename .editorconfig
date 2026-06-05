@@ -20,9 +20,9 @@ dotnet_diagnostic.CA1822.severity = silent
 
 
 # CA1056: Uri properties should not be strings
-# WOPI surfaces many URLs as plain strings (WopiSrc, host/client URLs, action URLs) because they
-# flow to and from JSON payloads, headers, and config as strings; wrapping each in System.Uri adds
-# conversions with no safety win. Kept as a hint rather than enforced.
+# The shipped libraries already model URL properties as System.Uri (CheckFileInfo etc.); CA1056 is
+# enforced at warning in src/.editorconfig to keep it that way. Left as a hint here so sample / test /
+# infra code (which may bind string URLs from config) isn't held to it.
 dotnet_diagnostic.CA1056.severity = suggestion
 
 # CA1819: Properties should not return arrays
