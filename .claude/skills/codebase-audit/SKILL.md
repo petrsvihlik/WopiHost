@@ -51,6 +51,16 @@ correct in principle but nobody would thank you for it," **drop it**. A short li
 the goal; padding it with debatable nits trains the reader to ignore the whole report. When unsure
 whether a fix is a net improvement, leave it out rather than hedge.
 
+**Bias toward subtractive fixes.** The repo is in API stabilization, so the audit favors *removing*
+complexity over adding it. A finding whose remediation **deletes** something — an abstraction that
+earns nothing, a one-implementation interface, a wrapper that only forwards, a flag nothing reads,
+defensive code for an impossible state — is worth more than one that introduces a type, layer, or
+indirection. Be actively skeptical of any candidate whose fix is "introduce a new X" (a value type,
+a factory, a base class, an options bag): that's a lateral move at best, and during stabilization
+it's churn. The typed-id wrapper proposals (`WopiResourceId` / `WopiLockToken`, #514/#515) were
+exactly this and were closed *not planned* — the audit must **never re-propose them**, and should
+instead hunt for the *opposite*: existing over-engineering to simplify away (dimension 12).
+
 ### Do NOT flag — "fixes" that would factually worsen the codebase
 
 These are anti-findings: recommending them makes the code *worse*. Each has been correctly rejected
@@ -62,9 +72,12 @@ in this repo before — don't resurface them.
 - **Micro-optimizing cold paths into contortions.** Avoiding a trivial allocation on a
   cached / startup / 12h-refresh path via span gymnastics or a clever one-liner. Clarity wins where
   performance doesn't matter.
-- **Premature abstraction / wrapper types with no safety gain.** A value type, factory, or
-  indirection that adds ceremony without preventing a real, plausible bug. (Typed ids here are a
-  deliberate, separately-tracked design decision — not a drive-by smell.)
+- **Proposing premature abstraction / wrapper types with no safety gain.** Never file "introduce a
+  value type / factory / interface / indirection" unless it prevents a real, plausible bug that
+  exists *today*. A preventive-only wrapper that adds ceremony is an anti-finding. (Typed
+  `WopiResourceId` / `WopiLockToken` value types were evaluated and **rejected** — #514/#515 closed
+  not-planned; do not resurface them.) The *inverse* is a real finding: an abstraction that already
+  exists and earns nothing should be flagged for **removal** — that's dimension 12, not this.
 - **Code-moving extractions with no readability gain — and real risk.** Splitting a clear linear
   pipeline just to shorten a method. Extractions can introduce subtle bugs (eagerly touching
   `file.Length` before a write once primed a stale version cache and broke a validator test).
@@ -120,8 +133,11 @@ the whole codebase in one pass.
 
 See `references/dimensions.md` for the dimension checklist (WOPI spec compliance, leaky
 abstractions, architectural inconsistencies, duplication, refactoring, .NET/Minimal-API idiom,
-security, performance, tech debt, test-coverage gaps) — each with the concrete patterns earlier
-audits actually found, so a new run knows what "good" looks like here.
+security, performance, tech debt, test-coverage gaps, documentation accuracy, **over-engineering /
+simplification**) — each with the concrete patterns earlier audits actually found, so a new run
+knows what "good" looks like here. Dimension 12 (over-engineering) is the subtractive counterpart to
+the rest: its findings *remove* complexity rather than add it, and it's where the typed-id-style
+"introduce a wrapper" instinct gets inverted into "delete the wrapper that earns nothing."
 
 ## Severity
 

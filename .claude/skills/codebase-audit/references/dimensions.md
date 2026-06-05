@@ -156,3 +156,48 @@ For each doc claim, verify against source before trusting it:
 Report each as `Doc page:line | what the doc says → what the code is → fix`, with the source
 file:line you verified against. Wiki fixes are pushed to the `.wiki.git` repo; README fixes go
 through the normal repo PR flow.
+
+## 12. Over-engineering & simplification (Medium/Low — the subtractive dimension)
+
+The counterpart to every other dimension: instead of asking "what's missing or wrong," ask **"what's
+here that earns nothing and could be deleted?"** Every finding here *removes* code. The repo is in
+API stabilization and values a small, honest surface, so an abstraction that doesn't pay for itself
+is a liability. This is the dimension that would have flagged the typed-id wrappers — and it's the
+one that must **never** recommend *adding* a wrapper/type/layer (that's the anti-finding in SKILL.md).
+
+The net-value bar applies with full force, and the danger here is the *opposite* over-reach: not
+everything indirect is over-engineered. A finding ships only if removing the construct is
+**unambiguously safe and clearer** — nothing real depends on it, no plausible near-term need, and it
+isn't load-bearing public contract. When in doubt, it's load-bearing; leave it.
+
+Patterns that are genuinely over-engineered here:
+
+- **Wrapper / value types that only forward.** A type around a primitive whose whole body is
+  `ToString()` + an implicit operator, adding no validation and preventing no real bug → the construct
+  itself is the smell; the fix is to keep the primitive. (Typed ids #514/#515 — closed not-planned;
+  see ledger. Don't re-propose; *do* flag any such wrapper that ever lands.)
+- **Single-implementation indirection with no seam need.** An interface / abstract base / factory /
+  strategy with exactly one impl, no test double, and no DI substitution → inline it. **Caveat:** most
+  interfaces here are deliberate DI seams or public `Abstractions` contracts (the provider model is
+  intentionally swappable — see CLAUDE.md); only flag indirection that genuinely earns nothing.
+- **Pass-through layers.** A class/method that only delegates to another with no added behavior,
+  logging, or adaptation → collapse the layer.
+- **Speculative generality.** A generic type param, `virtual`/`abstract` member, event, or extension
+  point with zero or one user and no concrete second case in sight → make it concrete.
+- **Dead configurability.** An options property / flag / setting that nothing reads, or is always set
+  to one value in every path → delete it. (Distinguish from the ledger's *intentional* aspirational
+  OTel placeholders.)
+- **Defensive code for impossible states.** Null checks on a non-nullable the compiler already
+  guarantees; re-validating input already validated upstream; catch-rethrow that changes nothing.
+- **Construct heavier than the job.** A builder chain / reflection / dynamic dispatch where a literal
+  or a direct call is clearer and equivalent.
+
+**Removal-cost guard (do not skip):** before filing, confirm the deletion isn't a breaking change to
+a NuGet-packaged library's public API (package-validation baseline `8.0.0`) — `CollectionExtensions.
+Merge` is unused but unremovable for exactly this reason (see ledger). Unused public surface in
+**non-packaged** assemblies (samples, `infra/`, tests) is freely deletable; in packaged `src/*`
+libraries it is not. Note the constraint in the finding rather than blindly recommending `delete`.
+
+Report each as: the construct, its `file:line`, why it earns nothing, and the subtractive remediation
+(`inline` / `collapse` / `delete` / `replace with literal`) — plus the removal-cost note if it's
+public API.
