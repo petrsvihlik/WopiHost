@@ -69,7 +69,7 @@
 	     do it in its own dedicated PR, not bundled with API changes. -->
 	<PropertyGroup Condition="$(IsPackable) == 'true' AND $(PackageId) != ''">
 		<EnablePackageValidation>true</EnablePackageValidation>
-		<PackageValidationBaselineVersion>8.0.0</PackageValidationBaselineVersion>
+		<PackageValidationBaselineVersion>9.0.0</PackageValidationBaselineVersion>
 	</PropertyGroup>
 	
 	<ItemGroup Condition="!$(MSBuildProjectName.EndsWith('Tests'))">
