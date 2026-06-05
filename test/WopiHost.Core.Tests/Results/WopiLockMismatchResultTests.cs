@@ -23,8 +23,8 @@ public class WopiLockMismatchResultTests
         await result.ExecuteAsync(ctx);
 
         Assert.Equal(StatusCodes.Status409Conflict, ctx.Response.StatusCode);
-        Assert.Equal(WopiHeaders.EMPTY_LOCK_VALUE, ctx.Response.Headers[WopiHeaders.LOCK].ToString());
-        Assert.False(ctx.Response.Headers.ContainsKey(WopiHeaders.LOCK_FAILURE_REASON));
+        Assert.Equal(WopiHeaders.EmptyLockValue, ctx.Response.Headers[WopiHeaders.Lock].ToString());
+        Assert.False(ctx.Response.Headers.ContainsKey(WopiHeaders.LockFailureReason));
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class WopiLockMismatchResultTests
 
         await result.ExecuteAsync(ctx);
 
-        Assert.Equal("abc-123", ctx.Response.Headers[WopiHeaders.LOCK].ToString());
+        Assert.Equal("abc-123", ctx.Response.Headers[WopiHeaders.Lock].ToString());
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class WopiLockMismatchResultTests
 
         await result.ExecuteAsync(ctx);
 
-        Assert.Equal("Lock changed concurrently", ctx.Response.Headers[WopiHeaders.LOCK_FAILURE_REASON].ToString());
+        Assert.Equal("Lock changed concurrently", ctx.Response.Headers[WopiHeaders.LockFailureReason].ToString());
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class WopiLockMismatchResultTests
 
         await result.ExecuteAsync(ctx);
 
-        Assert.Equal(" ", ctx.Response.Headers[WopiHeaders.LOCK].ToString());
+        Assert.Equal(" ", ctx.Response.Headers[WopiHeaders.Lock].ToString());
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class WopiLockMismatchResultTests
         var services = new ServiceCollection();
         services.AddOptions<WopiHostOptions>().Configure(o =>
         {
-            o.EmptyLockHeaderValue = WopiHeaders.EMPTY_LOCK_VALUE;
+            o.EmptyLockHeaderValue = WopiHeaders.EmptyLockValue;
             configure?.Invoke(o);
         });
         return new DefaultHttpContext { RequestServices = services.BuildServiceProvider() };

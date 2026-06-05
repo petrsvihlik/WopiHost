@@ -45,8 +45,8 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
         ArgumentNullException.ThrowIfNull(request);
         try
         {
-            var receivedProof = request.GetHeader(WopiHeaders.PROOF);
-            var receivedTimeStamp = request.GetHeader(WopiHeaders.TIMESTAMP);
+            var receivedProof = request.GetHeader(WopiHeaders.Proof);
+            var receivedTimeStamp = request.GetHeader(WopiHeaders.Timestamp);
             if (string.IsNullOrEmpty(receivedProof)
                 || string.IsNullOrEmpty(receivedTimeStamp)
                 || !long.TryParse(receivedTimeStamp, CultureInfo.InvariantCulture, out var ticks))
@@ -111,7 +111,7 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
             expectedProof.AddRange(timeStampBytes);
             byte[] expectedBytes = [.. expectedProof];
 
-            var receivedProofOld = request.GetHeader(WopiHeaders.PROOF_OLD) ?? string.Empty;
+            var receivedProofOld = request.GetHeader(WopiHeaders.ProofOld) ?? string.Empty;
             var verified = VerifyProof(expectedBytes, receivedProof, sourceProofKeys.Value)
                 || VerifyProof(expectedBytes, receivedProof, sourceProofKeys.OldValue)
                 || VerifyProof(expectedBytes, receivedProofOld, sourceProofKeys.Value);

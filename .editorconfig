@@ -7,11 +7,9 @@
 dotnet_diagnostic.CA2007.severity = none
 
 # CA1707: Identifiers should not contain underscores
-# Off globally, for two reasons: (1) test methods follow xunit's `Method_Scenario_Expectation`
-# convention; (2) WopiHost.Core exposes public header constants in SCREAMING_SNAKE_CASE
-# (WopiHeaders.ITEM_VERSION, FILE_CONVERSION, …) whose rename is a breaking change to the packaged
-# API. Production naming is otherwise held by review — promoting this to src/ requires renaming
-# those constants first (a major-bump change).
+# Off globally for the xunit `Method_Scenario_Expectation` test-naming convention. Production
+# library code IS held to it: src/.editorconfig re-enables CA1707 at warning severity (→ build
+# error) for src/, the same split used for CA2007.
 dotnet_diagnostic.CA1707.severity = none
 
 # CA1822: Mark members as static

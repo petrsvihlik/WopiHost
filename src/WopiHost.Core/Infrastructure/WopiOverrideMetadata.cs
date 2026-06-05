@@ -4,7 +4,7 @@ using WopiHost.Abstractions;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Endpoint metadata declaring that an endpoint participates in <see cref="WopiHeaders.WOPI_OVERRIDE"/>-based
+/// Endpoint metadata declaring that an endpoint participates in <see cref="WopiHeaders.WopiOverride"/>-based
 /// dispatch. Only requests carrying one of <see cref="Values"/> as the header value reach the
 /// endpoint; all others are invalidated as candidates by <see cref="WopiOverrideMatcherPolicy"/>.
 /// Endpoints without this metadata pass through the policy untouched (e.g., GET endpoints sharing
@@ -14,7 +14,7 @@ namespace WopiHost.Core.Infrastructure;
 /// <para>
 /// The WOPI protocol multiplexes mutating operations through a single <c>POST {id}</c> route on
 /// both the files and containers endpoints, distinguished only by the <c>X-WOPI-Override</c>
-/// header (<c>LOCK</c>, <c>UNLOCK</c>, <c>PUT</c>, <c>RENAME_FILE</c>, <c>DELETE</c>, …).
+/// header (<c>Lock</c>, <c>UNLOCK</c>, <c>PUT</c>, <c>RENAME_FILE</c>, <c>DELETE</c>, …).
 /// </para>
 /// <para>
 /// String comparison is <see cref="StringComparer.Ordinal"/> per the WOPI spec, which defines

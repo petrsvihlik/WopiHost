@@ -192,8 +192,8 @@ public class WopiTelemetryEndpointFilterTests
         var ctx = CreateContext(opName, c =>
         {
             c.Request.RouteValues["id"] = "abc";
-            c.Request.Headers[WopiHeaders.WOPI_OVERRIDE] = "LOCK";
-            c.Request.Headers[WopiHeaders.LOCK] = "lock-token";
+            c.Request.Headers[WopiHeaders.WopiOverride] = "Lock";
+            c.Request.Headers[WopiHeaders.Lock] = "lock-token";
             c.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     [new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "alice")],
@@ -203,7 +203,7 @@ public class WopiTelemetryEndpointFilterTests
         await filter.InvokeAsync(ctx, _ => ValueTask.FromResult<object?>(null));
 
         // Override / lock id flow into the activity tags via StartActivity.
-        Assert.Equal("LOCK", captured.Activity?.GetTagItem(WopiTelemetry.Tags.Override));
+        Assert.Equal("Lock", captured.Activity?.GetTagItem(WopiTelemetry.Tags.Override));
         // Lock id and user id only land on the log scope, not the activity tag. The call
         // returning successfully without throwing (e.g., a null-reference reading the claim)
         // is the assertion — exercises the `lockId/userId is not null` branches.

@@ -80,7 +80,7 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
     public async Task Dispatches_To_Endpoint_With_Matching_Override(string headerValue, string expectedBody)
     {
         var req = new HttpRequestMessage(HttpMethod.Post, "/test/abc");
-        req.Headers.Add(WopiHeaders.WOPI_OVERRIDE, headerValue);
+        req.Headers.Add(WopiHeaders.WopiOverride, headerValue);
         // OP_B requires authentication — supply the trigger header.
         req.Headers.Add(AuthHeader, "1");
 
@@ -118,7 +118,7 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
     public async Task Unknown_Override_Value_Returns_NotFound()
     {
         var req = new HttpRequestMessage(HttpMethod.Post, "/test/abc");
-        req.Headers.Add(WopiHeaders.WOPI_OVERRIDE, "BOGUS_VALUE");
+        req.Headers.Add(WopiHeaders.WopiOverride, "BOGUS_VALUE");
 
         var resp = await _client!.SendAsync(req);
 
@@ -130,20 +130,20 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
     {
         // OP_A endpoint does not require authentication: anonymous succeeds.
         var anonA = new HttpRequestMessage(HttpMethod.Post, "/test/abc");
-        anonA.Headers.Add(WopiHeaders.WOPI_OVERRIDE, "OP_A");
+        anonA.Headers.Add(WopiHeaders.WopiOverride, "OP_A");
         var anonAResp = await _client!.SendAsync(anonA);
         Assert.Equal(HttpStatusCode.OK, anonAResp.StatusCode);
 
         // OP_B endpoint requires authentication: anonymous → 401.
         var anonB = new HttpRequestMessage(HttpMethod.Post, "/test/abc");
-        anonB.Headers.Add(WopiHeaders.WOPI_OVERRIDE, "OP_B");
+        anonB.Headers.Add(WopiHeaders.WopiOverride, "OP_B");
         var anonBResp = await _client!.SendAsync(anonB);
         Assert.Equal(HttpStatusCode.Unauthorized, anonBResp.StatusCode);
 
         // OP_B with the auth trigger header → 200. Confirms the auth policy belongs to the
         // endpoint the matcher selected (not the alphabetically first or some merged set).
         var authB = new HttpRequestMessage(HttpMethod.Post, "/test/abc");
-        authB.Headers.Add(WopiHeaders.WOPI_OVERRIDE, "OP_B");
+        authB.Headers.Add(WopiHeaders.WopiOverride, "OP_B");
         authB.Headers.Add(AuthHeader, "1");
         var authBResp = await _client!.SendAsync(authB);
         Assert.Equal(HttpStatusCode.OK, authBResp.StatusCode);
@@ -169,9 +169,9 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
             // Project to an array — Assert.Contains on FrozenSet<T> is ambiguous between
             // the ISet<T> and IReadOnlySet<T> overloads, and Assert.True(set.Contains(x)) trips
             // xUnit2017.
-            var values = new WopiOverrideMetadata("LOCK", "UNLOCK").Values.ToArray();
+            var values = new WopiOverrideMetadata("Lock", "UNLOCK").Values.ToArray();
 
-            Assert.Contains("LOCK", values);
+            Assert.Contains("Lock", values);
             Assert.Contains("UNLOCK", values);
             // Ordinal (case-sensitive) per WOPI spec — header values are upper-case constants.
             Assert.DoesNotContain("lock", values);
@@ -285,7 +285,7 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
         public async Task Skips_Already_Invalidated_Candidate()
         {
             var req = new HttpRequestMessage(HttpMethod.Post, "/pre/abc");
-            req.Headers.Add(WopiHeaders.WOPI_OVERRIDE, "OP_X");
+            req.Headers.Add(WopiHeaders.WopiOverride, "OP_X");
             var resp = await _client!.SendAsync(req);
 
             Assert.Equal(HttpStatusCode.OK, resp.StatusCode);

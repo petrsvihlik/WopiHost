@@ -155,8 +155,8 @@ public class WopiProofValidatorTests
 
         var canonical = BuildCanonicalProof(AccessToken, BuildExpectedHostUrl(), ticks);
         // X-WOPI-Proof bogus, but X-WOPI-ProofOld signed with current key
-        ctx.Request.Headers[WopiHeaders.PROOF] = Convert.ToBase64String(new byte[256]);
-        ctx.Request.Headers[WopiHeaders.PROOF_OLD] =
+        ctx.Request.Headers[WopiHeaders.Proof] = Convert.ToBase64String(new byte[256]);
+        ctx.Request.Headers[WopiHeaders.ProofOld] =
             Convert.ToBase64String(current.SignData(canonical, "SHA256"));
 
         var validator = CreateValidator();
@@ -211,7 +211,7 @@ public class WopiProofValidatorTests
         var ticks = _time.GetUtcNow().UtcDateTime.Ticks;
         var ctx = BuildHttpContext(timestampOverride: ticks.ToString(CultureInfo.InvariantCulture));
         // Embedded space + '@' is not valid base64 → FormatException inside VerifyProof.
-        ctx.Request.Headers[WopiHeaders.PROOF] = "not valid base64@@@@";
+        ctx.Request.Headers[WopiHeaders.Proof] = "not valid base64@@@@";
 
         var validator = CreateValidator();
         var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
@@ -236,7 +236,7 @@ public class WopiProofValidatorTests
 
         var ticks = _time.GetUtcNow().UtcDateTime.Ticks;
         var ctx = BuildHttpContext(timestampOverride: ticks.ToString(CultureInfo.InvariantCulture));
-        ctx.Request.Headers[WopiHeaders.PROOF] = Convert.ToBase64String(new byte[256]);
+        ctx.Request.Headers[WopiHeaders.Proof] = Convert.ToBase64String(new byte[256]);
 
         var validator = CreateValidator();
         var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
@@ -279,12 +279,12 @@ public class WopiProofValidatorTests
 
         if (includeTimestamp)
         {
-            ctx.Request.Headers[WopiHeaders.TIMESTAMP] =
+            ctx.Request.Headers[WopiHeaders.Timestamp] =
                 new StringValues(timestampOverride ?? DateTime.UtcNow.Ticks.ToString(CultureInfo.InvariantCulture));
         }
         if (includeProof)
         {
-            ctx.Request.Headers[WopiHeaders.PROOF] = new StringValues(proofOverride ?? string.Empty);
+            ctx.Request.Headers[WopiHeaders.Proof] = new StringValues(proofOverride ?? string.Empty);
         }
         return ctx;
     }
@@ -320,7 +320,7 @@ public class WopiProofValidatorTests
     {
         var canonical = BuildCanonicalProof(AccessToken, BuildExpectedHostUrl(), ticks);
         var signature = signer.SignData(canonical, "SHA256");
-        request.Headers[WopiHeaders.PROOF] = Convert.ToBase64String(signature);
+        request.Headers[WopiHeaders.Proof] = Convert.ToBase64String(signature);
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider

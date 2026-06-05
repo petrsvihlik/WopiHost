@@ -11,3 +11,8 @@
 
 # CA2007: Consider calling ConfigureAwait on the awaited task
 dotnet_diagnostic.CA2007.severity = warning
+
+# CA1707: Identifiers should not contain underscores
+# Off globally for the xunit test-naming convention (root .editorconfig); re-enabled here so
+# externally-visible names in the shipped libraries stay underscore-free.
+dotnet_diagnostic.CA1707.severity = warning

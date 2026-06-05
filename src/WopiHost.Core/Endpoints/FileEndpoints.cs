@@ -102,7 +102,7 @@ internal static class FileEndpoints
 
         if (file.Version is not null)
         {
-            req.Http.Response.Headers[WopiHeaders.ITEM_VERSION] = file.Version;
+            req.Http.Response.Headers[WopiHeaders.ItemVersion] = file.Version;
         }
 
         var stream = await file.OpenReadAsync(req.CancellationToken).ConfigureAwait(false);
@@ -162,7 +162,7 @@ internal readonly record struct GetFileRequest(
     [FromRoute] string Id,
     HttpContext Http,
     IWopiStorageProvider Storage,
-    [FromHeader(Name = WopiHeaders.MAX_EXPECTED_SIZE)] int? MaximumExpectedSize,
+    [FromHeader(Name = WopiHeaders.MaxExpectedSize)] int? MaximumExpectedSize,
     CancellationToken CancellationToken);
 
 /// <summary>Parameter bundle for the file/container <c>ecosystem_pointer</c> handlers.</summary>

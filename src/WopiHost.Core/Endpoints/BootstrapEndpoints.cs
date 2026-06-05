@@ -28,7 +28,7 @@ namespace WopiHost.Core.Endpoints;
 ///   <item><description><c>POST</c> with <c>X-WOPI-EcosystemOperation: GET_NEW_ACCESS_TOKEN</c> per
 ///   <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getnewaccesstoken"/></description></item>
 /// </list>
-/// The POST dispatch reads its own header (<see cref="WopiHeaders.ECOSYSTEM_OPERATION"/>)
+/// The POST dispatch reads its own header (<see cref="WopiHeaders.EcosystemOperation"/>)
 /// rather than <c>X-WOPI-Override</c>, so it skips <see cref="WopiOverrideMatcherPolicy"/>
 /// and switches inside the handler — two operations doesn't justify a parallel matcher
 /// policy.
@@ -192,6 +192,6 @@ internal readonly record struct ExecuteEcosystemOperationRequest(
     IWopiAccessTokenService AccessTokenService,
     IWopiResourceTokenMinter TokenMinter,
     ICheckContainerInfoBuilder ContainerInfoBuilder,
-    [FromHeader(Name = WopiHeaders.ECOSYSTEM_OPERATION)] string? EcosystemOperation,
-    [FromHeader(Name = WopiHeaders.WOPI_SRC)] string? WopiSrc,
+    [FromHeader(Name = WopiHeaders.EcosystemOperation)] string? EcosystemOperation,
+    [FromHeader(Name = WopiHeaders.WopiSrc)] string? WopiSrc,
     CancellationToken CancellationToken);

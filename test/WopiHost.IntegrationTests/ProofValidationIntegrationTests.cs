@@ -175,8 +175,8 @@ public sealed class ProofValidationIntegrationTests : IAsyncLifetime, IDisposabl
         // contract WOPI clients sign against.
         var canonical = BuildCanonicalProof(_accessToken, url.ToUpperInvariant(), ticks);
         var signature = signer.SignData(canonical, "SHA256");
-        request.Headers.Add(WopiHeaders.PROOF, Convert.ToBase64String(signature));
-        request.Headers.Add(WopiHeaders.TIMESTAMP, ticks.ToString(CultureInfo.InvariantCulture));
+        request.Headers.Add(WopiHeaders.Proof, Convert.ToBase64String(signature));
+        request.Headers.Add(WopiHeaders.Timestamp, ticks.ToString(CultureInfo.InvariantCulture));
         return request;
     }
 

@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Authentication;
-
 namespace WopiHost.Core.Security.Authentication;
 
 	/// <summary>
@@ -8,12 +6,12 @@ namespace WopiHost.Core.Security.Authentication;
 	public static class AccessTokenDefaults
 	{
 		/// <summary>
-		/// Default value for <see cref="AuthenticationScheme"/> property in the <see cref="AccessTokenAuthenticationOptions"/>
+		/// Default authentication scheme name for <see cref="AccessTokenAuthenticationOptions"/>.
 		/// </summary>
-		public const string AUTHENTICATION_SCHEME = "AccessToken";
+		public const string AuthenticationScheme = "AccessToken";
 
 		/// <summary>
 		/// Default query string name used for the access token.
 		/// </summary>
-		public const string ACCESS_TOKEN_QUERY_NAME = "access_token";
+		public const string AccessTokenQueryName = "access_token";
 	}

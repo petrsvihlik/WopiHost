@@ -6,7 +6,7 @@ namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
 /// Endpoint matcher policy that discriminates endpoints sharing the same route template and HTTP
-/// verb based on the <see cref="WopiHeaders.WOPI_OVERRIDE"/> header value. Endpoints opt in by
+/// verb based on the <see cref="WopiHeaders.WopiOverride"/> header value. Endpoints opt in by
 /// attaching <see cref="WopiOverrideMetadata"/>; only the endpoint whose metadata contains the
 /// request header value remains a valid candidate. Endpoints without the metadata are left alone
 /// (e.g., <c>GET wopi/files/{id}</c> sharing the route template with the <c>POST</c>-multiplexed
@@ -50,7 +50,7 @@ internal sealed class WopiOverrideMatcherPolicy : MatcherPolicy, IEndpointSelect
     /// <inheritdoc />
     public Task ApplyAsync(HttpContext httpContext, CandidateSet candidates)
     {
-        var header = httpContext.Request.Headers[WopiHeaders.WOPI_OVERRIDE].ToString();
+        var header = httpContext.Request.Headers[WopiHeaders.WopiOverride].ToString();
 
         for (var i = 0; i < candidates.Count; i++)
         {

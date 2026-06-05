@@ -97,7 +97,7 @@ internal static class ContainerMutatingEndpoints
         {
             if (req.RelativeTarget is not null)
             {
-                req.Http.Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
+                req.Http.Response.Headers[WopiHeaders.InvalidContainerName] = "Specified name is illegal";
                 return TypedResults.BadRequest();
             }
             // Suggested mode: sanitise. Fall back to a GUID stem if even sanitisation fails.
@@ -145,7 +145,7 @@ internal static class ContainerMutatingEndpoints
             if (existing is not null)
             {
                 var suggestedName = await writableStorage.GetSuggestedContainerName(id, requestedName, cancellationToken).ConfigureAwait(false);
-                httpContext.Response.Headers[WopiHeaders.VALID_RELATIVE_TARGET] = UtfString.FromDecoded(suggestedName).ToString(true);
+                httpContext.Response.Headers[WopiHeaders.ValidRelativeTarget] = UtfString.FromDecoded(suggestedName).ToString(true);
                 return (null, TypedResults.Conflict());
             }
             return (await writableStorage.CreateWopiChildContainer(id, requestedName, cancellationToken).ConfigureAwait(false), null);
@@ -249,7 +249,7 @@ internal static class ContainerMutatingEndpoints
 
         if (!await req.WritableStorage.CheckValidContainerName(req.RequestedName, req.CancellationToken).ConfigureAwait(false))
         {
-            req.Http.Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
+            req.Http.Response.Headers[WopiHeaders.InvalidContainerName] = "Specified name is illegal";
             return TypedResults.BadRequest();
         }
         return await TryRenameContainerAsync(req.Http, req.WritableStorage, req.Id, req.RequestedName, req.CancellationToken).ConfigureAwait(false);
@@ -267,7 +267,7 @@ internal static class ContainerMutatingEndpoints
         }
         catch (ArgumentException ae) when (ae.ParamName == nameof(requestedName))
         {
-            httpContext.Response.Headers[WopiHeaders.INVALID_CONTAINER_NAME] = "Specified name is illegal";
+            httpContext.Response.Headers[WopiHeaders.InvalidContainerName] = "Specified name is illegal";
             return TypedResults.BadRequest();
         }
         catch (DirectoryNotFoundException) { return TypedResults.NotFound(); }
@@ -291,8 +291,8 @@ internal readonly record struct CreateChildContainerRequest(
     [FromServices] IWopiWritableStorageProvider? WritableStorage,
     ICheckContainerInfoBuilder ContainerInfoBuilder,
     IWopiResourceTokenMinter TokenMinter,
-    [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? SuggestedTarget,
-    [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? RelativeTarget,
+    [FromHeader(Name = WopiHeaders.SuggestedTarget)] UtfString? SuggestedTarget,
+    [FromHeader(Name = WopiHeaders.RelativeTarget)] UtfString? RelativeTarget,
     CancellationToken CancellationToken);
 
 /// <summary>Parameter bundle for <see cref="ContainerMutatingEndpoints.CreateChildFile"/>.</summary>
@@ -304,9 +304,9 @@ internal readonly record struct CreateChildFileRequest(
     IWopiNewChildFileNegotiator Negotiator,
     ICheckFileInfoBuilder CheckFileInfoBuilder,
     IWopiResourceTokenMinter TokenMinter,
-    [FromHeader(Name = WopiHeaders.SUGGESTED_TARGET)] UtfString? SuggestedTarget,
-    [FromHeader(Name = WopiHeaders.RELATIVE_TARGET)] UtfString? RelativeTarget,
-    [FromHeader(Name = WopiHeaders.OVERWRITE_RELATIVE_TARGET)] bool? OverwriteRelativeTarget,
+    [FromHeader(Name = WopiHeaders.SuggestedTarget)] UtfString? SuggestedTarget,
+    [FromHeader(Name = WopiHeaders.RelativeTarget)] UtfString? RelativeTarget,
+    [FromHeader(Name = WopiHeaders.OverwriteRelativeTarget)] bool? OverwriteRelativeTarget,
     CancellationToken CancellationToken);
 
 /// <summary>Parameter bundle for <see cref="ContainerMutatingEndpoints.DeleteContainer"/>.</summary>
@@ -322,5 +322,5 @@ internal readonly record struct RenameContainerRequest(
     HttpContext Http,
     IWopiStorageProvider Storage,
     [FromServices] IWopiWritableStorageProvider? WritableStorage,
-    [FromHeader(Name = WopiHeaders.REQUESTED_NAME)] UtfString RequestedName,
+    [FromHeader(Name = WopiHeaders.RequestedName)] UtfString RequestedName,
     CancellationToken CancellationToken);

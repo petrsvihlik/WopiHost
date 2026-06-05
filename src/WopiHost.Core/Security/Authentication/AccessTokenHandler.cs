@@ -31,7 +31,7 @@ public partial class AccessTokenHandler(
             return AuthenticateResult.NoResult();
         }
 
-        var token = Context.Request.Query[AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME].ToString();
+        var token = Context.Request.Query[AccessTokenDefaults.AccessTokenQueryName].ToString();
         if (string.IsNullOrEmpty(token))
         {
             return AuthenticateResult.Fail("Access token missing.");
@@ -47,7 +47,7 @@ public partial class AccessTokenHandler(
         var ticket = new AuthenticationTicket(validation.Principal, new AuthenticationProperties(), Scheme.Name);
         if (Options.SaveToken)
         {
-            ticket.Properties.StoreTokens([new AuthenticationToken { Name = AccessTokenDefaults.ACCESS_TOKEN_QUERY_NAME, Value = token }]);
+            ticket.Properties.StoreTokens([new AuthenticationToken { Name = AccessTokenDefaults.AccessTokenQueryName, Value = token }]);
         }
         return AuthenticateResult.Success(ticket);
     }
