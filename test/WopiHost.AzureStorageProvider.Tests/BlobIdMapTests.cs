@@ -102,6 +102,22 @@ public class BlobIdMapTests
     }
 
     [Fact]
+    public void Update_UnknownId_RegistersFreshMapping()
+    {
+        // Update on an id the map hasn't seen has no stale reverse entry to drop, so it just
+        // installs the forward + reverse mapping fresh (rather than throwing).
+        var map = NewMap();
+        var id = BlobIdMap.IdFromPath("never-added.txt");
+
+        map.Update(id, "now-here.txt");
+
+        Assert.True(map.TryGetPath(id, out var path));
+        Assert.Equal("now-here.txt", path);
+        Assert.True(map.TryGetFileId("now-here.txt", out var roundTrip));
+        Assert.Equal(id, roundTrip);
+    }
+
+    [Fact]
     public void ScanAll_EmptyEnumeration_RegistersOnlyRoot()
     {
         var map = NewMap();
@@ -181,5 +197,37 @@ public class BlobIdMapTests
 
         Assert.False(map.TryGetFileId("orphan.txt", out _));
         Assert.True(map.TryGetFileId("fresh.txt", out _));
+    }
+
+    [Fact]
+    public async Task Concurrent_AddAndRemove_LeavesMapsConsistent()
+    {
+        // BlobIdMap is a shared singleton hit by concurrent request paths. Stress the compound
+        // rebinds: one worker keeps adding a path, another keeps removing it. Whatever the
+        // interleaving, the forward and reverse maps must stay consistent (no dangling reverse
+        // entry, no torn-state exception). Pre-fix (plain Dictionary, no lock) this corrupts.
+        var map = NewMap();
+        const int rounds = 500;
+        const string path = "folder/shared.docx";
+
+        var add = Task.Run(() =>
+        {
+            for (var i = 0; i < rounds; i++) map.Add(path);
+        });
+        var remove = Task.Run(() =>
+        {
+            for (var i = 0; i < rounds; i++)
+            {
+                if (map.TryGetFileId(path, out var id)) map.Remove(id);
+            }
+        });
+        await Task.WhenAll(add, remove);
+
+        // Every id still present must round-trip through the reverse map and back.
+        if (map.TryGetFileId(path, out var finalId))
+        {
+            Assert.True(map.TryGetPath(finalId, out var roundTrip));
+            Assert.Equal(path, roundTrip);
+        }
     }
 }

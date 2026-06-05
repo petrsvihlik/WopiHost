@@ -114,16 +114,16 @@ Conventions a new provider follows (keeps the set from drifting):
 
 ### AppHost opt-in flags
 
-The Aspire AppHost reads a few `AppHost:*` flags from configuration so the default first-run flow stays minimal. Set them in `infra/WopiHost.AppHost/appsettings.Development.json`:
+The Aspire AppHost reads a few `AppHost:*` flags from configuration. Override them locally in `infra/WopiHost.AppHost/appsettings.Development.json` or via environment variables:
 
 | Flag | Adds |
 |---|---|
 | `AppHost:UseAzureStorage` | Azurite emulator + `BlobStorage` connection string forwarded to the WOPI host. |
 | `AppHost:UseRedisLocks` | **Default: `true` when launched via the AppHost.** Adds a Redis container; the WOPI host swaps `Sample:LockProvider` to `Redis` (so `AddSampleLockProvider` dispatches to `AddRedisLockProvider`) and receives the Aspire-allocated connection string via `Wopi:LockProvider:ConnectionString`. Set to `false` to fall back to `Memory` (single-process) — useful on contributor machines without Docker. Aspire already manages Docker resources, so the realistic distributed-lock backend is the right default for the orchestrated dev loop. |
-| `AppHost:UseCollabora` | `collabora/code` container as a real WOPI client for end-to-end editing. Auto-overrides `Wopi:ClientUrl`, `Wopi:HostUrl`, `Wopi:Discovery:NetZone`, and `Wopi:Security:DisableProofValidation` on the affected projects. See the **End-to-end editing with Collabora Online** section in the root README for the full wiring (`host.docker.internal:5050`, NetZone gotcha, proof-key gotcha). |
+| `AppHost:UseCollabora` | **Default: `true` when launched via the AppHost** (a code default in `Program.cs`, mirroring `UseRedisLocks`), so VS F5 / `dotnet run` launches with Collabora out of the box (requires Docker). Adds a `collabora/code` container as a real WOPI client for end-to-end editing and auto-overrides `Wopi:ClientUrl`, `Wopi:HostUrl`, `Wopi:Discovery:NetZone`, and `Wopi:Security:DisableProofValidation` on the affected projects. Set `AppHost:UseCollabora=false` (in `appsettings.Development.json`, an env var, or the command line — all override the code default) to run without Docker/Collabora. See the **End-to-end editing with Collabora Online** section in the root README for the full wiring (`host.docker.internal:5050`, NetZone gotcha, proof-key gotcha). |
 | `AppHost:IncludeOidcSample` | `WopiHost.Web.Oidc` frontend (requires IdP setup — see its README). |
 
-Never commit `appsettings.Development.json` with these flags enabled — they impose external dependencies on every contributor.
+The orchestrated dev loop intentionally defaults to Redis locks and Collabora (both Docker-backed): both are code defaults in `Program.cs` (`GetValue("AppHost:UseRedisLocks"/"AppHost:UseCollabora", defaultValue: true)`), not committed `appsettings.Development.json` flags. A code default is the overridable kind — `appsettings.json`, `appsettings.Development.json`, an env var, or the command line all take precedence over it, so a contributor without Docker can flip either off locally. (A `launchSettings.json` env var would sit *above* `appsettings.*` in precedence and silently defeat that override, so the default deliberately lives in code instead.) The remaining flags (`UseAzureStorage`, `IncludeOidcSample`) stay opt-in — don't commit `appsettings.Development.json` with those enabled, as they impose external dependencies on every contributor.
 
 ## Key WOPI Concepts
 

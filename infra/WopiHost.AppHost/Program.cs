@@ -117,7 +117,7 @@ if (builder.Configuration.GetValue("AppHost:UseRedisLocks", defaultValue: true))
 // resolves from inside the Collabora container. In non-Collabora mode there's no in-Docker
 // WOPI client (real OOS/M365 WOPI clients live outside the dev loop and configure their own
 // URL), so localhost is fine for the dashboard.
-var useCollabora = builder.Configuration.GetValue("AppHost:UseCollabora", defaultValue: false);
+var useCollabora = builder.Configuration.GetValue("AppHost:UseCollabora", defaultValue: true);
 var wopiBackendHostForFrontends = useCollabora ? "host.docker.internal" : "localhost";
 
 // Frontends: project references via WithReference give Aspire's service-discovery env vars
