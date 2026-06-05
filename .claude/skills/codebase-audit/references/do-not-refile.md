@@ -33,9 +33,12 @@ add it here with the reason. This ledger is what keeps repeat audits quiet and f
 - **`WopiSecurityOptions.SigningKey` stays `byte[]?` (CA1819 suppressed).** The `IConfiguration`
   `BinaryConverter` only targets `byte[]`, and `SymmetricSecurityKey(byte[])` consumes it directly.
   The suppression has a documented rationale next to the field.
-- **`WopiResourceId` being a `static` helper (not a value type) is the current state, not a bug.**
-  Turning it into a typed id is a deliberate, API-breaking design task — tracked, not a quick win.
-  Don't file "primitive obsession: string ids" as a fresh smell; link the design issue instead.
+- **Typed id/token value types (`WopiResourceId`, `WopiLockToken`) were considered and decided
+  against.** Bare `string` resource ids and lock tokens are the intended state. The two design
+  issues (#514, #515) were closed as *not planned*: the payoff is purely preventive (no known
+  fileId/lockId mix-up bug), the move generalizes to every string in the codebase, and the proposed
+  `implicit operator string` wouldn't even stop the mix-up it targeted. Don't re-file "primitive
+  obsession: string ids" as a fresh smell. Only revisit if a concrete mix-up bug actually surfaces.
 
 ## DI / provider model
 

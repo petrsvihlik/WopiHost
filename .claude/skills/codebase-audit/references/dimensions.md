@@ -73,8 +73,10 @@ These are "two things that should match but don't." The providers are the usual 
 - **Long handlers.** Endpoint bodies that interleave validate / resolve / write — extract named
   helpers (but watch for side effects: accessing `file.Length` before a write can prime a stale
   version cache).
-- **Primitive obsession.** Bare `string` ids / lock tokens threaded everywhere (typed
-  `WopiResourceId` / `WopiLockToken` are tracked design tasks — don't re-file, link them).
+- **Primitive obsession.** Bare `string` ids / lock tokens threaded everywhere. **Do not file** —
+  typed `WopiResourceId` / `WopiLockToken` value types were evaluated and rejected (#514/#515 closed
+  *not planned*: preventive-only, generalizes to every string, the proposed design didn't deliver the
+  safety). See the ledger; only revisit if a concrete id-mix-up bug surfaces.
 - **Many-parameter helpers.** A private helper taking 9–10 pass-through params → bundle into a
   record (done for `ProcessLockCore` → `LockOperationRequest`).
 
