@@ -1,0 +1,58 @@
+name: Codebase Audit
+
+# Monthly standing health-check. Runs the repo's codebase-audit skill (.claude/skills/codebase-audit)
+# and opens a single findings issue only when something rises to a clear net win — otherwise it stays
+# silent. Catches the slow drift a one-off review misses (e.g. docs falling behind a renamed API or a
+# changed port). Trigger manually any time via the Actions tab ("Run workflow").
+
+on:
+  schedule:
+    - cron: '0 7 1 * *'   # 07:00 UTC on the 1st of each month
+  workflow_dispatch: {}
+
+# Don't stack runs; a long audit shouldn't collide with the next month's trigger.
+concurrency:
+  group: codebase-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write       # open/update the findings issue
+      id-token: write     # Claude GitHub App OIDC
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0   # the audit may inspect history
+
+      - name: Run codebase audit
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          # The audit is read-only static analysis plus gh for the issue; no build needed.
+          claude_args: '--allowed-tools "Bash,Read,Grep,Glob,Task,WebFetch"'
+          prompt: |
+            Run the repo's codebase-audit skill end to end against the current master.
+
+            Follow its methodology exactly (.claude/skills/codebase-audit/SKILL.md): load the
+            do-not-refile ledger and playbook, honour the conventions in CLAUDE.md, run the
+            mechanical scan, fetch and cross-check the wiki, verify each candidate, and report
+            ONLY clear net wins. Suppress anything on the do-not-refile ledger.
+
+            Then handle the findings issue:
+            - First list open issues (`gh issue list --label audit --state open`). If a matching
+              open audit issue already exists, add a comment with any NEW findings instead of
+              opening a duplicate; if there are no new findings, do nothing.
+            - Otherwise, if there ARE actionable findings, open ONE issue with
+              `gh issue create --label audit`, titled "[Audit] Codebase health — <YYYY-MM>",
+              grouping findings by dimension, each with file:line and a one-line rationale.
+            - If nothing rises to a clear net win, do NOT open or comment on any issue — just say so
+              in the run log. A quiet month is a good outcome.
+
+            This is a reporting pass only: do not modify code, push branches, or open pull requests.
