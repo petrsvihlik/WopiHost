@@ -1,0 +1,53 @@
+name: Docs Drift Check
+
+# On PRs that touch the public API or READMEs, run a focused documentation-accuracy pass (dimension
+# 11 of the codebase-audit skill, single-dimension mode) and comment if any doc/wiki reference went
+# stale — catching the class of bug where a rename or a changed port leaves the docs lying. Read-only.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'src/**/*.cs'
+      - '**/README.md'
+
+jobs:
+  docs-drift:
+    # Internal PRs only — the OIDC token exchange doesn't work in the secret-less fork context
+    # (same constraint as claude-code-review.yml).
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0   # need the merge-base to diff the PR
+
+      - name: Check for documentation drift
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowed-tools "Bash,Read,Grep,Glob"'
+          prompt: |
+            Run a focused DOCUMENTATION-DRIFT check on PR #${{ github.event.pull_request.number }}
+            in ${{ github.repository }} — dimension 11 of the codebase-audit skill, single-dimension
+            mode.
+
+            Read .claude/skills/codebase-audit/references/continuous.md and the dimension-11 section
+            of references/dimensions.md first, then:
+            1. `gh pr diff ${{ github.event.pull_request.number }}` — collect every public
+               type/member/namespace/config-key/port/path that this PR renamed, removed, or changed.
+            2. For each, grep the in-repo READMEs AND the wiki (clone it read-only via
+               scripts/fetch-wiki.sh) for now-stale references.
+            3. If anything is stale, post ONE concise PR comment listing each
+               `doc:line → what's now wrong → corrected value`. If a wiki page is affected, note that
+               the wiki is a separate repo the maintainer must update by hand (this job can't).
+            4. Nothing stale → post nothing. Clean is the default.
+
+            Hard constraints: read-only; at most ONE comment; no code changes. Apply the audit skill's
+            net-win bar — only flag genuinely stale or misleading docs, never style nits.

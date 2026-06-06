@@ -1,0 +1,55 @@
+name: CI Failure Diagnosis
+
+# When the main CI workflows fail, read the failed logs and post ONE concise root-cause comment on
+# the associated PR (the "why did CI go red" dig, done for you). Read-only; comments only.
+#
+# Uses workflow_run rather than a step inside each CI workflow: workflow_run runs in the base-repo
+# context with access to secrets even when the failing run came from a fork PR, so it can comment on
+# fork PRs safely — the one trigger where that works (unlike pull_request).
+
+on:
+  workflow_run:
+    workflows: ["Build & Test", "E2E (Collabora)"]
+    types: [completed]
+
+jobs:
+  diagnose:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read         # read the failed run's logs
+      pull-requests: write  # comment on the associated PR
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Diagnose the failure
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: '--allowed-tools "Bash,Read,Grep,Glob"'
+          prompt: |
+            The CI run "${{ github.event.workflow_run.name }}" failed on ${{ github.repository }}
+            (run id ${{ github.event.workflow_run.id }}, head sha
+            ${{ github.event.workflow_run.head_sha }}, branch
+            ${{ github.event.workflow_run.head_branch }}).
+
+            1. Fetch the failed logs: `gh run view ${{ github.event.workflow_run.id }} --log-failed`.
+            2. Identify the single most likely root cause — the specific failing step / test / error.
+            3. Find where to report: locate a PR for head sha ${{ github.event.workflow_run.head_sha }}
+               (`gh pr list --search "${{ github.event.workflow_run.head_sha }}" --state open`, or by
+               head branch). If one exists, comment on it. If none (e.g. a direct push to master),
+               do NOTHING — do not open an issue.
+            4. Post ONE concise comment: the failing step/test, the key error line(s), and the first
+               thing to check or the likely fix.
+
+            Hard constraints: read-only on code; at most ONE PR comment; no code changes, branches, or
+            issues. If it looks flaky/transient, say so in one line. If you can't pin a cause, say what
+            you ruled out rather than guessing.

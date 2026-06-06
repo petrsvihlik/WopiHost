@@ -1,0 +1,46 @@
+name: Issue Triage
+
+# Pre-triages every newly opened human issue: applies labels from the existing set and flags likely
+# duplicates / missing repro info — at most one comment, never closing or assigning. Read-only on
+# code. The @claude handler (claude.yml) is gated behind an @claude mention, so it does not overlap.
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    # Humans only — don't triage bot-filed issues.
+    if: github.event.issue.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Triage the issue
+        continue-on-error: true   # a triage hiccup must never block anything
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowed-tools "Bash,Read,Grep,Glob"'
+          prompt: |
+            Triage issue #${{ github.event.issue.number }} in ${{ github.repository }}, then stop.
+
+            1. Read it: `gh issue view ${{ github.event.issue.number }}`.
+            2. Apply labels with `gh issue edit` using ONLY labels that already exist
+               (`gh label list`) — pick the few that fit (e.g. bug, enhancement, question,
+               documentation, security, dependencies, ci, devops). Never invent a label.
+            3. Duplicate check: `gh issue list --state all --search "<key terms>"`. On a strong
+               match, post ONE short comment linking the probable duplicate(s) and asking the author
+               to confirm. No match → post nothing.
+            4. If a bug report is missing must-have info (repro steps, version, affected package),
+               post ONE short, friendly comment asking only for what's missing.
+
+            Hard constraints: at most ONE comment total; concise and polite; never close, assign, or
+            edit the issue body. A well-formed, clearly-labelled issue → apply labels and post nothing.
