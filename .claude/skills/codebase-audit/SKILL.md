@@ -38,6 +38,19 @@ false-positives or intentional design. Every run MUST load it and suppress anyth
 
 Then run the scan, verify, and report.
 
+## Running modes — interactive vs continuous
+
+This skill runs in two shapes:
+
+- **Interactive deep-dive** (default, human-driven) — the full fan-out across all dimensions and the
+  whole tree, described in the rest of this file.
+- **Continuous** (scheduled or PR-triggered automation, e.g. the **Codebase Audit** workflow) — a
+  scoped, idempotent, read-only run with a noise budget and a safe-output contract. When invoked
+  unattended, **also read `references/continuous.md` first** and follow its scope and side-effect
+  rules: audit the delta not the world, file at most one `audit` issue (or stay silent), and never
+  touch code. Everything else here — the net-win bar, the anti-findings, the dimensions, the ledger —
+  applies to both shapes unchanged.
+
 ## The bar: only clear net wins (and never make it worse)
 
 The point of this audit is to make the codebase *better* — so a finding ships only if its
