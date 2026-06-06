@@ -173,7 +173,13 @@ public static class WopiHeaders
     /// Wildcard characters are not permitted.
     /// </summary>
     public const string FileExtensionFilterList = "X-WOPI-FileExtensionFilterList";
-    
+
+    /// <summary>
+    /// The Share URL type requested on the GetShareUrl operation — one of
+    /// <see cref="WopiHost.Abstractions.WopiShareUrlTypes"/> (e.g. <c>ReadOnly</c>, <c>ReadWrite</c>).
+    /// </summary>
+    public const string UrlType = "X-WOPI-UrlType";
+
     /// <summary>
     /// A Base64-encoded string indicating a cryptographic signature of the request.
     /// Used to validate that the request originated from Office Online Server.
