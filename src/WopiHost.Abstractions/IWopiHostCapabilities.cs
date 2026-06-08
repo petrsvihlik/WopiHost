@@ -27,6 +27,13 @@ public interface IWopiHostCapabilities
     bool SupportsCoauth { get; set; }
 
     /// <summary>
+    /// A Boolean value that indicates that the host supports the
+    /// <see href="https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/fdc52ab9-b359-4465-a8c7-6aa98aa12e06">AddActivities</see>
+    /// operation (comments / mentions reported by the WOPI client).
+    /// </summary>
+    bool SupportsAddActivities { get; set; }
+
+    /// <summary>
     /// A Boolean value that indicates that the host supports the following WOPI operations:
     /// <list type="bullet">
     /// <item>

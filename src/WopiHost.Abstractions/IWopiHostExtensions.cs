@@ -66,4 +66,12 @@ public interface IWopiHostExtensions
     /// uploads or record declared-size telemetry plug in here; the default is a no-op.
     /// </summary>
     Task OnPutRelativeFileAsync(WopiPutRelativeFileContext context, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Hook raised when a WOPI client reports activities (comments / mentions) on a file via
+    /// <c>AddActivities</c>. Use this to send notifications, surface an activity feed, or prompt to
+    /// share with a mentioned user. The core decides each activity's protocol response status; this
+    /// hook is a side-effect seam. The default is a no-op.
+    /// </summary>
+    Task OnAddActivitiesAsync(WopiAddActivitiesContext context, CancellationToken cancellationToken = default);
 }

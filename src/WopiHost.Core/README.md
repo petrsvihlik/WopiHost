@@ -94,6 +94,7 @@ WOPI uses a small set of routes; verb + `X-WOPI-Override` header pick the operat
 | `/wopi/files/{id}` | `POST` | `DELETE` | [`DeleteFile`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile) |
 | `/wopi/files/{id}` | `POST` | `PUT_USER_INFO` | [`PutUserInfo`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo) |
 | `/wopi/files/{id}` | `POST` | `GET_SHARE_URL` | [`GetShareUrl`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getshareurl) |
+| `/wopi/files/{id}/activities` | `POST` | `ADD_ACTIVITIES` | [`AddActivities`](https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/fdc52ab9-b359-4465-a8c7-6aa98aa12e06) (also accepted as an override on `/wopi/files/{id}`) |
 | `/wopi/files/{id}` | `POST` | `COBALT` | MS-FSSHTTP request batch (when [WopiHost.Cobalt](../WopiHost.Cobalt/README.md) is registered) |
 | `/wopi/files/{id}/ancestry` | `GET` | — | [`EnumerateAncestors`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/enumerateancestors) |
 | `/wopi/files/{id}/ecosystem_pointer` | `GET` | — | Ecosystem pointer for the file |

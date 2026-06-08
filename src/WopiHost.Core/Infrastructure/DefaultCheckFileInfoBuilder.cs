@@ -47,6 +47,7 @@ public class DefaultCheckFileInfoBuilder(
         if (capabilities is not null)
         {
             checkFileInfo.SupportsCoauth = capabilities.SupportsCoauth;
+            checkFileInfo.SupportsAddActivities = capabilities.SupportsAddActivities;
             checkFileInfo.SupportsCobalt = capabilities.SupportsCobalt;
             checkFileInfo.SupportsFolders = capabilities.SupportsFolders;
             checkFileInfo.SupportsContainers = capabilities.SupportsContainers;

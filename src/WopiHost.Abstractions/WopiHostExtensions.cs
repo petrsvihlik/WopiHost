@@ -47,4 +47,7 @@ public class WopiHostExtensions : IWopiHostExtensions
 
     /// <inheritdoc />
     public virtual Task OnPutRelativeFileAsync(WopiPutRelativeFileContext context, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    /// <inheritdoc />
+    public virtual Task OnAddActivitiesAsync(WopiAddActivitiesContext context, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

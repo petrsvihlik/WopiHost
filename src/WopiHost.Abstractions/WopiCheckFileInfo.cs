@@ -548,6 +548,9 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     public bool SupportsCoauth { get; set; }
 
     /// <inheritdoc/>
+    public bool SupportsAddActivities { get; set; }
+
+    /// <inheritdoc/>
     public bool SupportsCobalt { get; set; }
 
     /// <inheritdoc/>

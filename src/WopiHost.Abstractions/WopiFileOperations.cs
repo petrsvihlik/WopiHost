@@ -59,4 +59,9 @@ public static class WopiFileOperations
     /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getshareurl
     /// </summary>
     public const string GetShareUrl = "GET_SHARE_URL";
+
+    /// <summary>
+    /// https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/fdc52ab9-b359-4465-a8c7-6aa98aa12e06
+    /// </summary>
+    public const string AddActivities = "ADD_ACTIVITIES";
 }

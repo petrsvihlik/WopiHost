@@ -9,6 +9,9 @@ public class WopiHostCapabilities : IWopiHostCapabilities
     public bool SupportsCoauth { get; set; }
 
     /// <inheritdoc/>
+    public bool SupportsAddActivities { get; set; }
+
+    /// <inheritdoc/>
     /// <remarks>set by FilesController.ctor depending on registered DI services</remarks>
     public bool SupportsCobalt { get; set; }
 
