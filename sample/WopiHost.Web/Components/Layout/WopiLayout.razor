@@ -143,12 +143,28 @@
         }
 
         #wopi_share .card button {
-            padding: 8px 12px;
-            border: 1px solid #ccc;
+            padding: 8px 14px;
+            border: 1px solid #b0b0b0;
             border-radius: 6px;
-            background: #f3f3f3;
+            background: #e8e8e8;
+            color: #1f1f1f;
             cursor: pointer;
             font: inherit;
+        }
+
+        #wopi_share .card button:hover {
+            background: #dadada;
+        }
+
+        /* Primary affordance — readable on its own colour rather than inheriting white. */
+        #wopi_share_copy {
+            background: #0b5cad;
+            border-color: #0b5cad;
+            color: #fff;
+        }
+
+        #wopi_share_copy:hover {
+            background: #094a8c;
         }
 
         #wopi_share .close {
@@ -257,6 +273,14 @@
                     : {});
             });
         });
+
+        // Save only makes sense in edit mode. The host-page URL carries the WOPI action; a view
+        // link strips UserCanWrite from the token, so hide Save rather than offer a no-op.
+        var wopiAction = (new URLSearchParams(window.location.search).get('wopiaction') || 'view').toLowerCase();
+        if (wopiAction === 'view') {
+            var saveBtn = document.querySelector('#wopi_bar button[data-action="Action_Save"]');
+            if (saveBtn) { saveBtn.remove(); }
+        }
 
         // Collabora stays silent until the host announces readiness; Office for the Web also keys
         // its postMessage stream off this. Sent on the editor frame's load, with a fallback timer
