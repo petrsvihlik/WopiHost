@@ -20,6 +20,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      issues: write     # delete this job's own prior (now-stale) comment before re-posting
       id-token: write
     steps:
       - name: Checkout repository
@@ -44,10 +45,17 @@ jobs:
                type/member/namespace/config-key/port/path that this PR renamed, removed, or changed.
             2. For each, grep the in-repo READMEs AND the wiki (clone it read-only via
                scripts/fetch-wiki.sh) for now-stale references.
-            3. If anything is stale, post ONE concise PR comment listing each
-               `doc:line → what's now wrong → corrected value`. If a wiki page is affected, note that
-               the wiki is a separate repo the maintainer must update by hand (this job can't).
-            4. Nothing stale → post nothing. Clean is the default.
+            3. Sticky comment — keep at most ONE live docs-drift comment so re-runs don't pile up.
+               First delete this job's previous comment: list PR comments via
+               `gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments`,
+               find any whose body contains the marker `<!-- docs-drift -->`, and
+               `gh api -X DELETE repos/${{ github.repository }}/issues/comments/<id>` each.
+            4. If anything is stale, post exactly ONE new comment whose FIRST line is the hidden
+               marker `<!-- docs-drift -->`, then each `doc:line → what's now wrong → corrected value`.
+               If a wiki page is affected, note the wiki is a separate repo the maintainer must update
+               by hand (this job can't). If nothing is stale, post nothing — step 3 already removed the
+               prior comment, leaving the PR clean.
 
-            Hard constraints: read-only; at most ONE comment; no code changes. Apply the audit skill's
-            net-win bar — only flag genuinely stale or misleading docs, never style nits.
+            Hard constraints: read-only on code; at most ONE live comment (always marker-prefixed);
+            no code changes. Apply the audit skill's net-win bar — only flag genuinely stale or
+            misleading docs, never style nits.
