@@ -73,8 +73,11 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
 
     // ---- AddActivities ---------------------------------------------------
 
-    private static StringContent ActivitiesBody(string json)
-        => new(json, System.Text.Encoding.UTF8, "application/json");
+    // Mirror the WOPI validator: the activities body is POSTed as raw bytes with NO
+    // application/json Content-Type, so the handler must not depend on one (ReadFromJsonAsync would
+    // 500 here — the endpoint reads the body stream directly instead).
+    private static ByteArrayContent ActivitiesBody(string json)
+        => new(System.Text.Encoding.UTF8.GetBytes(json));
 
     [Fact]
     public async Task AddActivities_Comment_Returns200_EchoesIdWithSuccessStatus()

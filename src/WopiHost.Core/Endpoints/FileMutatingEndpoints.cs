@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Net.Mime;
+using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -45,6 +46,9 @@ namespace WopiHost.Core.Endpoints;
 internal static class FileMutatingEndpoints
 {
     private const string UserInfoCacheKeyPrefix = "UserInfo-";
+
+    // Case-insensitive so the activities body parses whether the client sends PascalCase or camelCase.
+    private static readonly JsonSerializerOptions s_activitiesJsonOptions = new(JsonSerializerDefaults.Web);
 
     public static void MapFileMutatingEndpoints(RouteGroupBuilder files)
     {
@@ -173,7 +177,10 @@ internal static class FileMutatingEndpoints
         var file = await req.Storage.GetWopiFile(req.Id, req.CancellationToken).ConfigureAwait(false);
         if (file is null) return TypedResults.NotFound();
 
-        var body = await req.Http.Request.ReadFromJsonAsync<AddActivitiesRequestBody>(req.CancellationToken).ConfigureAwait(false);
+        // Read the body stream directly rather than ReadFromJsonAsync: the WOPI client POSTs the
+        // activities without an application/json Content-Type, which ReadFromJsonAsync rejects (500).
+        var body = await JsonSerializer.DeserializeAsync<AddActivitiesRequestBody>(
+            req.Http.Request.Body, s_activitiesJsonOptions, req.CancellationToken).ConfigureAwait(false);
         var activities = body?.Activities ?? [];
 
         await req.Extensions.OnAddActivitiesAsync(
