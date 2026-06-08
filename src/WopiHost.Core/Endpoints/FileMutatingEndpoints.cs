@@ -95,6 +95,21 @@ internal static class FileMutatingEndpoints
                 "Returns 501 when the requested X-WOPI-UrlType is unsupported.")
             .RequireWopiPermission(WopiResourceType.File, Permission.Read);
 
+        // AddActivities — comments / mentions reported by the WOPI client. Read-level, no writable
+        // storage. The spec URI is /files/{id}/activities; some clients dispatch via X-WOPI-Override
+        // on the bare /{id} route, so both are registered onto the same handler.
+        files.MapPost("/{id}/activities", AddActivities)
+            .WithSummary("AddActivities — accepts client-reported activities (comments / mentions).")
+            .WithDescription("Spec: https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/fdc52ab9-b359-4465-a8c7-6aa98aa12e06. " +
+                "Returns one ActivityResponse per activity; unknown activity types get status NotSupported.")
+            .RequireWopiPermission(WopiResourceType.File, Permission.Read);
+
+        files.MapPost("/{id}", AddActivities)
+            .WithMetadata(new WopiOverrideMetadata(WopiFileOperations.AddActivities))
+            .WithSummary("AddActivities (X-WOPI-Override: ADD_ACTIVITIES).")
+            .WithDescription("Override-dispatched form of AddActivities; see the /{id}/activities route.")
+            .RequireWopiPermission(WopiResourceType.File, Permission.Read);
+
         mutating.MapPost("/{id}", DeleteFile)
             .WithMetadata(new WopiOverrideMetadata(WopiFileOperations.DeleteFile))
             .WithSummary("DeleteFile (X-WOPI-Override: DELETE).")
@@ -146,6 +161,34 @@ internal static class FileMutatingEndpoints
     {
         var baseUri = new Uri($"{http.Request.Scheme}://{http.Request.Host}");
         return new Uri(baseUri, $"/share/{Uri.EscapeDataString(id)}?type={urlType}");
+    }
+
+    // Accept the client-reported activities, fire the host hook (notifications etc.), and answer
+    // one ActivityResponse per activity. Known types (comment) are accepted; unrecognized types
+    // get NotSupported. Activity ids are echoed verbatim. Persistence is the host's concern (the
+    // hook) — the core just satisfies the protocol contract.
+    private static async Task<Results<NotFound, JsonHttpResult<WopiAddActivitiesResponse>>> AddActivities(
+        [AsParameters] AddActivitiesRequest req)
+    {
+        var file = await req.Storage.GetWopiFile(req.Id, req.CancellationToken).ConfigureAwait(false);
+        if (file is null) return TypedResults.NotFound();
+
+        var body = await req.Http.Request.ReadFromJsonAsync<AddActivitiesRequestBody>(req.CancellationToken).ConfigureAwait(false);
+        var activities = body?.Activities ?? [];
+
+        await req.Extensions.OnAddActivitiesAsync(
+            new WopiAddActivitiesContext(req.Http.User, file, activities), req.CancellationToken).ConfigureAwait(false);
+
+        var responses = new List<WopiActivityResponse>(activities.Count);
+        foreach (var activity in activities)
+        {
+            var status = string.Equals(activity.Type, "comment", StringComparison.OrdinalIgnoreCase)
+                ? WopiActivityStatus.Success
+                : WopiActivityStatus.NotSupported;
+            responses.Add(new WopiActivityResponse(activity.Id ?? string.Empty, status));
+        }
+
+        return TypedResults.Json(new WopiAddActivitiesResponse(responses));
     }
 
     private static async Task<Results<NotFound, Ok, WopiLockMismatchResult, StatusCodeHttpResult>> PutFile(
@@ -665,6 +708,17 @@ internal readonly record struct GetFileShareUrlRequest(
     IWopiStorageProvider Storage,
     [FromHeader(Name = WopiHeaders.UrlType)] string? UrlType,
     CancellationToken CancellationToken);
+
+/// <summary>Parameter bundle for <see cref="FileMutatingEndpoints.AddActivities"/>.</summary>
+internal readonly record struct AddActivitiesRequest(
+    [FromRoute] string Id,
+    HttpContext Http,
+    IWopiStorageProvider Storage,
+    IWopiHostExtensions Extensions,
+    CancellationToken CancellationToken);
+
+/// <summary>Request body for AddActivities — <c>{ "Activities": [ … ] }</c>.</summary>
+internal sealed record AddActivitiesRequestBody(IReadOnlyList<WopiActivity>? Activities);
 
 /// <summary>Parameter bundle for <see cref="FileMutatingEndpoints.PutFile"/>.</summary>
 internal readonly record struct PutFileRequest(

@@ -71,6 +71,102 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
     }
 
+    // ---- AddActivities ---------------------------------------------------
+
+    private static StringContent ActivitiesBody(string json)
+        => new(json, System.Text.Encoding.UTF8, "application/json");
+
+    [Fact]
+    public async Task AddActivities_Comment_Returns200_EchoesIdWithSuccessStatus()
+    {
+        var fileId = await _fixture.CreateTempFileAsync([]);
+        var token = await _fixture.MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}/activities?access_token={Uri.EscapeDataString(token)}");
+        req.Headers.Add("X-WOPI-Override", "ADD_ACTIVITIES");
+        req.Content = ActivitiesBody("""
+            { "Activities": [ { "Type": "comment", "Id": "00000014-0000-0000-0000-000000000000",
+              "Data": { "ContentId": "cid123", "ContentAction": "created" } } ] }
+            """);
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        var first = doc.RootElement.GetProperty("ActivityResponses")[0];
+        Assert.Equal("00000014-0000-0000-0000-000000000000", first.GetProperty("Id").GetString());
+        Assert.Equal(0, first.GetProperty("Status").GetInt32()); // Success
+    }
+
+    [Fact]
+    public async Task AddActivities_UnknownType_ReturnsNotSupportedStatus()
+    {
+        var fileId = await _fixture.CreateTempFileAsync([]);
+        var token = await _fixture.MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}/activities?access_token={Uri.EscapeDataString(token)}");
+        req.Headers.Add("X-WOPI-Override", "ADD_ACTIVITIES");
+        req.Content = ActivitiesBody("""
+            { "Activities": [ { "Type": "unsupported", "Id": "0000000d-0000-0000-0000-000000000000",
+              "Data": { "Foo": "bar" } } ] }
+            """);
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        var first = doc.RootElement.GetProperty("ActivityResponses")[0];
+        Assert.Equal("0000000d-0000-0000-0000-000000000000", first.GetProperty("Id").GetString());
+        Assert.Equal(3, first.GetProperty("Status").GetInt32()); // NotSupported
+    }
+
+    [Fact]
+    public async Task AddActivities_MultipleActivities_OneResponsePerActivityInOrder()
+    {
+        var fileId = await _fixture.CreateTempFileAsync([]);
+        var token = await _fixture.MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}/activities?access_token={Uri.EscapeDataString(token)}");
+        req.Headers.Add("X-WOPI-Override", "ADD_ACTIVITIES");
+        req.Content = ActivitiesBody("""
+            { "Activities": [
+              { "Type": "comment",     "Id": "0000000f-0000-0000-0000-000000000000", "Data": { "ContentId": "c" } },
+              { "Type": "unsupported", "Id": "00000010-0000-0000-0000-000000000000", "Data": { "x": 1 } } ] }
+            """);
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        var responses = doc.RootElement.GetProperty("ActivityResponses");
+        Assert.Equal(2, responses.GetArrayLength());
+        Assert.Equal("0000000f-0000-0000-0000-000000000000", responses[0].GetProperty("Id").GetString());
+        Assert.Equal(0, responses[0].GetProperty("Status").GetInt32());
+        Assert.Equal("00000010-0000-0000-0000-000000000000", responses[1].GetProperty("Id").GetString());
+        Assert.Equal(3, responses[1].GetProperty("Status").GetInt32());
+    }
+
+    [Fact]
+    public async Task AddActivities_ViaOverrideOnFileRoute_AlsoWorks()
+    {
+        // The bare /{id} route with X-WOPI-Override: ADD_ACTIVITIES is the override-dispatched form.
+        var fileId = await _fixture.CreateTempFileAsync([]);
+        var token = await _fixture.MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
+        req.Headers.Add("X-WOPI-Override", "ADD_ACTIVITIES");
+        req.Content = ActivitiesBody("""
+            { "Activities": [ { "Type": "comment", "Id": "00000001-0000-0000-0000-000000000000", "Data": {} } ] }
+            """);
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        Assert.Equal("00000001-0000-0000-0000-000000000000",
+            doc.RootElement.GetProperty("ActivityResponses")[0].GetProperty("Id").GetString());
+    }
+
     // ---- PutFile ---------------------------------------------------------
 
     [Fact]

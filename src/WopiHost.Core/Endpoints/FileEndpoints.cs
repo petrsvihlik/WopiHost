@@ -80,6 +80,7 @@ internal static class FileEndpoints
             SupportsCoauth = req.CobaltProcessor is not null,
             SupportsUpdate = req.WritableStorage is not null,
             SupportedShareUrlTypes = WopiShareUrlTypes.All,
+            SupportsAddActivities = true,
         };
 
         var checkFileInfo = await req.Builder.BuildAsync(file, req.Http.ToWopiRequestInfo(), capabilities, userInfo, req.CancellationToken).ConfigureAwait(false);
