@@ -53,6 +53,20 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
     }
 
+    [Fact]
+    public async Task GetShareUrl_MissingUrlTypeHeader_Returns501()
+    {
+        var token = await _fixture.MintContainerTokenAsync(_fixture.RootContainerId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
+        req.Headers.Add("X-WOPI-Override", "GET_SHARE_URL");
+        // No X-WOPI-UrlType header → treated as unsupported.
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
+    }
+
     // ---- CreateChildContainer --------------------------------------------
 
     [Fact]

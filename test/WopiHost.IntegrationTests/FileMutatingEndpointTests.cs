@@ -56,6 +56,21 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
     }
 
+    [Fact]
+    public async Task GetShareUrl_MissingUrlTypeHeader_Returns501()
+    {
+        var fileId = await _fixture.CreateTempFileAsync([]);
+        var token = await _fixture.MintFileTokenAsync(fileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
+        req.Headers.Add("X-WOPI-Override", "GET_SHARE_URL");
+        // No X-WOPI-UrlType header → treated as unsupported.
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
+    }
+
     // ---- PutFile ---------------------------------------------------------
 
     [Fact]
