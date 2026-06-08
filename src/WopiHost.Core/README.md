@@ -93,6 +93,7 @@ WOPI uses a small set of routes; verb + `X-WOPI-Override` header pick the operat
 | `/wopi/files/{id}` | `POST` | `RENAME_FILE` | [`RenameFile`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/renamefile) |
 | `/wopi/files/{id}` | `POST` | `DELETE` | [`DeleteFile`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile) |
 | `/wopi/files/{id}` | `POST` | `PUT_USER_INFO` | [`PutUserInfo`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo) |
+| `/wopi/files/{id}` | `POST` | `GET_SHARE_URL` | [`GetShareUrl`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getshareurl) |
 | `/wopi/files/{id}` | `POST` | `COBALT` | MS-FSSHTTP request batch (when [WopiHost.Cobalt](../WopiHost.Cobalt/README.md) is registered) |
 | `/wopi/files/{id}/ancestry` | `GET` | — | [`EnumerateAncestors`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/enumerateancestors) |
 | `/wopi/files/{id}/ecosystem_pointer` | `GET` | — | Ecosystem pointer for the file |
@@ -101,6 +102,7 @@ WOPI uses a small set of routes; verb + `X-WOPI-Override` header pick the operat
 | `/wopi/containers/{id}/ancestry` | `GET` | — | [`EnumerateAncestors`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/enumerateancestors) |
 | `/wopi/containers/{id}/ecosystem_pointer` | `GET` | — | Ecosystem pointer for the container |
 | `/wopi/containers/{id}` | `POST` | `CREATE_CHILD_CONTAINER` / `CREATE_CHILD_FILE` / `RENAME_CONTAINER` / `DELETE_CONTAINER` | Container mutations |
+| `/wopi/containers/{id}` | `POST` | `GET_SHARE_URL` | [`GetShareUrl`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/getshareurl) |
 | `/wopi/folders/{id}` | `GET` | — | [`CheckFolderInfo`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/folders/checkfolderinfo) (legacy OneNote) |
 | `/wopi/folders/{id}/children` | `GET` | — | [`EnumerateChildren (folders)`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/folders/enumeratechildren) |
 | `/wopi/ecosystem` | `GET` | — | [`CheckEcosystem`](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/checkecosystem) |

@@ -24,4 +24,9 @@ public static class WopiContainerOperations
     /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/renamecontainer
     /// </summary>
     public const string RenameContainer = "RENAME_CONTAINER";
+
+    /// <summary>
+    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/getshareurl
+    /// </summary>
+    public const string GetShareUrl = "GET_SHARE_URL";
 }
