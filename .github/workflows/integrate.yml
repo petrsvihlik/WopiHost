@@ -49,7 +49,7 @@ jobs:
         # .qlty/qlty.toml.
         skip-missing-files: true
     - name: Codecov
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
     - name: FOSSA scan + policy gate
