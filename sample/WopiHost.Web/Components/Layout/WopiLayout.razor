@@ -1,9 +1,12 @@
 @inherits LayoutComponentBase
 @inject IOptions<WopiOptions> WopiOptions
 
-@* Full-bleed iframe layout for the WOPI editor. The "Files" pill on top-left lets the user
-   navigate back; the postMessage handshake gives the WOPI client a chance to flush pending
-   saves before the host navigates away. *@
+@* Editor layout: a thin top action bar driving the WOPI host-page postMessage API, with the
+   editor iframe filling the space below it. The bar issues host->editor commands (Save / Print /
+   Close) and the script reacts to editor->host notifications (load status, modified flag, save
+   result, the editor's own Share/Close UI). See
+   https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/scenarios/postmessage
+   and Collabora's https://sdk.collaboraonline.com/docs/postmessage_api.html. *@
 
 <HeadContent>
     <meta http-equiv="x-ua-compatible" content="ie=edge">
@@ -17,57 +20,211 @@
             -ms-content-zooming: none;
         }
 
-        /* Floating "back to files" pill, top-left over the editor.
-           Avoid eating editor real estate via a thin top bar. */
-        #wopi_back {
+        #wopi_bar {
             position: fixed;
-            top: 8px;
-            left: 8px;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
             z-index: 2147483647;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 0 10px;
+            box-sizing: border-box;
+            background: #1f1f1f;
+            color: #fff;
+            font: 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #wopi_bar .group {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        #wopi_bar button {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             padding: 6px 12px;
-            font: 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font: inherit;
             color: #fff;
-            background: rgba(0, 0, 0, 0.55);
-            border: 0;
-            border-radius: 999px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 6px;
             cursor: pointer;
-            text-decoration: none;
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
         }
 
-        #wopi_back:hover {
-            background: rgba(0, 0, 0, 0.75);
+        #wopi_bar button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.14);
         }
 
+        #wopi_bar button:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        #wopi_bar .sep {
+            width: 1px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 0 4px;
+        }
+
+        #wopi_status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            white-space: nowrap;
+        }
+
+        #wopi_modified {
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        /* Editor frame fills everything below the bar. */
         #office_frame {
-            width: 100%;
-            height: 100%;
             position: absolute;
-            top: 0;
+            top: 40px;
             left: 0;
             right: 0;
             bottom: 0;
+            width: 100%;
+            height: calc(100% - 40px);
             margin: 0;
             border: none;
             display: block;
         }
+
+        #wopi_share {
+            position: fixed;
+            inset: 0;
+            z-index: 2147483647;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.45);
+        }
+
+        #wopi_share[data-open="1"] {
+            display: flex;
+        }
+
+        #wopi_share .card {
+            background: #fff;
+            color: #1f1f1f;
+            width: min(440px, calc(100vw - 32px));
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #wopi_share h2 {
+            margin: 0 0 12px;
+            font-size: 16px;
+        }
+
+        #wopi_share .row {
+            display: flex;
+            gap: 8px;
+        }
+
+        #wopi_share input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font: inherit;
+        }
+
+        #wopi_share .card button {
+            padding: 8px 14px;
+            border: 1px solid #b0b0b0;
+            border-radius: 6px;
+            background: #e8e8e8;
+            color: #1f1f1f;
+            cursor: pointer;
+            font: inherit;
+        }
+
+        #wopi_share .card button:hover {
+            background: #dadada;
+        }
+
+        /* Primary affordance — readable on its own colour rather than inheriting white. */
+        #wopi_share_copy {
+            background: #0b5cad;
+            border-color: #0b5cad;
+            color: #fff;
+        }
+
+        #wopi_share_copy:hover {
+            background: #094a8c;
+        }
+
+        #wopi_share .close {
+            margin-top: 14px;
+            text-align: right;
+        }
     </style>
 </HeadContent>
 
-<button id="wopi_back" type="button" title="Close editor and return to files">← Files</button>
+<div id="wopi_bar" role="toolbar" aria-label="Document actions">
+    <div class="group">
+        <button id="wopi_files" type="button" title="Close editor and return to files">← Files</button>
+        <span class="sep"></span>
+        <button data-action="Action_Save" type="button" title="Save the document">💾 Save</button>
+        <button data-action="Action_Print" type="button" title="Print the document">🖨 Print</button>
+        <button id="wopi_share_btn" type="button" title="Share a link to this document">🔗 Share</button>
+        <button id="wopi_close" type="button" title="Close the document">✕ Close</button>
+    </div>
+    <div id="wopi_status">
+        <span id="wopi_modified" title="Unsaved changes" hidden>●</span>
+        <span id="wopi_statustext">Loading…</span>
+    </div>
+</div>
+
+<div id="wopi_share" role="dialog" aria-modal="true" aria-label="Share document">
+    <div class="card">
+        <h2>Share this document</h2>
+        <div class="row">
+            <input id="wopi_share_url" type="text" readonly aria-label="Shareable link" />
+            <button id="wopi_share_copy" type="button">Copy</button>
+        </div>
+        <div class="close">
+            <button id="wopi_share_dismiss" type="button">Close</button>
+        </div>
+    </div>
+</div>
 
 @Body
 
 <script type="text/javascript">
-    // Close handshake: Office for the Web / Collabora honour the WOPI postMessage
-    // "Action_Close" so they can flush pending saves before the host navigates away.
+    // Host-page side of the WOPI postMessage API. The host posts host->editor commands to the
+    // editor frame and reacts to editor->host notifications. Outgoing and incoming messages are
+    // both scoped to the WOPI client's origin so a stray frame can't drive or observe the host.
     (function () {
-        var btn = document.getElementById('wopi_back');
-        if (!btn) return;
+        var wopiClientOrigin = '@WopiOptions.Value.ClientUrl.GetLeftPart(System.UriPartial.Authority)';
+
+        function frame() { return document.getElementById('office_frame'); }
+
+        function post(messageId, values) {
+            var f = frame();
+            if (!f || !f.contentWindow) return;
+            f.contentWindow.postMessage(
+                JSON.stringify({ MessageId: messageId, SendTime: Date.now(), Values: values || {} }),
+                wopiClientOrigin);
+        }
+
+        var statusEl = document.getElementById('wopi_statustext');
+        var modifiedEl = document.getElementById('wopi_modified');
+        function setStatus(text) { if (statusEl) statusEl.textContent = text; }
+        function setModified(on) { if (modifiedEl) modifiedEl.hidden = !on; }
 
         var navigated = false;
         function goHome() {
@@ -76,34 +233,96 @@
             window.location.href = '/';
         }
 
-        // Restrict postMessage to the WOPI client's origin so the Action_Close payload is
-        // never delivered to a different document if the iframe ever navigates elsewhere.
-        var wopiClientOrigin = '@WopiOptions.Value.ClientUrl.GetLeftPart(System.UriPartial.Authority)';
+        // Close handshake: post Action_Close so the editor flushes pending saves, then navigate.
+        function requestClose() {
+            post('Action_Close', {});
+            setTimeout(goHome, 600);
+        }
 
-        btn.addEventListener('click', function () {
-            try {
-                var frame = document.getElementById('office_frame');
-                if (frame && frame.contentWindow) {
-                    frame.contentWindow.postMessage(
-                        JSON.stringify({ MessageId: 'Action_Close', SendTime: Date.now(), Values: {} }),
-                        wopiClientOrigin
-                    );
-                    // Give the client ~600ms to acknowledge / flush, then navigate.
-                    setTimeout(goHome, 600);
-                    return;
-                }
-            } catch (e) { /* fall through */ }
-            goHome();
+        // Share UI is host-owned: the editor's Share button (UI_Sharing) and the bar's Share
+        // button both open the host's own dialog. A production host would mint a real link here
+        // (e.g. via the WOPI GetShareUrl operation); the sample shares the current document URL.
+        var shareOverlay = document.getElementById('wopi_share');
+        function openShare() {
+            var input = document.getElementById('wopi_share_url');
+            if (input) input.value = window.location.href;
+            if (shareOverlay) shareOverlay.setAttribute('data-open', '1');
+        }
+        function closeShare() { if (shareOverlay) shareOverlay.removeAttribute('data-open'); }
+
+        // --- Bar wiring ---
+        document.getElementById('wopi_files').addEventListener('click', requestClose);
+        document.getElementById('wopi_close').addEventListener('click', requestClose);
+        document.getElementById('wopi_share_btn').addEventListener('click', openShare);
+        document.getElementById('wopi_share_dismiss').addEventListener('click', closeShare);
+        shareOverlay.addEventListener('click', function (e) {
+            if (e.target === shareOverlay) closeShare();
+        });
+        document.getElementById('wopi_share_copy').addEventListener('click', function () {
+            var input = document.getElementById('wopi_share_url');
+            if (!input) return;
+            input.select();
+            if (navigator.clipboard) { navigator.clipboard.writeText(input.value).catch(function () { }); }
+            else { document.execCommand('copy'); }
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('#wopi_bar button[data-action]'), function (btn) {
+            btn.addEventListener('click', function () {
+                var action = btn.getAttribute('data-action');
+                post(action, action === 'Action_Save'
+                    ? { Notify: true, DontTerminateEdit: true, DontSaveIfUnmodified: true }
+                    : {});
+            });
         });
 
-        // Optional: if the client posts UI_Close back, treat it as confirmation.
+        // Save only makes sense in edit mode. The host-page URL carries the WOPI action; a view
+        // link strips UserCanWrite from the token, so hide Save rather than offer a no-op.
+        var wopiAction = (new URLSearchParams(window.location.search).get('wopiaction') || 'view').toLowerCase();
+        if (wopiAction === 'view') {
+            var saveBtn = document.querySelector('#wopi_bar button[data-action="Action_Save"]');
+            if (saveBtn) { saveBtn.remove(); }
+        }
+
+        // Collabora stays silent until the host announces readiness; Office for the Web also keys
+        // its postMessage stream off this. Sent on the editor frame's load, with a fallback timer
+        // in case the frame finished loading before this script attached its handler.
+        function announceReady() { post('Host_PostmessageReady', {}); }
+        (function wireReady() {
+            var f = frame();
+            if (!f) { setTimeout(wireReady, 100); return; }
+            f.addEventListener('load', announceReady);
+            setTimeout(announceReady, 1500);
+        })();
+
+        // --- editor -> host notifications ---
         window.addEventListener('message', function (e) {
-            try {
-                var msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-                if (msg && (msg.MessageId === 'UI_Close' || msg.MessageId === 'Action_Close_Resp')) {
+            if (e.origin !== wopiClientOrigin) return;
+            var msg;
+            try { msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; }
+            catch (_) { return; }
+            if (!msg || !msg.MessageId) return;
+            var v = msg.Values || {};
+
+            switch (msg.MessageId) {
+                case 'App_LoadingStatus':
+                    if (v.Status === 'Document_Loaded' || v.Status === 'Frame_Ready') setStatus('Ready');
+                    break;
+                case 'Doc_ModifiedStatus':       // Collabora
+                case 'Document_Modified':        // Office for the Web
+                    setModified(!!v.Modified);
+                    if (v.Modified) setStatus('Unsaved changes');
+                    break;
+                case 'Action_Save_Resp':
+                    setModified(false);
+                    setStatus('Saved');
+                    break;
+                case 'UI_Sharing':
+                    openShare();
+                    break;
+                case 'UI_Close':
+                case 'Action_Close_Resp':
                     goHome();
-                }
-            } catch (_) { /* ignore non-JSON messages from the iframe */ }
+                    break;
+            }
         });
     })();
 </script>

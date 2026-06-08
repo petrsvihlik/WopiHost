@@ -54,4 +54,9 @@ public static class WopiFileOperations
     /// Cobalt file operations
     /// </summary>
     public const string Cobalt = "COBALT";
+
+    /// <summary>
+    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getshareurl
+    /// </summary>
+    public const string GetShareUrl = "GET_SHARE_URL";
 }

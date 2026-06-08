@@ -73,6 +73,30 @@ internal static class ContainerMutatingEndpoints
             .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/renamecontainer. " +
                 "Returns the new name on success; 400 with X-WOPI-InvalidContainerNameError on invalid input.")
             .RequireWopiPermission(WopiResourceType.Container, Permission.Rename);
+
+        // GetShareUrl is read-level — registered on the parent group, not the writable-gated one.
+        containers.MapPost("/{id}", GetShareUrl)
+            .WithMetadata(new WopiOverrideMetadata(WopiContainerOperations.GetShareUrl))
+            .WithSummary("GetShareUrl (X-WOPI-Override: GET_SHARE_URL).")
+            .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/getshareurl. " +
+                "Returns 501 when the requested X-WOPI-UrlType is unsupported.")
+            .RequireWopiPermission(WopiResourceType.Container, Permission.Read);
+    }
+
+    // Spec: returns { "ShareUrl": "..." } for a supported X-WOPI-UrlType, else 501. Mirrors the
+    // file-side GetShareUrl and reuses its share-link builder.
+    private static async Task<Results<NotFound, JsonHttpResult<ShareUrlResponse>, StatusCodeHttpResult>> GetShareUrl(
+        [AsParameters] GetContainerShareUrlRequest req)
+    {
+        var container = await req.Storage.GetWopiContainer(req.Id, req.CancellationToken).ConfigureAwait(false);
+        if (container is null) return TypedResults.NotFound();
+
+        if (string.IsNullOrEmpty(req.UrlType) || !WopiShareUrlTypes.All.Contains(req.UrlType, StringComparer.Ordinal))
+        {
+            return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
+        }
+
+        return TypedResults.Json(new ShareUrlResponse(FileMutatingEndpoints.BuildShareUrl(req.Http, req.Id, req.UrlType)));
     }
 
     private static async Task<CreateChildContainerResult> CreateChildContainer(
@@ -282,6 +306,14 @@ public sealed record RenameContainerResponse(string Name);
 // FileMutatingEndpoints. The nullable signal communicates the optional contract while the
 // attribute forces DI lookup at the binder so unregistered hosts still resolve a null instead
 // of triggering body-inference startup failure.
+
+/// <summary>Parameter bundle for <see cref="ContainerMutatingEndpoints.GetShareUrl"/>.</summary>
+internal readonly record struct GetContainerShareUrlRequest(
+    [FromRoute] string Id,
+    HttpContext Http,
+    IWopiStorageProvider Storage,
+    [FromHeader(Name = WopiHeaders.UrlType)] string? UrlType,
+    CancellationToken CancellationToken);
 
 /// <summary>Parameter bundle for <see cref="ContainerMutatingEndpoints.CreateChildContainer"/>.</summary>
 internal readonly record struct CreateChildContainerRequest(

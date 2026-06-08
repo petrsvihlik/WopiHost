@@ -86,6 +86,15 @@ internal static class FileMutatingEndpoints
             .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo. " +
                 "Body size capped at 1024 bytes per spec; oversized bodies yield 400.");
 
+        // GetShareUrl is read-level and needs no writable storage, so it's registered on the
+        // parent group (like PutUserInfo), not the writable-gated sub-group.
+        files.MapPost("/{id}", GetShareUrl)
+            .WithMetadata(new WopiOverrideMetadata(WopiFileOperations.GetShareUrl))
+            .WithSummary("GetShareUrl (X-WOPI-Override: GET_SHARE_URL).")
+            .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getshareurl. " +
+                "Returns 501 when the requested X-WOPI-UrlType is unsupported.")
+            .RequireWopiPermission(WopiResourceType.File, Permission.Read);
+
         mutating.MapPost("/{id}", DeleteFile)
             .WithMetadata(new WopiOverrideMetadata(WopiFileOperations.DeleteFile))
             .WithSummary("DeleteFile (X-WOPI-Override: DELETE).")
@@ -113,6 +122,30 @@ internal static class FileMutatingEndpoints
             .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock. " +
                 "Dispatches by X-WOPI-Override inside the handler. Returns 409 with X-WOPI-Lock on every mismatch path.")
             .RequireWopiPermission(WopiResourceType.File, Permission.Update);
+    }
+
+    // Spec: returns { "ShareUrl": "..." } for a supported X-WOPI-UrlType, or 501 Not Implemented
+    // when the requested type isn't in SupportedShareUrlTypes. The sample mints a host-page-style
+    // link off the request authority; a production host would return its real sharing surface.
+    private static async Task<Results<NotFound, JsonHttpResult<ShareUrlResponse>, StatusCodeHttpResult>> GetShareUrl(
+        [AsParameters] GetFileShareUrlRequest req)
+    {
+        var file = await req.Storage.GetWopiFile(req.Id, req.CancellationToken).ConfigureAwait(false);
+        if (file is null) return TypedResults.NotFound();
+
+        if (string.IsNullOrEmpty(req.UrlType) || !WopiShareUrlTypes.All.Contains(req.UrlType, StringComparer.Ordinal))
+        {
+            return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
+        }
+
+        return TypedResults.Json(new ShareUrlResponse(BuildShareUrl(req.Http, req.Id, req.UrlType)));
+    }
+
+    /// <summary>Builds an absolute, host-page-style share link off the request authority.</summary>
+    internal static Uri BuildShareUrl(HttpContext http, string id, string urlType)
+    {
+        var baseUri = new Uri($"{http.Request.Scheme}://{http.Request.Host}");
+        return new Uri(baseUri, $"/share/{Uri.EscapeDataString(id)}?type={urlType}");
     }
 
     private static async Task<Results<NotFound, Ok, WopiLockMismatchResult, StatusCodeHttpResult>> PutFile(
@@ -624,6 +657,14 @@ public sealed record RenameFileResponse(string Name);
 // parameter is plain (non-nullable, no [FromServices]). Declaring it nullable with a
 // null-coalesce fallback at the call sites would silently mask a host's choice to register
 // JsonShapedWopiLockComparer, routing every lock-compare through Ordinal.
+
+/// <summary>Parameter bundle for <see cref="FileMutatingEndpoints.GetShareUrl"/>.</summary>
+internal readonly record struct GetFileShareUrlRequest(
+    [FromRoute] string Id,
+    HttpContext Http,
+    IWopiStorageProvider Storage,
+    [FromHeader(Name = WopiHeaders.UrlType)] string? UrlType,
+    CancellationToken CancellationToken);
 
 /// <summary>Parameter bundle for <see cref="FileMutatingEndpoints.PutFile"/>.</summary>
 internal readonly record struct PutFileRequest(

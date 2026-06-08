@@ -37,6 +37,7 @@ public class DefaultCheckContainerInfoBuilder(
             UserCanRename = permissions.HasFlag(WopiContainerPermissions.UserCanRename),
             IsAnonymousUser = isAnonymous,
             IsEduUser = false,
+            SupportedShareUrlTypes = WopiShareUrlTypes.All,
         };
 
         return await extensions.OnCheckContainerInfoAsync(

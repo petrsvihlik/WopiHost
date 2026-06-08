@@ -18,6 +18,55 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
 {
     private readonly MutatingEndpointsFixture _fixture = fixture;
 
+    // ---- GetShareUrl -----------------------------------------------------
+
+    [Theory]
+    [InlineData("ReadOnly")]
+    [InlineData("ReadWrite")]
+    public async Task GetShareUrl_SupportedUrlType_Returns200WithAbsoluteShareUrl(string urlType)
+    {
+        var token = await _fixture.MintContainerTokenAsync(_fixture.RootContainerId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
+        req.Headers.Add("X-WOPI-Override", "GET_SHARE_URL");
+        req.Headers.Add("X-WOPI-UrlType", urlType);
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        var shareUrl = doc.RootElement.GetProperty("ShareUrl").GetString();
+        Assert.True(Uri.IsWellFormedUriString(shareUrl, UriKind.Absolute));
+    }
+
+    [Fact]
+    public async Task GetShareUrl_UnsupportedUrlType_Returns501()
+    {
+        var token = await _fixture.MintContainerTokenAsync(_fixture.RootContainerId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
+        req.Headers.Add("X-WOPI-Override", "GET_SHARE_URL");
+        req.Headers.Add("X-WOPI-UrlType", "NotASupportedType");
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetShareUrl_MissingUrlTypeHeader_Returns501()
+    {
+        var token = await _fixture.MintContainerTokenAsync(_fixture.RootContainerId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
+        req.Headers.Add("X-WOPI-Override", "GET_SHARE_URL");
+        // No X-WOPI-UrlType header → treated as unsupported.
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
+    }
+
     // ---- CreateChildContainer --------------------------------------------
 
     [Fact]

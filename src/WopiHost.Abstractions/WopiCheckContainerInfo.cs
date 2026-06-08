@@ -63,5 +63,13 @@ public class WopiCheckContainerInfo
     /// </summary>
     public bool UserCanRename { get; set; }
 
+    /// <summary>
+    /// The Share URL types the host supports for this container. These values can be passed in the
+    /// X-WOPI-UrlType request header to the
+    /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/getshareurl">GetShareUrl (containers)</see>
+    /// operation. Mirrors <c>SupportedShareUrlTypes</c> on CheckFileInfo.
+    /// </summary>
+    public IEnumerable<string> SupportedShareUrlTypes { get; set; } = [];
+
     #endregion
 }
