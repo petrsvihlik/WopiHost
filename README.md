@@ -55,14 +55,19 @@ The Aspire dashboard opens automatically and starts:
 
 | Resource | What it is |
 |---|---|
-| `wopihost` | WOPI backend; OpenAPI at `/scalar` |
-| `wopihost-web` | Sample frontend (file picker + iframe) |
-| `wopihost-validator` | WOPI protocol validator |
+| `wopihost-collabora` | WOPI backend (Collabora lane); OpenAPI at `/scalar` |
+| `wopihost-web-collabora` | Sample frontend (file picker + iframe) wired to Collabora |
 | `collabora` | [Collabora Online](https://github.com/petrsvihlik/WopiHost/wiki/Collabora-Online) (CODE) container — real WOPI client for end-to-end editing |
+| `wopihost-onlyoffice` | A second WOPI backend (ONLYOFFICE lane) |
+| `wopihost-web-onlyoffice` | A second sample frontend wired to ONLYOFFICE |
+| `onlyoffice` | [ONLYOFFICE Docs](https://github.com/ONLYOFFICE/Docker-DocumentServer) container — a second real WOPI client |
+| `wopihost-validator` | WOPI protocol validator |
 
-The dashboard shows the URL each resource is bound to — Aspire allocates ports dynamically for the frontends, so they change between runs. The first run pulls the `collabora/code` Docker image (~1 GB) and takes a minute or two; if you don't want the dependency, set `"AppHost:UseCollabora": false` in [`infra/WopiHost.AppHost/appsettings.Development.json`](infra/WopiHost.AppHost/appsettings.Development.json).
+Each editor runs in its own lane — a dedicated backend + frontend — so they can be tested side by side. To skip a Docker image you don't want, see the [AppHost README](infra/WopiHost.AppHost/README.md#opting-out-of-docker-clients).
 
-![Aspire dashboard](https://github.com/user-attachments/assets/438cf17b-36f2-4d5f-adb5-6003314d17c3)
+The dashboard shows the URL each resource is bound to — Aspire allocates ports dynamically for the frontends, so they change between runs. The first run pulls the `collabora/code` Docker image (~1 GB) and the larger `onlyoffice/documentserver` image (~4.3 GB) and takes a few minutes; if you don't want the dependency, set `"AppHost:UseCollabora": false` and/or `"AppHost:UseOnlyOffice": false` in [`infra/WopiHost.AppHost/appsettings.Development.json`](infra/WopiHost.AppHost/appsettings.Development.json).
+
+![Aspire dashboard showing both editor lanes (Collabora + ONLYOFFICE) running](docs/aspire-dashboard.png)
 
 ## Documentation
 
@@ -87,6 +92,7 @@ Everything beyond the basics lives in the **[wiki](https://github.com/petrsvihli
 | **Office Online Server 2016+** | Production | Microsoft only [supports the latest version](https://learn.microsoft.com/officeonlineserver/office-online-server-release-schedule); WopiHost tracks the same. [Deployment guide](https://learn.microsoft.com/officeonlineserver/deploy-office-online-server). |
 | **Microsoft 365 for the Web** | Production | Requires [CSPP onboarding](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/apply-for-cspp-program) plus implementing the M365-specific feature surface. The provided sample passes the [WOPI-Validator](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/build-test-ship/validator). |
 | **Collabora Online (CODE)** | Development / CI only | Free and redistributable, runs as a Docker container. Useful for end-to-end testing without a Microsoft license; not a substitute for OOS or M365. See the [wiki](https://github.com/petrsvihlik/WopiHost/wiki/Collabora-Online) for the AppHost wiring. |
+| **ONLYOFFICE Docs** | Development / CI only | Free Community edition, runs as a Docker container. A second independent WOPI client for end-to-end testing alongside Collabora; not a substitute for OOS or M365. |
 
 ## License
 
