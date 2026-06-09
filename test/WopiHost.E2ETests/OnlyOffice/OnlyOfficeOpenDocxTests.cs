@@ -1,5 +1,5 @@
 using Microsoft.Playwright;
-using WopiHost.E2ETests.OnlyOffice.Fixtures;
+using WopiHost.E2ETests.Fixtures;
 
 namespace WopiHost.E2ETests.OnlyOffice;
 
@@ -11,17 +11,11 @@ namespace WopiHost.E2ETests.OnlyOffice;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Why a separate test project</b> (mirroring <c>WopiHost.E2ETests.Collabora</c>):
-/// Aspire.Hosting.Testing pulls in the AppHost SDK + every Aspire resource type the AppHost
-/// references, and the cold-start requires Docker. Keeping that dependency surface contained means
-/// the per-PR Build &amp; Test workflow doesn't pay the cost.
-/// </para>
-/// <para>
-/// <b>Where this runs</b>: a dedicated <c>e2e-onlyoffice.yml</c> workflow on a nightly cron plus
+/// <b>Where this runs</b>: the dedicated <c>e2e-onlyoffice.yml</c> workflow on a nightly cron plus
 /// <c>workflow_dispatch</c>, NEVER on per-PR CI ([Trait Category=E2E] is filtered out by the
 /// repo-root <c>.runsettings</c>). The integration is by design heavy — the ONLYOFFICE image is
 /// ~4.3 GB and bundles its own Postgres/RabbitMQ — and gating PRs on it would cause more friction
-/// than it'd catch.
+/// than it'd catch. The workflow selects this suite via <c>--filter "Client=OnlyOffice"</c>.
 /// </para>
 /// <para>
 /// <b>Load signal</b>: ONLYOFFICE does not expose Collabora's host-postMessage protocol, so the test
@@ -33,6 +27,7 @@ namespace WopiHost.E2ETests.OnlyOffice;
 /// </remarks>
 [Collection(OnlyOfficeFixtureCollection.Name)]
 [Trait("Category", "E2E")]
+[Trait("Client", "OnlyOffice")]
 public sealed class OnlyOfficeOpenDocxTests(OnlyOfficeAppFixture app, PlaywrightFixture playwright) : IAsyncLifetime
 {
     private const string SampleDocxName = "test.docx";
@@ -132,7 +127,7 @@ public sealed class OnlyOfficeOpenDocxTests(OnlyOfficeAppFixture app, Playwright
 
         // Timed out — gather diagnostics that disambiguate "engine slow" from "WOPI callback failed".
         var editorState = await CaptureEditorStateAsync(page);
-        var logs = await app.CaptureOnlyOfficeLogsAsync();
+        var logs = await app.CaptureClientLogsAsync();
         throw new Xunit.Sdk.XunitException(
             $"ONLYOFFICE did not finish loading {SampleDocxName} within {s_documentReadyTimeout.TotalSeconds}s.\n" +
             $"{editorState}\n\nONLYOFFICE container logs:\n{logs}");
