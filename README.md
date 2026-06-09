@@ -67,7 +67,7 @@ Each editor runs in its own lane — a dedicated backend + frontend — so they 
 
 The dashboard shows the URL each resource is bound to — Aspire allocates ports dynamically for the frontends, so they change between runs. The first run pulls the `collabora/code` Docker image (~1 GB) and the larger `onlyoffice/documentserver` image (~4.3 GB) and takes a few minutes; if you don't want the dependency, set `"AppHost:UseCollabora": false` and/or `"AppHost:UseOnlyOffice": false` in [`infra/WopiHost.AppHost/appsettings.Development.json`](infra/WopiHost.AppHost/appsettings.Development.json).
 
-![Aspire dashboard](https://github.com/user-attachments/assets/438cf17b-36f2-4d5f-adb5-6003314d17c3)
+![Aspire dashboard showing both editor lanes (Collabora + ONLYOFFICE) running](docs/aspire-dashboard.png)
 
 ## Documentation
 
