@@ -20,251 +20,315 @@ static IResourceBuilder<ProjectResource> ExcludeVsHostingStartups(IResourceBuild
         "ASPNETCORE_HOSTINGSTARTUPEXCLUDEASSEMBLIES",
         "Microsoft.WebTools.ApiEndpointDiscovery;Microsoft.AspNetCore.Watch.BrowserRefresh");
 
-// WOPI backend.
-//
-// Port: pinned to 5050. Kestrel binds directly (isProxied: false) so the URL handed to other
-// resources is the real host-side TCP socket. Direct binding matters for the Collabora dev
-// loop specifically — Collabora-in-Docker reaches the backend via host.docker.internal:5050,
-// and that has to be a port the host kernel is actually listening on (Aspire's reverse proxy
-// doesn't help because the container can't see Aspire's internal allocator).
-//
-// Why 5050 and not 5000? On Windows, port 5000 sits inside the kernel-level excluded-port
-// range that Hyper-V / WinNAT / WSL2 reserve for their NAT pool. Kestrel fails to bind with
-// `SocketException 10013 (WSAEACCES) — An attempt was made to access a socket in a way
-// forbidden by its access permissions`, even though `netstat` shows nothing listening. Check
-// the local exclusions with `netsh int ipv4 show excludedportrange protocol=tcp` if 5050 is
-// also unavailable; move to another free port and update Collabora's "domain" regex below in
-// lockstep.
-//
-// Why pin the port at all rather than let Aspire allocate? In Aspire 13.x, WithHttpEndpoint
-// with isProxied: false and no port silently hangs the AppHost during graph construction —
-// startup sticks after "Application host directory is: …" and the dashboard's web server never
-// starts. Downstream consumers still read this through a ReferenceExpression so the literal
-// port only appears in two colocated places.
-//
-// launchProfileName: null bypasses sample/WopiHost/Properties/launchSettings.json so the
-// AppHost is the single source of truth for backend configuration. ASPNETCORE_ENVIRONMENT=
-// Development is re-injected explicitly because sample/WopiHost's Program.cs refuses to honour
-// Wopi:Security:DisableProofValidation outside Development (and the Collabora block below flips
-// that flag on).
-var wopiHost = ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost>("wopihost", launchProfileName: null))
-                      .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
-                      .WithHttpEndpoint(name: "wopihost-http", port: 5050, isProxied: false)
-                      .WithUrlForEndpoint("wopihost-http", url =>
-                      {
-                          url.DisplayText = "Scalar (HTTP)";
-                          url.Url = "/scalar";
-                      });
+// WOPI-client toggles. Each enabled real client gets its own self-contained (backend, frontend)
+// lane. The backend consults the client only for proof keys (WopiProofValidator is the sole
+// discovery consumer in WopiHost.Core), so a backend per client lets each lane run its own
+// proof-validation mode independently (both default to proof off in dev — Collabora can't sign
+// callbacks at all, and ONLYOFFICE's signatures are rejected by WopiProofValidator; see the
+// onlyOfficeProofValidation note below). One backend can't hold two clients' proof keys, so
+// per-lane proof config is what requires a backend per client.
+var useCollabora = builder.Configuration.GetValue("AppHost:UseCollabora", defaultValue: true);
+// Defaults ON like Collabora so the orchestrated dev loop brings up both editors for side-by-side
+// testing. Heavier than the rest of the default set — the onlyoffice/documentserver image is ~4.3 GB
+// and bundles its own Postgres/RabbitMQ — so a contributor without the disk/RAM for it (or without
+// Docker) opts out with AppHost:UseOnlyOffice=false.
+var useOnlyOffice = builder.Configuration.GetValue("AppHost:UseOnlyOffice", defaultValue: true);
 
-// Reference expression to the backend's allocated port. Embedding this in interpolated
-// string arguments to WithEnvironment / ReferenceExpression.Create:
-//   (1) defers resolution to Aspire's endpoint-allocation phase, and
-//   (2) auto-declares the dependency, so the consumer's resource doesn't try to compute
-//       its env vars before the producer's endpoint has been allocated.
-// (The older WithEnvironment(ctx => ... endpoint.Port) callback form looks the same but
-//  does NOT carry the dependency, so it throws "endpoint not allocated" if the consumer
-//  happens to resolve env vars first.)
-var wopiBackendPort = wopiHost.GetEndpoint("wopihost-http").Property(EndpointProperty.Port);
+// ONLYOFFICE advertises a <proof-key> in its discovery, but empirically its WOPI GetFile callback
+// is rejected by the host's WopiProofValidator: the editor shell loads, then the document download
+// 500s and ONLYOFFICE shows "Download failed". So the lane defaults to proof OFF to be functional
+// out of the box (same as Collabora). The separate backend still earns its keep — it keeps this
+// toggle per-lane, so flipping AppHost:OnlyOfficeProofValidation=true drives the real
+// WopiProofValidator path against ONLYOFFICE (to investigate why its signature is rejected — does it
+// send X-WOPI-Proof at all?) without disturbing the working Collabora lane.
+var onlyOfficeProofValidation = builder.Configuration.GetValue("AppHost:OnlyOfficeProofValidation", defaultValue: false);
+
+// Registers a WOPI backend pinned to a host-reachable TCP port. Kestrel binds directly
+// (isProxied: false) so the URL handed to other resources — and to Docker WOPI clients reaching
+// back via host.docker.internal:<port> — is the real host-side socket; Aspire's reverse proxy
+// doesn't help because the client container can't see Aspire's internal allocator.
+//
+// Why pin the port rather than let Aspire allocate? In Aspire 13.x, WithHttpEndpoint with
+// isProxied: false and no port silently hangs the AppHost during graph construction — startup
+// sticks after "Application host directory is: …" and the dashboard never starts. Downstream
+// consumers read the port through a ReferenceExpression so the literal only appears in the lane
+// wiring below.
+//
+// Why 5050+ and not 5000? On Windows, port 5000 sits inside the kernel-level excluded-port range
+// that Hyper-V / WinNAT / WSL2 reserve for their NAT pool; Kestrel fails to bind (SocketException
+// 10013 / WSAEACCES) even though netstat shows nothing listening. Check local exclusions with
+// `netsh int ipv4 show excludedportrange protocol=tcp` and move both the port and the matching
+// client's allowed-host config in lockstep if 5050/5051 are unavailable.
+//
+// launchProfileName: null bypasses sample/WopiHost/Properties/launchSettings.json so the AppHost
+// is the single source of truth for backend config. ASPNETCORE_ENVIRONMENT=Development is injected
+// explicitly because sample/WopiHost refuses to honour DisableProofValidation outside Development.
+//
+// hasDockerClient drives ASPNETCORE_URLS=http://0.0.0.0:<port> — the load-bearing bind for any
+// Docker setup using a bridge network (Linux Docker Engine — GitHub Actions, native Linux). Without
+// it Kestrel binds localhost:<port> and host.docker.internal from inside the container resolves to
+// the docker0 bridge host IP with nothing listening → ECONNREFUSED on every WOPI callback (surfaced
+// misleadingly as a websocketunauthorized error in the iframe). On Docker Desktop (Mac/Windows) the
+// explicit bind is a no-op, so it's safe to set whenever a client exists.
+IResourceBuilder<ProjectResource> AddBackend(string name, int port, bool hasDockerClient, bool disableProofValidation)
+{
+    var backend = ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost>(name, launchProfileName: null))
+        .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+        .WithHttpEndpoint(name: $"{name}-http", port: port, isProxied: false)
+        .WithUrlForEndpoint($"{name}-http", url =>
+        {
+            url.DisplayText = "Scalar (HTTP)";
+            url.Url = "/scalar";
+        });
+
+    if (hasDockerClient)
+    {
+        // Hoisted to a string local so overload resolution picks WithEnvironment(string, string).
+        // An inline interpolated literal binds to the ReferenceExpression handler overload instead,
+        // which rejects the int hole.
+        var bindAllUrls = $"http://0.0.0.0:{port}";
+        backend.WithEnvironment("ASPNETCORE_URLS", bindAllUrls);
+    }
+
+    if (disableProofValidation)
+    {
+        backend.WithEnvironment("Wopi__Security__DisableProofValidation", "true");
+    }
+
+    return backend;
+}
+
+// Registers a WopiHost.Web frontend bound to a backend. Same project, same compiled code for every
+// lane — only the injected backend URL (and, in each client block below, Wopi__ClientUrl + NetZone)
+// differ, which is the whole point: a second editor with zero project duplication.
+//
+// WithReference gives Aspire's service-discovery env vars, but the frontend reads Wopi:HostUrl
+// directly from IConfiguration — so Wopi__HostUrl is ALSO injected, pointing at the same backend
+// port. backendReachHost must be host.docker.internal whenever the lane's client runs in Docker, so
+// the WopiSrc the frontend bakes resolves from inside the client container; with no in-Docker client
+// localhost is fine. ASPNETCORE_ENVIRONMENT=Development is re-injected for the same
+// launchProfileName: null reason as the backend.
+IResourceBuilder<ProjectResource> AddWebFrontend(string name, IResourceBuilder<ProjectResource> backend, string backendReachHost)
+{
+    var backendPort = backend.GetEndpoint($"{backend.Resource.Name}-http").Property(EndpointProperty.Port);
+    return ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost_Web>(name, launchProfileName: null))
+        .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+        .WithReference(backend)
+        .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{backendReachHost}:{backendPort}"))
+        .WithHttpsEndpoint()
+        .WithExternalHttpEndpoints();
+}
+
+// Every backend lane accumulates here so the shared lock + storage backends below wire to all of
+// them in one pass: a single Redis instance coordinates locks across every backend (a lock taken
+// while editing in one client is visible to the other), and a single Azurite blob container backs
+// the same file set in each.
+var backends = new List<IResourceBuilder<ProjectResource>>();
+
+// ---- Collabora / default lane -------------------------------------------------------------
+// Always present. Runs as the Collabora lane when UseCollabora (proof off, reachable from inside the
+// container), otherwise a plain lane pointed at the appsettings default client (M365) with proof
+// left on and localhost-only reach — there's no in-Docker WOPI client to call back.
+var primaryReachHost = useCollabora ? "host.docker.internal" : "localhost";
+var primaryBackend = AddBackend("wopihost", port: 5050, hasDockerClient: useCollabora, disableProofValidation: useCollabora);
+backends.Add(primaryBackend);
+var primaryBackendPort = primaryBackend.GetEndpoint("wopihost-http").Property(EndpointProperty.Port);
+var wopiHostWeb = AddWebFrontend("wopihost-web", primaryBackend, primaryReachHost);
+
+// Validator: same wiring as the Web frontend but always localhost — it's a WOPI protocol checker
+// that never runs against an in-Docker client.
+ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator", launchProfileName: null))
+       .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+       .WithReference(primaryBackend)
+       .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://localhost:{primaryBackendPort}"))
+       .WithHttpsEndpoint()
+       .WithExternalHttpEndpoints();
+
+// ---- ONLYOFFICE lane ----------------------------------------------------------------------
+// Backend + frontend are created up front (so the backend joins the shared-infra pass below); the
+// container and Wopi__ClientUrl wiring follow in the dedicated block near the bottom.
+IResourceBuilder<ProjectResource>? onlyOfficeBackend = null;
+IResourceBuilder<ProjectResource>? onlyOfficeWeb = null;
+if (useOnlyOffice)
+{
+    onlyOfficeBackend = AddBackend("wopihost-onlyoffice", port: 5051, hasDockerClient: true, disableProofValidation: !onlyOfficeProofValidation);
+    backends.Add(onlyOfficeBackend);
+    onlyOfficeWeb = AddWebFrontend("wopihost-web-onlyoffice", onlyOfficeBackend, "host.docker.internal");
+}
+
+// ---- shared lock + storage backends -------------------------------------------------------
+
+// Redis-backed distributed lock provider. Default ON when starting via Aspire — Aspire is already
+// managing Docker resources and Redis is the realistic lock backend a real deployment would use, so
+// running the dev loop against it catches divergences early. With more than one backend it's also
+// what makes their locks coordinate: every backend points at this single instance, so a lock held
+// while editing a file in one client blocks the other. Opt out via "AppHost:UseRedisLocks"=false
+// (a contributor machine without Docker, or the MemoryLockProvider unit-test loop) — note that with
+// the in-memory provider each backend's locks are per-process and will NOT coordinate.
+//
+// Lifetime defaults to Session (Aspire's default) so the container is torn down on AppHost shutdown.
+// Persistent lifetime accumulates orphaned containers across runs: Aspire's persistent-resource
+// identity is fingerprinted from the resource config (including the auto-generated REDIS_PASSWORD),
+// so a fresh password each session produces a fresh fingerprint and a fresh container while the
+// previous one lingers as `Exited`. Lock state is short-lived by design (30-min WOPI spec expiry),
+// so there's no data-survival need that would justify pinning the password to stabilise it.
+if (builder.Configuration.GetValue("AppHost:UseRedisLocks", defaultValue: true))
+{
+    var redis = builder.AddRedis("wopi-locks");
+    foreach (var backend in backends)
+    {
+        backend
+            // Flip the sample's lock-provider discriminator so AddSampleLockProvider() dispatches to
+            // Redis. Sample:LockProvider lives in the sample's appsettings (not WopiHost.Core's
+            // public options surface) — see sample/WopiHost/ServiceCollectionExtensions.cs.
+            .WithEnvironment("Sample__LockProvider", "Redis")
+            // sample/WopiHost binds Wopi:LockProvider:ConnectionString to WopiRedisLockProviderOptions;
+            // route Aspire's connection-string reference through this key so the provider sees it
+            // without needing a separate ConnectionStrings:wopi-locks fallback path.
+            .WithEnvironment("Wopi__LockProvider__ConnectionString", redis.Resource.ConnectionStringExpression)
+            .WaitFor(redis);
+    }
+}
 
 // Optional: Azure Blob Storage backend via Azurite emulator. Opt-in via "AppHost:UseAzureStorage"=true
 // so the default flow keeps using the file-system provider out of the box. When enabled, the Azurite
-// resource is added and its connection string is forwarded to the WopiHost project as
+// resource is added and its connection string is forwarded to every backend as
 // "ConnectionStrings__BlobStorage", which sample/WopiHost reads when configured for the Azure provider.
 if (builder.Configuration.GetValue("AppHost:UseAzureStorage", defaultValue: false))
 {
     var storage = builder.AddAzureStorage("blob-storage")
                          .RunAsEmulator(emu => emu.WithLifetime(ContainerLifetime.Persistent));
     var blobs = storage.AddBlobs("BlobStorage");
-    wopiHost.WithReference(blobs);
+    foreach (var backend in backends)
+    {
+        backend.WithReference(blobs);
+    }
 }
-
-// Redis-backed distributed lock provider. Default ON when starting via Aspire — when the
-// AppHost orchestrates the wopihost-web frontend, Aspire is already managing Docker resources
-// and Redis is the realistic lock backend a real deployment would use; running the dev loop
-// against the same provider catches divergences early. Opt out via "AppHost:UseRedisLocks"=false
-// (e.g., on a contributor machine without Docker, or for the unit-test loop where
-// MemoryLockProvider is sufficient).
-//
-// When enabled, an Aspire Redis container resource is added and the WopiHost backend is
-// reconfigured to load WopiHost.RedisLockProvider with the Aspire-allocated connection string.
-// WaitFor ensures the WOPI backend doesn't try to acquire a lock before Redis is accepting
-// connections.
-//
-// Lifetime defaults to Session (Aspire's default) so the container is torn down on AppHost
-// shutdown. Persistent lifetime accumulates orphaned containers across runs: Aspire's
-// persistent-resource identity is fingerprinted from the resource config (including the
-// auto-generated REDIS_PASSWORD), so a fresh password each session produces a fresh fingerprint
-// and a fresh container while the previous one lingers as `Exited`. Lock state is short-lived by
-// design (30-min WOPI spec expiry), so there's no data-survival need that would justify pinning
-// the password to stabilise the fingerprint.
-if (builder.Configuration.GetValue("AppHost:UseRedisLocks", defaultValue: true))
-{
-    var redis = builder.AddRedis("wopi-locks");
-    wopiHost
-        // Flip the sample's lock-provider discriminator so AddSampleLockProvider() dispatches to
-        // Redis. Sample:LockProvider lives in the sample's appsettings (not WopiHost.Core's
-        // public options surface) — see sample/WopiHost/ServiceCollectionExtensions.cs.
-        .WithEnvironment("Sample__LockProvider", "Redis")
-        // sample/WopiHost binds Wopi:LockProvider:ConnectionString to WopiRedisLockProviderOptions;
-        // route Aspire's connection-string reference through this key so the provider sees it
-        // without needing a separate ConnectionStrings:wopi-locks fallback path.
-        .WithEnvironment("Wopi__LockProvider__ConnectionString", redis.Resource.ConnectionStringExpression)
-        .WaitFor(redis);
-}
-
-// Collabora-mode toggle. When enabled (see the dedicated block at the bottom of this file),
-// the frontend's Wopi:HostUrl must use host.docker.internal so the URL it bakes into WopiSrc
-// resolves from inside the Collabora container. In non-Collabora mode there's no in-Docker
-// WOPI client (real OOS/M365 WOPI clients live outside the dev loop and configure their own
-// URL), so localhost is fine for the dashboard.
-var useCollabora = builder.Configuration.GetValue("AppHost:UseCollabora", defaultValue: true);
-var wopiBackendHostForFrontends = useCollabora ? "host.docker.internal" : "localhost";
-
-// Frontends: project references via WithReference give Aspire's service-discovery env vars
-// (services__wopihost__http__0=...), but the frontend code reads Wopi:HostUrl directly from
-// IConfiguration — so Wopi__HostUrl is ALSO injected, pointing at the same backend port. That
-// way the AppHost owns the URL end-to-end and the frontend's appsettings.json HostUrl entry is
-// only the production default.
-//
-// ASPNETCORE_ENVIRONMENT=Development is re-injected here for the same reason as the backend:
-// launchProfileName: null bypasses each frontend's Properties/launchSettings.json which was
-// otherwise contributing the Development env var. Without it the frontends default to Production
-// in the dev loop — detailed errors hidden, appsettings.Development.json ignored, etc.
-var wopiHostWeb = ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost_Web>("wopihost-web", launchProfileName: null))
-       .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
-       .WithReference(wopiHost)
-       .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{wopiBackendHostForFrontends}:{wopiBackendPort}"))
-       .WithHttpsEndpoint()
-       .WithExternalHttpEndpoints();
-
-// Validator: same wiring pattern as the Web frontend. The validator never runs against Collabora
-// (it's a WOPI protocol checker), so localhost is the right reach.
-ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator", launchProfileName: null))
-       .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
-       .WithReference(wopiHost)
-       .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://localhost:{wopiBackendPort}"))
-       .WithHttpsEndpoint()
-       .WithExternalHttpEndpoints();
 
 // Optional: OIDC frontend sample. Opt-in via "AppHost:IncludeOidcSample"=true so newcomers don't
-// need to register an IdP just to run the default flow. Requires the user to fill in Oidc:* config
-// in sample/WopiHost.Web.Oidc/appsettings.Development.json (see that sample's README for setup).
+// need to register an IdP just to run the default flow. Shares the default lane's backend. Requires
+// the user to fill in Oidc:* config in sample/WopiHost.Web.Oidc/appsettings.Development.json (see
+// that sample's README for setup).
 if (builder.Configuration.GetValue("AppHost:IncludeOidcSample", defaultValue: false))
 {
-    // OIDC requires HTTPS for cookie/redirect-URI sanity; Aspire picks the port. Note that
-    // the OIDC sample's appsettings.Development.json must list whatever URL Aspire picks as
-    // an allowed redirect URI on the IdP side, so dynamic allocation does mean re-registering
-    // the redirect URI at the IdP after each port change. If that's painful in your setup,
-    // pin via WithHttpsEndpoint(port: 6101).
+    // OIDC requires HTTPS for cookie/redirect-URI sanity; Aspire picks the port. Note that the OIDC
+    // sample's appsettings.Development.json must list whatever URL Aspire picks as an allowed redirect
+    // URI on the IdP side, so dynamic allocation does mean re-registering the redirect URI at the IdP
+    // after each port change. If that's painful in your setup, pin via WithHttpsEndpoint(port: 6101).
     ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost_Web_Oidc>("wopihost-web-oidc", launchProfileName: null))
            .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
-           .WithReference(wopiHost)
-           .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{wopiBackendHostForFrontends}:{wopiBackendPort}"))
+           .WithReference(primaryBackend)
+           .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{primaryReachHost}:{primaryBackendPort}"))
            .WithHttpsEndpoint()
            .WithExternalHttpEndpoints();
 }
 
-// Optional: Collabora Online Development Edition (CODE) as a real WOPI client for end-to-end
-// editing. Opt-in via "AppHost:UseCollabora"=true. CODE is free and Docker-distributable; it is
-// a development substitute for Office Online Server / M365 for the Web (discovery output and
-// supported features differ — do NOT treat a green Collabora run as M365 conformance).
+// ---- Collabora container -------------------------------------------------------------------
+// Collabora Online Development Edition (CODE) as a real WOPI client for end-to-end editing. CODE is
+// free and Docker-distributable; it is a development substitute for Office Online Server / M365 for
+// the Web (discovery output and supported features differ — do NOT treat a green Collabora run as
+// M365 conformance). The default-lane backend's proof-off + 0.0.0.0 bind are set by AddBackend above
+// (hasDockerClient/disableProofValidation both follow useCollabora); everything else lives here.
 //
-// Wiring (port-independent for the project side — every project URL flows from wopiBackendPort):
 //  - Browser reaches Collabora at http://localhost:9980 (Collabora's port stays pinned at 9980).
-//  - Collabora (in Docker) reaches the WOPI backend via host.docker.internal:5050. On Linux
-//    Docker, run with --add-host=host.docker.internal:host-gateway.
+//  - Collabora (in Docker) reaches the WOPI backend via host.docker.internal:5050. On Linux Docker,
+//    run with --add-host=host.docker.internal:host-gateway.
 //  - "domain" is a regex (escape dots) of WOPI hosts Collabora is allowed to call back to; a
 //    mismatch with the WopiSrc query param yields a silent 401.
 //  - SSL is disabled for local dev only.
 //
-// Everything Collabora-specific lives in this one block: the container, the backend env vars
-// that only make sense in Collabora mode, and the frontend env vars that point the iframe at
-// Collabora's discovery. WaitFor on both backend and frontend blocks them until Collabora's
-// /hosting/discovery returns 200 — otherwise Polly's Standard-Retry pipeline logs noisy
-// "ResponseEnded" / 10s timeouts on the first page load while loolwsd is still binding.
+// WaitFor on both backend and frontend blocks them until Collabora's /hosting/discovery returns 200 —
+// otherwise Polly's Standard-Retry pipeline logs noisy "ResponseEnded" / 10s timeouts on first load
+// while loolwsd is still binding.
 if (useCollabora)
 {
-    // The "domain" regex stays a literal string rather than a ReferenceExpression interpolating
-    // wopiBackendPort: container env vars that reference a project endpoint's Property(Port)
-    // appear to wedge Aspire 13.x container startup in the "Starting" state indefinitely (the
-    // container never reaches the health-check phase). Project-level env vars above use
-    // ReferenceExpression fine; only the container case hangs. Since wopihost's port is pinned
-    // to 5050 at the top of this file (Aspire requires it for isProxied:false), the two
-    // literals are colocated and a future port change is a two-line edit.
     var collabora = builder.AddContainer("collabora", "collabora/code")
-           // host.docker.internal needs an explicit --add-host=host.docker.internal:host-gateway
-           // on Linux Docker Engine — Docker Desktop on Mac/Windows wires it implicitly, but the
-           // Linux daemon doesn't. Without this, Collabora's WOPI callbacks from inside the
-           // container can't reach the backend at host.docker.internal:5050: the editor shell
-           // loads (Collabora doesn't need WOPI for that), but CheckFileInfo + GetFile time out
-           // and the document canvas stays blank. On Docker Desktop the explicit entry is a
-           // no-op (or equivalent override), so it's safe to set unconditionally.
+           // host.docker.internal needs an explicit --add-host=host.docker.internal:host-gateway on
+           // Linux Docker Engine — Docker Desktop on Mac/Windows wires it implicitly, but the Linux
+           // daemon doesn't. Without this, Collabora's WOPI callbacks from inside the container can't
+           // reach the backend at host.docker.internal:5050: the editor shell loads (Collabora
+           // doesn't need WOPI for that), but CheckFileInfo + GetFile time out and the canvas stays
+           // blank. On Docker Desktop the explicit entry is a no-op, so it's safe unconditionally.
            .WithContainerRuntimeArgs("--add-host", "host.docker.internal:host-gateway")
-           // WOPI hosts Collabora is allowed to call back to. coolwsd matches this regex against
-           // the WopiSrc host with std::regex_match (full-string match), and the host it sees
-           // carries the port — "host.docker.internal:5050". A bare "host\.docker\.internal" 401s
-           // ("websocketunauthorized" / "Unauthorized WOPI host") because the ":5050" suffix
-           // leaves the full match unsatisfied. Anchoring the known dev host as a prefix and
-           // absorbing the port (or any path) with a trailing ".*" keeps the pattern scoped to
-           // host.docker.internal instead of waving through every hostname. If this narrowed form
-           // regresses, the trace logging below surfaces the exact host string coolwsd matched
-           // against — see the --o:logging.level=trace note.
+           // WOPI hosts Collabora is allowed to call back to. coolwsd matches this regex against the
+           // WopiSrc host with std::regex_match (full-string match), and the host it sees carries the
+           // port — "host.docker.internal:5050". A bare "host\.docker\.internal" 401s
+           // ("websocketunauthorized" / "Unauthorized WOPI host") because the ":5050" suffix leaves
+           // the full match unsatisfied. Anchoring the known dev host as a prefix and absorbing the
+           // port (or any path) with a trailing ".*" keeps the pattern scoped to host.docker.internal
+           // instead of waving through every hostname. The port is a literal rather than a
+           // ReferenceExpression interpolating the backend endpoint: container env vars that reference
+           // a project endpoint's Property(Port) wedge Aspire 13.x container startup in "Starting"
+           // indefinitely. Since the backend port is pinned to 5050, the two literals are colocated.
            .WithEnvironment("domain", @"host\.docker\.internal.*")
-           // --o:logging.level=trace so the container log shows the actual host string being
-           // matched against (and why the match fails). The CI workflow captures container
-           // logs on failure, so a failing run surfaces coolwsd's own diagnosis.
-           //
-           // Do NOT also set --o:logging.protocol=true: that flag traces HTTP request and response
-           // bodies, including the /hosting/discovery response (~600+ lines of <app>/<action>
-           // XML), which pushes coolwsd's own WebSocket-auth log lines off the docker logs --tail.
-           // Trace level alone is enough to surface the matching attempt.
+           // --o:logging.level=trace so the container log shows the actual host string being matched
+           // (and why a match fails). CI captures container logs on failure, so a failing run surfaces
+           // coolwsd's own diagnosis. Do NOT also set --o:logging.protocol=true: it traces HTTP bodies
+           // including the ~600-line /hosting/discovery response, pushing the WebSocket-auth log lines
+           // off `docker logs --tail`. Trace level alone surfaces the matching attempt.
            .WithEnvironment("extra_params", "--o:ssl.enable=false --o:ssl.termination=false --o:logging.level=trace")
            .WithHttpEndpoint(targetPort: 9980, port: 9980, name: "collabora")
            .WithHttpHealthCheck("/hosting/discovery", endpointName: "collabora");
 
-    // Project-side env vars consume Collabora's endpoint via ReferenceExpression — NOT a
-    // literal "http://localhost:9980". The literal happens to work when launching normally
-    // (Aspire honors the `port: 9980` request from WithHttpEndpoint above, so DCP binds 9980
-    // → 9980 on the host), but under Aspire.Hosting.Testing, DCP allocates a different host
-    // port even though the AppHost asks for 9980. With a reference, the URL the projects see
-    // tracks whatever Aspire actually allocated, in both normal and test runs.
-    //
-    // This is the OPPOSITE direction of the "container env var → project endpoint port reference
-    // wedges Aspire 13.x" footgun (the `domain` literal above): referencing a container endpoint
-    // from a project env var works fine.
+    // Project-side env vars consume Collabora's endpoint via ReferenceExpression — NOT a literal
+    // "http://localhost:9980". The literal happens to work when launching normally (Aspire honors the
+    // `port: 9980` request, so DCP binds 9980 → 9980 on the host), but under Aspire.Hosting.Testing
+    // DCP allocates a different host port even though the AppHost asks for 9980. With a reference, the
+    // URL the projects see tracks whatever Aspire actually allocated, in both normal and test runs.
+    // (This is the OPPOSITE direction of the `domain` footgun above: referencing a container endpoint
+    // from a project env var works fine.)
     var collaboraUrl = collabora.GetEndpoint("collabora");
 
-    // Backend: fetches /hosting/discovery from Collabora at startup. Collabora does not sign WOPI
-    // callbacks with proof keys (those are an OOS / M365-for-the-Web feature) and emits no
-    // <proof-key> element in discovery, so the default WopiProofValidator rejects every request
-    // and CheckFileInfo 500s — the editor loads but the document never appears. The sample WOPI
-    // host honours Wopi:Security:DisableProofValidation in Development to swap in a no-op
-    // validator; refuse to run in non-Development if the flag is set.
-    //
-    // ASPNETCORE_URLS=http://0.0.0.0:5050 is the load-bearing line for the Collabora dev loop on
-    // any Docker setup that uses a bridge network (Linux Docker Engine — GitHub Actions, native
-    // Linux dev box). Without it, Kestrel binds to localhost:5050 (Aspire's default for an
-    // isProxied:false endpoint), and `host.docker.internal` from inside the container resolves
-    // to the docker0 bridge host IP — which has nothing listening on 5050 → immediate ECONNREFUSED
-    // on every CheckFileInfo callback. The container shows up as a websocketunauthorized error in
-    // the iframe's postMessage trail (Collabora's catch-all for "I couldn't reach your WOPI
-    // host"), so the symptom is misleading. On Docker Desktop (Mac/Windows) the explicit bind
-    // is a no-op (Desktop's port-forwarder reaches localhost-bound services anyway), so it's safe
-    // to set unconditionally.
-    wopiHost.WithEnvironment("Wopi__ClientUrl", collaboraUrl)
-            .WithEnvironment("Wopi__Security__DisableProofValidation", "true")
-            .WithEnvironment("ASPNETCORE_URLS", "http://0.0.0.0:5050")
-            .WaitFor(collabora);
+    // Backend fetches /hosting/discovery from Collabora at startup. Collabora doesn't sign WOPI
+    // callbacks with proof keys and emits no <proof-key> in discovery, so proof validation must be
+    // disabled (handled by the lane's disableProofValidation: useCollabora above) or every request
+    // 500s — the editor loads but the document never appears.
+    primaryBackend.WithEnvironment("Wopi__ClientUrl", collaboraUrl).WaitFor(collabora);
 
-    // Frontend: embeds Collabora; the iframe URL must come from Collabora's discovery, and the
-    // WopiSrc it carries must resolve from inside the Collabora container (host.docker.internal,
-    // already injected via Wopi__HostUrl above thanks to wopiBackendHostForFrontends). Collabora's
-    // discovery XML emits a single <net-zone name="external-http"> only — defaulting to
-    // ExternalHttps (as appsettings does for OOS/M365) silently filters every action and icon
-    // out, so files render with the generic icon and edit/view buttons stay disabled.
+    // Frontend embeds Collabora; the iframe URL comes from Collabora's discovery and the WopiSrc it
+    // carries resolves from inside the container (host.docker.internal, already injected via
+    // Wopi__HostUrl thanks to primaryReachHost). Collabora's discovery XML emits a single
+    // <net-zone name="external-http"> only — defaulting to ExternalHttps (as appsettings does for
+    // OOS/M365) silently filters every action and icon out, so files render with the generic icon and
+    // edit/view buttons stay disabled.
     wopiHostWeb.WithEnvironment("Wopi__ClientUrl", collaboraUrl)
                .WithEnvironment("Wopi__Discovery__NetZone", "ExternalHttp")
                .WaitFor(collabora);
+}
+
+// ---- ONLYOFFICE container ------------------------------------------------------------------
+// ONLYOFFICE Document Server as a second real WOPI client, on its own backend so its proof-validation
+// mode is independent of the Collabora lane. Heavyweight image — it bundles its own PostgreSQL /
+// RabbitMQ and is markedly slower to start than Collabora; the health check + WaitFor below hold
+// dependents until /hosting/discovery answers. Opt-in via "AppHost:UseOnlyOffice"=true.
+if (useOnlyOffice)
+{
+    var onlyoffice = builder.AddContainer("onlyoffice", "onlyoffice/documentserver")
+           // Same host-gateway reasoning as Collabora — ONLYOFFICE's WOPI callbacks reach the backend
+           // at host.docker.internal:5051.
+           .WithContainerRuntimeArgs("--add-host", "host.docker.internal:host-gateway")
+           // WOPI handlers ship off by default; WOPI_ENABLED turns them (and /hosting/discovery) on.
+           .WithEnvironment("WOPI_ENABLED", "true")
+           // Disables ONLYOFFICE's own document-API JWT for the dev loop. That JWT secures ONLYOFFICE's
+           // native API and is independent of WOPI proof keys, which secure the host↔client callbacks.
+           .WithEnvironment("JWT_ENABLED", "false")
+           // ONLYOFFICE serves HTTP on container port 80. Unlike Collabora's `domain` regex, ONLYOFFICE
+           // trusts all callback hosts by default, so no allowed-host config is needed for local dev.
+           .WithHttpEndpoint(targetPort: 80, port: 9981, name: "onlyoffice")
+           .WithHttpHealthCheck("/hosting/discovery", endpointName: "onlyoffice");
+
+    var onlyofficeUrl = onlyoffice.GetEndpoint("onlyoffice");
+
+    // Backend fetches /hosting/discovery from ONLYOFFICE — to build editor URLs, and for proof keys
+    // when the lane is flipped to proof ON (off by default; see onlyOfficeProofValidation).
+    onlyOfficeBackend!.WithEnvironment("Wopi__ClientUrl", onlyofficeUrl).WaitFor(onlyoffice);
+
+    // Frontend embeds ONLYOFFICE; iframe URL + WopiSrc come from its discovery. NetZone must match the
+    // net-zone ONLYOFFICE advertises — start with ExternalHttp (plain-HTTP dev, same as Collabora) and
+    // adjust if its discovery names a different zone.
+    onlyOfficeWeb!.WithEnvironment("Wopi__ClientUrl", onlyofficeUrl)
+                  .WithEnvironment("Wopi__Discovery__NetZone", "ExternalHttp")
+                  .WaitFor(onlyoffice);
 }
 
 builder.Build().Run();
