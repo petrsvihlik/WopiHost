@@ -1,0 +1,77 @@
+name: E2E (ONLYOFFICE)
+
+# End-to-end check against the full distributed app with a real ONLYOFFICE Document Server
+# container in the loop. Spins up the AppHost via Aspire.Hosting.Testing (ONLYOFFICE lane only),
+# drives the wopihost-web-onlyoffice frontend with Playwright + Chromium, opens a .docx in
+# ONLYOFFICE and validates the WOPI handshake (CheckFileInfo + GetFile) by reading the editor's
+# own isDocumentLoadComplete flag. Sibling of e2e-collabora.yml.
+#
+# NOT a per-PR gate. Like the Collabora flow, this is by design heavier and flakier than the unit /
+# smoke suites (container cold-start, document-engine warmup), and gating PRs on it would cause more
+# friction than it'd catch. Runs nightly to catch upstream regressions (ONLYOFFICE image drift) and
+# workflow_dispatch for ad-hoc verification.
+#
+# Linux-only because the ONLYOFFICE image ships Linux containers and ubuntu-latest is the only
+# GitHub-hosted runner that runs them without nested-virtualisation gymnastics.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 37 3 UTC nightly. Off-the-hour and offset from e2e-collabora.yml (17 3) so the two heavy
+    # container jobs don't contend for the same runner / outbound-bandwidth window.
+    - cron: '37 3 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: ONLYOFFICE end-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 40 # Generous: the ~4.3 GB ONLYOFFICE image pull on a clean cache + engine warmup.
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET 10.0
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Set Cobalt packages token
+        run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Restore
+        run: dotnet restore test/WopiHost.E2ETests.OnlyOffice/WopiHost.E2ETests.OnlyOffice.csproj
+
+      - name: Build
+        run: dotnet build test/WopiHost.E2ETests.OnlyOffice/WopiHost.E2ETests.OnlyOffice.csproj --no-restore /p:ContinuousIntegrationBuild=true
+
+      - name: Install Playwright browsers
+        # --with-deps installs the apt packages Chromium needs on a fresh ubuntu-latest. The build
+        # emits playwright.ps1 next to the test assembly under artifacts/bin/ (the repo uses
+        # UseArtifactsOutput); the path mirrors the Collabora e2e step.
+        run: pwsh artifacts/bin/WopiHost.E2ETests.OnlyOffice/debug/playwright.ps1 install --with-deps chromium
+
+      - name: Pre-pull ONLYOFFICE image
+        # Pre-pulling outside the test makes the fixture's healthcheck timeout bound the runtime cost
+        # rather than the image-pull cost. Pin the same image string the AppHost uses
+        # (onlyoffice/documentserver) — Aspire defaults to :latest when no tag is supplied.
+        run: docker pull onlyoffice/documentserver:latest
+
+      - name: Run e2e
+        # -p:RunSettingsFilePath= clears the repo-root .runsettings autoloaded via
+        # Directory.Build.props. That runsettings filters out Category=E2E so per-PR `dotnet test`
+        # skips this suite; we undo that filter for the dedicated workflow. We do NOT use
+        # --filter "Category=E2E" because dotnet test ANDs the CLI filter with the runsettings filter,
+        # yielding (Category!=E2E)&(Category=E2E) which matches zero tests.
+        run: dotnet test test/WopiHost.E2ETests.OnlyOffice/WopiHost.E2ETests.OnlyOffice.csproj --no-build -p:RunSettingsFilePath= --verbosity normal --logger "console;verbosity=detailed"
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces-onlyoffice
+          path: |
+            artifacts/bin/WopiHost.E2ETests.OnlyOffice/**/test-results/**
+            artifacts/bin/WopiHost.E2ETests.OnlyOffice/**/playwright-report/**
+          if-no-files-found: ignore
