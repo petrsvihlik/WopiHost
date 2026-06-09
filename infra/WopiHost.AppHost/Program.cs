@@ -50,9 +50,9 @@ var onlyOfficeProofValidation = builder.Configuration.GetValue("AppHost:OnlyOffi
 //
 // Why pin the port rather than let Aspire allocate? In Aspire 13.x, WithHttpEndpoint with
 // isProxied: false and no port silently hangs the AppHost during graph construction — startup
-// sticks after "Application host directory is: …" and the dashboard never starts. Downstream
-// consumers read the port through a ReferenceExpression so the literal only appears in the lane
-// wiring below.
+// sticks after "Application host directory is: …" and the dashboard never starts. Because the port
+// is pinned (not DCP-allocated), downstream consumers embed it as a plain literal — the lane wiring
+// below declares it once per lane as a named constant.
 //
 // Why 5050+ and not 5000? On Windows, port 5000 sits inside the kernel-level excluded-port range
 // that Hyper-V / WinNAT / WSL2 reserve for their NAT pool; Kestrel fails to bind (SocketException
@@ -103,18 +103,23 @@ IResourceBuilder<ProjectResource> AddBackend(string name, int port, bool hasDock
 // differ, which is the whole point: a second editor with zero project duplication.
 //
 // WithReference gives Aspire's service-discovery env vars, but the frontend reads Wopi:HostUrl
-// directly from IConfiguration — so Wopi__HostUrl is ALSO injected, pointing at the same backend
-// port. backendReachHost must be host.docker.internal whenever the lane's client runs in Docker, so
-// the WopiSrc the frontend bakes resolves from inside the client container; with no in-Docker client
-// localhost is fine. ASPNETCORE_ENVIRONMENT=Development is re-injected for the same
-// launchProfileName: null reason as the backend.
-IResourceBuilder<ProjectResource> AddWebFrontend(string name, IResourceBuilder<ProjectResource> backend, string backendReachHost)
+// directly from IConfiguration — so Wopi__HostUrl is ALSO injected, pointing at the backend's pinned
+// port. The port is a plain literal, not a deferred endpoint reference: the backend binds it directly
+// (isProxied:false), so it's known at config time — a ReferenceExpression would only add a CodeQL
+// "default ToString()" false positive for no benefit. backendReachHost must be host.docker.internal
+// whenever the lane's client runs in Docker, so the WopiSrc the frontend bakes resolves from inside
+// the client container; with no in-Docker client localhost is fine. ASPNETCORE_ENVIRONMENT=Development
+// is re-injected for the same launchProfileName: null reason as the backend.
+//
+// hostUrl is hoisted to a string local so WithEnvironment binds the (string, string) overload; an
+// inline interpolated literal would bind the ReferenceExpression handler overload and reject the int.
+IResourceBuilder<ProjectResource> AddWebFrontend(string name, IResourceBuilder<ProjectResource> backend, string backendReachHost, int backendPort)
 {
-    var backendPort = backend.GetEndpoint($"{backend.Resource.Name}-http").Property(EndpointProperty.Port);
+    var hostUrl = $"http://{backendReachHost}:{backendPort}";
     return ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost_Web>(name, launchProfileName: null))
         .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
         .WithReference(backend)
-        .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{backendReachHost}:{backendPort}"))
+        .WithEnvironment("Wopi__HostUrl", hostUrl)
         .WithHttpsEndpoint()
         .WithExternalHttpEndpoints();
 }
@@ -134,20 +139,23 @@ var backends = new List<IResourceBuilder<ProjectResource>>();
 // "-onlyoffice" lane so the dashboard reads symmetrically (wopihost-collabora / wopihost-web-collabora
 // next to wopihost-onlyoffice / wopihost-web-onlyoffice). Without Collabora there's no client, so the
 // plain wopihost / wopihost-web names are used.
+// Pinned port (isProxied:false direct bind), so it's the single literal source of truth shared by
+// the backend, its frontend, the validator, and the OIDC sample — no deferred endpoint reference.
+const int primaryBackendPort = 5050;
 var primaryReachHost = useCollabora ? "host.docker.internal" : "localhost";
 var primaryBackendName = useCollabora ? "wopihost-collabora" : "wopihost";
 var primaryWebName = useCollabora ? "wopihost-web-collabora" : "wopihost-web";
-var primaryBackend = AddBackend(primaryBackendName, port: 5050, hasDockerClient: useCollabora, disableProofValidation: useCollabora);
+var primaryBackend = AddBackend(primaryBackendName, port: primaryBackendPort, hasDockerClient: useCollabora, disableProofValidation: useCollabora);
 backends.Add(primaryBackend);
-var primaryBackendPort = primaryBackend.GetEndpoint($"{primaryBackendName}-http").Property(EndpointProperty.Port);
-var wopiHostWeb = AddWebFrontend(primaryWebName, primaryBackend, primaryReachHost);
+var wopiHostWeb = AddWebFrontend(primaryWebName, primaryBackend, primaryReachHost, primaryBackendPort);
 
 // Validator: same wiring as the Web frontend but always localhost — it's a WOPI protocol checker
 // that never runs against an in-Docker client.
+var validatorHostUrl = $"http://localhost:{primaryBackendPort}";
 ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost_Validator>("wopihost-validator", launchProfileName: null))
        .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
        .WithReference(primaryBackend)
-       .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://localhost:{primaryBackendPort}"))
+       .WithEnvironment("Wopi__HostUrl", validatorHostUrl)
        .WithHttpsEndpoint()
        .WithExternalHttpEndpoints();
 
@@ -158,9 +166,10 @@ IResourceBuilder<ProjectResource>? onlyOfficeBackend = null;
 IResourceBuilder<ProjectResource>? onlyOfficeWeb = null;
 if (useOnlyOffice)
 {
-    onlyOfficeBackend = AddBackend("wopihost-onlyoffice", port: 5051, hasDockerClient: true, disableProofValidation: !onlyOfficeProofValidation);
+    const int onlyOfficeBackendPort = 5051;
+    onlyOfficeBackend = AddBackend("wopihost-onlyoffice", port: onlyOfficeBackendPort, hasDockerClient: true, disableProofValidation: !onlyOfficeProofValidation);
     backends.Add(onlyOfficeBackend);
-    onlyOfficeWeb = AddWebFrontend("wopihost-web-onlyoffice", onlyOfficeBackend, "host.docker.internal");
+    onlyOfficeWeb = AddWebFrontend("wopihost-web-onlyoffice", onlyOfficeBackend, "host.docker.internal", onlyOfficeBackendPort);
 }
 
 // ---- shared lock + storage backends -------------------------------------------------------
@@ -222,10 +231,11 @@ if (builder.Configuration.GetValue("AppHost:IncludeOidcSample", defaultValue: fa
     // sample's appsettings.Development.json must list whatever URL Aspire picks as an allowed redirect
     // URI on the IdP side, so dynamic allocation does mean re-registering the redirect URI at the IdP
     // after each port change. If that's painful in your setup, pin via WithHttpsEndpoint(port: 6101).
+    var oidcHostUrl = $"http://{primaryReachHost}:{primaryBackendPort}";
     ExcludeVsHostingStartups(builder.AddProject<Projects.WopiHost_Web_Oidc>("wopihost-web-oidc", launchProfileName: null))
            .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
            .WithReference(primaryBackend)
-           .WithEnvironment("Wopi__HostUrl", ReferenceExpression.Create($"http://{primaryReachHost}:{primaryBackendPort}"))
+           .WithEnvironment("Wopi__HostUrl", oidcHostUrl)
            .WithHttpsEndpoint()
            .WithExternalHttpEndpoints();
 }
