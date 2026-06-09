@@ -129,11 +129,18 @@ var backends = new List<IResourceBuilder<ProjectResource>>();
 // Always present. Runs as the Collabora lane when UseCollabora (proof off, reachable from inside the
 // container), otherwise a plain lane pointed at the appsettings default client (M365) with proof
 // left on and localhost-only reach — there's no in-Docker WOPI client to call back.
+//
+// Resource names carry a "-collabora" suffix when this is the Collabora lane, mirroring the
+// "-onlyoffice" lane so the dashboard reads symmetrically (wopihost-collabora / wopihost-web-collabora
+// next to wopihost-onlyoffice / wopihost-web-onlyoffice). Without Collabora there's no client, so the
+// plain wopihost / wopihost-web names are used.
 var primaryReachHost = useCollabora ? "host.docker.internal" : "localhost";
-var primaryBackend = AddBackend("wopihost", port: 5050, hasDockerClient: useCollabora, disableProofValidation: useCollabora);
+var primaryBackendName = useCollabora ? "wopihost-collabora" : "wopihost";
+var primaryWebName = useCollabora ? "wopihost-web-collabora" : "wopihost-web";
+var primaryBackend = AddBackend(primaryBackendName, port: 5050, hasDockerClient: useCollabora, disableProofValidation: useCollabora);
 backends.Add(primaryBackend);
-var primaryBackendPort = primaryBackend.GetEndpoint("wopihost-http").Property(EndpointProperty.Port);
-var wopiHostWeb = AddWebFrontend("wopihost-web", primaryBackend, primaryReachHost);
+var primaryBackendPort = primaryBackend.GetEndpoint($"{primaryBackendName}-http").Property(EndpointProperty.Port);
+var wopiHostWeb = AddWebFrontend(primaryWebName, primaryBackend, primaryReachHost);
 
 // Validator: same wiring as the Web frontend but always localhost — it's a WOPI protocol checker
 // that never runs against an in-Docker client.

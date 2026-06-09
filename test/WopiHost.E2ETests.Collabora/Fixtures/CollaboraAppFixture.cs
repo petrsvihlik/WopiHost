@@ -37,7 +37,7 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
     public bool IsDockerAvailable { get; } = DockerCheck.IsDockerAvailable();
 
     /// <summary>
-    /// HTTPS URL of the <c>wopihost-web</c> resource after the application has been started.
+    /// HTTPS URL of the <c>wopihost-web-collabora</c> resource after the application has been started.
     /// Populated by <see cref="InitializeAsync"/>; reading before initialisation completes
     /// throws.
     /// </summary>
@@ -73,6 +73,9 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
                 settings.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["AppHost:UseCollabora"] = "true",
+                    // ONLYOFFICE defaults on in the AppHost; keep it off here so this suite spins up
+                    // only the Collabora container, not the ~4.3 GB ONLYOFFICE one alongside it.
+                    ["AppHost:UseOnlyOffice"] = "false",
                     ["AppHost:UseRedisLocks"] = "false",
                 });
             })
@@ -108,8 +111,8 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
         // poll against Collabora's /hosting/discovery below backstops this to confirm the
         // container is actually serving.
         await notifications.WaitForResourceAsync("collabora", KnownResourceStates.Running, cts.Token).ConfigureAwait(false);
-        await notifications.WaitForResourceAsync("wopihost", KnownResourceStates.Running, cts.Token).ConfigureAwait(false);
-        await notifications.WaitForResourceAsync("wopihost-web", KnownResourceStates.Running, cts.Token).ConfigureAwait(false);
+        await notifications.WaitForResourceAsync("wopihost-collabora", KnownResourceStates.Running, cts.Token).ConfigureAwait(false);
+        await notifications.WaitForResourceAsync("wopihost-web-collabora", KnownResourceStates.Running, cts.Token).ConfigureAwait(false);
 
         // Belt-and-braces probe: poll Collabora's /hosting/discovery until it serves a 200,
         // or fail the fixture with a diagnostic message that beats waiting through the
@@ -160,7 +163,7 @@ public sealed class CollaboraAppFixture : IAsyncLifetime
                 "in this test-mode run. If it shows a row with status 'Exited', inspect its logs.");
         }
 
-        WebFrontendUrl = new Uri(_app.GetEndpoint("wopihost-web", "https").ToString());
+        WebFrontendUrl = new Uri(_app.GetEndpoint("wopihost-web-collabora", "https").ToString());
     }
 
     private static async Task<string> CaptureDockerPsAsync()

@@ -86,7 +86,7 @@ Not adopted today because `$(SolutionPath)` behaviour varies between `dotnet tes
 
 | Piece | What it does |
 |---|---|
-| [`CollaboraAppFixture`](Fixtures/CollaboraAppFixture.cs) | xUnit collection fixture. Boots the AppHost via `DistributedApplicationTestingBuilder<Projects.WopiHost_AppHost>`, sets `AppHost:UseCollabora=true` + `AppHost:UseRedisLocks=false`, waits for `collabora` / `wopihost` / `wopihost-web` to be healthy, exposes the frontend HTTPS URL. |
+| [`CollaboraAppFixture`](Fixtures/CollaboraAppFixture.cs) | xUnit collection fixture. Boots the AppHost via `DistributedApplicationTestingBuilder<Projects.WopiHost_AppHost>`, sets `AppHost:UseCollabora=true` + `AppHost:UseOnlyOffice=false` + `AppHost:UseRedisLocks=false`, waits for `collabora` / `wopihost-collabora` / `wopihost-web-collabora` to be healthy, exposes the frontend HTTPS URL. |
 | [`PlaywrightFixture`](Fixtures/PlaywrightFixture.cs) | Owns one `IPlaywright` + one Chromium `IBrowser` for the whole collection. Each test gets a fresh `IBrowserContext` for cookie isolation. Mirrors `test/WopiHost.SmokeTests/Fixtures/PlaywrightFixture.cs` deliberately — sharing would force Aspire's dependencies onto SmokeTests. |
 | [`DockerCheck`](Fixtures/DockerCheck.cs) | Probes `docker info`. Tests check the result and `Assert.SkipUnless(...)` when the engine is unreachable. |
 | [`CollaboraFixtureCollection`](CollaboraFixtureCollection.cs) | Pairs the two fixtures with `DisableParallelization = true`. The Collabora container is a single shared resource for the test run; parallel test invocations against it produce ambiguous failures. |
@@ -96,7 +96,7 @@ Not adopted today because `$(SolutionPath)` behaviour varies between `dotnet tes
 This suite was developed against Windows + Docker Desktop and the scaffolding was verified to the point of:
 
 - Config propagation (`AppHost:UseCollabora=true` flows through the `configureBuilder` callback and flips the resource graph).
-- AppHost project resources (`wopihost`, `wopihost-web`) start and serve traffic — the Web frontend's HomeController is reached and errors *exactly as expected* when Collabora isn't available, proving the wiring is correct end-to-end up to that point.
+- AppHost project resources (`wopihost-collabora`, `wopihost-web-collabora`) start and serve traffic — the Web frontend's HomeController is reached and errors *exactly as expected* when Collabora isn't available, proving the wiring is correct end-to-end up to that point.
 
 What didn't reproduce locally: on Windows / Docker Desktop, Aspire reports the Collabora container resource as `Running` via `ResourceNotificationService`, but no actual container appears in `docker ps -a`. The `/hosting/discovery` poll in the fixture then times out with a clear message. This appears to be a DCP-on-Windows + test-mode interaction; the same AppHost runs the container correctly when launched normally via `dotnet run --project infra/WopiHost.AppHost`. Validation under real Linux containers (Linux CI runners, WSL2 Linux containers, native Linux dev box) is the path forward. If you reproduce locally on Linux and the tests fail, please open an issue — the failure messages are designed to be informative.
 
