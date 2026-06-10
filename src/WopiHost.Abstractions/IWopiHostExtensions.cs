@@ -56,6 +56,9 @@ public interface IWopiHostExtensions
     ///     }
     /// }
     /// </code>
+    /// A mirror of this implementation is compiled in <c>WopiHost.Core.Tests</c>
+    /// (<c>DefaultCheckInfoBuilderTests.FileUrlExtensions</c>) so the pattern cannot silently
+    /// stop building; keep the two in sync.
     /// </example>
     Task<WopiCheckFileInfo> OnCheckFileInfoAsync(WopiCheckFileInfoContext context, CancellationToken cancellationToken = default);
 
