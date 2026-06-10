@@ -72,12 +72,11 @@ dotnet run --project infra/WopiHost.AppHost -- --AppHost:UseOnlyOffice=false
 ## End-to-end tests
 
 Each lane has a nightly E2E suite that boots this AppHost via `Aspire.Hosting.Testing` and drives the
-editor with Playwright:
+editor with Playwright. Both live in [`test/WopiHost.E2ETests`](../../test/WopiHost.E2ETests) (one
+project, suites selected by a `Client` trait):
 
-- [`test/WopiHost.E2ETests.Collabora`](../../test/WopiHost.E2ETests.Collabora) →
-  [`e2e-collabora.yml`](../../.github/workflows/e2e-collabora.yml)
-- [`test/WopiHost.E2ETests.OnlyOffice`](../../test/WopiHost.E2ETests.OnlyOffice) →
-  [`e2e-onlyoffice.yml`](../../.github/workflows/e2e-onlyoffice.yml)
+- [`e2e-collabora.yml`](../../.github/workflows/e2e-collabora.yml) → `--filter "Client=Collabora"`
+- [`e2e-onlyoffice.yml`](../../.github/workflows/e2e-onlyoffice.yml) → `--filter "Client=OnlyOffice"`
 
 Neither gates per-PR CI (they're `[Trait("Category", "E2E")]`, filtered out by the repo-root
 `.runsettings`); they run on a nightly cron + `workflow_dispatch`.

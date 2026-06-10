@@ -26,8 +26,7 @@
   <Project Path="test/WopiHost.Core.Tests/WopiHost.Core.Tests.csproj" />
   <Project Path="test/WopiHost.IntegrationTests/WopiHost.IntegrationTests.csproj" />
   <Project Path="test/WopiHost.Discovery.Tests/WopiHost.Discovery.Tests.csproj" />
-  <Project Path="test/WopiHost.E2ETests.Collabora/WopiHost.E2ETests.Collabora.csproj" />
-  <Project Path="test/WopiHost.E2ETests.OnlyOffice/WopiHost.E2ETests.OnlyOffice.csproj" />
+  <Project Path="test/WopiHost.E2ETests/WopiHost.E2ETests.csproj" />
   <Project Path="test/WopiHost.FileSystemProvider.Tests/WopiHost.FileSystemProvider.Tests.csproj" />
   <Project Path="test/WopiHost.MemoryLockProvider.Tests/WopiHost.MemoryLockProvider.Tests.csproj" />
   <Project Path="test/WopiHost.RedisLockProvider.Tests/WopiHost.RedisLockProvider.Tests.csproj" />

@@ -1,5 +1,5 @@
 using Microsoft.Playwright;
-using WopiHost.E2ETests.Collabora.Fixtures;
+using WopiHost.E2ETests.Fixtures;
 
 namespace WopiHost.E2ETests.Collabora;
 
@@ -29,10 +29,11 @@ namespace WopiHost.E2ETests.Collabora;
 /// per-PR Build &amp; Test workflow doesn't pay the cost.
 /// </para>
 /// <para>
-/// <b>Where this runs</b>: a dedicated <c>e2e-collabora.yml</c> workflow on a nightly cron
+/// <b>Where this runs</b>: the dedicated <c>e2e-collabora.yml</c> workflow on a nightly cron
 /// plus <c>workflow_dispatch</c>, NEVER on per-PR CI. The integration is by design flaky
 /// (Collabora's canvas-based editor + WebSocket cold-start), and gating PRs on it would
-/// cause more friction than it'd catch.
+/// cause more friction than it'd catch. The workflow selects this suite via
+/// <c>--filter "Client=Collabora"</c>.
 /// </para>
 /// <para>
 /// <b>Selector strategy</b>: Collabora's editor UI iterates rapidly and DOM selectors drift
@@ -46,6 +47,7 @@ namespace WopiHost.E2ETests.Collabora;
 /// </remarks>
 [Collection(CollaboraFixtureCollection.Name)]
 [Trait("Category", "E2E")]
+[Trait("Client", "Collabora")]
 public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFixture playwright) : IAsyncLifetime
 {
     private const string SampleDocxName = "test.docx";
@@ -241,7 +243,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
 
         var finalMessages = await page.EvaluateAsync<string>(
             "() => JSON.stringify(window.__collaboraMessages || [], null, 2)");
-        var collaboraLogs = await app.CaptureCollaboraLogsAsync();
+        var collaboraLogs = await app.CaptureClientLogsAsync();
         throw new Xunit.Sdk.XunitException(
             $"Collabora did not emit a successful load event within {s_iframeReadyTimeout.TotalSeconds}s.\n" +
             $"Captured postMessages:\n{finalMessages}\n" +
@@ -423,7 +425,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             }
             catch { /* selector may have died if Collabora unmounted */ }
 
-            var collaboraLogs = await app.CaptureCollaboraLogsAsync();
+            var collaboraLogs = await app.CaptureClientLogsAsync();
             throw new Xunit.Sdk.XunitException(
                 $"Expected {SampleDocxName} to be re-written by Collabora's Action_Save within 60s.\n" +
                 $"  LastWrite before: {modifiedBefore:O}\n" +

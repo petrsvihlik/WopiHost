@@ -40,16 +40,16 @@ jobs:
         run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
 
       - name: Restore
-        run: dotnet restore test/WopiHost.E2ETests.Collabora/WopiHost.E2ETests.Collabora.csproj
+        run: dotnet restore test/WopiHost.E2ETests/WopiHost.E2ETests.csproj
 
       - name: Build
-        run: dotnet build test/WopiHost.E2ETests.Collabora/WopiHost.E2ETests.Collabora.csproj --no-restore /p:ContinuousIntegrationBuild=true
+        run: dotnet build test/WopiHost.E2ETests/WopiHost.E2ETests.csproj --no-restore /p:ContinuousIntegrationBuild=true
 
       - name: Install Playwright browsers
         # --with-deps installs the apt packages Chromium needs on a fresh ubuntu-latest. The
         # build emits playwright.ps1 next to the test assembly under artifacts/bin/ (the repo
         # uses UseArtifactsOutput); the path mirrors test/WopiHost.SmokeTests's CI step.
-        run: pwsh artifacts/bin/WopiHost.E2ETests.Collabora/debug/playwright.ps1 install --with-deps chromium
+        run: pwsh artifacts/bin/WopiHost.E2ETests/debug/playwright.ps1 install --with-deps chromium
 
       - name: Pre-pull Collabora image
         # Pre-pulling outside the test makes the test's WaitForResourceHealthyAsync timeout
@@ -61,11 +61,11 @@ jobs:
       - name: Run e2e
         # -p:RunSettingsFilePath= clears the repo-root .runsettings autoloaded via
         # Directory.Build.props. That runsettings filters out Category=E2E so per-PR
-        # `dotnet test` skips this suite; we need to undo that filter for the dedicated
-        # workflow. We do NOT use --filter "Category=E2E" because dotnet test ANDs the CLI
-        # filter with the runsettings filter, yielding (Category!=E2E)&(Category=E2E) which
-        # matches zero tests. Bypassing the runsettings entirely is the cleanest opt-in.
-        run: dotnet test test/WopiHost.E2ETests.Collabora/WopiHost.E2ETests.Collabora.csproj --no-build -p:RunSettingsFilePath= --verbosity normal --logger "console;verbosity=detailed"
+        # `dotnet test` skips this project; the dedicated workflow undoes that and then picks
+        # its suite with the Client trait. The Client filter must NOT be combined with the
+        # runsettings (dotnet test ANDs CLI and runsettings filters — (Category!=E2E)&(...)
+        # matches zero tests); with the runsettings cleared, the CLI filter applies alone.
+        run: dotnet test test/WopiHost.E2ETests/WopiHost.E2ETests.csproj --no-build -p:RunSettingsFilePath= --filter "Client=Collabora" --verbosity normal --logger "console;verbosity=detailed"
 
       - name: Upload Playwright traces on failure
         if: failure()
@@ -73,6 +73,6 @@ jobs:
         with:
           name: playwright-traces
           path: |
-            artifacts/bin/WopiHost.E2ETests.Collabora/**/test-results/**
-            artifacts/bin/WopiHost.E2ETests.Collabora/**/playwright-report/**
+            artifacts/bin/WopiHost.E2ETests/**/test-results/**
+            artifacts/bin/WopiHost.E2ETests/**/playwright-report/**
           if-no-files-found: ignore
