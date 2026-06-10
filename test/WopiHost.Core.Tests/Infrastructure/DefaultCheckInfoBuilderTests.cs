@@ -125,8 +125,14 @@ public class DefaultCheckInfoBuilderTests
     }
 
     [Fact]
-    public async Task GetWopiCheckFileInfo_PopulatesFileUrl_WhenLinkGeneratorIsRegistered()
+    public async Task GetWopiCheckFileInfo_LeavesFileUrlNull_EvenWhenLinkGeneratorIsRegistered()
     {
+        // Pins the absence of the old default FileUrl. WOPI clients fetch FileUrl WITHOUT proof
+        // signing (per the proof-keys spec), so a default pointing back at this host's
+        // proof-validated GetFile endpoint produced a URL the client couldn't legally use —
+        // ONLYOFFICE prefers FileUrl over GetFile and its unsigned fetch 500'd on proof
+        // validation ("Download failed"). Hosts with a real unsigned download channel set
+        // FileUrl via IWopiHostExtensions instead.
         var mockFile = new Mock<IWopiFile>();
         // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
         // call OpenReadAsync (also unmocked), and ComputeHashAsync(null) throws.
@@ -137,8 +143,7 @@ public class DefaultCheckInfoBuilderTests
         mockFile.Setup(f => f.Identifier).Returns("WOPITEST");
         mockFile.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
 
-        const string expected = "https://localhost/wopi/files/WOPITEST/contents?access_token=tok";
-        var linkGenerator = new StubLinkGenerator(expected);
+        var linkGenerator = new StubLinkGenerator("https://localhost/wopi/files/WOPITEST/contents?access_token=tok");
 
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Scheme = "https";
@@ -151,12 +156,11 @@ public class DefaultCheckInfoBuilderTests
             linkGenerator: linkGenerator);
         var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo());
 
-        Assert.NotNull(result.FileUrl);
-        Assert.Equal(expected, result.FileUrl.ToString());
+        Assert.Null(result.FileUrl);
     }
 
     [Fact]
-    public async Task GetWopiCheckFileInfo_OverridesFileUrl_WhenOnCheckFileInfoSetsIt()
+    public async Task GetWopiCheckFileInfo_PopulatesFileUrl_WhenOnCheckFileInfoSetsIt()
     {
         var mockFile = new Mock<IWopiFile>();
         // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
@@ -188,27 +192,6 @@ public class DefaultCheckInfoBuilderTests
         var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo());
 
         Assert.Equal(cdnUrl, result.FileUrl);
-    }
-
-    [Fact]
-    public async Task GetWopiCheckFileInfo_LeavesFileUrlNull_WhenLinkGeneratorIsMissing()
-    {
-        var mockFile = new Mock<IWopiFile>();
-        // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
-        // call OpenReadAsync (also unmocked), and ComputeHashAsync(null) throws.
-        mockFile.Setup(f => f.Checksum).Returns(new ReadOnlyMemory<byte>([0]));
-        mockFile.Setup(f => f.Name).Returns("test");
-        mockFile.Setup(f => f.Owner).Returns("owner");
-        mockFile.Setup(f => f.Extension).Returns("txt");
-        mockFile.Setup(f => f.Identifier).Returns("WOPITEST");
-        mockFile.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-
-        var httpContext = new DefaultHttpContext();
-
-        var builder = new DefaultCheckFileInfoBuilder(CreatePermissionProvider().Object, new WopiHostExtensions());
-        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo());
-
-        Assert.Null(result.FileUrl);
     }
 
     [Fact]

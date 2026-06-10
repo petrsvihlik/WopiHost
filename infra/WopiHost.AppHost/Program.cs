@@ -23,10 +23,9 @@ static IResourceBuilder<ProjectResource> ExcludeVsHostingStartups(IResourceBuild
 // WOPI-client toggles. Each enabled real client gets its own self-contained (backend, frontend)
 // lane. The backend consults the client only for proof keys (WopiProofValidator is the sole
 // discovery consumer in WopiHost.Core), so a backend per client lets each lane run its own
-// proof-validation mode independently (both default to proof off in dev — Collabora can't sign
-// callbacks at all, and ONLYOFFICE's signatures are rejected by WopiProofValidator; see the
-// onlyOfficeProofValidation note below). One backend can't hold two clients' proof keys, so
-// per-lane proof config is what requires a backend per client.
+// proof-validation mode independently (Collabora can't sign callbacks at all; ONLYOFFICE can —
+// see the onlyOfficeProofValidation note below). One backend can't hold two clients' proof keys,
+// so per-lane proof config is what requires a backend per client.
 var useCollabora = builder.Configuration.GetValue("AppHost:UseCollabora", defaultValue: true);
 // Defaults ON like Collabora so the orchestrated dev loop brings up both editors for side-by-side
 // testing. Heavier than the rest of the default set — the onlyoffice/documentserver image is ~4.3 GB
@@ -34,13 +33,14 @@ var useCollabora = builder.Configuration.GetValue("AppHost:UseCollabora", defaul
 // Docker) opts out with AppHost:UseOnlyOffice=false.
 var useOnlyOffice = builder.Configuration.GetValue("AppHost:UseOnlyOffice", defaultValue: true);
 
-// ONLYOFFICE advertises a <proof-key> in its discovery, but empirically its WOPI GetFile callback
-// is rejected by the host's WopiProofValidator: the editor shell loads, then the document download
-// 500s and ONLYOFFICE shows "Download failed". So the lane defaults to proof OFF to be functional
-// out of the box (same as Collabora). The separate backend still earns its keep — it keeps this
-// toggle per-lane, so flipping AppHost:OnlyOfficeProofValidation=true drives the real
-// WopiProofValidator path against ONLYOFFICE (to investigate why its signature is rejected — does it
-// send X-WOPI-Proof at all?) without disturbing the working Collabora lane.
+// ONLYOFFICE signs its WOPI callbacks with the proof keys it advertises in discovery, and
+// WopiProofValidator accepts them — AppHost:OnlyOfficeProofValidation=true runs the lane fully
+// validated, and the nightly E2E ONLYOFFICE suite runs that way as the regression gate. (The
+// historical "Download failed" with proof ON was the host's own doing: CheckFileInfo advertised
+// a FileUrl pointing back at the proof-gated GetFile endpoint, and per the WOPI spec clients
+// fetch FileUrl WITHOUT proof headers, so the download 500'd.) The dev-loop default stays OFF to
+// match the Collabora lane's posture; flip it on to exercise the real WopiProofValidator path
+// without disturbing the Collabora lane.
 var onlyOfficeProofValidation = builder.Configuration.GetValue("AppHost:OnlyOfficeProofValidation", defaultValue: false);
 
 // Registers a WOPI backend pinned to a host-reachable TCP port. Kestrel binds directly

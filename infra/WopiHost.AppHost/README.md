@@ -64,7 +64,7 @@ dotnet run --project infra/WopiHost.AppHost -- --AppHost:UseOnlyOffice=false
 |---|---|---|
 | `AppHost:UseCollabora` | `true` | `collabora/code` container + the Collabora lane. |
 | `AppHost:UseOnlyOffice` | `true` | `onlyoffice/documentserver` container + the ONLYOFFICE lane. |
-| `AppHost:OnlyOfficeProofValidation` | `false` | Runs the ONLYOFFICE lane's backend with WOPI proof validation on (off by default — ONLYOFFICE's signed callbacks are currently rejected by the validator; tracked in [#545](https://github.com/petrsvihlik/WopiHost/issues/545)). |
+| `AppHost:OnlyOfficeProofValidation` | `false` | Runs the ONLYOFFICE lane's backend with WOPI proof validation on. ONLYOFFICE signs its callbacks and the validator accepts them (the nightly E2E ONLYOFFICE suite runs with this flag on); the dev-loop default just mirrors the Collabora lane's proof-off posture. |
 | `AppHost:UseRedisLocks` | `true` | `wopi-locks` Redis container; both backends use the distributed lock provider against it. |
 | `AppHost:UseAzureStorage` | `false` | Azurite emulator + `BlobStorage` connection string forwarded to the backends. |
 | `AppHost:IncludeOidcSample` | `false` | The `WopiHost.Web.Oidc` frontend (requires IdP setup — see its README). |
