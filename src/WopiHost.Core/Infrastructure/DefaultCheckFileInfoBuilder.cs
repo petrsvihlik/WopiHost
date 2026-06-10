@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Routing;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 
@@ -11,20 +10,10 @@ namespace WopiHost.Core.Infrastructure;
 /// metadata, the supplied host capabilities, the principal's claims and permissions, then
 /// fires <see cref="IWopiHostExtensions.OnCheckFileInfoAsync"/> for last-mile host customization.
 /// </summary>
-/// <remarks>
-/// <paramref name="linkGenerator"/> is retained for binary compatibility only. Earlier versions
-/// used it to populate a default <c>FileUrl</c> pointing back at this host's GetFile endpoint —
-/// a URL WOPI clients fetch without proof signing (per spec), which the proof-validation filter
-/// on that endpoint then rejects. The default is gone; see the note in
-/// <see cref="BuildAsync"/>.
-/// </remarks>
 public class DefaultCheckFileInfoBuilder(
     IWopiPermissionProvider permissionProvider,
     IWopiHostExtensions extensions,
-    IWopiWritableStorageProvider? writableStorageProvider = null,
-#pragma warning disable CS9113 // Parameter is unread — kept for constructor binary compatibility.
-    LinkGenerator? linkGenerator = null) : ICheckFileInfoBuilder
-#pragma warning restore CS9113
+    IWopiWritableStorageProvider? writableStorageProvider = null) : ICheckFileInfoBuilder
 {
     /// <inheritdoc />
     public async Task<WopiCheckFileInfo> BuildAsync(
