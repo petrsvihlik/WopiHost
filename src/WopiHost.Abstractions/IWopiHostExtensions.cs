@@ -27,9 +27,36 @@ public interface IWopiHostExtensions
     /// </summary>
     /// <remarks>
     /// Typical uses: copy custom properties onto a derived <see cref="WopiCheckFileInfo"/>,
-    /// rewrite <c>FileUrl</c> to point at a CDN, override capability flags reported to the
+    /// set <see cref="WopiCheckFileInfo.FileUrl"/>, override capability flags reported to the
     /// WOPI client.
     /// </remarks>
+    /// <example>
+    /// Advertising a <see cref="WopiCheckFileInfo.FileUrl"/>. Per the WOPI proof-keys spec,
+    /// clients fetch <c>FileUrl</c> <b>without</b> proof signing, so it must point at a location
+    /// served outside the proof-validated <c>/wopi</c> surface — a CDN, a pre-signed blob URL,
+    /// or a host-mapped download route that checks the access token but no proof headers.
+    /// In an ASP.NET Core host, <c>LinkGenerator</c> builds the URL from such a named route:
+    /// <code>
+    /// // Composition root: an unsigned, token-checked download route OUTSIDE /wopi.
+    /// // app.MapGet("/download/{id}", DownloadHandler).WithName("FileDownload");
+    /// public sealed class FileUrlExtensions(IHttpContextAccessor httpContextAccessor) : WopiHostExtensions
+    /// {
+    ///     public override Task&lt;WopiCheckFileInfo&gt; OnCheckFileInfoAsync(
+    ///         WopiCheckFileInfoContext context, CancellationToken cancellationToken = default)
+    ///     {
+    ///         var httpContext = httpContextAccessor.HttpContext!;
+    ///         var links = httpContext.RequestServices.GetRequiredService&lt;LinkGenerator&gt;();
+    ///         var url = links.GetUriByName(httpContext, "FileDownload", new
+    ///         {
+    ///             id = context.File.Identifier,
+    ///             access_token = httpContext.Request.GetAccessToken(),
+    ///         });
+    ///         context.CheckFileInfo.FileUrl = url is null ? null : new Uri(url);
+    ///         return Task.FromResult(context.CheckFileInfo);
+    ///     }
+    /// }
+    /// </code>
+    /// </example>
     Task<WopiCheckFileInfo> OnCheckFileInfoAsync(WopiCheckFileInfoContext context, CancellationToken cancellationToken = default);
 
     /// <summary>
