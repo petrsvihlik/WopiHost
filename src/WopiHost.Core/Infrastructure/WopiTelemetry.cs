@@ -37,30 +37,59 @@ public static class WopiTelemetry
     /// <summary>Tag keys shared across spans, log scopes, and metrics.</summary>
     public static class Tags
     {
+        /// <summary>WOPI operation name (e.g. <c>CheckFileInfo</c>, <c>Lock</c>).</summary>
         public const string Operation = "wopi.operation";
+
+        /// <summary>File identifier of the targeted resource.</summary>
         public const string FileId = "wopi.file_id";
+
+        /// <summary>Container identifier of the targeted resource.</summary>
         public const string ContainerId = "wopi.container_id";
+
+        /// <summary>Lock identifier involved in the operation.</summary>
         public const string LockId = "wopi.lock_id";
+
+        /// <summary>Operation outcome; values come from <see cref="Outcomes"/>.</summary>
         public const string Outcome = "wopi.outcome";
+
+        /// <summary>The request's <c>X-WOPI-Override</c> header value.</summary>
         public const string Override = "wopi.override";
+
+        /// <summary>Authenticated user id (OpenTelemetry's standard <c>enduser.id</c> key).</summary>
         public const string UserId = "enduser.id";
     }
 
     /// <summary>Canonical strings for the <see cref="Tags.Outcome"/> dimension.</summary>
     public static class Outcomes
     {
+        /// <summary>Operation completed successfully (2xx).</summary>
         public const string Success = "success";
+
+        /// <summary>Target resource not found (404).</summary>
         public const string NotFound = "not_found";
+
+        /// <summary>Generic conflict (409) other than a lock mismatch.</summary>
         public const string Conflict = "conflict";
+
+        /// <summary>Lock conflict (409 with <c>X-WOPI-Lock</c>).</summary>
         public const string LockMismatch = "lock_mismatch";
+
+        /// <summary>Malformed or invalid request (400).</summary>
         public const string BadRequest = "bad_request";
+
+        /// <summary>Precondition failed (412).</summary>
         public const string PreconditionFailed = "precondition_failed";
+
+        /// <summary>Operation not supported by this host (501).</summary>
         public const string NotImplemented = "not_implemented";
+
+        /// <summary>Request rejected by WOPI proof-key validation (500 per spec).</summary>
         public const string ProofValidationFailed = "proof_validation_failed";
 
         /// <summary>Client disconnected / request aborted before completion. Not a server error.</summary>
         public const string Cancelled = "cancelled";
 
+        /// <summary>Unhandled server error (5xx).</summary>
         public const string Error = "error";
     }
 
