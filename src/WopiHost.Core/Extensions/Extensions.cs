@@ -145,8 +145,7 @@ internal static class Extensions
         // SharePoint-style provider returning `01ABCDEF`) would build URLs containing
         // `01abcdef` while the embedded access token's claim says `01ABCDEF` — strict per-id
         // binding fails. Production SHA-256 ids are already lowercase so this matters most for
-        // tests and future third-party providers. Same precedent as
-        // DefaultCheckFileInfoBuilder's FileUrl construction.
+        // tests and future third-party providers.
         //
         // Trade-off: this override also stops lowercasing the route's LITERAL segments. That's
         // fine because every WOPI route is registered with already-lowercase literals

@@ -46,8 +46,8 @@ public sealed record WopiRequestInfo
     /// URL — happens in tests that build a bare <c>DefaultHttpContext</c> without populating
     /// scheme + host, and in any synthetic-request scenario the framework adapter can't
     /// resolve. Consumers MUST null-check: <see cref="IWopiProofValidator"/> should treat
-    /// null as "no URL to sign against → fail validation"; <see cref="ICheckFileInfoBuilder"/>
-    /// should skip the self-referential <c>FileUrl</c> construction.
+    /// null as "no URL to sign against → fail validation"; an <see cref="ICheckFileInfoBuilder"/>
+    /// that derives URLs from the request should skip that construction.
     /// </remarks>
     public Uri? RequestUrl { get; init; }
 

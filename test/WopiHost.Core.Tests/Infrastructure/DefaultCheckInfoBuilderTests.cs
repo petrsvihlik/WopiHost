@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
@@ -116,17 +117,15 @@ public class DefaultCheckInfoBuilderTests
         Assert.Equal(13, result.FileNameMaxLength);
     }
 
-    private sealed class StubLinkGenerator(string returnValue) : LinkGenerator
-    {
-        public override string? GetPathByAddress<TAddress>(HttpContext httpContext, TAddress address, RouteValueDictionary values, RouteValueDictionary? ambientValues = null, PathString? pathBase = null, FragmentString fragment = default, LinkOptions? options = null) => returnValue;
-        public override string? GetPathByAddress<TAddress>(TAddress address, RouteValueDictionary values, PathString pathBase = default, FragmentString fragment = default, LinkOptions? options = null) => returnValue;
-        public override string? GetUriByAddress<TAddress>(HttpContext httpContext, TAddress address, RouteValueDictionary values, RouteValueDictionary? ambientValues = null, string? scheme = null, HostString? host = null, PathString? pathBase = null, FragmentString fragment = default, LinkOptions? options = null) => returnValue;
-        public override string? GetUriByAddress<TAddress>(TAddress address, RouteValueDictionary values, string? scheme, HostString host, PathString pathBase = default, FragmentString fragment = default, LinkOptions? options = null) => returnValue;
-    }
-
     [Fact]
-    public async Task GetWopiCheckFileInfo_PopulatesFileUrl_WhenLinkGeneratorIsRegistered()
+    public async Task GetWopiCheckFileInfo_LeavesFileUrlNull_ByDefault()
     {
+        // Pins the absence of the old default FileUrl. WOPI clients fetch FileUrl WITHOUT proof
+        // signing (per the proof-keys spec), so a default pointing back at this host's
+        // proof-validated GetFile endpoint produced a URL the client couldn't legally use —
+        // ONLYOFFICE prefers FileUrl over GetFile and its unsigned fetch 500'd on proof
+        // validation ("Download failed"). Hosts with a real unsigned download channel set
+        // FileUrl via IWopiHostExtensions instead.
         var mockFile = new Mock<IWopiFile>();
         // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
         // call OpenReadAsync (also unmocked), and ComputeHashAsync(null) throws.
@@ -136,9 +135,6 @@ public class DefaultCheckInfoBuilderTests
         mockFile.Setup(f => f.Extension).Returns("txt");
         mockFile.Setup(f => f.Identifier).Returns("WOPITEST");
         mockFile.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-
-        const string expected = "https://localhost/wopi/files/WOPITEST/contents?access_token=tok";
-        var linkGenerator = new StubLinkGenerator(expected);
 
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Scheme = "https";
@@ -146,17 +142,14 @@ public class DefaultCheckInfoBuilderTests
 
         var builder = new DefaultCheckFileInfoBuilder(
             CreatePermissionProvider().Object,
-            new WopiHostExtensions(),
-            writableStorageProvider: null,
-            linkGenerator: linkGenerator);
+            new WopiHostExtensions());
         var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo());
 
-        Assert.NotNull(result.FileUrl);
-        Assert.Equal(expected, result.FileUrl.ToString());
+        Assert.Null(result.FileUrl);
     }
 
     [Fact]
-    public async Task GetWopiCheckFileInfo_OverridesFileUrl_WhenOnCheckFileInfoSetsIt()
+    public async Task GetWopiCheckFileInfo_PopulatesFileUrl_WhenOnCheckFileInfoSetsIt()
     {
         var mockFile = new Mock<IWopiFile>();
         // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
@@ -167,8 +160,6 @@ public class DefaultCheckInfoBuilderTests
         mockFile.Setup(f => f.Extension).Returns("txt");
         mockFile.Setup(f => f.Identifier).Returns("WOPITEST");
         mockFile.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
-
-        var linkGenerator = new StubLinkGenerator("https://localhost/wopi/files/WOPITEST/contents?access_token=tok");
 
         var cdnUrl = new Uri("https://cdn.example.com/file");
         var extensions = new RewritingExtensions
@@ -182,16 +173,44 @@ public class DefaultCheckInfoBuilderTests
 
         var builder = new DefaultCheckFileInfoBuilder(
             CreatePermissionProvider().Object,
-            extensions,
-            writableStorageProvider: null,
-            linkGenerator: linkGenerator);
+            extensions);
         var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo());
 
         Assert.Equal(cdnUrl, result.FileUrl);
     }
 
+    /// <summary>
+    /// Mirror of the <c>&lt;example&gt;</c> on <see cref="IWopiHostExtensions.OnCheckFileInfoAsync"/>.
+    /// XML-doc code is never compiled, so this class keeps the documented pattern building;
+    /// keep the two in sync.
+    /// </summary>
+    private sealed class FileUrlExtensions(IHttpContextAccessor httpContextAccessor) : WopiHostExtensions
+    {
+        public override Task<WopiCheckFileInfo> OnCheckFileInfoAsync(
+            WopiCheckFileInfoContext context, CancellationToken cancellationToken = default)
+        {
+            var httpContext = httpContextAccessor.HttpContext!;
+            var links = httpContext.RequestServices.GetRequiredService<LinkGenerator>();
+            var url = links.GetUriByName(httpContext, "FileDownload", new
+            {
+                id = context.File.Identifier,
+                access_token = httpContext.Request.GetAccessToken(),
+            });
+            context.CheckFileInfo.FileUrl = url is null ? null : new Uri(url);
+            return Task.FromResult(context.CheckFileInfo);
+        }
+    }
+
+    private sealed class StubLinkGenerator(string returnValue) : LinkGenerator
+    {
+        public override string? GetPathByAddress<TAddress>(HttpContext httpContext, TAddress address, RouteValueDictionary values, RouteValueDictionary? ambientValues = null, PathString? pathBase = null, FragmentString fragment = default, LinkOptions? options = null) => returnValue;
+        public override string? GetPathByAddress<TAddress>(TAddress address, RouteValueDictionary values, PathString pathBase = default, FragmentString fragment = default, LinkOptions? options = null) => returnValue;
+        public override string? GetUriByAddress<TAddress>(HttpContext httpContext, TAddress address, RouteValueDictionary values, RouteValueDictionary? ambientValues = null, string? scheme = null, HostString? host = null, PathString? pathBase = null, FragmentString fragment = default, LinkOptions? options = null) => returnValue;
+        public override string? GetUriByAddress<TAddress>(TAddress address, RouteValueDictionary values, string? scheme, HostString host, PathString pathBase = default, FragmentString fragment = default, LinkOptions? options = null) => returnValue;
+    }
+
     [Fact]
-    public async Task GetWopiCheckFileInfo_LeavesFileUrlNull_WhenLinkGeneratorIsMissing()
+    public async Task GetWopiCheckFileInfo_FileUrlDocExample_SetsFileUrlFromLinkGenerator()
     {
         var mockFile = new Mock<IWopiFile>();
         // Stub Checksum so GetEncodedSha256 takes the early-return path; otherwise it would
@@ -203,12 +222,23 @@ public class DefaultCheckInfoBuilderTests
         mockFile.Setup(f => f.Identifier).Returns("WOPITEST");
         mockFile.Setup(f => f.LastWriteTimeUtc).Returns(DateTime.UtcNow);
 
-        var httpContext = new DefaultHttpContext();
+        const string downloadUrl = "https://localhost/download/WOPITEST?access_token=tok";
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = new ServiceCollection()
+                .AddSingleton<LinkGenerator>(new StubLinkGenerator(downloadUrl))
+                .BuildServiceProvider(),
+        };
+        httpContext.Request.Scheme = "https";
+        httpContext.Request.Host = new HostString("localhost");
+        var accessor = new HttpContextAccessor { HttpContext = httpContext };
 
-        var builder = new DefaultCheckFileInfoBuilder(CreatePermissionProvider().Object, new WopiHostExtensions());
+        var builder = new DefaultCheckFileInfoBuilder(
+            CreatePermissionProvider().Object,
+            new FileUrlExtensions(accessor));
         var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo());
 
-        Assert.Null(result.FileUrl);
+        Assert.Equal(new Uri(downloadUrl), result.FileUrl);
     }
 
     [Fact]
