@@ -50,11 +50,9 @@
 		<IncludeCobalt Condition="'$(IncludeCobalt)' == ''">false</IncludeCobalt>
 	</PropertyGroup>
 
-	<!-- Non-packable projects (samples, infra, tests): silence CS1591 since they don't
-	     ship to consumers and don't need XML docs on every public member. -->
-	<PropertyGroup Condition="$(IsPackable) != 'true' OR $(PackageId) == ''">
-		<NoWarn>$(NoWarn);CS1591</NoWarn>
-	</PropertyGroup>
+	<!-- The CS1591 waiver for non-packable projects (samples, infra, tests) lives in
+	     Directory.Build.targets: its condition reads $(IsPackable) / $(PackageId), which are
+	     set in project bodies and therefore invisible at props-evaluation time. -->
 
 	<!-- Package Validation Configuration for NuGet packages.
 
@@ -66,9 +64,12 @@
 	     (because the value already matches the just-released version). A revert merging shortly
 	     after the release then leaves the baseline at the wrong version with no auto-bump PR
 	     queued. If you genuinely need to override the baseline (e.g. to skip a buggy release),
-	     do it in its own dedicated PR, not bundled with API changes. -->
-	<PropertyGroup Condition="$(IsPackable) == 'true' AND $(PackageId) != ''">
-		<EnablePackageValidation>true</EnablePackageValidation>
+	     do it in its own dedicated PR, not bundled with API changes.
+
+	     EnablePackageValidation itself is switched on in Directory.Build.targets: its condition
+	     reads $(IsPackable) / $(PackageId), which projects set in their bodies, so it cannot be
+	     evaluated here. -->
+	<PropertyGroup>
 		<PackageValidationBaselineVersion>9.0.0</PackageValidationBaselineVersion>
 	</PropertyGroup>
 	
