@@ -1,6 +1,10 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Enables overriding a transitive dependency's version from a PackageVersion entry below.
+         Required for the MessagePack security pin; remove together with that pin once it's
+         no longer needed. -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
   <!-- Production packages — referenced by src/, sample/, infra/, and tests. -->
@@ -39,6 +43,13 @@
     <!-- Aspire integration for the Redis lock provider opt-in. Only the AppHost needs it. -->
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.4.3" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.7.0" />
+    <!-- Security pin (not referenced directly). Aspire 13.4.3 pulls MessagePack 2.5.192
+         transitively, which GHSA-hv8m-jj95-wg3x flags as a high-severity LZ4-decompression
+         crash; 2.5.301 is the first patched 2.5.x release. NuGet audit + warnings-as-errors
+         turns the advisory into a restore-breaking NU1903. Remove this (and the
+         CentralPackageTransitivePinningEnabled property above) once Aspire ships a
+         MessagePack >= 2.5.301 transitively. -->
+    <PackageVersion Include="MessagePack" Version="2.5.301" />
   </ItemGroup>
 
   <!--
