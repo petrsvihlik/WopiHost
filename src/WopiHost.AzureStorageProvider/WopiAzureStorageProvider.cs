@@ -19,8 +19,9 @@ namespace WopiHost.AzureStorageProvider;
 /// freshly-created folders are addressable until something is written to them.
 /// </para>
 /// <para>
-/// Identifiers are deterministic hex-SHA-256 of the lowercased blob path (see <see cref="BlobIdMap"/>),
-/// matching the scheme used by <c>WopiHost.FileSystemProvider</c>. Identifiers are stable across
+/// Identifiers are deterministic hex-SHA-256 of the blob path hashed as-is (case-sensitive, because
+/// Azure blob names are; the file-system provider applies the same hash but case-folds — see
+/// <see cref="BlobIdMap"/>). Identifiers are stable across
 /// process restarts as long as paths don't change. A rename preserves the identifier by re-pointing
 /// the in-memory map to the new path.
 /// </para>
@@ -343,6 +344,13 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
     public async Task<IWopiWritableFile?> CreateWopiChildFile(string containerId, string name, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(containerId);
+        // The name is client-controlled (relative/suggested target); reject anything that isn't a
+        // single path segment before composing the blob path — the path-traversal / reserved-name
+        // guard the file-system provider and RenameWopiFile already apply.
+        if (!await CheckValidFileName(name, cancellationToken).ConfigureAwait(false))
+        {
+            throw new ArgumentException("Invalid characters in the name.", nameof(name));
+        }
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
         if (!_idMap.TryGetPath(containerId, out var parentPath))
         {
@@ -369,6 +377,13 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
     public async Task<IWopiContainer?> CreateWopiChildContainer(string containerId, string name, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(containerId);
+        // The name is client-controlled; reject anything that isn't a single path segment before
+        // composing the blob prefix — the path-traversal / reserved-name guard RenameWopiContainer
+        // and the file-system provider already apply.
+        if (!await CheckValidContainerName(name, cancellationToken).ConfigureAwait(false))
+        {
+            throw new ArgumentException("Invalid characters in the name.", nameof(name));
+        }
         await EnsureInitializedAsync(cancellationToken).ConfigureAwait(false);
         if (!_idMap.TryGetPath(containerId, out var parentPath))
         {

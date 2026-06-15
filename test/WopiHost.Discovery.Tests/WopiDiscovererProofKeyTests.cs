@@ -36,6 +36,37 @@ public class WopiDiscovererProofKeyTests
     }
 
     [Fact]
+    public async Task GetProofKeysAsync_SpecificNetZone_StillResolvesRootProofKey()
+    {
+        // Proof-key lookup reads the discovery-document root and is deliberately NOT scoped by
+        // NetZone (unlike the <app> lookup). The key here sits at the root, not inside <net-zone>,
+        // so a net-zone-scoped lookup would miss it — pinning that a specific zone doesn't break
+        // proof resolution on real OOS/M365 docs served from an external zone.
+        var xml = XElement.Parse(
+            """
+            <wopi-discovery>
+                <net-zone name="external-https">
+                    <app name="Word">
+                        <action ext="docx" name="edit" urlsrc="https://word.example/we/" />
+                    </app>
+                </net-zone>
+                <proof-key value="v" oldvalue="ov" />
+            </wopi-discovery>
+            """);
+        var fileProvider = A.Fake<IDiscoveryFileProvider>();
+        A.CallTo(() => fileProvider.GetDiscoveryXmlAsync()).Returns(Task.FromResult(xml));
+        var sut = new WopiDiscoverer(
+            fileProvider,
+            Options.Create(new DiscoveryOptions { NetZone = NetZoneEnum.ExternalHttps }),
+            NullLogger<WopiDiscoverer>.Instance);
+
+        var keys = await sut.GetProofKeysAsync();
+
+        Assert.Equal("v", keys.Value);
+        Assert.Equal("ov", keys.OldValue);
+    }
+
+    [Fact]
     public async Task GetProofKeysAsync_NoProofKeyElement_ReturnsAllNullProperties()
     {
         var xml = XElement.Parse("<wopi-discovery />");

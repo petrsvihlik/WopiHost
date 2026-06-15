@@ -24,7 +24,7 @@ public partial class WopiUrlBuilder(
     [GeneratedRegex("<(?<name>\\w*)=(?<value>\\w*)&*>")]
     private static partial Regex UrlParamRegex();
 
-    private readonly IDiscoverer _wopiDiscoverer = discoverer;
+    private readonly IDiscoverer _wopiDiscoverer = discoverer ?? throw new ArgumentNullException(nameof(discoverer));
     private readonly ILogger<WopiUrlBuilder> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <summary>

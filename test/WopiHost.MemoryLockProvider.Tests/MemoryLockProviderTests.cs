@@ -37,6 +37,32 @@ public class MemoryLockProviderTests
     }
 
     [Fact]
+    public async Task AddLockAsync_ExpiredLockResident_TakesOver_ViaDirectStateSeed()
+    {
+        // An expired-but-resident lock is contractually "no lock", so AddLockAsync must evict it and
+        // succeed (a takeover), matching the Azure/Redis providers. Seeds a stale record directly
+        // into per-instance state with a DateCreated an hour back — well past the 30-minute
+        // WopiLockInfo.ExpirationMinutes window — then asserts the new lock replaced it.
+        var provider = new MemoryLockProvider(NullLogger<MemoryLockProvider>.Instance);
+        var fileId = $"expired-takeover-{Guid.NewGuid()}";
+        provider.SeedLockForTesting(fileId, new WopiLockInfo
+        {
+            FileId = fileId,
+            LockId = "stale",
+            DateCreated = DateTimeOffset.UtcNow.AddHours(-1),
+        });
+
+        var result = await provider.AddLockAsync(fileId, "new-lock");
+
+        Assert.NotNull(result);
+        Assert.Equal("new-lock", result.LockId);
+
+        var stored = await provider.GetLockAsync(fileId);
+        Assert.NotNull(stored);
+        Assert.Equal("new-lock", stored.LockId);
+    }
+
+    [Fact]
     public void TwoInstances_OwnIndependentLockState()
     {
         // State must be per-instance: a static dictionary would make two instances share a single

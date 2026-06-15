@@ -28,7 +28,7 @@ Three runnable samples + a folder of test documents. The recommended way to laun
 
 | Key | Sample value | Purpose |
 |---|---|---|
-| `Wopi:HostUrl` | `"http://wopihost"` | Base URI of the backend (above). Used to construct WopiSrc URLs. AppHost overrides this to `http://host.docker.internal:5000` when `AppHost:UseCollabora=true`, so callbacks from the Collabora container resolve to the host machine. |
+| `Wopi:HostUrl` | `"http://wopihost"` | Base URI of the backend (above). Used to construct WopiSrc URLs. AppHost overrides this to `http://host.docker.internal:5050` when `AppHost:UseCollabora=true`, so callbacks from the Collabora container resolve to the host machine. |
 | `Wopi:ClientUrl` | `"https://ffc-onenote.officeapps.live.com"` | Base URI of the WOPI client. Used by the discovery cache. |
 | `Wopi:Discovery:NetZone` | `"ExternalHttps"` | Which discovery zone to read URL templates from. Values: see [`NetZoneEnum`](../src/WopiHost.Discovery/NetZoneEnum.cs). |
 | `Wopi:UiCulture` | (unset) | Optional IETF BCP 47 tag (e.g. `en-US`) for the `UI_LLCC` placeholder. Defaults to `CultureInfo.CurrentUICulture`. |
@@ -63,7 +63,7 @@ dotnet run --project src/WopiValidator/WopiValidator.csproj --framework net10.0 
   -l 0
 ```
 
-`28752` is the validator's [launchSettings](WopiHost.Validator/Properties/launchSettings.json) port for `dotnet run`. Under Aspire orchestration it is `7000` instead — adjust `-w` accordingly.
+`28752` is the validator's [launchSettings](WopiHost.Validator/Properties/launchSettings.json) port for `dotnet run`. Under Aspire orchestration the port is allocated dynamically (the validator is registered with `WithHttpsEndpoint()`); read it off the Aspire dashboard and adjust `-w` accordingly.
 
 ## Hosting in IIS / Docker
 

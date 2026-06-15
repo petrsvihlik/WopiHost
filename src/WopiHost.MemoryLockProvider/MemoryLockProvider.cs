@@ -72,11 +72,21 @@ public partial class MemoryLockProvider : IWopiLockProvider
     /// <inheritdoc />
     public Task<WopiLockInfo?> AddLockAsync(string fileId, string lockId, CancellationToken cancellationToken = default)
     {
+        var now = _timeProvider.GetUtcNow();
+        // An expired-but-resident lock is contractually "no lock" (GetLockAsync evicts it), so drop a
+        // stale entry before TryAdd — otherwise it would spuriously reject a takeover that the Azure
+        // and Redis providers allow. The KeyValuePair overload removes only the exact stale record,
+        // leaving a concurrent acquire that already replaced it intact.
+        if (_locks.TryGetValue(fileId, out var stale) && stale.IsExpiredAt(now))
+        {
+            _ = _locks.TryRemove(new KeyValuePair<string, WopiLockInfo>(fileId, stale));
+        }
+
         var lockInfo = new WopiLockInfo
         {
             FileId = fileId,
             LockId = lockId,
-            DateCreated = _timeProvider.GetUtcNow(),
+            DateCreated = now,
         };
         if (_locks.TryAdd(fileId, lockInfo))
         {
