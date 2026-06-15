@@ -4,7 +4,7 @@
 [![NuGet](https://img.shields.io/nuget/dt/WopiHost.MemoryLockProvider.svg)](https://www.nuget.org/packages/WopiHost.MemoryLockProvider)
 
 Process-local in-memory implementation of [`IWopiLockProvider`](../WopiHost.Abstractions/IWopiLockProvider.cs).
-Backed by a static `ConcurrentDictionary<string, WopiLockInfo>`. Locks auto-expire after 30 minutes per the [WOPI spec](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock); expired entries are evicted on read.
+Backed by a static `ConcurrentDictionary<string, WopiLockInfo>`. Locks auto-expire after 30 minutes per the [WOPI spec](https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock); expired entries are evicted lazily — on read, or when a new lock is added over an expired entry for the same file (a takeover, matching the Azure/Redis providers).
 
 Use it for development, single-instance hosts, and tests. **Don't** use it for multi-instance deployments — locks are not shared across processes and are lost on restart.
 
