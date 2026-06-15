@@ -324,7 +324,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var req = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
+        using var req = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
         {
             Content = new ByteArrayContent("hello"u8.ToArray()),
         };
@@ -345,7 +345,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(fileId, WopiFilePermissions.ReadOnly);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var req = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
+        using var req = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
         {
             Content = new ByteArrayContent("should-be-rejected"u8.ToArray()),
         };
@@ -366,7 +366,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(fileId, WopiFilePermissions.ReadOnly);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", @override);
         req.Headers.Add("X-WOPI-RequestedName", "renamed");
         var resp = await client.SendAsync(req);

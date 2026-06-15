@@ -214,7 +214,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
 
         // First create a file with a known name…
         var name = $"file-{Guid.NewGuid():N}.txt";
-        var first = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}")
+        using var first = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}")
         {
             Content = new ByteArrayContent("file-body"u8.ToArray()),
         };
@@ -225,7 +225,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
 
         // …then ask for it again under specific (relative) mode with no overwrite → 409 + the
         // X-WOPI-ValidRelativeTarget header the negotiator surfaces on a name collision.
-        var second = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}")
+        using var second = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}")
         {
             Content = new ByteArrayContent("file-body"u8.ToArray()),
         };
