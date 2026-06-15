@@ -1,3 +1,4 @@
+using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.ServiceDefaults;
@@ -56,6 +57,21 @@ app.UseStaticFiles();
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>();
+
+// Sample-only host-app action backing the editor toolbar's Download button. Streams the file via
+// the storage provider directly (not a WOPI protocol operation) and, like the rest of this sample,
+// is anonymous: fine for a demo, not a template for production access control.
+app.MapGet("/files/{id}/content", async (string id, IWopiStorageProvider storage, CancellationToken ct) =>
+{
+    var file = await storage.GetWopiFile(id, ct);
+    if (file is null)
+    {
+        return Results.NotFound();
+    }
+    var downloadName = $"{file.Name}.{file.Extension.TrimStart('.')}";
+    var stream = await file.OpenReadAsync(ct);
+    return Results.File(stream, "application/octet-stream", downloadName);
+});
 
 app.MapHealthChecks("/health");
 

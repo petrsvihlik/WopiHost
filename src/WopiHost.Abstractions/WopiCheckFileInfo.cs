@@ -499,12 +499,12 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     public bool AppStateHistoryPostMessage { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo">PutUserInfo</see> operation.
+    /// A Boolean value that, when set to true, indicates the host expects to receive the UI_Close PostMessage when the Close UI in Microsoft 365 for the web is activated.
     /// </summary>
     public bool ClosePostMessage { get; set; }
 
     /// <summary>
-    /// A string value containing information about the user. This string can be passed from a WOPI client to the host by means of a <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo">PutUserInfo</see> operation. If the host has a UserInfo string for the user, they must include it in this property.
+    /// A Boolean value that, when set to true, indicates the host expects to receive the UI_Edit PostMessage when the Edit UI in Microsoft 365 for the web is activated.
     /// </summary>
     public bool EditModePostMessage { get; set; }
 
