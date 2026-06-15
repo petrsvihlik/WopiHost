@@ -74,6 +74,10 @@ public partial class Program
 
             builder.Services.AddOpenApi();
 
+            // Advertise the host page's postMessage capabilities (Share / Close / view<->edit).
+            // Registered before AddWopi so it wins over the core's TryAddSingleton default.
+            builder.Services.AddSingleton<IWopiHostExtensions, SampleWopiHostExtensions>();
+
             builder.Services.AddWopi();
 
             // Signing key for WOPI access tokens. MUST match whatever the URL-generating

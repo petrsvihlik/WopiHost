@@ -180,6 +180,7 @@
         <span class="sep"></span>
         <button data-action="Action_Save" type="button" title="Save the document">💾 Save</button>
         <button data-action="Action_Print" type="button" title="Print the document">🖨 Print</button>
+        <button id="wopi_mode" type="button"></button>
         <button id="wopi_share_btn" type="button" title="Share a link to this document">🔗 Share</button>
         <button id="wopi_close" type="button" title="Close the document">✕ Close</button>
     </div>
@@ -221,17 +222,33 @@
         function setStatus(text) { if (statusEl) statusEl.textContent = text; }
         function setModified(on) { if (modifiedEl) modifiedEl.hidden = !on; }
 
-        var navigated = false;
-        function goHome() {
-            if (navigated) return;
-            navigated = true;
-            window.location.href = '/';
+        // Single guard for any host-page navigation (close, or a view<->edit switch).
+        var leaving = false;
+        function navigateTo(url) {
+            if (leaving) return;
+            leaving = true;
+            window.location.href = url;
         }
+        function goHome() { navigateTo('/'); }
 
         // Close handshake: ask the editor to flush pending saves, then navigate.
         function requestClose() {
             wopi.send(M.Action_Close, {});
             setTimeout(goHome, 600);
+        }
+
+        // View<->edit switch. Detail re-mints a token scoped to the action (a view link strips
+        // UserCanWrite), so flipping mode is a full host-page reload under the new wopiaction, not
+        // an in-place toggle. Leaving edit mode flushes first so the reload can't drop changes.
+        function goToAction(action) {
+            var params = new URLSearchParams(window.location.search);
+            params.set('wopiaction', action);
+            navigateTo(window.location.pathname + '?' + params.toString());
+        }
+        function switchToEdit() { goToAction('edit'); }
+        function switchToView() {
+            wopi.send(M.Action_Save, { Notify: true });
+            setTimeout(function () { goToAction('view'); }, 600);
         }
 
         // Share UI is host-owned: the editor's Share button (UI_Sharing) and the bar's Share
@@ -269,10 +286,23 @@
             });
         });
 
-        // Save only makes sense in edit mode. The host-page URL carries the WOPI action; a view
-        // link strips UserCanWrite from the token, so hide Save rather than offer a no-op.
+        // Mode toggle: offer Edit while viewing and View while editing. The host-page URL carries
+        // the WOPI action; a view link strips UserCanWrite from the token, so Save is also hidden
+        // in view mode rather than offered as a no-op.
         var wopiAction = (new URLSearchParams(window.location.search).get('wopiaction') || 'view').toLowerCase();
-        if (wopiAction === 'view') {
+        var modeBtn = document.getElementById('wopi_mode');
+        if (wopiAction === 'edit') {
+            if (modeBtn) {
+                modeBtn.textContent = '👁 View';
+                modeBtn.title = 'Switch to read-only view';
+                modeBtn.addEventListener('click', switchToView);
+            }
+        } else {
+            if (modeBtn) {
+                modeBtn.textContent = '✏️ Edit';
+                modeBtn.title = 'Switch to editing';
+                modeBtn.addEventListener('click', switchToEdit);
+            }
             var saveBtn = document.querySelector('#wopi_bar button[data-action="Action_Save"]');
             if (saveBtn) { saveBtn.remove(); }
         }
@@ -289,6 +319,7 @@
         wopi.on(M.Document_Modified, onModified);   // Office for the Web
         wopi.on(M.Action_Save_Resp, function () { setModified(false); setStatus('Saved'); });
         wopi.on(M.UI_Sharing, openShare);
+        wopi.on(M.UI_Edit, switchToEdit);  // editor's own Edit button (view mode)
         wopi.on(M.UI_Close, goHome);
         wopi.on(M.Action_Close_Resp, goHome);
     })();
