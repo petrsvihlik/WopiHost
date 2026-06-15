@@ -180,9 +180,9 @@ public class DefaultCheckInfoBuilderTests
     }
 
     /// <summary>
-    /// Mirror of the <c>&lt;example&gt;</c> on <see cref="IWopiHostExtensions.OnCheckFileInfoAsync"/>.
-    /// XML-doc code is never compiled, so this class keeps the documented pattern building;
-    /// keep the two in sync.
+    /// Mirror of the FileUrl example in the wiki
+    /// (CheckFileInfo-Customization#setting-fileurl). Wiki snippets aren't compiled, so this
+    /// class keeps the documented pattern building and asserts its behavior; keep the two in sync.
     /// </summary>
     private sealed class FileUrlExtensions(IHttpContextAccessor httpContextAccessor) : WopiHostExtensions
     {

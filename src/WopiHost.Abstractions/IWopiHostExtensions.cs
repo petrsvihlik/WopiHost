@@ -28,38 +28,10 @@ public interface IWopiHostExtensions
     /// <remarks>
     /// Typical uses: copy custom properties onto a derived <see cref="WopiCheckFileInfo"/>,
     /// set <see cref="WopiCheckFileInfo.FileUrl"/>, override capability flags reported to the
-    /// WOPI client.
+    /// WOPI client. For a worked <see cref="WopiCheckFileInfo.FileUrl"/> example (and the
+    /// proof-keys constraint that makes it subtle), see the wiki:
+    /// <see href="https://github.com/petrsvihlik/WopiHost/wiki/CheckFileInfo-Customization#setting-fileurl"/>.
     /// </remarks>
-    /// <example>
-    /// Advertising a <see cref="WopiCheckFileInfo.FileUrl"/>. Per the WOPI proof-keys spec,
-    /// clients fetch <c>FileUrl</c> <b>without</b> proof signing, so it must point at a location
-    /// served outside the proof-validated <c>/wopi</c> surface — a CDN, a pre-signed blob URL,
-    /// or a host-mapped download route that checks the access token but no proof headers.
-    /// In an ASP.NET Core host, <c>LinkGenerator</c> builds the URL from such a named route:
-    /// <code>
-    /// // Composition root: an unsigned, token-checked download route OUTSIDE /wopi.
-    /// // app.MapGet("/download/{id}", DownloadHandler).WithName("FileDownload");
-    /// public sealed class FileUrlExtensions(IHttpContextAccessor httpContextAccessor) : WopiHostExtensions
-    /// {
-    ///     public override Task&lt;WopiCheckFileInfo&gt; OnCheckFileInfoAsync(
-    ///         WopiCheckFileInfoContext context, CancellationToken cancellationToken = default)
-    ///     {
-    ///         var httpContext = httpContextAccessor.HttpContext!;
-    ///         var links = httpContext.RequestServices.GetRequiredService&lt;LinkGenerator&gt;();
-    ///         var url = links.GetUriByName(httpContext, "FileDownload", new
-    ///         {
-    ///             id = context.File.Identifier,
-    ///             access_token = httpContext.Request.GetAccessToken(),
-    ///         });
-    ///         context.CheckFileInfo.FileUrl = url is null ? null : new Uri(url);
-    ///         return Task.FromResult(context.CheckFileInfo);
-    ///     }
-    /// }
-    /// </code>
-    /// A mirror of this implementation is compiled in <c>WopiHost.Core.Tests</c>
-    /// (<c>DefaultCheckInfoBuilderTests.FileUrlExtensions</c>) so the pattern cannot silently
-    /// stop building; keep the two in sync.
-    /// </example>
     Task<WopiCheckFileInfo> OnCheckFileInfoAsync(WopiCheckFileInfoContext context, CancellationToken cancellationToken = default);
 
     /// <summary>
