@@ -112,6 +112,24 @@ jobs:
 
           sed -i "s|<PackageValidationBaselineVersion>[^<]*</PackageValidationBaselineVersion>|<PackageValidationBaselineVersion>${NEW}</PackageValidationBaselineVersion>|g" "$FILE"
 
+      - name: Retire suppressions absorbed into the new baseline
+        # A CompatibilitySuppressions.xml entry records an intentional API break against the
+        # *previous* baseline. Once the baseline advances to the just-released version those
+        # breaks are part of the baseline, so the suppressions match nothing and are dead
+        # weight. Drop them in the same bump PR so each release cycle starts clean and the
+        # files only ever carry breaks introduced *after* the last release. The glob matches
+        # at any depth, so it works whether suppressions live in one file or one per project.
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git ls-files '*CompatibilitySuppressions.xml')
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "No CompatibilitySuppressions.xml files to retire."
+          else
+            printf 'Retiring: %s\n' "${files[@]}"
+            git rm --quiet "${files[@]}"
+          fi
+
       - name: Open PR with the bump
         # peter-evans/create-pull-request is intentionally idempotent: if Directory.Build.props
         # has no diff (because CURRENT was already at NEW, or because the backward-bump guard
@@ -131,6 +149,8 @@ jobs:
             ${{ github.event_name == 'release' && format('Triggered by the [{0}]({1}) release.', github.event.release.tag_name, github.event.release.html_url) || 'Triggered manually via workflow_dispatch.' }}
 
             Keeps the SDK's pack-time package validator comparing the current public surface against the version that's actually published to NuGet.org.
+
+            Any `CompatibilitySuppressions.xml` left over from the previous cycle is retired here too — those entries are now part of the baseline and would otherwise linger as dead weight.
           labels: |
             chore
             automated
