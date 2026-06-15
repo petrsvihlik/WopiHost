@@ -104,3 +104,19 @@ add it here with the reason. This ledger is what keeps repeat audits quiet and f
 - **`ProcessLock` assigning `X-WOPI-ItemVersion = file.Version` unconditionally is fine.** Assigning
   a null string to `Headers[...]` yields `StringValues.Empty`, which suppresses the header — no need
   to null-guard it the way `GetFile` does.
+
+## Verified this run (added 2026-06-15)
+
+- **CA2007 / CA1707 / CA1056 disabled in the root `.editorconfig` are deliberately re-enabled at
+  `warning` for `src/` via `src/.editorconfig`.** The root disables them so sample/test/infra stay
+  quiet; `src/.editorconfig` turns them back on so packaged libraries ARE held to
+  `ConfigureAwait(false)`, underscore-free public names, and `Uri`-typed URL properties. Don't
+  re-file "CA2007 disabled globally → library code missing ConfigureAwait" — the split is intentional
+  and the analyzer enforces it in `src/` (warnings-as-errors makes a genuine miss a build break).
+- **`CobaltSession.cs` `catch (Exception)` in the faulted-session-cache path is correct.** It evicts
+  the faulted `Lazy<Task<>>` entry (race-safe KeyValuePair overload), logs, and `throw;` — a fail-safe
+  rethrow that prevents a permanently-cached faulted task, not a swallow. The mechanical scan flags
+  it; interpret, don't file.
+- **Azure provider scans lazily (`EnsureInitializedAsync`) where the FS provider scans in its
+  constructor.** Acceptable design difference — the Azure scan is async network I/O that can't run in
+  a ctor. Not sibling drift.

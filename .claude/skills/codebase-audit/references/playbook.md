@@ -55,3 +55,21 @@ Read them in context before filing:
 
 The running list of investigated-and-rejected items lives in `do-not-refile.md`. When a run rules a
 new candidate out, add it there with the reason — that's what stops the next run re-investigating it.
+
+## Added 2026-06-15
+
+- **Diff a provider's OWN mutation methods against each other — not just against its sibling
+  provider.** The Azure create-name path-traversal backstop gap (`CreateWopiChildFile`/
+  `CreateWopiChildContainer` omitted the `CheckValidFileName`/`CheckValidContainerName` guard that the
+  same class's `RenameWopiFile`/`RenameWopiContainer` and `GetSuggestedName*` all apply) was missed by
+  a sibling-*provider* diff but caught from the test-coverage angle (the FS provider had the
+  rejection test; Azure didn't). Generalize: for each provider, list every method that takes a
+  client-controlled name/id and confirm they ALL run the same guard — an intra-class omission is as
+  real as a cross-provider one. Cross-reference the test suite: "FS has this test, the twin doesn't"
+  often points straight at an unguarded path.
+- **Environment: no .NET toolchain in the web-session sandbox.** `dotnet`/`msbuild` aren't installed
+  and the install host is network-blocked, so a run here cannot build or run tests locally — CI on
+  the PR is the validation gate. Edit precisely (warnings-as-errors + analyzers bite) by modelling
+  every change on an existing sibling, verify referenced symbols by reading source, and state in the
+  PR that CI is the gate. The doc-fetch (`fetch-wiki.sh`) is likewise network-blocked here, so the
+  wiki can't be verified in-session — note it as a coverage gap.
