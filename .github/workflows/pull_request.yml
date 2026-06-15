@@ -152,7 +152,11 @@ jobs:
           echo "<!-- apicompat-report -->"
           echo "## API Compatibility Report"
           echo ""
-          echo "Compared this PR's packed assemblies against the latest stable release on [NuGet.org](https://www.nuget.org/packages?q=WopiHost) for each library. This check is **informational only** — intentional breaks at major version bumps are expected."
+          echo "Compared this PR's packed assemblies against the latest stable release on [NuGet.org](https://www.nuget.org/packages?q=WopiHost) for each library, honoring each project's \`CompatibilitySuppressions.xml\`. **This check fails on any public-API break not recorded as intentional** — already-suppressed breaks are masked, so what surfaces below is what *this PR* changes. If a break is deliberate, regenerate and commit the suppressions:"
+          echo ""
+          echo '```'
+          echo "dotnet pack -c Release -p:ApiCompatGenerateSuppressionFile=true"
+          echo '```'
           echo ""
         } > "$REPORT_FILE"
 
@@ -187,6 +191,14 @@ jobs:
             "https://api.nuget.org/v3-flatcontainer/${pkg_lower}/${baseline_version}/${pkg_lower}.${baseline_version}.nupkg" \
             -o "$baseline_nupkg"
 
+          # Feed the project's suppression file (default path; the same one the SDK's pack-time
+          # validator reads at release) so acknowledged breaks are masked and only new ones show.
+          # --permit-unnecessary-suppressions keeps a stale entry (one whose break is already in
+          # the baseline, before the post-release cleanup runs) from failing the check.
+          supp_args=()
+          supp_file="src/${pkg}/CompatibilitySuppressions.xml"
+          [[ -f "$supp_file" ]] && supp_args+=(--suppression-file "$supp_file")
+
           # Run apicompat. Note: <package> is positional, --baseline-package is named, --run-api-compat is required.
           # The tool installs as 'apicompat' (not 'dotnet apicompat') and exits 0 on both clean and break
           # cases; detect findings via output text.
@@ -194,14 +206,16 @@ jobs:
           output="$(apicompat package "$new_nupkg" \
             --baseline-package "$baseline_nupkg" \
             --run-api-compat \
+            --permit-unnecessary-suppressions \
+            "${supp_args[@]}" \
             --verbosity Normal 2>&1)"
           set -e
 
           if grep -Eq '^(CP|PKV)[0-9]+:' <<< "$output"; then
             ANY_DIFFS=1
             {
-              echo "### :warning: ${pkg} vs \`${baseline_version}\`"
-              echo "<details><summary>API differences found — click to expand</summary>"
+              echo "### :x: ${pkg} vs \`${baseline_version}\`"
+              echo "<details open><summary>Unsuppressed public-API break(s) — revert or suppress</summary>"
               echo ""
               echo '```'
               echo "${output}"
@@ -222,15 +236,23 @@ jobs:
         {
           echo "---"
           if [[ $ANY_DIFFS -eq 0 ]]; then
-            echo "_No API differences detected across any package._"
+            echo "_No unsuppressed public-API breaks across any package._"
           else
-            echo "_Diagnostic IDs starting with \`CP\` are assembly-level diffs; \`PKV\` are package-shape diffs. See the [ApiCompat docs](https://learn.microsoft.com/dotnet/fundamentals/apicompat/diagnostic-ids) for details._"
+            echo "_If these breaks are intentional, run \`dotnet pack -c Release -p:ApiCompatGenerateSuppressionFile=true\` and commit the regenerated \`CompatibilitySuppressions.xml\`. \`CP\` IDs are assembly-level diffs; \`PKV\` are package-shape diffs ([docs](https://learn.microsoft.com/dotnet/fundamentals/apicompat/diagnostic-ids))._"
           fi
         } >> "$REPORT_FILE"
 
         # Surface in the job log too.
         cat "$REPORT_FILE"
+
+        # Fail the check on any unsuppressed break (the report is posted by the next step,
+        # which runs on always()). A deliberate break is acknowledged via its suppression file.
+        if [[ $ANY_DIFFS -ne 0 ]]; then
+          echo "::error::Unsuppressed public-API break(s) detected — see the API Compatibility Report comment."
+          exit 1
+        fi
     - name: Post sticky PR comment
+      if: always()
       uses: marocchino/sticky-pull-request-comment@v3
       with:
         header: apicompat-report
