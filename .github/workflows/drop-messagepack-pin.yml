@@ -1,0 +1,126 @@
+name: Drop MessagePack security pin
+
+# Weekly check on whether the temporary MessagePack pin in Directory.Packages.props is still
+# earning its keep. The pin (plus the CentralPackageTransitivePinningEnabled it relies on)
+# exists only to clear NU1903 for GHSA-hv8m-jj95-wg3x while Aspire drags in a vulnerable
+# MessagePack transitively. This restores the solution as if the pin weren't there; if that
+# restore is clean, Aspire has moved to a patched version and the pin is dead weight — so it
+# opens a PR removing the pin, the property, and this workflow itself. A no-op while the pin is
+# still needed; self-deleting once it isn't.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    name: Check whether the pin is still needed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: master
+          fetch-depth: 1
+
+      - name: Bail out if the pin is already gone
+        id: guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -q 'Include="MessagePack"' Directory.Packages.props; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No MessagePack pin present — nothing to do."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup .NET 10.0
+        if: steps.guard.outputs.present == 'true'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Set Cobalt packages token
+        if: steps.guard.outputs.present == 'true'
+        run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Restore as if the pin were absent
+        id: probe
+        if: steps.guard.outputs.present == 'true'
+        shell: bash
+        run: |
+          set -uo pipefail
+          # Turning transitive pinning off neuters the MessagePack PackageVersion without
+          # touching the file: NuGet falls back to whatever Aspire pulls transitively. If audit
+          # no longer flags it, restore exits 0 and the pin is removable. A global -p property
+          # overrides the value set in Directory.Packages.props.
+          set +e
+          out="$(dotnet restore -p:CentralPackageTransitivePinningEnabled=false 2>&1)"
+          code=$?
+          set -e
+          echo "$out"
+          if [[ $code -eq 0 ]]; then
+            echo "removable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "removable=false" >> "$GITHUB_OUTPUT"
+            if grep -q 'NU1903.*MessagePack' <<< "$out"; then
+              echo "::notice::MessagePack is still flagged by NU1903 — keeping the pin."
+            else
+              echo "::warning::Restore failed for a reason other than the MessagePack advisory — leaving the pin untouched. See the log above."
+            fi
+          fi
+
+      - name: Remove the pin, the property, and this workflow
+        if: steps.guard.outputs.present == 'true' && steps.probe.outputs.removable == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re, pathlib
+          p = pathlib.Path("Directory.Packages.props")
+          s = p.read_text()
+          # Drop the transitive-pinning property and its explanatory comment.
+          s = re.sub(
+              r"\n[ \t]*<!-- Enables overriding a transitive dependency.*?-->"
+              r"\n[ \t]*<CentralPackageTransitivePinningEnabled>.*?</CentralPackageTransitivePinningEnabled>",
+              "", s, flags=re.DOTALL)
+          # Drop the MessagePack security pin and its comment (version-agnostic).
+          s = re.sub(
+              r"\n[ \t]*<!-- Security pin \(not referenced directly\).*?-->"
+              r"\n[ \t]*<PackageVersion Include=\"MessagePack\".*?/>",
+              "", s, flags=re.DOTALL)
+          p.write_text(s)
+          PY
+          # Once the pin is gone there's nothing left to check, so the mechanism removes itself.
+          git rm .github/workflows/drop-messagepack-pin.yml
+
+      - name: Open PR removing the pin
+        if: steps.guard.outputs.present == 'true' && steps.probe.outputs.removable == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: chore/remove-messagepack-pin
+          base: master
+          commit-message: "chore(deps): remove MessagePack security pin (Aspire ships a patched version)"
+          title: "chore(deps): remove MessagePack security pin"
+          body: |
+            Aspire now pulls a non-vulnerable MessagePack transitively, so the temporary pin added
+            to clear `NU1903` (advisory `GHSA-hv8m-jj95-wg3x`) is no longer needed.
+
+            Opened automatically after a weekly restore probe
+            (`dotnet restore -p:CentralPackageTransitivePinningEnabled=false`) came back clean. It removes:
+
+            - the `MessagePack` `PackageVersion` pin in `Directory.Packages.props`,
+            - the `CentralPackageTransitivePinningEnabled` property it required (nothing else relied on it),
+            - the `drop-messagepack-pin.yml` workflow itself (its job is done).
+
+            This PR's own CI restore re-validates the advisory is clear before merge.
+          labels: |
+            dependencies
+            automated
+          delete-branch: true
