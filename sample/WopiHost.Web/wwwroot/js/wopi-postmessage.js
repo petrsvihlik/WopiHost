@@ -29,7 +29,9 @@
         Doc_ModifiedStatus: 'Doc_ModifiedStatus',       // Collabora; Values.Modified: bool
         Document_Modified: 'Document_Modified',         // Office for the Web equivalent of the above
 
-        // Editor -> host: UI affordances, each gated by a *PostMessage host capability flag.
+        // Editor -> host: UI affordances. Each corresponds to a *PostMessage flag the host
+        // advertises in CheckFileInfo; the client (not the host) reads the flag and decides whether
+        // to surface the affordance and emit the message. The trailing comment names that flag.
         UI_Sharing: 'UI_Sharing',                       // FileSharingPostMessage — editor's Share button
         UI_Close: 'UI_Close',                           // ClosePostMessage — editor's Close button
         UI_Edit: 'UI_Edit',                             // EditModePostMessage — switch from view to edit
