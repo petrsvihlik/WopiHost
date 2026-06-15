@@ -34,7 +34,16 @@ jobs:
     - name: Install Playwright browsers (for sample-app smoke tests)
       run: pwsh artifacts/bin/WopiHost.SmokeTests/debug/playwright.ps1 install --with-deps chromium
     - name: Test
-      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=lcov
+      # Emit JUnit XML alongside lcov coverage so Codecov Test Analytics can ingest run
+      # times / failures. {assembly} keeps each test project's results in a distinct file.
+      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=lcov --logger "junit;LogFilePath={assembly}.junit.xml" --results-directory ${{ github.workspace }}/test-results
+    - name: Upload test results to Codecov
+      # Runs even when the Test step failed — reporting the failed tests is the whole point.
+      if: ${{ !cancelled() }}
+      uses: codecov/test-results-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ${{ github.workspace }}/test-results/*.junit.xml
     - name: Upload coverage to Qlty
       uses: qltysh/qlty-action/coverage@v2
       with:
