@@ -36,6 +36,10 @@ else
 
         <span id="frameholder"></span>
 
+        @* Carries the file id / name to the layout's toolbar script (download URL, rename, title).
+           Attribute values are HTML-encoded by Razor, so a name with quotes is safe. *@
+        <div id="wopi_fileinfo" data-id="@Id" data-name="@_fileName" hidden></div>
+
         <script type="text/javascript">
             var frameholder = document.getElementById('frameholder');
             var office_frame = document.createElement('iframe');
@@ -63,6 +67,7 @@ else
     private string? _accessToken;
     private long _accessTokenTtl;
     private Uri? _favicon;
+    private string? _fileName;
     private string? _badRequestReason;
 
     protected override async Task OnInitializedAsync()
@@ -103,6 +108,7 @@ else
         _accessTokenTtl = expiresAt.ToUnixTimeMilliseconds();
 
         var extension = file.Extension.TrimStart('.');
+        _fileName = $"{file.Name}.{extension}";
         var options = WopiOptionsAccessor.Value;
         var urlBuilder = new WopiUrlBuilder(Discoverer, UrlBuilderLogger,
             new WopiUrlSettings { UiLlcc = ResolveUiCulture(options.UiCulture) });

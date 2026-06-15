@@ -1,3 +1,4 @@
+using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
 using WopiHost.ServiceDefaults;
@@ -56,6 +57,55 @@ app.UseStaticFiles();
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>();
+
+// Sample-only host-app actions backing the editor toolbar's Download / Rename buttons. These call
+// the storage provider directly — they are NOT WOPI protocol operations — and, like the rest of
+// this sample, are anonymous: fine for a demo, not a template for production access control.
+app.MapGet("/files/{id}/content", async (string id, IWopiStorageProvider storage, CancellationToken ct) =>
+{
+    var file = await storage.GetWopiFile(id, ct);
+    if (file is null)
+    {
+        return Results.NotFound();
+    }
+    var downloadName = $"{file.Name}.{file.Extension.TrimStart('.')}";
+    var stream = await file.OpenReadAsync(ct);
+    return Results.File(stream, "application/octet-stream", downloadName);
+});
+
+app.MapPost("/files/{id}/rename", async (
+    string id,
+    string name,
+    IWopiStorageProvider storage,
+    IWopiWritableStorageProvider writable,
+    CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(name))
+    {
+        return Results.BadRequest("A new name is required.");
+    }
+    var file = await storage.GetWopiFile(id, ct);
+    if (file is null)
+    {
+        return Results.NotFound();
+    }
+    // The caller edits only the stem; the original extension is reattached so the file type can't
+    // be changed by accident. The provider treats the result as the full single-segment filename.
+    var requestedName = $"{name}.{file.Extension.TrimStart('.')}";
+    try
+    {
+        return await writable.RenameWopiFile(id, requestedName, ct) ? Results.Ok() : Results.NotFound();
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(ex.Message);
+    }
+    catch (InvalidOperationException ex)
+    {
+        // Target name already exists (the provider's WOPI 409 path).
+        return Results.Conflict(ex.Message);
+    }
+}).DisableAntiforgery();
 
 app.MapHealthChecks("/health");
 

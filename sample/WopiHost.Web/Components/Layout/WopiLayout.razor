@@ -73,6 +73,29 @@
             margin: 0 4px;
         }
 
+        #wopi_filename {
+            color: #fff;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            max-width: 280px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #wopi_filename:hover {
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        #wopi_rename_input {
+            font: inherit;
+            padding: 5px 8px;
+            border-radius: 6px;
+            border: 1px solid #888;
+            max-width: 280px;
+        }
+
         #wopi_status {
             display: inline-flex;
             align-items: center;
@@ -178,9 +201,13 @@
     <div class="group">
         <button id="wopi_files" type="button" title="Close editor and return to files">← Files</button>
         <span class="sep"></span>
+        <span id="wopi_filename" role="button" tabindex="0" title="Click to rename"></span>
+        <span class="sep"></span>
         <button data-action="Action_Save" type="button" title="Save the document">💾 Save</button>
         <button data-action="Action_Print" type="button" title="Print the document">🖨 Print</button>
         <button id="wopi_mode" type="button"></button>
+        <button id="wopi_download" type="button" title="Download a copy">⬇ Download</button>
+        <button id="wopi_fullscreen" type="button" title="Toggle full screen">⛶ Fullscreen</button>
         <button id="wopi_share_btn" type="button" title="Share a link to this document">🔗 Share</button>
         <button id="wopi_close" type="button" title="Close the document">✕ Close</button>
     </div>
@@ -216,6 +243,11 @@
             frame: '#office_frame',
             clientOrigin: '@WopiOptions.Value.ClientUrl.GetLeftPart(System.UriPartial.Authority)'
         });
+
+        // File identity for the toolbar (download URL, rename, title), emitted by Detail.razor.
+        var info = document.getElementById('wopi_fileinfo');
+        var fileId = info ? (info.dataset.id || '') : '';
+        var fileName = info ? (info.dataset.name || '') : '';
 
         var statusEl = document.getElementById('wopi_statustext');
         var modifiedEl = document.getElementById('wopi_modified');
@@ -285,6 +317,70 @@
                     : {});
             });
         });
+
+        // --- Filename, rename, download, fullscreen ---
+        var nameEl = document.getElementById('wopi_filename');
+        if (nameEl) { nameEl.textContent = fileName || '(untitled)'; }
+
+        // Inline rename: click the title to edit the stem (the extension is preserved server-side).
+        // The file id is stable across rename — the provider repoints it — so a reload keeps the
+        // editor on the same document under its new name.
+        function beginRename() {
+            if (!nameEl || !fileId) { return; }
+            var stem = fileName.replace(/\.[^.]*$/, '');
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.id = 'wopi_rename_input';
+            input.value = stem;
+            nameEl.replaceWith(input);
+            input.focus();
+            input.select();
+            var settled = false;
+            function restore() { settled = true; input.replaceWith(nameEl); }
+            function commit() {
+                if (settled) { return; }
+                var next = input.value.trim();
+                if (!next || next === stem) { restore(); return; }
+                settled = true;
+                fetch('/files/' + encodeURIComponent(fileId) + '/rename?name=' + encodeURIComponent(next), { method: 'POST' })
+                    .then(function (r) {
+                        if (r.ok) { window.location.reload(); }
+                        else { r.text().then(function (t) { window.alert('Rename failed: ' + (t || r.status)); }); input.replaceWith(nameEl); }
+                    })
+                    .catch(function () { input.replaceWith(nameEl); });
+            }
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { commit(); }
+                else if (e.key === 'Escape') { restore(); }
+            });
+            input.addEventListener('blur', commit);
+        }
+        if (nameEl) {
+            nameEl.addEventListener('click', beginRename);
+            nameEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') { beginRename(); } });
+        }
+
+        // Download a copy via the host app's content endpoint. Content-Disposition: attachment means
+        // the browser saves the file without navigating away from the editor.
+        var downloadBtn = document.getElementById('wopi_download');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', function () {
+                if (fileId) { window.location.href = '/files/' + encodeURIComponent(fileId) + '/content'; }
+            });
+        }
+
+        // Fullscreen the editor frame (handy for slideshow / presenter view).
+        var fullscreenBtn = document.getElementById('wopi_fullscreen');
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', function () {
+                if (document.fullscreenElement) { document.exitFullscreen(); return; }
+                var f = document.getElementById('office_frame');
+                if (f && f.requestFullscreen) { f.requestFullscreen().catch(function () { }); }
+            });
+            document.addEventListener('fullscreenchange', function () {
+                fullscreenBtn.textContent = document.fullscreenElement ? '⤢ Exit' : '⛶ Fullscreen';
+            });
+        }
 
         // Mode toggle: offer Edit while viewing and View while editing. The host-page URL carries
         // the WOPI action; a view link strips UserCanWrite from the token, so Save is also hidden
