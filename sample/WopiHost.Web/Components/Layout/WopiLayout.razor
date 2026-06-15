@@ -204,22 +204,17 @@
 
 @Body
 
+<script src="/js/wopi-postmessage.js"></script>
 <script type="text/javascript">
-    // Host-page side of the WOPI postMessage API. The host posts host->editor commands to the
-    // editor frame and reacts to editor->host notifications. Outgoing and incoming messages are
-    // both scoped to the WOPI client's origin so a stray frame can't drive or observe the host.
+    // Host-page UI wiring for the sample editor. The reusable wopi-postmessage.js module owns the
+    // transport (origin-scoped send/receive, the Host_PostmessageReady handshake); this script just
+    // wires the toolbar to host->editor commands and reacts to editor->host notifications.
     (function () {
-        var wopiClientOrigin = '@WopiOptions.Value.ClientUrl.GetLeftPart(System.UriPartial.Authority)';
-
-        function frame() { return document.getElementById('office_frame'); }
-
-        function post(messageId, values) {
-            var f = frame();
-            if (!f || !f.contentWindow) return;
-            f.contentWindow.postMessage(
-                JSON.stringify({ MessageId: messageId, SendTime: Date.now(), Values: values || {} }),
-                wopiClientOrigin);
-        }
+        var M = WopiPostMessages;
+        var wopi = WopiPostMessage.attach({
+            frame: '#office_frame',
+            clientOrigin: '@WopiOptions.Value.ClientUrl.GetLeftPart(System.UriPartial.Authority)'
+        });
 
         var statusEl = document.getElementById('wopi_statustext');
         var modifiedEl = document.getElementById('wopi_modified');
@@ -233,9 +228,9 @@
             window.location.href = '/';
         }
 
-        // Close handshake: post Action_Close so the editor flushes pending saves, then navigate.
+        // Close handshake: ask the editor to flush pending saves, then navigate.
         function requestClose() {
-            post('Action_Close', {});
+            wopi.send(M.Action_Close, {});
             setTimeout(goHome, 600);
         }
 
@@ -268,7 +263,7 @@
         Array.prototype.forEach.call(document.querySelectorAll('#wopi_bar button[data-action]'), function (btn) {
             btn.addEventListener('click', function () {
                 var action = btn.getAttribute('data-action');
-                post(action, action === 'Action_Save'
+                wopi.send(action, action === M.Action_Save
                     ? { Notify: true, DontTerminateEdit: true, DontSaveIfUnmodified: true }
                     : {});
             });
@@ -282,48 +277,20 @@
             if (saveBtn) { saveBtn.remove(); }
         }
 
-        // Collabora stays silent until the host announces readiness; Office for the Web also keys
-        // its postMessage stream off this. Sent on the editor frame's load, with a fallback timer
-        // in case the frame finished loading before this script attached its handler.
-        function announceReady() { post('Host_PostmessageReady', {}); }
-        (function wireReady() {
-            var f = frame();
-            if (!f) { setTimeout(wireReady, 100); return; }
-            f.addEventListener('load', announceReady);
-            setTimeout(announceReady, 1500);
-        })();
-
         // --- editor -> host notifications ---
-        window.addEventListener('message', function (e) {
-            if (e.origin !== wopiClientOrigin) return;
-            var msg;
-            try { msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; }
-            catch (_) { return; }
-            if (!msg || !msg.MessageId) return;
-            var v = msg.Values || {};
-
-            switch (msg.MessageId) {
-                case 'App_LoadingStatus':
-                    if (v.Status === 'Document_Loaded' || v.Status === 'Frame_Ready') setStatus('Ready');
-                    break;
-                case 'Doc_ModifiedStatus':       // Collabora
-                case 'Document_Modified':        // Office for the Web
-                    setModified(!!v.Modified);
-                    if (v.Modified) setStatus('Unsaved changes');
-                    break;
-                case 'Action_Save_Resp':
-                    setModified(false);
-                    setStatus('Saved');
-                    break;
-                case 'UI_Sharing':
-                    openShare();
-                    break;
-                case 'UI_Close':
-                case 'Action_Close_Resp':
-                    goHome();
-                    break;
-            }
+        wopi.on(M.App_LoadingStatus, function (v) {
+            if (v.Status === 'Document_Loaded' || v.Status === 'Frame_Ready') setStatus('Ready');
         });
+        function onModified(v) {
+            setModified(!!v.Modified);
+            if (v.Modified) setStatus('Unsaved changes');
+        }
+        wopi.on(M.Doc_ModifiedStatus, onModified);  // Collabora
+        wopi.on(M.Document_Modified, onModified);   // Office for the Web
+        wopi.on(M.Action_Save_Resp, function () { setModified(false); setStatus('Saved'); });
+        wopi.on(M.UI_Sharing, openShare);
+        wopi.on(M.UI_Close, goHome);
+        wopi.on(M.Action_Close_Resp, goHome);
     })();
 </script>
 
