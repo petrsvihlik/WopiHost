@@ -34,6 +34,12 @@ public sealed class OnlyOfficeAppFixture : WopiAppFixtureBase
         // ONLYOFFICE container.
         ["AppHost:UseCollabora"] = "false",
         ["AppHost:UseRedisLocks"] = "false",
+        // Runs the lane with REAL proof validation: ONLYOFFICE signs its WOPI callbacks
+        // (X-WOPI-Proof over the spec's token/url/timestamp layout) and WopiProofValidator
+        // accepts them now that CheckFileInfo no longer advertises a self-referential FileUrl
+        // (clients fetch FileUrl unsigned per spec, so the old default broke the document
+        // download). This suite is the end-to-end regression gate for that fix.
+        ["AppHost:OnlyOfficeProofValidation"] = "true",
     };
 
     /// <inheritdoc />
