@@ -100,7 +100,8 @@ next run doesn't re-investigate it.
 Walk the threat model; don't grep blindly. Breadth comes from covering every boundary, depth from
 proving reachability on the ones that matter.
 
-1. **Mechanical security scan.** Run `scripts/security-scan.sh` from the repo root. It greps the
+1. **Mechanical security scan.** Run `.claude/skills/security-audit/scripts/security-scan.sh` (it
+   `cd`s to the repo root itself via `git rev-parse --show-toplevel`, so it works from anywhere). It greps the
    stable security-relevant patterns (broad `catch`, `Enum.Parse` on input, `==`/`SequenceEqual`
    near "proof"/"token"/"hmac", `new Random(`, `postMessage(...,'*')`, `ValidateIssuer=false` &
    friends, secrets near `Log`, `DtdProcessing`/`XmlResolver`, `Path.Combine` with non-rooted input,
@@ -205,7 +206,8 @@ sharper, or quieter, write it back into the skill's files — then commit. Captu
   with the reachability reason, so it isn't re-investigated.
 - **A technique that found (or would have found) a real issue** → add it to `references/threat-model.md`
   under the relevant boundary (e.g. "diff sibling providers for an omitted guard").
-- **A lead category the mechanical scan kept mis-firing on** → refine `scripts/security-scan.sh` and
+- **A lead category the mechanical scan kept mis-firing on** → refine
+  `.claude/skills/security-audit/scripts/security-scan.sh` and
   note it in the threat model's "noisy leads."
 - **A new attack class** not yet covered → add a boundary/dimension to `references/threat-model.md`.
 - **A finding you fixed this session** → note the resolving PR/commit next to the item.
