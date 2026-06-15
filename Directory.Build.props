@@ -50,12 +50,6 @@
 		<IncludeCobalt Condition="'$(IncludeCobalt)' == ''">false</IncludeCobalt>
 	</PropertyGroup>
 
-	<!-- Non-packable projects (samples, infra, tests): silence CS1591 since they don't
-	     ship to consumers and don't need XML docs on every public member. -->
-	<PropertyGroup Condition="$(IsPackable) != 'true' OR $(PackageId) == ''">
-		<NoWarn>$(NoWarn);CS1591</NoWarn>
-	</PropertyGroup>
-
 	<!-- Package Validation Configuration for NuGet packages.
 
 	     PackageValidationBaselineVersion is the last NuGet-published version we validate the
@@ -67,8 +61,7 @@
 	     after the release then leaves the baseline at the wrong version with no auto-bump PR
 	     queued. If you genuinely need to override the baseline (e.g. to skip a buggy release),
 	     do it in its own dedicated PR, not bundled with API changes. -->
-	<PropertyGroup Condition="$(IsPackable) == 'true' AND $(PackageId) != ''">
-		<EnablePackageValidation>true</EnablePackageValidation>
+	<PropertyGroup>
 		<PackageValidationBaselineVersion>9.0.0</PackageValidationBaselineVersion>
 	</PropertyGroup>
 	

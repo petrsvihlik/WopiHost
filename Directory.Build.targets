@@ -5,4 +5,26 @@
   <PropertyGroup Condition="'$(PackageId)' != ''">
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <!-- Same evaluation-order rule as PackageReadmeFile above: these conditions read
+       $(IsPackable) / $(PackageId), which projects set in their bodies (or directory-level
+       props imported below the root), so they only see the final values here. An UNSET
+       IsPackable counts as packable — NuGet's own `IsPackable=true` default is applied by the
+       pack targets, which import after this file, so it can't be observed here either. -->
+
+  <!-- Missing-XML-doc warnings are waived for everything that is not a published package
+       (tests, samples, infra, tools); the packaged libraries keep CS1591 enforced via
+       TreatWarningsAsErrors. -->
+  <PropertyGroup Condition="$(IsPackable) == 'false' OR $(PackageId) == ''">
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- Pack-time API validation for published packages, comparing against
+       $(PackageValidationBaselineVersion) from Directory.Build.props (auto-bumped after each
+       stable release by .github/workflows/bump-baseline.yml). The empty-value guard respects
+       per-project opt-outs: a package with no prior release on NuGet.org sets
+       EnablePackageValidation=false in its csproj because there is no baseline to download. -->
+  <PropertyGroup Condition="$(EnablePackageValidation) == '' AND $(IsPackable) != 'false' AND $(PackageId) != ''">
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
 </Project>
