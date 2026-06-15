@@ -27,8 +27,10 @@ public interface IWopiHostExtensions
     /// </summary>
     /// <remarks>
     /// Typical uses: copy custom properties onto a derived <see cref="WopiCheckFileInfo"/>,
-    /// rewrite <c>FileUrl</c> to point at a CDN, override capability flags reported to the
-    /// WOPI client.
+    /// set <see cref="WopiCheckFileInfo.FileUrl"/>, override capability flags reported to the
+    /// WOPI client. For a worked <see cref="WopiCheckFileInfo.FileUrl"/> example (and the
+    /// proof-keys constraint that makes it subtle), see the wiki:
+    /// <see href="https://github.com/petrsvihlik/WopiHost/wiki/CheckFileInfo-Customization#setting-fileurl"/>.
     /// </remarks>
     Task<WopiCheckFileInfo> OnCheckFileInfoAsync(WopiCheckFileInfoContext context, CancellationToken cancellationToken = default);
 

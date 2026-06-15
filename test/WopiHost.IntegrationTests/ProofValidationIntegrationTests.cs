@@ -144,6 +144,28 @@ public sealed class ProofValidationIntegrationTests : IAsyncLifetime, IDisposabl
     }
 
     [Fact]
+    public async Task CheckFileInfo_DoesNotAdvertiseFileUrl_WhenProofValidationIsActive()
+    {
+        // Pins the ONLYOFFICE regression: per the WOPI proof-keys spec, clients fetch FileUrl
+        // WITHOUT proof headers ("Requests to the FileUrl aren't signed"), and FileUrl-preferring
+        // clients (ONLYOFFICE Document Server) honour that. Every route this host maps — including
+        // GetFile — is proof-gated, so advertising a FileUrl that points back at GetFile hands the
+        // client a URL whose unsigned fetch 500s ("Download failed" in the editor). The response
+        // must therefore not carry a FileUrl; clients then fall back to the standard signed
+        // GetFile request, which validates (see the signed-request tests above).
+        using var client = CreateClient();
+        var requestUrl = BuildRequestUrl();
+        var ticks = DateTime.UtcNow.Ticks;
+        using var request = BuildSignedRequest(HttpMethod.Get, requestUrl, _keys.CurrentKey, ticks);
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var checkFileInfo = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.False(checkFileInfo.RootElement.TryGetProperty("FileUrl", out _));
+    }
+
+    [Fact]
     public async Task ProofValidator_Rejects_RequestWithStaleTimestamp()
     {
         // Spec: requests older than 20 minutes are stale. The validator rejects them even when

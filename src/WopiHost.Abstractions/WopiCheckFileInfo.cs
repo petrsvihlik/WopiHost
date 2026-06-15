@@ -183,7 +183,11 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     public Uri? FileSharingUrl { get; set; }
 
     /// <summary>
-    /// A URI to the file location that the WOPI client uses to get the file.
+    /// A URI to the file location that the WOPI client uses to get the file. Per the WOPI
+    /// proof-keys spec, clients fetch this URL <b>without</b> proof signing, so it must be served
+    /// outside any proof-validated endpoint (a CDN, a pre-signed URL, or an unsigned
+    /// token-checked download route). See <see cref="IWopiHostExtensions.OnCheckFileInfoAsync"/>
+    /// for an example of setting it.
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Uri? FileUrl { get; set; }

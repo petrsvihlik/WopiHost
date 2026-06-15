@@ -10,7 +10,7 @@ Tracked under [#357 Approach B](https://github.com/petrsvihlik/WopiHost/issues/3
 |---|---|---|---|
 | [`Collabora/`](Collabora) | `Client=Collabora` | `OpensDocxInCollabora_RendersDocumentArea` | The frontend's Edit link mints a WOPI URL + access token; Collabora's iframe loads; the CheckFileInfo + GetFile handshake completes (proven by Collabora's `Action_Load_Resp`/`Document_Loaded` postMessages). |
 | | | `SaveAfterEdit_WritesNewBytesToDisk` | Typing into Collabora and triggering `Action_Save` via the host-postMessage API causes Collabora to call PutFile, and the WopiHost backend writes the new bytes to `sample/wopi-docs/test.docx`. |
-| [`OnlyOffice/`](OnlyOffice) | `Client=OnlyOffice` | `OpensDocxInOnlyOffice_LoadsDocument` | Same handshake proof for ONLYOFFICE, read from the editor's own `window.Asc.editor.isDocumentLoadComplete` flag (ONLYOFFICE has no Collabora-style postMessage protocol). |
+| [`OnlyOffice/`](OnlyOffice) | `Client=OnlyOffice` | `OpensDocxInOnlyOffice_LoadsDocument` | Same handshake proof for ONLYOFFICE, read from the editor's own `window.Asc.editor.isDocumentLoadComplete` flag (ONLYOFFICE has no Collabora-style postMessage protocol). Runs with **real proof validation** (`AppHost:OnlyOfficeProofValidation=true`), so it also verifies that `WopiProofValidator` accepts ONLYOFFICE's signed callbacks. |
 
 Every test also carries `Category=E2E`, which is what keeps the whole project out of per-PR runs
 (see below).
@@ -20,9 +20,9 @@ Every test also carries `Category=E2E`, which is what keeps the whole project ou
 - **ONLYOFFICE save round-trip (PutFile).** ONLYOFFICE saves on its own autosave/forcesave cadence
   rather than a deterministic host-triggered call, so a save assertion would be flaky. The Collabora
   suite covers the PutFile path.
-- **Proof validation against ONLYOFFICE.** Its lane runs proof-off
-  (`AppHost:OnlyOfficeProofValidation=false`) because ONLYOFFICE's signed callbacks are currently
-  rejected by `WopiProofValidator` — tracked in [#545](https://github.com/petrsvihlik/WopiHost/issues/545).
+- **Proof validation against Collabora.** Collabora does not sign WOPI callbacks with proof keys
+  (an OOS / M365 feature it never implemented), so its lane necessarily runs proof-off. The
+  ONLYOFFICE suite is the one that exercises the real `WopiProofValidator` path.
 - **Multi-user / co-authoring** — the Cobalt path is its own scoping problem ([#321](https://github.com/petrsvihlik/WopiHost/issues/321)).
 - **Visual regression / pixel diffs** — rot fast, low signal.
 - **WOPI protocol conformance** — that's what [`microsoft/wopi-validator-core`](https://github.com/microsoft/wopi-validator-core) is for.
@@ -97,7 +97,7 @@ contributor machines that just want to run the unit suite.
 |---|---|
 | [`WopiAppFixtureBase`](Fixtures/WopiAppFixtureBase.cs) | Shared scaffolding: boots the AppHost via `DistributedApplicationTestingBuilder<Projects.WopiHost_AppHost>` with the lane's `AppHost:*` flags (fed through the `configureBuilder` seam — the only one that runs before the AppHost reads them), waits for the lane's resources, polls the client's readiness endpoint via the Aspire-discovered URL (DCP can remap host ports in test mode), exposes `WebFrontendUrl` / `WopiDocsPath`. |
 | [`CollaboraAppFixture`](Collabora/CollaboraAppFixture.cs) | Collabora lane: `UseCollabora=true`, others off; readiness = `/hosting/discovery` 200; keyword-filtered coolwsd log capture for failure diagnostics. |
-| [`OnlyOfficeAppFixture`](OnlyOffice/OnlyOfficeAppFixture.cs) | ONLYOFFICE lane: `UseOnlyOffice=true`, others off; readiness = `/healthcheck` body `true` (the document engine, not just nginx); docker-logs + in-container docservice log capture. |
+| [`OnlyOfficeAppFixture`](OnlyOffice/OnlyOfficeAppFixture.cs) | ONLYOFFICE lane: `UseOnlyOffice=true` + `OnlyOfficeProofValidation=true`, others off; readiness = `/healthcheck` body `true` (the document engine, not just nginx); docker-logs + in-container docservice log capture. |
 | [`PlaywrightFixture`](Fixtures/PlaywrightFixture.cs) | One `IPlaywright` + Chromium `IBrowser` per collection; each test gets a fresh `IBrowserContext`. Mirrors `test/WopiHost.SmokeTests`'s fixture deliberately — sharing would force Aspire's dependencies onto SmokeTests. |
 | [`DockerCheck`](Fixtures/DockerCheck.cs) | Probes `docker info`. Tests `Assert.SkipUnless(...)` when the engine is unreachable. |
 | [`CollaboraFixtureCollection`](Collabora/CollaboraFixtureCollection.cs) / [`OnlyOfficeFixtureCollection`](OnlyOffice/OnlyOfficeFixtureCollection.cs) | Pair each app fixture with the Playwright fixture, `DisableParallelization = true` — so an unfiltered run boots the two Aspire stacks **sequentially**, never concurrently (they pin the same host ports). |

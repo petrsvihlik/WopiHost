@@ -1,7 +1,5 @@
 using System.Globalization;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 
@@ -15,8 +13,7 @@ namespace WopiHost.Core.Infrastructure;
 public class DefaultCheckFileInfoBuilder(
     IWopiPermissionProvider permissionProvider,
     IWopiHostExtensions extensions,
-    IWopiWritableStorageProvider? writableStorageProvider = null,
-    LinkGenerator? linkGenerator = null) : ICheckFileInfoBuilder
+    IWopiWritableStorageProvider? writableStorageProvider = null) : ICheckFileInfoBuilder
 {
     /// <inheritdoc />
     public async Task<WopiCheckFileInfo> BuildAsync(
@@ -97,46 +94,15 @@ public class DefaultCheckFileInfoBuilder(
             checkFileInfo.UserInfo = userInfo;
         }
 
-        // Populate a sensible default FileUrl pointing at this host's GetFile endpoint
-        // with the request's access token in the query string. Per WOPI spec, FileUrl
-        // must be a token-bearing URL that lets the client GET file content without
-        // sending WOPI-specific headers. Hosts can override via IWopiHostExtensions
-        // (e.g., to point at a CDN).
-        //
-        // Skip when the adapter couldn't reconstruct a usable request URL (synthesised
-        // HttpContext in tests; malformed X-Forwarded-* headers). The WopiRequestInfo
-        // contract documents RequestUrl as nullable specifically for this case.
-        if (linkGenerator is not null && request.RequestUrl is not null)
-        {
-            // The Uri the adapter produced already incorporates the proxy-aware scheme + host
-            // (X-Forwarded-Proto / X-Forwarded-Host honoured), so LinkGenerator receives the
-            // upstream-facing values rather than the post-proxy hostname.
-            var scheme = request.RequestUrl.Scheme;
-            var host = request.RequestUrl.Authority;
-            if (!string.IsNullOrEmpty(scheme) && !string.IsNullOrEmpty(host))
-            {
-                // Preserve the file identifier's casing — the storage provider's lookup
-                // is case-sensitive and the global LowercaseUrls=true would otherwise
-                // mangle ids like "WOPITEST".
-                var url = linkGenerator.GetUriByName(
-                    WopiRouteNames.GetFile,
-                    new
-                    {
-                        id = file.Identifier,
-                        access_token = request.AccessToken ?? string.Empty,
-                    },
-                    scheme,
-                    new HostString(host),
-                    pathBase: default,
-                    fragment: default,
-                    options: new LinkOptions { LowercaseUrls = false });
-                if (url is not null)
-                {
-                    checkFileInfo.FileUrl = new Uri(url);
-                }
-            }
-        }
-
+        // FileUrl is deliberately left unset. Per the WOPI proof-keys spec, clients fetch
+        // FileUrl WITHOUT signing the request ("Requests to the FileUrl aren't signed"), and
+        // FileUrl-preferring clients (ONLYOFFICE) honour that. Every endpoint this host maps —
+        // including GetFile — sits behind WopiOriginValidationEndpointFilter, so a default
+        // FileUrl pointing back at the GetFile route is a URL the client cannot legally use:
+        // the unsigned fetch 500s on proof validation and the document fails to open. Clients
+        // that don't get a FileUrl fall back to the standard (signed) GetFile request against
+        // the same route. Hosts with a genuinely unsigned download channel (CDN, pre-signed
+        // blob URL) can still set FileUrl via IWopiHostExtensions.OnCheckFileInfoAsync.
         return await extensions.OnCheckFileInfoAsync(
             new WopiCheckFileInfoContext(request.User, file, checkFileInfo),
             cancellationToken).ConfigureAwait(false);
