@@ -334,6 +334,46 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
 
+    [Fact]
+    public async Task PutFile_ReadOnlyToken_LacksWritePermission_Returns_403()
+    {
+        // End-to-end authorization: a token minted with WopiFilePermissions.ReadOnly fails the
+        // Permission.Update gate (WopiAuthorizationHandler short-circuits on the ReadOnly flag),
+        // so the live auth pipeline rejects PutFile with 403 Forbidden — the JWT principal is
+        // authenticated, it simply lacks write permission (authorization runs before the handler).
+        var fileId = await _fixture.CreateTempFileAsync([]);
+        var token = await _fixture.MintFileTokenAsync(fileId, WopiFilePermissions.ReadOnly);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new ByteArrayContent("should-be-rejected"u8.ToArray()),
+        };
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("RENAME_FILE")]
+    [InlineData("DELETE")]
+    public async Task MutatingOverride_ReadOnlyToken_LacksWritePermission_Returns_403(string @override)
+    {
+        // Same gate over the X-WOPI-Override POST routes: RENAME_FILE requires Permission.Rename,
+        // DELETE requires Permission.Delete — both denied for a ReadOnly token, so each returns 403
+        // before the handler runs.
+        var fileId = await _fixture.CreateTempFileAsync("body"u8.ToArray(), extension: ".txt");
+        var token = await _fixture.MintFileTokenAsync(fileId, WopiFilePermissions.ReadOnly);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
+        req.Headers.Add("X-WOPI-Override", @override);
+        req.Headers.Add("X-WOPI-RequestedName", "renamed");
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
+    }
+
     // ---- RenameFile ------------------------------------------------------
 
     [Fact]

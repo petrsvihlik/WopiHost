@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -254,5 +255,28 @@ public class WopiDiscovererTests
 
         _wopiDiscoverer.Dispose();
         _wopiDiscoverer.Dispose();
+    }
+
+    [Fact]
+    public async Task GetProofKeysAsync_RealCspBlob_ImportsIntoRsaProvider()
+    {
+        // The checked-in OWA2013 discovery XML carries Microsoft's real proof-key CSP blobs in its
+        // root <proof-key value=.. oldvalue=..>. WopiProofValidator feeds exactly this base64
+        // through RSACryptoServiceProvider.ImportCspBlob, so the fixture's bytes must round-trip
+        // into a usable key on the runtime that ships the host.
+        InitDiscoverer(XmlOwa2013, NetZoneEnum.InternalHttp);
+
+        var keys = await _wopiDiscoverer.GetProofKeysAsync();
+
+        Assert.False(string.IsNullOrEmpty(keys.Value));
+        Assert.False(string.IsNullOrEmpty(keys.OldValue));
+
+        using var rsa = new RSACryptoServiceProvider();
+        rsa.ImportCspBlob(Convert.FromBase64String(keys.Value!));
+        Assert.True(rsa.KeySize > 0);
+
+        using var rsaOld = new RSACryptoServiceProvider();
+        rsaOld.ImportCspBlob(Convert.FromBase64String(keys.OldValue!));
+        Assert.True(rsaOld.KeySize > 0);
     }
 }

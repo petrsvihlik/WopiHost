@@ -49,6 +49,15 @@ public class HostPageModel(
         ], "validator"));
 
         var permissions = await permissionProvider.GetFilePermissionsAsync(hostUser, file, cancellationToken);
+
+        // Scope by the requested action: a "view" link must not mint a write-capable token. Collabora
+        // derives view-vs-edit from CheckFileInfo permission flags (single editor URL), so an
+        // over-permissive token silently opens edit mode; OOS / M365 distinct URLs would mask it.
+        if (WopiAction != WopiActionEnum.Edit)
+        {
+            permissions &= ~(WopiFilePermissions.UserCanWrite | WopiFilePermissions.UserCanRename);
+        }
+
         var token = await accessTokenService.IssueAsync(new WopiAccessTokenRequest
         {
             UserId = wopiOptions.Value.UserId,

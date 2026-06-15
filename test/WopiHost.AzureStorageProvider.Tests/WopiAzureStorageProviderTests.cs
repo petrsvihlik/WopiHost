@@ -258,6 +258,38 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
         Assert.True(await provider.CheckValidFileName("my-file_2.docx"));
     }
 
+    [Theory]
+    [InlineData("../escape.txt")]
+    [InlineData("a/b.txt")]
+    [InlineData("..")]
+    [InlineData(".")]
+    [InlineData(BlobIdMap.FolderMarker)]
+    public async Task CreateWopiChildFile_TraversalOrReservedName_Throws(string name)
+    {
+        // The name is client-controlled (relative/suggested target); a name that isn't a single
+        // path segment must be rejected before it's composed into a blob path so it can't escape
+        // the container or collide with the reserved folder marker. The predicate is covered by
+        // CheckValidName_RejectsIllegalNames; this pins that the create path actually calls it.
+        var (provider, _) = await CreateProviderAsync();
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => provider.CreateWopiChildFile(provider.RootContainer.Identifier, name));
+    }
+
+    [Theory]
+    [InlineData("../escape")]
+    [InlineData("a/b")]
+    [InlineData("..")]
+    [InlineData(".")]
+    [InlineData(BlobIdMap.FolderMarker)]
+    public async Task CreateWopiChildContainer_TraversalOrReservedName_Throws(string name)
+    {
+        var (provider, _) = await CreateProviderAsync();
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => provider.CreateWopiChildContainer(provider.RootContainer.Identifier, name));
+    }
+
     [Fact]
     public async Task GetAncestors_File_IncludesParentChain()
     {

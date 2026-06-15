@@ -207,6 +207,37 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
     }
 
     [Fact]
+    public async Task CreateChildFile_WithRelativeTarget_OnExisting_Returns_409()
+    {
+        var token = await _fixture.MintContainerTokenAsync(_fixture.RootContainerId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        // First create a file with a known name…
+        var name = $"file-{Guid.NewGuid():N}.txt";
+        var first = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new ByteArrayContent("file-body"u8.ToArray()),
+        };
+        first.Headers.Add("X-WOPI-Override", "CREATE_CHILD_FILE");
+        first.Headers.Add("X-WOPI-RelativeTarget", name);
+        var firstResp = await client.SendAsync(first);
+        Assert.Equal(HttpStatusCode.OK, firstResp.StatusCode);
+
+        // …then ask for it again under specific (relative) mode with no overwrite → 409 + the
+        // X-WOPI-ValidRelativeTarget header the negotiator surfaces on a name collision.
+        var second = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new ByteArrayContent("file-body"u8.ToArray()),
+        };
+        second.Headers.Add("X-WOPI-Override", "CREATE_CHILD_FILE");
+        second.Headers.Add("X-WOPI-RelativeTarget", name);
+        var secondResp = await client.SendAsync(second);
+
+        Assert.Equal(HttpStatusCode.Conflict, secondResp.StatusCode);
+        Assert.True(secondResp.Headers.Contains("X-WOPI-ValidRelativeTarget"));
+    }
+
+    [Fact]
     public async Task CreateChildFile_BothHeaders_Returns_501()
     {
         var token = await _fixture.MintContainerTokenAsync(_fixture.RootContainerId);

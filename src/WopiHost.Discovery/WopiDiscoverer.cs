@@ -114,7 +114,7 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
 
         var query = (await GetAppsAsync().ConfigureAwait(false)).Elements()
             .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) &&
-                e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true);
+                e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.OrdinalIgnoreCase) == true);
 
         return query.Any();
     }
@@ -126,10 +126,10 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
 
         var query = (await GetAppsAsync().ConfigureAwait(false)).Elements()
             .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) &&
-                e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true)
+                e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.OrdinalIgnoreCase) == true)
             .Select(e => e.Attribute(AttrActionRequires)?.Value.Split(','));
 
-        return query?.FirstOrDefault() ?? [];
+        return query.FirstOrDefault() ?? [];
     }
 
     ///<inheritdoc />
@@ -138,7 +138,7 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
         var actionString = action.ToString().ToUpperInvariant();
         var query = (await GetAppsAsync().ConfigureAwait(false)).Elements()
             .Where(e => string.Equals(e.Attribute(AttrActionExtension)?.Value, extension, StringComparison.OrdinalIgnoreCase) &&
-                e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.InvariantCultureIgnoreCase) == true)
+                e.Attribute(AttrActionName)?.Value.Equals(actionString, StringComparison.OrdinalIgnoreCase) == true)
             .Select(e => e.Attribute(AttrActionUrl)?.Value);
         return query.FirstOrDefault();
     }

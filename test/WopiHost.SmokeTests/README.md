@@ -27,11 +27,11 @@ DOM-only Playwright smoke tests for the sample frontends (`sample/WopiHost.Web`,
 ## Running locally
 
 ```bash
-# 1. Build (this also makes the playwright.ps1 helper script available under bin/)
+# 1. Build (this also makes the playwright.ps1 helper script available under artifacts/bin/)
 dotnet build test/WopiHost.SmokeTests
 
 # 2. Install Chromium (one-off; idempotent)
-pwsh test/WopiHost.SmokeTests/bin/Debug/net10.0/playwright.ps1 install chromium
+pwsh artifacts/bin/WopiHost.SmokeTests/debug/playwright.ps1 install chromium
 
 # 3. Run
 dotnet test test/WopiHost.SmokeTests
