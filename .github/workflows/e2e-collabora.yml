@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30 # Generous: Collabora image pull on a clean cache + Playwright install.
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup .NET 10.0
         uses: actions/setup-dotnet@v5
