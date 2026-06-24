@@ -65,7 +65,7 @@ jobs:
         run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
 
       - name: Cache validator package
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages/wopivalidator
           key: wopivalidator-${{ hashFiles('tools/wopi-validator/wopi-validator.csproj') }}
