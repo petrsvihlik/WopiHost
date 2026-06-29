@@ -79,7 +79,7 @@
          reporting). Consumed via the `junit` VSTest logger in CI. Pinned below 8.0.0:
          that release links against Microsoft.Testing.Platform 2.0, which outranks the
          1.9.1 pulled in transitively by xunit.v3 and breaks the build with CS1705. -->
-    <PackageVersion Include="JunitXml.TestLogger" Version="7.1.0" />
+    <PackageVersion Include="JunitXml.TestLogger" Version="8.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.9" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
