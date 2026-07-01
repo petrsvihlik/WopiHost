@@ -259,7 +259,7 @@ if (builder.Configuration.GetValue("AppHost:IncludeOidcSample", defaultValue: fa
 // while loolwsd is still binding.
 if (useCollabora)
 {
-    var collabora = builder.AddContainer("collabora", "collabora/code")
+    var collabora = builder.AddContainer("collabora", "collabora/code", "26.04.1.4.1")
            // host.docker.internal needs an explicit --add-host=host.docker.internal:host-gateway on
            // Linux Docker Engine — Docker Desktop on Mac/Windows wires it implicitly, but the Linux
            // daemon doesn't. Without this, Collabora's WOPI callbacks from inside the container can't
