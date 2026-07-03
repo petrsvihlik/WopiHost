@@ -308,6 +308,27 @@
         var nameEl = document.getElementById('wopi_filename');
         if (nameEl) { nameEl.textContent = fileName || '(untitled)'; }
 
+        // Reflect an editor-driven rename into the toolbar label. Rename is owned by the WOPI
+        // client's own title UI (the host advertises SupportsRename + grants UserCanRename only
+        // for edit sessions), not by this page — a host-page rename would collide with the edit
+        // lock and the per-process id map. The backend renames under the same file id, so the live
+        // session and the download link keep working; only this cached label needs refreshing.
+        // Office for the Web posts File_Rename here. Collabora renames via its own title bar but
+        // doesn't post it, so its label refreshes on the next host-page load instead.
+        wopi.on(M.File_Rename, function (v) {
+            var newName = v && v.NewName ? String(v.NewName).trim() : '';
+            if (!newName) { return; }
+            // Office reports the new stem without the extension; keep the label extension-qualified.
+            var dot = fileName.lastIndexOf('.');
+            var ext = dot > 0 ? fileName.substring(dot) : '';
+            if (ext && newName.slice(-ext.length).toLowerCase() !== ext.toLowerCase()) {
+                newName += ext;
+            }
+            fileName = newName;
+            if (nameEl) { nameEl.textContent = newName; }
+            setStatus('Renamed');
+        });
+
         // Download a copy via the host app's content endpoint. Content-Disposition: attachment means
         // the browser saves the file without navigating away from the editor.
         var downloadBtn = document.getElementById('wopi_download');
@@ -341,6 +362,9 @@
                 modeBtn.title = 'Switch to read-only view';
                 modeBtn.addEventListener('click', switchToView);
             }
+            // Rename is surfaced by the editor (UserCanRename is granted only for edit sessions),
+            // so point the user at the editor's own title rather than implying the label is editable.
+            if (nameEl) { nameEl.title = 'Rename from the editor’s title bar'; }
         } else {
             if (modeBtn) {
                 modeBtn.textContent = '✏️ Edit';
