@@ -46,8 +46,9 @@ public class WopiUrlSettingsTests
     public void TypedAccessors_UnsetKeys_ReturnDefaultsInsteadOfThrowing()
     {
         // The typed accessors are public API on a settings bag; reading a placeholder that was
-        // never set must yield null / a default value, not KeyNotFoundException.
-        var settings = new WopiUrlSettings();
+        // never set must yield null / a default value, not KeyNotFoundException. The unrelated
+        // raw entry proves the accessors key off their own placeholder, not bag emptiness.
+        var settings = new WopiUrlSettings { ["CUSTOM_RAW_PLACEHOLDER"] = "present" };
 
         Assert.Null(settings.UiLlcc);
         Assert.Null(settings.DcLlcc);
