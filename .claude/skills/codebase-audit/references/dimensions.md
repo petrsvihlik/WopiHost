@@ -185,6 +185,9 @@ everything indirect is over-engineered. A finding ships only if removing the con
 **unambiguously safe and clearer** — nothing real depends on it, no plausible near-term need, and it
 isn't load-bearing public contract. When in doubt, it's load-bearing; leave it.
 
+Method: interrogate each candidate with the subtraction lens in `lenses.md` — what breaks if it's
+deleted, count the implementations, grep the usages, check the removal cost, and note what stays.
+
 Patterns that are genuinely over-engineered here:
 
 - **Wrapper / value types that only forward.** A type around a primitive whose whole body is

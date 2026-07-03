@@ -121,6 +121,10 @@ proving reachability on the ones that matter.
 3. **Prove reachability, then apply the bar.** Open the file at each lead, trace attacker input →
    sink, and decide: directly exploitable (High+), defense-in-depth/library-consumer gap (usually
    Medium, say so), or already-blocked (drop). Mark survivors **[verified]** with the attack path.
+   The breaker lens in `.claude/skills/codebase-audit/references/lenses.md` is the drill for this
+   step: manufacture exact payloads (not categories), walk the boundary values, name race
+   interleavings, and run the attack where cheap — a High/Critical ships with the concrete request
+   that demonstrates it, which doubles as the regression test.
 
 4. **Classify + anchor + attack path.** Every finding gets a severity, a boundary/dimension, a
    `file:line`, the **named attack path** (actor → input → sink → impact), and a remediation. Lead

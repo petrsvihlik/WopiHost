@@ -122,8 +122,11 @@ the whole codebase in one pass.
    slice. Areas: `src/WopiHost.Core` + `src/WopiHost.Abstractions`; the storage/lock providers
    (`*Provider`); `src/WopiHost.Discovery` + `Url` + `Cobalt`; `sample/` frontends; `infra/`;
    `test/`; and **docs** (the wiki + every README). Give each reviewer `references/dimensions.md`
-   (the per-dimension checklist) and the do-not-re-file ledger, and have it return candidate findings
-   with `file:line` anchors.
+   (the per-dimension checklist), `references/lenses.md` (the perspective lenses each reviewer holds
+   up to its slice), and the do-not-re-file ledger, and have it return candidate findings
+   with `file:line` anchors. Track completion per area: a reviewer that fails or is skipped leaves
+   its area **not covered**, and the report's scope line must say so — a silent gap must never read
+   as a clean area (panel discipline in `references/lenses.md`).
    - The **docs reviewer** first runs `scripts/fetch-wiki.sh` to clone the wiki (a separate repo),
      then verifies the wiki + READMEs against the current API per dimension 11 — every type/member/
      config-key a doc names must resolve in source. This is the load-bearing guard for "superbly
@@ -138,6 +141,11 @@ the whole codebase in one pass.
    positives or already correctly handled" — also drop the ones whose fix would be a lateral move or
    a net loss. Mark survivors **[verified]**. A finding without a confirmed `file:line` anchor, or
    whose remediation isn't a clear win, does not ship.
+   Two lenses sharpen this step (`references/lenses.md`): a **High correctness/security** candidate
+   is verified the breaker way — name the exact input/request that triggers it and run it where
+   cheap; a demonstrated failure beats a hypothesized one, and the input doubles as the regression
+   test. A **dimension-12** candidate gets the subtraction interrogation instead — what breaks if
+   it's deleted, count the implementations, grep the usages, note what stays.
 
 4. **Classify + anchor + hint.** Every finding gets: a severity (High / Medium / Low), a dimension,
    a `file:line` link, and a one-line remediation hint. No vague "this could be cleaner." Lead the
@@ -212,6 +220,8 @@ Rules for the report:
   section with the reason, so the next run doesn't re-investigate it.
 - Cross-reference existing issues/PRs by number when a finding is already tracked, instead of
   duplicating it.
+- State coverage honestly: if any area or dimension wasn't swept (a reviewer failed, scope was
+  cut), name it in the scope line — silence must never imply a clean sweep.
 
 ## Self-improvement (do this at the end of every run)
 
