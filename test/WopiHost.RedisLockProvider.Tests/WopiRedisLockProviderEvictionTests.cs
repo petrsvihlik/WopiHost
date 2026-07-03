@@ -21,6 +21,7 @@ namespace WopiHost.RedisLockProvider.Tests;
 /// here is the provider's own eviction.
 /// </remarks>
 [Collection(RedisCollection.Name)]
+[Trait("Category", "Integration")]
 public sealed class WopiRedisLockProviderEvictionTests(RedisFixture redis)
 {
     private async Task<(WopiRedisLockProvider Sut, IDatabase Db, RedisKey Key)> CreateAsync(

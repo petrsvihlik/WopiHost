@@ -15,6 +15,7 @@ namespace WopiHost.RedisLockProvider.Tests;
 /// avoids per-test TCP/handshake churn.
 /// </remarks>
 [Collection(RedisCollection.Name)]
+[Trait("Category", "Integration")]
 public sealed class RedisLockProviderConformanceTests(RedisFixture redis) : LockProviderConformanceTests
 {
     /// <inheritdoc />

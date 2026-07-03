@@ -76,8 +76,10 @@ public interface IDiscoverer
 The default `HttpDiscoveryFileProvider` fetches discovery over HTTP. To use a fixed XML (testing) or a custom transport, register your own implementation. `FileSystemDiscoveryFileProvider` ships in this package and is what the discovery tests use:
 
 ```csharp
-services.AddSingleton<IDiscoveryFileProvider>(_ =>
-    new FileSystemDiscoveryFileProvider("path/to/discovery.xml"));
+services.AddSingleton<IDiscoveryFileProvider>(sp =>
+    new FileSystemDiscoveryFileProvider(
+        "path/to/discovery.xml",
+        sp.GetRequiredService<ILogger<FileSystemDiscoveryFileProvider>>()));
 services.AddSingleton<IDiscoverer, WopiDiscoverer>();
 services.Configure<DiscoveryOptions>(o => o.NetZone = NetZoneEnum.ExternalHttps);
 ```

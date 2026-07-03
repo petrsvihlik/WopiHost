@@ -1,6 +1,6 @@
 # WopiHost.RedisLockProvider
 
-`IWopiLockProvider` implementation backed by Redis, with atomic compare-and-swap via Lua scripts and TTL-driven WOPI expiry.
+`IWopiLockProvider` implementation backed by Redis, with atomic compare-and-swap via Redis transactions (`WATCH` + `MULTI`/`EXEC`) and TTL-driven WOPI expiry.
 
 ## When to pick this over the other lock providers
 
@@ -22,7 +22,7 @@ If your Redis instance fails over to a replica with stale state mid-WOPI-session
 
 ## Atomicity
 
-Each non-trivial operation is a Lua script evaluated on the Redis server with `EVAL`. Lua scripts run to completion without interleaving with other commands, so the "match-then-mutate" steps land as a single observable transaction. The conformance suite's `RefreshLockAsync_ConcurrentSwapBetweenObservationAndCAS_DoesNotRefresh` test exercises this path against this provider too — a stale caller's expected lock id no longer matches the Redis-resident value when the script runs.
+Each compare-and-swap operation (refresh, unlock-and-relock) runs as a Redis transaction: `IDatabase.CreateTransaction()` guarded by `AddCondition(Condition.StringEqual(key, snapshot))`. The condition maps onto Redis's `WATCH` primitive, which aborts the `MULTI`/`EXEC` if the key's value changed between the read and the write — so the "match-then-mutate" steps land as a single observable transaction. This costs one extra round-trip compared to a Lua `EVAL` compare+set, but keeps the implementation in C# with no embedded scripting language; the WOPI lock path isn't hot enough to care about the extra hop. The conformance suite's `RefreshLockAsync_ConcurrentSwapBetweenObservationAndCAS_DoesNotRefresh` test exercises this path against this provider too — a stale caller's snapshot no longer matches the Redis-resident value when the transaction runs, so it aborts.
 
 ## Registration
 

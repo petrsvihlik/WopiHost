@@ -67,10 +67,10 @@ internal static class FileEndpoints
         // Capabilities must mirror what's actually wired up — advertising features the host
         // can't deliver would lie to the WOPI client. Cobalt provides the multi-user editing
         // surface, so SupportsCoauth tracks its registration alongside SupportsCobalt.
-        // SupportsUpdate must reflect writable-storage presence; without it PutFile /
-        // RenameFile / DeleteFile all 501 via RequiresWritableStorageEndpointFilter, and
-        // DefaultCheckFileInfoBuilder cascades SupportsUpdate=false into
-        // UserCanNotWriteRelative=true per
+        // SupportsUpdate / SupportsRename / SupportsDeleteFile must reflect writable-storage
+        // presence; without it PutFile / RenameFile / DeleteFile all 501 via
+        // RequiresWritableStorageEndpointFilter, and DefaultCheckFileInfoBuilder cascades
+        // SupportsUpdate=false into UserCanNotWriteRelative=true per
         // https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile.
         var capabilities = new WopiHostCapabilities
         {
@@ -79,6 +79,8 @@ internal static class FileEndpoints
             SupportsLocks = req.LockProvider is not null,
             SupportsCoauth = req.CobaltProcessor is not null,
             SupportsUpdate = req.WritableStorage is not null,
+            SupportsRename = req.WritableStorage is not null,
+            SupportsDeleteFile = req.WritableStorage is not null,
             SupportedShareUrlTypes = WopiShareUrlTypes.All,
             SupportsAddActivities = true,
         };

@@ -29,6 +29,24 @@ public sealed class FileEndpointTests(ReadOnlyEndpointsFixture fixture)
     }
 
     [Fact]
+    public async Task CheckFileInfo_AdvertisesUpdateRenameDelete_WithWritableStorage()
+    {
+        // Counterpart of ReadOnlyHostCheckFileInfoTests: with a writable storage provider
+        // registered (the FileSystem provider is writable), all three write capabilities
+        // must be advertised.
+        var token = await _fixture.MintFileTokenAsync(_fixture.FirstFileId);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}?access_token={Uri.EscapeDataString(token)}");
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var payload = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(await resp.Content.ReadAsStringAsync());
+        Assert.True(payload.GetProperty("SupportsUpdate").GetBoolean());
+        Assert.True(payload.GetProperty("SupportsRename").GetBoolean());
+        Assert.True(payload.GetProperty("SupportsDeleteFile").GetBoolean());
+    }
+
+    [Fact]
     public async Task CheckFileInfo_Returns_404_ForMissingFile()
     {
         var missing = new string('0', 64); // SHA-256-shaped but non-existent

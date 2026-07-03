@@ -27,7 +27,7 @@ dotnet test test/WopiHost.IntegrationTests
 dotnet test test/WopiHost.IntegrationTests --filter "FullyQualifiedName!~OidcStartupTests"
 ```
 
-The Docker-backed tests use [`Xunit.SkippableFact`](https://github.com/AArnott/Xunit.SkippableFact) to mark themselves as **skipped** (not failed) when Docker is unavailable, so the build stays green.
+The Docker-backed tests use xUnit v3's built-in `Assert.SkipUnless(...)` to mark themselves as **skipped** (not failed) when Docker is unavailable, so the build stays green.
 
 ## How the test factories fit together
 

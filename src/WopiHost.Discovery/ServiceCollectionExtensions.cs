@@ -20,7 +20,10 @@ public static class ServiceCollectionExtensions
         Action<DiscoveryOptions> configureDiscoveryOptions)
         where TOptions : class, IDiscoveryOptions
     {
-        services.Configure<DiscoveryOptions>(configureDiscoveryOptions);
+        services.AddOptions<DiscoveryOptions>()
+            .Configure(configureDiscoveryOptions)
+            .Validate(o => o.RefreshInterval > TimeSpan.Zero, "RefreshInterval must be positive.")
+            .ValidateOnStart();
 
         services.AddHttpClient<IDiscoveryFileProvider, HttpDiscoveryFileProvider>((sp, client) =>
         {
