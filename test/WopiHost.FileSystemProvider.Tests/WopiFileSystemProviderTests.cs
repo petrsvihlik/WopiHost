@@ -29,9 +29,9 @@ public class WopiFileSystemProviderTests : IDisposable
         _root = Directory.CreateTempSubdirectory("WopiFsTest_");
         _sub = _root.CreateSubdirectory("sub");
         _empty = _root.CreateSubdirectory("empty");
-        _rootTxtPath = Path.Combine(_root.FullName, "root.txt");
-        _rootDocxPath = Path.Combine(_root.FullName, "root.docx");
-        _leafTxtPath = Path.Combine(_sub.FullName, "leaf.txt");
+        _rootTxtPath = Path.Join(_root.FullName, "root.txt");
+        _rootDocxPath = Path.Join(_root.FullName, "root.docx");
+        _leafTxtPath = Path.Join(_sub.FullName, "leaf.txt");
         File.WriteAllText(_rootTxtPath, "root-txt");
         File.WriteAllText(_rootDocxPath, "root-docx");
         File.WriteAllText(_leafTxtPath, "leaf");
@@ -121,7 +121,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         // A pre-populated InMemoryFileIds that does NOT contain the root path.
         var ids = new InMemoryFileIds(NullLogger<InMemoryFileIds>.Instance);
-        ids.AddFile(Path.Combine(_root.FullName, "unrelated"));
+        ids.AddFile(Path.Join(_root.FullName, "unrelated"));
 
         Assert.Throws<InvalidOperationException>(() =>
             CreateProvider(_root.FullName, ids));
@@ -519,7 +519,7 @@ public class WopiFileSystemProviderTests : IDisposable
         var file = await _sut.CreateWopiChildFile(rootId, "new.txt");
 
         Assert.NotNull(file);
-        Assert.True(File.Exists(Path.Combine(_root.FullName, "new.txt")));
+        Assert.True(File.Exists(Path.Join(_root.FullName, "new.txt")));
     }
 
     [Fact]
@@ -528,7 +528,7 @@ public class WopiFileSystemProviderTests : IDisposable
         var file = await _sut.CreateWopiChildFile(_sut.RootContainer.Identifier, "rootless.txt");
 
         Assert.NotNull(file);
-        Assert.True(File.Exists(Path.Combine(_root.FullName, "rootless.txt")));
+        Assert.True(File.Exists(Path.Join(_root.FullName, "rootless.txt")));
     }
 
     [Fact]
@@ -553,7 +553,8 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task CreateWopiChildResource_FileWithTraversalName_Throws(string name)
     {
         // The name is client-controlled (relative/suggested target); a name that isn't a single
-        // path segment must be rejected before Path.Combine so it can't escape the root.
+        // path segment must be rejected before it is joined to the container path so it can't
+        // escape the root.
         var rootId = _sut.RootContainer.Identifier;
         await Assert.ThrowsAsync<ArgumentException>(() => _sut.CreateWopiChildFile(rootId, name));
     }
@@ -566,7 +567,7 @@ public class WopiFileSystemProviderTests : IDisposable
         var folder = await _sut.CreateWopiChildContainer(rootId, "new-folder");
 
         Assert.NotNull(folder);
-        Assert.True(Directory.Exists(Path.Combine(_root.FullName, "new-folder")));
+        Assert.True(Directory.Exists(Path.Join(_root.FullName, "new-folder")));
     }
 
     [Fact]
@@ -691,7 +692,7 @@ public class WopiFileSystemProviderTests : IDisposable
 
         Assert.True(ok);
         Assert.False(File.Exists(_rootTxtPath));
-        Assert.True(File.Exists(Path.Combine(_root.FullName, "renamed.txt")));
+        Assert.True(File.Exists(Path.Join(_root.FullName, "renamed.txt")));
     }
 
     [Fact]
@@ -720,7 +721,7 @@ public class WopiFileSystemProviderTests : IDisposable
 
         Assert.True(ok);
         Assert.False(Directory.Exists(_empty.FullName));
-        Assert.True(Directory.Exists(Path.Combine(_root.FullName, "renamed")));
+        Assert.True(Directory.Exists(Path.Join(_root.FullName, "renamed")));
     }
 
     [Fact]
@@ -790,5 +791,30 @@ public class WopiFileSystemProviderTests : IDisposable
         var result = await _sut.GetWopiContainerByName(rootId, "does-not-exist");
 
         Assert.Null(result);
+    }
+
+    // ---------- Stored-path invariant ----------
+
+    [Fact]
+    public async Task StoredPaths_AfterScanCreateAndRenameFlows_AreAllRooted()
+    {
+        // GetWopiFiles/GetWopiContainers enumerate the stored path directly, so every path the
+        // provider records must be absolute — a relative entry would silently resolve against
+        // the process working directory. Exercises every map-mutating flow (initial scan,
+        // create, rename) starting from a relative root path, the input most likely to leak
+        // relativeness into the map.
+        var ids = new InMemoryFileIds(NullLogger<InMemoryFileIds>.Instance);
+        var provider = CreateProvider(rootPath: "sub", ids);
+
+        var containerId = provider.RootContainer.Identifier;
+        var file = await provider.CreateWopiChildFile(containerId, "invariant.txt");
+        var folder = await provider.CreateWopiChildContainer(containerId, "invariant-folder");
+        Assert.NotNull(file);
+        Assert.NotNull(folder);
+        await provider.RenameWopiFile(file.Identifier, "invariant-renamed.txt");
+        await provider.RenameWopiContainer(folder.Identifier, "invariant-folder-renamed");
+
+        Assert.All(ids.StoredPaths, path =>
+            Assert.True(Path.IsPathRooted(path), $"Stored path '{path}' is not rooted."));
     }
 }

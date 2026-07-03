@@ -8,7 +8,7 @@ public class WopiFileTests : IDisposable
 
     public WopiFileTests()
     {
-        _filePath = Path.Combine(_tempDir.FullName, "doc.docx");
+        _filePath = Path.Join(_tempDir.FullName, "doc.docx");
         File.WriteAllText(_filePath, "hello world");
         _sut = new WopiFile(_filePath, "id-1");
     }
@@ -113,7 +113,7 @@ public class WopiFileTests : IDisposable
         // FileNotFoundException for missing paths on Unix), then remove it so
         // stat/statx fails with ENOENT. The owner helper surfaces that as IOException,
         // which the Owner getter swallows to honour the best-effort contract.
-        var transient = Path.Combine(_tempDir.FullName, "transient.docx");
+        var transient = Path.Join(_tempDir.FullName, "transient.docx");
         File.WriteAllText(transient, "x");
         var sut = new WopiFile(transient, "id-transient");
         File.Delete(transient);

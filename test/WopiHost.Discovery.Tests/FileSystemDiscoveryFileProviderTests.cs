@@ -8,7 +8,7 @@ public class FileSystemDiscoveryFileProviderTests
     [Fact]
     public async Task GetDiscoveryXmlAsync_ValidFile_ReturnsXml()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "OOS2016_discovery.xml");
+        var path = Path.Join(AppContext.BaseDirectory, "OOS2016_discovery.xml");
         var sut = new FileSystemDiscoveryFileProvider(path, NullLogger<FileSystemDiscoveryFileProvider>.Instance);
 
         var xml = await sut.GetDiscoveryXmlAsync();
@@ -20,7 +20,7 @@ public class FileSystemDiscoveryFileProviderTests
     public async Task GetDiscoveryXmlAsync_MissingFile_ThrowsAndIsObservableViaCatchPath()
     {
         var sut = new FileSystemDiscoveryFileProvider(
-            Path.Combine(Path.GetTempPath(), $"does-not-exist-{Guid.NewGuid()}.xml"),
+            Path.Join(Path.GetTempPath(), $"does-not-exist-{Guid.NewGuid()}.xml"),
             NullLogger<FileSystemDiscoveryFileProvider>.Instance);
 
         await Assert.ThrowsAnyAsync<IOException>(() => sut.GetDiscoveryXmlAsync());
@@ -29,7 +29,7 @@ public class FileSystemDiscoveryFileProviderTests
     [Fact]
     public async Task GetDiscoveryXmlAsync_MalformedXml_ThrowsXmlException()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"malformed-{Guid.NewGuid()}.xml");
+        var path = Path.Join(Path.GetTempPath(), $"malformed-{Guid.NewGuid()}.xml");
         await File.WriteAllTextAsync(path, "<not-closed-element>");
         try
         {
