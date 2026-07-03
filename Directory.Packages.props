@@ -2,8 +2,8 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!-- Enables overriding a transitive dependency's version from a PackageVersion entry below.
-         Required for the MessagePack security pin; remove together with that pin once it's
-         no longer needed. -->
+         Required for the MessagePack and Microsoft.OpenApi security pins; remove together with
+         those pins once they're no longer needed. -->
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
@@ -50,6 +50,12 @@
          CentralPackageTransitivePinningEnabled property above) once Aspire ships a
          MessagePack >= 2.5.301 transitively. -->
     <PackageVersion Include="MessagePack" Version="2.5.301" />
+    <!-- Security pin (not referenced directly). Microsoft.AspNetCore.OpenApi pulls
+         Microsoft.OpenApi 2.0.0 transitively, which GHSA-v5pm-xwqc-g5wc flags as a
+         high-severity stack overflow when parsing circular schema references; 2.7.5 is the
+         first patched 2.x release. Remove once Microsoft.AspNetCore.OpenApi ships
+         Microsoft.OpenApi >= 2.7.5 transitively. -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
   </ItemGroup>
 
   <!--
