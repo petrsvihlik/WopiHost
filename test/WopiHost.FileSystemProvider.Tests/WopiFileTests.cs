@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace WopiHost.FileSystemProvider.Tests;
 
 public class WopiFileTests : IDisposable
@@ -65,6 +67,19 @@ public class WopiFileTests : IDisposable
     [Fact]
     public void LastWriteTimeUtc_MatchesFileInfo()
         => Assert.Equal(new FileInfo(_filePath).LastWriteTimeUtc, _sut.LastWriteTimeUtc);
+
+    [Fact]
+    public void Version_AfterExistsCheck_ReflectsSubsequentWrite()
+    {
+        // Mirrors PutFile: existence guard, then write, then a single Version read for
+        // X-WOPI-ItemVersion. Exists must not pin the FileInfo stat cache, or the reported
+        // version echoes the pre-write timestamp back to the WOPI client.
+        Assert.True(_sut.Exists);
+        File.SetLastWriteTimeUtc(_filePath, new FileInfo(_filePath).LastWriteTimeUtc.AddMinutes(5));
+
+        var expected = new FileInfo(_filePath).LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);
+        Assert.Equal(expected, _sut.Version);
+    }
 
     [Fact]
     public async Task OpenReadAsync_ReturnsReadableStream()

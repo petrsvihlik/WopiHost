@@ -27,7 +27,13 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiWritableFil
     public string Identifier { get; } = fileIdentifier;
 
     /// <inheritdoc />
-    public bool Exists => _fileInfo.Exists;
+    /// <remarks>
+    /// Deliberately bypasses <see cref="FileInfo"/>: accessing any <see cref="FileInfo"/> property
+    /// pins the instance's stat cache, so an existence check before a write would freeze
+    /// <see cref="Version"/> at its pre-write value — PutFile checks existence, writes, then
+    /// reports the resulting version to the WOPI client.
+    /// </remarks>
+    public bool Exists => File.Exists(filePath);
 
     /// <inheritdoc/>
     public string Extension => _fileInfo.Extension.TrimStart('.');
