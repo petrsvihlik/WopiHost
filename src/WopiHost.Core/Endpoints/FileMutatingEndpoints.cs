@@ -205,7 +205,9 @@ internal static class FileMutatingEndpoints
         // WritableStorage was missing — the assert is defensive against pipeline misorder.
         ArgumentNullException.ThrowIfNull(req.WritableStorage);
         var file = await req.WritableStorage.GetWritableFile(req.Id, req.CancellationToken).ConfigureAwait(false);
-        if (file is null) return TypedResults.NotFound();
+        // Exists=false is a stale id→path binding (out-of-band rename/delete) — 404 rather than
+        // faulting on Length or the write stream.
+        if (file is null || !file.Exists) return TypedResults.NotFound();
         if (CheckMaxFileSize(req.Http, req.Options.Value.MaxFileSize) is { } tooLarge) return tooLarge;
 
         // PutFile branches on the FILE'S current lock state, not on whether X-WOPI-Lock was sent.

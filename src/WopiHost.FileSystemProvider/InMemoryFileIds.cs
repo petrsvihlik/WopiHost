@@ -26,9 +26,22 @@ namespace WopiHost.FileSystemProvider;
 /// </remarks>
 public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
 {
+    private const long FailedScanDebounceMs = 2_000;
+
     private readonly ConcurrentDictionary<string, string> _idToPath = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> _pathToId = new(StringComparer.Ordinal);
     private readonly Lock _writeLock = new();
+    private long _lastFailedScanAt = -FailedScanDebounceMs;
+
+    // Matches ScanAll's legacy-overload behavior (no attribute skipping — the EnumerationOptions
+    // default of Hidden|System would hide files the startup scan registers) while tolerating
+    // subtrees the process can't read instead of faulting the resolve mid-enumeration.
+    private static readonly EnumerationOptions s_resolveScanOptions = new()
+    {
+        RecurseSubdirectories = true,
+        IgnoreInaccessible = true,
+        AttributesToSkip = FileAttributes.None,
+    };
 
     /// <summary>
     /// Gets a value indicating whether any files have been scanned.
@@ -75,7 +88,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// startup scan — created or renamed by another process sharing the same tree — resolves to
     /// the same identifier in every process.
     /// </summary>
-    public string GetOrAddFileId(string path)
+    internal string GetOrAddFileId(string path)
         => TryGetFileId(path, out var fileId) ? fileId : AddFile(path);
 
     /// <summary>
@@ -85,7 +98,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// a renamed file). A path that already holds an id (a rename that kept the original id
     /// alive) keeps it as canonical; the resolved id becomes an additional alias for that path.
     /// </summary>
-    public bool TryResolveByScan(string rootPath, string fileId, [NotNullWhen(true)] out string? path)
+    internal bool TryResolveByScan(string rootPath, string fileId, [NotNullWhen(true)] out string? path)
     {
         lock (_writeLock)
         {
@@ -116,19 +129,12 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
         }
     }
 
-    private const long FailedScanDebounceMs = 2_000;
-    private long _lastFailedScanAt = -FailedScanDebounceMs;
-
     private static IEnumerable<string> EnumerateTree(string rootPath)
     {
         yield return rootPath;
-        foreach (var directory in Directory.EnumerateDirectories(rootPath, "*", SearchOption.AllDirectories))
+        foreach (var entry in Directory.EnumerateFileSystemEntries(rootPath, "*", s_resolveScanOptions))
         {
-            yield return directory;
-        }
-        foreach (var file in Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories))
-        {
-            yield return file;
+            yield return entry;
         }
     }
 

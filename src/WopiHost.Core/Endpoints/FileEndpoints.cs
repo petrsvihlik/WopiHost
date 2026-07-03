@@ -88,7 +88,17 @@ internal static class FileEndpoints
             SupportsAddActivities = true,
         };
 
-        var checkFileInfo = await req.Builder.BuildAsync(file, req.Http.ToWopiRequestInfo(), capabilities, userInfo, req.CancellationToken).ConfigureAwait(false);
+        WopiCheckFileInfo checkFileInfo;
+        try
+        {
+            checkFileInfo = await req.Builder.BuildAsync(file, req.Http.ToWopiRequestInfo(), capabilities, userInfo, req.CancellationToken).ConfigureAwait(false);
+        }
+        catch (IOException ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // The file vanished between the Exists check above and the builder's content read
+            // (Sha256) — same missing-resource outcome as the up-front check.
+            return TypedResults.NotFound();
+        }
 
         // Serialize<object>() so any properties declared on a derived WopiCheckFileInfo type
         // make it onto the wire — System.Text.Json walks the runtime type, not the declared type.
@@ -113,7 +123,16 @@ internal static class FileEndpoints
             req.Http.Response.Headers[WopiHeaders.ItemVersion] = file.Version;
         }
 
-        var stream = await file.OpenReadAsync(req.CancellationToken).ConfigureAwait(false);
+        Stream stream;
+        try
+        {
+            stream = await file.OpenReadAsync(req.CancellationToken).ConfigureAwait(false);
+        }
+        catch (IOException ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // The file vanished between the Exists check and the stream open.
+            return TypedResults.NotFound();
+        }
         return TypedResults.Stream(stream, MediaTypeNames.Application.Octet);
     }
 
