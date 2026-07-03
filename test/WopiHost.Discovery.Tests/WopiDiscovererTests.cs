@@ -22,7 +22,7 @@ public class WopiDiscovererTests
     [MemberNotNull(nameof(_wopiDiscoverer))]
     private void InitDiscoverer(string fileName, NetZoneEnum netZone) => 
         _wopiDiscoverer = new WopiDiscoverer(
-            new FileSystemDiscoveryFileProvider(Path.Combine(AppContext.BaseDirectory, fileName), NullLogger<FileSystemDiscoveryFileProvider>.Instance),
+            new FileSystemDiscoveryFileProvider(Path.Join(AppContext.BaseDirectory, fileName), NullLogger<FileSystemDiscoveryFileProvider>.Instance),
             Options.Create(new DiscoveryOptions { NetZone = netZone }),
             NullLogger<WopiDiscoverer>.Instance);
 

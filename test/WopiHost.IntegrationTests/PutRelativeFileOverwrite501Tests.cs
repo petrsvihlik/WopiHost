@@ -107,7 +107,7 @@ public sealed class PutRelativeFileOverwrite501Tests : IClassFixture<PutRelative
 
         public Fixture()
         {
-            _tempRoot = Path.Combine(Path.GetTempPath(), $"wopi-pr501-{Guid.NewGuid():N}");
+            _tempRoot = Path.Join(Path.GetTempPath(), $"wopi-pr501-{Guid.NewGuid():N}");
             Directory.CreateDirectory(_tempRoot);
 
             WopiBackend = new WopiBackendFactory(

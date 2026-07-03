@@ -39,6 +39,7 @@ dotnet run --project sample/WopiHost
   - Keep comments short and concrete; prefer deleting a comment to padding it.
   - Keep the `///` XML doc tags on public APIs (warnings-as-errors require them), but trim their wording to the same bar.
 - .NET analyzers and code style enforcement are on (`EnforceCodeStyleInBuild`).
+- **Path building:** new code uses `Path.Join` for concatenation. `Path.Combine` is reserved for intentional absolute-or-relative resolution and must be paired with an explicit `Path.IsPathRooted` check (its drop-earlier-arguments-on-rooted behavior is otherwise a silent bug — CodeQL `cs/path-combine`). Neither API is a traversal defense (`..` passes through `Path.Join`), so client-controlled names must pass single-segment validation before reaching any path-building call. Note `Path.Join` treats `null` segments as empty where `Path.Combine` throws — guard null inputs explicitly.
 - **Nullable reference types** are enabled solution-wide from the root `Directory.Build.props`. Don't re-declare `<Nullable>` in individual projects — keep the single source of truth.
 - Follow [.NET Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/).
 - Centralized package management via `Directory.Packages.props` — specify versions there, not in individual `.csproj` files.

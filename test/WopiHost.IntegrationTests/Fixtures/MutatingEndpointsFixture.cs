@@ -30,7 +30,7 @@ public sealed class MutatingEndpointsFixture : IDisposable
 
     public MutatingEndpointsFixture()
     {
-        _tempRoot = Path.Combine(Path.GetTempPath(), $"wopi-mut-{Guid.NewGuid():N}");
+        _tempRoot = Path.Join(Path.GetTempPath(), $"wopi-mut-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempRoot);
         CopyDirectory(TestPaths.WopiDocsRoot, _tempRoot);
 
@@ -71,7 +71,7 @@ public sealed class MutatingEndpointsFixture : IDisposable
             await using var stream = await file.OpenWriteAsync();
             await stream.WriteAsync(contents);
         }
-        return (file.Identifier, Path.Combine(_tempRoot, fileName));
+        return (file.Identifier, Path.Join(_tempRoot, fileName));
     }
 
     /// <summary>

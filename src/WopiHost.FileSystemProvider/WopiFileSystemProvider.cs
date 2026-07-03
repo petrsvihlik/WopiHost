@@ -40,9 +40,12 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         var wopiRootPath = options.Value.RootPath;
+        // Path.Join treats a null segment as empty, so a null RootPath must be rejected up front
+        // or the provider would silently root itself at the content root.
+        ArgumentException.ThrowIfNullOrEmpty(wopiRootPath);
         _wopiAbsolutePath = Path.IsPathRooted(wopiRootPath)
             ? wopiRootPath
-            : new DirectoryInfo(Path.Combine(env.ContentRootPath, wopiRootPath)).FullName;
+            : new DirectoryInfo(Path.Join(env.ContentRootPath, wopiRootPath)).FullName;
 
         if (!_fileIds.WasScanned)
         {
@@ -104,12 +107,11 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(identifier);
+        // The id map only ever stores absolute paths, so folderPath enumerates directly.
         if (!TryResolvePath(identifier, out var folderPath))
         {
             throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
         }
-
-        var absolutePath = Path.Combine(_wopiAbsolutePath, folderPath);
 
         // Push the extension filter into the OS-level enumeration: one Directory.EnumerateFiles
         // call per requested extension, each with its own glob. Distinct extensions produce
@@ -121,12 +123,12 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         // case-insensitive extension matching, so it is forced here regardless of host OS.
         var options = new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive };
         var enumeration = (fileExtensions is { Count: > 0 })
-            ? fileExtensions.SelectMany(ext => Directory.EnumerateFiles(absolutePath, "*" + ext, options))
-            : Directory.EnumerateFiles(absolutePath, "*", options);
+            ? fileExtensions.SelectMany(ext => Directory.EnumerateFiles(folderPath, "*" + ext, options))
+            : Directory.EnumerateFiles(folderPath, "*", options);
 
         foreach (var path in enumeration)
         {
-            var filePath = Path.Combine(folderPath, Path.GetFileName(path));
+            var filePath = Path.Join(folderPath, Path.GetFileName(path));
             // The startup scan can't have seen entries created or renamed by another process
             // sharing the tree; ids derive deterministically from paths, so register such a path
             // lazily instead of hiding the file from the listing.
@@ -143,12 +145,13 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(identifier);
+        // The id map only ever stores absolute paths, so folderPath enumerates directly.
         if (!TryResolvePath(identifier, out var folderPath))
         {
             throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
         }
 
-        foreach (var directory in Directory.GetDirectories(Path.Combine(_wopiAbsolutePath, folderPath)))
+        foreach (var directory in Directory.GetDirectories(folderPath))
         {
             // Same lazy registration as GetWopiFiles — a folder created or renamed by another
             // process must still show up in the listing.
@@ -210,12 +213,12 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         }
         // name is client-controlled in some flows (PutRelativeFile target negotiation). Now that
         // unknown on-disk paths register lazily, a rooted or '..' name would resolve and escape
-        // the container — reject anything that isn't a single path segment before combining.
+        // the container — reject anything that isn't a single path segment before joining.
         if (!IsValidSingleSegmentName(name))
         {
             return null;
         }
-        var candidatePath = Path.Combine(dirPath, name);
+        var candidatePath = Path.Join(dirPath, name);
         if (!_fileIds.TryGetFileId(candidatePath, out var nameId))
         {
             // A file on disk that the startup scan never saw still has a derivable id.
@@ -244,7 +247,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         {
             return null;
         }
-        var candidatePath = Path.Combine(dirPath, name);
+        var candidatePath = Path.Join(dirPath, name);
         if (!_fileIds.TryGetFileId(candidatePath, out var nameId))
         {
             if (!Directory.Exists(candidatePath))
@@ -287,7 +290,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(name));
         }
         var fullPath = ResolveContainerPath(containerId);
-        var newPath = Path.Combine(fullPath, name);
+        var newPath = Path.Join(fullPath, name);
         if (!File.Exists(newPath))
         {
             return name;
@@ -296,7 +299,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         var ext = Path.GetExtension(name);
         var counter = 1;
         var candidate = name;
-        while (File.Exists(Path.Combine(fullPath, candidate)))
+        while (File.Exists(Path.Join(fullPath, candidate)))
         {
             candidate = $"{stem} ({counter++}){ext}";
         }
@@ -311,14 +314,14 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(name));
         }
         var fullPath = ResolveContainerPath(containerId);
-        var newPath = Path.Combine(fullPath, name);
+        var newPath = Path.Join(fullPath, name);
         if (!Directory.Exists(newPath))
         {
             return name;
         }
         var counter = 1;
         var candidate = name;
-        while (Directory.Exists(Path.Combine(fullPath, candidate)))
+        while (Directory.Exists(Path.Join(fullPath, candidate)))
         {
             candidate = $"{name} ({counter++})";
         }
@@ -332,14 +335,15 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(containerId);
-        // Reject names that aren't a single path segment (separators, '.', '..') before combining —
-        // the name is client-controlled (relative/suggested target), so this is the path-traversal guard.
+        // Reject names that aren't a single path segment (separators, '.', '..') before building
+        // the target path — the name is client-controlled (relative/suggested target) and
+        // Path.Join concatenates ".." as-is, so this guard is the actual traversal defense.
         if (!await CheckValidFileName(name, cancellationToken).ConfigureAwait(false))
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(name));
         }
         var fullPath = ResolveContainerPath(containerId);
-        var newPath = Path.Combine(fullPath, name);
+        var newPath = Path.Join(fullPath, name);
         if (File.Exists(newPath))
         {
             throw new ArgumentException($"File '{newPath}' already exists.", nameof(name));
@@ -361,14 +365,14 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(containerId);
-        // Reject names that aren't a single path segment (separators, '.', '..') before combining —
-        // the name is client-controlled, so this is the path-traversal guard.
+        // Reject names that aren't a single path segment (separators, '.', '..') before building
+        // the target path — the name is client-controlled, so this guard is the traversal defense.
         if (!await CheckValidContainerName(name, cancellationToken).ConfigureAwait(false))
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(name));
         }
         var fullPath = ResolveContainerPath(containerId);
-        var newPath = Path.Combine(fullPath, name);
+        var newPath = Path.Join(fullPath, name);
         var dirInfo = new DirectoryInfo(newPath);
         if (dirInfo.Exists)
         {
@@ -428,7 +432,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         }
         var parentPath = Path.GetDirectoryName(fullPath)
             ?? throw new DirectoryNotFoundException("Parent directory not found");
-        var newPath = Path.Combine(parentPath, requestedName);
+        var newPath = Path.Join(parentPath, requestedName);
         if (File.Exists(newPath))
         {
             throw new InvalidOperationException($"Target File '{newPath}' already exists.");
@@ -452,7 +456,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         }
         var parentPath = Path.GetDirectoryName(fullPath)
             ?? throw new DirectoryNotFoundException("Parent directory not found");
-        var newPath = Path.Combine(parentPath, requestedName);
+        var newPath = Path.Join(parentPath, requestedName);
         if (Directory.Exists(newPath))
         {
             throw new InvalidOperationException($"Target Directory '{newPath}' already exists.");

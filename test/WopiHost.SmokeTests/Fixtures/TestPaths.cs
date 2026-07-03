@@ -12,7 +12,7 @@ internal static class TestPaths
     {
         var assemblyDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
         var dir = new DirectoryInfo(assemblyDir);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "WOPI.slnx")))
+        while (dir is not null && !File.Exists(Path.Join(dir.FullName, "WOPI.slnx")))
         {
             dir = dir.Parent;
         }
@@ -20,6 +20,6 @@ internal static class TestPaths
         {
             throw new InvalidOperationException("Could not locate repo root (WOPI.slnx) walking up from test bin.");
         }
-        return Path.Combine(dir.FullName, "sample", "wopi-docs");
+        return Path.Join(dir.FullName, "sample", "wopi-docs");
     }
 }

@@ -30,7 +30,7 @@ public class InMemoryFileIdsTests : IDisposable
     [Fact]
     public void AddFile_SamePath_ReturnsSameId()
     {
-        var path = Path.Combine(_tempDir.FullName, "test.docx");
+        var path = Path.Join(_tempDir.FullName, "test.docx");
 
         var id1 = _sut.AddFile(path);
         var id2 = _sut.AddFile(path);
@@ -41,8 +41,8 @@ public class InMemoryFileIdsTests : IDisposable
     [Fact]
     public void AddFile_DifferentPaths_ReturnsDifferentIds()
     {
-        var path1 = Path.Combine(_tempDir.FullName, "file1.docx");
-        var path2 = Path.Combine(_tempDir.FullName, "file2.docx");
+        var path1 = Path.Join(_tempDir.FullName, "file1.docx");
+        var path2 = Path.Join(_tempDir.FullName, "file2.docx");
 
         var id1 = _sut.AddFile(path1);
         var id2 = _sut.AddFile(path2);
@@ -54,7 +54,7 @@ public class InMemoryFileIdsTests : IDisposable
     public void ScanAll_FileInSubdirectory_CanBeFoundById()
     {
         var subDir = _tempDir.CreateSubdirectory("sub");
-        var filePath = Path.Combine(subDir.FullName, "doc.docx");
+        var filePath = Path.Join(subDir.FullName, "doc.docx");
         File.WriteAllText(filePath, string.Empty);
 
         _sut.ScanAll(_tempDir.FullName);
@@ -77,7 +77,7 @@ public class InMemoryFileIdsTests : IDisposable
     [Fact]
     public void GetPath_KnownId_ReturnsPath()
     {
-        var path = Path.Combine(_tempDir.FullName, "doc.docx");
+        var path = Path.Join(_tempDir.FullName, "doc.docx");
         var id = _sut.AddFile(path);
 
         Assert.Equal(path, _sut.GetPath(id));
@@ -99,7 +99,7 @@ public class InMemoryFileIdsTests : IDisposable
     [Fact]
     public void RemoveId_RemovesEntry()
     {
-        var path = Path.Combine(_tempDir.FullName, "doc.docx");
+        var path = Path.Join(_tempDir.FullName, "doc.docx");
         var id = _sut.AddFile(path);
 
         _sut.RemoveId(id);
@@ -110,8 +110,8 @@ public class InMemoryFileIdsTests : IDisposable
     [Fact]
     public void UpdateFile_ChangesPathForExistingId()
     {
-        var oldPath = Path.Combine(_tempDir.FullName, "old.docx");
-        var newPath = Path.Combine(_tempDir.FullName, "new.docx");
+        var oldPath = Path.Join(_tempDir.FullName, "old.docx");
+        var newPath = Path.Join(_tempDir.FullName, "new.docx");
         var id = _sut.AddFile(oldPath);
 
         _sut.UpdateFile(id, newPath);
@@ -123,7 +123,7 @@ public class InMemoryFileIdsTests : IDisposable
     [Fact]
     public void ScanAll_WopiTestFile_GetsWopitestIdentifier()
     {
-        var path = Path.Combine(_tempDir.FullName, "test.wopitest");
+        var path = Path.Join(_tempDir.FullName, "test.wopitest");
         File.WriteAllText(path, string.Empty);
 
         _sut.ScanAll(_tempDir.FullName);
@@ -137,8 +137,8 @@ public class InMemoryFileIdsTests : IDisposable
     {
         // The path→id reverse map must drop the old binding when an id is rebound to a new
         // path, otherwise stale entries pile up unboundedly.
-        var oldPath = Path.Combine(_tempDir.FullName, "old.docx");
-        var newPath = Path.Combine(_tempDir.FullName, "new.docx");
+        var oldPath = Path.Join(_tempDir.FullName, "old.docx");
+        var newPath = Path.Join(_tempDir.FullName, "new.docx");
         var id = _sut.AddFile(oldPath);
 
         _sut.UpdateFile(id, newPath);
@@ -151,7 +151,7 @@ public class InMemoryFileIdsTests : IDisposable
     [Fact]
     public void RemoveId_Path_NoLongerResolvesViaReverseLookup()
     {
-        var path = Path.Combine(_tempDir.FullName, "doc.docx");
+        var path = Path.Join(_tempDir.FullName, "doc.docx");
         var id = _sut.AddFile(path);
 
         _sut.RemoveId(id);
@@ -164,7 +164,7 @@ public class InMemoryFileIdsTests : IDisposable
     {
         // Confirm both maps are reset on rescan — clearing only the forward map would let a
         // parallel reverse-map entry linger.
-        var stalePath = Path.Combine(_tempDir.FullName, "stale.docx");
+        var stalePath = Path.Join(_tempDir.FullName, "stale.docx");
         File.WriteAllText(stalePath, string.Empty);
         _sut.ScanAll(_tempDir.FullName);
         Assert.True(_sut.TryGetFileId(stalePath, out _));
@@ -183,7 +183,7 @@ public class InMemoryFileIdsTests : IDisposable
         // directions.
         const int writers = 64;
         var paths = Enumerable.Range(0, writers)
-            .Select(i => Path.Combine(_tempDir.FullName, $"f{i}.docx"))
+            .Select(i => Path.Join(_tempDir.FullName, $"f{i}.docx"))
             .ToArray();
 
         var ids = await Task.WhenAll(
@@ -202,7 +202,7 @@ public class InMemoryFileIdsTests : IDisposable
     [Fact]
     public void GetOrAddFileId_UnknownPath_RegistersAndRoundTrips()
     {
-        var path = Path.Combine(_tempDir.FullName, "late.docx");
+        var path = Path.Join(_tempDir.FullName, "late.docx");
 
         var id = _sut.GetOrAddFileId(path);
 
@@ -217,8 +217,8 @@ public class InMemoryFileIdsTests : IDisposable
         // After a rename the original id stays bound to the new path (the live WOPI session
         // keeps using it). GetOrAddFileId must return that retained id, not re-derive a fresh
         // one from the new path and clobber the binding.
-        var oldPath = Path.Combine(_tempDir.FullName, "old.docx");
-        var newPath = Path.Combine(_tempDir.FullName, "new.docx");
+        var oldPath = Path.Join(_tempDir.FullName, "old.docx");
+        var newPath = Path.Join(_tempDir.FullName, "new.docx");
         var id = _sut.AddFile(oldPath);
         _sut.UpdateFile(id, newPath);
 
@@ -229,7 +229,7 @@ public class InMemoryFileIdsTests : IDisposable
     public void TryResolveByScan_UnmappedFile_ResolvesAndRegisters()
     {
         // The id another process would derive for a file this map has never seen.
-        var path = Path.Combine(_tempDir.FullName, "unseen.docx");
+        var path = Path.Join(_tempDir.FullName, "unseen.docx");
         File.WriteAllText(path, string.Empty);
         var peerDerivedId = _sut.AddFile(path);
         _sut.RemoveId(peerDerivedId); // forget it again — only the disk knows the file now
@@ -246,8 +246,8 @@ public class InMemoryFileIdsTests : IDisposable
     {
         // A rename retained old-id for the new path; a peer-derived id for the same path must
         // resolve as an alias without stealing the path's canonical (retained) id.
-        var oldPath = Path.Combine(_tempDir.FullName, "old.docx");
-        var newPath = Path.Combine(_tempDir.FullName, "renamed.docx");
+        var oldPath = Path.Join(_tempDir.FullName, "old.docx");
+        var newPath = Path.Join(_tempDir.FullName, "renamed.docx");
         File.WriteAllText(newPath, string.Empty);
         var retainedId = _sut.AddFile(oldPath);
         _sut.UpdateFile(retainedId, newPath);
@@ -273,7 +273,7 @@ public class InMemoryFileIdsTests : IDisposable
         // A failed scan suppresses the next one for the debounce window, so within it even a
         // resolvable id reports a miss (the caller surfaces 404 and the client's retry lands
         // after the window).
-        var path = Path.Combine(_tempDir.FullName, "debounced.docx");
+        var path = Path.Join(_tempDir.FullName, "debounced.docx");
         File.WriteAllText(path, string.Empty);
         var resolvableId = _sut.AddFile(path);
         _sut.RemoveId(resolvableId); // only the disk knows the file now
@@ -288,7 +288,7 @@ public class InMemoryFileIdsTests : IDisposable
         // Stress: half the workers add, the other half remove the same file id. Whatever the
         // interleaving, the forward and reverse maps must agree (no dangling reverse entry).
         const int rounds = 200;
-        var path = Path.Combine(_tempDir.FullName, "shared.docx");
+        var path = Path.Join(_tempDir.FullName, "shared.docx");
 
         var add = Task.Run(() =>
         {
