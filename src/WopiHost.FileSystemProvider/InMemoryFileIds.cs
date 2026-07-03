@@ -17,31 +17,26 @@ namespace WopiHost.FileSystemProvider;
 /// id→path map plus a path→id reverse-lookup map — so <see cref="TryGetFileId"/> is O(1) rather
 /// than an O(n) scan. Reads
 /// (<see cref="TryGetFileId"/> / <see cref="TryGetPath"/> / <see cref="GetPath"/> /
-/// <see cref="WasScanned"/>) are lock-free. Mutations (<see cref="AddFile"/> /
-/// <see cref="UpdateFile"/> / <see cref="RemoveId"/> / <see cref="ScanAll"/> /
-/// <see cref="TryResolveByScan"/>) serialize on a private lock to keep the two maps consistent
-/// across the multi-step rebinding sequence
+/// <see cref="WasScanned"/>) are lock-free. Mutations serialize on a private lock to keep the
+/// two maps consistent across the multi-step rebinding sequence
 /// (clear stale reverse entry → install new forward entry → install new reverse entry).
+/// </para>
+/// <para>
+/// The map holds no filesystem-convergence logic of its own; keeping it in sync with the tree
+/// (watcher events, reconciliation sweeps) is <see cref="FileIdMapSynchronizer"/>'s job.
 /// </para>
 /// </remarks>
 public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
 {
-    private const long FailedScanDebounceMs = 2_000;
+    /// <summary>
+    /// Fixed identifier for the WOPI validator's <c>test.wopitest</c> file, so validator runs can
+    /// address it without knowing the hash of its path.
+    /// </summary>
+    internal const string WopiTestFileId = "WOPITEST";
 
     private readonly ConcurrentDictionary<string, string> _idToPath = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> _pathToId = new(StringComparer.Ordinal);
     private readonly Lock _writeLock = new();
-    private long _lastFailedScanAt = -FailedScanDebounceMs;
-
-    // Matches ScanAll's legacy-overload behavior (no attribute skipping — the EnumerationOptions
-    // default of Hidden|System would hide files the startup scan registers) while tolerating
-    // subtrees the process can't read instead of faulting the resolve mid-enumeration.
-    private static readonly EnumerationOptions s_resolveScanOptions = new()
-    {
-        RecurseSubdirectories = true,
-        IgnoreInaccessible = true,
-        AttributesToSkip = FileAttributes.None,
-    };
 
     /// <summary>
     /// Gets a value indicating whether any files have been scanned.
@@ -78,7 +73,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// </summary>
     public string AddFile(string path)
     {
-        var id = IdFromPath(path);
+        var id = DeriveId(path);
         lock (_writeLock)
         {
             SetMapping(id, path);
@@ -96,49 +91,94 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
         => TryGetFileId(path, out var fileId) ? fileId : AddFile(path);
 
     /// <summary>
-    /// Attempts to resolve an unmapped identifier by scanning <paramref name="rootPath"/> for an
-    /// entry whose derived identifier matches — the recovery path for ids minted by another
-    /// process over the same tree after this process's startup scan (e.g. a listing built against
-    /// a renamed file). A path that already holds an id (a rename that kept the original id
-    /// alive) keeps it as canonical; the resolved id becomes an additional alias for that path.
+    /// Installs <paramref name="id"/>→<paramref name="path"/> without displacing the path's
+    /// existing reverse binding: a path that already holds an id (a rename that kept the original
+    /// id alive) keeps it as canonical, and <paramref name="id"/> becomes an additional alias for
+    /// the path. Returns <see langword="false"/> when the exact mapping was already present.
     /// </summary>
-    internal bool TryResolveByScan(string rootPath, string fileId, [NotNullWhen(true)] out string? path)
+    internal bool EnsureMapping(string id, string path)
     {
         lock (_writeLock)
         {
-            // The id may have been registered while waiting for the lock.
-            if (_idToPath.TryGetValue(fileId, out path))
+            if (_idToPath.TryGetValue(id, out var existing))
             {
-                return true;
+                if (string.Equals(existing, path, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+                RemoveReverseEntry(existing, id);
             }
-            // Unresolvable ids (malformed, or pointing at a deleted file) would otherwise cost a
-            // full tree walk per request; one recent failed scan suppresses the next.
-            if (Environment.TickCount64 - _lastFailedScanAt < FailedScanDebounceMs)
-            {
-                return false;
-            }
-            var match = EnumerateTree(rootPath)
-                .FirstOrDefault(candidate => string.Equals(IdFromPath(candidate), fileId, StringComparison.Ordinal));
-            if (match is null)
-            {
-                _lastFailedScanAt = Environment.TickCount64;
-                LogIdScanMiss(logger, fileId);
-                return false;
-            }
-            _idToPath[fileId] = match;
-            _pathToId.TryAdd(match, fileId);
-            path = match;
-            LogIdResolvedByScan(logger, fileId, match);
+            _idToPath[id] = path;
+            _pathToId.TryAdd(path, id);
             return true;
         }
     }
 
-    private static IEnumerable<string> EnumerateTree(string rootPath)
+    /// <summary>
+    /// Removes the binding for the specified path, if any. Alias identifiers still pointing at
+    /// the path are left in place — they resolve to a path that no longer exists, which callers
+    /// already treat as missing — so the removal stays O(1) even when deletions arrive in bursts.
+    /// </summary>
+    internal void TryRemovePath(string path)
     {
-        yield return rootPath;
-        foreach (var entry in Directory.EnumerateFileSystemEntries(rootPath, "*", s_resolveScanOptions))
+        lock (_writeLock)
         {
-            yield return entry;
+            if (_pathToId.TryRemove(path, out var id))
+            {
+                // Drop the forward entry only if it still points at this path — otherwise this
+                // would clobber an id that was already rebound elsewhere.
+                ((ICollection<KeyValuePair<string, string>>)_idToPath)
+                    .Remove(new KeyValuePair<string, string>(id, path));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Repoints every identifier bound to <paramref name="oldPath"/> — or to an entry beneath it
+    /// — onto the corresponding path under <paramref name="newPath"/>, preserving each id across
+    /// the rename. Canonical bindings stay canonical (a witnessed rename outranks any stale
+    /// binding the target path may have held); aliases stay aliases. Returns
+    /// <see langword="false"/> when nothing was bound under <paramref name="oldPath"/>.
+    /// </summary>
+    internal bool RepointSubtree(string oldPath, string newPath)
+    {
+        lock (_writeLock)
+        {
+            var repointed = false;
+            var prefix = oldPath + Path.DirectorySeparatorChar;
+            // ConcurrentDictionary enumeration is safe under concurrent mutation and visits each
+            // key once; only values of already-visited keys are rewritten here.
+            foreach (var pair in _idToPath)
+            {
+                string updated;
+                if (string.Equals(pair.Value, oldPath, StringComparison.Ordinal))
+                {
+                    updated = newPath;
+                }
+                else if (pair.Value.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    updated = string.Concat(newPath, pair.Value.AsSpan(oldPath.Length));
+                }
+                else
+                {
+                    continue;
+                }
+
+                var wasCanonical = _pathToId.TryGetValue(pair.Value, out var canonicalId)
+                    && string.Equals(canonicalId, pair.Key, StringComparison.Ordinal);
+                if (wasCanonical)
+                {
+                    RemoveReverseEntry(pair.Value, pair.Key);
+                    _pathToId[updated] = pair.Key;
+                }
+                else
+                {
+                    _pathToId.TryAdd(updated, pair.Key);
+                }
+                _idToPath[pair.Key] = updated;
+                repointed = true;
+            }
+            return repointed;
         }
     }
 
@@ -151,10 +191,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
         {
             if (_idToPath.TryRemove(fileId, out var path))
             {
-                // Drop the reverse entry only if it still points at this id — otherwise this would
-                // clobber a newer binding that re-attached the same path to a different id.
-                ((ICollection<KeyValuePair<string, string>>)_pathToId)
-                    .Remove(new KeyValuePair<string, string>(path, fileId));
+                RemoveReverseEntry(path, fileId);
             }
         }
     }
@@ -180,19 +217,9 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
             _idToPath.Clear();
             _pathToId.Clear();
 
-            SetMapping(IdFromPath(rootPath), rootPath);
-
-            foreach (var directory in Directory.EnumerateDirectories(rootPath, "*", SearchOption.AllDirectories))
+            foreach (var entry in FileSystemEnumeration.EnumerateTree(rootPath))
             {
-                SetMapping(IdFromPath(directory), directory);
-            }
-
-            foreach (var file in Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories))
-            {
-                var newId = file.EndsWith("test.wopitest", StringComparison.OrdinalIgnoreCase)
-                    ? "WOPITEST"
-                    : IdFromPath(file);
-                SetMapping(newId, file);
+                SetMapping(DeriveId(entry), entry);
             }
 
             LogScannedItems(logger, _idToPath.Count);
@@ -208,16 +235,26 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     {
         if (_idToPath.TryGetValue(id, out var oldPath) && !string.Equals(oldPath, path, StringComparison.Ordinal))
         {
-            ((ICollection<KeyValuePair<string, string>>)_pathToId)
-                .Remove(new KeyValuePair<string, string>(oldPath, id));
+            RemoveReverseEntry(oldPath, id);
         }
         _idToPath[id] = path;
         _pathToId[path] = id;
     }
 
     /// <summary>
+    /// Drops the reverse entry only if it still points at this id — otherwise this would
+    /// clobber a newer binding that re-attached the same path to a different id.
+    /// </summary>
+    private void RemoveReverseEntry(string path, string id)
+        => ((ICollection<KeyValuePair<string, string>>)_pathToId)
+            .Remove(new KeyValuePair<string, string>(path, id));
+
+    /// <summary>
     /// Creates a deterministic identifier from a file path so that the same path always
     /// produces the same identifier, even across process restarts or separate services.
+    /// This is the single derivation policy — every flow that mints an id (startup scan,
+    /// create, lazy registration, watcher event, reconciliation sweep) goes through it, so a
+    /// <c>test.wopitest</c> file gets <see cref="WopiTestFileId"/> no matter how it appeared.
     /// </summary>
     /// <remarks>
     /// Case-folds with <see cref="string.ToUpperInvariant"/> before delegating to
@@ -226,6 +263,11 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// On case-sensitive Linux filesystems this is conservative but harmless — the same path
     /// still hashes to the same id.
     /// </remarks>
-    private static string IdFromPath(string path) =>
-        WopiResourceId.FromCanonicalPath(Path.GetFullPath(path).ToUpperInvariant());
+    internal static string DeriveId(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        return fullPath.EndsWith("test.wopitest", StringComparison.OrdinalIgnoreCase)
+            ? WopiTestFileId
+            : WopiResourceId.FromCanonicalPath(fullPath.ToUpperInvariant());
+    }
 }

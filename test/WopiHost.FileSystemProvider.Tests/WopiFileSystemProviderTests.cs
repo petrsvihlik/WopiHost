@@ -23,6 +23,7 @@ public class WopiFileSystemProviderTests : IDisposable
     private readonly InMemoryFileIds _fileIds;
     private readonly IHostEnvironment _env;
     private readonly WopiFileSystemProvider _sut;
+    private readonly List<WopiFileSystemProvider> _providers = [];
 
     public WopiFileSystemProviderTests()
     {
@@ -45,6 +46,8 @@ public class WopiFileSystemProviderTests : IDisposable
 
     public void Dispose()
     {
+        // Providers own file-system watchers; release them before the watched tree goes away.
+        _providers.ForEach(p => p.Dispose());
         _root.Refresh();
         if (_root.Exists) _root.Delete(recursive: true);
         GC.SuppressFinalize(this);
@@ -53,10 +56,17 @@ public class WopiFileSystemProviderTests : IDisposable
     private WopiFileSystemProvider CreateProvider(
         string rootPath,
         InMemoryFileIds? ids = null,
-        IHostEnvironment? env = null)
+        IHostEnvironment? env = null,
+        bool watchForExternalChanges = true)
     {
-        var options = Options.Create(new WopiFileSystemProviderOptions { RootPath = rootPath });
-        return new WopiFileSystemProvider(ids ?? _fileIds, env ?? _env, options, NullLogger<WopiFileSystemProvider>.Instance);
+        var options = Options.Create(new WopiFileSystemProviderOptions
+        {
+            RootPath = rootPath,
+            WatchForExternalChanges = watchForExternalChanges,
+        });
+        var provider = new WopiFileSystemProvider(ids ?? _fileIds, env ?? _env, options, NullLogger<WopiFileSystemProvider>.Instance);
+        _providers.Add(provider);
+        return provider;
     }
 
     // ---------- Constructor ----------
@@ -927,5 +937,72 @@ public class WopiFileSystemProviderTests : IDisposable
 
         Assert.All(ids.StoredPaths, path =>
             Assert.True(Path.IsPathRooted(path), $"Stored path '{path}' is not rooted."));
+    }
+
+    // ---------- Watcher-driven convergence ----------
+
+    [Fact]
+    public async Task RenameByPeerProcess_RepointsSameIdInThisProcess()
+    {
+        // The issue-587 acceptance scenario: a peer process (own map) renames; once its event is
+        // processed here, this process resolves the file under the *same* id — no alias, so both
+        // processes lock the file in one domain.
+        Assert.True(_fileIds.TryGetFileId(_rootTxtPath, out var originalId));
+        var peerIds = new InMemoryFileIds(NullLogger<InMemoryFileIds>.Instance);
+        var peer = CreateProvider(_root.FullName, peerIds);
+        Assert.True(peerIds.TryGetFileId(_rootTxtPath, out var peerId));
+        Assert.Equal(originalId, peerId); // deterministic derivation: both processes agree up front
+
+        Assert.True(await peer.RenameWopiFile(peerId, "renamed.txt"));
+
+        var newPath = Path.Join(_root.FullName, "renamed.txt");
+        var deadline = Environment.TickCount64 + 10_000;
+        while (Environment.TickCount64 < deadline)
+        {
+            if (_fileIds.TryGetFileId(newPath, out var repointed) && repointed == originalId)
+            {
+                break;
+            }
+            await Task.Delay(25);
+        }
+        Assert.True(_fileIds.TryGetFileId(newPath, out var resolvedId), "Rename event was not applied to the peer map.");
+        Assert.Equal(originalId, resolvedId);
+        Assert.False(_fileIds.TryGetFileId(_rootTxtPath, out _));
+    }
+
+    [Fact]
+    public async Task WatcherDisabled_PeerMintedIdStillResolvesViaReconcile()
+    {
+        // With the watcher opted out (network shares, bind mounts), the provider must degrade to
+        // the reconcile fallback, not to invisibility.
+        var provider = CreateProvider(_root.FullName, new InMemoryFileIds(NullLogger<InMemoryFileIds>.Instance),
+            watchForExternalChanges: false);
+        Assert.False(provider.IsWatchingForExternalChanges);
+
+        var newPath = Path.Join(_root.FullName, "moved-by-peer.txt");
+        File.Move(_rootTxtPath, newPath);
+        var peerMintedId = InMemoryFileIds.DeriveId(newPath);
+
+        var file = await provider.GetWopiFile(peerMintedId);
+
+        Assert.NotNull(file);
+        Assert.Equal("moved-by-peer", file.Name);
+    }
+
+    [Fact]
+    public void Ctor_WatcherEnabledByDefault()
+    {
+        Assert.True(_sut.IsWatchingForExternalChanges);
+    }
+
+    [Fact]
+    public void Dispose_Twice_DoesNotThrow()
+    {
+        using var provider = CreateProvider(_root.FullName, new InMemoryFileIds(NullLogger<InMemoryFileIds>.Instance));
+
+        provider.Dispose();
+        provider.Dispose();
+
+        Assert.False(provider.IsWatchingForExternalChanges);
     }
 }

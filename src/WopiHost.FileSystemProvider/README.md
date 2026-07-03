@@ -19,12 +19,13 @@ dotnet add package WopiHost.FileSystemProvider
 // appsettings.json
 "Wopi": {
   "StorageProvider": {
-    "RootPath": "./wopi-docs"   // absolute or relative to ContentRootPath
+    "RootPath": "./wopi-docs",          // absolute or relative to ContentRootPath
+    "WatchForExternalChanges": true     // default; see "How identifiers work"
   }
 }
 ```
 
-`RootPath` is bound from the `Wopi:StorageProvider` section (`WopiFileSystemProviderOptions.SectionName`).
+`RootPath` is bound from the `Wopi:StorageProvider` section (`WopiFileSystemProviderOptions.SectionName`). Set `WatchForExternalChanges` to `false` on storage where change notifications are unreliable — network shares (SMB/NFS) and some container bind mounts — to skip the `FileSystemWatcher` and rely on the fallback resolution described below.
 
 ## Register
 
@@ -40,9 +41,13 @@ builder.Services.AddWopi(o =>
 
 ## How identifiers work
 
-Identifiers are deterministic 64-character SHA-256 hex hashes of the canonical (case-folded) path, computed by [`InMemoryFileIds`](InMemoryFileIds.cs) via `WopiResourceId.FromCanonicalPath`. Consumers treat them as opaque. Lookup is `O(1)` in both directions; the in-memory map is rebuilt at startup and lazily refreshed after that: enumeration registers on-disk entries the startup scan never saw, and an id absent from the map falls back to a hash-matching scan of the tree. (The WOPI validator's `test.wopitest` file is the one exception — it's given the fixed id `WOPITEST`.)
+Identifiers are deterministic 64-character SHA-256 hex hashes of the canonical (case-folded) path, computed by [`InMemoryFileIds`](InMemoryFileIds.cs) via `WopiResourceId.FromCanonicalPath`. Consumers treat them as opaque. (The WOPI validator's `test.wopitest` file is the one exception — it's given the fixed id `WOPITEST` by every registration flow.) Lookup is `O(1)` in both directions; the in-memory map is rebuilt at startup and kept converged with the tree after that by [`FileIdMapSynchronizer`](FileIdMapSynchronizer.cs), in three layers:
 
-A consequence: because an id derives purely from the path, a file's id is **stable across process restarts** and across hosts pointing at the same tree, so long-lived WOPI URLs keep working without persisting a separate mapping. Renaming or moving a file changes its id (the path changed); the provider re-points the id on rename so an in-progress edit's URL doesn't break. Another process over the same tree derives a fresh id from the new path instead — both resolve (the retained id stays canonical for the renaming process; the derived one is registered as an alias on first use), so listings and clicks converge without restarts. The alias does mean the two ids lock independently, so cross-process co-authoring of a just-renamed file isn't guaranteed until restart — acceptable for the dev/single-instance deployments this provider targets.
+1. **`FileSystemWatcher` (primary, on by default).** Create/delete/rename events update the map as they happen. The rename event carries both paths, so the file's *existing* id is repointed to the new path — including every child when a directory is renamed — rather than a new id being derived for what looks like a new file.
+2. **Lazy registration.** Enumeration and by-name lookups register on-disk entries the map hasn't seen; ids derive deterministically from paths, so every process derives the same id.
+3. **Reconciliation sweep (recovery).** An id absent from the map triggers a debounced full-tree sweep that registers the derived id of every entry — this covers events the watcher lost (buffer overflow, races) or never got (`WatchForExternalChanges=false`). The sweep enumerates and hashes outside the map's write lock, so lookups and mutations aren't blocked while it runs, and malformed ids (anything that isn't a 64-char lower-hex digest) are rejected without touching the disk. Tree walks skip reparse points (junctions/symlinks): they can introduce cycles, and entries outside the root must not become addressable through a link inside it.
+
+A consequence: because an id derives purely from the path, a file's id is **stable across process restarts** and across hosts pointing at the same tree, so long-lived WOPI URLs keep working without persisting a separate mapping. Renaming or moving a file changes its path-derived id, but the provider re-points the retained id on rename — and the watcher replays that same repoint in every other process over the tree — so an in-progress edit's URL keeps working everywhere and all processes keep addressing the file through **one id, one lock domain**. Only when the rename event is lost (or the watcher is off) does another process fall back to deriving a fresh id from the new path; both ids then resolve (the retained id stays canonical, the derived one registers as an alias on first use), at the cost that the two ids lock independently until the processes restart — acceptable for the dev/single-instance deployments this provider targets.
 
 ## Customize
 

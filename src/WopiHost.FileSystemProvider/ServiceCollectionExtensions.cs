@@ -34,8 +34,9 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton<InMemoryFileIds>();
         // TryAdd: a host registering its own provider first wins, and a repeat call no-ops
-        // instead of double-registering. Singleton is safe — the provider is stateless after
-        // construction and routes all mutable state through the thread-safe InMemoryFileIds.
+        // instead of double-registering. Singleton is safe — the provider routes all mutable
+        // state through the thread-safe InMemoryFileIds; its change watcher is disposed with
+        // the container (the provider is IDisposable).
         services.TryAddSingleton<WopiFileSystemProvider>();
         services.TryAddSingleton<IWopiStorageProvider>(sp => sp.GetRequiredService<WopiFileSystemProvider>());
         services.TryAddSingleton<IWopiWritableStorageProvider>(sp => sp.GetRequiredService<WopiFileSystemProvider>());
