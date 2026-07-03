@@ -2,8 +2,8 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!-- Enables overriding a transitive dependency's version from a PackageVersion entry below.
-         Required for the MessagePack and Microsoft.OpenApi security pins; remove together with
-         those pins once they're no longer needed. -->
+         Required only for the "Transitive security pins" section; remove together with its
+         last entry. -->
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
@@ -43,18 +43,22 @@
     <!-- Aspire integration for the Redis lock provider opt-in. Only the AppHost needs it. -->
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.4.4" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.7.0" />
-    <!-- Security pin (not referenced directly). Aspire 13.4.3 pulls MessagePack 2.5.192
-         transitively, which GHSA-hv8m-jj95-wg3x flags as a high-severity LZ4-decompression
-         crash; 2.5.301 is the first patched 2.5.x release. NuGet audit + warnings-as-errors
-         turns the advisory into a restore-breaking NU1903. Remove this (and the
-         CentralPackageTransitivePinningEnabled property above) once Aspire ships a
-         MessagePack >= 2.5.301 transitively. -->
+  </ItemGroup>
+
+  <!--
+    Transitive security pins — no project references these directly. Each entry force-upgrades
+    a vulnerable transitive dependency that NuGet audit (with warnings-as-errors) would
+    otherwise turn into a restore-breaking NU1903. Remove an entry once its parent package
+    ships a patched version transitively; the entry's comment names the parent and the first
+    patched release to watch for.
+  -->
+  <ItemGroup Label="Transitive security pins">
+    <!-- Aspire pulls MessagePack 2.5.192, which GHSA-hv8m-jj95-wg3x flags as a high-severity
+         LZ4-decompression crash; 2.5.301 is the first patched 2.5.x release. -->
     <PackageVersion Include="MessagePack" Version="2.5.301" />
-    <!-- Security pin (not referenced directly). Microsoft.AspNetCore.OpenApi pulls
-         Microsoft.OpenApi 2.0.0 transitively, which GHSA-v5pm-xwqc-g5wc flags as a
-         high-severity stack overflow when parsing circular schema references; 2.7.5 is the
-         first patched 2.x release. Remove once Microsoft.AspNetCore.OpenApi ships
-         Microsoft.OpenApi >= 2.7.5 transitively. -->
+    <!-- Microsoft.AspNetCore.OpenApi pulls Microsoft.OpenApi 2.0.0, which GHSA-v5pm-xwqc-g5wc
+         flags as a high-severity stack overflow on circular schema references; 2.7.5 is the
+         first patched 2.x release. -->
     <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
   </ItemGroup>
 
