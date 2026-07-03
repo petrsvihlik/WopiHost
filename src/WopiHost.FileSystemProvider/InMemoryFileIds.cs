@@ -100,20 +100,19 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
             {
                 return false;
             }
-            foreach (var candidate in EnumerateTree(rootPath))
+            var match = EnumerateTree(rootPath)
+                .FirstOrDefault(candidate => string.Equals(IdFromPath(candidate), fileId, StringComparison.Ordinal));
+            if (match is null)
             {
-                if (string.Equals(IdFromPath(candidate), fileId, StringComparison.Ordinal))
-                {
-                    _idToPath[fileId] = candidate;
-                    _pathToId.TryAdd(candidate, fileId);
-                    path = candidate;
-                    LogIdResolvedByScan(logger, fileId, candidate);
-                    return true;
-                }
+                _lastFailedScanAt = Environment.TickCount64;
+                LogIdScanMiss(logger, fileId);
+                return false;
             }
-            _lastFailedScanAt = Environment.TickCount64;
-            LogIdScanMiss(logger, fileId);
-            return false;
+            _idToPath[fileId] = match;
+            _pathToId.TryAdd(match, fileId);
+            path = match;
+            LogIdResolvedByScan(logger, fileId, match);
+            return true;
         }
     }
 

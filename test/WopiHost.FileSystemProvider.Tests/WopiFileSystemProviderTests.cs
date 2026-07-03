@@ -868,4 +868,38 @@ public class WopiFileSystemProviderTests : IDisposable
 
         Assert.Contains("late-folder", names);
     }
+
+    [Fact]
+    public async Task GetWopiFileByName_TraversalName_ReturnsNull()
+    {
+        // root.txt exists one level above sub and would resolve on disk via "..". Lazy
+        // registration must not let a traversal name escape the container.
+        Assert.True(_fileIds.TryGetFileId(_sub.FullName, out var subId));
+
+        var result = await _sut.GetWopiFileByName(subId, Path.Combine("..", "root.txt"));
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetWopiFileByName_RootedName_ReturnsNull()
+    {
+        // A rooted name would make Path.Combine discard the container path entirely and serve
+        // an arbitrary on-disk file.
+        Assert.True(_fileIds.TryGetFileId(_sub.FullName, out var subId));
+
+        var result = await _sut.GetWopiFileByName(subId, _rootDocxPath);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetWopiContainerByName_TraversalOrRootedName_ReturnsNull()
+    {
+        Assert.True(_fileIds.TryGetFileId(_sub.FullName, out var subId));
+
+        Assert.Null(await _sut.GetWopiContainerByName(subId, ".."));
+        Assert.Null(await _sut.GetWopiContainerByName(subId, Path.Combine("..", "empty")));
+        Assert.Null(await _sut.GetWopiContainerByName(subId, _empty.FullName));
+    }
 }

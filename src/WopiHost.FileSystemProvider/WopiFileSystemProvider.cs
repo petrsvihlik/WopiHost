@@ -208,6 +208,13 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         {
             return null;
         }
+        // name is client-controlled in some flows (PutRelativeFile target negotiation). Now that
+        // unknown on-disk paths register lazily, a rooted or '..' name would resolve and escape
+        // the container — reject anything that isn't a single path segment before combining.
+        if (!IsValidSingleSegmentName(name))
+        {
+            return null;
+        }
         var candidatePath = Path.Combine(dirPath, name);
         if (!_fileIds.TryGetFileId(candidatePath, out var nameId))
         {
@@ -228,6 +235,12 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         CancellationToken cancellationToken = default)
     {
         if (!TryResolvePath(containerId, out var dirPath))
+        {
+            return null;
+        }
+        // Same single-segment guard as GetWopiFileByName — lazy registration must stay
+        // confined to the container.
+        if (!IsValidSingleSegmentName(name))
         {
             return null;
         }
