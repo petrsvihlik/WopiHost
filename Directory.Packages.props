@@ -2,8 +2,8 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!-- Enables overriding a transitive dependency's version from a PackageVersion entry below.
-         Required for the MessagePack security pin; remove together with that pin once it's
-         no longer needed. -->
+         Required only for the "Transitive security pins" section; remove together with its
+         last entry. -->
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
@@ -23,7 +23,7 @@
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.9" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.16.6" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.16.9" />
     <PackageVersion Include="Scrutor" Version="7.0.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.7.0" />
@@ -43,13 +43,23 @@
     <!-- Aspire integration for the Redis lock provider opt-in. Only the AppHost needs it. -->
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.4.4" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.7.0" />
-    <!-- Security pin (not referenced directly). Aspire 13.4.3 pulls MessagePack 2.5.192
-         transitively, which GHSA-hv8m-jj95-wg3x flags as a high-severity LZ4-decompression
-         crash; 2.5.301 is the first patched 2.5.x release. NuGet audit + warnings-as-errors
-         turns the advisory into a restore-breaking NU1903. Remove this (and the
-         CentralPackageTransitivePinningEnabled property above) once Aspire ships a
-         MessagePack >= 2.5.301 transitively. -->
+  </ItemGroup>
+
+  <!--
+    Transitive security pins — no project references these directly. Each entry force-upgrades
+    a vulnerable transitive dependency that NuGet audit (with warnings-as-errors) would
+    otherwise turn into a restore-breaking NU1903. Remove an entry once its parent package
+    ships a patched version transitively; the entry's comment names the parent and the first
+    patched release to watch for.
+  -->
+  <ItemGroup Label="Transitive security pins">
+    <!-- Aspire pulls MessagePack 2.5.192, which GHSA-hv8m-jj95-wg3x flags as a high-severity
+         LZ4-decompression crash; 2.5.301 is the first patched 2.5.x release. -->
     <PackageVersion Include="MessagePack" Version="2.5.301" />
+    <!-- Microsoft.AspNetCore.OpenApi pulls Microsoft.OpenApi 2.0.0, which GHSA-v5pm-xwqc-g5wc
+         flags as a high-severity stack overflow on circular schema references; 2.7.5 is the
+         first patched 2.x release. -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
   </ItemGroup>
 
   <!--
@@ -76,18 +86,20 @@
     <PackageVersion Include="Aspire.Hosting.Testing" Version="13.4.4" />
     <PackageVersion Include="FakeItEasy" Version="9.0.1" />
     <!-- Emits JUnit XML test results for Codecov Test Analytics (flaky-test / failure
-         reporting). Consumed via the `junit` VSTest logger in CI. Pinned below 8.0.0:
-         that release links against Microsoft.Testing.Platform 2.0, which outranks the
-         1.9.1 pulled in transitively by xunit.v3 and breaks the build with CS1705. -->
+         reporting). Consumed via the `junit` VSTest logger in CI. Pinned below 8.0.0: the
+         8.x line is compiled against Microsoft.Testing.Platform v2, while xunit.v3 3.x
+         ships MTP 1.x, so mixing them breaks the build with CS1705 in every test project.
+         Bump to 8.x together with the xunit.v3 4.x upgrade — the first xunit line with
+         MTP v2 support. -->
     <PackageVersion Include="JunitXml.TestLogger" Version="7.1.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.9" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.61.0" />
     <PackageVersion Include="Moq" Version="4.20.72" />
-    <PackageVersion Include="Testcontainers" Version="4.12.0" />
-    <PackageVersion Include="Testcontainers.Azurite" Version="4.12.0" />
-    <PackageVersion Include="Testcontainers.Redis" Version="4.12.0" />
+    <PackageVersion Include="Testcontainers" Version="4.13.0" />
+    <PackageVersion Include="Testcontainers.Azurite" Version="4.13.0" />
+    <PackageVersion Include="Testcontainers.Redis" Version="4.13.0" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <!-- Runner-free packages used only by WopiHost.Abstractions.Testing — the shared conformance
          library is a class library, not a test project, so it can't pull in the xunit.v3
