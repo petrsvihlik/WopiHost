@@ -60,7 +60,10 @@ internal static class FileEndpoints
         [AsParameters] CheckFileInfoRequest req)
     {
         var file = await req.Storage.GetWopiFile(req.Id, req.CancellationToken).ConfigureAwait(false);
-        if (file is null) return TypedResults.NotFound();
+        // Exists=false means the provider resolved the id to a path that's no longer there (a
+        // stale id→path binding after an out-of-band rename or delete). Treat it as a missing
+        // resource — building the response would fault on the content read (Sha256).
+        if (file is null || !file.Exists) return TypedResults.NotFound();
 
         _ = req.MemoryCache.TryGetValue($"{UserInfoCacheKeyPrefix}{req.Http.User.GetUserId()}", out string? userInfo);
 
@@ -94,9 +97,10 @@ internal static class FileEndpoints
         [AsParameters] GetFileRequest req)
     {
         var file = await req.Storage.GetWopiFile(req.Id, req.CancellationToken).ConfigureAwait(false);
-        if (file is null) return TypedResults.NotFound();
+        // Exists=false is a stale id→path binding — 404 rather than faulting in OpenReadAsync.
+        if (file is null || !file.Exists) return TypedResults.NotFound();
 
-        var size = file.Exists ? file.Length : 0;
+        var size = file.Length;
         if (req.MaximumExpectedSize is not null && size > req.MaximumExpectedSize.Value)
         {
             return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);

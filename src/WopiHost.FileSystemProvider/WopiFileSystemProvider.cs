@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -58,7 +59,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     /// <inheritdoc/>
     public Task<IWopiFile?> GetWopiFile(string identifier, CancellationToken cancellationToken = default)
     {
-        if (_fileIds.TryGetPath(identifier, out var fullPath))
+        if (TryResolvePath(identifier, out var fullPath))
         {
             return Task.FromResult<IWopiFile?>(new WopiFile(fullPath, identifier));
         }
@@ -70,7 +71,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     {
         // Same WopiFile the read-side returns — the concrete class implements IWopiWritableFile
         // (which extends IWopiFile), so read vs. writable is purely the static type the caller sees.
-        if (_fileIds.TryGetPath(identifier, out var fullPath))
+        if (TryResolvePath(identifier, out var fullPath))
         {
             return Task.FromResult<IWopiWritableFile?>(new WopiFile(fullPath, identifier));
         }
@@ -80,12 +81,21 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     /// <inheritdoc/>
     public Task<IWopiContainer?> GetWopiContainer(string identifier, CancellationToken cancellationToken = default)
     {
-        if (_fileIds.TryGetPath(identifier, out var fullPath))
+        if (TryResolvePath(identifier, out var fullPath))
         {
             return Task.FromResult<IWopiContainer?>(new WopiContainer(fullPath, identifier));
         }
         return Task.FromResult<IWopiContainer?>(null);
     }
+
+    /// <summary>
+    /// Map lookup with a scan-on-miss fallback. Ids derive deterministically from paths, so an
+    /// id this process has never seen — minted by another process over the same tree after a
+    /// rename or create — is recoverable by hashing the on-disk entries.
+    /// </summary>
+    private bool TryResolvePath(string identifier, [NotNullWhen(true)] out string? fullPath)
+        => _fileIds.TryGetPath(identifier, out fullPath)
+            || _fileIds.TryResolveByScan(_wopiAbsolutePath, identifier, out fullPath);
 
     /// <inheritdoc/>
     public async IAsyncEnumerable<IWopiFile> GetWopiFiles(
@@ -94,8 +104,10 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(identifier);
-        var folderPath = _fileIds.GetPath(identifier)
-            ?? throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
+        if (!TryResolvePath(identifier, out var folderPath))
+        {
+            throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
+        }
 
         var absolutePath = Path.Combine(_wopiAbsolutePath, folderPath);
 
@@ -115,12 +127,13 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         foreach (var path in enumeration)
         {
             var filePath = Path.Combine(folderPath, Path.GetFileName(path));
-            if (_fileIds.TryGetFileId(filePath, out var fileId))
-            {
-                var result = await GetWopiFile(fileId, cancellationToken).ConfigureAwait(false)
-                    ?? throw new FileNotFoundException($"File '{fileId}' not found");
-                yield return result;
-            }
+            // The startup scan can't have seen entries created or renamed by another process
+            // sharing the tree; ids derive deterministically from paths, so register such a path
+            // lazily instead of hiding the file from the listing.
+            var fileId = _fileIds.GetOrAddFileId(filePath);
+            var result = await GetWopiFile(fileId, cancellationToken).ConfigureAwait(false)
+                ?? throw new FileNotFoundException($"File '{fileId}' not found");
+            yield return result;
         }
     }
 
@@ -130,17 +143,19 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(identifier);
-        var folderPath = _fileIds.GetPath(identifier)
-            ?? throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
+        if (!TryResolvePath(identifier, out var folderPath))
+        {
+            throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
+        }
 
         foreach (var directory in Directory.GetDirectories(Path.Combine(_wopiAbsolutePath, folderPath)))
         {
-            if (_fileIds.TryGetFileId(directory, out var folderId))
-            {
-                var result = await GetWopiContainer(folderId, cancellationToken).ConfigureAwait(false)
-                    ?? throw new DirectoryNotFoundException($"Directory '{folderId}' not found");
-                yield return result;
-            }
+            // Same lazy registration as GetWopiFiles — a folder created or renamed by another
+            // process must still show up in the listing.
+            var folderId = _fileIds.GetOrAddFileId(directory);
+            var result = await GetWopiContainer(folderId, cancellationToken).ConfigureAwait(false)
+                ?? throw new DirectoryNotFoundException($"Directory '{folderId}' not found");
+            yield return result;
         }
         await Task.CompletedTask.ConfigureAwait(false);
     }
@@ -189,13 +204,19 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         CancellationToken cancellationToken = default)
     {
         // Missing parent: return null.
-        if (!_fileIds.TryGetPath(containerId, out var dirPath))
+        if (!TryResolvePath(containerId, out var dirPath))
         {
             return null;
         }
-        if (!_fileIds.TryGetFileId(Path.Combine(dirPath, name), out var nameId))
+        var candidatePath = Path.Combine(dirPath, name);
+        if (!_fileIds.TryGetFileId(candidatePath, out var nameId))
         {
-            return null;
+            // A file on disk that the startup scan never saw still has a derivable id.
+            if (!File.Exists(candidatePath))
+            {
+                return null;
+            }
+            nameId = _fileIds.GetOrAddFileId(candidatePath);
         }
         return await GetWopiFile(nameId, cancellationToken).ConfigureAwait(false);
     }
@@ -206,13 +227,18 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         string name,
         CancellationToken cancellationToken = default)
     {
-        if (!_fileIds.TryGetPath(containerId, out var dirPath))
+        if (!TryResolvePath(containerId, out var dirPath))
         {
             return null;
         }
-        if (!_fileIds.TryGetFileId(Path.Combine(dirPath, name), out var nameId))
+        var candidatePath = Path.Combine(dirPath, name);
+        if (!_fileIds.TryGetFileId(candidatePath, out var nameId))
         {
-            return null;
+            if (!Directory.Exists(candidatePath))
+            {
+                return null;
+            }
+            nameId = _fileIds.GetOrAddFileId(candidatePath);
         }
         return await GetWopiContainer(nameId, cancellationToken).ConfigureAwait(false);
     }
@@ -427,7 +453,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
 
     private string ResolveContainerPath(string containerId)
     {
-        if (!_fileIds.TryGetPath(containerId, out var fullPath))
+        if (!TryResolvePath(containerId, out var fullPath))
         {
             throw new DirectoryNotFoundException($"Directory '{containerId}' not found.");
         }
@@ -436,32 +462,25 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
 
     private string GetFileParentIdentifier(string identifier)
     {
-        if (!_fileIds.TryGetPath(identifier, out var filePath))
+        if (!TryResolvePath(identifier, out var filePath))
         {
             throw new FileNotFoundException($"File '{identifier}' not found");
         }
         var parentPath = Path.GetDirectoryName(filePath)
             ?? throw new DirectoryNotFoundException("Parent directory not found");
-        if (!_fileIds.TryGetFileId(parentPath, out var parentFolderId))
-        {
-            throw new DirectoryNotFoundException("Parent directory not found");
-        }
-        return parentFolderId;
+        // A lazily-resolved file may sit in a directory the startup scan never mapped; the
+        // parent of a resolved path always exists on disk, so its id is derivable.
+        return _fileIds.GetOrAddFileId(parentPath);
     }
 
     private string GetFolderParentIdentifier(string identifier)
     {
-        if (!_fileIds.TryGetPath(identifier, out var folderPath))
+        if (!TryResolvePath(identifier, out var folderPath))
         {
             throw new DirectoryNotFoundException($"Folder '{identifier}' not found");
         }
         var parentPath = Path.GetDirectoryName(folderPath)
             ?? throw new DirectoryNotFoundException("Parent directory not found");
-
-        if (!_fileIds.TryGetFileId(parentPath, out var parentFolderId))
-        {
-            throw new DirectoryNotFoundException("Parent directory not found");
-        }
-        return parentFolderId;
+        return _fileIds.GetOrAddFileId(parentPath);
     }
 }

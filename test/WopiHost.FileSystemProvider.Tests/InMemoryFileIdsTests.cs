@@ -200,6 +200,74 @@ public class InMemoryFileIdsTests : IDisposable
     }
 
     [Fact]
+    public void GetOrAddFileId_UnknownPath_RegistersAndRoundTrips()
+    {
+        var path = Path.Combine(_tempDir.FullName, "late.docx");
+
+        var id = _sut.GetOrAddFileId(path);
+
+        Assert.True(_sut.TryGetPath(id, out var resolved));
+        Assert.Equal(path, resolved);
+        Assert.Equal(id, _sut.GetOrAddFileId(path));
+    }
+
+    [Fact]
+    public void GetOrAddFileId_ReboundPath_ReturnsRetainedId()
+    {
+        // After a rename the original id stays bound to the new path (the live WOPI session
+        // keeps using it). GetOrAddFileId must return that retained id, not re-derive a fresh
+        // one from the new path and clobber the binding.
+        var oldPath = Path.Combine(_tempDir.FullName, "old.docx");
+        var newPath = Path.Combine(_tempDir.FullName, "new.docx");
+        var id = _sut.AddFile(oldPath);
+        _sut.UpdateFile(id, newPath);
+
+        Assert.Equal(id, _sut.GetOrAddFileId(newPath));
+    }
+
+    [Fact]
+    public void TryResolveByScan_UnmappedFile_ResolvesAndRegisters()
+    {
+        // The id another process would derive for a file this map has never seen.
+        var path = Path.Combine(_tempDir.FullName, "unseen.docx");
+        File.WriteAllText(path, string.Empty);
+        var peerDerivedId = _sut.AddFile(path);
+        _sut.RemoveId(peerDerivedId); // forget it again — only the disk knows the file now
+
+        var found = _sut.TryResolveByScan(_tempDir.FullName, peerDerivedId, out var resolved);
+
+        Assert.True(found);
+        Assert.Equal(path, resolved);
+        Assert.True(_sut.TryGetPath(peerDerivedId, out _)); // registered, next lookup is O(1)
+    }
+
+    [Fact]
+    public void TryResolveByScan_ReboundPath_KeepsCanonicalReverseBinding()
+    {
+        // A rename retained old-id for the new path; a peer-derived id for the same path must
+        // resolve as an alias without stealing the path's canonical (retained) id.
+        var oldPath = Path.Combine(_tempDir.FullName, "old.docx");
+        var newPath = Path.Combine(_tempDir.FullName, "renamed.docx");
+        File.WriteAllText(newPath, string.Empty);
+        var retainedId = _sut.AddFile(oldPath);
+        _sut.UpdateFile(retainedId, newPath);
+        var peerDerivedId = new InMemoryFileIds(NullLogger<InMemoryFileIds>.Instance).AddFile(newPath);
+
+        Assert.True(_sut.TryResolveByScan(_tempDir.FullName, peerDerivedId, out var resolved));
+
+        Assert.Equal(newPath, resolved);
+        Assert.True(_sut.TryGetPath(retainedId, out _));            // alias didn't evict the retained id
+        Assert.True(_sut.TryGetFileId(newPath, out var canonical));
+        Assert.Equal(retainedId, canonical);                        // reverse map still canonical
+    }
+
+    [Fact]
+    public void TryResolveByScan_UnknownId_ReturnsFalse()
+    {
+        Assert.False(_sut.TryResolveByScan(_tempDir.FullName, "not-a-real-id", out _));
+    }
+
+    [Fact]
     public async Task Mixed_ConcurrentAddAndRemove_LeavesConsistentState()
     {
         // Stress: half the workers add, the other half remove the same file id. Whatever the
