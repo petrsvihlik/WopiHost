@@ -14,7 +14,7 @@ dotnet add package WopiHost.Url
 ## Use
 
 ```csharp
-var urlBuilder = new WopiUrlBuilder(discoverer, new WopiUrlSettings
+var urlBuilder = new WopiUrlBuilder(discoverer, logger, new WopiUrlSettings
 {
     UiLlcc = CultureInfo.CurrentUICulture,
 });
@@ -61,7 +61,9 @@ Add raw `key/value` pairs directly via the dictionary indexer for placeholders n
 
 ```csharp
 services.AddWopiDiscovery<WopiHostOptions>(o => Configuration.GetSection("Wopi:Discovery").Bind(o));
-services.AddSingleton(sp => new WopiUrlBuilder(sp.GetRequiredService<IDiscoverer>()));
+services.AddSingleton(sp => new WopiUrlBuilder(
+    sp.GetRequiredService<IDiscoverer>(),
+    sp.GetRequiredService<ILogger<WopiUrlBuilder>>()));
 ```
 
 `WopiUrlBuilder` is cheap to construct but the underlying `IDiscoverer` holds the discovery-XML cache, so register it as a singleton. Pass per-call settings via the `urlSettings` argument on `GetFileUrlAsync` instead of constructing a new builder.

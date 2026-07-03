@@ -40,9 +40,9 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
     /// </summary>
     public void AddOrRefreshSession(string fileId, string userId, string userName)
     {
-        var files_sessions = s_sessions.GetOrAdd(fileId, _ => new ConcurrentDictionary<string, EditorSession>());
-        var added = !files_sessions.ContainsKey(userId);
-        files_sessions[userId] = new EditorSession(userId, userName, DateTimeOffset.UtcNow);
+        var fileSessions = s_sessions.GetOrAdd(fileId, _ => new ConcurrentDictionary<string, EditorSession>());
+        var added = !fileSessions.ContainsKey(userId);
+        fileSessions[userId] = new EditorSession(userId, userName, DateTimeOffset.UtcNow);
         if (added)
         {
             LogEditorJoined(_logger, userId, userName, fileId);
@@ -54,13 +54,13 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
     /// </summary>
     public void RemoveSession(string fileId, string userId)
     {
-        if (s_sessions.TryGetValue(fileId, out var files_sessions))
+        if (s_sessions.TryGetValue(fileId, out var fileSessions))
         {
-            if (files_sessions.TryRemove(userId, out _))
+            if (fileSessions.TryRemove(userId, out _))
             {
                 LogEditorLeft(_logger, userId, fileId);
             }
-            if (files_sessions.IsEmpty)
+            if (fileSessions.IsEmpty)
             {
                 s_sessions.TryRemove(fileId, out _);
             }
@@ -72,13 +72,13 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
     /// </summary>
     public int GetActiveEditorCount(string fileId)
     {
-        if (!s_sessions.TryGetValue(fileId, out var files_sessions))
+        if (!s_sessions.TryGetValue(fileId, out var fileSessions))
         {
             return 0;
         }
 
         var cutoff = DateTimeOffset.UtcNow - s_sessionTimeout;
-        return files_sessions.Values.Count(s => s.LastActivity > cutoff);
+        return fileSessions.Values.Count(s => s.LastActivity > cutoff);
     }
 
     /// <summary>
@@ -86,13 +86,13 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
     /// </summary>
     public bool IsAlone(string fileId, string userId)
     {
-        if (!s_sessions.TryGetValue(fileId, out var files_sessions))
+        if (!s_sessions.TryGetValue(fileId, out var fileSessions))
         {
             return true;
         }
 
         var cutoff = DateTimeOffset.UtcNow - s_sessionTimeout;
-        var activeEditors = files_sessions.Values
+        var activeEditors = fileSessions.Values
             .Where(s => s.LastActivity > cutoff)
             .ToList();
 
@@ -111,13 +111,13 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
     public EditorsTable GetEditorsTable(string fileId)
     {
         var result = new EditorsTable();
-        if (!s_sessions.TryGetValue(fileId, out var files_sessions))
+        if (!s_sessions.TryGetValue(fileId, out var fileSessions))
         {
             return result;
         }
 
         var cutoff = DateTimeOffset.UtcNow - s_sessionTimeout;
-        foreach (var session in files_sessions.Values.Where(s => s.LastActivity > cutoff))
+        foreach (var session in fileSessions.Values.Where(s => s.LastActivity > cutoff))
         {
             var clientId = DeriveClientId(session.UserId);
             result[clientId] = new EditorsTableEntryNew(

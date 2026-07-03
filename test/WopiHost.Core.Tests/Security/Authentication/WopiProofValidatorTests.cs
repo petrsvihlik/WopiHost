@@ -1,10 +1,10 @@
 using System.Globalization;
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Primitives;
 using Moq;
+using WopiHost.Abstractions.Testing;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Security.Authentication;
@@ -153,7 +153,7 @@ public class WopiProofValidatorTests
         var ticks = _time.GetUtcNow().UtcDateTime.Ticks;
         var ctx = BuildHttpContext(timestampOverride: ticks.ToString(CultureInfo.InvariantCulture));
 
-        var canonical = BuildCanonicalProof(AccessToken, BuildExpectedHostUrl(), ticks);
+        var canonical = WopiProofPayload.Build(AccessToken, BuildExpectedHostUrl(), ticks);
         // X-WOPI-Proof bogus, but X-WOPI-ProofOld signed with current key
         ctx.Request.Headers[WopiHeaders.Proof] = Convert.ToBase64String(new byte[256]);
         ctx.Request.Headers[WopiHeaders.ProofOld] =
@@ -292,33 +292,9 @@ public class WopiProofValidatorTests
     private static string BuildExpectedHostUrl()
         => $"{Scheme}://{Host}{Path}{QueryString}".ToUpperInvariant();
 
-    private static byte[] BuildCanonicalProof(string accessToken, string hostUrl, long ticks)
-    {
-        var tokenBytes = Encoding.UTF8.GetBytes(accessToken);
-        var hostBytes = Encoding.UTF8.GetBytes(hostUrl);
-        var tsBytes = BitConverter.GetBytes(ticks);
-        Array.Reverse(tsBytes);
-
-        var buffer = new List<byte>(4 + tokenBytes.Length + 4 + hostBytes.Length + 4 + tsBytes.Length);
-        buffer.AddRange(BigEndian(tokenBytes.Length));
-        buffer.AddRange(tokenBytes);
-        buffer.AddRange(BigEndian(hostBytes.Length));
-        buffer.AddRange(hostBytes);
-        buffer.AddRange(BigEndian(tsBytes.Length));
-        buffer.AddRange(tsBytes);
-        return [.. buffer];
-    }
-
-    private static byte[] BigEndian(int value)
-    {
-        var bytes = BitConverter.GetBytes(value);
-        Array.Reverse(bytes);
-        return bytes;
-    }
-
     private static void SignAndApply(HttpRequest request, RSACryptoServiceProvider signer, long ticks)
     {
-        var canonical = BuildCanonicalProof(AccessToken, BuildExpectedHostUrl(), ticks);
+        var canonical = WopiProofPayload.Build(AccessToken, BuildExpectedHostUrl(), ticks);
         var signature = signer.SignData(canonical, "SHA256");
         request.Headers[WopiHeaders.Proof] = Convert.ToBase64String(signature);
     }

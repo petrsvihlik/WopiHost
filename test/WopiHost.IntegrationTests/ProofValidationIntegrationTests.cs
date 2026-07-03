@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Mvc.Testing;
 using WopiHost.Abstractions;
+using WopiHost.Abstractions.Testing;
 using WopiHost.Core.Infrastructure;
 using WopiHost.IntegrationTests.Fixtures;
 using Xunit;
@@ -195,34 +195,10 @@ public sealed class ProofValidationIntegrationTests : IAsyncLifetime, IDisposabl
         var request = new HttpRequestMessage(method, url);
         // Match the validator: case-fold the URL to upper-invariant before hashing — same
         // contract WOPI clients sign against.
-        var canonical = BuildCanonicalProof(_accessToken, url.ToUpperInvariant(), ticks);
+        var canonical = WopiProofPayload.Build(_accessToken, url.ToUpperInvariant(), ticks);
         var signature = signer.SignData(canonical, "SHA256");
         request.Headers.Add(WopiHeaders.Proof, Convert.ToBase64String(signature));
         request.Headers.Add(WopiHeaders.Timestamp, ticks.ToString(CultureInfo.InvariantCulture));
         return request;
-    }
-
-    private static byte[] BuildCanonicalProof(string accessToken, string hostUrl, long ticks)
-    {
-        var tokenBytes = Encoding.UTF8.GetBytes(accessToken);
-        var hostBytes = Encoding.UTF8.GetBytes(hostUrl);
-        var tsBytes = BitConverter.GetBytes(ticks);
-        Array.Reverse(tsBytes);
-
-        var buffer = new List<byte>(4 + tokenBytes.Length + 4 + hostBytes.Length + 4 + tsBytes.Length);
-        buffer.AddRange(BigEndian(tokenBytes.Length));
-        buffer.AddRange(tokenBytes);
-        buffer.AddRange(BigEndian(hostBytes.Length));
-        buffer.AddRange(hostBytes);
-        buffer.AddRange(BigEndian(tsBytes.Length));
-        buffer.AddRange(tsBytes);
-        return [.. buffer];
-    }
-
-    private static byte[] BigEndian(int value)
-    {
-        var bytes = BitConverter.GetBytes(value);
-        Array.Reverse(bytes);
-        return bytes;
     }
 }
