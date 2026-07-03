@@ -313,8 +313,8 @@
         // for edit sessions), not by this page — a host-page rename would collide with the edit
         // lock and the per-process id map. The backend renames under the same file id, so the live
         // session and the download link keep working; only this cached label needs refreshing.
-        // Office for the Web posts File_Rename here. Collabora renames via its own title bar but
-        // doesn't post it, so its label refreshes on the next host-page load instead.
+        // Office for the Web and ONLYOFFICE post File_Rename here. Collabora renames via its own
+        // title bar but doesn't post it, so its label refreshes on the next host-page load instead.
         wopi.on(M.File_Rename, function (v) {
             var newName = v && v.NewName ? String(v.NewName).trim() : '';
             if (!newName) { return; }
