@@ -53,6 +53,13 @@ public sealed class MutatingEndpointsFixture : IDisposable
     /// <paramref name="contents"/> through the writable file handle.
     /// </summary>
     public async Task<string> CreateTempFileAsync(byte[] contents, string extension = ".bin")
+        => (await CreateTempFileWithPathAsync(contents, extension)).FileId;
+
+    /// <summary>
+    /// Like <see cref="CreateTempFileAsync"/>, but also returns the on-disk path so a test can
+    /// mutate the file behind the provider's back (stale id→path binding scenarios).
+    /// </summary>
+    public async Task<(string FileId, string DiskPath)> CreateTempFileWithPathAsync(byte[] contents, string extension = ".bin")
     {
         var fileName = $"mut-{Guid.NewGuid():N}{extension}";
         using var scope = WopiBackend.Services.CreateScope();
@@ -64,7 +71,7 @@ public sealed class MutatingEndpointsFixture : IDisposable
             await using var stream = await file.OpenWriteAsync();
             await stream.WriteAsync(contents);
         }
-        return file.Identifier;
+        return (file.Identifier, Path.Join(_tempRoot, fileName));
     }
 
     /// <summary>

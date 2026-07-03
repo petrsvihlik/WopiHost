@@ -28,6 +28,7 @@
         App_LoadingStatus: 'App_LoadingStatus',         // Values.Status: 'Frame_Ready' | 'Document_Loaded'
         Doc_ModifiedStatus: 'Doc_ModifiedStatus',       // Collabora; Values.Modified: bool
         Document_Modified: 'Document_Modified',         // Office for the Web equivalent of the above
+        File_Rename: 'File_Rename',                     // Values.NewName after a rename. Office and ONLYOFFICE post it; Collabora doesn't. Gated by SupportsRename in CheckFileInfo.
 
         // Editor -> host: UI affordances. Each corresponds to a *PostMessage flag the host
         // advertises in CheckFileInfo; the client (not the host) reads the flag and decides whether

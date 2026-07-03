@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace WopiHost.FileSystemProvider.Tests;
 
 public class WopiFileTests : IDisposable
@@ -42,6 +44,21 @@ public class WopiFileTests : IDisposable
     public void Checksum_DefaultsToNull() => Assert.Null(_sut.Checksum);
 
     [Fact]
+    public void Constructor_MissingPath_DoesNotThrow_AndReportsNotExists()
+    {
+        // FileVersionInfo is read lazily so a WopiFile can represent an absent path (a stale
+        // id→path map entry after a rename/delete) without faulting in CheckFileInfo. The ctor
+        // must not throw, and the file degrades to Exists=false with a best-effort Version.
+        var missing = Path.Join(_tempDir.FullName, "gone.docx");
+        var sut = new WopiFile(missing, "id-missing");
+
+        Assert.False(sut.Exists);
+        Assert.Equal("docx", sut.Extension);
+        Assert.Equal("gone", sut.Name);
+        Assert.NotNull(sut.Version); // falls back to LastWriteTimeUtc.Ticks
+    }
+
+    [Fact]
     public void Length_MatchesFileLength() => Assert.Equal(new FileInfo(_filePath).Length, _sut.Length);
 
     [Fact]
@@ -50,6 +67,19 @@ public class WopiFileTests : IDisposable
     [Fact]
     public void LastWriteTimeUtc_MatchesFileInfo()
         => Assert.Equal(new FileInfo(_filePath).LastWriteTimeUtc, _sut.LastWriteTimeUtc);
+
+    [Fact]
+    public void Version_AfterExistsCheck_ReflectsSubsequentWrite()
+    {
+        // Mirrors PutFile: existence guard, then write, then a single Version read for
+        // X-WOPI-ItemVersion. Exists must not pin the FileInfo stat cache, or the reported
+        // version echoes the pre-write timestamp back to the WOPI client.
+        Assert.True(_sut.Exists);
+        File.SetLastWriteTimeUtc(_filePath, new FileInfo(_filePath).LastWriteTimeUtc.AddMinutes(5));
+
+        var expected = new FileInfo(_filePath).LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);
+        Assert.Equal(expected, _sut.Version);
+    }
 
     [Fact]
     public async Task OpenReadAsync_ReturnsReadableStream()
@@ -109,10 +139,9 @@ public class WopiFileTests : IDisposable
             return;
         }
 
-        // Construct against a real file (FileVersionInfo.GetVersionInfo throws
-        // FileNotFoundException for missing paths on Unix), then remove it so
-        // stat/statx fails with ENOENT. The owner helper surfaces that as IOException,
-        // which the Owner getter swallows to honour the best-effort contract.
+        // Construct against a real file, then remove it so stat/statx fails with ENOENT. The
+        // owner helper surfaces that as IOException, which the Owner getter swallows to honour
+        // the best-effort contract.
         var transient = Path.Join(_tempDir.FullName, "transient.docx");
         File.WriteAllText(transient, "x");
         var sut = new WopiFile(transient, "id-transient");

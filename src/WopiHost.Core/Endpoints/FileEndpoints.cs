@@ -60,7 +60,10 @@ internal static class FileEndpoints
         [AsParameters] CheckFileInfoRequest req)
     {
         var file = await req.Storage.GetWopiFile(req.Id, req.CancellationToken).ConfigureAwait(false);
-        if (file is null) return TypedResults.NotFound();
+        // Exists=false means the provider resolved the id to a path that's no longer there (a
+        // stale id→path binding after an out-of-band rename or delete). Treat it as a missing
+        // resource — building the response would fault on the content read (Sha256).
+        if (file is null || !file.Exists) return TypedResults.NotFound();
 
         _ = req.MemoryCache.TryGetValue($"{UserInfoCacheKeyPrefix}{req.Http.User.GetUserId()}", out string? userInfo);
 
@@ -85,7 +88,17 @@ internal static class FileEndpoints
             SupportsAddActivities = true,
         };
 
-        var checkFileInfo = await req.Builder.BuildAsync(file, req.Http.ToWopiRequestInfo(), capabilities, userInfo, req.CancellationToken).ConfigureAwait(false);
+        WopiCheckFileInfo checkFileInfo;
+        try
+        {
+            checkFileInfo = await req.Builder.BuildAsync(file, req.Http.ToWopiRequestInfo(), capabilities, userInfo, req.CancellationToken).ConfigureAwait(false);
+        }
+        catch (IOException ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // The file vanished between the Exists check above and the builder's content read
+            // (Sha256) — same missing-resource outcome as the up-front check.
+            return TypedResults.NotFound();
+        }
 
         // Serialize<object>() so any properties declared on a derived WopiCheckFileInfo type
         // make it onto the wire — System.Text.Json walks the runtime type, not the declared type.
@@ -96,9 +109,10 @@ internal static class FileEndpoints
         [AsParameters] GetFileRequest req)
     {
         var file = await req.Storage.GetWopiFile(req.Id, req.CancellationToken).ConfigureAwait(false);
-        if (file is null) return TypedResults.NotFound();
+        // Exists=false is a stale id→path binding — 404 rather than faulting in OpenReadAsync.
+        if (file is null || !file.Exists) return TypedResults.NotFound();
 
-        var size = file.Exists ? file.Length : 0;
+        var size = file.Length;
         if (req.MaximumExpectedSize is not null && size > req.MaximumExpectedSize.Value)
         {
             return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
@@ -109,7 +123,16 @@ internal static class FileEndpoints
             req.Http.Response.Headers[WopiHeaders.ItemVersion] = file.Version;
         }
 
-        var stream = await file.OpenReadAsync(req.CancellationToken).ConfigureAwait(false);
+        Stream stream;
+        try
+        {
+            stream = await file.OpenReadAsync(req.CancellationToken).ConfigureAwait(false);
+        }
+        catch (IOException ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // The file vanished between the Exists check and the stream open.
+            return TypedResults.NotFound();
+        }
         return TypedResults.Stream(stream, MediaTypeNames.Application.Octet);
     }
 

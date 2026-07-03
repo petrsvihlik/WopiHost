@@ -40,9 +40,9 @@ builder.Services.AddWopi(o =>
 
 ## How identifiers work
 
-Identifiers are deterministic 64-character SHA-256 hex hashes of the canonical (case-folded) path, computed by [`InMemoryFileIds`](InMemoryFileIds.cs) via `WopiResourceId.FromCanonicalPath`. Consumers treat them as opaque. Lookup is `O(1)` in both directions; the in-memory map is rebuilt at startup. (The WOPI validator's `test.wopitest` file is the one exception — it's given the fixed id `WOPITEST`.)
+Identifiers are deterministic 64-character SHA-256 hex hashes of the canonical (case-folded) path, computed by [`InMemoryFileIds`](InMemoryFileIds.cs) via `WopiResourceId.FromCanonicalPath`. Consumers treat them as opaque. Lookup is `O(1)` in both directions; the in-memory map is rebuilt at startup and lazily refreshed after that: enumeration registers on-disk entries the startup scan never saw, and an id absent from the map falls back to a hash-matching scan of the tree. (The WOPI validator's `test.wopitest` file is the one exception — it's given the fixed id `WOPITEST`.)
 
-A consequence: because an id derives purely from the path, a file's id is **stable across process restarts** and across hosts pointing at the same tree, so long-lived WOPI URLs keep working without persisting a separate mapping. Renaming or moving a file changes its id (the path changed); the provider re-points the id on rename so an in-progress edit's URL doesn't break.
+A consequence: because an id derives purely from the path, a file's id is **stable across process restarts** and across hosts pointing at the same tree, so long-lived WOPI URLs keep working without persisting a separate mapping. Renaming or moving a file changes its id (the path changed); the provider re-points the id on rename so an in-progress edit's URL doesn't break. Another process over the same tree derives a fresh id from the new path instead — both resolve (the retained id stays canonical for the renaming process; the derived one is registered as an alias on first use), so listings and clicks converge without restarts. The alias does mean the two ids lock independently, so cross-process co-authoring of a just-renamed file isn't guaranteed until restart — acceptable for the dev/single-instance deployments this provider targets.
 
 ## Customize
 

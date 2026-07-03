@@ -793,6 +793,117 @@ public class WopiFileSystemProviderTests : IDisposable
         Assert.Null(result);
     }
 
+    // ---------- Cross-process staleness ----------
+    // The sample topology runs several processes over the same tree, each with its own id map
+    // built at startup. A rename performed by one process must not make the file invisible or
+    // unresolvable in the others.
+
+    [Fact]
+    public async Task GetWopiFiles_IncludesFileRenamedByAnotherProcess()
+    {
+        // A peer provider with its own map (a separate process in the sample topology)
+        // performs the rename; this provider's startup map has never seen the new path.
+        var peerIds = new InMemoryFileIds(NullLogger<InMemoryFileIds>.Instance);
+        var peer = CreateProvider(_root.FullName, peerIds);
+        Assert.True(peerIds.TryGetFileId(_rootTxtPath, out var peerFileId));
+        Assert.True(await peer.RenameWopiFile(peerFileId, "renamed.txt"));
+
+        var names = new List<string>();
+        await foreach (var file in _sut.GetWopiFiles(_sut.RootContainer.Identifier))
+        {
+            names.Add($"{file.Name}.{file.Extension}");
+        }
+
+        Assert.Contains("renamed.txt", names);
+        Assert.DoesNotContain("root.txt", names);
+    }
+
+    [Fact]
+    public async Task GetWopiFile_ResolvesIdMintedByAnotherProcessAfterRename()
+    {
+        // This provider renames (retaining the original id per WOPI); a peer process derives
+        // the id from the new path. Both ids must resolve here — the original keeps the live
+        // editing session working, the peer-derived one serves clicks on a fresh listing.
+        Assert.True(_fileIds.TryGetFileId(_rootTxtPath, out var originalId));
+        Assert.True(await _sut.RenameWopiFile(originalId, "renamed.txt"));
+        var newPath = Path.Join(_root.FullName, "renamed.txt");
+        var peerDerivedId = WopiResourceId.FromCanonicalPath(Path.GetFullPath(newPath).ToUpperInvariant());
+
+        var viaPeerId = await _sut.GetWopiFile(peerDerivedId);
+        var viaOriginalId = await _sut.GetWopiFile(originalId);
+
+        Assert.NotNull(viaPeerId);
+        Assert.Equal("renamed", viaPeerId.Name);
+        Assert.NotNull(viaOriginalId);
+        Assert.Equal("renamed", viaOriginalId.Name);
+    }
+
+    [Fact]
+    public async Task GetWopiFiles_ExternalRename_YieldsSingleEntryForTheFile()
+    {
+        // File.Move outside any provider (a user shuffling files in Explorer). The stale map
+        // entry must not produce a phantom listing row next to the lazily-registered one.
+        var newPath = Path.Join(_root.FullName, "moved.txt");
+        File.Move(_rootTxtPath, newPath);
+
+        var names = new List<string>();
+        await foreach (var file in _sut.GetWopiFiles(_sut.RootContainer.Identifier))
+        {
+            names.Add($"{file.Name}.{file.Extension}");
+        }
+
+        Assert.Single(names, "moved.txt");
+        Assert.DoesNotContain("root.txt", names);
+    }
+
+    [Fact]
+    public async Task GetWopiContainers_IncludesFolderCreatedByAnotherProcess()
+    {
+        _root.CreateSubdirectory("late-folder");
+
+        var names = new List<string>();
+        await foreach (var container in _sut.GetWopiContainers(_sut.RootContainer.Identifier))
+        {
+            names.Add(container.Name);
+        }
+
+        Assert.Contains("late-folder", names);
+    }
+
+    [Fact]
+    public async Task GetWopiFileByName_TraversalName_ReturnsNull()
+    {
+        // root.txt exists one level above sub and would resolve on disk via "..". Lazy
+        // registration must not let a traversal name escape the container.
+        Assert.True(_fileIds.TryGetFileId(_sub.FullName, out var subId));
+
+        var result = await _sut.GetWopiFileByName(subId, Path.Join("..", "root.txt"));
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetWopiFileByName_RootedName_ReturnsNull()
+    {
+        // A rooted name targets a file outside the container; the single-segment guard must
+        // reject it before any path is built.
+        Assert.True(_fileIds.TryGetFileId(_sub.FullName, out var subId));
+
+        var result = await _sut.GetWopiFileByName(subId, _rootDocxPath);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetWopiContainerByName_TraversalOrRootedName_ReturnsNull()
+    {
+        Assert.True(_fileIds.TryGetFileId(_sub.FullName, out var subId));
+
+        Assert.Null(await _sut.GetWopiContainerByName(subId, ".."));
+        Assert.Null(await _sut.GetWopiContainerByName(subId, Path.Join("..", "empty")));
+        Assert.Null(await _sut.GetWopiContainerByName(subId, _empty.FullName));
+    }
+
     // ---------- Stored-path invariant ----------
 
     [Fact]

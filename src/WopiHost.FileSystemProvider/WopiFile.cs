@@ -14,19 +14,32 @@ namespace WopiHost.FileSystemProvider;
 public class WopiFile(string filePath, string fileIdentifier) : IWopiWritableFile
 {
     private readonly FileInfo _fileInfo = new(filePath);
-    private readonly FileVersionInfo _fileVersionInfo = FileVersionInfo.GetVersionInfo(filePath);
+
+    // FileVersionInfo.GetVersionInfo throws FileNotFoundException for a missing path, yet a
+    // WopiFile may legitimately represent one — it exposes Exists, and an id→path map entry can
+    // outlive a rename or delete (the map is rebuilt only at startup). Read it lazily and guard on
+    // existence so constructing the file never faults deep inside CheckFileInfo; a stale id then
+    // surfaces as Exists=false instead of a 500.
+    private readonly Lazy<FileVersionInfo?> _fileVersionInfo =
+        new(() => File.Exists(filePath) ? FileVersionInfo.GetVersionInfo(filePath) : null);
 
     /// <inheritdoc/>
     public string Identifier { get; } = fileIdentifier;
 
     /// <inheritdoc />
-    public bool Exists => _fileInfo.Exists;
+    /// <remarks>
+    /// Deliberately bypasses <see cref="FileInfo"/>: accessing any <see cref="FileInfo"/> property
+    /// pins the instance's stat cache, so an existence check before a write would freeze
+    /// <see cref="Version"/> at its pre-write value — PutFile checks existence, writes, then
+    /// reports the resulting version to the WOPI client.
+    /// </remarks>
+    public bool Exists => File.Exists(filePath);
 
     /// <inheritdoc/>
     public string Extension => _fileInfo.Extension.TrimStart('.');
 
     /// <inheritdoc/>
-    public string? Version => _fileVersionInfo.FileVersion ?? _fileInfo.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);
+    public string? Version => _fileVersionInfo.Value?.FileVersion ?? _fileInfo.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
     public ReadOnlyMemory<byte>? Checksum => null;

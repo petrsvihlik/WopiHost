@@ -170,6 +170,40 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
             doc.RootElement.GetProperty("ActivityResponses")[0].GetProperty("Id").GetString());
     }
 
+    // ---- Stale id→path bindings (out-of-band delete) ----------------------
+
+    [Fact]
+    public async Task PutFile_StaleBinding_FileRemovedOutOfBand_Returns_404()
+    {
+        // The id map refreshes lazily, so it keeps its binding when the file vanishes behind the
+        // provider's back. PutFile must answer 404, not fault on Length or the write stream.
+        var (fileId, diskPath) = await _fixture.CreateTempFileWithPathAsync("doomed"u8.ToArray());
+        var token = await _fixture.MintFileTokenAsync(fileId);
+        File.Delete(diskPath);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var req = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
+        {
+            Content = new ByteArrayContent("update"u8.ToArray()),
+        };
+        var resp = await client.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task CheckFileInfo_StaleBinding_FileRemovedOutOfBand_Returns_404()
+    {
+        var (fileId, diskPath) = await _fixture.CreateTempFileWithPathAsync("doomed"u8.ToArray());
+        var token = await _fixture.MintFileTokenAsync(fileId);
+        File.Delete(diskPath);
+        using var client = _fixture.WopiBackend.CreateClient();
+
+        var resp = await client.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
     // ---- PutFile ---------------------------------------------------------
 
     [Fact]

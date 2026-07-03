@@ -18,16 +18,30 @@ namespace WopiHost.FileSystemProvider;
 /// than an O(n) scan. Reads
 /// (<see cref="TryGetFileId"/> / <see cref="TryGetPath"/> / <see cref="GetPath"/> /
 /// <see cref="WasScanned"/>) are lock-free. Mutations (<see cref="AddFile"/> /
-/// <see cref="UpdateFile"/> / <see cref="RemoveId"/> / <see cref="ScanAll"/>) serialize on a
-/// private lock to keep the two maps consistent across the multi-step rebinding sequence
+/// <see cref="UpdateFile"/> / <see cref="RemoveId"/> / <see cref="ScanAll"/> /
+/// <see cref="TryResolveByScan"/>) serialize on a private lock to keep the two maps consistent
+/// across the multi-step rebinding sequence
 /// (clear stale reverse entry → install new forward entry → install new reverse entry).
 /// </para>
 /// </remarks>
 public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
 {
+    private const long FailedScanDebounceMs = 2_000;
+
     private readonly ConcurrentDictionary<string, string> _idToPath = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> _pathToId = new(StringComparer.Ordinal);
     private readonly Lock _writeLock = new();
+    private long _lastFailedScanAt = -FailedScanDebounceMs;
+
+    // Matches ScanAll's legacy-overload behavior (no attribute skipping — the EnumerationOptions
+    // default of Hidden|System would hide files the startup scan registers) while tolerating
+    // subtrees the process can't read instead of faulting the resolve mid-enumeration.
+    private static readonly EnumerationOptions s_resolveScanOptions = new()
+    {
+        RecurseSubdirectories = true,
+        IgnoreInaccessible = true,
+        AttributesToSkip = FileAttributes.None,
+    };
 
     /// <summary>
     /// Gets a value indicating whether any files have been scanned.
@@ -70,6 +84,62 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
             SetMapping(id, path);
         }
         return id;
+    }
+
+    /// <summary>
+    /// Returns the identifier for the specified path, deriving and registering it when the path
+    /// is not yet mapped. Identifiers are deterministic, so a path that appeared after the
+    /// startup scan — created or renamed by another process sharing the same tree — resolves to
+    /// the same identifier in every process.
+    /// </summary>
+    internal string GetOrAddFileId(string path)
+        => TryGetFileId(path, out var fileId) ? fileId : AddFile(path);
+
+    /// <summary>
+    /// Attempts to resolve an unmapped identifier by scanning <paramref name="rootPath"/> for an
+    /// entry whose derived identifier matches — the recovery path for ids minted by another
+    /// process over the same tree after this process's startup scan (e.g. a listing built against
+    /// a renamed file). A path that already holds an id (a rename that kept the original id
+    /// alive) keeps it as canonical; the resolved id becomes an additional alias for that path.
+    /// </summary>
+    internal bool TryResolveByScan(string rootPath, string fileId, [NotNullWhen(true)] out string? path)
+    {
+        lock (_writeLock)
+        {
+            // The id may have been registered while waiting for the lock.
+            if (_idToPath.TryGetValue(fileId, out path))
+            {
+                return true;
+            }
+            // Unresolvable ids (malformed, or pointing at a deleted file) would otherwise cost a
+            // full tree walk per request; one recent failed scan suppresses the next.
+            if (Environment.TickCount64 - _lastFailedScanAt < FailedScanDebounceMs)
+            {
+                return false;
+            }
+            var match = EnumerateTree(rootPath)
+                .FirstOrDefault(candidate => string.Equals(IdFromPath(candidate), fileId, StringComparison.Ordinal));
+            if (match is null)
+            {
+                _lastFailedScanAt = Environment.TickCount64;
+                LogIdScanMiss(logger, fileId);
+                return false;
+            }
+            _idToPath[fileId] = match;
+            _pathToId.TryAdd(match, fileId);
+            path = match;
+            LogIdResolvedByScan(logger, fileId, match);
+            return true;
+        }
+    }
+
+    private static IEnumerable<string> EnumerateTree(string rootPath)
+    {
+        yield return rootPath;
+        foreach (var entry in Directory.EnumerateFileSystemEntries(rootPath, "*", s_resolveScanOptions))
+        {
+            yield return entry;
+        }
     }
 
     /// <summary>

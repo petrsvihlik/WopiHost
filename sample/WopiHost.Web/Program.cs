@@ -65,7 +65,10 @@ app.MapRazorComponents<App>();
 app.MapGet("/files/{id}/content", async Task<Results<NotFound, FileStreamHttpResult>> (string id, IWopiStorageProvider storage, CancellationToken ct) =>
 {
     var file = await storage.GetWopiFile(id, ct);
-    if (file is null)
+    // Exists guards a stale id→path map entry (e.g. after an editor-driven rename moved the file):
+    // the frontend's map still resolves the id, but the path is gone. 404 rather than faulting in
+    // OpenReadAsync — the listing re-enumerates live, so a reload picks the file up under its new id.
+    if (file is null || !file.Exists)
     {
         return TypedResults.NotFound();
     }
