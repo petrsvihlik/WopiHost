@@ -268,6 +268,21 @@ public class InMemoryFileIdsTests : IDisposable
     }
 
     [Fact]
+    public void TryResolveByScan_MissDebouncesSubsequentScans()
+    {
+        // A failed scan suppresses the next one for the debounce window, so within it even a
+        // resolvable id reports a miss (the caller surfaces 404 and the client's retry lands
+        // after the window).
+        var path = Path.Combine(_tempDir.FullName, "debounced.docx");
+        File.WriteAllText(path, string.Empty);
+        var resolvableId = _sut.AddFile(path);
+        _sut.RemoveId(resolvableId); // only the disk knows the file now
+
+        Assert.False(_sut.TryResolveByScan(_tempDir.FullName, "garbage-id", out _));
+        Assert.False(_sut.TryResolveByScan(_tempDir.FullName, resolvableId, out _));
+    }
+
+    [Fact]
     public async Task Mixed_ConcurrentAddAndRemove_LeavesConsistentState()
     {
         // Stress: half the workers add, the other half remove the same file id. Whatever the
