@@ -75,7 +75,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         });
 
         // Snapshot the docx so the save test's mutation can be restored at teardown.
-        var docxPath = Path.Combine(app.WopiDocsPath, SampleDocxName);
+        var docxPath = Path.Join(app.WopiDocsPath, SampleDocxName);
         _originalDocxBytes = await File.ReadAllBytesAsync(docxPath);
         _originalDocxWriteTime = File.GetLastWriteTimeUtc(docxPath);
     }
@@ -92,7 +92,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // churning the working tree's modified-time for diagnostics.
         if (_originalDocxBytes is not null)
         {
-            var docxPath = Path.Combine(app.WopiDocsPath, SampleDocxName);
+            var docxPath = Path.Join(app.WopiDocsPath, SampleDocxName);
             try
             {
                 var current = await File.ReadAllBytesAsync(docxPath);
@@ -255,7 +255,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
     {
         Assert.SkipUnless(app.IsDockerAvailable, "Docker is not available — skipping Collabora e2e.");
 
-        var docxPath = Path.Combine(app.WopiDocsPath, SampleDocxName);
+        var docxPath = Path.Join(app.WopiDocsPath, SampleDocxName);
         var sizeBefore = new FileInfo(docxPath).Length;
         var modifiedBefore = File.GetLastWriteTimeUtc(docxPath);
 

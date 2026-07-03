@@ -43,7 +43,7 @@ public class HttpDiscoveryFileProviderTests
     [Fact]
     public async Task GetDiscoveryXmlAsync_ParsesChildElements()
     {
-        var xml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "OOS2016_discovery.xml"));
+        var xml = File.ReadAllText(Path.Join(AppContext.BaseDirectory, "OOS2016_discovery.xml"));
         var handler = new FakeHttpMessageHandler(_ => Task.FromResult(XmlResponse(xml)));
         var sut = new HttpDiscoveryFileProvider(CreateHttpClient(handler), NullLogger<HttpDiscoveryFileProvider>.Instance);
 

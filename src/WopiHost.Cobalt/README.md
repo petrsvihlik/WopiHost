@@ -23,7 +23,7 @@ The sample server registers Cobalt by reflection-loading the assembly when `Wopi
 ```csharp
 public static void AddCobalt(this IServiceCollection services)
 {
-    var assemblyPath = Path.Combine(AppContext.BaseDirectory, "WopiHost.Cobalt.dll");
+    var assemblyPath = Path.Join(AppContext.BaseDirectory, "WopiHost.Cobalt.dll");
     if (!File.Exists(assemblyPath))
     {
         throw new InvalidProgramException($"Cobalt Assembly {assemblyPath} not found.");

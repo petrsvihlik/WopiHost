@@ -30,7 +30,7 @@ public sealed class MutatingEndpointsFixture : IDisposable
 
     public MutatingEndpointsFixture()
     {
-        _tempRoot = Path.Combine(Path.GetTempPath(), $"wopi-mut-{Guid.NewGuid():N}");
+        _tempRoot = Path.Join(Path.GetTempPath(), $"wopi-mut-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempRoot);
         CopyDirectory(TestPaths.WopiDocsRoot, _tempRoot);
 

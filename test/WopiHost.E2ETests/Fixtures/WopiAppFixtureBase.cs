@@ -223,7 +223,7 @@ public abstract class WopiAppFixtureBase : IAsyncLifetime
         // binary until the repo root (the directory containing WOPI.slnx). Robust to the artifacts/
         // layout (UseArtifactsOutput) which puts test dlls several levels below.
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "WOPI.slnx")))
+        while (dir is not null && !File.Exists(Path.Join(dir.FullName, "WOPI.slnx")))
         {
             dir = dir.Parent;
         }
@@ -232,6 +232,6 @@ public abstract class WopiAppFixtureBase : IAsyncLifetime
             throw new InvalidOperationException(
                 "Could not locate the repository root (looking for WOPI.slnx) from " + AppContext.BaseDirectory + ".");
         }
-        return Path.Combine(dir.FullName, "sample", "wopi-docs");
+        return Path.Join(dir.FullName, "sample", "wopi-docs");
     }
 }
