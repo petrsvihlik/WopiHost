@@ -81,8 +81,10 @@ public class FileIdMapSynchronizerTests : IDisposable
         Assert.Equal(retainedId, canonical);
     }
 
-    [Fact]
-    public void Reconcile_MalformedId_ReturnsFalseWithoutSweeping()
+    [Theory]
+    [InlineData("not-a-real-id")] // wrong length
+    [InlineData("WOPITEST-ish")]  // wrong length, WOPITEST prefix
+    public void Reconcile_MalformedId_ReturnsFalseWithoutSweeping(string malformedId)
     {
         // No tree entry can ever hash to a malformed id, so it must be rejected before any
         // disk access — proven here by the debounce window staying unconsumed for the
@@ -91,7 +93,8 @@ public class FileIdMapSynchronizerTests : IDisposable
         File.WriteAllText(path, string.Empty);
         var sut = CreateSynchronizer(reconcileDebounceMs: long.MaxValue / 2);
 
-        Assert.False(sut.TryResolveByReconcile("not-a-real-id", out _));
+        Assert.False(sut.TryResolveByReconcile(malformedId, out _));
+        Assert.False(sut.TryResolveByReconcile(new string('A', 64), out _)); // right length, not lower-hex
         Assert.True(sut.TryResolveByReconcile(InMemoryFileIds.DeriveId(path), out var resolved));
         Assert.Equal(path, resolved);
     }
@@ -243,11 +246,37 @@ public class FileIdMapSynchronizerTests : IDisposable
     }
 
     [Fact]
+    public void ApplyEvent_UnappliableEvent_IsSwallowed()
+    {
+        // Watcher callbacks run on threadpool threads where an escaping exception is fatal to
+        // the process; an event the map can't apply (here: a name no path API accepts) must be
+        // logged and dropped. Synthetic event — a real watcher never gets far enough to raise it.
+        var sut = CreateSynchronizer(reconcileDebounceMs: 0);
+
+        sut.ApplyEvent(new FileSystemEventArgs(WatcherChangeTypes.Created, _tempDir.FullName, "bad\0name.docx"));
+
+        Assert.False(_fileIds.WasScanned); // nothing was registered, nothing threw
+    }
+
+    [Fact]
+    public async Task ScheduleRecoverySweep_RegistersEntriesMissedByLostEvents()
+    {
+        // The watcher's Error path: events were dropped, so the sweep must pick up whatever
+        // appeared unnoticed. Driven directly — a buffer overflow can't be provoked on demand.
+        var path = Path.Join(_tempDir.FullName, "missed.docx");
+        File.WriteAllText(path, string.Empty);
+        var sut = CreateSynchronizer(reconcileDebounceMs: 0);
+
+        sut.ScheduleRecoverySweep();
+
+        await WaitForAsync(() => _fileIds.TryGetFileId(path, out _), "the recovery sweep to register the file");
+    }
+
+    [Fact]
     public void StartWatching_MissingRoot_DegradesWithoutThrowing()
     {
         var missingRoot = Path.Join(_tempDir.FullName, "gone");
-        var sut = new FileIdMapSynchronizer(_fileIds, missingRoot, NullLogger.Instance);
-        _synchronizers.Add(sut);
+        using var sut = new FileIdMapSynchronizer(_fileIds, missingRoot, NullLogger.Instance);
 
         sut.StartWatching();
 
@@ -257,7 +286,7 @@ public class FileIdMapSynchronizerTests : IDisposable
     [Fact]
     public void Dispose_StopsWatchingAndIsIdempotent()
     {
-        var sut = CreateSynchronizer(reconcileDebounceMs: 0);
+        using var sut = new FileIdMapSynchronizer(_fileIds, _tempDir.FullName, NullLogger.Instance);
         sut.StartWatching();
         Assert.True(sut.IsWatching);
 

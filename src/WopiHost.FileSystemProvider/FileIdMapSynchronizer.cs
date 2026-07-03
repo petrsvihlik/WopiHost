@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 
@@ -27,6 +28,8 @@ namespace WopiHost.FileSystemProvider;
 internal sealed partial class FileIdMapSynchronizer : IDisposable
 {
     private const long DefaultReconcileDebounceMs = 2_000;
+
+    private static readonly SearchValues<char> s_lowerHex = SearchValues.Create("0123456789abcdef");
 
     private readonly InMemoryFileIds _fileIds;
     private readonly string _rootPath;
@@ -75,9 +78,11 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
                 // being moved in); overflow is recoverable via OnError but costs a full sweep.
                 InternalBufferSize = 64 * 1024,
             };
-            watcher.Created += OnCreated;
-            watcher.Deleted += OnDeleted;
-            watcher.Renamed += OnRenamed;
+            // One handler for all three: RenamedEventHandler accepts it through parameter
+            // contravariance, and ApplyEvent dispatches on the event's ChangeType.
+            watcher.Created += OnChanged;
+            watcher.Deleted += OnChanged;
+            watcher.Renamed += OnChanged;
             watcher.Error += OnError;
             watcher.EnableRaisingEvents = true;
             _watcher = watcher;
@@ -146,10 +151,7 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
             {
                 // The id is derived before the map call, so hashing never runs under the map's
                 // write lock — only the per-entry insertion does.
-                if (_fileIds.EnsureMapping(InMemoryFileIds.DeriveId(entry), entry))
-                {
-                    registered++;
-                }
+                registered += _fileIds.EnsureMapping(InMemoryFileIds.DeriveId(entry), entry) ? 1 : 0;
             }
             LogReconciled(_logger, _rootPath, registered);
         }
@@ -167,57 +169,59 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
         }
     }
 
-    private void OnCreated(object sender, FileSystemEventArgs e)
-    {
-        try
-        {
-            _fileIds.GetOrAddFileId(e.FullPath);
-        }
-        catch (Exception ex)
-        {
-            // An exception escaping a watcher callback would take the process down.
-            LogWatcherEventFailed(_logger, e.ChangeType, e.FullPath, ex);
-        }
-    }
+    private void OnChanged(object sender, FileSystemEventArgs e) => ApplyEvent(e);
 
-    private void OnDeleted(object sender, FileSystemEventArgs e)
+    /// <summary>
+    /// Applies a watcher event to the map. A rename carries both paths, so the existing
+    /// identifier is repointed — cross-process id continuity, exactly like the renaming
+    /// process's own map update — with the whole subtree carried along for directory renames;
+    /// when the old path was never mapped (an editor's safe-save temp file, for instance), the
+    /// new path registers like a create. Internal so tests can drive it with synthetic events —
+    /// real watcher callbacks are not raisable on demand.
+    /// </summary>
+    internal void ApplyEvent(FileSystemEventArgs e)
     {
         try
         {
-            _fileIds.TryRemovePath(e.FullPath);
-        }
-        catch (Exception ex)
-        {
-            LogWatcherEventFailed(_logger, e.ChangeType, e.FullPath, ex);
-        }
-    }
-
-    private void OnRenamed(object sender, RenamedEventArgs e)
-    {
-        try
-        {
-            // Both paths are known, so the existing identifier is repointed — cross-process id
-            // continuity, exactly like the renaming process's own map update. A directory rename
-            // repoints its whole subtree in the same pass. When the old path was never mapped
-            // (an editor's safe-save temp file, for instance), register the new path instead.
-            if (!_fileIds.RepointSubtree(e.OldFullPath, e.FullPath))
+            switch (e)
             {
-                _fileIds.GetOrAddFileId(e.FullPath);
+                case RenamedEventArgs renamed:
+                    if (!_fileIds.RepointSubtree(renamed.OldFullPath, renamed.FullPath))
+                    {
+                        _fileIds.GetOrAddFileId(renamed.FullPath);
+                    }
+                    break;
+                case { ChangeType: WatcherChangeTypes.Created }:
+                    _fileIds.GetOrAddFileId(e.FullPath);
+                    break;
+                case { ChangeType: WatcherChangeTypes.Deleted }:
+                    _fileIds.TryRemovePath(e.FullPath);
+                    break;
             }
         }
         catch (Exception ex)
         {
+            // An exception escaping a watcher callback would take the process down; the map
+            // self-heals through the reconciliation sweep, so log and move on.
             LogWatcherEventFailed(_logger, e.ChangeType, e.FullPath, ex);
         }
     }
 
     private void OnError(object sender, ErrorEventArgs e)
     {
-        // Events were lost (buffer overflow) or the watch itself is failing. Resync off the
-        // callback thread; the additive sweep restores anything the lost events would have
-        // registered, and lost renames degrade to alias registration rather than invisibility.
         LogWatcherError(_logger, _rootPath, e.GetException());
-        _ = Task.Run(() =>
+        ScheduleRecoverySweep();
+    }
+
+    /// <summary>
+    /// Runs a debounced reconciliation sweep off the watcher's callback thread — events were
+    /// lost (buffer overflow) or the watch itself is failing. The additive sweep restores
+    /// anything the lost events would have registered; lost renames degrade to alias
+    /// registration rather than invisibility. Internal so tests can drive it — an overflow is
+    /// not provokable on demand.
+    /// </summary>
+    internal void ScheduleRecoverySweep()
+        => _ = Task.Run(() =>
         {
             lock (_reconcileLock)
             {
@@ -227,27 +231,10 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
                 }
             }
         });
-    }
 
     private static bool IsDerivableId(string fileId)
-    {
-        if (string.Equals(fileId, InMemoryFileIds.WopiTestFileId, StringComparison.Ordinal))
-        {
-            return true;
-        }
-        if (fileId.Length != 64)
-        {
-            return false;
-        }
-        foreach (var c in fileId)
-        {
-            if (!char.IsAsciiHexDigitLower(c))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
+        => string.Equals(fileId, InMemoryFileIds.WopiTestFileId, StringComparison.Ordinal)
+            || (fileId.Length == 64 && !fileId.AsSpan().ContainsAnyExcept(s_lowerHex));
 
     public void Dispose()
     {

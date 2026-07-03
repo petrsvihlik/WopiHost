@@ -83,16 +83,10 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     }
 
     /// <inheritdoc/>
-    public Task<IWopiWritableFile?> GetWritableFile(string identifier, CancellationToken cancellationToken = default)
-    {
+    public async Task<IWopiWritableFile?> GetWritableFile(string identifier, CancellationToken cancellationToken = default)
         // Same WopiFile the read-side returns — the concrete class implements IWopiWritableFile
         // (which extends IWopiFile), so read vs. writable is purely the static type the caller sees.
-        if (TryResolvePath(identifier, out var fullPath))
-        {
-            return Task.FromResult<IWopiWritableFile?>(new WopiFile(fullPath, identifier));
-        }
-        return Task.FromResult<IWopiWritableFile?>(null);
-    }
+        => (IWopiWritableFile?)await GetWopiFile(identifier, cancellationToken).ConfigureAwait(false);
 
     /// <inheritdoc/>
     public Task<IWopiContainer?> GetWopiContainer(string identifier, CancellationToken cancellationToken = default)
@@ -179,7 +173,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     /// <inheritdoc/>
     public async Task<ReadOnlyCollection<IWopiContainer>> GetFileAncestors(string fileId, CancellationToken cancellationToken = default)
     {
-        var parentId = GetFileParentIdentifier(fileId);
+        var parentId = GetParentIdentifier(fileId, isFile: true);
         var result = new List<IWopiContainer>();
         var container = await GetWopiContainer(parentId, cancellationToken).ConfigureAwait(false)
             ?? throw new DirectoryNotFoundException($"Directory '{parentId}' not found.");
@@ -206,7 +200,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     {
         while (container.Identifier != RootContainer.Identifier)
         {
-            var parentId = GetFolderParentIdentifier(container.Identifier);
+            var parentId = GetParentIdentifier(container.Identifier, isFile: false);
             container = await GetWopiContainer(parentId, cancellationToken).ConfigureAwait(false)
                 ?? throw new DirectoryNotFoundException($"Directory '{parentId}' not found.");
             result.Add(container);
@@ -218,58 +212,39 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         string containerId,
         string name,
         CancellationToken cancellationToken = default)
-    {
-        // Missing parent: return null.
-        if (!TryResolvePath(containerId, out var dirPath))
-        {
-            return null;
-        }
-        // name is client-controlled in some flows (PutRelativeFile target negotiation). Now that
-        // unknown on-disk paths register lazily, a rooted or '..' name would resolve and escape
-        // the container — reject anything that isn't a single path segment before joining.
-        if (!IsValidSingleSegmentName(name))
-        {
-            return null;
-        }
-        var candidatePath = Path.Join(dirPath, name);
-        if (!_fileIds.TryGetFileId(candidatePath, out var nameId))
-        {
-            // A file on disk that the startup scan never saw still has a derivable id.
-            if (!File.Exists(candidatePath))
-            {
-                return null;
-            }
-            nameId = _fileIds.GetOrAddFileId(candidatePath);
-        }
-        return await GetWopiFile(nameId, cancellationToken).ConfigureAwait(false);
-    }
+        => TryGetChildId(containerId, name, File.Exists) is { } nameId
+            ? await GetWopiFile(nameId, cancellationToken).ConfigureAwait(false)
+            : null;
 
     /// <inheritdoc/>
     public async Task<IWopiContainer?> GetWopiContainerByName(
         string containerId,
         string name,
         CancellationToken cancellationToken = default)
+        => TryGetChildId(containerId, name, Directory.Exists) is { } nameId
+            ? await GetWopiContainer(nameId, cancellationToken).ConfigureAwait(false)
+            : null;
+
+    /// <summary>
+    /// Resolves the identifier of a named entry inside a container, or null when the container
+    /// is unknown, the name is invalid, or nothing of the expected kind exists on disk.
+    /// </summary>
+    private string? TryGetChildId(string containerId, string name, Func<string, bool> existsOnDisk)
     {
-        if (!TryResolvePath(containerId, out var dirPath))
-        {
-            return null;
-        }
-        // Same single-segment guard as GetWopiFileByName — lazy registration must stay
-        // confined to the container.
-        if (!IsValidSingleSegmentName(name))
+        // name is client-controlled in some flows (PutRelativeFile target negotiation). Unknown
+        // on-disk paths register lazily, so a rooted or '..' name would resolve and escape the
+        // container — reject anything that isn't a single path segment before joining.
+        if (!TryResolvePath(containerId, out var dirPath) || !IsValidSingleSegmentName(name))
         {
             return null;
         }
         var candidatePath = Path.Join(dirPath, name);
-        if (!_fileIds.TryGetFileId(candidatePath, out var nameId))
+        if (_fileIds.TryGetFileId(candidatePath, out var nameId))
         {
-            if (!Directory.Exists(candidatePath))
-            {
-                return null;
-            }
-            nameId = _fileIds.GetOrAddFileId(candidatePath);
+            return nameId;
         }
-        return await GetWopiContainer(nameId, cancellationToken).ConfigureAwait(false);
+        // An entry on disk that the startup scan never saw still has a derivable id.
+        return existsOnDisk(candidatePath) ? _fileIds.GetOrAddFileId(candidatePath) : null;
     }
 
     #region IWopiWritableStorageProvider
@@ -302,21 +277,10 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(name));
         }
-        var fullPath = ResolveContainerPath(containerId);
-        var newPath = Path.Join(fullPath, name);
-        if (!File.Exists(newPath))
-        {
-            return name;
-        }
+        // The counter goes before the extension so suggestions stay openable ("doc (1).docx").
         var stem = Path.GetFileNameWithoutExtension(name);
         var ext = Path.GetExtension(name);
-        var counter = 1;
-        var candidate = name;
-        while (File.Exists(Path.Join(fullPath, candidate)))
-        {
-            candidate = $"{stem} ({counter++}){ext}";
-        }
-        return candidate;
+        return SuggestUniqueName(containerId, name, File.Exists, counter => $"{stem} ({counter}){ext}");
     }
 
     /// <inheritdoc/>
@@ -326,17 +290,17 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         {
             throw new ArgumentException(message: "Invalid characters in the name.", paramName: nameof(name));
         }
+        return SuggestUniqueName(containerId, name, Directory.Exists, counter => $"{name} ({counter})");
+    }
+
+    private string SuggestUniqueName(string containerId, string name, Func<string, bool> existsOnDisk, Func<int, string> numberedName)
+    {
         var fullPath = ResolveContainerPath(containerId);
-        var newPath = Path.Join(fullPath, name);
-        if (!Directory.Exists(newPath))
-        {
-            return name;
-        }
         var counter = 1;
         var candidate = name;
-        while (Directory.Exists(Path.Join(fullPath, candidate)))
+        while (existsOnDisk(Path.Join(fullPath, candidate)))
         {
-            candidate = $"{name} ({counter++})";
+            candidate = numberedName(counter++);
         }
         return candidate;
     }
@@ -490,27 +454,19 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         return fullPath;
     }
 
-    private string GetFileParentIdentifier(string identifier)
+    private string GetParentIdentifier(string identifier, bool isFile)
     {
-        if (!TryResolvePath(identifier, out var filePath))
+        if (!TryResolvePath(identifier, out var path))
         {
-            throw new FileNotFoundException($"File '{identifier}' not found");
+            // The exception type keeps the WOPI 404 semantics distinct per resource kind.
+            throw isFile
+                ? new FileNotFoundException($"File '{identifier}' not found")
+                : (IOException)new DirectoryNotFoundException($"Folder '{identifier}' not found");
         }
-        var parentPath = Path.GetDirectoryName(filePath)
+        var parentPath = Path.GetDirectoryName(path)
             ?? throw new DirectoryNotFoundException("Parent directory not found");
-        // A lazily-resolved file may sit in a directory the startup scan never mapped; the
+        // A lazily-resolved entry may sit in a directory the startup scan never mapped; the
         // parent of a resolved path always exists on disk, so its id is derivable.
-        return _fileIds.GetOrAddFileId(parentPath);
-    }
-
-    private string GetFolderParentIdentifier(string identifier)
-    {
-        if (!TryResolvePath(identifier, out var folderPath))
-        {
-            throw new DirectoryNotFoundException($"Folder '{identifier}' not found");
-        }
-        var parentPath = Path.GetDirectoryName(folderPath)
-            ?? throw new DirectoryNotFoundException("Parent directory not found");
         return _fileIds.GetOrAddFileId(parentPath);
     }
 

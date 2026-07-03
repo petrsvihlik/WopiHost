@@ -998,7 +998,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public void Dispose_Twice_DoesNotThrow()
     {
-        var provider = CreateProvider(_root.FullName, new InMemoryFileIds(NullLogger<InMemoryFileIds>.Instance));
+        using var provider = CreateProvider(_root.FullName, new InMemoryFileIds(NullLogger<InMemoryFileIds>.Instance));
 
         provider.Dispose();
         provider.Dispose();
