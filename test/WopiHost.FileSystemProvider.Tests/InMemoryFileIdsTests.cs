@@ -226,60 +226,157 @@ public class InMemoryFileIdsTests : IDisposable
     }
 
     [Fact]
-    public void TryResolveByScan_UnmappedFile_ResolvesAndRegisters()
+    public void AddFile_WopiTestFile_GetsWopitestIdentifier()
     {
-        // The id another process would derive for a file this map has never seen.
-        var path = Path.Join(_tempDir.FullName, "unseen.docx");
-        File.WriteAllText(path, string.Empty);
-        var peerDerivedId = _sut.AddFile(path);
-        _sut.RemoveId(peerDerivedId); // forget it again — only the disk knows the file now
+        // Id derivation is one policy for every flow — a wopitest file registered through
+        // AddFile (create, watcher event, sweep) must get the same fixed id the startup scan
+        // assigns, or the validator's configured id would only work for pre-existing files.
+        var path = Path.Join(_tempDir.FullName, "test.wopitest");
 
-        var found = _sut.TryResolveByScan(_tempDir.FullName, peerDerivedId, out var resolved);
+        var id = _sut.AddFile(path);
 
-        Assert.True(found);
-        Assert.Equal(path, resolved);
-        Assert.True(_sut.TryGetPath(peerDerivedId, out _)); // registered, next lookup is O(1)
+        Assert.Equal("WOPITEST", id);
     }
 
     [Fact]
-    public void TryResolveByScan_ReboundPath_KeepsCanonicalReverseBinding()
+    public void ScanAll_DotfilePresent_RegistersIt()
+    {
+        // The tree-walk policy must not skip hidden entries: on Linux, .NET reports leading-dot
+        // names as Hidden, and the default EnumerationOptions would silently drop them from the
+        // startup scan.
+        var path = Path.Join(_tempDir.FullName, ".hidden.docx");
+        File.WriteAllText(path, string.Empty);
+
+        _sut.ScanAll(_tempDir.FullName);
+
+        Assert.True(_sut.TryGetFileId(path, out _));
+    }
+
+    [Fact]
+    public void EnsureMapping_UnmappedPath_RegistersBothDirections()
+    {
+        var path = Path.Join(_tempDir.FullName, "unseen.docx");
+        var id = InMemoryFileIds.DeriveId(path);
+
+        Assert.True(_sut.EnsureMapping(id, path));
+
+        Assert.True(_sut.TryGetPath(id, out var resolved));
+        Assert.Equal(path, resolved);
+        Assert.True(_sut.TryGetFileId(path, out var reverse));
+        Assert.Equal(id, reverse);
+        Assert.False(_sut.EnsureMapping(id, path)); // idempotent: nothing to register twice
+    }
+
+    [Fact]
+    public void EnsureMapping_ReboundPath_KeepsCanonicalReverseBinding()
     {
         // A rename retained old-id for the new path; a peer-derived id for the same path must
-        // resolve as an alias without stealing the path's canonical (retained) id.
+        // register as an alias without stealing the path's canonical (retained) id.
         var oldPath = Path.Join(_tempDir.FullName, "old.docx");
         var newPath = Path.Join(_tempDir.FullName, "renamed.docx");
-        File.WriteAllText(newPath, string.Empty);
         var retainedId = _sut.AddFile(oldPath);
         _sut.UpdateFile(retainedId, newPath);
-        var peerDerivedId = new InMemoryFileIds(NullLogger<InMemoryFileIds>.Instance).AddFile(newPath);
+        var peerDerivedId = InMemoryFileIds.DeriveId(newPath);
 
-        Assert.True(_sut.TryResolveByScan(_tempDir.FullName, peerDerivedId, out var resolved));
+        Assert.True(_sut.EnsureMapping(peerDerivedId, newPath));
 
-        Assert.Equal(newPath, resolved);
+        Assert.True(_sut.TryGetPath(peerDerivedId, out var viaAlias));
+        Assert.Equal(newPath, viaAlias);
         Assert.True(_sut.TryGetPath(retainedId, out _));            // alias didn't evict the retained id
         Assert.True(_sut.TryGetFileId(newPath, out var canonical));
         Assert.Equal(retainedId, canonical);                        // reverse map still canonical
     }
 
     [Fact]
-    public void TryResolveByScan_UnknownId_ReturnsFalse()
+    public void TryRemovePath_MappedPath_RemovesBothDirections()
     {
-        Assert.False(_sut.TryResolveByScan(_tempDir.FullName, "not-a-real-id", out _));
+        var path = Path.Join(_tempDir.FullName, "doc.docx");
+        var id = _sut.AddFile(path);
+
+        _sut.TryRemovePath(path);
+
+        Assert.False(_sut.TryGetFileId(path, out _));
+        Assert.False(_sut.TryGetPath(id, out _));
     }
 
     [Fact]
-    public void TryResolveByScan_MissDebouncesSubsequentScans()
+    public void TryRemovePath_ReboundId_LeavesNewBindingIntact()
     {
-        // A failed scan suppresses the next one for the debounce window, so within it even a
-        // resolvable id reports a miss (the caller surfaces 404 and the client's retry lands
-        // after the window).
-        var path = Path.Join(_tempDir.FullName, "debounced.docx");
-        File.WriteAllText(path, string.Empty);
-        var resolvableId = _sut.AddFile(path);
-        _sut.RemoveId(resolvableId); // only the disk knows the file now
+        // The id was rebound to a new path before the old path's removal landed (a delete event
+        // arriving late); removing the old path must not tear down the id's new binding.
+        var oldPath = Path.Join(_tempDir.FullName, "old.docx");
+        var newPath = Path.Join(_tempDir.FullName, "new.docx");
+        var id = _sut.AddFile(oldPath);
+        _sut.UpdateFile(id, newPath);
+        var strayId = InMemoryFileIds.DeriveId(Path.Join(_tempDir.FullName, "stray.docx"));
+        _sut.EnsureMapping(strayId, oldPath); // a different id claims the old path
 
-        Assert.False(_sut.TryResolveByScan(_tempDir.FullName, "garbage-id", out _));
-        Assert.False(_sut.TryResolveByScan(_tempDir.FullName, resolvableId, out _));
+        _sut.TryRemovePath(oldPath);
+
+        Assert.False(_sut.TryGetPath(strayId, out _));
+        Assert.True(_sut.TryGetPath(id, out var resolved));
+        Assert.Equal(newPath, resolved);
+    }
+
+    [Fact]
+    public void RepointSubtree_MappedFile_KeepsIdAcrossRename()
+    {
+        var oldPath = Path.Join(_tempDir.FullName, "old.docx");
+        var newPath = Path.Join(_tempDir.FullName, "new.docx");
+        var id = _sut.AddFile(oldPath);
+
+        Assert.True(_sut.RepointSubtree(oldPath, newPath));
+
+        Assert.True(_sut.TryGetPath(id, out var resolved));
+        Assert.Equal(newPath, resolved);
+        Assert.False(_sut.TryGetFileId(oldPath, out _));
+        Assert.True(_sut.TryGetFileId(newPath, out var canonical));
+        Assert.Equal(id, canonical);
+    }
+
+    [Fact]
+    public void RepointSubtree_Directory_RepointsChildrenToo()
+    {
+        // A directory rename changes every child path; each child keeps its id so live sessions
+        // on files inside the renamed folder survive.
+        var oldDir = Path.Join(_tempDir.FullName, "before");
+        var newDir = Path.Join(_tempDir.FullName, "after");
+        var childOld = Path.Join(oldDir, "leaf.docx");
+        var dirId = _sut.AddFile(oldDir);
+        var childId = _sut.AddFile(childOld);
+
+        Assert.True(_sut.RepointSubtree(oldDir, newDir));
+
+        Assert.Equal(newDir, _sut.GetPath(dirId));
+        Assert.Equal(Path.Join(newDir, "leaf.docx"), _sut.GetPath(childId));
+        Assert.False(_sut.TryGetFileId(childOld, out _));
+    }
+
+    [Fact]
+    public void RepointSubtree_AliasOnOldPath_TravelsWithoutStealingCanonical()
+    {
+        // Both the canonical id and an alias point at the old path; after the repoint both must
+        // resolve to the new path and the canonical one must stay canonical.
+        var oldPath = Path.Join(_tempDir.FullName, "old.docx");
+        var newPath = Path.Join(_tempDir.FullName, "new.docx");
+        var canonicalId = _sut.AddFile(oldPath);
+        var aliasId = InMemoryFileIds.DeriveId(Path.Join(_tempDir.FullName, "elsewhere.docx"));
+        _sut.EnsureMapping(aliasId, oldPath);
+
+        Assert.True(_sut.RepointSubtree(oldPath, newPath));
+
+        Assert.Equal(newPath, _sut.GetPath(canonicalId));
+        Assert.Equal(newPath, _sut.GetPath(aliasId));
+        Assert.True(_sut.TryGetFileId(newPath, out var reverse));
+        Assert.Equal(canonicalId, reverse);
+    }
+
+    [Fact]
+    public void RepointSubtree_UnknownOldPath_ReturnsFalse()
+    {
+        Assert.False(_sut.RepointSubtree(
+            Path.Join(_tempDir.FullName, "never-seen.docx"),
+            Path.Join(_tempDir.FullName, "target.docx")));
     }
 
     [Fact]

@@ -8,4 +8,11 @@ public class WopiFileSystemProviderOptionsTests
         var options = new WopiFileSystemProviderOptions { RootPath = "/some/path" };
         Assert.Equal("/some/path", options.RootPath);
     }
+
+    [Fact]
+    public void WatchForExternalChanges_DefaultsToTrue()
+    {
+        var options = new WopiFileSystemProviderOptions { RootPath = "/some/path" };
+        Assert.True(options.WatchForExternalChanges);
+    }
 }

@@ -32,6 +32,9 @@ public sealed class FileSystemStorageProviderConformanceTests : StorageProviderC
 
             var context = new StorageProviderTestContext(provider, provider, () =>
             {
+                // The provider owns a file-system watcher; release it before the watched
+                // tree is deleted.
+                provider.Dispose();
                 root.Refresh();
                 if (root.Exists) root.Delete(recursive: true);
                 return ValueTask.CompletedTask;

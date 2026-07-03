@@ -12,14 +12,18 @@ namespace WopiHost.FileSystemProvider;
 /// Provides files and folders from a local directory tree, addressing each resource by a
 /// deterministic SHA-256 hash of its canonical path (see <see cref="InMemoryFileIds"/>).
 /// </summary>
-public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorageProvider
+public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritableStorageProvider, IDisposable
 {
     private readonly InMemoryFileIds _fileIds;
+    private readonly FileIdMapSynchronizer _synchronizer;
     private readonly string _wopiAbsolutePath;
     private readonly ILogger<WopiFileSystemProvider> _logger;
 
     /// <inheritdoc />
     public IWopiContainer RootContainer { get; }
+
+    // Test hook: whether the change watcher actually came up (it degrades silently by design).
+    internal bool IsWatchingForExternalChanges => _synchronizer.IsWatching;
 
     /// <summary>
     /// Creates a new instance of the <see cref="WopiFileSystemProvider"/> based on the provided hosting environment and configuration.
@@ -43,9 +47,12 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         // Path.Join treats a null segment as empty, so a null RootPath must be rejected up front
         // or the provider would silently root itself at the content root.
         ArgumentException.ThrowIfNullOrEmpty(wopiRootPath);
-        _wopiAbsolutePath = Path.IsPathRooted(wopiRootPath)
-            ? wopiRootPath
-            : new DirectoryInfo(Path.Join(env.ContentRootPath, wopiRootPath)).FullName;
+        // Normalized with no trailing separator so map keys, watcher event paths, and enumerated
+        // entries all compose from one canonical root string.
+        _wopiAbsolutePath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(
+            Path.IsPathRooted(wopiRootPath)
+                ? wopiRootPath
+                : Path.Join(env.ContentRootPath, wopiRootPath)));
 
         if (!_fileIds.WasScanned)
         {
@@ -56,6 +63,12 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
             throw new InvalidOperationException("Root directory not found.");
         }
         RootContainer = new WopiContainer(_wopiAbsolutePath, rootId);
+
+        _synchronizer = new FileIdMapSynchronizer(_fileIds, _wopiAbsolutePath, _logger);
+        if (options.Value.WatchForExternalChanges)
+        {
+            _synchronizer.StartWatching();
+        }
         LogProviderInitialized(_logger, _wopiAbsolutePath);
     }
 
@@ -92,13 +105,14 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     }
 
     /// <summary>
-    /// Map lookup with a scan-on-miss fallback. Ids derive deterministically from paths, so an
-    /// id this process has never seen — minted by another process over the same tree after a
-    /// rename or create — is recoverable by hashing the on-disk entries.
+    /// Map lookup with a reconcile-on-miss fallback. The watcher keeps the map converged
+    /// proactively; an id it still hasn't seen — minted by another process over the same tree,
+    /// racing event delivery — is recoverable by hashing the on-disk entries, since ids derive
+    /// deterministically from paths.
     /// </summary>
     private bool TryResolvePath(string identifier, [NotNullWhen(true)] out string? fullPath)
         => _fileIds.TryGetPath(identifier, out fullPath)
-            || _fileIds.TryResolveByScan(_wopiAbsolutePath, identifier, out fullPath);
+            || _synchronizer.TryResolveByReconcile(identifier, out fullPath);
 
     /// <inheritdoc/>
     public async IAsyncEnumerable<IWopiFile> GetWopiFiles(
@@ -128,11 +142,10 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
 
         foreach (var path in enumeration)
         {
-            var filePath = Path.Join(folderPath, Path.GetFileName(path));
             // The startup scan can't have seen entries created or renamed by another process
             // sharing the tree; ids derive deterministically from paths, so register such a path
             // lazily instead of hiding the file from the listing.
-            var fileId = _fileIds.GetOrAddFileId(filePath);
+            var fileId = _fileIds.GetOrAddFileId(path);
             var result = await GetWopiFile(fileId, cancellationToken).ConfigureAwait(false)
                 ?? throw new FileNotFoundException($"File '{fileId}' not found");
             yield return result;
@@ -499,5 +512,23 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
         var parentPath = Path.GetDirectoryName(folderPath)
             ?? throw new DirectoryNotFoundException("Parent directory not found");
         return _fileIds.GetOrAddFileId(parentPath);
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases the file-system watcher that keeps the id map converged.
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _synchronizer.Dispose();
+        }
     }
 }
