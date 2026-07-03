@@ -44,7 +44,7 @@ dotnet run --project sample/WopiHost
 - Centralized package management via `Directory.Packages.props` — specify versions there, not in individual `.csproj` files.
 - Single-targeted on `net10.0` (libraries, samples, infra, tests). The v8 line was the last to support `net8.0` / `net9.0`; v9 onward is net10 only. The `tools/wopi-validator/` helper project stays on `net8.0` because the upstream `Microsoft.Office.WopiValidator` NuGet does.
 - Build output is centralized under `artifacts/` at the repo root (`UseArtifactsOutput=true` in `Directory.Build.props`) — there are no per-project `bin/`/`obj/` folders.
-- Package validation baseline is `8.0.0` — avoid breaking public API changes in NuGet-packaged libraries. Bump in lockstep with releases (auto-bumped by `.github/workflows/release.yml` after each stable release). Packages without a prior release on NuGet.org opt out via `EnablePackageValidation=false` in their `.csproj`.
+- Package validation is enabled — avoid breaking public API changes in NuGet-packaged libraries. The baseline tracks the latest stable release (auto-bumped by `.github/workflows/release.yml`; see `PackageValidationBaselineVersion` in `Directory.Build.props` for the current value). Packages without a prior release on NuGet.org opt out via `EnablePackageValidation=false` in their `.csproj`.
 - `InternalsVisibleTo` is auto-configured for `*.Tests` assemblies.
 
 ## Codebase audit skill
@@ -72,7 +72,7 @@ This is a modular **WOPI protocol host** implementation that integrates custom d
 - **WopiHost.MemoryLockProvider** — Default in-memory lock provider (per-instance `ConcurrentDictionary`, 30-min expiry). Single-process only.
 - **WopiHost.AzureStorageProvider** — Azure Blob storage provider (alternative to FileSystemProvider). See its README for the connection-string config flow.
 - **WopiHost.AzureLockProvider** — Azure-blob-backed distributed lock provider (alternative to MemoryLockProvider). Strongest cross-instance exclusion via Azure blob leases.
-- **WopiHost.RedisLockProvider** — Redis-backed distributed lock provider. Best-effort, single-Redis (does not implement Redlock — see its README for rationale). Atomicity via Lua scripts; TTL-driven WOPI expiry.
+- **WopiHost.RedisLockProvider** — Redis-backed distributed lock provider. Best-effort, single-Redis (does not implement Redlock — see its README for rationale). Atomicity via Redis transactions (`WATCH` + `MULTI`/`EXEC` conditions); TTL-driven WOPI expiry.
 - **WopiHost.Abstractions.Testing** — Shared `LockProviderConformanceTests` and `StorageProviderConformanceTests` xUnit classes that every `IWopiLockProvider` / `IWopiStorageProvider` implementation runs through. Provider-specific test projects derive a sealed subclass and supply a factory; xUnit picks up the inherited `[Fact]` tests automatically. Adding a future provider = one more conformance subclass.
 
 ### Dependency Chain

@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
-<Sdk Name="Aspire.AppHost.Sdk" Version="13.4.3" />
+<!-- Keep in lockstep with the Aspire.Hosting.* versions in Directory.Packages.props.
+     Dependabot's nuget ecosystem scans PackageReference/PackageVersion elements only,
+     so this Sdk element needs a manual bump alongside every Aspire.Hosting.* bump. -->
+<Sdk Name="Aspire.AppHost.Sdk" Version="13.4.6" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>

@@ -8,6 +8,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\sample\WopiHost.Web.Oidc\WopiHost.Web.Oidc.csproj" />
 		<ProjectReference Include="..\..\sample\WopiHost\WopiHost.csproj" />
+		<ProjectReference Include="..\WopiHost.Abstractions.Testing\WopiHost.Abstractions.Testing.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

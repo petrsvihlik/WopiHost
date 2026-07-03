@@ -62,10 +62,11 @@ public class WopiUrlSettings : Dictionary<string, string>
 
     /// <summary>
     /// Indicates that the WOPI server MAY include the preferred UI language in the format described in [RFC1766].
+    /// Returns <see langword="null"/> when the placeholder has not been set.
     /// </summary>
-    public CultureInfo UiLlcc
+    public CultureInfo? UiLlcc
     {
-        get => new(this[Placeholders.UiLlcc]);
+        get => TryGetValue(Placeholders.UiLlcc, out var value) ? new CultureInfo(value) : null;
         set
         {
             if (value != null)
@@ -77,10 +78,11 @@ public class WopiUrlSettings : Dictionary<string, string>
 
     /// <summary>
     /// Indicates that the WOPI server MAY include preferred data language in the format described in [RFC1766] for cases where language can affect data calculation.
+    /// Returns <see langword="null"/> when the placeholder has not been set.
     /// </summary>
-    public CultureInfo DcLlcc
+    public CultureInfo? DcLlcc
     {
-        get => new(this[Placeholders.DcLlcc]);
+        get => TryGetValue(Placeholders.DcLlcc, out var value) ? new CultureInfo(value) : null;
         set
         {
             if (value != null)
@@ -92,101 +94,124 @@ public class WopiUrlSettings : Dictionary<string, string>
 
     /// <summary>
     /// Indicates that the WOPI server MAY include the value "true" to use the output of this action embedded in a web page.
+    /// Returns <see langword="false"/> when the placeholder has not been set.
     /// </summary>
     public bool Embedded
     {
-        get => Convert.ToBoolean(this[Placeholders.Embedded], CultureInfo.InvariantCulture);
+        get => TryGetValue(Placeholders.Embedded, out var value) && Convert.ToBoolean(value, CultureInfo.InvariantCulture);
         set => this[Placeholders.Embedded] = value.ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// Indicates that the WOPI server MAY include the value "true" to prevent the attendee from navigating a file. For example, when using the attendee action (see st_wopi-action-values in section 3.1.5.1.1.2.3.1).
+    /// Returns <see langword="false"/> when the placeholder has not been set.
     /// </summary>
     public bool DisableAsync
     {
-        get => Convert.ToBoolean(this[Placeholders.DisableAsync], CultureInfo.InvariantCulture);
+        get => TryGetValue(Placeholders.DisableAsync, out var value) && Convert.ToBoolean(value, CultureInfo.InvariantCulture);
         set => this[Placeholders.DisableAsync] = value.ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// Indicates that the WOPI server MAY include the value "true" to load a view of the document that does not create or join a broadcast session. This view looks and behaves like a regular broadcast frame.
+    /// Returns <see langword="false"/> when the placeholder has not been set.
     /// </summary>
     public bool DisableBroadcast
     {
-        get => Convert.ToBoolean(this[Placeholders.DisableBroadcast], CultureInfo.InvariantCulture);
+        get => TryGetValue(Placeholders.DisableBroadcast, out var value) && Convert.ToBoolean(value, CultureInfo.InvariantCulture);
         set => this[Placeholders.DisableBroadcast] = value.ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// Indicates that the WOPI server MAY include the value "true" to load the file type in full-screen mode.
+    /// Returns <see langword="false"/> when the placeholder has not been set.
     /// </summary>
     public bool Fullscreen
     {
-        get => Convert.ToBoolean(this[Placeholders.Fullscreen], CultureInfo.InvariantCulture);
+        get => TryGetValue(Placeholders.Fullscreen, out var value) && Convert.ToBoolean(value, CultureInfo.InvariantCulture);
         set => this[Placeholders.Fullscreen] = value.ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// Indicates that the WOPI server MAY include the value "true" to load the file type with a minimal user interface.
+    /// Returns <see langword="false"/> when the placeholder has not been set.
     /// </summary>
     public bool Recording
     {
-        get => Convert.ToBoolean(this[Placeholders.Recording], CultureInfo.InvariantCulture);
+        get => TryGetValue(Placeholders.Recording, out var value) && Convert.ToBoolean(value, CultureInfo.InvariantCulture);
         set => this[Placeholders.Recording] = value.ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// Indicates that the WOPI server MAY include a value to designate the theme used. Current values are "1" to indicate a light-colored theme and "2" to indicate a darker colored theme.
+    /// Returns 0 when the placeholder has not been set.
     /// </summary>
     public int ThemeId
     {
-        get => Convert.ToInt32(this[Placeholders.ThemeId], CultureInfo.InvariantCulture);
+        get => TryGetValue(Placeholders.ThemeId, out var value) ? Convert.ToInt32(value, CultureInfo.InvariantCulture) : 0;
         set => this[Placeholders.ThemeId] = value.ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// Indicates that the WOPI server MAY include the value "1" to indicate that the user is a business user.
+    /// Returns 0 when the placeholder has not been set.
     /// </summary>
     public int BusinessUser
     {
-        get => Convert.ToInt32(this[Placeholders.BusinessUser], CultureInfo.InvariantCulture);
+        get => TryGetValue(Placeholders.BusinessUser, out var value) ? Convert.ToInt32(value, CultureInfo.InvariantCulture) : 0;
         set => this[Placeholders.BusinessUser] = value.ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// Indicates that the WOPI server MAY include the value "1" to load a view of the document that does not create or join a chat session.
+    /// Returns 0 when the placeholder has not been set.
     /// </summary>
     public int DisableChat
     {
-        get => Convert.ToInt32(this[Placeholders.DisableChat], CultureInfo.InvariantCulture);
+        get => TryGetValue(Placeholders.DisableChat, out var value) ? Convert.ToInt32(value, CultureInfo.InvariantCulture) : 0;
         set => this[Placeholders.DisableChat] = value.ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// Makes a purple, clickable box appear when set to 1. Microsoft has not documented this value.
+    /// Returns 0 when the placeholder has not been set.
     /// </summary>
     public int Perfstats
     {
-        get => Convert.ToInt32(this[Placeholders.Perfstats], CultureInfo.InvariantCulture);
+        get => TryGetValue(Placeholders.Perfstats, out var value) ? Convert.ToInt32(value, CultureInfo.InvariantCulture) : 0;
         set => this[Placeholders.Perfstats] = value.ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// This value can be passed by hosts to associate an Office for the web session with a host session identifier. This can help Office for the web engineers more quickly find logs for troubleshooting purposes based on a host-specific session identifier.
+    /// Returns <see langword="null"/> when the placeholder has not been set.
     /// </summary>
-    public string HostSessionId
+    public string? HostSessionId
     {
-        get => this[Placeholders.HostSessionId];
-        set => this[Placeholders.HostSessionId] = value;
+        get => TryGetValue(Placeholders.HostSessionId, out var value) ? value : null;
+        set
+        {
+            if (value != null)
+            {
+                this[Placeholders.HostSessionId] = value;
+            }
+        }
     }
 
     /// <summary>
     /// This placeholder can be replaced by any string value. If provided, this value will be passed back to the host in subsequent CheckFileInfo and CheckFolderInfo calls in the X-WOPI-SessionContext request header. There is no defined limit for the length of this string; however, since it is passed on the query string, it is subject to the overall Office for the web URL length limit of 2048 bytes.
+    /// Returns <see langword="null"/> when the placeholder has not been set.
     /// </summary>
-    public string SessionContext
+    public string? SessionContext
     {
-        get => this[Placeholders.SessionContext];
-        set => this[Placeholders.SessionContext] = value;
+        get => TryGetValue(Placeholders.SessionContext, out var value) ? value : null;
+        set
+        {
+            if (value != null)
+            {
+                this[Placeholders.SessionContext] = value;
+            }
+        }
     }
 
     /// <summary>
@@ -200,7 +225,8 @@ public class WopiUrlSettings : Dictionary<string, string>
     {
         get
         {
-            _ = Enum.TryParse(this[Placeholders.ValidatorTestCategory], out ValidatorTestCategoryEnum validator);
+            _ = TryGetValue(Placeholders.ValidatorTestCategory, out var value);
+            _ = Enum.TryParse(value, out ValidatorTestCategoryEnum validator);
             return validator;
         }
         set => this[Placeholders.ValidatorTestCategory] = value.ToString();

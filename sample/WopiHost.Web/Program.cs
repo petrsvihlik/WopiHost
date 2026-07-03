@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using WopiHost.Abstractions;
 using WopiHost.Discovery;
 using WopiHost.FileSystemProvider;
@@ -61,7 +62,7 @@ app.MapRazorComponents<App>();
 // Sample-only host-app action backing the editor toolbar's Download button. Streams the file via
 // the storage provider directly (not a WOPI protocol operation) and, like the rest of this sample,
 // is anonymous: fine for a demo, not a template for production access control.
-app.MapGet("/files/{id}/content", async (string id, IWopiStorageProvider storage, CancellationToken ct) =>
+app.MapGet("/files/{id}/content", async Task<Results<NotFound, FileStreamHttpResult>> (string id, IWopiStorageProvider storage, CancellationToken ct) =>
 {
     var file = await storage.GetWopiFile(id, ct);
     // Exists guards a stale id→path map entry (e.g. after an editor-driven rename moved the file):
@@ -69,11 +70,11 @@ app.MapGet("/files/{id}/content", async (string id, IWopiStorageProvider storage
     // OpenReadAsync — the listing re-enumerates live, so a reload picks the file up under its new id.
     if (file is null || !file.Exists)
     {
-        return Results.NotFound();
+        return TypedResults.NotFound();
     }
     var downloadName = $"{file.Name}.{file.Extension.TrimStart('.')}";
     var stream = await file.OpenReadAsync(ct);
-    return Results.File(stream, "application/octet-stream", downloadName);
+    return TypedResults.File(stream, "application/octet-stream", downloadName);
 });
 
 app.MapHealthChecks("/health");

@@ -10,7 +10,7 @@ This sample exists to demonstrate the [M365 business flow](https://learn.microso
 |---|---|---|
 | Authentication | None (anonymous) | Cookie + OpenID Connect |
 | User identity in WOPI token | Hardcoded `"Anonymous"` | OIDC `sub` / `name` / `email` claims |
-| File permissions | All-write | Resolved from OIDC role claims at mint time |
+| File permissions | Write on Edit action only (same view/edit scoping, no per-user roles) | Resolved from OIDC role claims at mint time |
 | Hostpage | Consumer flow | Business flow (`business_user=1`) |
 | New endpoints | — | `/account/login`, `/account/logout`, `/account/denied` |
 
