@@ -20,6 +20,12 @@ updates:
       - cobalt-github-packages
     schedule:
       interval: daily
+    # Wait out the window in which a freshly published (possibly compromised) version
+    # is most likely to be yanked — this repo auto-merges Dependabot PRs, so the
+    # cooldown is the only human-latency between a new package and master.
+    # Security-advisory updates are a separate flow and are not delayed by this.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 20
     commit-message:
       prefix: "chore(deps)"
@@ -38,6 +44,10 @@ updates:
     directory: "/"
     schedule:
       interval: daily
+    # Same rationale as the nuget cooldown; actions are SHA-pinned, so this delays
+    # the pin bump until a new action release has had a week of public scrutiny.
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "chore(ci)"
     groups:

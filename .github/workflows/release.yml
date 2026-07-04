@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
     - name: Setup .NET 10.0
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
       with:
         dotnet-version: '10.0.x'
     - name: Extract version from tag
@@ -33,14 +33,14 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal --configuration Release /p:CollectCoverage=true /p:CoverletOutputFormat=lcov
     - name: Upload coverage to Qlty
-      uses: qltysh/qlty-action/coverage@v2
+      uses: qltysh/qlty-action/coverage@fd52dc852530a708d68c3b7342f8d33d1df4cd55 # v2
       with:
         oidc: true
         files: "**/coverage.*.info"
         # See integrate.yml for the rationale.
         skip-missing-files: true
     - name: Codecov
-      uses: codecov/codecov-action@v7
+      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
     - name: Pack
@@ -48,7 +48,7 @@ jobs:
       # nupkg/snupkg files land in artifacts/package/release/.
       run: dotnet pack --no-build --include-symbols --verbosity normal --configuration Release /p:PackageVersion="${{ steps.get_version.outputs.version-without-v }}"
     - name: Upload artifacts
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
       with:
         name: "NuGet packages"
         path: artifacts/package/release
@@ -57,7 +57,7 @@ jobs:
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
     - name: Upload artifacts to the GitHub release
-      uses: Roang-zero1/github-upload-release-artifacts-action@v3
+      uses: Roang-zero1/github-upload-release-artifacts-action@87271b3f8dca9feb9e9d44381fddd2db7f09d6e1 # v3
       with:
         args: artifacts/package/release
       env:
