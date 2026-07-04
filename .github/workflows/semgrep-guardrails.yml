@@ -1,0 +1,45 @@
+name: Semgrep guardrails
+
+# Enforces the repo-local rules in .semgrep/ — CLAUDE.md conventions codified as
+# executable PR checks. Deliberately separate from the Semgrep AppSec Platform
+# integration: the platform's managed scans run the org's security policy on every
+# push and PR through the GitHub App (no workflow needed for that), but managed
+# scans never read rule files from the repository, so repo-specific guardrails run
+# here. This job uses no token and sends no telemetry — rules and scan stay in-repo.
+
+on:
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - 'LICENSE'
+      - '.claude/**'
+  push:
+    branches: [master]
+    paths-ignore:
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/FUNDING.yml'
+      - 'LICENSE'
+      - '.claude/**'
+
+permissions:
+  contents: read
+
+jobs:
+  guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Install Semgrep
+        # Pinned like every other CI dependency. Dependabot doesn't manage pipx
+        # run-lines, so bump the version manually now and then.
+        run: pipx install semgrep==1.168.0
+
+      - name: Run guardrail rules
+        # --error fails the check on any finding. The rules start from a clean
+        # baseline, so a finding is always a newly introduced violation.
+        run: semgrep scan --config .semgrep/ --error --metrics=off

@@ -1,0 +1,48 @@
+# Repo-specific guardrails: CLAUDE.md conventions the type system can't enforce,
+# codified as executable PR checks. Run by .github/workflows/semgrep-guardrails.yml.
+# The Semgrep AppSec Platform's managed scans run the org policy only and never read
+# rule files from the repository — these rules exist solely for that workflow.
+rules:
+  - id: wopihost-no-path-combine
+    languages: [csharp]
+    severity: WARNING
+    message: >-
+      Path.Combine silently drops every earlier segment when a later one is rooted,
+      which turns concatenation intent into a traversal bug (CodeQL cs/path-combine).
+      Use Path.Join for concatenation. When absolute-or-relative resolution is the
+      point, pair the call with an explicit Path.IsPathRooted check and suppress this
+      finding inline with `// nosemgrep: wopihost-no-path-combine` plus a short
+      justification. See CLAUDE.md, "Path building".
+    pattern-either:
+      - pattern: Path.Combine(...)
+      - pattern: System.IO.Path.Combine(...)
+
+  - id: wopihost-no-nullable-in-csproj
+    languages: [generic]
+    severity: ERROR
+    paths:
+      include:
+        - "**/*.csproj"
+    pattern: "<Nullable>"
+    message: >-
+      Nullable reference types are enabled solution-wide in the root
+      Directory.Build.props. A per-project <Nullable> forks that single source of
+      truth and drifts silently. Remove it. See CLAUDE.md, "Code Style & Build Rules".
+
+  - id: wopihost-use-central-package-versions
+    languages: [generic]
+    severity: ERROR
+    paths:
+      include:
+        - "**/*.csproj"
+      exclude:
+        # The wopi-validator helper opts out of central package management
+        # (ManagePackageVersionsCentrally=false) so Dependabot can pin the upstream
+        # net8-era validator package independently of the solution.
+        - "/tools/**"
+    pattern: "<PackageReference ... Version="
+    message: >-
+      Package versions are managed centrally in Directory.Packages.props; a Version
+      attribute on a PackageReference bypasses central package management (or fails
+      restore with NU1008). Declare the version in Directory.Packages.props and keep
+      the PackageReference version-less. See CLAUDE.md, "Code Style & Build Rules".
