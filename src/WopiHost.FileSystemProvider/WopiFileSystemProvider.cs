@@ -134,12 +134,11 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
             ? fileExtensions.SelectMany(ext => Directory.EnumerateFiles(folderPath, "*" + ext, options))
             : Directory.EnumerateFiles(folderPath, "*", options);
 
-        foreach (var path in enumeration)
+        // The startup scan can't have seen entries created or renamed by another process
+        // sharing the tree; ids derive deterministically from paths, so each enumerated path
+        // registers lazily instead of hiding the file from the listing.
+        foreach (var fileId in enumeration.Select(_fileIds.GetOrAddFileId))
         {
-            // The startup scan can't have seen entries created or renamed by another process
-            // sharing the tree; ids derive deterministically from paths, so register such a path
-            // lazily instead of hiding the file from the listing.
-            var fileId = _fileIds.GetOrAddFileId(path);
             var result = await GetWopiFile(fileId, cancellationToken).ConfigureAwait(false)
                 ?? throw new FileNotFoundException($"File '{fileId}' not found");
             yield return result;
@@ -158,11 +157,10 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
             throw new DirectoryNotFoundException($"Directory '{identifier}' not found");
         }
 
-        foreach (var directory in Directory.GetDirectories(folderPath))
+        // Same lazy registration as GetWopiFiles — a folder created or renamed by another
+        // process must still show up in the listing.
+        foreach (var folderId in Directory.GetDirectories(folderPath).Select(_fileIds.GetOrAddFileId))
         {
-            // Same lazy registration as GetWopiFiles — a folder created or renamed by another
-            // process must still show up in the listing.
-            var folderId = _fileIds.GetOrAddFileId(directory);
             var result = await GetWopiContainer(folderId, cancellationToken).ConfigureAwait(false)
                 ?? throw new DirectoryNotFoundException($"Directory '{folderId}' not found");
             yield return result;
