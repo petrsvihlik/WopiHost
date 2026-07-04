@@ -1,0 +1,6 @@
+# Semgrep skips .gitignored files only when git metadata is reachable; container
+# mounts of a worktree or exported archives degrade to crawling everything —
+# including the multi-gigabyte artifacts/ build output. Mirror .gitignore so
+# git-less runs stay scoped to source.
+:include .gitignore
+.git/

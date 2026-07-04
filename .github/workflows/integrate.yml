@@ -20,9 +20,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
     - name: Setup .NET 10.0
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
       with:
         dotnet-version: '10.0.x'
     - name: Set Cobalt packages token
@@ -40,12 +40,12 @@ jobs:
     - name: Upload test results to Codecov
       # Runs even when the Test step failed — reporting the failed tests is the whole point.
       if: ${{ !cancelled() }}
-      uses: codecov/test-results-action@v1
+      uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ${{ github.workspace }}/test-results/*.junit.xml
     - name: Upload coverage to Qlty
-      uses: qltysh/qlty-action/coverage@v2
+      uses: qltysh/qlty-action/coverage@fd52dc852530a708d68c3b7342f8d33d1df4cd55 # v2
       with:
         oidc: true
         # Coverlet's MSBuild integration emits `coverage.info` per project at
@@ -58,11 +58,11 @@ jobs:
         # .qlty/qlty.toml.
         skip-missing-files: true
     - name: Codecov
-      uses: codecov/codecov-action@v7
+      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
     - name: FOSSA scan + policy gate
-      uses: fossa-contrib/fossa-action@v4
+      uses: fossa-contrib/fossa-action@d28f0c947e7406706981a62a91ecc009bcc39fd7 # v4
       with:
         fossa-api-key: ${{ secrets.FOSSA_API_KEY }}
         skip-test: false
@@ -81,9 +81,9 @@ jobs:
         # macos-latest: Apple Silicon (arm64) -> plain `stat` symbol.
         os: [windows-latest, macos-latest]
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
     - name: Setup .NET 10.0
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
       with:
         dotnet-version: '10.0.x'
     - name: Set Cobalt packages token
