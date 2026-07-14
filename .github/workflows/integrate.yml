@@ -45,7 +45,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ${{ github.workspace }}/test-results/*.junit.xml
     - name: Upload coverage to Qlty
-      uses: qltysh/qlty-action/coverage@fd52dc852530a708d68c3b7342f8d33d1df4cd55 # v2
+      uses: qltysh/qlty-action/coverage@dafbc1e328f1f92525f1a3916724bd5fa01498e8 # v2
       with:
         oidc: true
         # Coverlet's MSBuild integration emits `coverage.info` per project at
