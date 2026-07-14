@@ -8,6 +8,8 @@
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=small)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_small)
 [![.NET Core](https://img.shields.io/badge/net-10-692079.svg)](https://dotnet.microsoft.com/download/dotnet/10.0)
 
+[![WopiHost community survey — tell us what you built, takes 3 minutes](img/survey-banner.svg)](https://wonderful-mushroom-04108d310.7.azurestaticapps.net/s/a2549c)
+
 A modular **WOPI host** implementation for .NET that lets you plug your own data source into Office Online Server, Microsoft 365 for the Web, or any other WOPI client by implementing a small set of interfaces.
 
 ## Packages

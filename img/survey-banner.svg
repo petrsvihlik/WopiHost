@@ -1,0 +1,75 @@
+<svg width="1200" height="280" viewBox="0 0 1200 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="WopiHost community survey — tell us what you built, takes 3 minutes">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b0f15"/>
+      <stop offset="1" stop-color="#131a24"/>
+    </linearGradient>
+    <linearGradient id="strip" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2f81f7"/>
+      <stop offset="0.55" stop-color="#79b8ff"/>
+      <stop offset="1" stop-color="#f0c060"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0c060"/>
+      <stop offset="1" stop-color="#d9a03f"/>
+    </linearGradient>
+    <linearGradient id="goldtext" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f0c060"/>
+      <stop offset="1" stop-color="#d9a03f"/>
+    </linearGradient>
+    <radialGradient id="glowBlue" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#2f81f7" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#2f81f7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowGold" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#d9a03f" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#d9a03f" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="1.2" fill="#3a4656" opacity="0.35"/>
+    </pattern>
+  </defs>
+
+  <!-- canvas -->
+  <rect x="1" y="1" width="1198" height="278" rx="14" fill="url(#bg)" stroke="#232c37" stroke-width="2"/>
+  <rect x="1" y="1" width="1198" height="278" rx="14" fill="url(#dots)" opacity="0.5"/>
+  <ellipse cx="330" cy="30" rx="420" ry="180" fill="url(#glowBlue)"/>
+  <ellipse cx="1010" cy="230" rx="380" ry="170" fill="url(#glowGold)"/>
+  <!-- top accent strip -->
+  <path d="M15 1 h1170 a14 14 0 0 1 14 14 v0 h-1198 v0 a14 14 0 0 1 14 -14 z" fill="url(#strip)"/>
+
+  <!-- background glyphs (community icon language) -->
+  <g font-family="ui-monospace,SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace" fill="#79b8ff" opacity="0.07" font-weight="700">
+    <text x="705" y="205" font-size="150">&lt;/&gt;</text>
+    <text x="1060" y="110" font-size="86">⑂</text>
+    <text x="960" y="70" font-size="52">★</text>
+    <text x="1130" y="248" font-size="58">◉</text>
+  </g>
+
+  <!-- eyebrow -->
+  <text x="52" y="72" font-family="ui-monospace,SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace" font-size="14" letter-spacing="3.5" fill="#79b8ff">WOPIHOST COMMUNITY SURVEY · JULY 2026</text>
+
+  <!-- headline -->
+  <text x="50" y="130" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="44" font-weight="800" fill="#e8eef6">Built something with <tspan fill="url(#goldtext)">WopiHost</tspan>?</text>
+
+  <!-- subline -->
+  <text x="52" y="164" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="18" fill="#97a3b2">Tell us how it went — shipped to production, stuck in a PoC, or walked away.</text>
+  <text x="52" y="190" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="18" fill="#97a3b2">Every answer shapes what gets built next.</text>
+
+  <!-- meta chips -->
+  <g font-family="ui-monospace,SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace" font-size="13.5" fill="#8a94a3">
+    <text x="52" y="222">⏱ 3 minutes</text>
+    <text x="188" y="222" fill="#3a4656">·</text>
+    <text x="210" y="222">11 questions</text>
+    <text x="352" y="222" fill="#3a4656">·</text>
+    <text x="374" y="222">🔒 answers go only to the maintainer</text>
+  </g>
+
+  <!-- CTA -->
+  <g>
+    <rect x="880" y="118" width="268" height="58" rx="29" fill="url(#gold)"/>
+    <rect x="880" y="118" width="268" height="58" rx="29" fill="none" stroke="#f7d789" stroke-width="1.5" opacity="0.7"/>
+    <text x="1014" y="155" text-anchor="middle" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="21" font-weight="700" fill="#1a1205">Take the survey →</text>
+    <text x="1014" y="200" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace" font-size="12.5" fill="#7d8996">sign in with GitHub · 2 clicks</text>
+  </g>
+</svg>
