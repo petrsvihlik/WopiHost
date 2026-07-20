@@ -29,7 +29,7 @@
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.7.0" />
     <!-- WopiHost.RedisLockProvider client. Aspire.Hosting.Redis (below) is what wires the
          Redis container into the AppHost. -->
-    <PackageVersion Include="StackExchange.Redis" Version="3.0.11" />
+    <PackageVersion Include="StackExchange.Redis" Version="3.0.17" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.9" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.8" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
