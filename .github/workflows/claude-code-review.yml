@@ -33,7 +33,7 @@ jobs:
         id: claude-review
         # Informational: a reviewer hiccup never fails the PR's checks.
         continue-on-error: true
-        uses: anthropics/claude-code-action@e90deca47693f9457b72f2b53c17d7c445a87342 # v1
+        uses: anthropics/claude-code-action@12531344451323133b0493233c759991ac61da12 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # The code-review plugin owns the structured review + posting (buffered inline
