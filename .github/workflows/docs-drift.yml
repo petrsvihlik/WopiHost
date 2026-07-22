@@ -30,7 +30,7 @@ jobs:
 
       - name: Check for documentation drift
         continue-on-error: true
-        uses: anthropics/claude-code-action@12531344451323133b0493233c759991ac61da12 # v1
+        uses: anthropics/claude-code-action@1298632ce7736903d02a1435002705aa2a594a6c # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: '--allowed-tools "Bash,Read,Grep,Glob"'
