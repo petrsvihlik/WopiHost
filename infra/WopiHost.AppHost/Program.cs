@@ -124,6 +124,20 @@ IResourceBuilder<ProjectResource> AddWebFrontend(string name, IResourceBuilder<P
         .WithExternalHttpEndpoints();
 }
 
+// tag is null when the image line carries no tag qualifier.
+static (string Image, string? Tag) ReadContainerImage(string composePath, string service)
+{
+    var content = File.ReadAllText(composePath);
+    var m = Regex.Match(content,
+        $@"(?m)^[ \t]+{Regex.Escape(service)}:[ \t]*\n[ \t]+image:[ \t]*(\S+)");
+    if (!m.Success)
+        throw new InvalidOperationException(
+            $"No 'image:' declaration found for service '{service}' in {composePath}.");
+    var imageRef = m.Groups[1].Value;
+    var sep = imageRef.LastIndexOf(':');
+    return sep < 0 ? (imageRef, null) : (imageRef[..sep], imageRef[(sep + 1)..]);
+}
+
 // Every backend lane accumulates here so the shared lock + storage backends below wire to all of
 // them in one pass: a single Redis instance coordinates locks across every backend (a lock taken
 // while editing in one client is visible to the other), and a single Azurite blob container backs
@@ -257,9 +271,13 @@ if (builder.Configuration.GetValue("AppHost:IncludeOidcSample", defaultValue: fa
 // WaitFor on both backend and frontend blocks them until Collabora's /hosting/discovery returns 200 —
 // otherwise Polly's Standard-Retry pipeline logs noisy "ResponseEnded" / 10s timeouts on first load
 // while loolwsd is still binding.
+var composePath = Path.Join(AppContext.BaseDirectory, "docker-compose.yml");
 if (useCollabora)
 {
-    var collabora = builder.AddContainer("collabora", "collabora/code", "26.04.2.4.1")
+    var (collaboraImage, collaboraTag) = ReadContainerImage(composePath, "collabora");
+    var collabora = (collaboraTag is { Length: > 0 }
+        ? builder.AddContainer("collabora", collaboraImage, collaboraTag)
+        : builder.AddContainer("collabora", collaboraImage))
            // host.docker.internal needs an explicit --add-host=host.docker.internal:host-gateway on
            // Linux Docker Engine — Docker Desktop on Mac/Windows wires it implicitly, but the Linux
            // daemon doesn't. Without this, Collabora's WOPI callbacks from inside the container can't
@@ -320,7 +338,10 @@ if (useCollabora)
 // dependents until /hosting/discovery answers. Opt-in via "AppHost:UseOnlyOffice"=true.
 if (useOnlyOffice)
 {
-    var onlyoffice = builder.AddContainer("onlyoffice", "onlyoffice/documentserver")
+    var (ooImage, ooTag) = ReadContainerImage(composePath, "onlyoffice");
+    var onlyoffice = (ooTag is { Length: > 0 }
+        ? builder.AddContainer("onlyoffice", ooImage, ooTag)
+        : builder.AddContainer("onlyoffice", ooImage))
            // Same host-gateway reasoning as Collabora — ONLYOFFICE's WOPI callbacks reach the backend
            // at host.docker.internal:5051.
            .WithContainerRuntimeArgs("--add-host", "host.docker.internal:host-gateway")

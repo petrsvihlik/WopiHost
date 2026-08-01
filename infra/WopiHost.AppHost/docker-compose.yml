@@ -1,0 +1,8 @@
+# Container image versions — Dependabot (docker ecosystem) tracks these image: lines
+# and opens bump PRs when new stable tags are published.
+# WopiHost.AppHost reads this file at startup; do not rename or remove it.
+services:
+  collabora:
+    image: collabora/code:26.04.2.4.1
+  onlyoffice:
+    image: onlyoffice/documentserver
