@@ -259,7 +259,7 @@ if (builder.Configuration.GetValue("AppHost:IncludeOidcSample", defaultValue: fa
 // while loolwsd is still binding.
 if (useCollabora)
 {
-    var collabora = builder.AddContainer("collabora", "collabora/code")
+    var collabora = builder.AddContainer("collabora", "collabora/code", "26.04.2.4.1")
            // host.docker.internal needs an explicit --add-host=host.docker.internal:host-gateway on
            // Linux Docker Engine — Docker Desktop on Mac/Windows wires it implicitly, but the Linux
            // daemon doesn't. Without this, Collabora's WOPI callbacks from inside the container can't
@@ -320,7 +320,7 @@ if (useCollabora)
 // dependents until /hosting/discovery answers. Opt-in via "AppHost:UseOnlyOffice"=true.
 if (useOnlyOffice)
 {
-    var onlyoffice = builder.AddContainer("onlyoffice", "onlyoffice/documentserver")
+    var onlyoffice = builder.AddContainer("onlyoffice", "onlyoffice/documentserver", "9.4.0.1")
            // Same host-gateway reasoning as Collabora — ONLYOFFICE's WOPI callbacks reach the backend
            // at host.docker.internal:5051.
            .WithContainerRuntimeArgs("--add-host", "host.docker.internal:host-gateway")
