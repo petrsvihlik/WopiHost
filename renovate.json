@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "enabledManagers": ["custom.regex"],
+  "dependencyDashboard": false,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Tracks container image tags passed as C# string literals to Aspire's builder.AddContainer(name, image, tag) calls in the AppHost. Dependabot's docker ecosystems only parse Dockerfile/docker-compose files and never see a reference embedded in source, so Renovate patches these literals in place. enabledManagers keeps Renovate scoped to this manager only — NuGet and GitHub Actions stay owned by Dependabot to avoid duplicate PRs for the same dependency.",
+      "managerFilePatterns": ["/^infra/WopiHost\\.AppHost/Program\\.cs$/"],
+      "matchStrings": [
+        "AddContainer\\(\"[^\"]+\", \"(?<depName>[^\"]+)\", \"(?<currentValue>[^\"]+)\"\\)"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Waits out the window in which a freshly published (possibly compromised) image tag is most likely to be yanked — the same rationale as the 7-day Dependabot cooldown in .github/dependabot.yml.",
+      "matchManagers": ["custom.regex"],
+      "minimumReleaseAge": "7 days",
+      "commitMessagePrefix": "chore(deps)",
+      "labels": ["dependencies"]
+    }
+  ]
+}
