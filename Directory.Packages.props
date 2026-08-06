@@ -11,8 +11,8 @@
   <ItemGroup>
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" />
     <PackageVersion Include="System.IO.FileSystem.AccessControl" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.21.0" />
-    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.21.0" />
+    <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.22.0" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.29.1" />
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="10.0.10" />
@@ -29,7 +29,7 @@
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.8.0" />
     <!-- WopiHost.RedisLockProvider client. Aspire.Hosting.Redis (below) is what wires the
          Redis container into the AppHost. -->
-    <PackageVersion Include="StackExchange.Redis" Version="3.0.17" />
+    <PackageVersion Include="StackExchange.Redis" Version="3.0.25" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.10" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.8" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
