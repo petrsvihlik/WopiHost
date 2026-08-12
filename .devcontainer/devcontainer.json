@@ -1,5 +1,5 @@
 {
-  "name": "C# (.NET 9)",
+  "name": "C# (.NET 10)",
   "build": {
     "dockerfile": "./Dockerfile",
     "context": "."

@@ -8,7 +8,11 @@
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
-		<LangVersion>latest</LangVersion>
+		<!-- Pinned rather than `latest`. `latest` resolves to whatever the installed SDK's compiler
+		     supports, so a side-by-side preview SDK silently raises the language version and its
+		     analyzer defaults — and with TreatWarningsAsErrors that breaks the build on one
+		     machine and not another. Raise deliberately, together with the global.json pin. -->
+		<LangVersion>14.0</LangVersion>
 		<!-- Centralize bin/obj/package/publish output under repo-root artifacts/.
 		     ArtifactsPath is pinned here so that test projects (which have their
 		     own Directory.Build.props) don't end up with a separate test/artifacts/. -->
