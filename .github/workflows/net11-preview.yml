@@ -1,0 +1,166 @@
+name: .NET 11 Preview
+
+# Early-warning lane for the next major. Nothing here gates a pull request: the workflow has no
+# `pull_request` trigger at all, so it is structurally incapable of blocking a merge. That is also
+# why the jobs are NOT marked continue-on-error — a lane that always reports green is worse than
+# no lane, and visibility is the entire point.
+#
+# Two independent questions, one job each:
+#   preview-runtime — do the net10.0 binaries still behave when executed on the .NET 11 runtime?
+#   preview-sdk     — does the repo still compile when the .NET 11 SDK's Roslyn + analyzers build it?
+#
+# Neither job changes a TargetFramework. Retargeting is a separate, later exercise; this only
+# surfaces the breakage early, while there is still time to react to it.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 04:53 UTC nightly. Off-the-hour, and clear of the heavy container lanes
+    # (e2e-collabora 03:17, e2e-onlyoffice 03:37) so they don't contend for runner capacity.
+    - cron: '53 4 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  preview-runtime:
+    name: net10.0 binaries on the .NET 11 runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Two separate setup-dotnet steps on purpose: dotnet-quality applies to every version listed
+      # in the step, so a combined `10.0.x` + `11.0.x` list would drag the .NET 10 install onto a
+      # preview build too, and the "build exactly like a PR does" property below would be lost.
+      - name: Setup .NET 10 SDK (builds the code)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup .NET 11 SDK (supplies the runtime under test)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '11.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Set Cobalt packages token
+        run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
+
+      # global.json still pins the .NET 10 SDK here, so this build is byte-for-byte the PR build.
+      # Only the runtime the tests execute on differs, which keeps the blame surface to the runtime.
+      - name: Build
+        run: |
+          dotnet restore
+          dotnet build --no-restore /p:ContinuousIntegrationBuild=true
+
+      - name: Install Playwright browsers (for sample-app smoke tests)
+        run: pwsh artifacts/bin/WopiHost.SmokeTests/debug/playwright.ps1 install --with-deps chromium
+
+      # Roll-forward policies below LatestMajor only engage when the requested runtime is ABSENT,
+      # and .NET 10 is installed on this runner — so DOTNET_ROLL_FORWARD=Major would quietly keep
+      # the tests on .NET 10 and this lane would pass without having tested anything. Prove the
+      # mechanism against a throwaway net10.0 app before trusting the run below.
+      #
+      # The probe lives in RUNNER_TEMP, outside the repo, so neither global.json nor the root
+      # Directory.Build.props applies to it.
+      - name: Verify roll-forward reaches .NET 11
+        run: |
+          set -euo pipefail
+          dotnet --list-runtimes
+          probe="$RUNNER_TEMP/rollforward-probe"
+          mkdir -p "$probe"
+          cat > "$probe/probe.csproj" <<'CSPROJ'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net10.0</TargetFramework>
+            </PropertyGroup>
+          </Project>
+          CSPROJ
+          cat > "$probe/Program.cs" <<'PROGRAM'
+          System.Console.WriteLine(System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
+          PROGRAM
+          dotnet build "$probe/probe.csproj" -c Release -o "$probe/out"
+          actual=$(DOTNET_ROLL_FORWARD=LatestMajor DOTNET_ROLL_FORWARD_TO_PRERELEASE=1 dotnet "$probe/out/probe.dll")
+          echo "Probe reports: $actual"
+          case "$actual" in
+            '.NET 11.'*)
+              echo "Roll-forward reaches .NET 11." ;;
+            *)
+              echo "::error::Roll-forward did not reach .NET 11 (got '$actual'). The test run would silently exercise .NET 10 instead."
+              exit 1 ;;
+          esac
+
+      - name: Test on the .NET 11 runtime
+        run: dotnet test --no-build --verbosity normal
+        env:
+          DOTNET_ROLL_FORWARD: LatestMajor
+          DOTNET_ROLL_FORWARD_TO_PRERELEASE: '1'
+
+  preview-sdk:
+    name: Build with the .NET 11 SDK (still targeting net10.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup .NET 11 SDK (preview)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '11.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Set Cobalt packages token
+        run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
+
+      # Widens the committed pin for this job only. The version floor deliberately stays at
+      # 10.0.100: a preview such as 11.0.100-preview.x sorts BELOW 11.0.100 under semver, so
+      # raising the floor to 11 would make the resolver reject the very SDK under test.
+      - name: Unpin the SDK (this job only)
+        run: |
+          set -euo pipefail
+          jq '.sdk.rollForward = "latestMajor" | .sdk.allowPrerelease = true' global.json > global.json.tmp
+          mv global.json.tmp global.json
+          cat global.json
+
+      # Same failure mode as the roll-forward probe above: if resolution fell back to .NET 10 this
+      # job would just re-run the ordinary build and report a meaningless green.
+      - name: Verify the .NET 11 SDK is selected
+        run: |
+          set -euo pipefail
+          selected=$(dotnet --version)
+          echo "Selected SDK: $selected"
+          case "$selected" in
+            11.*)
+              echo "Building with the .NET 11 SDK." ;;
+            *)
+              echo "::error::Expected an 11.x SDK, got '$selected'. This job would only repeat the .NET 10 build."
+              exit 1 ;;
+          esac
+
+      # The packaged libraries are the signal that matters — they are what ships to NuGet. Kept as
+      # its own step so that an Aspire break in the full-solution step below cannot mask the result.
+      # Expect new-analyzer-wave failures here: TreatWarningsAsErrors is on globally, so every
+      # newly-default-on diagnostic lands as a build error. That is the point of the lane.
+      - name: Build packaged libraries
+        run: |
+          set -euo pipefail
+          for proj in src/*/*.csproj; do
+            echo "::group::$proj"
+            dotnet build "$proj" /p:ContinuousIntegrationBuild=true
+            echo "::endgroup::"
+          done
+
+      # infra/WopiHost.AppHost pins Aspire.AppHost.Sdk as an MSBuild SDK, which couples it to SDK
+      # internals far more tightly than a PackageReference does — it is the likeliest first break,
+      # and the fix is upstream in Aspire rather than in this repo. Non-fatal so a red AppHost
+      # doesn't bury the src/ result above.
+      - name: Build the full solution
+        continue-on-error: true
+        run: dotnet build WOPI.slnx /p:ContinuousIntegrationBuild=true
