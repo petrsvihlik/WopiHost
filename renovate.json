@@ -14,6 +14,16 @@
     },
     {
       "customType": "regex",
+      "description": "Tracks the tag pinned on the Aspire-managed Redis resource (AddRedis(...).WithImageTag(...)). The call carries only the tag, so depNameTemplate names the docker-library image the resource runs; the shared depName groups this with the RedisFixture pin so both move in one PR.",
+      "managerFilePatterns": ["/^infra/WopiHost\\.AppHost/Program\\.cs$/"],
+      "matchStrings": [
+        "AddRedis\\(\"[^\"]+\"\\)\\.WithImageTag\\(\"(?<currentValue>[^\"]+)\"\\)"
+      ],
+      "depNameTemplate": "redis",
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
       "description": "Tracks container image tags pinned as C# string constants in the Testcontainers test fixtures (AzuriteFixture, RedisFixture) — same rationale as the AppHost manager above. The pattern requires the tag to start with a digit so only image pins match, mirroring the extraction in .github/actions/prepull-testcontainers-images.",
       "managerFilePatterns": ["/^test/.+Fixture\\.cs$/"],
       "matchStrings": [
