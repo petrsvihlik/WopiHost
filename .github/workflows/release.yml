@@ -38,7 +38,9 @@ jobs:
       uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
       with:
         oidc: true
-        files: "**/coverage.*.info"
+        # Coverlet emits `coverage.info` per project at `test/<Project>/coverage.info`;
+        # see integrate.yml for the glob rationale.
+        files: "test/**/coverage.info"
         # See integrate.yml for the rationale.
         skip-missing-files: true
     - name: Codecov
