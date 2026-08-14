@@ -2,7 +2,7 @@
 
 `IWopiLockProvider` implementation backed by Redis, with atomic compare-and-swap via server-side conditional commands (`SET IFEQ`/`DELIFEQ`) and TTL-driven WOPI expiry.
 
-> **Requires Redis 8.4 or later.** The compare-and-swap paths use the conditional commands introduced in Redis 8.4; older servers reject them at runtime. Deployments on older Redis (including managed offerings that lag upstream) should stay on WopiHost.RedisLockProvider v9.x, whose CAS ran as `WATCH`-based transactions.
+> **Requires Redis 8.4 or later.** The compare-and-swap paths use the conditional commands introduced in Redis 8.4; older servers reject them at runtime. Deployments on older Redis (including managed offerings that lag upstream) should stay on WopiHost.RedisLockProvider 9.1.x or earlier, whose CAS ran as `WATCH`-based transactions.
 
 ## When to pick this over the other lock providers
 
