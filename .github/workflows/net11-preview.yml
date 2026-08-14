@@ -144,6 +144,14 @@ jobs:
               exit 1 ;;
           esac
 
+      # Restore is deliberately its own fatal step, ahead of both builds. The full-solution build
+      # below tolerates failures, and without a separate restore that tolerance extends to the
+      # dependency graph as well: a solution-wide NU1903 audit failure once let this job report
+      # green on a commit whose restore was broken for every other workflow in the repo. Only
+      # compilation is meant to be tolerated here, never resolution.
+      - name: Restore
+        run: dotnet restore WOPI.slnx
+
       # The packaged libraries are the signal that matters — they are what ships to NuGet. Kept as
       # its own step so that an Aspire break in the full-solution step below cannot mask the result.
       # Expect new-analyzer-wave failures here: TreatWarningsAsErrors is on globally, so every
@@ -153,14 +161,14 @@ jobs:
           set -euo pipefail
           for proj in src/*/*.csproj; do
             echo "::group::$proj"
-            dotnet build "$proj" /p:ContinuousIntegrationBuild=true
+            dotnet build "$proj" --no-restore /p:ContinuousIntegrationBuild=true
             echo "::endgroup::"
           done
 
       # infra/WopiHost.AppHost pins Aspire.AppHost.Sdk as an MSBuild SDK, which couples it to SDK
       # internals far more tightly than a PackageReference does — it is the likeliest first break,
       # and the fix is upstream in Aspire rather than in this repo. Non-fatal so a red AppHost
-      # doesn't bury the src/ result above.
+      # doesn't bury the src/ result above; the restore step above bounds what that can hide.
       - name: Build the full solution
         continue-on-error: true
-        run: dotnet build WOPI.slnx /p:ContinuousIntegrationBuild=true
+        run: dotnet build WOPI.slnx --no-restore /p:ContinuousIntegrationBuild=true
