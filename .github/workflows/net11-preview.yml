@@ -92,6 +92,8 @@ jobs:
               exit 1 ;;
           esac
 
+      - name: Pre-pull Testcontainers images
+        uses: ./.github/actions/prepull-testcontainers-images
       - name: Test on the .NET 11 runtime
         run: dotnet test --no-build --verbosity normal
         env:

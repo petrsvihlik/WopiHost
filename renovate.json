@@ -11,6 +11,15 @@
         "AddContainer\\(\"[^\"]+\", \"(?<depName>[^\"]+)\", \"(?<currentValue>[^\"]+)\"\\)"
       ],
       "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Tracks container image tags pinned as C# string constants in the Testcontainers test fixtures (AzuriteFixture, RedisFixture) — same rationale as the AppHost manager above. The pattern requires the tag to start with a digit so only image pins match, mirroring the extraction in .github/actions/prepull-testcontainers-images.",
+      "managerFilePatterns": ["/^test/.+Fixture\\.cs$/"],
+      "matchStrings": [
+        "\"(?<depName>[a-z0-9.-]+(?:/[a-z0-9._-]+)*):(?<currentValue>[0-9][A-Za-z0-9._-]*)\""
+      ],
+      "datasourceTemplate": "docker"
     }
   ],
   "packageRules": [
