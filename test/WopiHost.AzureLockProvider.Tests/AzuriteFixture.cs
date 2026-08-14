@@ -7,7 +7,7 @@ namespace WopiHost.AzureLockProvider.Tests;
 public sealed class AzuriteFixture : IAsyncLifetime
 {
     /// <summary>Latest stable Azurite at the time of writing.</summary>
-    public const string AzuriteImage = "mcr.microsoft.com/azure-storage/azurite:3.35.0";
+    public const string AzuriteImage = "mcr.microsoft.com/azure-storage/azurite:3.36.0";
 
     /// <summary>
     /// Latest blob service version Azurite 3.35.0 understands. Bump alongside <see cref="AzuriteImage"/>.

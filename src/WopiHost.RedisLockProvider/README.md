@@ -1,6 +1,8 @@
 # WopiHost.RedisLockProvider
 
-`IWopiLockProvider` implementation backed by Redis, with atomic compare-and-swap via Redis transactions (`WATCH` + `MULTI`/`EXEC`) and TTL-driven WOPI expiry.
+`IWopiLockProvider` implementation backed by Redis, with atomic compare-and-swap via server-side conditional commands (`SET IFEQ`/`DELIFEQ`) and TTL-driven WOPI expiry.
+
+> **Requires Redis 8.4 or later.** The compare-and-swap paths use the conditional commands introduced in Redis 8.4; older servers reject them at runtime. Deployments on older Redis (including managed offerings that lag upstream) should stay on WopiHost.RedisLockProvider v9.x, whose CAS ran as `WATCH`-based transactions.
 
 ## When to pick this over the other lock providers
 
@@ -22,7 +24,7 @@ If your Redis instance fails over to a replica with stale state mid-WOPI-session
 
 ## Atomicity
 
-Each compare-and-swap operation (refresh, unlock-and-relock) runs as a Redis transaction: `IDatabase.CreateTransaction()` guarded by `AddCondition(Condition.StringEqual(key, snapshot))`. The condition maps onto Redis's `WATCH` primitive, which aborts the `MULTI`/`EXEC` if the key's value changed between the read and the write — so the "match-then-mutate" steps land as a single observable transaction. This costs one extra round-trip compared to a Lua `EVAL` compare+set, but keeps the implementation in C# with no embedded scripting language; the WOPI lock path isn't hot enough to care about the extra hop. The conformance suite's `RefreshLockAsync_ConcurrentSwapBetweenObservationAndCAS_DoesNotRefresh` test exercises this path against this provider too — a stale caller's snapshot no longer matches the Redis-resident value when the transaction runs, so it aborts.
+Each compare-and-swap operation (refresh, unlock-and-relock) writes back with `StringSetAsync(key, value, ttl, ValueCondition.Equal(snapshot))`, which maps onto Redis 8.4's `SET IFEQ`: the server compares the resident value against the snapshot and applies the write only on a byte-exact match — one round-trip, evaluated atomically, with no `WATCH`-style abort-and-retry window. Expired-lock eviction uses the same shape via `StringDeleteAsync(key, ValueCondition.Equal(snapshot))` (`DELIFEQ`). The conformance suite's `RefreshLockAsync_ConcurrentSwapBetweenObservationAndCAS_DoesNotRefresh` test exercises this path against this provider too — a stale caller's snapshot no longer matches the Redis-resident value when the write runs, so it is refused.
 
 ## Registration
 

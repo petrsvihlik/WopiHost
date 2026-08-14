@@ -190,7 +190,10 @@ if (useOnlyOffice)
 // so there's no data-survival need that would justify pinning the password to stabilise it.
 if (builder.Configuration.GetValue("AppHost:UseRedisLocks", defaultValue: true))
 {
-    var redis = builder.AddRedis("wopi-locks");
+    // The tag override keeps the dev-loop server in lockstep with what the provider requires and
+    // the conformance suite tests against: WopiRedisLockProvider's CAS paths use SET IFEQ/DELIFEQ
+    // (Redis 8.4+), and Aspire's default Redis tag may lag behind that floor.
+    var redis = builder.AddRedis("wopi-locks").WithImageTag("8-alpine");
     foreach (var backend in backends)
     {
         backend
@@ -259,7 +262,7 @@ if (builder.Configuration.GetValue("AppHost:IncludeOidcSample", defaultValue: fa
 // while loolwsd is still binding.
 if (useCollabora)
 {
-    var collabora = builder.AddContainer("collabora", "collabora/code", "26.04.2.4.1")
+    var collabora = builder.AddContainer("collabora", "collabora/code", "26.04.3.1.1")
            // host.docker.internal needs an explicit --add-host=host.docker.internal:host-gateway on
            // Linux Docker Engine — Docker Desktop on Mac/Windows wires it implicitly, but the Linux
            // daemon doesn't. Without this, Collabora's WOPI callbacks from inside the container can't

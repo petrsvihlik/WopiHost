@@ -19,7 +19,7 @@ public sealed class RedisFixture : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        _container = new RedisBuilder("redis:7-alpine").Build();
+        _container = new RedisBuilder("redis:8-alpine").Build();
         await _container.StartAsync();
     }
 
