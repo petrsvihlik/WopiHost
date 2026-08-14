@@ -19,11 +19,7 @@ public sealed class MockOidcServerFixture : IAsyncLifetime
     /// <summary>Issuer name used by the mock server. Discovery URL is <c>{BaseUrl}/{Issuer}/.well-known/openid-configuration</c>.</summary>
     public const string Issuer = "default";
 
-    // 6.0.0 is deliberately skipped: its Jackson 2->3 migration made the userinfo endpoint
-    // serialize nbf/exp/iat as ISO-8601 strings instead of the NumericDate values OIDC requires,
-    // so ASP.NET's OIDC handler rejects the response mid-handshake. The renovate.json rule for
-    // this image excludes that one release; drop both once a fixed 6.x ships.
-    private const string Image = "ghcr.io/navikt/mock-oauth2-server:5.0.2";
+    private const string Image = "ghcr.io/navikt/mock-oauth2-server:6.0.1";
     private const ushort ContainerPort = 8080;
 
     private IContainer? _container;
