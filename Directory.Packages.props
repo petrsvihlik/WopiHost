@@ -57,6 +57,10 @@
          flags as a high-severity stack overflow on circular schema references; 2.7.5 is the
          first patched 2.x release. -->
     <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
+    <!-- Testcontainers pulls SSH.NET 2025.1.0, which GHSA-q939-rpr3-3284 flags as a
+         high-severity path traversal in ScpClient.Download() on recursive downloads;
+         2026.0.0 is the first patched release. -->
+    <PackageVersion Include="SSH.NET" Version="2026.0.0" />
   </ItemGroup>
 
   <!--
