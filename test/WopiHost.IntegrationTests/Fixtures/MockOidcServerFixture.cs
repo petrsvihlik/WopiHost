@@ -19,7 +19,7 @@ public sealed class MockOidcServerFixture : IAsyncLifetime
     /// <summary>Issuer name used by the mock server. Discovery URL is <c>{BaseUrl}/{Issuer}/.well-known/openid-configuration</c>.</summary>
     public const string Issuer = "default";
 
-    private const string Image = "ghcr.io/navikt/mock-oauth2-server:2.1.10";
+    private const string Image = "ghcr.io/navikt/mock-oauth2-server:2.3.0";
     private const ushort ContainerPort = 8080;
 
     private IContainer? _container;
