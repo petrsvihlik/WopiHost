@@ -8,9 +8,9 @@ namespace WopiHost.RedisLockProvider;
 /// <summary>
 /// <see cref="IWopiLockProvider"/> backed by Redis. Each WOPI lock is a string key whose value is
 /// a JSON-serialized <see cref="WopiLockInfo"/>; Redis's TTL handles the spec-mandated 30-minute
-/// expiry without polling, and compare-and-swap operations run as a transaction
-/// (<c>WATCH</c> + <c>MULTI/EXEC</c> via StackExchange.Redis's <c>Condition.StringEqual</c>) so
-/// the "match-then-mutate" steps are atomic with respect to other clients.
+/// expiry without polling, and compare-and-swap operations run as single conditional commands
+/// (<c>SET IFEQ</c> / <c>DELIFEQ</c> via StackExchange.Redis's <c>ValueCondition.Equal</c>,
+/// requires Redis 8.4+) so the "match-then-mutate" steps are atomic with respect to other clients.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -22,16 +22,14 @@ namespace WopiHost.RedisLockProvider;
 /// coordinated exclusion through Azure's distributed lease infrastructure).
 /// </para>
 /// <para>
-/// <b>Atomicity.</b> Refresh and Unlock-and-relock use <c>IDatabase.CreateTransaction()</c> with
-/// an <c>AddCondition(Condition.StringEqual(key, snapshot))</c> guard — Redis's <c>WATCH</c>
-/// primitive aborts the <c>MULTI/EXEC</c> if the key's value changed between the read and the
-/// write. A stale caller's snapshot no longer matches the resident value, so the transaction
-/// aborts and the call returns false.
-/// </para>
-/// <para>
-/// The transaction shape (GET, then MULTI/EXEC) costs one extra round-trip compared to a Lua
-/// <c>EVAL</c> compare+set, but keeps the implementation in C# with no embedded scripting
-/// language. The WOPI lock path isn't hot enough to care about the extra hop.
+/// <b>Atomicity.</b> Refresh and Unlock-and-relock write back with
+/// <c>StringSetAsync(key, value, ttl, ValueCondition.Equal(snapshot))</c> — Redis's
+/// <c>SET IFEQ</c> compares the resident value against the snapshot server-side and applies the
+/// write only on a byte-exact match, in one round-trip with no abort-and-retry window. A stale
+/// caller's snapshot no longer matches the resident value, so the write is refused and the call
+/// returns false. These conditional commands require <b>Redis 8.4 or later</b>; the
+/// <c>RedisMinServerVersion</c> property in the project file declares that floor to the
+/// StackExchange.Redis analyzers.
 /// </para>
 /// </remarks>
 /// <param name="multiplexer">StackExchange.Redis connection multiplexer.</param>
@@ -47,8 +45,8 @@ namespace WopiHost.RedisLockProvider;
 /// <param name="lockComparer">
 /// Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/> when not supplied via DI.
 /// The .NET-side comparer drives the snapshot match (so <see cref="JsonShapedWopiLockComparer"/>
-/// and friends can absorb known client-side lock-id mutations); the Redis transaction's CAS
-/// always compares the full stored value byte-for-byte, so any concurrent mutation aborts the
+/// and friends can absorb known client-side lock-id mutations); the Redis-side conditional write
+/// always compares the full stored value byte-for-byte, so any concurrent mutation refuses the
 /// CAS regardless of comparer choice.
 /// </param>
 public sealed partial class WopiRedisLockProvider(
@@ -148,19 +146,20 @@ public sealed partial class WopiRedisLockProvider(
     }
 
     /// <summary>
-    /// Shared "GET snapshot → validate caller's lock-id → MULTI/EXEC under WATCH" flow that
+    /// Shared "GET snapshot → validate caller's lock-id → conditional write-back" flow that
     /// <see cref="RefreshLockAsync"/> and <see cref="TryUnlockAndRelockAsync"/> both need. They
     /// differ only in <em>how</em> the snapshot is transformed before being written back; the
     /// load, expected-id check, and CAS scaffolding is identical.
     /// </summary>
     /// <remarks>
-    /// The transaction's <c>AddCondition(StringEqual(key, raw))</c> compares the
-    /// <em>byte-exact</em> resident value against the snapshot just read. If anything mutated
-    /// the value between the read and the EXEC (a sibling refresh, swap, remove, or expiry),
-    /// the condition fails and the transaction aborts. The .NET-side <see cref="IWopiLockComparer"/>
-    /// is consulted only for the caller's <paramref name="expectedExistingLockId"/> against the
-    /// snapshot's <c>LockId</c>, so tolerant comparers (e.g. <see cref="JsonShapedWopiLockComparer"/>)
-    /// still work without weakening the CAS.
+    /// The write's <c>ValueCondition.Equal(raw)</c> compares the <em>byte-exact</em> resident
+    /// value against the snapshot just read, atomically on the server (<c>SET IFEQ</c>,
+    /// Redis 8.4+). If anything mutated the value between the read and the write (a sibling
+    /// refresh, swap, remove, or expiry), the condition fails and the write is refused. The
+    /// .NET-side <see cref="IWopiLockComparer"/> is consulted only for the caller's
+    /// <paramref name="expectedExistingLockId"/> against the snapshot's <c>LockId</c>, so
+    /// tolerant comparers (e.g. <see cref="JsonShapedWopiLockComparer"/>) still work without
+    /// weakening the CAS.
     /// </remarks>
     private async Task<bool> TryAtomicCasAsync(
         string fileId,
@@ -186,10 +185,7 @@ public sealed partial class WopiRedisLockProvider(
             // not evict at all.) The delete is guarded by the same value-equality condition the
             // mutation path uses, so a sibling that refreshed or recreated the lock in between is
             // never clobbered: the condition fails and the delete is skipped.
-            var evict = Db.CreateTransaction();
-            evict.AddCondition(Condition.StringEqual(key, raw));
-            _ = evict.KeyDeleteAsync(key);
-            _ = await evict.ExecuteAsync().ConfigureAwait(false);
+            _ = await Db.StringDeleteAsync(key, ValueCondition.Equal(raw)).ConfigureAwait(false);
             LogLockExpired(_logger, fileId, snapshot.LockId);
             return false;
         }
@@ -200,10 +196,7 @@ public sealed partial class WopiRedisLockProvider(
 
         var updated = mutate(snapshot);
         var ttl = TimeSpan.FromMinutes(WopiLockInfo.ExpirationMinutes);
-        var tx = Db.CreateTransaction();
-        tx.AddCondition(Condition.StringEqual(key, raw));
-        _ = tx.StringSetAsync(key, Serialize(updated), ttl);
-        return await tx.ExecuteAsync().ConfigureAwait(false);
+        return await Db.StringSetAsync(key, Serialize(updated), ttl, ValueCondition.Equal(raw)).ConfigureAwait(false);
     }
 
     private static string Serialize(WopiLockInfo info) => JsonSerializer.Serialize(info, s_json);

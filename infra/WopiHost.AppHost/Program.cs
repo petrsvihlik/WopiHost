@@ -190,7 +190,10 @@ if (useOnlyOffice)
 // so there's no data-survival need that would justify pinning the password to stabilise it.
 if (builder.Configuration.GetValue("AppHost:UseRedisLocks", defaultValue: true))
 {
-    var redis = builder.AddRedis("wopi-locks");
+    // The tag override keeps the dev-loop server in lockstep with what the provider requires and
+    // the conformance suite tests against: WopiRedisLockProvider's CAS paths use SET IFEQ/DELIFEQ
+    // (Redis 8.4+), and Aspire's default Redis tag may lag behind that floor.
+    var redis = builder.AddRedis("wopi-locks").WithImageTag("8-alpine");
     foreach (var backend in backends)
     {
         backend
