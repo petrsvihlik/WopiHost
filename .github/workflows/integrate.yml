@@ -33,6 +33,8 @@ jobs:
       run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
     - name: Install Playwright browsers (for sample-app smoke tests)
       run: pwsh artifacts/bin/WopiHost.SmokeTests/debug/playwright.ps1 install --with-deps chromium
+    - name: Pre-pull Testcontainers images
+      uses: ./.github/actions/prepull-testcontainers-images
     - name: Test
       # Emit JUnit XML alongside lcov coverage so Codecov Test Analytics can ingest run
       # times / failures. {assembly} keeps each test project's results in a distinct file.
