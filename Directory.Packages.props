@@ -32,7 +32,7 @@
     <PackageVersion Include="StackExchange.Redis" Version="3.1.13" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.10" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.8" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.17.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.17.0" />
@@ -53,10 +53,6 @@
     patched release to watch for.
   -->
   <ItemGroup Label="Transitive security pins">
-    <!-- Microsoft.AspNetCore.OpenApi pulls Microsoft.OpenApi 2.0.0, which GHSA-v5pm-xwqc-g5wc
-         flags as a high-severity stack overflow on circular schema references; 2.7.5 is the
-         first patched 2.x release. -->
-    <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
     <!-- Testcontainers pulls SSH.NET 2025.1.0, which GHSA-q939-rpr3-3284 flags as a
          high-severity path traversal in ScpClient.Download() on recursive downloads;
          2026.0.0 is the first patched release. -->

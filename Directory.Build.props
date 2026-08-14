@@ -43,11 +43,17 @@
 		<_NuGetUserConfigNix Condition="'$(HOME)' != ''">$(HOME)/.nuget/NuGet/NuGet.Config</_NuGetUserConfigNix>
 		<_NuGetUserConfigXdg Condition="'$(XDG_CONFIG_HOME)' != ''">$(XDG_CONFIG_HOME)/NuGet/NuGet.Config</_NuGetUserConfigXdg>
 		<_NuGetUserConfigXdg Condition="'$(_NuGetUserConfigXdg)' == '' and '$(HOME)' != ''">$(HOME)/.config/NuGet/NuGet.Config</_NuGetUserConfigXdg>
-		<!-- Read each existing candidate once; the Exists() guard short-circuits so a missing file is never read. -->
-		<_NuGetUserConfigTextWin Condition="'$(_NuGetUserConfigWin)' != '' and Exists('$(_NuGetUserConfigWin)')">$([System.IO.File]::ReadAllText('$(_NuGetUserConfigWin)'))</_NuGetUserConfigTextWin>
-		<_NuGetUserConfigTextNix Condition="'$(_NuGetUserConfigNix)' != '' and Exists('$(_NuGetUserConfigNix)')">$([System.IO.File]::ReadAllText('$(_NuGetUserConfigNix)'))</_NuGetUserConfigTextNix>
-		<_NuGetUserConfigTextXdg Condition="'$(_NuGetUserConfigXdg)' != '' and Exists('$(_NuGetUserConfigXdg)')">$([System.IO.File]::ReadAllText('$(_NuGetUserConfigXdg)'))</_NuGetUserConfigTextXdg>
 		<IncludeCobalt Condition="'$(IncludeCobalt)' == '' and '$(COBALT_PACKAGES_TOKEN)' != ''">true</IncludeCobalt>
+		<!-- The user-config probe is a dev-machine convenience; on CI the token above is the only
+		     signal, so the probe is skipped there ('CI' is set on GitHub runners) and whenever the
+		     token has already decided. On a fresh runner the first restore creates the default user
+		     NuGet.Config concurrently with property evaluation, and ReadAllText racing that write
+		     fails the build with MSB4184 (sharing violation). The Exists() guard short-circuits so
+		     a missing file is never read. -->
+		<_ProbeNuGetUserConfig Condition="'$(IncludeCobalt)' == '' and '$(CI)' != 'true'">true</_ProbeNuGetUserConfig>
+		<_NuGetUserConfigTextWin Condition="'$(_ProbeNuGetUserConfig)' == 'true' and '$(_NuGetUserConfigWin)' != '' and Exists('$(_NuGetUserConfigWin)')">$([System.IO.File]::ReadAllText('$(_NuGetUserConfigWin)'))</_NuGetUserConfigTextWin>
+		<_NuGetUserConfigTextNix Condition="'$(_ProbeNuGetUserConfig)' == 'true' and '$(_NuGetUserConfigNix)' != '' and Exists('$(_NuGetUserConfigNix)')">$([System.IO.File]::ReadAllText('$(_NuGetUserConfigNix)'))</_NuGetUserConfigTextNix>
+		<_NuGetUserConfigTextXdg Condition="'$(_ProbeNuGetUserConfig)' == 'true' and '$(_NuGetUserConfigXdg)' != '' and Exists('$(_NuGetUserConfigXdg)')">$([System.IO.File]::ReadAllText('$(_NuGetUserConfigXdg)'))</_NuGetUserConfigTextXdg>
 		<IncludeCobalt Condition="'$(IncludeCobalt)' == '' and $(_NuGetUserConfigTextWin.Contains('$(_CobaltFeedMarker)'))">true</IncludeCobalt>
 		<IncludeCobalt Condition="'$(IncludeCobalt)' == '' and $(_NuGetUserConfigTextNix.Contains('$(_CobaltFeedMarker)'))">true</IncludeCobalt>
 		<IncludeCobalt Condition="'$(IncludeCobalt)' == '' and $(_NuGetUserConfigTextXdg.Contains('$(_CobaltFeedMarker)'))">true</IncludeCobalt>

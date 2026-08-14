@@ -48,6 +48,8 @@ jobs:
       # The build emits playwright.ps1 next to the SmokeTests assembly; run it with --with-deps
       # so Linux runners get the apt packages Chromium needs. Idempotent — caches in ~/.cache.
       run: pwsh artifacts/bin/WopiHost.SmokeTests/debug/playwright.ps1 install --with-deps chromium
+    - name: Pre-pull Testcontainers images
+      uses: ./.github/actions/prepull-testcontainers-images
     - name: Test
       # Emit JUnit XML alongside lcov coverage so Codecov Test Analytics can ingest run
       # times / failures. {assembly} keeps each test project's results in a distinct file.

@@ -1,0 +1,35 @@
+name: Pre-pull Testcontainers images
+description: >
+  Pulls the container images the Testcontainers-backed test fixtures use, retrying transient
+  registry failures. Without this, a single reset connection during an image pull surfaces as
+  dozens of unrelated test failures at fixture-init time (every test in the Azurite/Redis
+  collections fails with DockerImageNotFoundException) instead of one clearly-named failed step.
+runs:
+  using: composite
+  steps:
+    - name: Pull fixture images with retries
+      shell: bash
+      run: |
+        # The images are pinned as C# string constants inside the fixtures (AzuriteFixture,
+        # RedisFixture), so they are extracted from source rather than listed a second time
+        # here. The pattern requires a quoted "name:tag" whose tag starts with a digit, which
+        # matches image pins ("mcr.microsoft.com/azure-storage/azurite:3.35.0", "redis:7-alpine")
+        # and no other string literal in fixture code.
+        mapfile -t images < <(grep -rhoE '"[a-z0-9.-]+(/[a-z0-9._-]+)*:[0-9][A-Za-z0-9._-]*"' test --include='*Fixture.cs' | tr -d '"' | sort -u)
+        if [ "${#images[@]}" -eq 0 ]; then
+          echo "::warning::No fixture container images found under test/**/*Fixture.cs — the extraction pattern has likely drifted from the fixtures. Testcontainers will pull at test time without retries."
+          exit 0
+        fi
+        for image in "${images[@]}"; do
+          for attempt in 1 2 3 4 5; do
+            if docker pull "$image"; then
+              continue 2
+            fi
+            echo "Pull of $image failed (attempt $attempt/5)."
+            if [ "$attempt" -lt 5 ]; then
+              sleep $((attempt * 10))
+            fi
+          done
+          echo "::error::Could not pull $image after 5 attempts — registry unreachable."
+          exit 1
+        done
