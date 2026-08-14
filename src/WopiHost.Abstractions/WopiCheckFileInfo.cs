@@ -488,6 +488,201 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// </summary>
     [JsonIgnore]
     public bool WebEditingDisabled { get; set; }
+
+    /// <summary>
+    /// The Microsoft Entra ID (formerly Azure AD) object ID of the current user, as a string.
+    /// </summary>
+    [JsonPropertyName("AADUserObjectId")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AadUserObjectId { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the host supports batching of <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/addactivities">AddActivities</see> calls for a user.
+    /// </summary>
+    public bool AllowAddActivitiesUserBatching { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the WOPI client may enable features that have not yet reached general availability.
+    /// </summary>
+    public bool AllowEarlyFeatures { get; set; }
+
+    /// <summary>
+    /// A URI to the app catalog the WOPI client should use when offering add-ins to the user.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? AppCatalogUrl { get; set; }
+
+    /// <summary>
+    /// A string identifying the policy the host applied to this file, used by the WOPI client for policy reporting.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AppliedPolicyId { get; set; }
+
+    /// <summary>
+    /// A string value indicating how aggressively the WOPI client should protect itself against host throttling.
+    /// <para>Possible values: <c>MostProtected</c>, <c>Protected</c>, <c>Normal</c>, <c>LessProtected</c>, <c>LeastProtected</c>.</para>
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ClientThrottlingProtection { get; set; }
+
+    /// <summary>
+    /// A string prefix identifying the compliance domain the file belongs to.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ComplianceDomainPrefix { get; set; }
+
+    /// <summary>
+    /// A string value restricting what the user may copy out of the document.
+    /// <para>Possible values: <c>BlockAll</c>, <c>CurrentDocumentOnly</c>.</para>
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CopyPasteRestrictions { get; set; }
+
+    /// <summary>
+    /// A URI to a WebDAV endpoint for the file, used to open it in the desktop client via Direct Invoke.
+    /// </summary>
+    [JsonPropertyName("DirectInvokeDAVUrl")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? DirectInvokeDavUrl { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the user may edit the file but the host cannot persist the changes.
+    /// </summary>
+    public bool EditingCannotSave { get; set; }
+
+    /// <summary>
+    /// A URI identifying the origin of the page the WOPI client is embedded in.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? EmbeddingPageOrigin { get; set; }
+
+    /// <summary>
+    /// A string the host passes through to the embedding page for the duration of the session.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? EmbeddingPageSessionInfo { get; set; }
+
+    /// <summary>
+    /// A collection of application feature names the WOPI client should enable for this session.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IEnumerable<string>? EnabledApplicationFeatures { get; set; }
+
+    /// <summary>
+    /// A string describing the kind of identifier carried in <see cref="HostAuthenticationId"/>.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? HostAuthenticationIdType { get; set; }
+
+    /// <summary>
+    /// A URI to a page that renders the file for syndication in an HTML <c>div</c>.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? HostDivSyndicationViewUrl { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates Yammer integration is available for this file.
+    /// </summary>
+    public bool IsYammerEnabled { get; set; }
+
+    /// <summary>
+    /// A string naming the organization that licensed the current user.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LicensedOrganization { get; set; }
+
+    /// <summary>
+    /// A URI the WOPI client invokes to open the file in the corresponding desktop client.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? OpenInClientCommandUrl { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the file is protected by an information-protection policy.
+    /// </summary>
+    public bool ProtectedFile { get; set; }
+
+    /// <summary>
+    /// A URI to a page where the user can report the file as abusive.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? ReportAbuseUrl { get; set; }
+
+    /// <summary>
+    /// A string describing the Safe Links scanning state that applies to links in the file.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SafeLinksStatus { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the host supports policy checks for the current user and file.
+    /// </summary>
+    public bool SupportsCheckPolicy { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the host supports checking whether a user has access to the file.
+    /// </summary>
+    public bool SupportsCheckUserAccess { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the host can resolve contacts on behalf of the WOPI client.
+    /// </summary>
+    public bool SupportsContactsResolution { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the host supports storing per-user values against the file.
+    /// </summary>
+    public bool SupportsFileUserValue { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the host supports retrieving the file's activity feed.
+    /// </summary>
+    public bool SupportsGetActivities { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the host supports granting a user access to the file.
+    /// </summary>
+    public bool SupportsGrantUserAccess { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the host supports returning information-protection policies for the file.
+    /// </summary>
+    public bool SupportsPolicies { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the host supports the reviewing mode of the WOPI client.
+    /// </summary>
+    public bool SupportsReviewing { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the file is writable in principle but cannot be written right now.
+    /// </summary>
+    public bool TemporarilyNotWritable { get; set; }
+
+    /// <summary>
+    /// A URI to a page explaining the host's terms of use.
+    /// </summary>
+    /// <remarks>Deprecated since WOPI version 2015.06.01.</remarks>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? TermsOfUseUrl { get; set; }
+
+    /// <summary>
+    /// A Boolean value that indicates the user may review the file, that is, add and resolve comments and tracked changes.
+    /// </summary>
+    public bool UserCanReview { get; set; }
+
+    /// <summary>
+    /// The workflow types available for this file. Must be set whenever <see cref="WorkflowUrl"/> or <see cref="WorkflowPostMessage"/> is provided, otherwise the WOPI client ignores both.
+    /// <para>Possible values: <c>Assign</c>, <c>Submit</c>.</para>
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IEnumerable<string>? WorkflowType { get; set; }
+
+    /// <summary>
+    /// A URI the WOPI client navigates to when the user starts a workflow named in <see cref="WorkflowType"/>.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? WorkflowUrl { get; set; }
     #endregion
 
     #region "PostMessage properties"
@@ -544,6 +739,31 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// </summary>
     /// <remarks>Pre-release property - not yet used by any WOPI client</remarks>
     public bool WorkflowPostMessage { get; set; }
+
+    /// <summary>
+    /// A Boolean value that, when set to true, indicates the host expects to receive the UI_InsertImage PostMessage when the Insert Image UI in Microsoft 365 for the web is activated.
+    /// </summary>
+    public bool InsertImagePostMessage { get; set; }
+
+    /// <summary>
+    /// A Boolean value that, when set to true, indicates the host expects to receive the UI_OpenInClient PostMessage when the Open in Client UI in Microsoft 365 for the web is activated.
+    /// </summary>
+    public bool OpenInClientPostMessage { get; set; }
+
+    /// <summary>
+    /// A Boolean value that, when set to true, indicates the host expects to receive the Permissions PostMessage when the file's permissions change during the session.
+    /// </summary>
+    public bool PermissionsPostMessage { get; set; }
+
+    /// <summary>
+    /// A Boolean value that, when set to true, indicates the host expects to receive the PolicyCheck PostMessage when the WOPI client evaluates a policy.
+    /// </summary>
+    public bool PolicyCheckPostMessage { get; set; }
+
+    /// <summary>
+    /// A Boolean value that, when set to true, indicates the host expects to receive the UI_ReportAbuse PostMessage when the Report Abuse UI in Microsoft 365 for the web is activated.
+    /// </summary>
+    public bool ReportAbusePostMessage { get; set; }
     #endregion
 
     #region "IWopiHostCapabilities"

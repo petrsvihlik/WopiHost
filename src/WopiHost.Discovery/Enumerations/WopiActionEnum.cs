@@ -128,5 +128,35 @@ public enum WopiActionEnum
     /// <summary>
     /// Not supported within the Office 365 - Cloud Storage Partner Program.
     /// </summary>
-    DocumentChat
+    DocumentChat,
+
+    /// <summary>
+    /// An action that opens the file, letting the WOPI client pick the view or edit experience itself.
+    /// </summary>
+    Open,
+
+    /// <summary>
+    /// An action that allows users to edit a document in a mode optimized for embedding in a web page.
+    /// </summary>
+    EmbedEdit,
+
+    /// <summary>
+    /// An action that renders a preview of the file optimized for embedding in a web page.
+    /// </summary>
+    EmbedPreview,
+
+    /// <summary>
+    /// An action that renders a UI for configuring how the file is embedded in a web page.
+    /// </summary>
+    EmbedConfigurator,
+
+    /// <summary>
+    /// An action that previews the file as it appears to a user filling in a form.
+    /// </summary>
+    FormPreview,
+
+    /// <summary>
+    /// An action used to preload static content for the Office for the web unified application.
+    /// </summary>
+    PreloadUnifiedApp
 }

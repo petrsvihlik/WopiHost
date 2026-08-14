@@ -125,6 +125,22 @@ public class WopiDiscovererTests
     }
 
     [Theory]
+    [InlineData(NetZoneEnum.ExternalHttps, "xlsx", WopiActionEnum.Open, XmlOo2019)]
+    [InlineData(NetZoneEnum.InternalHttp, "onetoc2", WopiActionEnum.EmbedEdit, XmlOo2019)]
+    [InlineData(NetZoneEnum.InternalHttp, "onetoc2", WopiActionEnum.EmbedEdit, XmlOos2016)]
+    [InlineData(NetZoneEnum.ExternalHttps, "xlsx", WopiActionEnum.EmbedPreview, XmlOo2019)]
+    [InlineData(NetZoneEnum.ExternalHttps, "xlsx", WopiActionEnum.EmbedConfigurator, XmlOo2019)]
+    [InlineData(NetZoneEnum.InternalHttp, "xlsx", WopiActionEnum.FormPreview, XmlOo2019)]
+    public async Task SupportsActionAsync_ActionOnlyInDiscoveryXml_ReturnsTrue(NetZoneEnum netZone, string extension, WopiActionEnum action, string fileName)
+    {
+        InitDiscoverer(fileName, netZone);
+
+        var result = await _wopiDiscoverer.SupportsActionAsync(extension, action);
+
+        Assert.True(result, $"{action} should be supported for {extension}!");
+    }
+
+    [Theory]
     [InlineData(NetZoneEnum.InternalHttp, "html", XmlOos2016)]
     [InlineData(NetZoneEnum.InternalHttp, "txt", XmlOos2016)]
     public async Task RequiresCobaltAsync_UnknownExtension_ReturnsFalse(NetZoneEnum netZone, string extension, string fileName)
