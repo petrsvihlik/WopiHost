@@ -36,25 +36,27 @@ jobs:
     - name: Pre-pull Testcontainers images
       uses: ./.github/actions/prepull-testcontainers-images
     - name: Test
-      # Emit JUnit XML alongside lcov coverage so Codecov Test Analytics can ingest run
-      # times / failures. {assembly} keeps each test project's results in a distinct file.
-      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=lcov --logger "junit;LogFilePath={assembly}.junit.xml" --results-directory ${{ github.workspace }}/test-results
+      # Emit JUnit XML alongside cobertura coverage so Codecov Test Analytics can ingest
+      # run times / failures. MTP runs each test project as its own process and writes its
+      # reports into --results-directory, so per-project files stay distinct without a
+      # filename token.
+      run: dotnet test --no-build --results-directory ${{ github.workspace }}/test-results --coverage --coverage-output-format cobertura --report-spekt-junit
     - name: Upload test results to Codecov
       # Runs even when the Test step failed — reporting the failed tests is the whole point.
       if: ${{ !cancelled() }}
       uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: ${{ github.workspace }}/test-results/*.junit.xml
+        files: ${{ github.workspace }}/test-results/**/*.junit.xml
     - name: Upload coverage to Qlty
       uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
       with:
         oidc: true
-        # Coverlet's MSBuild integration emits `coverage.info` per project at
-        # `test/<Project>/coverage.info`. Root the glob explicitly under `test/` so
+        # Microsoft.Testing.Extensions.CodeCoverage writes one cobertura report per test
+        # project under the run's --results-directory. Root the glob explicitly so
         # qlty-action's @actions/glob layer has an anchored starting directory.
-        files: "test/**/coverage.info"
-        # Coverlet's lcov references source-generated files (LoggerMessage.g.cs,
+        files: "test-results/**/*.cobertura.xml"
+        # Coverage reports reference source-generated files (LoggerMessage.g.cs,
         # LibraryImports.g.cs, etc.) under artifacts/obj/, which don't exist at
         # publish time. Without this flag Qlty counts them as 0% covered. See also
         # .qlty/qlty.toml.
@@ -94,4 +96,4 @@ jobs:
       shell: bash
       run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
     - name: Test (FileSystemProvider — exercises Owner lookup)
-      run: dotnet test test/WopiHost.FileSystemProvider.Tests --verbosity normal
+      run: dotnet test --project test/WopiHost.FileSystemProvider.Tests

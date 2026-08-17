@@ -51,21 +51,21 @@ jobs:
     - name: Pre-pull Testcontainers images
       uses: ./.github/actions/prepull-testcontainers-images
     - name: Test
-      # Emit JUnit XML alongside lcov coverage so Codecov Test Analytics can ingest run
+      # Emit JUnit XML alongside cobertura coverage so Codecov Test Analytics can ingest run
       # times / failures. {assembly} keeps each test project's results in a distinct file.
-      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=lcov --logger "junit;LogFilePath={assembly}.junit.xml" --results-directory ${{ github.workspace }}/test-results
+      run: dotnet test --no-build --results-directory ${{ github.workspace }}/test-results --coverage --coverage-output-format cobertura --report-spekt-junit
     - name: Upload test results to Codecov
       # Runs even when the Test step failed — reporting the failed tests is the whole point.
       if: ${{ !cancelled() }}
       uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: ${{ github.workspace }}/test-results/*.junit.xml
+        files: ${{ github.workspace }}/test-results/**/*.junit.xml
     - name: Upload coverage to Qlty
       uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
       with:
         oidc: true
-        files: "test/**/coverage.info"
+        files: "test-results/**/*.cobertura.xml"
         # See integrate.yml for the rationale.
         skip-missing-files: true
     - name: Codecov
@@ -110,7 +110,7 @@ jobs:
       shell: bash
       run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
     - name: Test (FileSystemProvider — exercises Owner lookup)
-      run: dotnet test test/WopiHost.FileSystemProvider.Tests --verbosity normal
+      run: dotnet test --project test/WopiHost.FileSystemProvider.Tests
 
   api-compat:
     name: API Compatibility

@@ -16,20 +16,17 @@
 	</ItemGroup>
 
 	<!-- test/Directory.Build.props auto-includes packages that only test runners need. Strip them
-	     from this library so the assembly stays a plain class library (no Microsoft.NET.Test.Sdk
-	     entry point, no xunit.v3 metapackage that forces OutputType=Exe, no runner / coverage
-	     / mocking dependencies). The attribute and Assert types arrive instead via the
-	     runner-free xunit.v3.extensibility.core and xunit.v3.assert packages declared below —
-	     this is the documented split xUnit ships for exactly this use case
+	     from this library so the assembly stays a plain class library (no MTP entry point, no
+	     xunit.v3 metapackage that forces OutputType=Exe, no runner / coverage / mocking
+	     dependencies). The attribute and Assert types arrive instead via the runner-free
+	     xunit.v3.extensibility.core and xunit.v3.assert packages declared below — this is the
+	     documented split xUnit ships for exactly this use case
 	     (https://xunit.net/docs/v3-architecture/extensibility). -->
 	<ItemGroup>
-		<PackageReference Remove="Microsoft.NET.Test.Sdk" />
 		<PackageReference Remove="JunitXml.TestLogger" />
 		<PackageReference Remove="xunit.v3" />
-		<PackageReference Remove="xunit.runner.visualstudio" />
 		<PackageReference Remove="FakeItEasy" />
-		<PackageReference Remove="coverlet.collector" />
-		<PackageReference Remove="coverlet.msbuild" />
+		<PackageReference Remove="Microsoft.Testing.Extensions.CodeCoverage" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -33,14 +33,14 @@ jobs:
     - name: Pre-pull Testcontainers images
       uses: ./.github/actions/prepull-testcontainers-images
     - name: Test
-      run: dotnet test --no-build --verbosity normal --configuration Release /p:CollectCoverage=true /p:CoverletOutputFormat=lcov
+      run: dotnet test --no-build --configuration Release --results-directory ${{ github.workspace }}/test-results --coverage --coverage-output-format cobertura
     - name: Upload coverage to Qlty
       uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
       with:
         oidc: true
-        # Coverlet emits `coverage.info` per project at `test/<Project>/coverage.info`;
+        # Microsoft.Testing.Extensions.CodeCoverage writes one cobertura report per project;
         # see integrate.yml for the glob rationale.
-        files: "test/**/coverage.info"
+        files: "test-results/**/*.cobertura.xml"
         # See integrate.yml for the rationale.
         skip-missing-files: true
     - name: Codecov

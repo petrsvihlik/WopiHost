@@ -10,8 +10,9 @@
 		<IsPackable>false</IsPackable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<!-- xUnit v3 requires test projects to be built as console apps so the framework's
-		     Microsoft.Testing.Platform entry point can run them. The vstest path
-		     (Microsoft.NET.Test.Sdk + xunit.runner.visualstudio) continues to work. -->
+		     Microsoft.Testing.Platform entry point can run them. As of xunit.v3 4.x that entry
+		     point is the only path: MTP v2 refuses to run through the VSTest target on the
+		     .NET 10 SDK, so Microsoft.NET.Test.Sdk + xunit.runner.visualstudio are gone. -->
 		<OutputType>Exe</OutputType>
 		<!-- xUnit1051 (added in v3) suggests routing every CancellationToken through
 		     TestContext.Current.CancellationToken so tests cancel responsively. Adopting that
@@ -21,12 +22,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="coverlet.collector" />
-		<PackageReference Include="coverlet.msbuild" />
 		<PackageReference Include="FakeItEasy" />
 		<PackageReference Include="JunitXml.TestLogger" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk"/>
+		<PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
 		<PackageReference Include="xunit.v3" />
-		<PackageReference Include="xunit.runner.visualstudio" />
 	</ItemGroup>
 </Project>

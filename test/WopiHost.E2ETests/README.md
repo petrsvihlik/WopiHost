@@ -29,30 +29,36 @@ Every test also carries `Category=E2E`, which is what keeps the whole project ou
 - **Office Online Server / M365 for the Web** — CODE and ONLYOFFICE are *development substitutes*
   with different feature surfaces. A green run here is not M365 conformance.
 
-## How the slnx / runsettings / filter split works
+## How the slnx / filter split works
 
 This project IS in `WOPI.slnx` so PR builds compile it (build-error coverage), but it's filtered out
-of `dotnet test` execution by default. The filter lives in [`/.runsettings`](../../.runsettings):
+of `dotnet test` execution by default. The filter lives in
+[`Directory.Build.props`](../../Directory.Build.props):
 
 ```xml
-<TestCaseFilter>Category!=E2E</TestCaseFilter>
+<TestingPlatformCommandLineArguments>--filter-not-trait "Category=E2E" --ignore-exit-code 8</TestingPlatformCommandLineArguments>
 ```
 
-…auto-loaded by [`Directory.Build.props`](../../Directory.Build.props) via `<RunSettingsFilePath>`
-(dotnet test does NOT auto-discover runsettings by convention). All tests here carry
-`[Trait("Category", "E2E")]`, so `dotnet test` and `dotnet test WOPI.slnx` skip them.
+That property appends arguments to every test project's Microsoft.Testing.Platform command line.
+All tests here carry `[Trait("Category", "E2E")]`, so `dotnet test` and `dotnet test WOPI.slnx`
+skip them. `--ignore-exit-code 8` is required because MTP treats "filter matched no tests" as
+exit code 8, which this project hits on every default run.
 
-The dedicated workflows opt back in by passing `-p:RunSettingsFilePath=` to bypass the autoloaded
-runsettings entirely, then select their suite with a **`Client` trait filter**:
+The dedicated workflows opt back in by clearing the property, then select their suite with a
+**`Client` trait filter**:
 
 ```bash
-dotnet test test/WopiHost.E2ETests -p:RunSettingsFilePath= --filter "Client=Collabora"
-dotnet test test/WopiHost.E2ETests -p:RunSettingsFilePath= --filter "Client=OnlyOffice"
+dotnet test --project test/WopiHost.E2ETests -p:TestingPlatformCommandLineArguments= --filter-trait "Client=Collabora"
+dotnet test --project test/WopiHost.E2ETests -p:TestingPlatformCommandLineArguments= --filter-trait "Client=OnlyOffice"
 ```
 
-The `Client` trait is deliberately distinct from `Category`: a CLI `--filter` ANDs with the
-runsettings filter (`(Category!=E2E)&(Category=E2E)` matches zero tests), so the runsettings must be
-cleared first — and once it is, the `Client` filter applies alone.
+The `Client` trait is deliberately distinct from `Category` so the two filters never have to
+coexist. Clearing the property also drops `--ignore-exit-code 8`, so a `Client` filter that
+matches nothing fails the run instead of passing vacuously.
+
+> Prior to xunit.v3 4.x this exclusion lived in a repo-root `.runsettings` loaded via
+> `<RunSettingsFilePath>`. Microsoft.Testing.Platform does not read `.runsettings`, so the
+> mechanism moved to the MTP command line.
 
 ## Where this runs
 
