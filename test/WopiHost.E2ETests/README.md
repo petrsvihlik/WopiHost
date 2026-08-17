@@ -36,13 +36,14 @@ of `dotnet test` execution by default. The filter lives in
 [`Directory.Build.props`](../../Directory.Build.props):
 
 ```xml
-<TestingPlatformCommandLineArguments>--filter-not-trait "Category=E2E" --ignore-exit-code 8</TestingPlatformCommandLineArguments>
+<TestingPlatformCommandLineArguments>--filter-not-trait "Category=E2E"</TestingPlatformCommandLineArguments>
 ```
 
 That property appends arguments to every test project's Microsoft.Testing.Platform command line.
 All tests here carry `[Trait("Category", "E2E")]`, so `dotnet test` and `dotnet test --solution WOPI.slnx`
-skip them. `--ignore-exit-code 8` is required because MTP treats "filter matched no tests" as
-exit code 8, which this project hits on every default run.
+skip them. Because that leaves *this* project with nothing to run, and MTP counts an empty
+run as a failure, this project's own csproj appends `--minimum-expected-tests 0`. That opt-out
+is deliberately scoped here so the other suites still fail loudly if their tests disappear.
 
 The dedicated workflows opt back in by clearing the property, then select their suite with a
 **`Client` trait filter**:
@@ -53,8 +54,8 @@ dotnet test --project test/WopiHost.E2ETests -p:TestingPlatformCommandLineArgume
 ```
 
 The `Client` trait is deliberately distinct from `Category` so the two filters never have to
-coexist. Clearing the property also drops `--ignore-exit-code 8`, so a `Client` filter that
-matches nothing fails the run instead of passing vacuously.
+coexist. The `--minimum-expected-tests 0` opt-out stays in effect for these runs, so check the
+reported test count rather than trusting a green exit if a `Client` filter matches nothing.
 
 > Prior to xunit.v3 4.x this exclusion lived in a repo-root `.runsettings` loaded via
 > `<RunSettingsFilePath>`. Microsoft.Testing.Platform does not read `.runsettings`, so the

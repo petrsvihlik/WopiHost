@@ -31,15 +31,16 @@
 		  does not read .runsettings at all, so the exclusion moves to xUnit's own MTP filter,
 		  appended to every test project's command line via this property.
 
-		  The "ignore exit code 8" argument is load-bearing: MTP exits 8 when a filter matches
-		  no tests, and filtering Category=E2E out of WopiHost.E2ETests leaves exactly that.
-		  Without it the E2E project alone would fail an otherwise green run.
+		  Filtering every test away is an error to MTP, which expects at least one test per
+		  project — so WopiHost.E2ETests, whose entire suite carries the trait, needs to opt
+		  out of that expectation. It does so in its own csproj rather than here, so the other
+		  test projects keep failing loudly if their tests ever vanish.
 
 		  To opt back in for a single run, override this property to empty and pass the
 		  positive filter — unlike the old runsettings, MTP does not AND the two filters
 		  together. See test/WopiHost.E2ETests/README.md.
 		-->
-		<TestingPlatformCommandLineArguments>--filter-not-trait "Category=E2E" --ignore-exit-code 8</TestingPlatformCommandLineArguments>
+		<TestingPlatformCommandLineArguments>--filter-not-trait "Category=E2E"</TestingPlatformCommandLineArguments>
 	</PropertyGroup>
 
 	<!-- WopiHost.Cobalt depends on the proprietary Microsoft.CobaltCore package, restored from a

@@ -7,6 +7,15 @@
 		     aggregator has no way to pick a winner when both are pulled in transitively via
 		     the AppHost reference. We don't serve static assets from the test runner anyway. -->
 		<StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+		<!--
+		  Every test in this project carries the E2E trait that Directory.Build.props filters
+		  out of default runs, so a default run legitimately executes nothing here. MTP treats
+		  an empty run as a failure unless the expected-test floor is lowered, so drop it to
+		  zero — for this project only, leaving the other suites to fail loudly if their tests
+		  ever disappear. Appends to the inherited value rather than replacing it, so the
+		  E2E filter itself still applies.
+		-->
+		<TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --minimum-expected-tests 0</TestingPlatformCommandLineArguments>
 	</PropertyGroup>
 
 	<ItemGroup>
