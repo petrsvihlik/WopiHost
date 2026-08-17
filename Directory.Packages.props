@@ -78,7 +78,7 @@
          for why the VSTest path is no longer available on the .NET 10 SDK. Needs its
          compile assets: the package's targets generate SelfRegisteredExtensions.cs, which
          references the extension type directly. -->
-    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.8.1" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.9.0" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="13.4.6" />
     <PackageVersion Include="FakeItEasy" Version="9.0.1" />
     <!-- Emits JUnit XML test results for Codecov Test Analytics (flaky-test / failure
