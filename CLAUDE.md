@@ -9,17 +9,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 dotnet build WOPI.slnx
 
 # Run all tests
-dotnet test WOPI.slnx
+dotnet test --solution WOPI.slnx
 
 # Run tests for a specific project
-dotnet test test/WopiHost.Core.Tests
+dotnet test --project test/WopiHost.Core.Tests
 
-# Run a single test by fully qualified name
-dotnet test test/WopiHost.Core.Tests --filter "FullyQualifiedName~TestMethodName"
+# Run a single test by name
+dotnet test --project test/WopiHost.Core.Tests --filter-method "*TestMethodName*"
 
 # Sample-app smoke tests (Playwright). First time only: install Chromium.
 pwsh artifacts/bin/WopiHost.SmokeTests/debug/playwright.ps1 install chromium
-dotnet test test/WopiHost.SmokeTests
+dotnet test --project test/WopiHost.SmokeTests
 
 # Run the sample WOPI host via Aspire orchestration
 dotnet run --project infra/WopiHost.AppHost

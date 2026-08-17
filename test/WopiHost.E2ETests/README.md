@@ -40,7 +40,7 @@ of `dotnet test` execution by default. The filter lives in
 ```
 
 That property appends arguments to every test project's Microsoft.Testing.Platform command line.
-All tests here carry `[Trait("Category", "E2E")]`, so `dotnet test` and `dotnet test WOPI.slnx`
+All tests here carry `[Trait("Category", "E2E")]`, so `dotnet test` and `dotnet test --solution WOPI.slnx`
 skip them. `--ignore-exit-code 8` is required because MTP treats "filter matched no tests" as
 exit code 8, which this project hits on every default run.
 
@@ -86,12 +86,13 @@ pwsh artifacts/bin/WopiHost.E2ETests/debug/playwright.ps1 install chromium
 docker pull collabora/code
 docker pull onlyoffice/documentserver
 
-# 4. Run one suite — -p:RunSettingsFilePath= clears the repo-root .runsettings autoload. Without it,
-#    dotnet test inherits the Category!=E2E filter and runs zero tests in this project.
-dotnet test test/WopiHost.E2ETests -p:RunSettingsFilePath= --filter "Client=Collabora"
+# 4. Run one suite — -p:TestingPlatformCommandLineArguments= clears the repo-wide default set in
+#    Directory.Build.props. Without it, dotnet test inherits the Category=E2E exclusion and runs
+#    zero tests in this project.
+dotnet test --project test/WopiHost.E2ETests -p:TestingPlatformCommandLineArguments= --filter-trait "Client=Collabora"
 
 # …or run everything (both suites, sequentially — each boots its own Aspire stack)
-dotnet test test/WopiHost.E2ETests -p:RunSettingsFilePath=
+dotnet test --project test/WopiHost.E2ETests -p:TestingPlatformCommandLineArguments=
 ```
 
 Without Docker, the tests log `Docker is not available — skipping …` and pass-as-skipped. No red on

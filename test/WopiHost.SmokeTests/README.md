@@ -34,7 +34,7 @@ dotnet build test/WopiHost.SmokeTests
 pwsh artifacts/bin/WopiHost.SmokeTests/debug/playwright.ps1 install chromium
 
 # 3. Run
-dotnet test test/WopiHost.SmokeTests
+dotnet test --project test/WopiHost.SmokeTests
 ```
 
 The `PlaywrightFixture` will auto-install Chromium on first run if step 2 was skipped — works fine locally but slows the first CI run, which is why the workflow installs it explicitly.

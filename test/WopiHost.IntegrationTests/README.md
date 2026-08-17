@@ -21,10 +21,10 @@ End-to-end tests that exercise [`WopiHost.Web.Oidc`](../../sample/WopiHost.Web.O
 
 ```bash
 # Full suite (requires Docker for the OIDC startup tests)
-dotnet test test/WopiHost.IntegrationTests
+dotnet test --project test/WopiHost.IntegrationTests
 
 # Skip Docker-backed tests (e.g. on a machine without Docker Desktop / Colima)
-dotnet test test/WopiHost.IntegrationTests --filter "FullyQualifiedName!~OidcStartupTests"
+dotnet test --project test/WopiHost.IntegrationTests --filter-not-class "*OidcStartupTests"
 ```
 
 The Docker-backed tests use xUnit v3's built-in `Assert.SkipUnless(...)` to mark themselves as **skipped** (not failed) when Docker is unavailable, so the build stays green.
