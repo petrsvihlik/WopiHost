@@ -81,11 +81,6 @@
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.9.0" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="13.4.6" />
     <PackageVersion Include="FakeItEasy" Version="9.0.1" />
-    <!-- Emits JUnit XML test results for Codecov Test Analytics (flaky-test / failure
-         reporting). The 8.x line targets Microsoft.Testing.Platform v2, matching xunit.v3
-         4.x; it registers as an MTP extension rather than a VSTest logger, so CI drives it
-         with the report-spekt-junit option instead of the VSTest "junit" logger. -->
-    <PackageVersion Include="JunitXml.TestLogger" Version="8.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.61.0" />

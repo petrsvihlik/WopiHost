@@ -23,7 +23,6 @@
 	     documented split xUnit ships for exactly this use case
 	     (https://xunit.net/docs/v3-architecture/extensibility). -->
 	<ItemGroup>
-		<PackageReference Remove="JunitXml.TestLogger" />
 		<PackageReference Remove="xunit.v3" />
 		<PackageReference Remove="FakeItEasy" />
 		<PackageReference Remove="Microsoft.Testing.Extensions.CodeCoverage" />

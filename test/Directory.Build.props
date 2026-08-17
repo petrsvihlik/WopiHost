@@ -23,7 +23,6 @@
 
 	<ItemGroup>
 		<PackageReference Include="FakeItEasy" />
-		<PackageReference Include="JunitXml.TestLogger" />
 		<PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
 		<PackageReference Include="xunit.v3" />
 	</ItemGroup>

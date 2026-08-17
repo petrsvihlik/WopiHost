@@ -40,14 +40,14 @@ jobs:
       # run times / failures. MTP runs each test project as its own process and writes its
       # reports into --results-directory, so per-project files stay distinct without a
       # filename token.
-      run: dotnet test --no-build --results-directory ${{ github.workspace }}/test-results --coverage --coverage-output-format cobertura --report-spekt-junit
+      run: dotnet test --no-build --results-directory ${{ github.workspace }}/test-results --coverage --coverage-output-format cobertura --report-junit --report-junit-filename junit.xml
     - name: Upload test results to Codecov
       # Runs even when the Test step failed — reporting the failed tests is the whole point.
       if: ${{ !cancelled() }}
       uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: ${{ github.workspace }}/test-results/**/*.junit.xml
+        files: ${{ github.workspace }}/test-results/**/junit.xml
     - name: Upload coverage to Qlty
       uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
       with:
