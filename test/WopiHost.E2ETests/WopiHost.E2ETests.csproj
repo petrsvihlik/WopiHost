@@ -10,12 +10,13 @@
 		<!--
 		  Every test in this project carries the E2E trait that Directory.Build.props filters
 		  out of default runs, so a default run legitimately executes nothing here. MTP treats
-		  an empty run as a failure unless the expected-test floor is lowered, so drop it to
-		  zero — for this project only, leaving the other suites to fail loudly if their tests
-		  ever disappear. Appends to the inherited value rather than replacing it, so the
-		  E2E filter itself still applies.
+		  an empty run as exit code 8 (ZeroTests), so ignore that code — for this project only,
+		  leaving the other suites to fail loudly if their tests ever disappear. (Lowering the
+		  expected-test floor to zero is not an alternative: MTP rejects 0 as an invalid value
+		  for minimum expected tests.) Appends to the inherited value rather than replacing it,
+		  so the E2E filter itself still applies.
 		-->
-		<TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --minimum-expected-tests 0</TestingPlatformCommandLineArguments>
+		<TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --ignore-exit-code 8</TestingPlatformCommandLineArguments>
 	</PropertyGroup>
 
 	<ItemGroup>

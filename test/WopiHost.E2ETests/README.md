@@ -41,21 +41,22 @@ of `dotnet test` execution by default. The filter lives in
 
 That property appends arguments to every test project's Microsoft.Testing.Platform command line.
 All tests here carry `[Trait("Category", "E2E")]`, so `dotnet test` and `dotnet test --solution WOPI.slnx`
-skip them. Because that leaves *this* project with nothing to run, and MTP counts an empty
-run as a failure, this project's own csproj appends `--minimum-expected-tests 0`. That opt-out
-is deliberately scoped here so the other suites still fail loudly if their tests disappear.
+skip them. Because that leaves *this* project with nothing to run, and MTP reports an empty
+run as exit code 8 (ZeroTests), this project's own csproj appends `--ignore-exit-code 8`. That
+opt-out is deliberately scoped here so the other suites still fail loudly if their tests disappear.
 
 The dedicated workflows opt back in by clearing the property, then select their suite with a
 **`Client` trait filter**:
 
 ```bash
-dotnet test --project test/WopiHost.E2ETests -p:TestingPlatformCommandLineArguments= --filter-trait "Client=Collabora"
-dotnet test --project test/WopiHost.E2ETests -p:TestingPlatformCommandLineArguments= --filter-trait "Client=OnlyOffice"
+dotnet test --project test/WopiHost.E2ETests/WopiHost.E2ETests.csproj -p:TestingPlatformCommandLineArguments= --filter-trait "Client=Collabora"
+dotnet test --project test/WopiHost.E2ETests/WopiHost.E2ETests.csproj -p:TestingPlatformCommandLineArguments= --filter-trait "Client=OnlyOffice"
 ```
 
 The `Client` trait is deliberately distinct from `Category` so the two filters never have to
-coexist. The `--minimum-expected-tests 0` opt-out stays in effect for these runs, so check the
-reported test count rather than trusting a green exit if a `Client` filter matches nothing.
+coexist. Clearing the property on the command line makes it a global MSBuild property, which
+also overrides the csproj's `--ignore-exit-code 8` append — so a `Client` filter that matches
+nothing fails these runs loudly (exit code 8) instead of passing vacuously.
 
 > Prior to xunit.v3 4.x this exclusion lived in a repo-root `.runsettings` loaded via
 > `<RunSettingsFilePath>`. Microsoft.Testing.Platform does not read `.runsettings`, so the
@@ -89,11 +90,11 @@ docker pull onlyoffice/documentserver
 
 # 4. Run one suite — -p:TestingPlatformCommandLineArguments= clears the repo-wide default set in
 #    Directory.Build.props. Without it, dotnet test inherits the Category=E2E exclusion and runs
-#    zero tests in this project.
-dotnet test --project test/WopiHost.E2ETests -p:TestingPlatformCommandLineArguments= --filter-trait "Client=Collabora"
+#    zero tests in this project. Note --project requires the .csproj file path, not the directory.
+dotnet test --project test/WopiHost.E2ETests/WopiHost.E2ETests.csproj -p:TestingPlatformCommandLineArguments= --filter-trait "Client=Collabora"
 
 # …or run everything (both suites, sequentially — each boots its own Aspire stack)
-dotnet test --project test/WopiHost.E2ETests -p:TestingPlatformCommandLineArguments=
+dotnet test --project test/WopiHost.E2ETests/WopiHost.E2ETests.csproj -p:TestingPlatformCommandLineArguments=
 ```
 
 Without Docker, the tests log `Docker is not available — skipping …` and pass-as-skipped. No red on

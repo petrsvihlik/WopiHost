@@ -52,15 +52,18 @@ jobs:
       uses: ./.github/actions/prepull-testcontainers-images
     - name: Test
       # Emit JUnit XML alongside cobertura coverage so Codecov Test Analytics can ingest run
-      # times / failures. {assembly} keeps each test project's results in a distinct file.
-      run: dotnet test --no-build --results-directory ${{ github.workspace }}/test-results --coverage --coverage-output-format cobertura --report-junit --report-junit-filename junit.xml
+      # times / failures. --report-xunit-junit is xUnit's own MTP JUnit reporter. Every project
+      # writes into the same --results-directory, so the default timestamped filename
+      # (<user>_<host>_<timestamp>.junit.xml) is what keeps 13 projects from overwriting each
+      # other — do not pin a fixed filename here.
+      run: dotnet test --no-build --results-directory ${{ github.workspace }}/test-results --coverage --coverage-output-format cobertura --report-xunit-junit
     - name: Upload test results to Codecov
       # Runs even when the Test step failed — reporting the failed tests is the whole point.
       if: ${{ !cancelled() }}
       uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: ${{ github.workspace }}/test-results/**/junit.xml
+        files: ${{ github.workspace }}/test-results/**/*.junit.xml
     - name: Upload coverage to Qlty
       uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
       with:
@@ -110,7 +113,8 @@ jobs:
       shell: bash
       run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
     - name: Test (FileSystemProvider — exercises Owner lookup)
-      run: dotnet test --project test/WopiHost.FileSystemProvider.Tests
+      # --project requires the .csproj file path under the MTP-mode dotnet test.
+      run: dotnet test --project test/WopiHost.FileSystemProvider.Tests/WopiHost.FileSystemProvider.Tests.csproj
 
   api-compat:
     name: API Compatibility

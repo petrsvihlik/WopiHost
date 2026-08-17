@@ -31,10 +31,10 @@
 		  does not read .runsettings at all, so the exclusion moves to xUnit's own MTP filter,
 		  appended to every test project's command line via this property.
 
-		  Filtering every test away is an error to MTP, which expects at least one test per
-		  project — so WopiHost.E2ETests, whose entire suite carries the trait, needs to opt
-		  out of that expectation. It does so in its own csproj rather than here, so the other
-		  test projects keep failing loudly if their tests ever vanish.
+		  Filtering every test away is an error to MTP (exit code 8, ZeroTests) — so
+		  WopiHost.E2ETests, whose entire suite carries the trait, needs to opt out of that
+		  expectation. It does so in its own csproj rather than here, so the other test
+		  projects keep failing loudly if their tests ever vanish.
 
 		  To opt back in for a single run, override this property to empty and pass the
 		  positive filter — unlike the old runsettings, MTP does not AND the two filters
