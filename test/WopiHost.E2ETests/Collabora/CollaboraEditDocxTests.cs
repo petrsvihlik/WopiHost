@@ -33,7 +33,7 @@ namespace WopiHost.E2ETests.Collabora;
 /// plus <c>workflow_dispatch</c>, NEVER on per-PR CI. The integration is by design flaky
 /// (Collabora's canvas-based editor + WebSocket cold-start), and gating PRs on it would
 /// cause more friction than it'd catch. The workflow selects this suite via
-/// <c>--filter "Client=Collabora"</c>.
+/// <c>--filter-trait "Client=Collabora"</c>.
 /// </para>
 /// <para>
 /// <b>Selector strategy</b>: Collabora's editor UI iterates rapidly and DOM selectors drift

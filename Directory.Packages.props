@@ -72,41 +72,28 @@
     "tests_archive/" or "unittest-output/" if someone adds them later.
   -->
   <ItemGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectFullPath)', '[\\/]test[\\/]'))">
-    <PackageVersion Include="coverlet.collector" Version="10.0.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageVersion>
-    <PackageVersion Include="coverlet.msbuild" Version="10.0.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageVersion>
+    <!-- Coverage under Microsoft.Testing.Platform. Replaces coverlet.msbuild /
+         coverlet.collector, which both hook the VSTest pipeline (an MSBuild target and a
+         datacollector respectively) and therefore cannot run under MTP — see global.json
+         for why the VSTest path is no longer available on the .NET 10 SDK. Needs its
+         compile assets: the package's targets generate SelfRegisteredExtensions.cs, which
+         references the extension type directly. -->
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.9.0" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="13.4.6" />
     <PackageVersion Include="FakeItEasy" Version="9.0.1" />
-    <!-- Emits JUnit XML test results for Codecov Test Analytics (flaky-test / failure
-         reporting). Consumed via the `junit` VSTest logger in CI. Pinned below 8.0.0: the
-         8.x line is compiled against Microsoft.Testing.Platform v2, while xunit.v3 3.x
-         ships MTP 1.x, so mixing them breaks the build with CS1705 in every test project.
-         Bump to 8.x together with the xunit.v3 4.x upgrade — the first xunit line with
-         MTP v2 support. -->
-    <PackageVersion Include="JunitXml.TestLogger" Version="7.1.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.10" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.61.0" />
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="Testcontainers" Version="4.13.0" />
     <PackageVersion Include="Testcontainers.Azurite" Version="4.13.0" />
     <PackageVersion Include="Testcontainers.Redis" Version="4.13.0" />
-    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.v3" Version="4.0.0" />
     <!-- Runner-free packages used only by WopiHost.Abstractions.Testing — the shared conformance
          library is a class library, not a test project, so it can't pull in the xunit.v3
          metapackage (which would force OutputType=Exe via the MTP entry point). Keep these
          aligned with xunit.v3 above. -->
-    <PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.2" />
-    <PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageVersion>
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.0" />
+    <PackageVersion Include="xunit.v3.assert" Version="4.0.0" />
   </ItemGroup>
 </Project>

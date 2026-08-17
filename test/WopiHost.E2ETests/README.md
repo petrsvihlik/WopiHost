@@ -29,30 +29,38 @@ Every test also carries `Category=E2E`, which is what keeps the whole project ou
 - **Office Online Server / M365 for the Web** — CODE and ONLYOFFICE are *development substitutes*
   with different feature surfaces. A green run here is not M365 conformance.
 
-## How the slnx / runsettings / filter split works
+## How the slnx / filter split works
 
 This project IS in `WOPI.slnx` so PR builds compile it (build-error coverage), but it's filtered out
-of `dotnet test` execution by default. The filter lives in [`/.runsettings`](../../.runsettings):
+of `dotnet test` execution by default. The filter lives in
+[`Directory.Build.props`](../../Directory.Build.props):
 
 ```xml
-<TestCaseFilter>Category!=E2E</TestCaseFilter>
+<TestingPlatformCommandLineArguments>--filter-not-trait "Category=E2E"</TestingPlatformCommandLineArguments>
 ```
 
-…auto-loaded by [`Directory.Build.props`](../../Directory.Build.props) via `<RunSettingsFilePath>`
-(dotnet test does NOT auto-discover runsettings by convention). All tests here carry
-`[Trait("Category", "E2E")]`, so `dotnet test` and `dotnet test WOPI.slnx` skip them.
+That property appends arguments to every test project's Microsoft.Testing.Platform command line.
+All tests here carry `[Trait("Category", "E2E")]`, so `dotnet test` and `dotnet test --solution WOPI.slnx`
+skip them. Because that leaves *this* project with nothing to run, and MTP reports an empty
+run as exit code 8 (ZeroTests), this project's own csproj appends `--ignore-exit-code 8`. That
+opt-out is deliberately scoped here so the other suites still fail loudly if their tests disappear.
 
-The dedicated workflows opt back in by passing `-p:RunSettingsFilePath=` to bypass the autoloaded
-runsettings entirely, then select their suite with a **`Client` trait filter**:
+The dedicated workflows opt back in by clearing the property, then select their suite with a
+**`Client` trait filter**:
 
 ```bash
-dotnet test test/WopiHost.E2ETests -p:RunSettingsFilePath= --filter "Client=Collabora"
-dotnet test test/WopiHost.E2ETests -p:RunSettingsFilePath= --filter "Client=OnlyOffice"
+dotnet test --project test/WopiHost.E2ETests/WopiHost.E2ETests.csproj -p:TestingPlatformCommandLineArguments= --filter-trait "Client=Collabora"
+dotnet test --project test/WopiHost.E2ETests/WopiHost.E2ETests.csproj -p:TestingPlatformCommandLineArguments= --filter-trait "Client=OnlyOffice"
 ```
 
-The `Client` trait is deliberately distinct from `Category`: a CLI `--filter` ANDs with the
-runsettings filter (`(Category!=E2E)&(Category=E2E)` matches zero tests), so the runsettings must be
-cleared first — and once it is, the `Client` filter applies alone.
+The `Client` trait is deliberately distinct from `Category` so the two filters never have to
+coexist. Clearing the property on the command line makes it a global MSBuild property, which
+also overrides the csproj's `--ignore-exit-code 8` append — so a `Client` filter that matches
+nothing fails these runs loudly (exit code 8) instead of passing vacuously.
+
+> Prior to xunit.v3 4.x this exclusion lived in a repo-root `.runsettings` loaded via
+> `<RunSettingsFilePath>`. Microsoft.Testing.Platform does not read `.runsettings`, so the
+> mechanism moved to the MTP command line.
 
 ## Where this runs
 
@@ -80,12 +88,13 @@ pwsh artifacts/bin/WopiHost.E2ETests/debug/playwright.ps1 install chromium
 docker pull collabora/code
 docker pull onlyoffice/documentserver
 
-# 4. Run one suite — -p:RunSettingsFilePath= clears the repo-root .runsettings autoload. Without it,
-#    dotnet test inherits the Category!=E2E filter and runs zero tests in this project.
-dotnet test test/WopiHost.E2ETests -p:RunSettingsFilePath= --filter "Client=Collabora"
+# 4. Run one suite — -p:TestingPlatformCommandLineArguments= clears the repo-wide default set in
+#    Directory.Build.props. Without it, dotnet test inherits the Category=E2E exclusion and runs
+#    zero tests in this project. Note --project requires the .csproj file path, not the directory.
+dotnet test --project test/WopiHost.E2ETests/WopiHost.E2ETests.csproj -p:TestingPlatformCommandLineArguments= --filter-trait "Client=Collabora"
 
 # …or run everything (both suites, sequentially — each boots its own Aspire stack)
-dotnet test test/WopiHost.E2ETests -p:RunSettingsFilePath=
+dotnet test --project test/WopiHost.E2ETests/WopiHost.E2ETests.csproj -p:TestingPlatformCommandLineArguments=
 ```
 
 Without Docker, the tests log `Docker is not available — skipping …` and pass-as-skipped. No red on

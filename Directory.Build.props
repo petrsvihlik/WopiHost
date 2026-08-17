@@ -22,11 +22,25 @@
 		     are generated, so enable doc generation everywhere. Non-packable projects
 		     silence CS1591 below to avoid missing-doc warning floods. -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<!-- Auto-load the repo-root .runsettings for `dotnet test`. dotnet test does NOT
-		     auto-discover .runsettings by convention — this property is the documented seam.
-		     The runsettings currently carries a TestCaseFilter that excludes the E2E suites
-		     from default runs; see .runsettings and test/WopiHost.E2ETests/README.md. -->
-		<RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
+		<!--
+		  Exclude the E2E suites from default `dotnet test` runs. They need Docker, a real
+		  client-container cold start and Playwright; running them on every PR would burn CI
+		  minutes and gate PRs on flaky upstream integrations.
+
+		  This replaces the repo-root .runsettings TestCaseFilter. Microsoft.Testing.Platform
+		  does not read .runsettings at all, so the exclusion moves to xUnit's own MTP filter,
+		  appended to every test project's command line via this property.
+
+		  Filtering every test away is an error to MTP (exit code 8, ZeroTests) — so
+		  WopiHost.E2ETests, whose entire suite carries the trait, needs to opt out of that
+		  expectation. It does so in its own csproj rather than here, so the other test
+		  projects keep failing loudly if their tests ever vanish.
+
+		  To opt back in for a single run, override this property to empty and pass the
+		  positive filter — unlike the old runsettings, MTP does not AND the two filters
+		  together. See test/WopiHost.E2ETests/README.md.
+		-->
+		<TestingPlatformCommandLineArguments>--filter-not-trait "Category=E2E"</TestingPlatformCommandLineArguments>
 	</PropertyGroup>
 
 	<!-- WopiHost.Cobalt depends on the proprietary Microsoft.CobaltCore package, restored from a

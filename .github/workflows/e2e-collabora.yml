@@ -59,13 +59,13 @@ jobs:
         run: docker pull collabora/code:latest
 
       - name: Run e2e
-        # -p:RunSettingsFilePath= clears the repo-root .runsettings autoloaded via
-        # Directory.Build.props. That runsettings filters out Category=E2E so per-PR
-        # `dotnet test` skips this project; the dedicated workflow undoes that and then picks
-        # its suite with the Client trait. The Client filter must NOT be combined with the
-        # runsettings (dotnet test ANDs CLI and runsettings filters — (Category!=E2E)&(...)
-        # matches zero tests); with the runsettings cleared, the CLI filter applies alone.
-        run: dotnet test test/WopiHost.E2ETests/WopiHost.E2ETests.csproj --no-build -p:RunSettingsFilePath= --filter "Client=Collabora" --verbosity normal --logger "console;verbosity=detailed"
+        # -p:TestingPlatformCommandLineArguments= clears the repo-wide default set in
+        # Directory.Build.props, which filters out Category=E2E so per-PR `dotnet test` skips
+        # this project. The dedicated workflow undoes that and then picks its suite with the
+        # Client trait. Clearing the property also drops the default --ignore-exit-code 8,
+        # which is what we want here: if the Client filter matches nothing, this workflow
+        # should fail rather than report a vacuous pass.
+        run: dotnet test --project test/WopiHost.E2ETests/WopiHost.E2ETests.csproj --no-build -p:TestingPlatformCommandLineArguments= --filter-trait "Client=Collabora" --output Detailed
 
       - name: Upload Playwright traces on failure
         if: failure()

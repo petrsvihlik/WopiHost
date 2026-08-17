@@ -13,9 +13,10 @@ namespace WopiHost.E2ETests.OnlyOffice;
 /// <para>
 /// <b>Where this runs</b>: the dedicated <c>e2e-onlyoffice.yml</c> workflow on a nightly cron plus
 /// <c>workflow_dispatch</c>, NEVER on per-PR CI ([Trait Category=E2E] is filtered out by the
-/// repo-root <c>.runsettings</c>). The integration is by design heavy — the ONLYOFFICE image is
-/// ~4.3 GB and bundles its own Postgres/RabbitMQ — and gating PRs on it would cause more friction
-/// than it'd catch. The workflow selects this suite via <c>--filter "Client=OnlyOffice"</c>.
+/// <c>TestingPlatformCommandLineArguments</c> default in the repo-root Directory.Build.props). The
+/// integration is by design heavy — the ONLYOFFICE image is ~4.3 GB and bundles its own
+/// Postgres/RabbitMQ — and gating PRs on it would cause more friction than it'd catch. The
+/// workflow selects this suite via <c>--filter-trait "Client=OnlyOffice"</c>.
 /// </para>
 /// <para>
 /// <b>Load signal</b>: ONLYOFFICE does not expose Collabora's host-postMessage protocol, so the test

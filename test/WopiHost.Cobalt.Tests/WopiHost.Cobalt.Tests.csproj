@@ -1,28 +1,17 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
 	</PropertyGroup>
 	<!-- These tests exercise the proprietary Cobalt types; when Microsoft.CobaltCore isn't available
 	     the project (like WopiHost.Cobalt itself) builds as a no-op so the solution stays green on a
-	     fork / external clone. See $(IncludeCobalt) in the root Directory.Build.props. -->
+	     fork / external clone. See $(IncludeCobalt) in the root Directory.Build.props.
+	     The no-op assembly contains zero tests, which MTP reports as exit code 8 — ignore it in
+	     that configuration only, so a real Cobalt run still fails if its tests vanish. -->
 	<PropertyGroup Condition="'$(IncludeCobalt)' != 'true'">
 		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+		<TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --ignore-exit-code 8</TestingPlatformCommandLineArguments>
 	</PropertyGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\..\src\WopiHost.Cobalt\WopiHost.Cobalt.csproj" />
-	</ItemGroup>
-	<ItemGroup>
-	  <PackageReference Update="coverlet.collector">
-	    <PrivateAssets>all</PrivateAssets>
-	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-	  </PackageReference>
-	  <PackageReference Update="coverlet.msbuild">
-	    <PrivateAssets>all</PrivateAssets>
-	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-	  </PackageReference>
-	  <PackageReference Update="xunit.runner.visualstudio">
-	    <PrivateAssets>all</PrivateAssets>
-	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-	  </PackageReference>
 	</ItemGroup>
 </Project>

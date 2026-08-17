@@ -75,8 +75,10 @@ Each lane has a nightly E2E suite that boots this AppHost via `Aspire.Hosting.Te
 editor with Playwright. Both live in [`test/WopiHost.E2ETests`](../../test/WopiHost.E2ETests) (one
 project, suites selected by a `Client` trait):
 
-- [`e2e-collabora.yml`](../../.github/workflows/e2e-collabora.yml) → `--filter "Client=Collabora"`
-- [`e2e-onlyoffice.yml`](../../.github/workflows/e2e-onlyoffice.yml) → `--filter "Client=OnlyOffice"`
+- [`e2e-collabora.yml`](../../.github/workflows/e2e-collabora.yml) → `--filter-trait "Client=Collabora"`
+- [`e2e-onlyoffice.yml`](../../.github/workflows/e2e-onlyoffice.yml) → `--filter-trait "Client=OnlyOffice"`
 
-Neither gates per-PR CI (they're `[Trait("Category", "E2E")]`, filtered out by the repo-root
-`.runsettings`); they run on a nightly cron + `workflow_dispatch`.
+Neither gates per-PR CI (they're `[Trait("Category", "E2E")]`, filtered out by the
+`TestingPlatformCommandLineArguments` property in
+[`Directory.Build.props`](../../Directory.Build.props)); they run on a nightly cron +
+`workflow_dispatch`.
