@@ -62,10 +62,24 @@ jobs:
         # publish time. Without this flag Qlty counts them as 0% covered. See also
         # .qlty/qlty.toml.
         skip-missing-files: true
+    - name: Rename coverage reports for Codecov auto-discovery
+      # The Codecov CLI only auto-detects coverage files whose names contain "coverage"
+      # or match a fixed list (literal `cobertura.xml`, `lcov.info`, ...), and it does
+      # not expand globs passed via the action's `files:` input. MTP code coverage
+      # writes `<guid>.cobertura.xml`, which matches neither, so the upload silently
+      # finds zero reports and the codecov/* commit statuses are never posted.
+      run: |
+        shopt -s nullglob
+        for f in "${{ github.workspace }}"/test-results/*.cobertura.xml; do
+          mv "$f" "${f%.cobertura.xml}.coverage.cobertura.xml"
+        done
     - name: Codecov
       uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        # A silent upload failure leaves the codecov/patch and codecov/project statuses
+        # pending forever on PRs, blocking the merge with no visible error.
+        fail_ci_if_error: true
     - name: FOSSA scan + policy gate
       uses: fossa-contrib/fossa-action@d28f0c947e7406706981a62a91ecc009bcc39fd7 # v4
       with:
