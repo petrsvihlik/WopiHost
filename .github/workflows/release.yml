@@ -43,16 +43,7 @@ jobs:
         files: "test-results/**/*.cobertura.xml"
         # See integrate.yml for the rationale.
         skip-missing-files: true
-    - name: Rename coverage reports for Codecov auto-discovery
-      # See integrate.yml for the rationale.
-      run: |
-        shopt -s nullglob
-        for f in "${{ github.workspace }}"/test-results/*.cobertura.xml; do
-          mv "$f" "${f%.cobertura.xml}.coverage.cobertura.xml"
-        done
     - name: Codecov
-      # Unlike the CI workflows, deliberately no fail_ci_if_error: a Codecov outage
-      # must not block publishing the release.
       uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
