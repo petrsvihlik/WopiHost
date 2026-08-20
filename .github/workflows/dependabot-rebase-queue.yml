@@ -1,0 +1,65 @@
+name: Dependabot Rebase Queue
+
+# Branch protection requires PR branches to be up to date with master, but Dependabot
+# only rebases its PRs when they conflict — a PR that is merely behind stays unmergeable
+# until someone updates it. Each master push (typically a just-merged Dependabot PR)
+# asks Dependabot to rebase the oldest auto-merging PR that has fallen behind, one PR
+# per run: rebasing them all at once would burn CI on branches the next merge
+# immediately invalidates again. The just-rebased PR re-runs CI, auto-merges, and that
+# merge push triggers this workflow again — draining the queue serially, hands-free.
+#
+# The rebase is requested via an `@dependabot rebase` comment rather than the
+# update-branch API: pushes made with GITHUB_TOKEN don't trigger other workflows, so an
+# API-updated branch would sit with its checks never re-running. Dependabot's own
+# force-push retriggers CI normally.
+
+on:
+  push:
+    branches: [ master ]
+  schedule:
+    # Fallback for a missed push event or a queue that stalled overnight.
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: dependabot-rebase-queue
+  cancel-in-progress: true
+
+jobs:
+  rebase-next:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Ask Dependabot to rebase the oldest stale auto-merging PR
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        REPO: ${{ github.repository }}
+      run: |
+        set -euo pipefail
+
+        # Only PRs with auto-merge enabled: a PR being held back on purpose shouldn't
+        # burn CI on rebases, and (merging nothing) it would stall the serial drain.
+        prs=$(gh pr list --repo "$REPO" --author "app/dependabot" --state open \
+          --json number,baseRefName,headRefName,autoMergeRequest,createdAt \
+          --jq 'sort_by(.createdAt) | .[] | select(.autoMergeRequest != null)
+                | [.number, .baseRefName, .headRefName] | @tsv')
+
+        if [ -z "$prs" ]; then
+          echo "No open auto-merging Dependabot PRs."
+          exit 0
+        fi
+
+        while IFS=$'\t' read -r number base head; do
+          behind=$(gh api "repos/$REPO/compare/$base...$head" --jq '.behind_by')
+          if [ "$behind" -gt 0 ]; then
+            echo "PR #$number ($head) is $behind commit(s) behind $base — requesting a rebase."
+            gh pr comment "$number" --repo "$REPO" --body "@dependabot rebase"
+            exit 0
+          fi
+          echo "PR #$number ($head) is up to date with $base."
+        done <<< "$prs"
+
+        echo "No stale Dependabot PRs to rebase."
