@@ -11,16 +11,21 @@ name: Dependabot Rebase Queue
 # The rebase is requested via an `@dependabot rebase` comment rather than the
 # update-branch API: pushes made with GITHUB_TOKEN don't trigger other workflows, so an
 # API-updated branch would sit with its checks never re-running. Dependabot's own
-# force-push retriggers CI normally.
+# force-push retriggers CI normally. Dependabot refuses commands from
+# github-actions[bot] ("only users with push access can use that command"), so the
+# comment must be posted with DEPENDABOT_AUTOMATION_PAT — a fine-grained PAT
+# (contents: write, pull requests: write) belonging to a user with push access, shared
+# with dependabot-auto-merge.yml. Without the secret the job exits with a warning
+# instead of posting comments Dependabot will bounce.
 #
-# The same GITHUB_TOKEN event suppression cuts the other way on the trigger side:
-# auto-merge is enabled with GITHUB_TOKEN (dependabot-auto-merge.yml), so the resulting
-# squash-merge push to master emits no push event — a `push` trigger alone only ever
-# fires for human merges and the queue never drains on its own. The dependabot lane is
-# instead chained off the PR CI workflow completing: `workflow_run` fires regardless of
-# what caused the underlying event. CI completion precedes the auto-merge by a little
-# (GitHub merges once the last required check goes green), so the job waits for the
-# triggering PR to actually leave the open state before looking for stale PRs.
+# The same GITHUB_TOKEN event suppression cuts the other way on the trigger side: when
+# auto-merge was enabled with GITHUB_TOKEN, the squash-merge push to master emits no
+# push event, so a `push` trigger alone only fires for human merges (and for auto-merges
+# enabled with the PAT). The dependabot lane is therefore also chained off the PR CI
+# workflow completing: `workflow_run` fires regardless of what caused the underlying
+# event. CI completion slightly precedes the auto-merge (GitHub merges once the last
+# required check goes green), so the job waits for the triggering PR to actually leave
+# the open state before looking for stale PRs.
 
 on:
   push:
@@ -47,12 +52,18 @@ jobs:
     steps:
     - name: Ask Dependabot to rebase the oldest stale auto-merging PR
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        AUTOMATION_PAT: ${{ secrets.DEPENDABOT_AUTOMATION_PAT }}
+        GH_TOKEN: ${{ secrets.DEPENDABOT_AUTOMATION_PAT || secrets.GITHUB_TOKEN }}
         REPO: ${{ github.repository }}
         EVENT_NAME: ${{ github.event_name }}
         HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
       run: |
         set -euo pipefail
+
+        if [ -z "$AUTOMATION_PAT" ]; then
+          echo "::warning::DEPENDABOT_AUTOMATION_PAT is not set. Dependabot rejects @dependabot commands from github-actions[bot], so there is no point posting one — stale Dependabot PRs will sit until someone comments '@dependabot rebase' or updates the branch by hand."
+          exit 0
+        fi
 
         if [ "$EVENT_NAME" = "workflow_run" ]; then
           case "$HEAD_BRANCH" in

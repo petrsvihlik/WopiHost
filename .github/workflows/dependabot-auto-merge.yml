@@ -1,12 +1,12 @@
 name: Dependabot Auto-Merge
 
-# Auto-merge is enabled with GITHUB_TOKEN, so the eventual squash-merge is performed
-# by github-actions[bot] and its push to master emits no workflow events — the
-# on-master-push workflows (Integrate, CodeQL, InferSharp, the rebase queue) do not
-# run for these merge commits. The rebase queue compensates by chaining off PR CI
-# completion; the others simply catch up on the next human push or scheduled run.
-# Enabling auto-merge with a PAT or GitHub App token instead would lift the
-# suppression for all of them at once.
+# Prefers DEPENDABOT_AUTOMATION_PAT (a fine-grained PAT — contents: write,
+# pull requests: write — belonging to a user with push access, shared with
+# dependabot-rebase-queue.yml) over GITHUB_TOKEN. When auto-merge is enabled with
+# GITHUB_TOKEN the eventual squash-merge is performed by github-actions[bot], and its
+# push to master emits no workflow events — the on-master-push workflows (Integrate,
+# CodeQL, InferSharp, the rebase queue) silently skip those merge commits. A merge
+# attributed to the PAT's owner triggers them all normally.
 
 on:
   pull_request_target:
@@ -25,4 +25,4 @@ jobs:
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.DEPENDABOT_AUTOMATION_PAT || secrets.GITHUB_TOKEN }}
