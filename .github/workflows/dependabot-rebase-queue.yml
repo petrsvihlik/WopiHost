@@ -18,6 +18,22 @@ name: Dependabot Rebase Queue
 # with dependabot-auto-merge.yml. Without the secret the job exits with a warning
 # instead of posting comments Dependabot will bounce.
 #
+# `@dependabot rebase` is conditional, and its condition is not "is the branch behind":
+# Dependabot compares the base commit recorded on the PR against the base branch tip and
+# answers "The base commit for this pull request has not changed." when they match. A
+# Dependabot job that starts before a merge and pushes its branch after one produces a
+# PR whose branch is cut from the older commit while its recorded base is already the
+# new tip — that PR passes Dependabot's check while git reports it behind, so rebase is
+# a permanent no-op on it and the serial drain wedges. The job therefore watches the
+# head SHA after asking and escalates to `@dependabot recreate`, which is unconditional
+# and rebuilds the branch from the current base, when the rebase produces nothing.
+#
+# Requests are matched against comments newer than the head commit, so the escalation
+# also recovers across runs: any update Dependabot performs force-pushes a fresh commit
+# and resets that window, while a run cancelled mid-wait (the concurrency group cancels
+# in progress) leaves its unanswered request visible to the next run, which resumes the
+# wait rather than repeating the request.
+#
 # The same GITHUB_TOKEN event suppression cuts the other way on the trigger side: when
 # auto-merge was enabled with GITHUB_TOKEN, the squash-merge push to master emits no
 # push event, so a `push` trigger alone only fires for human merges (and for auto-merges
@@ -49,8 +65,9 @@ concurrency:
 jobs:
   rebase-next:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-    - name: Ask Dependabot to rebase the oldest stale auto-merging PR
+    - name: Ask Dependabot to update the oldest stale auto-merging PR
       env:
         AUTOMATION_PAT: ${{ secrets.DEPENDABOT_AUTOMATION_PAT }}
         GH_TOKEN: ${{ secrets.DEPENDABOT_AUTOMATION_PAT || secrets.GITHUB_TOKEN }}
@@ -59,6 +76,10 @@ jobs:
         HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
       run: |
         set -euo pipefail
+
+        # Dependabot answers a command in well under ten minutes; the wait before
+        # escalating is generous because a recreate costs a wholly re-resolved PR.
+        REBASE_WINDOW_SECONDS=1200
 
         if [ -z "$AUTOMATION_PAT" ]; then
           echo "::warning::DEPENDABOT_AUTOMATION_PAT is not set. Dependabot rejects @dependabot commands from github-actions[bot], so there is no point posting one — stale Dependabot PRs will sit until someone comments '@dependabot rebase' or updates the branch by hand."
@@ -95,14 +116,82 @@ jobs:
           exit 0
         fi
 
-        while IFS=$'\t' read -r number base head; do
+        number=""
+        while IFS=$'\t' read -r candidate base head; do
           behind=$(gh api "repos/$REPO/compare/$base...$head" --jq '.behind_by')
           if [ "$behind" -gt 0 ]; then
-            echo "PR #$number ($head) is $behind commit(s) behind $base — requesting a rebase."
-            gh pr comment "$number" --repo "$REPO" --body "@dependabot rebase"
-            exit 0
+            echo "PR #$candidate ($head) is $behind commit(s) behind $base."
+            number=$candidate
+            break
           fi
-          echo "PR #$number ($head) is up to date with $base."
+          echo "PR #$candidate ($head) is up to date with $base."
         done <<< "$prs"
 
-        echo "No stale Dependabot PRs to rebase."
+        if [ -z "$number" ]; then
+          echo "No stale Dependabot PRs to update."
+          exit 0
+        fi
+
+        head_sha() {
+          gh pr view "$number" --repo "$REPO" --json headRefOid --jq '.headRefOid'
+        }
+
+        sha=$(head_sha)
+        head_epoch=$(date -d "$(gh api "repos/$REPO/commits/$sha" --jq '.commit.committer.date')" +%s)
+
+        # Fetched as a statement of its own rather than inside latest_comment: an empty
+        # result there is indistinguishable from "nothing has been asked yet", so a
+        # failed request would escalate a PR that was only waiting. This way it aborts.
+        comments=$(mktemp)
+        refresh_comments() {
+          gh api "repos/$REPO/issues/$number/comments?sort=created&direction=desc&per_page=100" > "$comments"
+        }
+
+        # Timestamp of the newest comment matching a pattern that postdates the head
+        # commit, or empty. Scoping to that window keeps every decision below about the
+        # branch as it stands now rather than about an already-superseded revision.
+        latest_comment() {
+          jq -r --argjson since "$head_epoch" --arg pattern "$1" \
+            '[.[] | select((.created_at | fromdateiso8601) > $since)
+                  | select(.body | test($pattern; "i"))]
+             | max_by(.created_at) | .created_at // ""' "$comments"
+        }
+
+        refresh_comments
+
+        if [ -n "$(latest_comment '^@dependabot recreate')" ]; then
+          echo "::warning::PR #$number is behind $base and a recreate was already requested against $sha without effect. No Dependabot command is left to try — the branch needs a manual update, or a close and reopen."
+          exit 0
+        fi
+
+        requested_at=$(latest_comment '^@dependabot rebase')
+        if [ -z "$requested_at" ]; then
+          echo "Requesting a rebase of PR #$number."
+          gh pr comment "$number" --repo "$REPO" --body "@dependabot rebase"
+          requested_epoch=$(date -u +%s)
+        else
+          echo "A rebase of PR #$number was already requested at $requested_at and $sha has not moved since."
+          requested_epoch=$(date -d "$requested_at" +%s)
+        fi
+
+        deadline=$((requested_epoch + REBASE_WINDOW_SECONDS))
+        while :; do
+          current=$(head_sha)
+          if [ "$current" != "$sha" ]; then
+            echo "Dependabot rebased PR #$number onto $current."
+            exit 0
+          fi
+          refresh_comments
+          if [ -n "$(latest_comment 'base commit for this pull request has not changed')" ]; then
+            echo "Dependabot declined the rebase — it considers PR #$number current despite it being behind $base."
+            break
+          fi
+          if [ "$(date -u +%s)" -ge "$deadline" ]; then
+            echo "PR #$number went unrebased for the whole window."
+            break
+          fi
+          sleep 30
+        done
+
+        echo "Requesting a recreate of PR #$number."
+        gh pr comment "$number" --repo "$REPO" --body "@dependabot recreate"
