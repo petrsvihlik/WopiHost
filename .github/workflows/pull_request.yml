@@ -83,12 +83,15 @@ jobs:
       uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        # Scope the CLI's search to the reports this run produced. Left unscoped it walks the
-        # whole workspace hunting every language it supports, warning about absent gcov / xcrun /
-        # coverage.py toolchains along the way, and could pick up an unrelated report. root_dir
-        # keeps the uploaded paths anchored at the repo root regardless of the narrower search.
+        # Scope the CLI's search to the reports this run produced: left unscoped it walks the
+        # whole workspace and could pick up an unrelated report. root_dir keeps the uploaded
+        # paths anchored at the repo root regardless of the narrower search.
         directory: ${{ github.workspace }}/test-results
         root_dir: ${{ github.workspace }}
+        # This repo's reports come straight from MTP as cobertura, so none of the CLI's
+        # language plugins (gcov, xcode, pycoverage) can contribute anything — they only run
+        # to warn that their toolchains are absent. They ignore `directory:`, so turn them off.
+        plugins: noop
         # A silent upload failure leaves the required codecov/patch and codecov/project
         # statuses pending forever, blocking the merge with no visible error.
         fail_ci_if_error: true
