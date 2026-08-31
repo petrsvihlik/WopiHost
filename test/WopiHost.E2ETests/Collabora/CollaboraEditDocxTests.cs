@@ -328,59 +328,67 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             } catch (_) { /* same-origin policy or no wrap — both fine, fall through */ }
         }");
 
-        // Step 2: Collabora opens the doc in "Viewing" mode by default even when the WOPI host
-        // sends UserCanWrite=true (#document-container carries class="readonly"). The view-mode
-        // dropdown in the notebookbar has the toggle; clicking it once and then picking the
-        // "Editing" entry switches the doc into edit mode so subsequent typing actually
-        // mutates content. Wrapped to swallow any failure (selector drift, leftover overlay,
-        // timeout) because the save assertion below is the real test — if Collabora kept the
-        // doc read-only, the write won't happen and the diagnostic dump explains it.
-        // Catches the broad Exception bucket because Playwright's timeout surfaces as
-        // System.TimeoutException (from WrapApiCallAsync), NOT as a PlaywrightException.
-        try
+        // Step 2: get the document out of read-only mode — and prove it before typing.
+        // Whether a UserCanWrite doc starts in Collabora's "Viewing" mode has shifted across
+        // CODE releases (26.04 ignores the notebookbar toggle this test used to click, so the
+        // keystrokes went nowhere and only the save oracle caught it), so no single affordance
+        // is trusted: the loop retries the known ones until #document-container drops its
+        // "readonly" class.
+        //   - #mobile-edit-button: the entry point Permission.js wires precisely for documents
+        //     that START read-only; the id has been stable across CODE versions.
+        //   - the notebookbar view-mode dropdown + "Editing" entry (works on CODE 25.04).
+        // postMessage cannot substitute here: in read-only mode Send_UNO_Command filters
+        // commands to an allowlist that does not include .uno:EditDoc (Toolbar.js).
+        // Failing fast with the live container class beats typing into a read-only canvas and
+        // leaving the diagnosis to the downstream save oracle.
+        var editDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+        var containerClass = await GetContainerClassAsync();
+        while (HasReadOnlyClass(containerClass) && DateTime.UtcNow < editDeadline)
         {
-            await officeFrame.Locator("#viewModeDropdownButton-button").ClickAsync(new() { Timeout = 5_000 });
-            await officeFrame.Locator("text=Editing").First.ClickAsync(new() { Timeout = 5_000 });
+            await TryDismissAsync(officeFrame.Locator("#mobile-edit-button"), timeoutMs: 1_500);
+            await TryDismissAsync(officeFrame.Locator("#viewModeDropdownButton-button"), timeoutMs: 1_500);
+            await TryDismissAsync(officeFrame.Locator("text=Editing").First, timeoutMs: 1_500);
+            await Task.Delay(500);
+            containerClass = await GetContainerClassAsync();
         }
-        catch (Exception ex) when (ex is PlaywrightException or TimeoutException)
+        if (HasReadOnlyClass(containerClass))
         {
-            // View-mode dropdown not where expected, or the click was intercepted. Fall
-            // through — the save assertion below will catch any resulting no-op write.
+            throw await FailWithDiagnosticsAsync(
+                "The document never left Collabora's read-only mode within 30s — every known " +
+                "edit-mode affordance (#mobile-edit-button, the view-mode dropdown) missed. " +
+                "Typing would silently go nowhere, so the test stops here.");
         }
 
-        // Step 3: focus the document area. The actual document tiles are rendered to internal
-        // canvas / <div> elements that swallow pointer events; clicking the container is
-        // enough to put input focus on the editor (Collabora intercepts the synthetic mouse
-        // event and routes it through loolwsd's tile pipeline).
-        // Force=true skips the visible/enabled/stable check so a *second* modal popping up
-        // mid-click (e.g. the "Welcome" dialog on a fresh session) doesn't make the click
-        // retry-loop and time out. Pointer-event semantics aren't needed here — only focus +
-        // subsequent keyboard input, both of which work under Force.
-        await officeFrame.Locator("#document-container").ClickAsync(new() { Force = true });
-
-        // Step 2: type a marker into the document. The marker doubles as the save oracle: it
+        // Step 3: focus the document area and type the marker. Clicking the container routes
+        // input focus to Collabora's hidden input; the marker doubles as the save oracle — it
         // must come back in the saved file's word/document.xml, proving the keystrokes
         // round-tripped keystroke → loolwsd → tile invalidate → write-on-save → PutFile.
+        // Force=true skips the visible/enabled/stable check so a late modal popping up
+        // mid-click doesn't make the click retry-loop and time out.
+        await officeFrame.Locator("#document-container").ClickAsync(new() { Force = true });
         await page.Keyboard.TypeAsync(EditMarker, new KeyboardTypeOptions { Delay = 30 });
 
-        // Wait for Collabora to mark the document model dirty (Doc_ModifiedStatus
-        // Modified:true) before requesting the save; a fixed sleep either wastes time or —
-        // on a slow runner — lets Action_Save race the keystrokes and save a clean model.
-        // Falls through on deadline rather than failing: some CODE builds may not emit the
-        // event, and the marker assertion below is the authoritative oracle either way.
-        var dirtyDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
-        while (DateTime.UtcNow < dirtyDeadline)
+        // The typing must observably reach the document model before a save is worth
+        // requesting: Collabora emits Doc_ModifiedStatus Modified:true on the clean→dirty
+        // transition (the capture already recorded the initial Modified:false, so the channel
+        // itself is proven). One re-click + re-type covers a transient focus steal by a late
+        // modal; a model that stays clean after that is the real failure this test exists to
+        // surface — with DontSaveIfUnmodified:false the save would otherwise "succeed" on
+        // unchanged content.
+        if (!await WaitForModelDirtyAsync(TimeSpan.FromSeconds(10)))
         {
-            var modelDirty = await page.EvaluateAsync<bool>(
-                "() => (window.__collaboraMessages || []).some(m => m.messageId === 'Doc_ModifiedStatus' && m.modified === true)");
-            if (modelDirty)
+            await officeFrame.Locator("#document-container").ClickAsync(new() { Timeout = 5_000 });
+            await page.Keyboard.TypeAsync(EditMarker, new KeyboardTypeOptions { Delay = 30 });
+            if (!await WaitForModelDirtyAsync(TimeSpan.FromSeconds(10)))
             {
-                break;
+                throw await FailWithDiagnosticsAsync(
+                    "The document is in edit mode, but the typed keystrokes never marked the " +
+                    "model dirty (no Doc_ModifiedStatus Modified:true) — input focus is not " +
+                    "reaching Collabora's editor.");
             }
-            await Task.Delay(250);
         }
 
-        // Step 3: trigger save via the host-postMessage API. Collabora documents this as a
+        // Step 4: trigger save via the host-postMessage API. Collabora documents this as a
         // first-class integration channel (https://sdk.collaboraonline.com/docs/postmessage_api.html#Action_Save),
         // so it's much more stable than poking the toolbar Save icon — that icon's DOM id
         // has changed at least once between CODE majors. Action_Save with default options
@@ -396,7 +404,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             }), '*');
         }");
 
-        // Step 4: poll for the on-disk write. The PutFile request travels Collabora → host
+        // Step 5: poll for the on-disk write. The PutFile request travels Collabora → host
         // backend → file-system provider; even after Action_Save returns, the writeback can
         // take a few seconds. Allow up to 60 s with a 250 ms poll cadence — a shorter budget can
         // be too tight given Collabora's autosave debouncing on CI.
@@ -414,6 +422,33 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             await Task.Delay(250);
         }
 
+        if (!changed)
+        {
+            // The diagnostic postMessage trail disambiguates WHY the save was a no-op:
+            //   - Action_Save_Resp with success: false → host-side save handler failed (lock conflict, IO error).
+            //   - No Action_Save_Resp at all           → Collabora ignored the save trigger entirely.
+            throw await FailWithDiagnosticsAsync(
+                $"Expected {SampleDocxName} to be re-written by Collabora's Action_Save within 60s.\n" +
+                $"  LastWrite before: {modifiedBefore:O}\n" +
+                $"  LastWrite after:  {File.GetLastWriteTimeUtc(docxPath):O}\n" +
+                $"  Size before: {sizeBefore}\n" +
+                $"  Size after:  {new FileInfo(docxPath).Length}");
+        }
+
+        // Step 6: the write happened — now prove it carries the EDIT, not just any PutFile.
+        // Action_Save runs with DontSaveIfUnmodified:false, so a save can also fire on an
+        // unmodified model; only the typed marker inside word/document.xml distinguishes
+        // "edit round-tripped" from a no-op save of unchanged content.
+        // OrdinalIgnoreCase: LibreOffice's sentence autocapitalization may upper-case the
+        // marker's first letter; the case doesn't matter, only that the text persisted.
+        var documentXml = ReadDocumentXml(docxPath);
+        if (!documentXml.Contains(EditMarker, StringComparison.OrdinalIgnoreCase))
+        {
+            throw await FailWithDiagnosticsAsync(
+                $"Collabora re-wrote {SampleDocxName}, but the typed marker \"{EditMarker}\" is not in " +
+                "word/document.xml — the saved bytes carry no trace of the edit.");
+        }
+
         static async Task TryDismissAsync(ILocator locator, int timeoutMs)
         {
             try
@@ -422,59 +457,56 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             }
             catch (Exception ex) when (ex is PlaywrightException or TimeoutException)
             {
-                // Modal genuinely didn't appear (or its selector drifted across CODE versions).
-                // Caller treats this as a best-effort dismissal — proceed regardless.
+                // Element genuinely absent/hidden (or its selector drifted across CODE
+                // versions). Caller treats this as a best-effort click — proceed regardless.
+                // Playwright's timeout surfaces as System.TimeoutException (WrapApiCallAsync),
+                // NOT as a PlaywrightException, hence the two-type filter.
             }
         }
 
-        if (!changed)
+        async Task<string?> GetContainerClassAsync()
         {
-            // Pull the postMessage trail + the editor's read-only state to disambiguate WHY the
-            // save was a no-op. Three classes of failure mode readable off the captured events:
-            //   - Document_LoadedSuccessfully with permissions != edit  → CheckFileInfo wire content not granting UserCanWrite.
-            //   - Action_Save_Resp with success: false                  → host-side save handler failed (lock conflict, IO error).
-            //   - No Action_Save_Resp at all                            → Collabora ignored the save trigger (doc in view mode).
-            // Stringify on the JS side. `EvaluateAsync<object>` over an array returns a boxed
-            // JS array whose .ToString() is "System.Object[]" — useless. JSON.stringify with
-            // indentation gives a readable, copy-pasteable diagnostic.
-            var messages = await page.EvaluateAsync<string>(
-                "() => JSON.stringify(window.__collaboraMessages || [], null, 2)");
-            string? containerClass = null;
             try
             {
-                containerClass = await officeFrame.Locator("#document-container").GetAttributeAsync("class");
+                return await officeFrame.Locator("#document-container").GetAttributeAsync("class");
             }
-            catch { /* selector may have died if Collabora unmounted */ }
-
-            var collaboraLogs = await app.CaptureClientLogsAsync();
-            throw new Xunit.Sdk.XunitException(
-                $"Expected {SampleDocxName} to be re-written by Collabora's Action_Save within 60s.\n" +
-                $"  LastWrite before: {modifiedBefore:O}\n" +
-                $"  LastWrite after:  {File.GetLastWriteTimeUtc(docxPath):O}\n" +
-                $"  Size before: {sizeBefore}\n" +
-                $"  Size after:  {new FileInfo(docxPath).Length}\n" +
-                $"  #document-container class: {containerClass ?? "<unresolved>"}\n" +
-                $"  Captured Collabora postMessages (newest last):\n{messages}\n" +
-                $"\nCollabora container logs (last 400 lines):\n{collaboraLogs}");
+            catch (Exception ex) when (ex is PlaywrightException or TimeoutException)
+            {
+                // Selector may have died if Collabora unmounted mid-test.
+                return null;
+            }
         }
 
-        // Step 5: the write happened — now prove it carries the EDIT, not just any PutFile.
-        // Action_Save runs with DontSaveIfUnmodified:false, so a document stuck in view mode
-        // (the failure Step 2 deliberately swallows) still produces a rewritten file; only the
-        // typed marker inside word/document.xml distinguishes "edit round-tripped" from a
-        // no-op save of unchanged content.
-        // OrdinalIgnoreCase: LibreOffice's sentence autocapitalization may upper-case the
-        // marker's first letter; the case doesn't matter, only that the text persisted.
-        var documentXml = ReadDocumentXml(docxPath);
-        if (!documentXml.Contains(EditMarker, StringComparison.OrdinalIgnoreCase))
+        static bool HasReadOnlyClass(string? containerClass)
+            => containerClass is not null && containerClass.Split(' ').Contains("readonly");
+
+        async Task<bool> WaitForModelDirtyAsync(TimeSpan budget)
+        {
+            var deadline = DateTime.UtcNow + budget;
+            while (DateTime.UtcNow < deadline)
+            {
+                var modelDirty = await page.EvaluateAsync<bool>(
+                    "() => (window.__collaboraMessages || []).some(m => m.messageId === 'Doc_ModifiedStatus' && m.modified === true)");
+                if (modelDirty)
+                {
+                    return true;
+                }
+                await Task.Delay(250);
+            }
+            return false;
+        }
+
+        // Stringify on the JS side. `EvaluateAsync<object>` over an array returns a boxed
+        // JS array whose .ToString() is "System.Object[]" — useless. JSON.stringify with
+        // indentation gives a readable, copy-pasteable diagnostic.
+        async Task<Xunit.Sdk.XunitException> FailWithDiagnosticsAsync(string headline)
         {
             var messages = await page.EvaluateAsync<string>(
                 "() => JSON.stringify(window.__collaboraMessages || [], null, 2)");
             var collaboraLogs = await app.CaptureClientLogsAsync();
-            throw new Xunit.Sdk.XunitException(
-                $"Collabora re-wrote {SampleDocxName}, but the typed marker \"{EditMarker}\" is not in " +
-                $"word/document.xml — the save was a no-op of unmodified content (document likely stayed " +
-                $"in view mode, or the keystrokes never reached the model).\n" +
+            return new Xunit.Sdk.XunitException(
+                headline + "\n" +
+                $"  #document-container class: {await GetContainerClassAsync() ?? "<unresolved>"}\n" +
                 $"  Captured Collabora postMessages (newest last):\n{messages}\n" +
                 $"\nCollabora container logs (last 400 lines):\n{collaboraLogs}");
         }
