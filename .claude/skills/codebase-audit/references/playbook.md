@@ -88,3 +88,22 @@ new candidate out, add it there with the reason — that's what stops the next r
   `PlatformNotSupportedException` on Linux; truncated `PUBLICKEYBLOB` header →
   `CryptographicException` everywhere). A 10-line scratch console app settles it faster than
   reasoning from docs.
+
+## Added 2026-08-31 (CI warning sweep, #680)
+
+- **A `pull_request_target` workflow never tests its own changes.** GitHub loads the workflow
+  definition from the BASE ref, so an edit to `pull_request.yml` / `wopi-validator.yml` /
+  `infersharp.yml` is inert on the PR that makes it and first executes after merge. Verify such a
+  change against the post-merge `integrate.yml` run on master (or reproduce the step locally) —
+  never from the green checks on its own PR. A guard added this way shipped broken precisely
+  because its PR looked clean.
+- **Prove a guard actually fires; a predicate matching a superset silently no-ops.** The
+  empty-coverage prune tested `grep -q "<package"`, which also matches the `<packages />`
+  container every empty report contains, so it kept every file it existed to delete and the qlty
+  upload stayed broken. When adding a filter, run it against BOTH a positive and a negative
+  fixture and assert the negative is actually rejected — the CI log line ("Pruning …") never
+  appearing is the tell.
+- **Read CI logs for `warning`/`error` text, not just the red/green verdict.** `qlty-action` and
+  `codecov-action` emit `##[error]` annotations and abort their uploads while the job still
+  reports success, so a whole run's coverage can silently vanish behind a green check. Grep a
+  finished run's logs for `##\[warning\]`/`##\[error\]` after any CI change.

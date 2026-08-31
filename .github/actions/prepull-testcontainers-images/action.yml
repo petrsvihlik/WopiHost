@@ -11,10 +11,10 @@ runs:
       shell: bash
       run: |
         # The images are pinned as C# string constants inside the fixtures (AzuriteFixture,
-        # RedisFixture), so they are extracted from source rather than listed a second time
-        # here. The pattern requires a quoted "name:tag" whose tag starts with a digit, which
-        # matches image pins ("mcr.microsoft.com/azure-storage/azurite:3.35.0", "redis:7-alpine")
-        # and no other string literal in fixture code.
+        # RedisFixture, MockOidcServerFixture), so they are extracted from source rather than
+        # listed a second time here. The pattern requires a quoted "name:tag" whose tag starts
+        # with a digit, which matches image pins ("mcr.microsoft.com/azure-storage/azurite:3.36.0",
+        # "redis:8-alpine") and no other string literal in fixture code.
         mapfile -t images < <(grep -rhoE '"[a-z0-9.-]+(/[a-z0-9._-]+)*:[0-9][A-Za-z0-9._-]*"' test --include='*Fixture.cs' | tr -d '"' | sort -u)
         if [ "${#images[@]}" -eq 0 ]; then
           echo "::warning::No fixture container images found under test/**/*Fixture.cs — the extraction pattern has likely drifted from the fixtures. Testcontainers will pull at test time without retries."

@@ -68,16 +68,10 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         report_type: test_results
         directory: ${{ github.workspace }}/test-results
-    - name: Prune empty coverage reports
-      # A test assembly whose tests are all filtered out (the E2E project under the CI-wide
-      # Category!=E2E filter) still writes a cobertura file with no <package> element; qlty's
-      # parser rejects such a file outright and aborts the whole upload. A zero-data report
-      # carries nothing worth uploading — drop them before the coverage steps.
-      run: |
-        shopt -s nullglob
-        for f in "${{ github.workspace }}"/test-results/*.cobertura.xml; do
-          grep -q "<package" "$f" || { echo "Pruning empty coverage report: $f"; rm "$f"; }
-        done
+    - name: Normalize coverage reports
+      uses: ./.github/actions/normalize-coverage-reports
+      with:
+        results-directory: ${{ github.workspace }}/test-results
     - name: Upload coverage to Qlty
       uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
       with:
@@ -85,21 +79,16 @@ jobs:
         files: "test-results/**/*.cobertura.xml"
         # See integrate.yml for the rationale.
         skip-missing-files: true
-    - name: Rename coverage reports for Codecov auto-discovery
-      # The Codecov CLI only auto-detects coverage files whose names contain "coverage"
-      # or match a fixed list (literal `cobertura.xml`, `lcov.info`, ...), and it does
-      # not expand globs passed via the action's `files:` input. MTP code coverage
-      # writes `<guid>.cobertura.xml`, which matches neither, so the upload silently
-      # finds zero reports and the codecov/* commit statuses are never posted.
-      run: |
-        shopt -s nullglob
-        for f in "${{ github.workspace }}"/test-results/*.cobertura.xml; do
-          mv "$f" "${f%.cobertura.xml}.coverage.cobertura.xml"
-        done
     - name: Codecov
       uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        # Scope the CLI's search to the reports this run produced. Left unscoped it walks the
+        # whole workspace hunting every language it supports, warning about absent gcov / xcrun /
+        # coverage.py toolchains along the way, and could pick up an unrelated report. root_dir
+        # keeps the uploaded paths anchored at the repo root regardless of the narrower search.
+        directory: ${{ github.workspace }}/test-results
+        root_dir: ${{ github.workspace }}
         # A silent upload failure leaves the required codecov/patch and codecov/project
         # statuses pending forever, blocking the merge with no visible error.
         fail_ci_if_error: true
