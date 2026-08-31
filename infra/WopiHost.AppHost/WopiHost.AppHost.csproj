@@ -2,7 +2,7 @@
 <!-- Keep in lockstep with the Aspire.Hosting.* versions in Directory.Packages.props.
      Dependabot's nuget ecosystem scans PackageReference/PackageVersion elements only,
      so this Sdk element needs a manual bump alongside every Aspire.Hosting.* bump. -->
-<Sdk Name="Aspire.AppHost.Sdk" Version="13.4.6" />
+<Sdk Name="Aspire.AppHost.Sdk" Version="13.5.2" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -10,6 +10,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsAspireHost>true</IsAspireHost>
     <UserSecretsId>bd8828e6-c0a3-44b0-af52-51332580a612</UserSecretsId>
+    <!-- This AppHost is driven via `dotnet run` (VS F5, the E2E test fixtures, CI) and uses
+         no feature that needs the bundled Aspire CLI; opting in would only add download
+         weight to every build lane. ASPIRE010 is the nudge to opt in — suppressed because
+         the opt-out is deliberate, not an oversight. -->
+    <AspireUseCliBundle>false</AspireUseCliBundle>
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

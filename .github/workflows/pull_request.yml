@@ -59,11 +59,25 @@ jobs:
       run: dotnet test --no-build --results-directory ${{ github.workspace }}/test-results --coverage --coverage-output-format cobertura --report-xunit-junit
     - name: Upload test results to Codecov
       # Runs even when the Test step failed — reporting the failed tests is the whole point.
+      # codecov/test-results-action is deprecated in favor of codecov-action with
+      # report_type: test_results; in that mode the CLI's own search patterns pick up the
+      # *.junit.xml files in the directory (the `files:` input does not expand globs).
       if: ${{ !cancelled() }}
-      uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
+      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: ${{ github.workspace }}/test-results/**/*.junit.xml
+        report_type: test_results
+        directory: ${{ github.workspace }}/test-results
+    - name: Prune empty coverage reports
+      # A test assembly whose tests are all filtered out (the E2E project under the CI-wide
+      # Category!=E2E filter) still writes a cobertura file with no <package> element; qlty's
+      # parser rejects such a file outright and aborts the whole upload. A zero-data report
+      # carries nothing worth uploading — drop them before the coverage steps.
+      run: |
+        shopt -s nullglob
+        for f in "${{ github.workspace }}"/test-results/*.cobertura.xml; do
+          grep -q "<package" "$f" || { echo "Pruning empty coverage report: $f"; rm "$f"; }
+        done
     - name: Upload coverage to Qlty
       uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
       with:
