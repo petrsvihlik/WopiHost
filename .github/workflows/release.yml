@@ -34,13 +34,10 @@ jobs:
       uses: ./.github/actions/prepull-testcontainers-images
     - name: Test
       run: dotnet test --no-build --configuration Release --results-directory ${{ github.workspace }}/test-results --coverage --coverage-output-format cobertura
-    - name: Prune empty coverage reports
-      # See pull_request.yml for the rationale (qlty rejects package-less cobertura files).
-      run: |
-        shopt -s nullglob
-        for f in "${{ github.workspace }}"/test-results/*.cobertura.xml; do
-          grep -q "<package" "$f" || { echo "Pruning empty coverage report: $f"; rm "$f"; }
-        done
+    - name: Normalize coverage reports
+      uses: ./.github/actions/normalize-coverage-reports
+      with:
+        results-directory: ${{ github.workspace }}/test-results
     - name: Upload coverage to Qlty
       uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
       with:
@@ -50,19 +47,15 @@ jobs:
         files: "test-results/**/*.cobertura.xml"
         # See integrate.yml for the rationale.
         skip-missing-files: true
-    - name: Rename coverage reports for Codecov auto-discovery
-      # See integrate.yml for the rationale.
-      run: |
-        shopt -s nullglob
-        for f in "${{ github.workspace }}"/test-results/*.cobertura.xml; do
-          mv "$f" "${f%.cobertura.xml}.coverage.cobertura.xml"
-        done
     - name: Codecov
       # Unlike the CI workflows, deliberately no fail_ci_if_error: a Codecov outage
       # must not block publishing the release.
       uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        # See pull_request.yml for the search-scoping rationale.
+        directory: ${{ github.workspace }}/test-results
+        root_dir: ${{ github.workspace }}
     - name: Pack
       # Output is centralized via UseArtifactsOutput (see Directory.Build.props);
       # nupkg/snupkg files land in artifacts/package/release/.

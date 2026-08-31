@@ -1,0 +1,47 @@
+name: Normalize coverage reports
+description: >
+  Prepares the cobertura reports Microsoft.Testing.Extensions.CodeCoverage writes (one per test
+  project) for the Qlty and Codecov uploads: drops reports that carry no coverage data at all, then
+  renames the rest so Codecov's auto-discovery recognises them. Both uploaders consume the same
+  directory, so this runs once before either of them.
+inputs:
+  results-directory:
+    description: Directory holding the run's *.cobertura.xml reports.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Prune reports with no coverage data
+      shell: bash
+      run: |
+        # A test assembly whose tests are all filtered out (the E2E project under the CI-wide
+        # Category!=E2E filter) still writes a report — a 178-byte skeleton whose body is an
+        # empty `<packages />`. Qlty's parser rejects that outright ("missing field `package`")
+        # and aborts the WHOLE upload, so one no-op assembly costs the entire run's coverage.
+        #
+        # The predicate matches the `<package ` ELEMENT, not the `<packages>` CONTAINER: a bare
+        # `<package` substring is present in both shapes, so it silently keeps every empty
+        # report — which is exactly how this guard failed to fire when it was first written.
+        shopt -s nullglob
+        for f in "${{ inputs.results-directory }}"/*.cobertura.xml; do
+          grep -q "<package[ >]" "$f" || { echo "Pruning report with no coverage data: $f"; rm "$f"; }
+        done
+
+    - name: Rename reports for Codecov auto-discovery
+      shell: bash
+      run: |
+        # The Codecov CLI only auto-detects coverage files whose names contain "coverage" or match
+        # a fixed list (literal `cobertura.xml`, `lcov.info`, ...), and it does not expand globs
+        # passed via the action's `files:` input. MTP code coverage writes `<guid>.cobertura.xml`,
+        # which matches neither, so the upload silently finds zero reports and the codecov/*
+        # commit statuses are never posted.
+        #
+        # Renaming before the Qlty upload is safe: `*.coverage.cobertura.xml` still matches Qlty's
+        # `**/*.cobertura.xml` glob.
+        shopt -s nullglob
+        for f in "${{ inputs.results-directory }}"/*.cobertura.xml; do
+          case "$f" in
+            *.coverage.cobertura.xml) ;;
+            *) mv "$f" "${f%.cobertura.xml}.coverage.cobertura.xml" ;;
+          esac
+        done
