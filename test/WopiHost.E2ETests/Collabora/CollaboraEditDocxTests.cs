@@ -58,8 +58,11 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
     /// Text typed into the document by the save test and asserted back out of the saved file's
     /// <c>word/document.xml</c>. A timestamp/size probe alone can't prove the edit landed:
     /// a save of an unmodified document still rewrites the file.
+    /// Letters and digits only — Playwright-synthesized punctuation keys don't reach COOL's
+    /// textinput path (a hyphenated marker arrived as "wopihoste2emarker" on CODE 26.04: every
+    /// letter and digit came through the kit's textinput stream, no hyphen ever did).
     /// </summary>
-    private const string EditMarker = "wopihost-e2e-marker";
+    private const string EditMarker = "wopihoste2emarker";
 
     /// <summary>How long to wait for Collabora's iframe to render the document area. Generous
     /// because CODE's startup + WebSocket handshake commonly takes 8–15 s on a cold cache.</summary>
@@ -432,10 +435,10 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // Action_Save runs with DontSaveIfUnmodified:false, so a save can also fire on an
         // unmodified model; only the typed marker inside word/document.xml distinguishes
         // "edit round-tripped" from a no-op save of unchanged content.
-        // The search runs over the document's extracted TEXT, not the raw XML: LibreOffice's
-        // autocorrect (sentence capitalization fires at each hyphen word-boundary) splits the
-        // typed marker across adjacent <w:t> runs, so a raw-XML substring search misses text
-        // interleaved with tags. OrdinalIgnoreCase absorbs the capitalization itself.
+        // The search runs over the document's extracted TEXT, not the raw XML: LibreOffice may
+        // split typed text across adjacent <w:t> runs (autocorrect edits, formatting
+        // boundaries), and a raw-XML substring search cannot match text interleaved with tags.
+        // OrdinalIgnoreCase absorbs sentence autocapitalization of the first letter.
         var documentText = ReadDocumentText(docxPath);
         if (!documentText.Contains(EditMarker, StringComparison.OrdinalIgnoreCase))
         {
