@@ -56,6 +56,10 @@ jobs:
         # See pull_request.yml for the search-scoping rationale.
         directory: ${{ github.workspace }}/test-results
         root_dir: ${{ github.workspace }}
+        # This repo's reports come straight from MTP as cobertura, so none of the CLI's
+        # language plugins (gcov, xcode, pycoverage) can contribute anything — they only run
+        # to warn that their toolchains are absent. They ignore `directory:`, so turn them off.
+        plugins: noop
     - name: Pack
       # Output is centralized via UseArtifactsOutput (see Directory.Build.props);
       # nupkg/snupkg files land in artifacts/package/release/.
