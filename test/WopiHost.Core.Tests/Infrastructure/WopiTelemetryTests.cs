@@ -90,7 +90,7 @@ public sealed class WopiTelemetryTests : IDisposable
         // Use a unique operation name so this test's measurements aren't intermixed with
         // other tests publishing to the same static Meter when xUnit runs classes in parallel.
         const string Op = nameof(RecordOutcome_Success_TagsActivityAndIncrementsRequests);
-        var measurements = CollectRequests(Op);
+        using var requests = new MeterCapture(WopiTelemetry.Requests.Name);
         using var activity = WopiTelemetry.StartActivity(Op, "file-1");
 
         WopiTelemetry.RecordOutcome(activity, Op, WopiTelemetry.Outcomes.Success);
@@ -98,7 +98,7 @@ public sealed class WopiTelemetryTests : IDisposable
         Assert.NotNull(activity);
         Assert.Equal(WopiTelemetry.Outcomes.Success, activity.GetTagItem(WopiTelemetry.Tags.Outcome));
         Assert.Equal(ActivityStatusCode.Unset, activity.Status);
-        var (value, tags) = Assert.Single(measurements);
+        var (value, tags) = Assert.Single(ForOperation(requests, Op));
         Assert.Equal(1, value);
         Assert.Contains(tags, t => t.Key == WopiTelemetry.Tags.Outcome && (string?)t.Value == WopiTelemetry.Outcomes.Success);
     }
@@ -119,14 +119,14 @@ public sealed class WopiTelemetryTests : IDisposable
     public void RecordOutcome_LockMismatch_AlsoIncrementsLockConflicts()
     {
         const string Op = nameof(RecordOutcome_LockMismatch_AlsoIncrementsLockConflicts);
-        var requestMeasurements = CollectRequests(Op);
-        var lockMeasurements = CollectLockConflicts(Op);
+        using var requests = new MeterCapture(WopiTelemetry.Requests.Name);
+        using var lockConflicts = new MeterCapture(WopiTelemetry.LockConflicts.Name);
         using var activity = WopiTelemetry.StartActivity(Op, "file-1");
 
         WopiTelemetry.RecordOutcome(activity, Op, WopiTelemetry.Outcomes.LockMismatch);
 
-        Assert.Single(requestMeasurements);
-        var (lockValue, _) = Assert.Single(lockMeasurements);
+        Assert.Single(ForOperation(requests, Op));
+        var (lockValue, _) = Assert.Single(ForOperation(lockConflicts, Op));
         Assert.Equal(1, lockValue);
     }
 
@@ -134,48 +134,19 @@ public sealed class WopiTelemetryTests : IDisposable
     public void RecordOutcome_NullActivity_StillIncrementsRequestsCounter()
     {
         const string Op = nameof(RecordOutcome_NullActivity_StillIncrementsRequestsCounter);
-        var measurements = CollectRequests(Op);
+        using var requests = new MeterCapture(WopiTelemetry.Requests.Name);
 
         WopiTelemetry.RecordOutcome(activity: null, Op, WopiTelemetry.Outcomes.Success);
 
-        Assert.Single(measurements);
+        Assert.Single(ForOperation(requests, Op));
     }
-
-    private static List<(long value, IReadOnlyList<KeyValuePair<string, object?>> tags)> CollectRequests(string operationFilter)
-        => CollectFromCounter(WopiTelemetry.Requests.Name, operationFilter);
-
-    private static List<(long value, IReadOnlyList<KeyValuePair<string, object?>> tags)> CollectLockConflicts(string operationFilter)
-        => CollectFromCounter(WopiTelemetry.LockConflicts.Name, operationFilter);
 
     /// <summary>
-    /// Collects measurements published to the named WopiTelemetry counter, filtered to those
-    /// whose <see cref="WopiTelemetry.Tags.Operation"/> tag equals <paramref name="operationFilter"/>.
-    /// The filter prevents cross-test pollution when xUnit runs other test classes concurrently
-    /// against the same static <see cref="Meter"/>.
+    /// Filters captured measurements to those whose <see cref="WopiTelemetry.Tags.Operation"/>
+    /// tag equals <paramref name="operation"/>. The filter prevents cross-test pollution when
+    /// xUnit runs other test classes concurrently against the same static <see cref="Meter"/>.
     /// </summary>
-    private static List<(long value, IReadOnlyList<KeyValuePair<string, object?>> tags)> CollectFromCounter(string instrumentName, string operationFilter)
-    {
-        var measurements = new List<(long, IReadOnlyList<KeyValuePair<string, object?>>)>();
-        var listener = new MeterListener
-        {
-            InstrumentPublished = (instrument, l) =>
-            {
-                if (instrument.Meter.Name == WopiTelemetry.Name && instrument.Name == instrumentName)
-                {
-                    l.EnableMeasurementEvents(instrument);
-                }
-            },
-        };
-        listener.SetMeasurementEventCallback<long>((instrument, value, tags, _) =>
-        {
-            var tagsArray = tags.ToArray();
-            var matches = tagsArray.Any(t => t.Key == WopiTelemetry.Tags.Operation && (string?)t.Value == operationFilter);
-            if (matches)
-            {
-                measurements.Add((value, tagsArray));
-            }
-        });
-        listener.Start();
-        return measurements;
-    }
+    private static List<(long Value, KeyValuePair<string, object?>[] Tags)> ForOperation(MeterCapture capture, string operation)
+        => [.. capture.Measurements.Where(m =>
+            m.Tags.Any(t => t.Key == WopiTelemetry.Tags.Operation && (string?)t.Value == operation))];
 }

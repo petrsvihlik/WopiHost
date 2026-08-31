@@ -110,9 +110,7 @@ public sealed partial class WopiTokenRoundTripTests(WopiTokenRoundTripTests.Fixt
         using var backend = _fixture.WopiBackend.CreateClient();
         var response = await backend.GetAsync($"/wopi/files/{fileId}?access_token=this-is-not-a-jwt");
 
-        Assert.True(
-            response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.InternalServerError,
-            $"Expected 401 or 500 for an invalid token, got {(int)response.StatusCode}.");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]

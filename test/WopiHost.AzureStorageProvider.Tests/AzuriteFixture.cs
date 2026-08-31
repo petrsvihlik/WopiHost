@@ -16,7 +16,7 @@ public sealed class AzuriteFixture : IAsyncLifetime
     public const string AzuriteImage = "mcr.microsoft.com/azure-storage/azurite:3.36.0";
 
     /// <summary>
-    /// Latest blob service version Azurite 3.35.0 understands. The SDK ships a newer default
+    /// Latest blob service version the pinned Azurite image understands. The SDK ships a newer default
     /// (currently 2026-02-06) which Azurite rejects with InvalidHeaderValue, so tests pin one
     /// version older. Bump alongside <see cref="AzuriteImage"/>.
     /// </summary>

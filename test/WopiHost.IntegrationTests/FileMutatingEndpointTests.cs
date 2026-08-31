@@ -348,6 +348,12 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var putResp = await client.SendAsync(putReq);
 
         Assert.Equal(HttpStatusCode.OK, putResp.StatusCode);
+
+        // Side-effect check: GetFile must serve the new bytes, proving the body actually
+        // reached the write stream rather than the handler just returning 200.
+        var getResp = await client.GetAsync($"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}");
+        Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
+        Assert.Equal("v2"u8.ToArray(), await getResp.Content.ReadAsByteArrayAsync());
     }
 
     [Fact]
@@ -722,7 +728,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
     // ---- ProcessCobalt ---------------------------------------------------
 
     [Fact]
-    public async Task ProcessCobalt_WhenNotEnabled_Returns_501()
+    public async Task ProcessCobalt_WhenNotEnabled_Returns_500()
     {
         // The mutating fixture leaves Wopi:UseCobalt=false (the default), so ProcessCobalt's
         // RequiresWritableStorageEndpointFilter still lets the request through, but

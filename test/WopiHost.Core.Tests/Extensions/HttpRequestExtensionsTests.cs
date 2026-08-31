@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http;
-using Moq;
 using WopiHost.Core.Extensions;
 
 namespace WopiHost.Core.Tests.Extensions;
@@ -9,7 +8,7 @@ public class HttpRequestExtensionsTests
     [Fact]
     public void GetProxyAwareRequestUrl_WithoutProxyHeaders_ReturnsStandardUrl()
     {
-        var request = CreateMockRequest(
+        var request = CreateRequest(
             scheme: "https",
             host: "example.com",
             pathBase: "/api",
@@ -25,7 +24,7 @@ public class HttpRequestExtensionsTests
     [Fact]
     public void GetProxyAwareRequestUrl_WithProxyHeaders_UsesProxyValues()
     {
-        var request = CreateMockRequest(
+        var request = CreateRequest(
             scheme: "http",
             host: "internal.server",
             pathBase: "/internal",
@@ -33,10 +32,9 @@ public class HttpRequestExtensionsTests
             queryString: "?access_token=123"
         );
 
-        AddProxyHeaders(request, 
-            forwardedProto: "https", 
-            forwardedHost: "proxy.example.com", 
-            forwardedPathBase: "/external");
+        request.Headers["X-Forwarded-Proto"] = "https";
+        request.Headers["X-Forwarded-Host"] = "proxy.example.com";
+        request.Headers["X-Forwarded-PathBase"] = "/external";
 
         var result = request.GetProxyAwareRequestUrl();
 
@@ -46,7 +44,7 @@ public class HttpRequestExtensionsTests
     [Fact]
     public void GetProxyAwareRequestUrl_WithPartialProxyHeaders_UsesProxyAndOriginalValues()
     {
-        var request = CreateMockRequest(
+        var request = CreateRequest(
             scheme: "http",
             host: "internal.server",
             pathBase: "/internal",
@@ -55,9 +53,8 @@ public class HttpRequestExtensionsTests
         );
 
         // Only set proto and host headers, not pathBase
-        AddProxyHeaders(request, 
-            forwardedProto: "https", 
-            forwardedHost: "proxy.example.com");
+        request.Headers["X-Forwarded-Proto"] = "https";
+        request.Headers["X-Forwarded-Host"] = "proxy.example.com";
 
         var result = request.GetProxyAwareRequestUrl();
 
@@ -67,7 +64,7 @@ public class HttpRequestExtensionsTests
     [Fact]
     public void GetProxyAwareRequestUrl_WithEmptyPathBase_HandlesCorrectly()
     {
-        var request = CreateMockRequest(
+        var request = CreateRequest(
             scheme: "https",
             host: "example.com",
             pathBase: "",
@@ -83,7 +80,7 @@ public class HttpRequestExtensionsTests
     [Fact]
     public void GetProxyAwareRequestUrl_WithoutQueryString_HandlesCorrectly()
     {
-        var request = CreateMockRequest(
+        var request = CreateRequest(
             scheme: "https",
             host: "example.com",
             pathBase: "/api",
@@ -99,7 +96,7 @@ public class HttpRequestExtensionsTests
     [Fact]
     public void GetProxyAwareRequestUrl_WithRootPath_HandlesCorrectly()
     {
-        var request = CreateMockRequest(
+        var request = CreateRequest(
             scheme: "https",
             host: "example.com",
             pathBase: "",
@@ -115,7 +112,7 @@ public class HttpRequestExtensionsTests
     [Fact]
     public void GetProxyAwareRequestUrl_WithComplexPath_HandlesCorrectly()
     {
-        var request = CreateMockRequest(
+        var request = CreateRequest(
             scheme: "https",
             host: "example.com",
             pathBase: "/wopi-host",
@@ -131,7 +128,7 @@ public class HttpRequestExtensionsTests
     [Fact]
     public void GetProxyAwareRequestUrl_WithNullValues_HandlesGracefully()
     {
-        var request = CreateMockRequest(
+        var request = CreateRequest(
             scheme: "https",
             host: "example.com",
             pathBase: null,
@@ -145,12 +142,12 @@ public class HttpRequestExtensionsTests
     }
 
     [Theory]
-    [InlineData("X-Forwarded-Proto", "https")]
-    [InlineData("X-Forwarded-Host", "proxy.example.com")]
-    [InlineData("X-Forwarded-PathBase", "/external")]
-    public void GetProxyAwareRequestUrl_WithSingleProxyHeader_UsesProxyValueForThatHeader(string headerName, string headerValue)
+    [InlineData("X-Forwarded-Proto", "https", "https://internal.server/internal/wopi/files?test=1")]
+    [InlineData("X-Forwarded-Host", "proxy.example.com", "http://proxy.example.com/internal/wopi/files?test=1")]
+    [InlineData("X-Forwarded-PathBase", "/external", "http://internal.server/external/wopi/files?test=1")]
+    public void GetProxyAwareRequestUrl_WithSingleProxyHeader_UsesProxyValueForThatHeader(string headerName, string headerValue, string expectedUrl)
     {
-        var request = CreateMockRequest(
+        var request = CreateRequest(
             scheme: "http",
             host: "internal.server",
             pathBase: "/internal",
@@ -158,56 +155,24 @@ public class HttpRequestExtensionsTests
             queryString: "?test=1"
         );
 
-        var headers = new HeaderDictionary
-        {
-            [headerName] = headerValue
-        };
-        Mock.Get(request).Setup(r => r.Headers).Returns(headers);
+        request.Headers[headerName] = headerValue;
 
         var result = request.GetProxyAwareRequestUrl();
 
-        switch (headerName)
-        {
-            case "X-Forwarded-Proto":
-                Assert.StartsWith("https://", result);
-                break;
-            case "X-Forwarded-Host":
-                Assert.Contains("proxy.example.com", result);
-                break;
-            case "X-Forwarded-PathBase":
-                Assert.Contains("/external/wopi/files", result);
-                break;
-        }
+        Assert.Equal(expectedUrl, result);
     }
 
-    private static HttpRequest CreateMockRequest(string scheme, string host, string? pathBase, string? path, string? queryString)
+    private static HttpRequest CreateRequest(string scheme, string host, string? pathBase, string? path, string? queryString)
     {
-        var request = new Mock<HttpRequest>();
-        var headers = new HeaderDictionary();
-        
-        request.Setup(r => r.Scheme).Returns(scheme);
-        request.Setup(r => r.Host).Returns(new HostString(host));
-        request.Setup(r => r.PathBase).Returns(new PathString(pathBase));
-        request.Setup(r => r.Path).Returns(new PathString(path));
-        request.Setup(r => r.QueryString).Returns(new QueryString(queryString));
-        request.Setup(r => r.Headers).Returns(headers);
+        var request = new DefaultHttpContext().Request;
 
-        return request.Object;
-    }
+        request.Scheme = scheme;
+        request.Host = new HostString(host);
+        request.PathBase = new PathString(pathBase);
+        request.Path = new PathString(path);
+        request.QueryString = new QueryString(queryString);
 
-    private static void AddProxyHeaders(HttpRequest request, string? forwardedProto = null,
-        string? forwardedHost = null, string? forwardedPathBase = null)
-    {
-        var headers = request.Headers;
-
-        if (forwardedProto != null)
-            headers["X-Forwarded-Proto"] = forwardedProto;
-
-        if (forwardedHost != null)
-            headers["X-Forwarded-Host"] = forwardedHost;
-
-        if (forwardedPathBase != null)
-            headers["X-Forwarded-PathBase"] = forwardedPathBase;
+        return request;
     }
 
     [Fact]

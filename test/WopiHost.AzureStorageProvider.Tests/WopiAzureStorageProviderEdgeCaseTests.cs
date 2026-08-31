@@ -327,7 +327,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
 
-        Assert.False(await provider.CheckValidFileName("foobar"));
+        Assert.False(await provider.CheckValidFileName("foo\u0001bar"));
         Assert.False(await provider.CheckValidFileName(new string('x', 251)));
     }
 

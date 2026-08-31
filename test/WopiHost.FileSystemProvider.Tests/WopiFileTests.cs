@@ -104,25 +104,21 @@ public class WopiFileTests : IDisposable
     public void Owner_OnSupportedPlatform_ReturnsNonEmpty()
     {
         // Windows (ACL owner), Linux (statx) and macOS (stat) all resolve a real owner.
-        if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
-        {
-            Assert.False(string.IsNullOrEmpty(_sut.Owner));
-        }
-        else
-        {
-            // No ownership lookup is wired up for other platforms, so the contract
-            // degrades to empty rather than throwing PlatformNotSupportedException.
-            Assert.Equal(string.Empty, _sut.Owner);
-        }
+        // Skipping (not silently passing) elsewhere keeps the run report honest about
+        // what was actually asserted.
+        Assert.SkipUnless(
+            OperatingSystem.IsWindows() || OperatingSystem.IsLinux() || OperatingSystem.IsMacOS(),
+            "Owner resolution is only wired up for Windows/Linux/macOS.");
+
+        Assert.False(string.IsNullOrEmpty(_sut.Owner));
     }
 
     [Fact]
     public void Owner_OnUnix_MatchesProcessUserName()
     {
-        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
-        {
-            return;
-        }
+        Assert.SkipUnless(
+            OperatingSystem.IsLinux() || OperatingSystem.IsMacOS(),
+            "stat/statx owner lookup requires Linux/macOS.");
 
         // Files created by the test process are owned by the current user;
         // stat/statx + getpwuid_r should resolve back to that name (or numeric uid
@@ -134,10 +130,9 @@ public class WopiFileTests : IDisposable
     [Fact]
     public void Owner_OnUnix_FileDeleted_ReturnsEmpty()
     {
-        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
-        {
-            return;
-        }
+        Assert.SkipUnless(
+            OperatingSystem.IsLinux() || OperatingSystem.IsMacOS(),
+            "stat/statx owner lookup requires Linux/macOS.");
 
         // Construct against a real file, then remove it so stat/statx fails with ENOENT. The
         // owner helper surfaces that as IOException, which the Owner getter swallows to honour

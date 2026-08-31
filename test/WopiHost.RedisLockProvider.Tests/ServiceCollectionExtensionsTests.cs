@@ -37,10 +37,7 @@ public class ServiceCollectionExtensionsTests
     [Fact]
     public void AddRedisLockProvider_RegistersIWopiLockProviderAsSingleton()
     {
-        var services = NewServicesWith(new()
-        {
-            ["Wopi:LockProvider:ConnectionString"] = "localhost:6379",
-        });
+        var services = NewServices();
 
         services.AddRedisLockProvider(BuildConfig(("Wopi:LockProvider:ConnectionString", "localhost:6379")));
 
@@ -57,7 +54,7 @@ public class ServiceCollectionExtensionsTests
         // plays with the provider — the multiplexer comes from the host, the provider just
         // borrows it.
         var fakeMultiplexer = A.Fake<IConnectionMultiplexer>();
-        var services = NewServicesWith();
+        var services = NewServices();
         services.AddSingleton(fakeMultiplexer);
 
         services.AddRedisLockProvider(BuildConfig(("Wopi:LockProvider:KeyPrefix", "test:")));
@@ -74,7 +71,7 @@ public class ServiceCollectionExtensionsTests
     {
         // A host that wires two IWopiLockProviders would have the second registration silently
         // win the resolve — the guard fails fast at composition instead.
-        var services = NewServicesWith();
+        var services = NewServices();
         services.AddSingleton<IWopiLockProvider>(A.Fake<IWopiLockProvider>());
 
         var ex = Assert.Throws<InvalidOperationException>(
@@ -88,7 +85,7 @@ public class ServiceCollectionExtensionsTests
         // No multiplexer in DI AND no ConnectionString option → constructing the provider has to
         // fail with a useful message, not a generic NullReferenceException. The validation lives
         // in BuildOwnedMultiplexer; ValidateOnStart() catches it at resolution time.
-        var services = NewServicesWith();
+        var services = NewServices();
         services.AddRedisLockProvider(BuildConfig());
 
         using var sp = services.BuildServiceProvider();
@@ -106,7 +103,7 @@ public class ServiceCollectionExtensionsTests
         return new ConfigurationBuilder().AddInMemoryCollection(dict).Build();
     }
 
-    private static ServiceCollection NewServicesWith(Dictionary<string, string?>? _ = null)
+    private static ServiceCollection NewServices()
     {
         var services = new ServiceCollection();
         services.AddSingleton<Microsoft.Extensions.Logging.ILoggerFactory>(NullLoggerFactory.Instance);

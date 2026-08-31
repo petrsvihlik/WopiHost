@@ -27,7 +27,7 @@ public sealed class WopiRedisLockProviderEvictionTests(RedisFixture redis)
     private async Task<(WopiRedisLockProvider Sut, IDatabase Db, RedisKey Key)> CreateAsync(
         string fileId, ControllableTimeProvider clock)
     {
-        var multiplexer = await redis.CreateMultiplexerAsync();
+        var multiplexer = await redis.GetMultiplexerAsync();
         var prefix = $"wopi:lock:evict-test:{Guid.NewGuid():N}:";
         var sut = new WopiRedisLockProvider(
             multiplexer, NullLogger<WopiRedisLockProvider>.Instance, prefix, clock);

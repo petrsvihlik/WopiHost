@@ -1,4 +1,5 @@
 using System.Net;
+using WopiHost.Abstractions;
 using WopiHost.IntegrationTests.Fixtures;
 using Xunit;
 
@@ -63,5 +64,47 @@ public sealed class FolderEndpointTests(ReadOnlyEndpointsFixture fixture)
         var resp = await client.GetAsync($"/wopi/folders/{missing}/children?access_token={Uri.EscapeDataString(token)}");
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task CheckFolderInfo_FiresOnCheckFolderInfoHook_AndReturnsItsResult()
+    {
+        // FolderEndpoints.CheckFolderInfo is the only caller of the OnCheckFolderInfoAsync
+        // extension point; a rewritten FolderName in the response proves the hook both fired
+        // and had its result honoured. Uses a dedicated backend so the shared read-only
+        // fixture keeps the default extensions.
+        const string signingSecret = "folder-hook-tests-shared-key-32b!";
+        using var backend = new WopiBackendFactory(signingSecret, configureServices: services =>
+        {
+            services.RemoveAll<IWopiHostExtensions>();
+            services.AddSingleton<IWopiHostExtensions>(new FolderNameRewritingExtensions());
+        });
+
+        string rootId;
+        using (var scope = backend.Services.CreateScope())
+        {
+            rootId = scope.ServiceProvider.GetRequiredService<IWopiStorageProvider>().RootContainer.Identifier;
+        }
+        var token = await FixtureTokens.MintContainerTokenAsync(
+            backend, new FixtureUser("folder-hook-user", "Folder Hook User", "folder-hook@example.com"), rootId);
+        using var client = backend.CreateClient();
+
+        var resp = await client.GetAsync($"/wopi/folders/{rootId}?access_token={Uri.EscapeDataString(token)}");
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var body = await resp.Content.ReadAsStringAsync();
+        Assert.Contains($"\"{RewrittenFolderName}\"", body);
+    }
+
+    private const string RewrittenFolderName = "folder-name-rewritten-by-hook";
+
+    private sealed class FolderNameRewritingExtensions : WopiHostExtensions
+    {
+        public override Task<WopiCheckFolderInfo> OnCheckFolderInfoAsync(
+            WopiCheckFolderInfoContext context, CancellationToken cancellationToken = default)
+        {
+            context.CheckFolderInfo.FolderName = RewrittenFolderName;
+            return Task.FromResult(context.CheckFolderInfo);
+        }
     }
 }

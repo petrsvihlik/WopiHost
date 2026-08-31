@@ -139,6 +139,10 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         var resp = await client.SendAsync(req);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        var createdName = doc.RootElement.GetProperty("ContainerPointer").GetProperty("Name").GetString();
+        Assert.NotNull(createdName);
+        Assert.DoesNotContain("/", createdName);
     }
 
     [Fact]
@@ -270,6 +274,10 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         var resp = await client.SendAsync(req);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+
+        // Side-effect check: the container must actually be gone — CheckContainerInfo now 404s.
+        var check = await client.GetAsync($"/wopi/containers/{childId}?access_token={Uri.EscapeDataString(childToken)}");
+        Assert.Equal(HttpStatusCode.NotFound, check.StatusCode);
     }
 
     [Fact]

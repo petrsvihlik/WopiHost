@@ -386,6 +386,9 @@ public class InMemoryFileIdsTests : IDisposable
         // interleaving, the forward and reverse maps must agree (no dangling reverse entry).
         const int rounds = 200;
         var path = Path.Join(_tempDir.FullName, "shared.docx");
+        // Ids are deterministic (SHA-256 of the canonical path), so capturing the id up front
+        // lets both map directions be probed unconditionally after the race.
+        var expectedId = _sut.AddFile(path);
 
         var add = Task.Run(() =>
         {
@@ -407,12 +410,13 @@ public class InMemoryFileIdsTests : IDisposable
         });
         await Task.WhenAll(add, remove);
 
-        // Final consistency check: every id present must round-trip through the reverse map and
-        // back. A leaked reverse entry would resolve to an id that's no longer in the forward map.
-        if (_sut.TryGetFileId(path, out var finalId))
-        {
-            Assert.True(_sut.TryGetPath(finalId, out var roundTripPath));
-            Assert.Equal(path, roundTripPath);
-        }
+        // Final consistency check, unconditional in both directions: whichever worker won the
+        // last round, the forward and reverse maps must agree — a dangling entry in either map
+        // fails the first assertion regardless of the interleaving.
+        var forwardHasIt = _sut.TryGetFileId(path, out var forwardId);
+        var reverseHasIt = _sut.TryGetPath(expectedId, out var reversePath);
+        Assert.Equal(forwardHasIt, reverseHasIt);
+        Assert.Equal(forwardHasIt ? expectedId : null, forwardId);
+        Assert.Equal(reverseHasIt ? path : null, reversePath);
     }
 }

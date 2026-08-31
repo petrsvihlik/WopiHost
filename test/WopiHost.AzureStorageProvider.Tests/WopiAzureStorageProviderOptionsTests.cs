@@ -13,19 +13,4 @@ public class WopiAzureStorageProviderOptionsTests
         Assert.Null(options.ServiceUri);
         Assert.Equal("x", options.ContainerName);
     }
-
-    [Fact]
-    public void Setters_RoundTripValues()
-    {
-        var options = new WopiAzureStorageProviderOptions
-        {
-            ConnectionString = "UseDevelopmentStorage=true",
-            ServiceUri = new Uri("https://acct.blob.core.windows.net"),
-            ContainerName = "wopi-files",
-        };
-
-        Assert.Equal("UseDevelopmentStorage=true", options.ConnectionString);
-        Assert.Equal(new Uri("https://acct.blob.core.windows.net"), options.ServiceUri);
-        Assert.Equal("wopi-files", options.ContainerName);
-    }
 }

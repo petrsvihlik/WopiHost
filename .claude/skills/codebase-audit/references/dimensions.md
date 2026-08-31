@@ -138,6 +138,7 @@ These are "two things that should match but don't." The providers are the usual 
   permission-claim round-trip integration test; another added real-proof-key validation coverage).
 - A provider lacking the shared conformance subclass.
 - Docker-gated suites (Azurite/Redis/Collabora) — note when a path is CI-only-verifiable.
+- Coverage *quality* (a test exists but couldn't fail) is dimension 15, not this one.
 
 ## 11. Documentation accuracy — wiki + READMEs (High when actively misleading)
 
@@ -274,3 +275,79 @@ Cross-cutting correctness for code that ships as a library and runs inside someo
   host — make it `async Task`.
 - **`DateTimeOffset` for protocol time.** Lock expiry / WOPI timestamps use `DateTimeOffset` (the lock
   providers already do); a bare `DateTime.Now`/`UtcNow` on an expiry or wire path is a smell.
+
+## 15. Test quality — smells & antipatterns (High when a test can pass on broken behavior)
+
+Distilled from the [dotnet/skills `dotnet-test` plugin](https://github.com/dotnet/skills/tree/main/plugins/dotnet-test)
+(MIT, upstream commit `d68dd70`, v0.2.18) — its `test-anti-patterns`, `test-smell-detection`
+(testsmells.org taxonomy), `assertion-quality`, and `test-gap-analysis` skills. The full catalogs
+and calibration rules live upstream; this dimension carries the subset that found real issues in
+this repo's xUnit v3 + FakeItEasy suite (the 2026-08-31 test audit, #677). For a deep dive —
+formal taxonomy names, per-test grading, mutation reasoning — read the upstream skills directly.
+
+Scope: everything under `test/`, including `WopiHost.Abstractions.Testing` (a smell in the shared
+conformance library multiplies across every provider). Dimension 10 asks "is this path tested";
+this dimension asks **"could this test fail if the behavior broke?"**
+
+**High — false confidence (the test passes while the behavior is broken):**
+- Assertion-free test paths (FakeItEasy `MustHaveHappened*` counts as an assertion).
+- Un-awaited `Assert.ThrowsAsync` / any unawaited Task-returning assertion — silently passes.
+- **Over-determined negative tests**: a fail-closed gate (proof validator, auth) ORs its rejection
+  reasons, so *any* rejection satisfies `Assert.False` and the targeted guard can be deleted
+  unnoticed. Pin WHICH branch fired — telemetry reason tags are this repo's designed observable
+  (#677 found the tests' default timestamp tripped the staleness window instead of the branch
+  under test, and the reason assertion immediately exposed a second mislabeled branch).
+- Final assertions behind a condition (`if (TryGet...) { Assert... }`) in concurrency stress
+  tests — some interleavings assert nothing. Ids here are deterministic SHA-256, so capture the
+  id up front and probe both map directions unconditionally.
+- Fixed `Thread.Sleep`/`Task.Delay` waiting for an outcome (poll a condition with deadline; in
+  Playwright E2E, poll the captured postMessage stream — e.g. `Doc_ModifiedStatus` — not time).
+- **Save/write oracles that a no-op satisfies**: a timestamp/size probe can't prove an edit
+  round-tripped when a save of unmodified content also rewrites the file — assert the typed
+  marker back out of the artifact.
+- Broad `Assert.ThrowsAny<Exception>` where production throws a specific type. (A specific base
+  family — `ThrowsAny<IOException>` when the concrete subtype legitimately varies — is fine.)
+- Shared mutable process-global state across parallel classes (xUnit v3 parallelizes classes):
+  `MeterListener`/`ActivityListener` registrations must be disposed, telemetry classes serialized
+  via the collection.
+
+**Medium — weak or ambiguous oracles:**
+- Status-only integration assertions where the name promises behavior ("Sanitises", "Honours",
+  "Updates") — probe the side effect. **Diff file-side vs container-side siblings**: the twin of
+  a status-only test usually shows the intended oracle (the same move that found the Azure
+  create-name guard gap in dimension 7).
+- Conditional test logic: a `switch`/`if` picking assertions per theory row (an unmatched row
+  asserts nothing) — put the expected value in the `[InlineData]`.
+- Invisible test data: raw control bytes in string literals — use `\u0001`-style escapes.
+- Wall-clock reads that can flip a verdict (a helper defaulting a signed timestamp to
+  `DateTime.UtcNow` against a fixed validator clock). Margins matter: a ±20-min window probed
+  with ~seconds of latency can't flip — don't flag those.
+- 3+ near-identical bodies differing in one value → `[Theory]`. Distinct boundary tests are NOT
+  duplicates; `[InlineData]` rows are the consolidated form, not duplication.
+
+**Low — hygiene that misleads:**
+- Compiler-only tests: set-then-get on auto-properties/records can't fail — delete, or convert to
+  a serialization-contract pin when the type is a wire shape (CheckFileInfo's `[JsonIgnore]` set
+  is itself contract: deliberately-withheld members must stay off the wire).
+- Silent platform early-`return` → `Assert.Skip`/`Assert.SkipUnless` so the run report is honest.
+- Dead scaffolding (unused helpers, never-passed parameters, empty ctors); stale comments naming
+  removed types or wrong pinned versions; reflection into members `InternalsVisibleTo` already
+  exposes; undisposed fixtures' disposables; missing `[Trait]` where a sibling documents the
+  filter convention.
+
+Calibration (upstream rules that stop over-flagging — apply before filing):
+- One assertion per test is fine; exception-only tests are complete; null-guard-then-value-assert
+  is not trivial; "does not throw" IS the contract for idempotent-dispose/no-op-hook tests.
+- Integration/E2E/Smoke projects legitimately use real hosts, containers, multi-step flows and
+  checked-in fixtures (`sample/wopi-docs` is versioned, restored, robustly resolved).
+- A systemic pattern = ONE finding listing all affected tests.
+- A clean project is a valid verdict; never manufacture findings.
+- Check `do-not-refile.md` — the 2026-08-31 audit's cleared not-findings are recorded there.
+
+Not adopted from the plugin (so a future run doesn't re-evaluate): the MSTest writing/scaffolding
+skills and run/filter/hot-reload tooling (repo is xUnit v3 on MTP with its own CLAUDE.md
+commands), the coverage/CRAP PowerShell pipeline (coverage is already wired via
+`Microsoft.Testing.Extensions.CodeCoverage`; adopt on demand), and the testability-wrapper
+generators (wrapper generation runs against dimension 12's subtractive bias — introduce seams
+only when a concrete test needs one). Re-distill if upstream grows a genuinely new analysis
+method; the pin above marks the evaluated revision.

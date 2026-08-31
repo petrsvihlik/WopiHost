@@ -13,19 +13,4 @@ public class WopiAzureLockProviderOptionsTests
         Assert.Null(options.ServiceUri);
         Assert.Equal("wopi-locks", options.ContainerName);
     }
-
-    [Fact]
-    public void Setters_RoundTripValues()
-    {
-        var options = new WopiAzureLockProviderOptions
-        {
-            ConnectionString = "UseDevelopmentStorage=true",
-            ServiceUri = new Uri("https://acct.blob.core.windows.net"),
-            ContainerName = "custom-locks",
-        };
-
-        Assert.Equal("UseDevelopmentStorage=true", options.ConnectionString);
-        Assert.Equal(new Uri("https://acct.blob.core.windows.net"), options.ServiceUri);
-        Assert.Equal("custom-locks", options.ContainerName);
-    }
 }

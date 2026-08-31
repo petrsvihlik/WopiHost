@@ -69,24 +69,25 @@ public class JwtAccessTokenServiceTests
     [Fact]
     public async Task Validation_Rejects_Expired_Token()
     {
-        // JwtSecurityTokenHandler's lifetime check uses wall-clock time, not the TimeProvider,
-        // so the token is issued very short-lived with zero skew and the test waits past it.
-        var svc = BuildService(new WopiSecurityOptions
+        // JwtSecurityTokenHandler's lifetime check uses wall-clock time, but IssueAsync stamps
+        // Expires from the injected TimeProvider — so a clock an hour in the past mints a token
+        // that is already long expired, with no sleep and no race against real time.
+        var options = new WopiSecurityOptions
         {
             SigningKey = JwtAccessTokenService.DeriveHmacKey("k"),
             ClockSkew = TimeSpan.Zero,
-        });
+        };
+        var issuingSvc = BuildService(options, new FakeTimeProvider(DateTimeOffset.UtcNow.AddHours(-1)));
 
-        var token = await svc.IssueAsync(new WopiAccessTokenRequest
+        var token = await issuingSvc.IssueAsync(new WopiAccessTokenRequest
         {
             UserId = "u",
             ResourceId = "r",
             ResourceType = WopiResourceType.File,
-            Lifetime = TimeSpan.FromMilliseconds(1),
+            Lifetime = TimeSpan.FromMinutes(1),
         });
 
-        await Task.Delay(50);
-        var result = await svc.ValidateAsync(token.Token);
+        var result = await BuildService(options).ValidateAsync(token.Token);
 
         Assert.False(result.IsValid);
     }
