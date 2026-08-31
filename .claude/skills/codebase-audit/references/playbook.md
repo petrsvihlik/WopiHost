@@ -67,3 +67,24 @@ new candidate out, add it there with the reason — that's what stops the next r
   client-controlled name/id and confirm they ALL run the same guard — an intra-class omission is as
   real as a cross-provider one. Cross-reference the test suite: "FS has this test, the twin doesn't"
   often points straight at an unguarded path.
+
+## Added 2026-08-31 (test-quality audit, #677)
+
+- **Sibling-oracle diff for tests.** The status-only-assertion findings all came from one move:
+  when a file-side and a container-side test cover the same operation, diff their assertions — the
+  five weak container/file oracles each had a twin that probed the side effect properly. Same
+  technique as the provider-method diff above, applied to test oracles.
+- **Reason-tag pinning is self-verifying.** Asserting the telemetry `reason` tag on the proof
+  validator's negative tests didn't just close the over-determination hole — it immediately
+  exposed that the "garbage CSP blob" test was exercising a different branch than its comment
+  claimed (`PlatformNotSupportedException` escaping to the outer catch on Linux, not the
+  `CryptographicException` arm). Adding branch discrimination to a fail-closed gate's tests is
+  worth doing *because* it flushes out mislabeled coverage on the first run.
+- **`cat -v` / hex-dump suspicious test literals.** A string literal in an edge-case test that
+  looks like a *valid* input being rejected (`"foobar"` failing `CheckValidFileName`) usually
+  hides an invisible control byte. Render, don't trust the on-screen text.
+- **Probe platform-dependent crypto exceptions empirically before pinning them.** `ImportCspBlob`
+  throws different exception types per blob shape and per OS (all-zero blob →
+  `PlatformNotSupportedException` on Linux; truncated `PUBLICKEYBLOB` header →
+  `CryptographicException` everywhere). A 10-line scratch console app settles it faster than
+  reasoning from docs.

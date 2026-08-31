@@ -6,11 +6,13 @@ description: >-
   wants to sweep the codebase for smells — code duplication, leaky abstractions, architectural
   inconsistencies, non-idiomatic .NET / Minimal-API patterns, wrong patterns, refactoring
   opportunities, security smells, performance issues, tech debt (TODOs, `#pragma` suppressions,
-  hardcoded constants), test-coverage gaps, or WOPI spec non-compliance. Trigger on phrasings like
+  hardcoded constants), test-coverage gaps, test smells/antipatterns (weak oracles, sleeps,
+  assertion-free or compiler-only tests), or WOPI spec non-compliance. Trigger on phrasings like
   "audit the codebase", "find code smells", "tech-debt sweep", "is the codebase in good shape",
   "review the architecture", "find duplication / leaky abstractions / refactors", "check WOPI spec
-  compliance", or "keep the codebase in top shape" — even when the user doesn't say the word
-  "audit". This is the standing health-check for the repo; prefer it over an ad-hoc grep sweep.
+  compliance", "audit/improve the tests", or "keep the codebase in top shape" — even when the user
+  doesn't say the word "audit". This is the standing health-check for the repo; prefer it over an
+  ad-hoc grep sweep.
 ---
 
 # Codebase audit
@@ -156,8 +158,9 @@ See `references/dimensions.md` for the dimension checklist (WOPI spec compliance
 abstractions, architectural inconsistencies, duplication, refactoring, .NET/Minimal-API idiom,
 security, performance, tech debt, test-coverage gaps, documentation accuracy, **over-engineering /
 simplification**, **public API & .NET design guidelines**, **library hygiene & runtime
-correctness**) — each with the concrete patterns earlier audits actually found, so a new run knows
-what "good" looks like here. Two dimensions have a distinct lens worth calling out:
+correctness**, **test quality**) — each with the concrete patterns earlier audits actually found,
+so a new run knows what "good" looks like here. Three dimensions have a distinct lens worth
+calling out:
 - **Dimension 12 (over-engineering)** is the subtractive counterpart to the rest: its findings
   *remove* complexity, and it's where the typed-id-style "introduce a wrapper" instinct gets inverted
   into "delete the wrapper that earns nothing."
@@ -165,6 +168,10 @@ what "good" looks like here. Two dimensions have a distinct lens worth calling o
   surface against the [.NET Framework Design Guidelines](https://learn.microsoft.com/dotnet/standard/design-guidelines/),
   since those 10 NuGet contracts can only be broken at a major bump — suppressed `CAxxxx` rules are
   its prime leads.
+- **Dimension 15 (test quality)** is the `test/` reviewer's second lens after coverage: not "is
+  this path tested" but **"could this test fail if the behavior broke?"** — distilled from the
+  [dotnet/skills `dotnet-test` plugin](https://github.com/dotnet/skills/tree/main/plugins/dotnet-test)
+  (whose full smell catalogs and calibration rules remain the deep-dive reference).
 
 ## Severity
 

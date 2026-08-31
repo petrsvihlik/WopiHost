@@ -120,3 +120,42 @@ add it here with the reason. This ledger is what keeps repeat audits quiet and f
 - **Azure provider scans lazily (`EnsureInitializedAsync`) where the FS provider scans in its
   constructor.** Acceptable design difference — the Azure scan is async network I/O that can't run in
   a ctor. Not sibling drift.
+
+## Test-suite audit — cleared not-findings (added 2026-08-31, #677)
+
+Dimension-15 candidates a full test-quality sweep investigated and cleared. Don't re-flag:
+
+- **`Task.Delay(100)` in `AsyncExpiringLazyTests.Value_ConcurrentFirstTimeCallers_InvokeProviderExactlyOnce`
+  is not a Sleepy Test.** A correct implementation holds the semaphore across check+fetch, so
+  `calls == 1` holds regardless of timing; the delay only widens the detection window for a broken
+  impl and cannot flake a correct one. No awaitable condition exists for "16 callers parked".
+- **The 22 `Handle*_DoesNotThrow` facts in `CobaltHostLockingStoreTests` are not coverage-touching.**
+  Each asserts `NotNull`, and the handlers' documented protocol contract is "return a default
+  OutputType, don't throw".
+- **Assertion-free-looking `Dispose_IsIdempotent` / `Flush_DoesNotThrow` tests are legitimate.**
+  "No throw on second call" is the entire contract, and the guarded regression (e.g.
+  `GetCurrentHash()` on a disposed `IncrementalHash`) genuinely throws without the production guard.
+- **`DateTime.UtcNow` in `ProofValidationIntegrationTests` and the 1–2h stale-lock seeds are fine.**
+  Proof timestamps are wall-clock by protocol contract, and the margins (±20-min window vs seconds
+  of latency; 1–2h vs 30-min expiry) cannot flip a verdict. Contrast the *unit* proof-validator
+  tests, where a wall-clock default against a fixed validator clock DID mask branches — margin
+  analysis decides, not the pattern.
+- **`Assert.ThrowsAny<SecurityTokenException>` / `ThrowsAny<IOException>` are not broad-exception
+  smells.** The concrete subtype legitimately varies with the JWT stack / which path segment is
+  missing. Only `ThrowsAny<Exception>` on a deterministic guard is the finding.
+- **Dependence on the checked-in `sample/wopi-docs` tree is not Mystery Guest in practice.**
+  Versioned in-repo, robustly resolved via `TestPaths`, copied to temp dirs by mutating suites,
+  byte-restored by the E2E fixture.
+- **`try { Directory.Delete(...) } catch { }` in fixture `Dispose` teardown** is best-effort temp
+  cleanup and cannot hide a test failure.
+- **`MapGroupEmptyTemplateTests` asserting ASP.NET Core framework behavior** is a deliberate canary
+  for the quirk `EcosystemEndpoints`/`BootstrapEndpoints` depend on.
+- **Core.Tests staying wholesale on Moq while `test/Directory.Build.props` ships FakeItEasy.**
+  Consistent within the project and `Verify` is a real assertion; a ~300-test mechanical rewrite is
+  churn, not a win. (Single-stub Moq imports in otherwise-FakeItEasy projects WERE fixed — that's
+  the flaggable shape.)
+- **`new Random(DateTime.Now.Millisecond)` in `WopiUrlGeneratorTests`** cannot flip a verdict (the
+  int↔string round-trip holds for every value); literals would be marginally cleaner, not a finding.
+- **Unit-style test classes living inside `WopiHost.IntegrationTests`** (`WopiAccessTokenMinterTests`,
+  `OidcRolePermissionMapperTests`) are deliberate placement next to the flows they support; each
+  declares "pure-unit, no Docker" in its doc header.
