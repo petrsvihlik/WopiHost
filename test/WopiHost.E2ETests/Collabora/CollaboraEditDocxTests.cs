@@ -305,28 +305,15 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // race the modal's arrival. Use Playwright's auto-wait by trying to click the OK button
         // with a short timeout; on miss (modal genuinely didn't show), swallow the timeout and
         // proceed. The button id is well-named and stable across CODE versions.
+        await DismissWelcomeOverlayAsync();
         await TryDismissAsync(officeFrame.Locator("#response-ok-button"), timeoutMs: 5_000);
 
         // Step 1a: dismiss Collabora's "welcome" iframe overlay (CODE 25.04+ shows it on first
-        // open). The wrapper is a <div class="iframe-welcome-wrap"> with an .iframe-welcome
-        // child whose pointer-events sit ON TOP of the notebookbar. Until it's dismissed, every
-        // click into the toolbar (including the view-mode dropdown below) gets swallowed with
-        // "subtree intercepts pointer events" — Playwright then times out at 5 s.
-        //
-        // The dialog's close affordance has varied across CODE versions: 25.04 ships an
-        // <button class="iframe-welcome-close">, older versions had a "Close" link. Each is
-        // tried in turn, falling back to pressing Escape on the iframe contentWindow (Collabora's
-        // dialog manager closes on Esc), and finally just removing the wrapper from the DOM
-        // (defensive against further selector drift).
-        await TryDismissAsync(officeFrame.Locator(".iframe-welcome-close"), timeoutMs: 3_000);
-        await TryDismissAsync(officeFrame.Locator(".iframe-welcome-wrap button:has-text('Close')"), timeoutMs: 1_500);
-        await page.EvaluateAsync(@"() => {
-            try {
-                var frame = document.querySelector('iframe[name=""office_frame""]');
-                var wrap = frame && frame.contentDocument && frame.contentDocument.querySelector('.iframe-welcome-wrap');
-                if (wrap) { wrap.remove(); }
-            } catch (_) { /* same-origin policy or no wrap — both fine, fall through */ }
-        }");
+        // open). The wrapper is a <div class="iframe-welcome-wrap"> whose pointer-events sit
+        // ON TOP of the whole editor: until it's gone, every click — including a Force click,
+        // which "succeeds" without reaching the editor — is swallowed, keystrokes never focus
+        // the document, and typing goes nowhere. It also appears asynchronously, so it is
+        // purged again before every later interaction rather than once here.
 
         // Step 2: get the document out of read-only mode — and prove it before typing.
         // Whether a UserCanWrite doc starts in Collabora's "Viewing" mode has shifted across
@@ -341,10 +328,12 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // commands to an allowlist that does not include .uno:EditDoc (Toolbar.js).
         // Failing fast with the live container class beats typing into a read-only canvas and
         // leaving the diagnosis to the downstream save oracle.
+        await DismissWelcomeOverlayAsync();
         var editDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
         var containerClass = await GetContainerClassAsync();
         while (HasReadOnlyClass(containerClass) && DateTime.UtcNow < editDeadline)
         {
+            await DismissWelcomeOverlayAsync();
             await TryDismissAsync(officeFrame.Locator("#mobile-edit-button"), timeoutMs: 1_500);
             await TryDismissAsync(officeFrame.Locator("#viewModeDropdownButton-button"), timeoutMs: 1_500);
             await TryDismissAsync(officeFrame.Locator("text=Editing").First, timeoutMs: 1_500);
@@ -363,9 +352,11 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // input focus to Collabora's hidden input; the marker doubles as the save oracle — it
         // must come back in the saved file's word/document.xml, proving the keystrokes
         // round-tripped keystroke → loolwsd → tile invalidate → write-on-save → PutFile.
-        // Force=true skips the visible/enabled/stable check so a late modal popping up
-        // mid-click doesn't make the click retry-loop and time out.
-        await officeFrame.Locator("#document-container").ClickAsync(new() { Force = true });
+        // The overlay purge immediately before the click matters: the welcome dialog arrives
+        // asynchronously, a Force click would "succeed" through it without focusing anything,
+        // and a normal click would retry-loop against it until timeout.
+        await DismissWelcomeOverlayAsync();
+        await officeFrame.Locator("#document-container").ClickAsync(new() { Timeout = 10_000 });
         await page.Keyboard.TypeAsync(EditMarker, new KeyboardTypeOptions { Delay = 30 });
 
         // The typing must observably reach the document model before a save is worth
@@ -377,6 +368,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // unchanged content.
         if (!await WaitForModelDirtyAsync(TimeSpan.FromSeconds(10)))
         {
+            await DismissWelcomeOverlayAsync();
             await officeFrame.Locator("#document-container").ClickAsync(new() { Timeout = 5_000 });
             await page.Keyboard.TypeAsync(EditMarker, new KeyboardTypeOptions { Delay = 30 });
             if (!await WaitForModelDirtyAsync(TimeSpan.FromSeconds(10)))
@@ -461,6 +453,28 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
                 // versions). Caller treats this as a best-effort click — proceed regardless.
                 // Playwright's timeout surfaces as System.TimeoutException (WrapApiCallAsync),
                 // NOT as a PlaywrightException, hence the two-type filter.
+            }
+        }
+
+        // The welcome dialog lives inside the office frame, which is CROSS-ORIGIN to the host
+        // page — a page-context frame.contentDocument walk can never reach it (it silently
+        // yields null), which is how the overlay survived the old removal attempt and swallowed
+        // every subsequent click and keystroke. Playwright's frame-piercing locator does cross
+        // the boundary; removing the wrapper outright is version-proof, since the close
+        // affordance inside it has drifted across CODE releases while the wrapper class has not.
+        async Task DismissWelcomeOverlayAsync()
+        {
+            try
+            {
+                var wrap = officeFrame.Locator(".iframe-welcome-wrap");
+                if (await wrap.CountAsync() > 0)
+                {
+                    await wrap.First.EvaluateAsync("el => el.remove()");
+                }
+            }
+            catch (Exception ex) when (ex is PlaywrightException or TimeoutException)
+            {
+                // No overlay, or it vanished mid-check — nothing to dismiss either way.
             }
         }
 
