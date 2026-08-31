@@ -15,10 +15,6 @@ public class WopiDiscovererTests
     private const string XmlOo2019 = "OO2019_discovery.xml";
     private const string XmlInvalid = "INVALID_discovery.xml";
 
-    public WopiDiscovererTests()
-    {
-    }
-
     [MemberNotNull(nameof(_wopiDiscoverer))]
     private void InitDiscoverer(string fileName, NetZoneEnum netZone) => 
         _wopiDiscoverer = new WopiDiscoverer(

@@ -4,7 +4,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
+using FakeItEasy;
 using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider.Tests;
@@ -83,7 +83,7 @@ public class ServiceCollectionExtensionsTests : IDisposable
     {
         // A host that registers its own provider first must win (TryAdd semantics).
         var services = BuildServices(out var config);
-        var existing = Mock.Of<IWopiStorageProvider>();
+        var existing = A.Fake<IWopiStorageProvider>();
         services.AddSingleton(existing);
 
         services.AddFileSystemStorageProvider(config);

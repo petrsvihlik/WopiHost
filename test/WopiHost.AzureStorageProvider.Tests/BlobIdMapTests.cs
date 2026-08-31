@@ -209,6 +209,9 @@ public class BlobIdMapTests
         var map = NewMap();
         const int rounds = 500;
         const string path = "folder/shared.docx";
+        // Ids are deterministic (SHA-256 of the blob path), so capturing the id up front lets
+        // both map directions be probed unconditionally after the race.
+        var expectedId = map.Add(path);
 
         var add = Task.Run(() =>
         {
@@ -223,11 +226,13 @@ public class BlobIdMapTests
         });
         await Task.WhenAll(add, remove);
 
-        // Every id still present must round-trip through the reverse map and back.
-        if (map.TryGetFileId(path, out var finalId))
-        {
-            Assert.True(map.TryGetPath(finalId, out var roundTrip));
-            Assert.Equal(path, roundTrip);
-        }
+        // Final consistency check, unconditional in both directions: whichever worker won the
+        // last round, the forward and reverse maps must agree — a dangling entry in either map
+        // fails the first assertion regardless of the interleaving.
+        var forwardHasIt = map.TryGetFileId(path, out var forwardId);
+        var reverseHasIt = map.TryGetPath(expectedId, out var reversePath);
+        Assert.Equal(forwardHasIt, reverseHasIt);
+        Assert.Equal(forwardHasIt ? expectedId : null, forwardId);
+        Assert.Equal(reverseHasIt ? path : null, reversePath);
     }
 }

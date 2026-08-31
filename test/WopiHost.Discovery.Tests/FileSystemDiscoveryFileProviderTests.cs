@@ -13,7 +13,7 @@ public class FileSystemDiscoveryFileProviderTests
 
         var xml = await sut.GetDiscoveryXmlAsync();
 
-        Assert.NotNull(xml);
+        Assert.Equal("wopi-discovery", xml.Name.LocalName);
     }
 
     [Fact]

@@ -1,4 +1,3 @@
-using System.Reflection;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -24,12 +23,9 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
     }
 
     private static BlobClient GetLockBlob(WopiAzureLockProvider provider, string fileId)
-    {
-        var method = typeof(WopiAzureLockProvider)
-            .GetMethod("GetLockBlob", BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("GetLockBlob not found");
-        return (BlobClient)method.Invoke(provider, [fileId])!;
-    }
+        // GetLockBlob is internal — visible to this assembly via the auto-wired
+        // InternalsVisibleTo, same as the sibling WopiAzureLockProviderTests helper.
+        => provider.GetLockBlob(fileId);
 
     [Fact]
     public async Task RefreshLockAsync_ExpiredLock_ReturnsFalse()

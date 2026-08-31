@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using WopiHost.Abstractions;
 using WopiHost.IntegrationTests.Fixtures;
 using Xunit;
@@ -62,6 +63,8 @@ public sealed class ContainerEndpointTests(ReadOnlyEndpointsFixture fixture)
         var resp = await client.GetAsync($"/wopi/containers/{_fixture.RootContainerId}/ancestry?access_token={Uri.EscapeDataString(token)}");
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var body = await resp.Content.ReadAsStringAsync();
+        Assert.Contains("\"AncestorsWithRootFirst\"", body);
     }
 
     [Fact]
@@ -153,5 +156,12 @@ public sealed class ContainerEndpointTests(ReadOnlyEndpointsFixture fixture)
         var resp = await client.SendAsync(req);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        var names = doc.RootElement.GetProperty("ChildFiles").EnumerateArray()
+            .Select(f => f.GetProperty("Name").GetString())
+            .ToList();
+        Assert.Contains("test.docx", names);
+        Assert.Contains("test.xlsx", names);
+        Assert.All(names, n => Assert.Matches(@"\.(docx|xlsx)$", n));
     }
 }

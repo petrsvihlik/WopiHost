@@ -91,7 +91,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public void Ctor_NullRootPath_Throws()
     {
         var options = Options.Create(new WopiFileSystemProviderOptions { RootPath = null! });
-        Assert.ThrowsAny<Exception>(() =>
+        Assert.Throws<ArgumentNullException>(() =>
             new WopiFileSystemProvider(_fileIds, _env, options, NullLogger<WopiFileSystemProvider>.Instance));
     }
 

@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using Microsoft.Playwright;
 using WopiHost.E2ETests.Fixtures;
 
@@ -51,6 +52,13 @@ namespace WopiHost.E2ETests.Collabora;
 public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFixture playwright) : IAsyncLifetime
 {
     private const string SampleDocxName = "test.docx";
+
+    /// <summary>
+    /// Text typed into the document by the save test and asserted back out of the saved file's
+    /// <c>word/document.xml</c>. A timestamp/size probe alone can't prove the edit landed:
+    /// a save of an unmodified document still rewrites the file.
+    /// </summary>
+    private const string EditMarker = "wopihost-e2e-marker";
 
     /// <summary>How long to wait for Collabora's iframe to render the document area. Generous
     /// because CODE's startup + WebSocket handshake commonly takes 8–15 s on a cold cache.</summary>
@@ -134,6 +142,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
                     messageId: parsed && parsed.MessageId,
                     status:    parsed && parsed.Values && parsed.Values.Status,
                     success:   parsed && parsed.Values && parsed.Values.success,
+                    modified:  parsed && parsed.Values && parsed.Values.Modified,
                     errorType: parsed && parsed.Values && parsed.Values.errorType,
                     errorMsg:  parsed && parsed.Values && parsed.Values.errorMsg,
                     raw: raw
@@ -349,15 +358,27 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // subsequent keyboard input, both of which work under Force.
         await officeFrame.Locator("#document-container").ClickAsync(new() { Force = true });
 
-        // Step 2: type a marker into the document. The actual text doesn't matter — what
-        // matters is that something was inserted. Typing routes through Collabora's normal
-        // input path: keystroke → loolwsd → tile invalidate → write-on-save.
-        await page.Keyboard.TypeAsync("wopihost-e2e-marker", new KeyboardTypeOptions { Delay = 30 });
+        // Step 2: type a marker into the document. The marker doubles as the save oracle: it
+        // must come back in the saved file's word/document.xml, proving the keystrokes
+        // round-tripped keystroke → loolwsd → tile invalidate → write-on-save → PutFile.
+        await page.Keyboard.TypeAsync(EditMarker, new KeyboardTypeOptions { Delay = 30 });
 
-        // Give Collabora's WebSocket pipeline a moment to settle so the document model is
-        // marked dirty before the save request. Without this, Action_Save can race the typing
-        // and be a no-op (loolwsd hasn't yet processed the keystrokes into a model change).
-        await Task.Delay(TimeSpan.FromSeconds(2));
+        // Wait for Collabora to mark the document model dirty (Doc_ModifiedStatus
+        // Modified:true) before requesting the save; a fixed sleep either wastes time or —
+        // on a slow runner — lets Action_Save race the keystrokes and save a clean model.
+        // Falls through on deadline rather than failing: some CODE builds may not emit the
+        // event, and the marker assertion below is the authoritative oracle either way.
+        var dirtyDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
+        while (DateTime.UtcNow < dirtyDeadline)
+        {
+            var modelDirty = await page.EvaluateAsync<bool>(
+                "() => (window.__collaboraMessages || []).some(m => m.messageId === 'Doc_ModifiedStatus' && m.modified === true)");
+            if (modelDirty)
+            {
+                break;
+            }
+            await Task.Delay(250);
+        }
 
         // Step 3: trigger save via the host-postMessage API. Collabora documents this as a
         // first-class integration channel (https://sdk.collaboraonline.com/docs/postmessage_api.html#Action_Save),
@@ -435,6 +456,36 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
                 $"  #document-container class: {containerClass ?? "<unresolved>"}\n" +
                 $"  Captured Collabora postMessages (newest last):\n{messages}\n" +
                 $"\nCollabora container logs (last 400 lines):\n{collaboraLogs}");
+        }
+
+        // Step 5: the write happened — now prove it carries the EDIT, not just any PutFile.
+        // Action_Save runs with DontSaveIfUnmodified:false, so a document stuck in view mode
+        // (the failure Step 2 deliberately swallows) still produces a rewritten file; only the
+        // typed marker inside word/document.xml distinguishes "edit round-tripped" from a
+        // no-op save of unchanged content.
+        // OrdinalIgnoreCase: LibreOffice's sentence autocapitalization may upper-case the
+        // marker's first letter; the case doesn't matter, only that the text persisted.
+        var documentXml = ReadDocumentXml(docxPath);
+        if (!documentXml.Contains(EditMarker, StringComparison.OrdinalIgnoreCase))
+        {
+            var messages = await page.EvaluateAsync<string>(
+                "() => JSON.stringify(window.__collaboraMessages || [], null, 2)");
+            var collaboraLogs = await app.CaptureClientLogsAsync();
+            throw new Xunit.Sdk.XunitException(
+                $"Collabora re-wrote {SampleDocxName}, but the typed marker \"{EditMarker}\" is not in " +
+                $"word/document.xml — the save was a no-op of unmodified content (document likely stayed " +
+                $"in view mode, or the keystrokes never reached the model).\n" +
+                $"  Captured Collabora postMessages (newest last):\n{messages}\n" +
+                $"\nCollabora container logs (last 400 lines):\n{collaboraLogs}");
+        }
+
+        static string ReadDocumentXml(string docxPath)
+        {
+            using var archive = ZipFile.OpenRead(docxPath);
+            var entry = archive.GetEntry("word/document.xml")
+                ?? throw new Xunit.Sdk.XunitException($"{docxPath} has no word/document.xml — saved file is not a valid docx.");
+            using var reader = new StreamReader(entry.Open());
+            return reader.ReadToEnd();
         }
     }
 }

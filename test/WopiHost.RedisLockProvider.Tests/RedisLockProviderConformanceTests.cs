@@ -7,7 +7,7 @@ namespace WopiHost.RedisLockProvider.Tests;
 
 /// <summary>
 /// Runs the shared <see cref="LockProviderConformanceTests"/> against <see cref="WopiRedisLockProvider"/>
-/// using a real Redis 7 container (via Testcontainers.Redis) shared across the collection.
+/// using a real Redis 8 container (via Testcontainers.Redis) shared across the collection.
 /// </summary>
 /// <remarks>
 /// Each test gets a fresh provider built around a GUID-suffixed key prefix so case-level state is
@@ -25,7 +25,7 @@ public sealed class RedisLockProviderConformanceTests(RedisFixture redis) : Lock
     {
         public async Task<IWopiLockProvider> CreateAsync(TimeProvider timeProvider, IWopiLockComparer? lockComparer = null)
         {
-            var multiplexer = await redis.CreateMultiplexerAsync();
+            var multiplexer = await redis.GetMultiplexerAsync();
             var prefix = $"wopi:lock:test:{Guid.NewGuid():N}:";
             return new WopiRedisLockProvider(
                 multiplexer,

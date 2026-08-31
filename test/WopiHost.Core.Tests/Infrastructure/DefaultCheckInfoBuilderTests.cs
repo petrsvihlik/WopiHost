@@ -392,8 +392,8 @@ public class DefaultCheckInfoBuilderTests
     }
 
     // OnCheckFolderInfo callback firing is not the builder's responsibility — it lives in
-    // FoldersController.CheckFolderInfo. The callback round-trip is covered by
-    // FoldersControllerTests.CheckFolderInfo_CallsOnCheckFolderInfoEvent.
+    // FolderEndpoints.CheckFolderInfo. The callback round-trip is covered by
+    // FolderEndpointTests.CheckFolderInfo_FiresOnCheckFolderInfoHook_AndReturnsItsResult.
 
     [Fact]
     public async Task GetWopiCheckContainerInfo_CallsOnCheckContainerInfoEvent()

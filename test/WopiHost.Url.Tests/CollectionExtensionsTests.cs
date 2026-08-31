@@ -3,28 +3,46 @@
 public class CollectionExtensionsTests
 {
     [Fact]
-    public void Merge_WithNullArgument_ReturnsOther()
+    public void Merge_WithNullArgument_ReturnsOtherInstance()
     {
-        var full = new Dictionary<string, string>();
-        Dictionary<string, string>? empty = null;
+        var populated = new Dictionary<string, string> { ["A"] = "B" };
+        Dictionary<string, string>? nullDict = null;
 
-        var one = full.Merge(empty);
-        var two = empty.Merge(full);
-
-        Assert.Equal(full, one);
-        Assert.Equal(full, two);
+        Assert.Same(populated, populated.Merge(nullDict));
+        Assert.Same(populated, nullDict.Merge(populated));
     }
 
     [Fact]
-    public void Merge_TwoDictionaries_CombinesEntries()
+    public void Merge_TwoDictionaries_CombinesAllEntries()
     {
-        var a = new Dictionary<string, string> { { "A", "B"}, { "C", "D" } };
+        var a = new Dictionary<string, string> { { "A", "B" }, { "C", "D" } };
         var b = new Dictionary<string, string> { { "G", "H" }, { "I", "J" } };
 
         var result = a.Merge(b);
 
-        Assert.NotNull(result);
-        Assert.Contains("A", result);
-        Assert.Contains("G", result);
+        Assert.Equal(new Dictionary<string, string>
+        {
+            ["A"] = "B",
+            ["C"] = "D",
+            ["G"] = "H",
+            ["I"] = "J",
+        }, result);
+    }
+
+    [Fact]
+    public void Merge_DuplicateKey_FirstDictionaryWins()
+    {
+        // The documented contract: "If duplicate occurs, dictA wins over dictB."
+        var a = new Dictionary<string, string> { ["K"] = "from-a", ["X"] = "1" };
+        var b = new Dictionary<string, string> { ["K"] = "from-b", ["Y"] = "2" };
+
+        var result = a.Merge(b);
+
+        Assert.Equal(new Dictionary<string, string>
+        {
+            ["K"] = "from-a",
+            ["X"] = "1",
+            ["Y"] = "2",
+        }, result);
     }
 }

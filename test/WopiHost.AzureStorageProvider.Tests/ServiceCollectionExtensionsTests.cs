@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Moq;
+using FakeItEasy;
 using WopiHost.Abstractions;
 using Xunit;
 
@@ -124,7 +124,7 @@ public class ServiceCollectionExtensionsTests
         // A host that registers its own provider first must win (TryAdd semantics).
         var services = new ServiceCollection();
         AddNullLogging(services);
-        var existing = Mock.Of<IWopiStorageProvider>();
+        var existing = A.Fake<IWopiStorageProvider>();
         services.AddSingleton(existing);
         var config = BuildConfig(new()
         {

@@ -31,6 +31,7 @@ namespace WopiHost.IntegrationTests;
 /// </para>
 /// </remarks>
 [Collection(nameof(MockOidcCollection))]
+[Trait("Category", "RequiresDocker")]
 public partial class OidcSignInTests : IClassFixture<OidcSignInTests.AppFactory>
 {
     // Matches <input type="hidden" name="X" value="Y"/> in the mock IdP's response_mode=form_post

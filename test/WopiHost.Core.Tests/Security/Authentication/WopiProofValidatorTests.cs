@@ -8,6 +8,7 @@ using WopiHost.Abstractions.Testing;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Security.Authentication;
+using WopiHost.Core.Tests.Infrastructure;
 using WopiHost.Discovery;
 using WopiHost.Discovery.Models;
 
@@ -21,8 +22,13 @@ public class WopiProofValidatorTests
     private const string Path = "/wopi/files/abc123";
     private const string QueryString = "?access_token=test-access-token";
 
+    // The default request timestamp derives from the same instant, so a negative test rejects
+    // only on the branch it targets — a wall-clock default would trip the staleness window and
+    // mask the branch under test (the validator ORs its rejection reasons).
+    private static readonly DateTimeOffset s_now = new(2026, 1, 15, 12, 0, 0, TimeSpan.Zero);
+
     private readonly Mock<IDiscoverer> _discoverer = new();
-    private readonly FixedTimeProvider _time = new(new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.Zero));
+    private readonly FixedTimeProvider _time = new(s_now);
 
     [Fact]
     public async Task Returns_false_when_proof_header_missing()
@@ -30,10 +36,12 @@ public class WopiProofValidatorTests
         SetupDiscoveryWithRandomKeys();
         var validator = CreateValidator();
         var ctx = BuildHttpContext(includeProof: false);
+        using var failures = CaptureFailures();
 
         var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
+        Assert.Equal("missing_or_invalid_headers", SingleFailureReason(failures));
     }
 
     [Fact]
@@ -42,10 +50,12 @@ public class WopiProofValidatorTests
         SetupDiscoveryWithRandomKeys();
         var validator = CreateValidator();
         var ctx = BuildHttpContext(includeTimestamp: false);
+        using var failures = CaptureFailures();
 
         var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
+        Assert.Equal("missing_or_invalid_headers", SingleFailureReason(failures));
     }
 
     [Fact]
@@ -54,10 +64,12 @@ public class WopiProofValidatorTests
         SetupDiscoveryWithRandomKeys();
         var validator = CreateValidator();
         var ctx = BuildHttpContext(timestampOverride: "not-a-number", proofOverride: "AAAA");
+        using var failures = CaptureFailures();
 
         var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
+        Assert.Equal("missing_or_invalid_headers", SingleFailureReason(failures));
     }
 
     [Fact]
@@ -68,10 +80,12 @@ public class WopiProofValidatorTests
             .ReturnsAsync(new WopiProofKeys { Value = null, OldValue = null });
         var validator = CreateValidator();
         var ctx = BuildHttpContext(proofOverride: "AAAA");
+        using var failures = CaptureFailures();
 
         var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
+        Assert.Equal("missing_discovery_keys", SingleFailureReason(failures));
     }
 
     [Fact]
@@ -84,11 +98,13 @@ public class WopiProofValidatorTests
         var staleTime = _time.GetUtcNow().UtcDateTime - TimeSpan.FromMinutes(21);
         var ctx = BuildHttpContext(timestampOverride: staleTime.Ticks.ToString(CultureInfo.InvariantCulture));
         SignAndApply(ctx.Request, current, staleTime.Ticks);
+        using var failures = CaptureFailures();
 
         var validator = CreateValidator();
         var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
+        Assert.Equal("timestamp_outside_window", SingleFailureReason(failures));
     }
 
     [Fact]
@@ -101,11 +117,13 @@ public class WopiProofValidatorTests
         var futureTime = _time.GetUtcNow().UtcDateTime + TimeSpan.FromMinutes(10);
         var ctx = BuildHttpContext(timestampOverride: futureTime.Ticks.ToString(CultureInfo.InvariantCulture));
         SignAndApply(ctx.Request, current, futureTime.Ticks);
+        using var failures = CaptureFailures();
 
         var validator = CreateValidator();
         var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
+        Assert.Equal("timestamp_outside_window", SingleFailureReason(failures));
     }
 
     [Fact]
@@ -177,11 +195,13 @@ public class WopiProofValidatorTests
         var ctx = BuildHttpContext(timestampOverride: ticks.ToString(CultureInfo.InvariantCulture));
         // signed with a key the discoverer doesn't know about
         SignAndApply(ctx.Request, attacker, ticks);
+        using var failures = CaptureFailures();
 
         var validator = CreateValidator();
         var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
+        Assert.Equal("signature_mismatch", SingleFailureReason(failures));
     }
 
     [Fact]
@@ -192,10 +212,12 @@ public class WopiProofValidatorTests
             .ThrowsAsync(new InvalidOperationException("discovery offline"));
         var validator = CreateValidator();
         var ctx = BuildHttpContext(proofOverride: "AAAA");
+        using var failures = CaptureFailures();
 
         var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
+        Assert.Equal("exception", SingleFailureReason(failures));
     }
 
     [Fact]
@@ -212,36 +234,43 @@ public class WopiProofValidatorTests
         var ctx = BuildHttpContext(timestampOverride: ticks.ToString(CultureInfo.InvariantCulture));
         // Embedded space + '@' is not valid base64 → FormatException inside VerifyProof.
         ctx.Request.Headers[WopiHeaders.Proof] = "not valid base64@@@@";
+        using var failures = CaptureFailures();
 
         var validator = CreateValidator();
         var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
+        Assert.Equal("signature_mismatch", SingleFailureReason(failures));
     }
 
     [Fact]
     public async Task Returns_false_when_discovery_key_is_garbage_csp_blob()
     {
-        // VerifyProof calls ImportCspBlob on the discovery key. A base64-decodable string whose
-        // bytes aren't a valid CSP blob raises CryptographicException; the defensive catch maps
-        // it to "not valid". Covers the second catch arm of VerifyProof.
+        // VerifyProof calls ImportCspBlob on the discovery key. A blob that starts like a real
+        // PUBLICKEYBLOB (bType 0x06, RSA1 magic) but is truncated raises CryptographicException
+        // on every platform; the defensive catch maps it to "not valid". Covers the second catch
+        // arm of VerifyProof. (An all-zero blob is no good here: its unknown bType raises
+        // PlatformNotSupportedException on Linux, which escapes VerifyProof's catches into the
+        // validator's outer catch — a different branch, reason "exception".)
+        byte[] truncatedCspBlob = [0x06, 0x02, 0x00, 0x00, 0x00, 0x24, 0x00, 0x00, 0x52, 0x53, 0x41, 0x31];
         _discoverer
             .Setup(d => d.GetProofKeysAsync())
             .ReturnsAsync(new WopiProofKeys
             {
-                // 16 zero bytes is well-formed base64 but doesn't deserialize as an RSA CSP blob.
-                Value = Convert.ToBase64String(new byte[16]),
-                OldValue = Convert.ToBase64String(new byte[16]),
+                Value = Convert.ToBase64String(truncatedCspBlob),
+                OldValue = Convert.ToBase64String(truncatedCspBlob),
             });
 
         var ticks = _time.GetUtcNow().UtcDateTime.Ticks;
         var ctx = BuildHttpContext(timestampOverride: ticks.ToString(CultureInfo.InvariantCulture));
         ctx.Request.Headers[WopiHeaders.Proof] = Convert.ToBase64String(new byte[256]);
+        using var failures = CaptureFailures();
 
         var validator = CreateValidator();
         var result = await validator.ValidateProofAsync(ctx.ToWopiRequestInfo(), AccessToken);
 
         Assert.False(result);
+        Assert.Equal("signature_mismatch", SingleFailureReason(failures));
     }
 
     private WopiProofValidator CreateValidator()
@@ -280,13 +309,28 @@ public class WopiProofValidatorTests
         if (includeTimestamp)
         {
             ctx.Request.Headers[WopiHeaders.Timestamp] =
-                new StringValues(timestampOverride ?? DateTime.UtcNow.Ticks.ToString(CultureInfo.InvariantCulture));
+                new StringValues(timestampOverride ?? s_now.UtcDateTime.Ticks.ToString(CultureInfo.InvariantCulture));
         }
         if (includeProof)
         {
             ctx.Request.Headers[WopiHeaders.Proof] = new StringValues(proofOverride ?? string.Empty);
         }
         return ctx;
+    }
+
+    /// <summary>
+    /// Captures the <see cref="WopiTelemetry.ProofValidationFailures"/> counter so a negative
+    /// test can pin WHICH rejection branch fired. The validator's boolean return cannot — any
+    /// rejection reason yields <c>false</c>, so without the reason tag a deleted guard would
+    /// pass every negative test via a different branch.
+    /// </summary>
+    private static MeterCapture CaptureFailures()
+        => new(WopiTelemetry.ProofValidationFailures.Name);
+
+    private static string? SingleFailureReason(MeterCapture failures)
+    {
+        var (_, tags) = Assert.Single(failures.Measurements);
+        return Assert.Single(tags, t => t.Key == "reason").Value as string;
     }
 
     private static string BuildExpectedHostUrl()

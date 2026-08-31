@@ -45,9 +45,11 @@ public class WopiNewChildFileResultExtensionsTests
 
         Assert.IsType<Conflict>(actionResult);
         Assert.True(_response.Headers.TryGetValue(WopiHeaders.ValidRelativeTarget, out var target));
-        // Header value is UTF-7 encoded per the WOPI spec — the round-trip is asserted in
-        // UtfStringTests; this only checks the header was set with non-empty content.
-        Assert.NotEmpty(target.ToString());
+        // Header value is UTF-7 encoded per the WOPI spec; every character of this suggestion
+        // sits in UTF-7's direct set, so the wire value matches the decoded name byte-for-byte.
+        // Pinning the exact name matters — the header exists for the client's auto-retry, so
+        // writing the wrong name (e.g. the conflicting original) must fail here.
+        Assert.Equal("Report (1).docx", target.ToString());
     }
 
     [Fact]

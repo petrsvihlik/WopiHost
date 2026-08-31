@@ -7,7 +7,6 @@
 		<ProjectReference Include="..\WopiHost.Abstractions.Testing\WopiHost.Abstractions.Testing.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Moq" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
