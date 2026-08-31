@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Xml.Linq;
 using Microsoft.Playwright;
 using WopiHost.E2ETests.Fixtures;
 
@@ -431,14 +432,17 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
         // Action_Save runs with DontSaveIfUnmodified:false, so a save can also fire on an
         // unmodified model; only the typed marker inside word/document.xml distinguishes
         // "edit round-tripped" from a no-op save of unchanged content.
-        // OrdinalIgnoreCase: LibreOffice's sentence autocapitalization may upper-case the
-        // marker's first letter; the case doesn't matter, only that the text persisted.
-        var documentXml = ReadDocumentXml(docxPath);
-        if (!documentXml.Contains(EditMarker, StringComparison.OrdinalIgnoreCase))
+        // The search runs over the document's extracted TEXT, not the raw XML: LibreOffice's
+        // autocorrect (sentence capitalization fires at each hyphen word-boundary) splits the
+        // typed marker across adjacent <w:t> runs, so a raw-XML substring search misses text
+        // interleaved with tags. OrdinalIgnoreCase absorbs the capitalization itself.
+        var documentText = ReadDocumentText(docxPath);
+        if (!documentText.Contains(EditMarker, StringComparison.OrdinalIgnoreCase))
         {
             throw await FailWithDiagnosticsAsync(
                 $"Collabora re-wrote {SampleDocxName}, but the typed marker \"{EditMarker}\" is not in " +
-                "word/document.xml — the saved bytes carry no trace of the edit.");
+                "word/document.xml's text — the saved bytes carry no trace of the edit.\n" +
+                $"  Extracted document text (first 500 chars): {documentText[..Math.Min(documentText.Length, 500)]}");
         }
 
         static async Task TryDismissAsync(ILocator locator, int timeoutMs)
@@ -525,13 +529,15 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
                 $"\nCollabora container logs (last 400 lines):\n{collaboraLogs}");
         }
 
-        static string ReadDocumentXml(string docxPath)
+        static string ReadDocumentText(string docxPath)
         {
             using var archive = ZipFile.OpenRead(docxPath);
             var entry = archive.GetEntry("word/document.xml")
                 ?? throw new Xunit.Sdk.XunitException($"{docxPath} has no word/document.xml — saved file is not a valid docx.");
-            using var reader = new StreamReader(entry.Open());
-            return reader.ReadToEnd();
+            using var stream = entry.Open();
+            // XElement.Value concatenates every text node in document order, so a marker split
+            // across runs by autocorrect edits reads back as one contiguous string.
+            return XElement.Load(stream).Value;
         }
     }
 }
