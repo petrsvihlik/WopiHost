@@ -13,5 +13,4 @@ public class WopiAzureLockProviderOptionsTests
         Assert.Null(options.ServiceUri);
         Assert.Equal("wopi-locks", options.ContainerName);
     }
-
 }

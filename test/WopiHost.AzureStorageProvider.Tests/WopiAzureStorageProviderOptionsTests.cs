@@ -13,5 +13,4 @@ public class WopiAzureStorageProviderOptionsTests
         Assert.Null(options.ServiceUri);
         Assert.Equal("x", options.ContainerName);
     }
-
 }
