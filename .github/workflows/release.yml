@@ -34,6 +34,13 @@ jobs:
       uses: ./.github/actions/prepull-testcontainers-images
     - name: Test
       run: dotnet test --no-build --configuration Release --results-directory ${{ github.workspace }}/test-results --coverage --coverage-output-format cobertura
+    - name: Prune empty coverage reports
+      # See pull_request.yml for the rationale (qlty rejects package-less cobertura files).
+      run: |
+        shopt -s nullglob
+        for f in "${{ github.workspace }}"/test-results/*.cobertura.xml; do
+          grep -q "<package" "$f" || { echo "Pruning empty coverage report: $f"; rm "$f"; }
+        done
     - name: Upload coverage to Qlty
       uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
       with:
