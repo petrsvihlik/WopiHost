@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-<!-- Keep in lockstep with the Aspire.Hosting.* versions in Directory.Packages.props.
-     Dependabot's nuget ecosystem scans PackageReference/PackageVersion elements only,
-     so this Sdk element needs a manual bump alongside every Aspire.Hosting.* bump. -->
-<Sdk Name="Aspire.AppHost.Sdk" Version="13.5.2" />
+<!-- Must match the Aspire.Hosting.* versions in Directory.Packages.props. Dependabot's
+     nuget ecosystem scans PackageReference/PackageVersion elements only and never sees an
+     Sdk element, so a Renovate custom manager proposes this pin and the
+     VerifyAspireSdkMatchesPackages target below fails the build if the two ever disagree. -->
+<Sdk Name="Aspire.AppHost.Sdk" Version="13.5.3" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -23,6 +24,28 @@
     <PackageReference Include="Aspire.Hosting.Azure.Storage" />
     <PackageReference Include="Aspire.Hosting.Redis" />
   </ItemGroup>
+
+  <!-- The Sdk pin at the top of this file and Aspire.Hosting.AppHost are bumped by different
+       automation and land in different PRs, and Aspire tolerates a skew between them at
+       runtime — so drift produces no symptom until something subtler breaks. Dependabot PRs
+       are auto-merged, so a comment asking for a paired manual bump is documentation, not a
+       control. This is the control. XmlPeek reads the attribute back out of this file because
+       MSBuild exposes no property for an Sdk element's version. -->
+  <Target Name="VerifyAspireSdkMatchesPackages" BeforeTargets="Build">
+    <XmlPeek XmlInputPath="$(MSBuildProjectFullPath)" Query="/Project/Sdk[@Name='Aspire.AppHost.Sdk']/@Version">
+      <Output TaskParameter="Result" PropertyName="_AspireSdkPin" />
+    </XmlPeek>
+    <ItemGroup>
+      <_AspireHostingAppHost Include="@(PackageVersion)" Condition="'%(Identity)' == 'Aspire.Hosting.AppHost'" />
+    </ItemGroup>
+    <PropertyGroup>
+      <_AspireHostingPin>@(_AspireHostingAppHost->'%(Version)')</_AspireHostingPin>
+    </PropertyGroup>
+    <Error Condition="'$(_AspireSdkPin)' == '' OR '$(_AspireHostingPin)' == ''"
+           Text="Could not read both Aspire versions to compare them (Sdk element: '$(_AspireSdkPin)', Aspire.Hosting.AppHost: '$(_AspireHostingPin)'). One of them moved; update this check to match." />
+    <Error Condition="'$(_AspireSdkPin)' != '$(_AspireHostingPin)'"
+           Text="Aspire version drift: the Aspire.AppHost.Sdk pin in $(MSBuildProjectFile) is $(_AspireSdkPin) but Aspire.Hosting.AppHost in Directory.Packages.props is $(_AspireHostingPin). Bump the Sdk element to $(_AspireHostingPin)." />
+  </Target>
 
   <ItemGroup>
     <ProjectReference Include="..\..\sample\WopiHost\WopiHost.csproj" />
