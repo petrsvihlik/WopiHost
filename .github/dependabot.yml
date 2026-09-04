@@ -27,6 +27,12 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 20
+    # Aspire is Renovate-owned. The AppHost pins Aspire.AppHost.Sdk on an <Sdk> element,
+    # which this ecosystem never scans (it reads PackageReference/PackageVersion only), so
+    # a bump from here would move the packages and leave the Sdk behind — a mismatch the
+    # AppHost build now rejects. Renovate ships both halves in one grouped PR instead.
+    ignore:
+      - dependency-name: "Aspire.*"
     commit-message:
       prefix: "chore(deps)"
     # Bundle same-day minor/patch bumps into one PR. Major bumps are left

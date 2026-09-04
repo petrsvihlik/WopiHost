@@ -1,11 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "enabledManagers": ["custom.regex"],
+  "enabledManagers": ["custom.regex", "nuget"],
   "dependencyDashboard": false,
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Tracks container image tags passed as C# string literals to Aspire's builder.AddContainer(name, image, tag) calls in the AppHost. Dependabot's docker ecosystems only parse Dockerfile/docker-compose files and never see a reference embedded in source, so Renovate patches these literals in place. enabledManagers keeps Renovate scoped to this manager only — NuGet and GitHub Actions stay owned by Dependabot to avoid duplicate PRs for the same dependency.",
+      "description": "Tracks container image tags passed as C# string literals to Aspire's builder.AddContainer(name, image, tag) calls in the AppHost. Dependabot's docker ecosystems only parse Dockerfile/docker-compose files and never see a reference embedded in source, so Renovate patches these literals in place. enabledManagers keeps Renovate scoped to custom managers only — the NuGet and GitHub Actions ecosystems stay owned by Dependabot, so no dependency is proposed twice.",
       "managerFilePatterns": ["/^infra/WopiHost\\.AppHost/Program\\.cs$/"],
       "matchStrings": [
         "AddContainer\\(\"[^\"]+\", \"(?<depName>[^\"]+)\", \"(?<currentValue>[^\"]+)\"\\)"
@@ -30,15 +30,36 @@
         "\"(?<depName>[a-z0-9.-]+(?:/[a-z0-9._-]+)*):(?<currentValue>[0-9][A-Za-z0-9._-]*)\""
       ],
       "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Tracks the Aspire.AppHost.Sdk pin on the AppHost's <Sdk> element, which must match the Aspire.Hosting.* versions in Directory.Packages.props. Dependabot's nuget ecosystem scans PackageReference/PackageVersion elements only and never sees this element, so nothing proposed it at all; the aspire packageRule below groups it with those packages so the pair moves in one PR.",
+      "managerFilePatterns": ["/^infra/WopiHost\\.AppHost/WopiHost\\.AppHost\\.csproj$/"],
+      "matchStrings": [
+        "<Sdk Name=\"(?<depName>[^\"]+)\" Version=\"(?<currentValue>[^\"]+)\"\\s*/>"
+      ],
+      "datasourceTemplate": "nuget"
     }
   ],
   "packageRules": [
     {
-      "description": "Waits out the window in which a freshly published (possibly compromised) image tag is most likely to be yanked — the same rationale as the 7-day Dependabot cooldown in .github/dependabot.yml.",
-      "matchManagers": ["custom.regex"],
+      "description": "Waits out the window in which a freshly published (possibly compromised) version is most likely to be yanked — the same rationale as the 7-day Dependabot cooldown in .github/dependabot.yml.",
+      "matchManagers": ["custom.regex", "nuget"],
       "minimumReleaseAge": "7 days",
       "commitMessagePrefix": "chore(deps)",
       "labels": ["dependencies"]
+    },
+    {
+      "description": "The nuget manager is enabled only to reach the Aspire packages; everything else in Directory.Packages.props stays Dependabot-owned so no dependency is proposed twice.",
+      "matchManagers": ["nuget"],
+      "enabled": false
+    },
+    {
+      "description": "Aspire.Hosting.* and the Aspire.AppHost.Sdk pin must move together — the AppHost project fails its build when they disagree. Dependabot cannot see the Sdk element, so it ignores Aspire.* entirely (see .github/dependabot.yml) and Renovate ships both halves in one PR under a shared groupName. Splitting them across two bots would leave each bot's PR red until the other merged.",
+      "matchManagers": ["nuget", "custom.regex"],
+      "matchPackageNames": ["/^Aspire\\./"],
+      "enabled": true,
+      "groupName": "aspire"
     }
   ]
 }
