@@ -24,9 +24,21 @@ inputs:
     default: 'true'
   fail-on-upload-error:
     description: >
-      Fail the job when the coverage upload fails. True on CI, where a silent failure leaves the
+      Fail the job when the coverage upload fails. On by default: a silent failure leaves the
       codecov/patch and codecov/project statuses pending forever and blocks the merge with no
-      visible error. False when publishing a release, where a Codecov outage must not block it.
+      visible error.
+    required: false
+    default: 'true'
+  publish-coverage:
+    description: >
+      Upload the coverage reports to Qlty and Codecov. The release lane leaves this off: it
+      builds Release while the CI lane builds Debug, and Codecov merges every upload for a
+      commit. Release codegen emits sequence points the Debug build does not (the switch
+      expression in WopiAuthorizationHandler is five such lines, one branch), so a second upload
+      raises that commit's coverable-line total. Every later PR whose merge-base is the release
+      commit then measures against an inflated denominator and reports a coverage drop it did
+      not cause. The CI lane already measured this exact commit, so the release upload adds no
+      information.
     required: false
     default: 'true'
 runs:
@@ -66,24 +78,28 @@ runs:
         directory: ${{ inputs.results-directory }}
 
     - name: Normalize coverage reports
+      if: ${{ inputs.publish-coverage == 'true' }}
       uses: ./.github/actions/normalize-coverage-reports
       with:
         results-directory: ${{ inputs.results-directory }}
 
     - name: Upload coverage to Qlty
+      if: ${{ inputs.publish-coverage == 'true' }}
       uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
       with:
         oidc: true
         # Microsoft.Testing.Extensions.CodeCoverage writes one cobertura report per test
         # project under the run's --results-directory. Root the glob explicitly so
-        # qlty-action's @actions/glob layer has an anchored starting directory.
-        files: "test-results/**/*.cobertura.xml"
+        # qlty-action's @actions/glob layer has an anchored starting directory — derived from
+        # the input rather than repeated as a literal, so the two cannot disagree.
+        files: ${{ inputs.results-directory }}/**/*.cobertura.xml
         # Coverage reports reference source-generated files (LoggerMessage.g.cs,
         # LibraryImports.g.cs, etc.) under artifacts/obj/, which don't exist at publish time.
         # Without this flag Qlty counts them as 0% covered. See also .qlty/qlty.toml.
         skip-missing-files: true
 
     - name: Codecov
+      if: ${{ inputs.publish-coverage == 'true' }}
       uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
       with:
         token: ${{ inputs.codecov-token }}

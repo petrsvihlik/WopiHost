@@ -48,8 +48,11 @@ jobs:
         configuration: Release
         # The CI lane already reported this commit's test results.
         report-test-results: 'false'
-        # A Codecov outage must not block publishing a release.
-        fail-on-upload-error: 'false'
+        # ...and already measured this commit's coverage, in Debug. Uploading a second report
+        # built in Release makes Codecov merge two configurations into one commit's totals,
+        # inflating its coverable-line count and charging the difference to the next PR based
+        # on it. Tests still run here as a release gate; only the upload is dropped.
+        publish-coverage: 'false'
     - name: Pack
       # Output is centralized via UseArtifactsOutput (see Directory.Build.props);
       # nupkg/snupkg files land in artifacts/package/release/.
