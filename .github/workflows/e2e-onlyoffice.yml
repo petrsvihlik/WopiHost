@@ -24,6 +24,12 @@ on:
 permissions:
   contents: read
 
+# One run at a time. Nothing is cancelled: every commit, release and scheduled run is
+# wanted on its own, so overlapping runs queue rather than supersede each other.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   e2e:
     name: ONLYOFFICE end-to-end
@@ -32,10 +38,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Setup .NET 10.0
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          dotnet-version: '10.0.x'
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet-sdk
 
       - name: Set Cobalt packages token
         run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
@@ -47,10 +51,7 @@ jobs:
         run: dotnet build test/WopiHost.E2ETests/WopiHost.E2ETests.csproj --no-restore /p:ContinuousIntegrationBuild=true
 
       - name: Install Playwright browsers
-        # --with-deps installs the apt packages Chromium needs on a fresh ubuntu-latest. The build
-        # emits playwright.ps1 next to the test assembly under artifacts/bin/ (the repo uses
-        # UseArtifactsOutput); the path mirrors the Collabora e2e step.
-        run: pwsh artifacts/bin/WopiHost.E2ETests/debug/playwright.ps1 install --with-deps chromium
+        uses: ./.github/actions/install-playwright-browsers
 
       - name: Pre-pull ONLYOFFICE image
         # Pre-pulling outside the test makes the fixture's healthcheck timeout bound the runtime cost

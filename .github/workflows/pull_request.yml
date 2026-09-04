@@ -15,9 +15,18 @@ permissions:
   id-token: write # Required for OIDC
   pull-requests: write # Required for the api-compat sticky comment
 
+# Supersede an in-flight run for the same PR rather than letting both finish: the two
+# race to write the same sticky comments and check statuses, and the loser can be the
+# newer one. Runs on master, releases and schedules are never cancelled — each commit's
+# result is wanted on its own.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   approve:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
     - name: Approve
@@ -25,6 +34,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     needs: [approve]
     environment:
@@ -34,10 +44,8 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 2
-    - name: Setup .NET 10.0
-      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-      with:
-        dotnet-version: '10.0.x'
+    - name: Setup .NET
+      uses: ./.github/actions/setup-dotnet-sdk
     - name: Set Cobalt packages token
       run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
     - name: Restore dependencies
@@ -45,57 +53,14 @@ jobs:
     - name: Build
       run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
     - name: Install Playwright browsers (for sample-app smoke tests)
-      # The build emits playwright.ps1 next to the SmokeTests assembly; run it with --with-deps
-      # so Linux runners get the apt packages Chromium needs. Idempotent — caches in ~/.cache.
-      run: pwsh artifacts/bin/WopiHost.SmokeTests/debug/playwright.ps1 install --with-deps chromium
+      uses: ./.github/actions/install-playwright-browsers
     - name: Pre-pull Testcontainers images
       uses: ./.github/actions/prepull-testcontainers-images
-    - name: Test
-      # Emit JUnit XML alongside cobertura coverage so Codecov Test Analytics can ingest run
-      # times / failures. --report-xunit-junit is xUnit's own MTP JUnit reporter. Every project
-      # writes into the same --results-directory, so the default timestamped filename
-      # (<user>_<host>_<timestamp>.junit.xml) is what keeps 13 projects from overwriting each
-      # other — do not pin a fixed filename here.
-      run: dotnet test --no-build --results-directory ${{ github.workspace }}/test-results --coverage --coverage-output-format cobertura --report-xunit-junit
-    - name: Upload test results to Codecov
-      # Runs even when the Test step failed — reporting the failed tests is the whole point.
-      # codecov/test-results-action is deprecated in favor of codecov-action with
-      # report_type: test_results; in that mode the CLI's own search patterns pick up the
-      # *.junit.xml files in the directory (the `files:` input does not expand globs).
-      if: ${{ !cancelled() }}
-      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        report_type: test_results
-        directory: ${{ github.workspace }}/test-results
-    - name: Normalize coverage reports
-      uses: ./.github/actions/normalize-coverage-reports
+    - name: Test and publish coverage
+      uses: ./.github/actions/test-and-report
       with:
         results-directory: ${{ github.workspace }}/test-results
-    - name: Upload coverage to Qlty
-      uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
-      with:
-        oidc: true
-        files: "test-results/**/*.cobertura.xml"
-        # See integrate.yml for the rationale.
-        skip-missing-files: true
-    - name: Codecov
-      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        # Scope the CLI's search to the reports this run produced: left unscoped it walks the
-        # whole workspace and could pick up an unrelated report. root_dir keeps the uploaded
-        # paths anchored at the repo root regardless of the narrower search.
-        directory: ${{ github.workspace }}/test-results
-        root_dir: ${{ github.workspace }}
-        # This repo's reports come straight from MTP as cobertura, so none of the CLI's
-        # language plugins (gcov, xcode, pycoverage) can contribute anything — they only run
-        # to warn that their toolchains are absent. They ignore `directory:`, so turn them off.
-        plugins: noop
-        # A silent upload failure leaves the required codecov/patch and codecov/project
-        # statuses pending forever, blocking the merge with no visible error.
-        fail_ci_if_error: true
-
+        codecov-token: ${{ secrets.CODECOV_TOKEN }}
     - name: FOSSA scan + policy gate
       uses: fossa-contrib/fossa-action@d28f0c947e7406706981a62a91ecc009bcc39fd7 # v4
       with:
@@ -109,6 +74,7 @@ jobs:
     # dependency-free FileSystemProvider tests on the other OSes/architectures.
     name: FS owner lookup (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     needs: [approve]
     strategy:
       fail-fast: false
@@ -123,10 +89,8 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 1
-    - name: Setup .NET 10.0
-      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-      with:
-        dotnet-version: '10.0.x'
+    - name: Setup .NET
+      uses: ./.github/actions/setup-dotnet-sdk
     - name: Set Cobalt packages token
       # Not needed by this test project (package-source mapping keeps the private feed
       # scoped to Microsoft.CobaltCore), but set it so any incidental restore stays quiet.
@@ -139,6 +103,7 @@ jobs:
   api-compat:
     name: API Compatibility
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: [approve]
     environment:
       name: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'Integrate Pull Request' || '' }}
@@ -147,10 +112,8 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 1
-    - name: Setup .NET 10.0
-      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-      with:
-        dotnet-version: '10.0.x'
+    - name: Setup .NET
+      uses: ./.github/actions/setup-dotnet-sdk
     - name: Set Cobalt packages token
       run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
     - name: Pack PR nupkgs
@@ -215,7 +178,7 @@ jobs:
 
           # Resolve latest stable on NuGet.org (filter out prereleases by '-').
           versions_json="$(curl -fsSL "https://api.nuget.org/v3-flatcontainer/${pkg_lower}/index.json" || echo '{"versions":[]}')"
-          baseline_version="$(echo "$versions_json" | grep -oE '"[0-9][^"]+"' | tr -d '"' | grep -v -- '-' | tail -n 1 || true)"
+          baseline_version="$(echo "$versions_json" | grep -oE '"[0-9][^"]+"' | tr -d '"' | grep -v -- '-' | sort -V | tail -n 1 || true)"
 
           if [[ -z "$baseline_version" ]]; then
             echo "### :grey_question: ${pkg}" >> "$REPORT_FILE"

@@ -25,18 +25,25 @@ permissions:
   security-events: write
   actions: read
 
+# Supersede an in-flight run for the same PR rather than letting both finish: the two
+# race to write the same sticky comments and check statuses, and the loser can be the
+# newer one. Runs on master, releases and schedules are never cancelled — each commit's
+# result is wanted on its own.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'pull_request_target' }}
+
 jobs:
   analyze:
     name: Analyze (csharp)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Setup .NET 10.0
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          dotnet-version: '10.0.x'
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet-sdk
 
       - name: Set Cobalt packages token
         run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV

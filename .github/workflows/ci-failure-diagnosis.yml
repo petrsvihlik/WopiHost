@@ -12,10 +12,17 @@ on:
     workflows: ["Build & Test", "E2E (Collabora)"]
     types: [completed]
 
+# One run at a time. Nothing is cancelled: every commit, release and scheduled run is
+# wanted on its own, so overlapping runs queue rather than supersede each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
 jobs:
   diagnose:
     if: github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       actions: read         # read the failed run's logs
@@ -28,6 +35,7 @@ jobs:
           fetch-depth: 1
 
       - name: Diagnose the failure
+        # Advisory: a diagnosis hiccup must never affect the run it reports on.
         continue-on-error: true
         uses: anthropics/claude-code-action@a874e9ecd7bb36efdad65429c6b35815f5a08f10 # v1
         with:

@@ -27,14 +27,26 @@ on:
         description: "Full release-notes markdown. Must start with '# <version>'."
         required: true
         type: string
+      replace:
+        description: "Discard an existing DRAFT for this version and recreate it. Never touches a published release."
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write # gh release create
+
+# One run at a time. Nothing is cancelled: every commit, release and scheduled run is
+# wanted on its own, so overlapping runs queue rather than supersede each other.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   draft:
     name: Draft release
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -55,10 +67,8 @@ jobs:
             exit 1
           fi
 
-      - name: Setup .NET 10.0
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          dotnet-version: '10.0.x'
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet-sdk
 
       - name: Set Cobalt packages token
         run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> "$GITHUB_ENV"
@@ -186,6 +196,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_NOTES: ${{ inputs.notes }}
+          INPUT_REPLACE: ${{ inputs.replace }}
           PREV: ${{ steps.floor.outputs.prev }}
           FLOOR_BUMP: ${{ steps.floor.outputs.bump }}
           MIN_VERSION: ${{ steps.floor.outputs.min-version }}
@@ -228,8 +239,21 @@ jobs:
             exit 1
           fi
           if gh release view "$VERSION" >/dev/null 2>&1; then
-            echo "::error::A release (or draft) for $VERSION already exists: delete it first, or pick another version."
-            exit 1
+            if [[ "$INPUT_REPLACE" != "true" ]]; then
+              echo "::error::A release (or draft) for $VERSION already exists. Re-dispatch with replace=true to recreate the draft, or pick another version."
+              exit 1
+            fi
+            # replace only ever discards a draft. A published release is history: its tag
+            # exists, its packages are on NuGet.org and consumers may already have resolved
+            # them, so re-cutting one under the same version is never the right move.
+            if [[ "$(gh release view "$VERSION" --json isDraft --jq '.isDraft')" != "true" ]]; then
+              echo "::error::$VERSION is already published — refusing to replace it. Cut a new version instead."
+              exit 1
+            fi
+            echo "::notice::Discarding the existing $VERSION draft and recreating it."
+            # Deliberately no --cleanup-tag: a draft has no tag, and a stray one would belong
+            # to a real release.
+            gh release delete "$VERSION" --yes
           fi
 
           # printf rather than echo: the notes are arbitrary markdown and must reach the

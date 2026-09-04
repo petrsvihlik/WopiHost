@@ -16,10 +16,20 @@ permissions:
   contents: write
   pull-requests: write
 
+# One run at a time. Nothing is cancelled: every commit, release and scheduled run is
+# wanted on its own, so overlapping runs queue rather than supersede each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
 jobs:
   auto-merge:
-    if: github.actor == 'dependabot[bot]'
+    # The PR's author, not the triggering actor: on a `reopened` event github.actor is
+    # whoever reopened it, so a maintainer reopening a Dependabot PR would silently skip
+    # auto-merge.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Enable auto-merge
         run: gh pr merge --auto --squash "$PR_URL"

@@ -137,7 +137,14 @@ Then read the run's job summary for the draft URL and report it.
 
 The workflow only ever creates drafts, and refuses to run if the version is below the computed
 floor or malformed, the notes are empty, the tag or a release for that version already exists, or
-it is dispatched from anything but master. Notes travel as a `workflow_dispatch` input, which
+it is dispatched from anything but master.
+
+**Regenerating a draft.** A draft is pinned to the commit it was created from, so once master
+moves past it — a merge that belongs in the release, or notes that have gone stale behind a
+dependency bump — publishing it would tag the older commit and ship without those changes.
+Re-dispatch with `replace=true` (`-f replace=true`) to discard the existing draft and cut a new
+one from the current HEAD. It refuses to touch a *published* release: that tag exists, its
+packages are on NuGet.org, and consumers may already have resolved them. Notes travel as a `workflow_dispatch` input, which
 caps the whole inputs payload at 65,535 characters — far above any release so far, and a breach
 fails the dispatch loudly rather than truncating.
 

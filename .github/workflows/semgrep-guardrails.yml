@@ -28,15 +28,24 @@ on:
 permissions:
   contents: read
 
+# Supersede an in-flight run for the same PR rather than letting both finish: the two
+# race to write the same sticky comments and check statuses, and the loser can be the
+# newer one. Runs on master, releases and schedules are never cancelled — each commit's
+# result is wanted on its own.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'pull_request_target' }}
+
 jobs:
   guardrails:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install Semgrep
-        # Pinned like every other CI dependency. Dependabot doesn't manage pipx
-        # run-lines, so bump the version manually now and then.
+        # Pinned like every other CI dependency. Dependabot has no ecosystem that reads a
+        # version out of a shell command, so a Renovate custom manager tracks this line.
         run: pipx install semgrep==1.168.0
 
       - name: Run guardrail rules

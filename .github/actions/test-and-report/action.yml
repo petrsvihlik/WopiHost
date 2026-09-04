@@ -1,0 +1,97 @@
+name: Test and publish coverage
+description: >
+  Runs the test suite and publishes coverage (and optionally test results) to Qlty and Codecov.
+  The three workflows that do this ran three copies of the same chain, and fixing it in one and
+  not the others is a recurring bug in this repo's history — the release lane kept a stale
+  coverage glob, then missed the Codecov rename, then needed the same plugin fix again. One
+  implementation with the lane differences as inputs removes that failure mode.
+inputs:
+  results-directory:
+    description: Absolute path the test run writes its coverage and JUnit reports into.
+    required: true
+  codecov-token:
+    description: CODECOV_TOKEN. Uploads are skipped by Codecov itself if this is empty.
+    required: true
+  configuration:
+    description: Build configuration to test. Empty uses the SDK default (Debug).
+    required: false
+    default: ''
+  report-test-results:
+    description: >
+      Emit JUnit XML and upload it to Codecov Test Analytics. The release lane leaves this off:
+      the same commit's results were already reported by the CI lane.
+    required: false
+    default: 'true'
+  fail-on-upload-error:
+    description: >
+      Fail the job when the coverage upload fails. True on CI, where a silent failure leaves the
+      codecov/patch and codecov/project statuses pending forever and blocks the merge with no
+      visible error. False when publishing a release, where a Codecov outage must not block it.
+    required: false
+    default: 'true'
+runs:
+  using: composite
+  steps:
+    - name: Test
+      shell: bash
+      env:
+        RESULTS_DIRECTORY: ${{ inputs.results-directory }}
+        CONFIGURATION: ${{ inputs.configuration }}
+        REPORT_TEST_RESULTS: ${{ inputs.report-test-results }}
+      # --report-xunit-junit is xUnit's own MTP JUnit reporter. Every project writes into the
+      # same --results-directory, so the default timestamped filename
+      # (<user>_<host>_<timestamp>.junit.xml) is what keeps the projects from overwriting each
+      # other — do not pin a fixed filename here.
+      run: |
+        set -euo pipefail
+        args=(--no-build --results-directory "$RESULTS_DIRECTORY" --coverage --coverage-output-format cobertura)
+        if [[ -n "$CONFIGURATION" ]]; then
+          args+=(--configuration "$CONFIGURATION")
+        fi
+        if [[ "$REPORT_TEST_RESULTS" == "true" ]]; then
+          args+=(--report-xunit-junit)
+        fi
+        dotnet test "${args[@]}"
+
+    - name: Upload test results to Codecov
+      # Runs even when the Test step failed — reporting the failed tests is the whole point.
+      # codecov/test-results-action is deprecated in favour of codecov-action with
+      # report_type: test_results; in that mode the CLI's own search patterns pick up the
+      # *.junit.xml files in the directory (the `files:` input does not expand globs).
+      if: ${{ inputs.report-test-results == 'true' && !cancelled() }}
+      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        report_type: test_results
+        directory: ${{ inputs.results-directory }}
+
+    - name: Normalize coverage reports
+      uses: ./.github/actions/normalize-coverage-reports
+      with:
+        results-directory: ${{ inputs.results-directory }}
+
+    - name: Upload coverage to Qlty
+      uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
+      with:
+        oidc: true
+        # Microsoft.Testing.Extensions.CodeCoverage writes one cobertura report per test
+        # project under the run's --results-directory. Root the glob explicitly so
+        # qlty-action's @actions/glob layer has an anchored starting directory.
+        files: "test-results/**/*.cobertura.xml"
+        # Coverage reports reference source-generated files (LoggerMessage.g.cs,
+        # LibraryImports.g.cs, etc.) under artifacts/obj/, which don't exist at publish time.
+        # Without this flag Qlty counts them as 0% covered. See also .qlty/qlty.toml.
+        skip-missing-files: true
+
+    - name: Codecov
+      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        # The CLI searches by filename, so scope it to the run's reports rather than the tree.
+        directory: ${{ inputs.results-directory }}
+        root_dir: ${{ github.workspace }}
+        # This repo's reports come straight from MTP as cobertura, so none of the CLI's
+        # language plugins (gcov, xcode, pycoverage) can contribute anything — they only run
+        # to warn that their toolchains are absent. They ignore `directory:`, so turn them off.
+        plugins: noop
+        fail_ci_if_error: ${{ inputs.fail-on-upload-error }}

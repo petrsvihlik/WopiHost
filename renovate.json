@@ -39,6 +39,14 @@
         "<Sdk Name=\"(?<depName>[^\"]+)\" Version=\"(?<currentValue>[^\"]+)\"\\s*/>"
       ],
       "datasourceTemplate": "nuget"
+    },
+    {
+      "customType": "regex",
+      "description": "Tracks the Semgrep version pinned on the pipx run-line in semgrep-guardrails.yml. Dependabot has no ecosystem that reads a version embedded in a workflow's shell command, so nothing proposed it and the pin was documented as a manual bump.",
+      "managerFilePatterns": ["/^\\.github/workflows/semgrep-guardrails\\.yml$/"],
+      "matchStrings": ["pipx install semgrep==(?<currentValue>[0-9][0-9A-Za-z.-]*)"],
+      "depNameTemplate": "semgrep",
+      "datasourceTemplate": "pypi"
     }
   ],
   "packageRules": [

@@ -1,0 +1,25 @@
+name: Install Playwright browsers
+description: >
+  Installs Chromium and the OS packages it needs, for the suites that drive a real browser
+  (the sample-app smoke tests and the Collabora / ONLYOFFICE E2E lanes). PlaywrightFixture
+  falls back to downloading the browser mid-test when this is skipped, which works but puts an
+  unretried network fetch inside the test run — on the release lane that lands after the tag
+  and GitHub release already exist.
+runs:
+  using: composite
+  steps:
+    - name: Install Chromium via the generated playwright.ps1
+      shell: bash
+      # The helper is located rather than hardcoded: a literal path encodes the artifacts
+      # layout, the project name and the build configuration at once, so a lane building
+      # Release silently gets a wrong path. Installing a browser is a per-runner operation,
+      # so whichever project's copy is found will do.
+      run: |
+        set -euo pipefail
+        script="$(find artifacts/bin -name playwright.ps1 -print -quit)"
+        if [[ -z "$script" ]]; then
+          echo "::error::No playwright.ps1 found under artifacts/bin — the build output moved, or Playwright is no longer referenced. Has the build step run?"
+          exit 1
+        fi
+        # Idempotent: returns immediately when the browser is already cached in ~/.cache.
+        pwsh "$script" install --with-deps chromium

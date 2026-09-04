@@ -8,11 +8,18 @@ on:
   issues:
     types: [opened]
 
+# One run at a time. Nothing is cancelled: every commit, release and scheduled run is
+# wanted on its own, so overlapping runs queue rather than supersede each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
 jobs:
   triage:
     # Humans only — don't triage bot-filed issues.
     if: github.event.issue.user.type != 'Bot'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       issues: write

@@ -22,6 +22,12 @@ on:
 permissions:
   contents: read
 
+# One run at a time. Nothing is cancelled: every commit, release and scheduled run is
+# wanted on its own, so overlapping runs queue rather than supersede each other.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   preview-runtime:
     name: net10.0 binaries on the .NET 11 runtime
@@ -55,7 +61,7 @@ jobs:
           dotnet build --no-restore /p:ContinuousIntegrationBuild=true
 
       - name: Install Playwright browsers (for sample-app smoke tests)
-        run: pwsh artifacts/bin/WopiHost.SmokeTests/debug/playwright.ps1 install --with-deps chromium
+        uses: ./.github/actions/install-playwright-browsers
 
       # Roll-forward policies below LatestMajor only engage when the requested runtime is ABSENT,
       # and .NET 10 is installed on this runner — so DOTNET_ROLL_FORWARD=Major would quietly keep
