@@ -83,6 +83,22 @@ runs:
       with:
         results-directory: ${{ inputs.results-directory }}
 
+    # Kept so a coverage anomaly can be diagnosed from the run that produced it. Codecov and
+    # Qlty report totals, not the reports behind them, so working out why a number moved has
+    # meant reproducing the run locally — which is what tracing the release-lane Debug/Release
+    # merge took. Two runs' artifacts can be diffed directly instead.
+    #
+    # Uploaded after normalization so the archive holds exactly the set the uploaders consumed,
+    # and on failure too, since a run whose tests failed is the one worth inspecting.
+    - name: Archive coverage reports
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      with:
+        name: coverage-reports-${{ github.job }}
+        path: ${{ inputs.results-directory }}/*.cobertura.xml
+        if-no-files-found: warn
+        retention-days: 30
+
     - name: Upload coverage to Qlty
       if: ${{ inputs.publish-coverage == 'true' }}
       uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
