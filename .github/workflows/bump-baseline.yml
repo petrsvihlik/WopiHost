@@ -227,7 +227,7 @@ jobs:
           elif [[ "$PAT_PRESENT" == "true" ]]; then
             echo "Opening the PR with DEPENDABOT_AUTOMATION_PAT."
           else
-            echo "::warning::Neither a GitHub App token nor DEPENDABOT_AUTOMATION_PAT is available, so the PR is opened with GITHUB_TOKEN. GitHub suppresses pull_request_target for GITHUB_TOKEN-authored PRs, so Build, API Compatibility and the WOPI validator will not run on it — review the bump manually before merging."
+            echo "Opening the PR with GITHUB_TOKEN — see the identity check at the end of this run."
           fi
 
       - name: Open PR with the bump
@@ -258,3 +258,21 @@ jobs:
             chore
             automated
           delete-branch: true
+
+      # Deliberately after the PR is opened, not before. The bump's contents were verified
+      # above, so a missing credential is no reason to withhold the change — but the PR quietly
+      # losing Build, API Compatibility and the WOPI validator is what went unnoticed across
+      # four releases, and it went unnoticed because the run stayed green. Failing here keeps
+      # the PR and makes the lapse impossible to miss.
+      - name: Fail when the PR was opened without a checked identity
+        env:
+          APP_TOKEN_PRESENT: ${{ steps.app-token.outputs.token != '' }}
+          PAT_PRESENT: ${{ secrets.DEPENDABOT_AUTOMATION_PAT != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$APP_TOKEN_PRESENT" == "true" || "$PAT_PRESENT" == "true" ]]; then
+            exit 0
+          fi
+          echo "::error::The bump PR was opened with GITHUB_TOKEN, so GitHub raises no pull_request_target for it and Build, API Compatibility and the WOPI validator will not run on it. This workflow verified the bump itself, so the PR is still sound to review and merge — but restore BASELINE_AUTOMATION_APP_ID plus BASELINE_AUTOMATION_APP_PRIVATE_KEY, or DEPENDABOT_AUTOMATION_PAT, before the next release."
+          exit 1
