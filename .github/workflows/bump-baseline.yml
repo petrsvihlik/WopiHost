@@ -91,6 +91,29 @@ jobs:
           fi
           echo "version=$TARGET" >> "$GITHUB_OUTPUT"
 
+      # release.yml and this workflow both fire on `release: published`, so the target version
+      # is typically not on NuGet.org yet when this starts — 9.3.0 took roughly eight minutes
+      # from the release to being served. Everything below needs the package to exist: the
+      # verification restores it as a validation baseline, and the PR's own checks restore it
+      # too, which is what left #694's CodeQL run red until it was re-run by hand.
+      - name: Wait for the baseline package on NuGet.org
+        env:
+          TARGET: ${{ steps.target.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 900))
+          until curl -fsSL "https://api.nuget.org/v3-flatcontainer/wopihost.core/index.json" \
+              | grep -q "\"$TARGET\""; do
+            if (( SECONDS >= deadline )); then
+              echo "::error::WopiHost.Core $TARGET is still not on NuGet.org after 15 minutes. Either the release did not publish or indexing is delayed; re-run this workflow once the package is listed."
+              exit 1
+            fi
+            echo "WopiHost.Core $TARGET not indexed yet — waiting."
+            sleep 30
+          done
+          echo "WopiHost.Core $TARGET is available."
+
       - name: Update Directory.Build.props
         id: update
         shell: bash
@@ -150,6 +173,28 @@ jobs:
             git rm --quiet "${files[@]}"
           fi
 
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet-sdk
+
+      - name: Set Cobalt packages token
+        run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
+
+      # Proves the bump before proposing it, rather than relying on the PR's checks. Packing is
+      # the operation PackageValidationBaselineVersion actually governs: the SDK downloads the
+      # baseline nupkg for every packable project and compares the current surface against it,
+      # so a baseline that does not resolve, or a real break the retired suppressions were
+      # hiding, fails here instead of landing in a PR someone has to diagnose.
+      #
+      # Validation is left ON, unlike the PR-time pack, which is the whole point. The version is
+      # the same throwaway that job uses; it only has to sit above the baseline so the compared
+      # package is not also the older one.
+      - name: Verify the bump packs against the new baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet restore
+          dotnet pack --configuration Release --no-restore -p:Version=99.99.99
+
       # GITHUB_TOKEN must not author this PR. GitHub raises no pull_request_target for events
       # it triggers, so Build, API Compatibility and the WOPI validator never ran on a baseline
       # bump: 9.0.0 through 9.3.0 all merged carrying only the pull_request-triggered checks.
@@ -182,7 +227,7 @@ jobs:
           elif [[ "$PAT_PRESENT" == "true" ]]; then
             echo "Opening the PR with DEPENDABOT_AUTOMATION_PAT."
           else
-            echo "::warning::Neither a GitHub App token nor DEPENDABOT_AUTOMATION_PAT is available, so the PR is opened with GITHUB_TOKEN. GitHub suppresses pull_request_target for GITHUB_TOKEN-authored PRs, so Build, API Compatibility and the WOPI validator will not run on it — review the bump manually before merging."
+            echo "Opening the PR with GITHUB_TOKEN — see the identity check at the end of this run."
           fi
 
       - name: Open PR with the bump
@@ -213,3 +258,21 @@ jobs:
             chore
             automated
           delete-branch: true
+
+      # Deliberately after the PR is opened, not before. The bump's contents were verified
+      # above, so a missing credential is no reason to withhold the change — but the PR quietly
+      # losing Build, API Compatibility and the WOPI validator is what went unnoticed across
+      # four releases, and it went unnoticed because the run stayed green. Failing here keeps
+      # the PR and makes the lapse impossible to miss.
+      - name: Fail when the PR was opened without a checked identity
+        env:
+          APP_TOKEN_PRESENT: ${{ steps.app-token.outputs.token != '' }}
+          PAT_PRESENT: ${{ secrets.DEPENDABOT_AUTOMATION_PAT != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$APP_TOKEN_PRESENT" == "true" || "$PAT_PRESENT" == "true" ]]; then
+            exit 0
+          fi
+          echo "::error::The bump PR was opened with GITHUB_TOKEN, so GitHub raises no pull_request_target for it and Build, API Compatibility and the WOPI validator will not run on it. This workflow verified the bump itself, so the PR is still sound to review and merge — but restore BASELINE_AUTOMATION_APP_ID plus BASELINE_AUTOMATION_APP_PRIVATE_KEY, or DEPENDABOT_AUTOMATION_PAT, before the next release."
+          exit 1
