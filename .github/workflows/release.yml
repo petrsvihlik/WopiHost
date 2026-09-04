@@ -40,34 +40,16 @@ jobs:
       uses: ./.github/actions/install-playwright-browsers
     - name: Pre-pull Testcontainers images
       uses: ./.github/actions/prepull-testcontainers-images
-    - name: Test
-      run: dotnet test --no-build --configuration Release --results-directory ${{ github.workspace }}/test-results --coverage --coverage-output-format cobertura
-    - name: Normalize coverage reports
-      uses: ./.github/actions/normalize-coverage-reports
+    - name: Test and publish coverage
+      uses: ./.github/actions/test-and-report
       with:
         results-directory: ${{ github.workspace }}/test-results
-    - name: Upload coverage to Qlty
-      uses: qltysh/qlty-action/coverage@08a0a862c159eae9b9003081da6663d96efef637 # v2
-      with:
-        oidc: true
-        # Microsoft.Testing.Extensions.CodeCoverage writes one cobertura report per project;
-        # see integrate.yml for the glob rationale.
-        files: "test-results/**/*.cobertura.xml"
-        # See integrate.yml for the rationale.
-        skip-missing-files: true
-    - name: Codecov
-      # Unlike the CI workflows, deliberately no fail_ci_if_error: a Codecov outage
-      # must not block publishing the release.
-      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        # See pull_request.yml for the search-scoping rationale.
-        directory: ${{ github.workspace }}/test-results
-        root_dir: ${{ github.workspace }}
-        # This repo's reports come straight from MTP as cobertura, so none of the CLI's
-        # language plugins (gcov, xcode, pycoverage) can contribute anything — they only run
-        # to warn that their toolchains are absent. They ignore `directory:`, so turn them off.
-        plugins: noop
+        codecov-token: ${{ secrets.CODECOV_TOKEN }}
+        configuration: Release
+        # The CI lane already reported this commit's test results.
+        report-test-results: 'false'
+        # A Codecov outage must not block publishing a release.
+        fail-on-upload-error: 'false'
     - name: Pack
       # Output is centralized via UseArtifactsOutput (see Directory.Build.props);
       # nupkg/snupkg files land in artifacts/package/release/.
