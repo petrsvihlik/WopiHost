@@ -96,16 +96,18 @@ If there are no public-API breaks, omit both sections (a minor/patch release).
 ## Step 5 — Assemble the notes
 
 Follow the skeleton in `references/format.md`. End with the verbatim `Full Changelog` compare link
-from Step 1. Write the whole thing to:
+from Step 1. The first line must be `# <NEW_VERSION>` — the drafting workflow warns when the
+heading and the version disagree, which catches notes pasted from the previous release.
+
+Write them to a scratch file so they can be shown to the user and fed to the dispatch:
 
 ```
-.github/release-notes/<NEW_VERSION>.md
+artifacts/release-notes-<NEW_VERSION>.md
 ```
 
-This path is committed, not scratch: `draft-release.yml` reads the notes from it, and putting them
-in a PR gets them reviewed before anything is drafted. The first line must be `# <NEW_VERSION>` —
-the workflow warns when the heading and the version disagree, which catches notes pasted from the
-previous release.
+`artifacts/` is git-ignored, deliberately. The notes are not committed: once the release is
+published, GitHub Releases is their single source of truth, and a copy in the repo would go stale
+the first time someone edits the draft in the UI before publishing.
 
 ## Step 6 — Create the draft release
 
@@ -114,18 +116,22 @@ because the notes are usually written in a session that has no GitHub CLI creden
 one a release-scoped token would put a credential that can publish to NuGet.org somewhere it is
 stored in plaintext. The workflow authenticates with its own `GITHUB_TOKEN` instead.
 
-1. Commit the notes on a branch, open a PR, and merge it. The workflow reads master.
-2. Dispatch the workflow with the version as its only input — from a Claude session, the GitHub
-   MCP server's `actions_run_trigger` on `draft-release.yml`; from a shell:
+Dispatch it with the version and the notes content. From a Claude session, that is the GitHub MCP
+server's `actions_run_trigger` on `draft-release.yml` with `ref: master`; from a shell:
 
-   ```bash
-   gh workflow run draft-release.yml --repo petrsvihlik/WopiHost --ref master -f version=<NEW_VERSION>
-   ```
+```bash
+gh workflow run draft-release.yml --repo petrsvihlik/WopiHost --ref master \
+  -f version=<NEW_VERSION> \
+  -F notes=@artifacts/release-notes-<NEW_VERSION>.md
+```
 
-3. Read the run's job summary for the draft URL and report it.
+Then read the run's job summary for the draft URL and report it.
 
-The workflow only ever creates drafts, and refuses to run if the tag or a release for that version
-already exists, if the notes file is missing, or if it is dispatched from anything but master.
+The workflow only ever creates drafts, and refuses to run if the version is malformed, the notes
+are empty, the tag or a release for that version already exists, or it is dispatched from anything
+but master. Notes travel as a `workflow_dispatch` input, which caps the whole inputs payload at
+65,535 characters — far above any release so far, and a breach fails the dispatch loudly rather
+than truncating.
 
 **Never publish.** `release.yml` triggers on `release: types: [published]`, so publishing is what
 pushes packages to NuGet.org — a draft emits no such event. Tell the user to review the draft in
