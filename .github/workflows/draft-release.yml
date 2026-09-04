@@ -84,20 +84,20 @@ jobs:
           set -euo pipefail
           mkdir -p ./artifacts/baseline
 
-          # Every package with a prior NuGet release. Keep in step with the PACKAGES list in
-          # pull_request.yml's API Compatibility job; a package missing here cannot raise the
-          # floor, so an omission silently understates the required bump.
-          PACKAGES=(
-            "WopiHost.Abstractions"
-            "WopiHost.Core"
-            "WopiHost.Discovery"
-            "WopiHost.Url"
-            "WopiHost.FileSystemProvider"
-            "WopiHost.MemoryLockProvider"
-            "WopiHost.AzureStorageProvider"
-            "WopiHost.AzureLockProvider"
-            "WopiHost.RedisLockProvider"
+          # The set to check is derived from what the pack step actually produced rather than
+          # from a hand-maintained list. A list has to be updated whenever a project becomes
+          # packable and silently under-checks until someone remembers: RedisLockProvider went
+          # four releases unchecked that way. The glob excludes .snupkg (symbols), and the
+          # version is stripped by pattern so the pack step's version can change freely.
+          mapfile -t PACKAGES < <(
+            find ./artifacts/new -maxdepth 1 -name '*.nupkg' -printf '%f\n' \
+              | sed -E 's/\.[0-9]+(\.[0-9]+)*(-[0-9A-Za-z.]+)?\.nupkg$//' | sort
           )
+          if [[ ${#PACKAGES[@]} -eq 0 ]]; then
+            echo "::error::No packages found under ./artifacts/new — the pack step produced nothing, so this check would pass vacuously."
+            exit 1
+          fi
+          echo "Derived ${#PACKAGES[@]} package(s) from the pack output: ${PACKAGES[*]}"
 
           latest_stable() { # $1 = lower-case package id
             curl -fsSL "https://api.nuget.org/v3-flatcontainer/$1/index.json" \
@@ -120,8 +120,8 @@ jobs:
           ADDITIONS=""
           for pkg in "${PACKAGES[@]}"; do
             pkg_lower="$(echo "$pkg" | tr '[:upper:]' '[:lower:]')"
-            new_nupkg="./artifacts/new/${pkg}.99.99.99.nupkg"
-            if [[ ! -f "$new_nupkg" ]]; then
+            new_nupkg="$(find ./artifacts/new -maxdepth 1 -name "${pkg}.*.nupkg" | head -n 1)"
+            if [[ -z "$new_nupkg" ]]; then
               echo "::warning::No nupkg packed for $pkg — it cannot contribute to the floor."
               continue
             fi

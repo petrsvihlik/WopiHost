@@ -171,17 +171,20 @@ jobs:
         set -euo pipefail
         mkdir -p ./artifacts/baseline
 
-        PACKAGES=(
-          "WopiHost.Abstractions"
-          "WopiHost.Core"
-          "WopiHost.Discovery"
-          "WopiHost.Url"
-          "WopiHost.FileSystemProvider"
-          "WopiHost.MemoryLockProvider"
-          "WopiHost.AzureStorageProvider"
-          "WopiHost.AzureLockProvider"
-          "WopiHost.RedisLockProvider"
+        # The set to check is derived from what the pack step actually produced rather than
+        # from a hand-maintained list. A list has to be updated whenever a project becomes
+        # packable and silently under-checks until someone remembers: RedisLockProvider went
+        # four releases unchecked that way. The glob excludes .snupkg (symbols), and the
+        # version is stripped by pattern so the pack step's version can change freely.
+        mapfile -t PACKAGES < <(
+          find ./artifacts/new -maxdepth 1 -name '*.nupkg' -printf '%f\n' \
+            | sed -E 's/\.[0-9]+(\.[0-9]+)*(-[0-9A-Za-z.]+)?\.nupkg$//' | sort
         )
+        if [[ ${#PACKAGES[@]} -eq 0 ]]; then
+          echo "::error::No packages found under ./artifacts/new — the pack step produced nothing, so this check would pass vacuously."
+          exit 1
+        fi
+        echo "Derived ${#PACKAGES[@]} package(s) from the pack output: ${PACKAGES[*]}"
 
         REPORT_FILE="$GITHUB_WORKSPACE/apicompat-report.md"
         {
@@ -202,7 +205,7 @@ jobs:
           pkg_lower="$(echo "$pkg" | tr '[:upper:]' '[:lower:]')"
 
           # Find the freshly-packed nupkg.
-          new_nupkg="$(ls ./artifacts/new/${pkg}.99.99.99.nupkg 2>/dev/null || true)"
+          new_nupkg="$(find ./artifacts/new -maxdepth 1 -name "${pkg}.*.nupkg" | head -n 1)"
           if [[ -z "$new_nupkg" ]]; then
             echo "### :grey_question: ${pkg}" >> "$REPORT_FILE"
             echo "_No nupkg produced for this package — skipped._" >> "$REPORT_FILE"
