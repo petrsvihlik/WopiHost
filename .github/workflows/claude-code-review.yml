@@ -20,10 +20,20 @@ concurrency:
 
 jobs:
   claude-review:
-    # Internal PRs only. The Claude GitHub App's OIDC token exchange doesn't work with
-    # the secret-less fork-PR context, so fork PRs are skipped here — review one manually
-    # by commenting `@claude review this` (handled by claude.yml).
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Internal, human-authored PRs only.
+    #
+    # Fork PRs: the Claude GitHub App's OIDC token exchange doesn't work in the secret-less
+    # fork-PR context — review one manually by commenting `@claude review this` (claude.yml).
+    #
+    # Bot PRs: the action refuses a non-human initiator unless the bot is listed in
+    # allowed_bots, and it reads the initiator from the event payload, so a re-run replays
+    # the same refusal — the failure is not transient. continue-on-error keeps the check
+    # green, which is why this surfaced only as annotations on every baseline-bump and
+    # Dependabot PR. Those PRs are a version-string change and an auto-merge; skipping the
+    # job outright beats paying for a review nobody reads.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+      && github.event.pull_request.user.type != 'Bot'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

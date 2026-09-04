@@ -21,9 +21,12 @@ concurrency:
 
 jobs:
   docs-drift:
-    # Internal PRs only — the OIDC token exchange doesn't work in the secret-less fork context
-    # (same constraint as claude-code-review.yml).
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Internal, human-authored PRs only — the OIDC token exchange doesn't work in the
+    # secret-less fork context, and the action refuses a bot initiator outright (same two
+    # constraints as claude-code-review.yml, which documents them).
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+      && github.event.pull_request.user.type != 'Bot'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
