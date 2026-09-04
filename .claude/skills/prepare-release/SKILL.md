@@ -22,10 +22,12 @@ Repo: `petrsvihlik/WopiHost`. Tags are bare semver (`8.0.0`, not `v8.0.0`); the 
 
 ## Inputs
 
-- **New version** (required) — e.g. `9.0.0`. If the user didn't say it, ask. Pick the bump per
-  semver from the actual change surface: any public-API break → major; new back-compatible API →
-  minor; fixes only → patch. The repo is in API-stabilization, so breaking changes are expected
-  and land as majors.
+- **New version** (optional) — e.g. `9.0.0`. `draft-release.yml` computes the minimum the public
+  API surface allows (ApiCompat run in both directions against the last NuGet release: removals or
+  changes → major, additions only → minor, neither → patch) and uses it when no version is given.
+  Supply one only to go *above* that floor — the case ApiCompat cannot see: a behavioural break
+  with an unchanged surface, like 9.2.0's new "requires Redis 8.4+" runtime requirement. The
+  workflow refuses anything below the floor.
 - **Previous tag** (auto) — the latest published release (`gh release list -L 1` /
   `gh release view --json tagName`). Override only if the user names a different base.
 
@@ -116,10 +118,16 @@ because the notes are usually written in a session that has no GitHub CLI creden
 one a release-scoped token would put a credential that can publish to NuGet.org somewhere it is
 stored in plaintext. The workflow authenticates with its own `GITHUB_TOKEN` instead.
 
-Dispatch it with the version and the notes content. From a Claude session, that is the GitHub MCP
-server's `actions_run_trigger` on `draft-release.yml` with `ref: master`; from a shell:
+Dispatch it with the notes content, and a version only to override the computed floor. From a
+Claude session that is the GitHub MCP server's `actions_run_trigger` on `draft-release.yml` with
+`ref: master`; from a shell:
 
 ```bash
+# Version computed from the API surface:
+gh workflow run draft-release.yml --repo petrsvihlik/WopiHost --ref master \
+  -F notes=@artifacts/release-notes-<NEW_VERSION>.md
+
+# Or pinned, to go above the floor:
 gh workflow run draft-release.yml --repo petrsvihlik/WopiHost --ref master \
   -f version=<NEW_VERSION> \
   -F notes=@artifacts/release-notes-<NEW_VERSION>.md
@@ -127,11 +135,11 @@ gh workflow run draft-release.yml --repo petrsvihlik/WopiHost --ref master \
 
 Then read the run's job summary for the draft URL and report it.
 
-The workflow only ever creates drafts, and refuses to run if the version is malformed, the notes
-are empty, the tag or a release for that version already exists, or it is dispatched from anything
-but master. Notes travel as a `workflow_dispatch` input, which caps the whole inputs payload at
-65,535 characters — far above any release so far, and a breach fails the dispatch loudly rather
-than truncating.
+The workflow only ever creates drafts, and refuses to run if the version is below the computed
+floor or malformed, the notes are empty, the tag or a release for that version already exists, or
+it is dispatched from anything but master. Notes travel as a `workflow_dispatch` input, which
+caps the whole inputs payload at 65,535 characters — far above any release so far, and a breach
+fails the dispatch loudly rather than truncating.
 
 **Never publish.** `release.yml` triggers on `release: types: [published]`, so publishing is what
 pushes packages to NuGet.org — a draft emits no such event. Tell the user to review the draft in

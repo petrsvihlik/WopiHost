@@ -77,8 +77,8 @@
 	<!-- Package Validation Configuration for NuGet packages.
 
 	     PackageValidationBaselineVersion is the last NuGet-published version we validate the
-	     current public surface against. It is auto-managed by the bump-baseline job in
-	     .github/workflows/release.yml — DO NOT bump it manually in a feature PR. Manual bumps
+	     current public surface against. It is auto-managed by
+	     .github/workflows/bump-baseline.yml — DO NOT bump it manually in a feature PR. Manual bumps
 	     have a nasty interaction with the release flow: the bump job runs immediately after
 	     the package upload, and if master already shows the new value at that moment it skips
 	     (because the value already matches the just-released version). A revert merging shortly
