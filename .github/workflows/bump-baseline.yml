@@ -91,6 +91,29 @@ jobs:
           fi
           echo "version=$TARGET" >> "$GITHUB_OUTPUT"
 
+      # release.yml and this workflow both fire on `release: published`, so the target version
+      # is typically not on NuGet.org yet when this starts — 9.3.0 took roughly eight minutes
+      # from the release to being served. Everything below needs the package to exist: the
+      # verification restores it as a validation baseline, and the PR's own checks restore it
+      # too, which is what left #694's CodeQL run red until it was re-run by hand.
+      - name: Wait for the baseline package on NuGet.org
+        env:
+          TARGET: ${{ steps.target.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 900))
+          until curl -fsSL "https://api.nuget.org/v3-flatcontainer/wopihost.core/index.json" \
+              | grep -q "\"$TARGET\""; do
+            if (( SECONDS >= deadline )); then
+              echo "::error::WopiHost.Core $TARGET is still not on NuGet.org after 15 minutes. Either the release did not publish or indexing is delayed; re-run this workflow once the package is listed."
+              exit 1
+            fi
+            echo "WopiHost.Core $TARGET not indexed yet — waiting."
+            sleep 30
+          done
+          echo "WopiHost.Core $TARGET is available."
+
       - name: Update Directory.Build.props
         id: update
         shell: bash
@@ -149,6 +172,28 @@ jobs:
             printf 'Retiring: %s\n' "${files[@]}"
             git rm --quiet "${files[@]}"
           fi
+
+      - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet-sdk
+
+      - name: Set Cobalt packages token
+        run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
+
+      # Proves the bump before proposing it, rather than relying on the PR's checks. Packing is
+      # the operation PackageValidationBaselineVersion actually governs: the SDK downloads the
+      # baseline nupkg for every packable project and compares the current surface against it,
+      # so a baseline that does not resolve, or a real break the retired suppressions were
+      # hiding, fails here instead of landing in a PR someone has to diagnose.
+      #
+      # Validation is left ON, unlike the PR-time pack, which is the whole point. The version is
+      # the same throwaway that job uses; it only has to sit above the baseline so the compared
+      # package is not also the older one.
+      - name: Verify the bump packs against the new baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet restore
+          dotnet pack --configuration Release --no-restore -p:Version=99.99.99
 
       # GITHUB_TOKEN must not author this PR. GitHub raises no pull_request_target for events
       # it triggers, so Build, API Compatibility and the WOPI validator never ran on a baseline
