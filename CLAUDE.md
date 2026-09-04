@@ -45,7 +45,7 @@ dotnet run --project sample/WopiHost
 - Centralized package management via `Directory.Packages.props` — specify versions there, not in individual `.csproj` files.
 - Single-targeted on `net10.0` (libraries, samples, infra, tests). The v8 line was the last to support `net8.0` / `net9.0`; v9 onward is net10 only. The `tools/wopi-validator/` helper project stays on `net8.0` because the upstream `Microsoft.Office.WopiValidator` NuGet does.
 - Build output is centralized under `artifacts/` at the repo root (`UseArtifactsOutput=true` in `Directory.Build.props`) — there are no per-project `bin/`/`obj/` folders.
-- Package validation is enabled — avoid breaking public API changes in NuGet-packaged libraries. The baseline tracks the latest stable release (auto-bumped by `.github/workflows/release.yml`; see `PackageValidationBaselineVersion` in `Directory.Build.props` for the current value). Packages without a prior release on NuGet.org opt out via `EnablePackageValidation=false` in their `.csproj`.
+- Package validation is enabled — avoid breaking public API changes in NuGet-packaged libraries. The baseline tracks the latest stable release (auto-bumped by `.github/workflows/bump-baseline.yml`; see `PackageValidationBaselineVersion` in `Directory.Build.props` for the current value). Packages without a prior release on NuGet.org opt out via `EnablePackageValidation=false` in their `.csproj`.
 - `InternalsVisibleTo` is auto-configured for `*.Tests` assemblies.
 
 ## Codebase audit skill

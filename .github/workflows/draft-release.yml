@@ -1,0 +1,273 @@
+name: Draft release
+
+# Creates a DRAFT GitHub Release, with the version validated against the public API surface.
+#
+# Why a workflow instead of running `gh release create` by hand: the notes are written by
+# the prepare-release skill in a session that has no GitHub CLI credentials, and handing
+# one a release-scoped PAT would put a token that can publish to NuGet.org into an
+# environment that stores it in plaintext. Dispatching this workflow instead keeps the
+# credential inside Actions — the job authenticates with its own GITHUB_TOKEN.
+#
+# The notes arrive as an input rather than from a committed file so that the published
+# release stays their single source of truth. A copy in the repo would go stale the first
+# time someone edits the draft in the UI before publishing, which the flow encourages.
+#
+# This workflow only ever creates DRAFTS, and that is a structural guarantee rather than a
+# convention: release.yml publishes to NuGet.org on `release: types: [published]`, which a
+# draft does not emit. Clicking Publish stays a deliberate human action.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to draft, bare (e.g. 9.3.0). Leave empty to use the computed minimum."
+        required: false
+        type: string
+      notes:
+        description: "Full release-notes markdown. Must start with '# <version>'."
+        required: true
+        type: string
+
+permissions:
+  contents: write # gh release create
+
+jobs:
+  draft:
+    name: Draft release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: master
+          fetch-depth: 0 # the tag existence check below needs the tags
+
+      - name: Guard the dispatch ref
+        shell: bash
+        # The checkout above pins master regardless of the dispatch ref, so a dispatch from
+        # a feature branch would silently draft master's tree under that branch's apparent
+        # intent. Refuse rather than surprise. Checked before any expensive step.
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          if [[ "$DISPATCH_REF" != "refs/heads/master" ]]; then
+            echo "::error::Dispatch this workflow from master (got '$DISPATCH_REF'); releases are cut from master."
+            exit 1
+          fi
+
+      - name: Setup .NET 10.0
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Set Cobalt packages token
+        run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> "$GITHUB_ENV"
+
+      - name: Pack nupkgs
+        # A high version keeps AssemblyVersion above any baseline so the forward comparison
+        # doesn't report CP0003 ordering noise. PackageValidation is off because ApiCompat
+        # runs explicitly below. Mirrors the API Compatibility job in pull_request.yml.
+        run: |
+          dotnet pack --configuration Release \
+            -p:ContinuousIntegrationBuild=true \
+            -p:Version=99.99.99 \
+            -p:EnablePackageValidation=false \
+            --output ./artifacts/new
+
+      - name: Install Microsoft.DotNet.ApiCompat.Tool
+        run: dotnet tool install --global Microsoft.DotNet.ApiCompat.Tool
+
+      - name: Compute the minimum version the API surface allows
+        id: floor
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ./artifacts/baseline
+
+          # The set to check is derived from what the pack step actually produced rather than
+          # from a hand-maintained list. A list has to be updated whenever a project becomes
+          # packable and silently under-checks until someone remembers: RedisLockProvider went
+          # four releases unchecked that way. The glob excludes .snupkg (symbols), and the
+          # version is stripped by pattern so the pack step's version can change freely.
+          mapfile -t PACKAGES < <(
+            find ./artifacts/new -maxdepth 1 -name '*.nupkg' -printf '%f\n' \
+              | sed -E 's/\.[0-9]+(\.[0-9]+)*(-[0-9A-Za-z.]+)?\.nupkg$//' | sort
+          )
+          if [[ ${#PACKAGES[@]} -eq 0 ]]; then
+            echo "::error::No packages found under ./artifacts/new — the pack step produced nothing, so this check would pass vacuously."
+            exit 1
+          fi
+          echo "Derived ${#PACKAGES[@]} package(s) from the pack output: ${PACKAGES[*]}"
+
+          latest_stable() { # $1 = lower-case package id
+            curl -fsSL "https://api.nuget.org/v3-flatcontainer/$1/index.json" \
+              | grep -oE '"[0-9][^"]+"' | tr -d '"' | grep -v -- '-' | sort -V | tail -n 1
+          }
+
+          # The release line to bump from. NuGet is authoritative: the declared baseline can
+          # legitimately lag it (bump-baseline.yml runs after publish, and its own docs
+          # describe a race that can leave it stale), so a disagreement is worth surfacing
+          # but must not decide the arithmetic.
+          PREV="$(latest_stable wopihost.core)"
+          DECLARED="$(sed -n 's:.*<PackageValidationBaselineVersion>\([^<]*\)</PackageValidationBaselineVersion>.*:\1:p' Directory.Build.props | head -n 1)"
+          if [[ "$PREV" != "$DECLARED" ]]; then
+            echo "::warning::PackageValidationBaselineVersion is $DECLARED but NuGet's latest stable WopiHost.Core is $PREV. Using $PREV."
+          fi
+          echo "Previous release: $PREV"
+
+          FLOOR="patch"
+          BREAKS=""
+          ADDITIONS=""
+          for pkg in "${PACKAGES[@]}"; do
+            pkg_lower="$(echo "$pkg" | tr '[:upper:]' '[:lower:]')"
+            new_nupkg="$(find ./artifacts/new -maxdepth 1 -name "${pkg}.*.nupkg" | head -n 1)"
+            if [[ -z "$new_nupkg" ]]; then
+              echo "::warning::No nupkg packed for $pkg — it cannot contribute to the floor."
+              continue
+            fi
+            base_version="$(latest_stable "$pkg_lower" || true)"
+            if [[ -z "$base_version" ]]; then
+              echo "$pkg: no prior release, skipping"
+              continue
+            fi
+            base_nupkg="./artifacts/baseline/${pkg}.${base_version}.nupkg"
+            curl -fsSL "https://api.nuget.org/v3-flatcontainer/${pkg_lower}/${base_version}/${pkg_lower}.${base_version}.nupkg" -o "$base_nupkg"
+
+            # apicompat exits 0 on both clean and break cases, so findings are detected from
+            # the output text (same as pull_request.yml).
+            #
+            # Forward: what the new surface removes or changes => a breaking change.
+            # Deliberately WITHOUT --suppression-file. A suppression records that a break was
+            # intentional, not that it did not happen; for versioning it is exactly the signal
+            # that a major bump is due.
+            set +e
+            fwd="$(apicompat package "$new_nupkg" --baseline-package "$base_nupkg" --run-api-compat --verbosity Normal 2>&1)"
+            # Reverse: treating the old package as the "new" side reports everything present
+            # in the new surface but absent from the old — i.e. additions. CP0003 is assembly
+            # version ordering, which is meaningless in this direction.
+            rev="$(apicompat package "$base_nupkg" --baseline-package "$new_nupkg" --run-api-compat --verbosity Normal 2>&1)"
+            set -e
+
+            if grep -Eq '^(CP|PKV)[0-9]+:' <<< "$fwd"; then
+              FLOOR="major"
+              BREAKS="${BREAKS}${pkg} "
+            elif grep -E '^(CP|PKV)[0-9]+:' <<< "$rev" | grep -qv '^CP0003:'; then
+              [[ "$FLOOR" == "patch" ]] && FLOOR="minor"
+              ADDITIONS="${ADDITIONS}${pkg} "
+            fi
+          done
+
+          IFS=. read -r MAJ MIN PAT <<< "${PREV%%-*}"
+          case "$FLOOR" in
+            major) MIN_VERSION="$((MAJ+1)).0.0" ;;
+            minor) MIN_VERSION="${MAJ}.$((MIN+1)).0" ;;
+            patch) MIN_VERSION="${MAJ}.${MIN}.$((PAT+1))" ;;
+          esac
+
+          {
+            echo "prev=$PREV"
+            echo "bump=$FLOOR"
+            echo "min-version=$MIN_VERSION"
+            echo "breaks=$BREAKS"
+            echo "additions=$ADDITIONS"
+          } >> "$GITHUB_OUTPUT"
+          echo "Computed bump: $FLOOR (minimum $MIN_VERSION)"
+          [[ -n "$BREAKS" ]]    && echo "  breaking changes in: $BREAKS"
+          [[ -n "$ADDITIONS" ]] && echo "  additive changes in: $ADDITIONS"
+          exit 0
+
+      - name: Create the draft
+        shell: bash
+        # Dispatch inputs and event data enter the script through env vars rather than
+        # ${{ }} interpolation into the script body, so a crafted input can't inject
+        # shell syntax. Same rationale as bump-baseline.yml. This matters more than usual
+        # here: NOTES is a large free-form blob of markdown.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_NOTES: ${{ inputs.notes }}
+          PREV: ${{ steps.floor.outputs.prev }}
+          FLOOR_BUMP: ${{ steps.floor.outputs.bump }}
+          MIN_VERSION: ${{ steps.floor.outputs.min-version }}
+          BREAKS: ${{ steps.floor.outputs.breaks }}
+          ADDITIONS: ${{ steps.floor.outputs.additions }}
+        run: |
+          set -euo pipefail
+
+          VERSION="$INPUT_VERSION"
+          if [[ -z "$VERSION" ]]; then
+            VERSION="$MIN_VERSION"
+            echo "No version supplied — using the computed minimum $VERSION ($FLOOR_BUMP bump from $PREV)."
+          fi
+
+          # Everything downstream (tag, title) assumes a plain version string; refuse
+          # anything shaped differently at the boundary.
+          if [[ ! "$VERSION" =~ ^[0-9]+(\.[0-9]+){1,3}(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::'$VERSION' is not a bare version string (expected e.g. 9.3.0, with no leading 'v')."
+            exit 1
+          fi
+
+          # The floor is a minimum, never a target: going higher is always allowed, because
+          # a behavioural break with an unchanged API surface (a new runtime requirement, a
+          # changed default) is invisible to ApiCompat and only a human can call it.
+          # Comparing numeric cores only — a prerelease suffix doesn't change the release line.
+          REQ_CORE="${VERSION%%-*}"
+          LOWEST="$(printf '%s\n%s\n' "$REQ_CORE" "$MIN_VERSION" | sort -V | head -n 1)"
+          if [[ "$REQ_CORE" != "$MIN_VERSION" && "$LOWEST" == "$REQ_CORE" ]]; then
+            echo "::error::$VERSION is below the minimum $MIN_VERSION. The public API surface since $PREV implies a $FLOOR_BUMP bump${BREAKS:+ (breaking changes in: $BREAKS)}${ADDITIONS:+ (additions in: $ADDITIONS)}."
+            exit 1
+          fi
+          if [[ "$REQ_CORE" != "$MIN_VERSION" ]]; then
+            echo "::notice::$VERSION is above the computed minimum $MIN_VERSION — assuming a deliberate bump (e.g. a behavioural break ApiCompat cannot see)."
+          fi
+
+          # A tag or release already carrying this version means the release happened;
+          # drafting over it would either fail confusingly or shadow the real one.
+          if git rev-parse -q --verify "refs/tags/${VERSION}" >/dev/null; then
+            echo "::error::Tag $VERSION already exists — that version has been released."
+            exit 1
+          fi
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "::error::A release (or draft) for $VERSION already exists: delete it first, or pick another version."
+            exit 1
+          fi
+
+          # printf rather than echo: the notes are arbitrary markdown and must reach the
+          # file byte-for-byte, without backslash interpretation or a leading-dash arg.
+          NOTES_FILE="$(mktemp)"
+          printf '%s' "$INPUT_NOTES" > "$NOTES_FILE"
+          if [[ ! -s "$NOTES_FILE" ]]; then
+            echo "::error::The notes input is empty."
+            exit 1
+          fi
+
+          # Cheap guard against drafting one version with another's notes; the heading is
+          # the only in-content marker of what the notes describe. A warning, not an error —
+          # a heading style change shouldn't be able to block a release.
+          HEADING="$(head -n 1 "$NOTES_FILE")"
+          if [[ "$HEADING" != "# ${VERSION}" ]]; then
+            echo "::warning::Notes start with '$HEADING', expected '# ${VERSION}'. Check they match the version."
+          fi
+
+          # Target the exact commit rather than the branch name: master can move between
+          # this run and the eventual Publish, and the tag is created from the stored
+          # target at publish time.
+          SHA="$(git rev-parse HEAD)"
+          URL="$(gh release create "$VERSION" \
+            --draft \
+            --target "$SHA" \
+            --title "$VERSION" \
+            --notes-file "$NOTES_FILE")"
+
+          echo "Draft created at $URL (from $SHA)"
+          {
+            echo "### Draft release \`${VERSION}\` created"
+            echo
+            echo "- $URL"
+            echo "- Target commit: \`${SHA}\`"
+            echo "- Previous release: \`${PREV}\` — API surface implies a **${FLOOR_BUMP}** bump (minimum \`${MIN_VERSION}\`)"
+            [[ -n "$BREAKS" ]]    && echo "- Breaking changes in: \`${BREAKS}\`"
+            [[ -n "$ADDITIONS" ]] && echo "- Additive changes in: \`${ADDITIONS}\`"
+            echo
+            echo "Review it, then click **Publish** in the GitHub UI — that is what fires \`release.yml\` and pushes to NuGet.org."
+          } >> "$GITHUB_STEP_SUMMARY"

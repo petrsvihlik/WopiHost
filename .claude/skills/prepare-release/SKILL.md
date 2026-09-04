@@ -22,10 +22,12 @@ Repo: `petrsvihlik/WopiHost`. Tags are bare semver (`8.0.0`, not `v8.0.0`); the 
 
 ## Inputs
 
-- **New version** (required) — e.g. `9.0.0`. If the user didn't say it, ask. Pick the bump per
-  semver from the actual change surface: any public-API break → major; new back-compatible API →
-  minor; fixes only → patch. The repo is in API-stabilization, so breaking changes are expected
-  and land as majors.
+- **New version** (optional) — e.g. `9.0.0`. `draft-release.yml` computes the minimum the public
+  API surface allows (ApiCompat run in both directions against the last NuGet release: removals or
+  changes → major, additions only → minor, neither → patch) and uses it when no version is given.
+  Supply one only to go *above* that floor — the case ApiCompat cannot see: a behavioural break
+  with an unchanged surface, like 9.2.0's new "requires Redis 8.4+" runtime requirement. The
+  workflow refuses anything below the floor.
 - **Previous tag** (auto) — the latest published release (`gh release list -L 1` /
   `gh release view --json tagName`). Override only if the user names a different base.
 
@@ -96,34 +98,59 @@ If there are no public-API breaks, omit both sections (a minor/patch release).
 ## Step 5 — Assemble the notes
 
 Follow the skeleton in `references/format.md`. End with the verbatim `Full Changelog` compare link
-from Step 1. Write the whole thing to a file so it can feed `--notes-file` and be shown to the user:
+from Step 1. The first line must be `# <NEW_VERSION>` — the drafting workflow warns when the
+heading and the version disagree, which catches notes pasted from the previous release.
+
+Write them to a scratch file so they can be shown to the user and fed to the dispatch:
 
 ```
 artifacts/release-notes-<NEW_VERSION>.md
 ```
 
-(`artifacts/` is git-ignored, so the file isn't committed.)
+`artifacts/` is git-ignored, deliberately. The notes are not committed: once the release is
+published, GitHub Releases is their single source of truth, and a copy in the repo would go stale
+the first time someone edits the draft in the UI before publishing.
 
 ## Step 6 — Create the draft release
 
+The draft is created by the `draft-release.yml` workflow rather than by a local `gh` invocation,
+because the notes are usually written in a session that has no GitHub CLI credentials — and giving
+one a release-scoped token would put a credential that can publish to NuGet.org somewhere it is
+stored in plaintext. The workflow authenticates with its own `GITHUB_TOKEN` instead.
+
+Dispatch it with the notes content, and a version only to override the computed floor. From a
+Claude session that is the GitHub MCP server's `actions_run_trigger` on `draft-release.yml` with
+`ref: master`; from a shell:
+
 ```bash
-gh release create <NEW_VERSION> \
-  --repo petrsvihlik/WopiHost \
-  --draft \
-  --target master \
-  --title "<NEW_VERSION>" \
-  --notes-file artifacts/release-notes-<NEW_VERSION>.md
+# Version computed from the API surface:
+gh workflow run draft-release.yml --repo petrsvihlik/WopiHost --ref master \
+  -F notes=@artifacts/release-notes-<NEW_VERSION>.md
+
+# Or pinned, to go above the floor:
+gh workflow run draft-release.yml --repo petrsvihlik/WopiHost --ref master \
+  -f version=<NEW_VERSION> \
+  -F notes=@artifacts/release-notes-<NEW_VERSION>.md
 ```
 
-`--draft` is mandatory — it creates the tag-less draft without firing the NuGet publish workflow.
-Print the resulting draft URL. Then show the user the full notes as a copy-pasteable fenced block
-(wrap in a 4-backtick ```` ```` ```` fence so the inner ` ```diff ` blocks survive) and tell them:
-review in the UI, edit if needed, and click **Publish** to tag + ship to NuGet.
+Then read the run's job summary for the draft URL and report it.
+
+The workflow only ever creates drafts, and refuses to run if the version is below the computed
+floor or malformed, the notes are empty, the tag or a release for that version already exists, or
+it is dispatched from anything but master. Notes travel as a `workflow_dispatch` input, which
+caps the whole inputs payload at 65,535 characters — far above any release so far, and a breach
+fails the dispatch loudly rather than truncating.
+
+**Never publish.** `release.yml` triggers on `release: types: [published]`, so publishing is what
+pushes packages to NuGet.org — a draft emits no such event. Tell the user to review the draft in
+the UI, edit if needed, and click **Publish** themselves.
 
 ## Guardrails
 
-- **Never** run `gh release create` without `--draft`, and never `gh release edit --draft=false` /
-  publish. Tagging + publish is the user's call because it triggers NuGet push.
+- **Never** publish. `draft-release.yml` can only create drafts; if you fall back to a local
+  `gh release create`, `--draft` is mandatory. Never `gh release edit --draft=false`, and never
+  add a publish step to the workflow. Tagging + publish is the user's call because it triggers
+  the NuGet push.
 - Don't invent PRs, issue numbers, or API shapes — every cited `#N` comes from the raw changelog or
   a real `gh pr` lookup; every migration diff reflects code you actually read.
 - Keep prose in the repo's comment/voice style: concrete, third-person, no meta-narration.
