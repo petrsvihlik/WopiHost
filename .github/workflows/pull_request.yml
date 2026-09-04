@@ -180,6 +180,7 @@ jobs:
           "WopiHost.MemoryLockProvider"
           "WopiHost.AzureStorageProvider"
           "WopiHost.AzureLockProvider"
+          "WopiHost.RedisLockProvider"
         )
 
         REPORT_FILE="$GITHUB_WORKSPACE/apicompat-report.md"

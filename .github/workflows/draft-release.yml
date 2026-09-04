@@ -84,9 +84,9 @@ jobs:
           set -euo pipefail
           mkdir -p ./artifacts/baseline
 
-          # Every package with a prior NuGet release. Kept deliberately broader than the
-          # API Compatibility job in pull_request.yml, which omits RedisLockProvider: a
-          # break there must still raise the floor.
+          # Every package with a prior NuGet release. Keep in step with the PACKAGES list in
+          # pull_request.yml's API Compatibility job; a package missing here cannot raise the
+          # floor, so an omission silently understates the required bump.
           PACKAGES=(
             "WopiHost.Abstractions"
             "WopiHost.Core"
