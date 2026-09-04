@@ -8,9 +8,18 @@ permissions:
   contents: read
   pull-requests: write
 
+# Supersede an in-flight run for the same PR rather than letting both finish: the two
+# race to write the same sticky comments and check statuses, and the loser can be the
+# newer one. Runs on master, releases and schedules are never cancelled — each commit's
+# result is wanted on its own.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   label:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
         with:

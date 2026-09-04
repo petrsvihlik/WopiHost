@@ -15,9 +15,18 @@ permissions:
   id-token: write # Required for OIDC
   pull-requests: write # Required for the api-compat sticky comment
 
+# Supersede an in-flight run for the same PR rather than letting both finish: the two
+# race to write the same sticky comments and check statuses, and the loser can be the
+# newer one. Runs on master, releases and schedules are never cancelled — each commit's
+# result is wanted on its own.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   approve:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
     - name: Approve
@@ -25,6 +34,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     needs: [approve]
     environment:
@@ -109,6 +119,7 @@ jobs:
     # dependency-free FileSystemProvider tests on the other OSes/architectures.
     name: FS owner lookup (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     needs: [approve]
     strategy:
       fail-fast: false
@@ -139,6 +150,7 @@ jobs:
   api-compat:
     name: API Compatibility
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: [approve]
     environment:
       name: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'Integrate Pull Request' || '' }}

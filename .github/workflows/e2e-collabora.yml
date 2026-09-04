@@ -23,6 +23,12 @@ on:
 permissions:
   contents: read
 
+# One run at a time. Nothing is cancelled: every commit, release and scheduled run is
+# wanted on its own, so overlapping runs queue rather than supersede each other.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   e2e:
     name: Collabora end-to-end
