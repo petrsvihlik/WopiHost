@@ -1,0 +1,13 @@
+name: Set up the .NET SDK
+description: >
+  Installs the SDK version global.json pins. Exists so that pin and the setup-dotnet SHA live
+  in one place rather than twelve: a Dependabot bump of the action rewrote the same line in
+  nine workflows, and the SDK version itself was hardcoded twelve times before it moved to
+  global.json. Lanes needing an extra SDK (the net8-targeted WOPI validator, the .NET 11
+  preview) add their own setup-dotnet step alongside this one — setup-dotnet is additive.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      with:
+        global-json-file: global.json

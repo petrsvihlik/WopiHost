@@ -65,10 +65,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup .NET
+        uses: ./.github/actions/setup-dotnet-sdk
+      - name: Set up the .NET 8 SDK (for the net8-targeted WOPI validator)
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          global-json-file: global.json
-          # The upstream Microsoft.Office.WopiValidator package targets net8.0.
           dotnet-version: 8.0.x
 
       - name: Set Cobalt packages token
