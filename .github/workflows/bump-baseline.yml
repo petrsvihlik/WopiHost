@@ -150,6 +150,41 @@ jobs:
             git rm --quiet "${files[@]}"
           fi
 
+      # GITHUB_TOKEN must not author this PR. GitHub raises no pull_request_target for events
+      # it triggers, so Build, API Compatibility and the WOPI validator never ran on a baseline
+      # bump: 9.0.0 through 9.3.0 all merged carrying only the pull_request-triggered checks.
+      # dependabot-rebase-queue.yml documents the same rule for pushes.
+      #
+      # An app installation token is preferred — it belongs to the repository rather than to a
+      # person and has no expiry to renew. Provisioning is two settings: the app's numeric id in
+      # the BASELINE_AUTOMATION_APP_ID repository *variable* (an app id is not a secret) and its
+      # PEM in the BASELINE_AUTOMATION_APP_PRIVATE_KEY secret. The app needs contents: write and
+      # pull requests: write on this repository.
+      - name: Mint a GitHub App token
+        id: app-token
+        if: ${{ vars.BASELINE_AUTOMATION_APP_ID != '' }}
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.BASELINE_AUTOMATION_APP_ID }}
+          private-key: ${{ secrets.BASELINE_AUTOMATION_APP_PRIVATE_KEY }}
+
+      # Names the identity in the log so a silently degraded run is visible. Only the presence
+      # of each credential crosses into the script, never its value.
+      - name: Report which identity opens the PR
+        env:
+          APP_TOKEN_PRESENT: ${{ steps.app-token.outputs.token != '' }}
+          PAT_PRESENT: ${{ secrets.DEPENDABOT_AUTOMATION_PAT != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$APP_TOKEN_PRESENT" == "true" ]]; then
+            echo "Opening the PR as the GitHub App installation."
+          elif [[ "$PAT_PRESENT" == "true" ]]; then
+            echo "Opening the PR with DEPENDABOT_AUTOMATION_PAT."
+          else
+            echo "::warning::Neither a GitHub App token nor DEPENDABOT_AUTOMATION_PAT is available, so the PR is opened with GITHUB_TOKEN. GitHub suppresses pull_request_target for GITHUB_TOKEN-authored PRs, so Build, API Compatibility and the WOPI validator will not run on it — review the bump manually before merging."
+          fi
+
       - name: Open PR with the bump
         # peter-evans/create-pull-request is intentionally idempotent: if Directory.Build.props
         # has no diff (because CURRENT was already at NEW, or because the backward-bump guard
@@ -158,7 +193,10 @@ jobs:
         # spawning duplicates.
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Falls through the same way dependabot-auto-merge.yml and dependabot-rebase-queue.yml
+          # do. A skipped app-token step leaves its output empty, so the chain degrades without
+          # a condition of its own.
+          token: ${{ steps.app-token.outputs.token || secrets.DEPENDABOT_AUTOMATION_PAT || secrets.GITHUB_TOKEN }}
           branch: chore/bump-package-validation-baseline-${{ steps.target.outputs.version }}
           base: master
           commit-message: "chore: bump PackageValidationBaselineVersion to ${{ steps.target.outputs.version }}"
