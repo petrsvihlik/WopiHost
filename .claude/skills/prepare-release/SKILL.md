@@ -96,34 +96,47 @@ If there are no public-API breaks, omit both sections (a minor/patch release).
 ## Step 5 — Assemble the notes
 
 Follow the skeleton in `references/format.md`. End with the verbatim `Full Changelog` compare link
-from Step 1. Write the whole thing to a file so it can feed `--notes-file` and be shown to the user:
+from Step 1. Write the whole thing to:
 
 ```
-artifacts/release-notes-<NEW_VERSION>.md
+.github/release-notes/<NEW_VERSION>.md
 ```
 
-(`artifacts/` is git-ignored, so the file isn't committed.)
+This path is committed, not scratch: `draft-release.yml` reads the notes from it, and putting them
+in a PR gets them reviewed before anything is drafted. The first line must be `# <NEW_VERSION>` —
+the workflow warns when the heading and the version disagree, which catches notes pasted from the
+previous release.
 
 ## Step 6 — Create the draft release
 
-```bash
-gh release create <NEW_VERSION> \
-  --repo petrsvihlik/WopiHost \
-  --draft \
-  --target master \
-  --title "<NEW_VERSION>" \
-  --notes-file artifacts/release-notes-<NEW_VERSION>.md
-```
+The draft is created by the `draft-release.yml` workflow rather than by a local `gh` invocation,
+because the notes are usually written in a session that has no GitHub CLI credentials — and giving
+one a release-scoped token would put a credential that can publish to NuGet.org somewhere it is
+stored in plaintext. The workflow authenticates with its own `GITHUB_TOKEN` instead.
 
-`--draft` is mandatory — it creates the tag-less draft without firing the NuGet publish workflow.
-Print the resulting draft URL. Then show the user the full notes as a copy-pasteable fenced block
-(wrap in a 4-backtick ```` ```` ```` fence so the inner ` ```diff ` blocks survive) and tell them:
-review in the UI, edit if needed, and click **Publish** to tag + ship to NuGet.
+1. Commit the notes on a branch, open a PR, and merge it. The workflow reads master.
+2. Dispatch the workflow with the version as its only input — from a Claude session, the GitHub
+   MCP server's `actions_run_trigger` on `draft-release.yml`; from a shell:
+
+   ```bash
+   gh workflow run draft-release.yml --repo petrsvihlik/WopiHost --ref master -f version=<NEW_VERSION>
+   ```
+
+3. Read the run's job summary for the draft URL and report it.
+
+The workflow only ever creates drafts, and refuses to run if the tag or a release for that version
+already exists, if the notes file is missing, or if it is dispatched from anything but master.
+
+**Never publish.** `release.yml` triggers on `release: types: [published]`, so publishing is what
+pushes packages to NuGet.org — a draft emits no such event. Tell the user to review the draft in
+the UI, edit if needed, and click **Publish** themselves.
 
 ## Guardrails
 
-- **Never** run `gh release create` without `--draft`, and never `gh release edit --draft=false` /
-  publish. Tagging + publish is the user's call because it triggers NuGet push.
+- **Never** publish. `draft-release.yml` can only create drafts; if you fall back to a local
+  `gh release create`, `--draft` is mandatory. Never `gh release edit --draft=false`, and never
+  add a publish step to the workflow. Tagging + publish is the user's call because it triggers
+  the NuGet push.
 - Don't invent PRs, issue numbers, or API shapes — every cited `#N` comes from the raw changelog or
   a real `gh pr` lookup; every migration diff reflects code you actually read.
 - Keep prose in the repo's comment/voice style: concrete, third-person, no meta-narration.

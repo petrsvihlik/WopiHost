@@ -1,0 +1,108 @@
+name: Draft release
+
+# Creates a DRAFT GitHub Release from notes committed under .github/release-notes/.
+#
+# Why a workflow instead of running `gh release create` by hand: the notes are written by
+# the prepare-release skill in a session that has no GitHub CLI credentials, and handing
+# one a release-scoped PAT would put a token that can publish to NuGet.org into an
+# environment that stores it in plaintext. Dispatching this workflow instead keeps the
+# credential inside Actions — the job authenticates with its own GITHUB_TOKEN.
+#
+# This workflow only ever creates DRAFTS, and that is a structural guarantee rather than a
+# convention: release.yml publishes to NuGet.org on `release: types: [published]`, which a
+# draft does not emit. Clicking Publish stays a deliberate human action.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to draft, e.g. 9.3.0 (bare — this repo's tags carry no leading 'v')"
+        required: true
+        type: string
+
+permissions:
+  contents: write # gh release create
+
+jobs:
+  draft:
+    name: Draft release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: master
+          fetch-depth: 0 # tag existence check below needs the tags
+
+      - name: Create the draft
+        shell: bash
+        # Dispatch input and event data enter the script through env vars rather than
+        # ${{ }} interpolation into the script body, so a crafted input can't inject
+        # shell syntax. Same rationale as bump-baseline.yml.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_VERSION: ${{ inputs.version }}
+          DISPATCH_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+
+          # The checkout above pins master regardless of the dispatch ref, so a dispatch
+          # from a feature branch would silently draft master's tree under that branch's
+          # apparent intent. Refuse rather than surprise.
+          if [[ "$DISPATCH_REF" != "refs/heads/master" ]]; then
+            echo "::error::Dispatch this workflow from master (got '$DISPATCH_REF'); releases are cut from master."
+            exit 1
+          fi
+
+          VERSION="$INPUT_VERSION"
+          # Everything downstream (tag, file path, title) assumes a plain version string;
+          # refuse anything shaped differently at the boundary.
+          if [[ ! "$VERSION" =~ ^[0-9]+(\.[0-9]+){1,3}(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::'$VERSION' is not a bare version string (expected e.g. 9.3.0, with no leading 'v')."
+            exit 1
+          fi
+
+          NOTES=".github/release-notes/${VERSION}.md"
+          if [[ ! -f "$NOTES" ]]; then
+            echo "::error::No notes at $NOTES — commit the release notes there first (see .claude/skills/prepare-release)."
+            exit 1
+          fi
+
+          # A tag or release already carrying this version means the release happened;
+          # drafting over it would either fail confusingly or shadow the real one.
+          if git rev-parse -q --verify "refs/tags/${VERSION}" >/dev/null; then
+            echo "::error::Tag $VERSION already exists — that version has been released."
+            exit 1
+          fi
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "::error::A release (or draft) for $VERSION already exists: delete it first, or pick another version."
+            exit 1
+          fi
+
+          # Cheap guard against drafting one version with another's notes; the heading is
+          # the only in-file marker of what the notes describe. A warning, not an error —
+          # a heading style change shouldn't be able to block a release.
+          HEADING="$(head -n 1 "$NOTES")"
+          if [[ "$HEADING" != "# ${VERSION}" ]]; then
+            echo "::warning::$NOTES starts with '$HEADING', expected '# ${VERSION}'. Check the notes match the version."
+          fi
+
+          # Target the exact commit rather than the branch name: master can move between
+          # this run and the eventual Publish, and the tag is created from the stored
+          # target at publish time.
+          SHA="$(git rev-parse HEAD)"
+          URL="$(gh release create "$VERSION" \
+            --draft \
+            --target "$SHA" \
+            --title "$VERSION" \
+            --notes-file "$NOTES")"
+
+          echo "Draft created at $URL (from $SHA)"
+          {
+            echo "### Draft release \`${VERSION}\` created"
+            echo
+            echo "- $URL"
+            echo "- Target commit: \`${SHA}\`"
+            echo "- Notes: \`${NOTES}\`"
+            echo
+            echo "Review it, then click **Publish** in the GitHub UI — that is what fires \`release.yml\` and pushes to NuGet.org."
+          } >> "$GITHUB_STEP_SUMMARY"
