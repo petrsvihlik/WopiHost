@@ -26,7 +26,7 @@ jobs:
     - name: Setup .NET 10.0
       uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
       with:
-        dotnet-version: '10.0.x'
+        global-json-file: global.json
     - name: Extract version from tag
       id: get_version
       run: |
@@ -38,6 +38,20 @@ jobs:
       run: dotnet restore
     - name: Build
       run: dotnet build --no-restore --configuration Release /p:ContinuousIntegrationBuild=true /p:Version="${{ steps.get_version.outputs.version-without-v }}"
+    - name: Install Playwright browsers (for sample-app smoke tests)
+      # The smoke tests carry no Category=E2E trait, so the default filter runs them here too.
+      # Without this step PlaywrightFixture falls back to downloading Chromium mid-test, with no
+      # retry — and this workflow runs on `release: published`, so a transient failure lands after
+      # the tag and release already exist. Installing upfront keeps that off the release path.
+      shell: bash
+      run: |
+        set -euo pipefail
+        script="$(find artifacts/bin -name playwright.ps1 -print -quit)"
+        if [[ -z "$script" ]]; then
+          echo "::error::No playwright.ps1 found under artifacts/bin — the build output moved, or Playwright is no longer referenced."
+          exit 1
+        fi
+        pwsh "$script" install --with-deps chromium
     - name: Pre-pull Testcontainers images
       uses: ./.github/actions/prepull-testcontainers-images
     - name: Test

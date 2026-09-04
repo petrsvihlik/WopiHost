@@ -44,8 +44,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install Semgrep
-        # Pinned like every other CI dependency. Dependabot doesn't manage pipx
-        # run-lines, so bump the version manually now and then.
+        # Pinned like every other CI dependency. Dependabot has no ecosystem that reads a
+        # version out of a shell command, so a Renovate custom manager tracks this line.
         run: pipx install semgrep==1.168.0
 
       - name: Run guardrail rules

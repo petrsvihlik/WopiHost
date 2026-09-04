@@ -41,7 +41,7 @@ jobs:
       - name: Setup .NET 10.0
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       - name: Set Cobalt packages token
         run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
@@ -53,10 +53,20 @@ jobs:
         run: dotnet build test/WopiHost.E2ETests/WopiHost.E2ETests.csproj --no-restore /p:ContinuousIntegrationBuild=true
 
       - name: Install Playwright browsers
-        # --with-deps installs the apt packages Chromium needs on a fresh ubuntu-latest. The build
-        # emits playwright.ps1 next to the test assembly under artifacts/bin/ (the repo uses
-        # UseArtifactsOutput); the path mirrors the Collabora e2e step.
-        run: pwsh artifacts/bin/WopiHost.E2ETests/debug/playwright.ps1 install --with-deps chromium
+        # Locate the generated helper instead of hardcoding a path: the literal encoded the
+        # artifacts layout, the project name and the *Debug* configuration at once, so a lane
+        # building Release would silently get a wrong path. --with-deps installs the apt packages
+        # Chromium needs on a fresh runner. Installing a browser is per-runner, so whichever
+        # project's copy of the script is found will do. Idempotent — caches in ~/.cache.
+        shell: bash
+        run: |
+          set -euo pipefail
+          script="$(find artifacts/bin -name playwright.ps1 -print -quit)"
+          if [[ -z "$script" ]]; then
+            echo "::error::No playwright.ps1 found under artifacts/bin — the build output moved, or Playwright is no longer referenced."
+            exit 1
+          fi
+          pwsh "$script" install --with-deps chromium
 
       - name: Pre-pull ONLYOFFICE image
         # Pre-pulling outside the test makes the fixture's healthcheck timeout bound the runtime cost

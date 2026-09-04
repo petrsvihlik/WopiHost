@@ -27,7 +27,7 @@ public sealed class PlaywrightFixture : IAsyncLifetime
         {
             throw new InvalidOperationException(
                 $"Playwright browser install failed with exit code {exitCode}. " +
-                "Run 'pwsh test/WopiHost.SmokeTests/bin/Debug/net10.0/playwright.ps1 install chromium' manually.");
+                "Run 'pwsh artifacts/bin/WopiHost.SmokeTests/debug/playwright.ps1 install chromium' manually.");
         }
 
         Playwright = await Microsoft.Playwright.Playwright.CreateAsync();

@@ -24,7 +24,10 @@ concurrency:
 
 jobs:
   auto-merge:
-    if: github.actor == 'dependabot[bot]'
+    # The PR's author, not the triggering actor: on a `reopened` event github.actor is
+    # whoever reopened it, so a maintainer reopening a Dependabot PR would silently skip
+    # auto-merge.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
