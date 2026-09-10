@@ -78,7 +78,7 @@
          for why the VSTest path is no longer available on the .NET 10 SDK. Needs its
          compile assets: the package's targets generate SelfRegisteredExtensions.cs, which
          references the extension type directly. -->
-    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.10.0" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.0" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="13.5.3" />
     <PackageVersion Include="FakeItEasy" Version="9.0.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.11" />
