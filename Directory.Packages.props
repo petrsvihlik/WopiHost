@@ -26,7 +26,7 @@
     <PackageVersion Include="Scalar.AspNetCore" Version="2.17.3" />
     <PackageVersion Include="Scrutor" Version="7.0.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.9.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.10.0" />
     <!-- WopiHost.RedisLockProvider client. Aspire.Hosting.Redis (below) is what wires the
          Redis container into the AppHost. -->
     <PackageVersion Include="StackExchange.Redis" Version="3.1.31" />
@@ -42,7 +42,7 @@
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.5.3" />
     <!-- Aspire integration for the Redis lock provider opt-in. Only the AppHost needs it. -->
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.5.3" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.9.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
   </ItemGroup>
 
   <!--
