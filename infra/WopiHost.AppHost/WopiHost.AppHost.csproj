@@ -3,7 +3,7 @@
      nuget ecosystem scans PackageReference/PackageVersion elements only and never sees an
      Sdk element, so a Renovate custom manager proposes this pin and the
      VerifyAspireSdkMatchesPackages target below fails the build if the two ever disagree. -->
-<Sdk Name="Aspire.AppHost.Sdk" Version="13.5.3" />
+<Sdk Name="Aspire.AppHost.Sdk" Version="13.5.4" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
