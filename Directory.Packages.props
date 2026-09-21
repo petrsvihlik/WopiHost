@@ -29,7 +29,7 @@
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.10.0" />
     <!-- WopiHost.RedisLockProvider client. Aspire.Hosting.Redis (below) is what wires the
          Redis container into the AppHost. -->
-    <PackageVersion Include="StackExchange.Redis" Version="3.2.0" />
+    <PackageVersion Include="StackExchange.Redis" Version="3.2.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.12" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.8" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
@@ -78,7 +78,7 @@
          for why the VSTest path is no longer available on the .NET 10 SDK. Needs its
          compile assets: the package's targets generate SelfRegisteredExtensions.cs, which
          references the extension type directly. -->
-    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.0" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.2" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="13.5.3" />
     <PackageVersion Include="FakeItEasy" Version="9.0.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
@@ -93,7 +93,7 @@
          library is a class library, not a test project, so it can't pull in the xunit.v3
          metapackage (which would force OutputType=Exe via the MTP entry point). Keep these
          aligned with xunit.v3 above. -->
-    <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.0" />
-    <PackageVersion Include="xunit.v3.assert" Version="4.0.0" />
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.1" />
+    <PackageVersion Include="xunit.v3.assert" Version="4.0.1" />
   </ItemGroup>
 </Project>
