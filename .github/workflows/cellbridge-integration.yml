@@ -1,0 +1,79 @@
+name: CellBridge integration
+
+# Builds WopiHost.CellBridge (the open-source MS-FSSHTTP backend) against a pinned checkout of
+# https://github.com/PatrickMatthiesen/cellbridge and runs its tests. cellbridge has no NuGet or
+# container release yet, so the per-PR build compiles WopiHost.CellBridge as a no-op; this lane is
+# where the real thing gets exercised. Once cellbridge publishes packages, this becomes a plain
+# PackageReference in Directory.Packages.props and the lane folds into the regular build.
+#
+# Weekly (plus workflow_dispatch) rather than nightly: cellbridge moves fast and is explicitly
+# experimental, so a daily red here would be noise rather than signal.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cellbridge-ref:
+        description: PatrickMatthiesen/cellbridge git ref to build against (default = the pinned commit)
+        required: false
+        default: ''
+  schedule:
+    # 04:47 UTC Mondays. Off-the-hour so we're not competing with every other cron for runners.
+    - cron: '47 4 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  # Last commit of cellbridge verified against this repository. Bump deliberately.
+  CELLBRIDGE_PINNED_REF: 10b0f7420332a4d90805124db8a4d48c9125daa4
+
+jobs:
+  build:
+    name: Build and test against cellbridge
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # WopiHost and cellbridge are checked out as siblings: Directory.Build.props resolves
+      # $(CellBridgeRepoRoot) to ../cellbridge, and keeping cellbridge outside this repo's tree is
+      # what stops it from inheriting WopiHost's central package management.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: wopihost
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: PatrickMatthiesen/cellbridge
+          ref: ${{ inputs.cellbridge-ref || env.CELLBRIDGE_PINNED_REF }}
+          path: cellbridge
+
+      - name: Setup .NET
+        # Not the repo's composite action: local actions resolve relative to the workspace root,
+        # and this checkout lives in wopihost/.
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: wopihost/global.json
+
+      - name: Set Cobalt packages token
+        # Package-source mapping keeps the private feed scoped to Microsoft.CobaltCore; set the
+        # token anyway so any incidental restore stays quiet.
+        run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Restore
+        working-directory: wopihost
+        run: dotnet restore WOPI.slnx -p:IncludeCellBridge=true
+
+      - name: Build
+        working-directory: wopihost
+        run: dotnet build WOPI.slnx --no-restore -p:IncludeCellBridge=true /p:ContinuousIntegrationBuild=true
+
+      - name: Test WopiHost.CellBridge
+        working-directory: wopihost
+        run: dotnet test --project test/WopiHost.CellBridge.Tests/WopiHost.CellBridge.Tests.csproj --no-build -p:IncludeCellBridge=true
+
+      - name: Test the sample host with the cellbridge backend wired in
+        working-directory: wopihost
+        run: dotnet test --project test/WopiHost.IntegrationTests/WopiHost.IntegrationTests.csproj --no-build -p:IncludeCellBridge=true

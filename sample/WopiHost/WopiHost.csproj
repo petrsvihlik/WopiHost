@@ -13,6 +13,17 @@
 		</None>
 	</ItemGroup>
 
+	<!-- The cellbridge-backed MS-FSSHTTP processor is only compiled when a sibling cellbridge checkout
+	     exists (see $(IncludeCellBridge) in Directory.Build.props); the matching #if in
+	     ServiceCollectionExtensions keeps Sample:CoauthoringProvider=CellBridge a clear startup error
+	     otherwise instead of a missing-type compile error. -->
+	<ItemGroup Condition="'$(IncludeCellBridge)' == 'true'">
+		<ProjectReference Include="..\..\src\WopiHost.CellBridge\WopiHost.CellBridge.csproj" />
+	</ItemGroup>
+	<PropertyGroup Condition="'$(IncludeCellBridge)' == 'true'">
+		<DefineConstants>$(DefineConstants);INCLUDE_CELLBRIDGE</DefineConstants>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<!--ProjectReference Include="..\WopiHost.Cobalt\WopiHost.Cobalt.csproj" /-->
 		<ProjectReference Include="..\..\src\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj" />

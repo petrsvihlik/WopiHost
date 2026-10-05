@@ -9,6 +9,9 @@ In Office Web Apps 2013, several actions required Cobalt. Office Online Server 2
 > [!IMPORTANT]
 > This package depends on `Microsoft.CobaltCore.dll`, which ships with Office Online Server / Office Web Apps and **cannot be redistributed**. To consume `WopiHost.Cobalt` you must build your own `Microsoft.CobaltCore` NuGet package from a licensed installation. See the [step-by-step wiki guide](https://github.com/petrsvihlik/WopiHost/wiki/Craft-your-own-Microsoft.CobaltCore-NuGet-package).
 
+> [!NOTE]
+> An open-source alternative is taking shape: [WopiHost.CellBridge](../WopiHost.CellBridge/README.md) implements the same `ICobaltProcessor` on top of [PatrickMatthiesen/cellbridge](https://github.com/PatrickMatthiesen/cellbridge) (MIT) with no proprietary dependency. The sample host picks the backend with `Sample:CoauthoringProvider` (`None` / `CobaltCore` / `CellBridge`); `Wopi:UseCobalt=true` still means `CobaltCore`. CellBridge is experimental and its interop with Office Online Server over WOPI is unverified — Cobalt remains the production path.
+
 ## Install
 
 This package is **not published on NuGet.org** — `Microsoft.CobaltCore.dll` is proprietary and cannot be redistributed, so a public NuGet would never restore on someone else's machine. To consume `WopiHost.Cobalt`:
