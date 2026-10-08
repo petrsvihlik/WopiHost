@@ -33,9 +33,12 @@ public class CellBridgeProcessorTests
         A.CallTo(() => file.Exists).Returns(true);
         A.CallTo(() => file.Extension).Returns(extension);
         A.CallTo(() => file.OpenReadAsync(A<CancellationToken>._))
-            .ReturnsLazily(() => Task.FromResult<Stream>(new MemoryStream(content ?? s_content, writable: false)));
+            .ReturnsLazily(() => Task.FromResult(OpenRead(content ?? s_content)));
         return file;
     }
+
+    // The processor owns and disposes the stream it reads.
+    private static Stream OpenRead(byte[] content) => new MemoryStream(content, writable: false);
 
     private static ClaimsPrincipal CreatePrincipal() => new(new ClaimsIdentity(
     [
@@ -85,7 +88,7 @@ public class CellBridgeProcessorTests
     [Fact]
     public async Task ProcessCobalt_AfterDispose_Throws()
     {
-        var processor = CreateProcessor();
+        using var processor = CreateProcessor();
         processor.Dispose();
 
         await Assert.ThrowsAsync<ObjectDisposedException>(
@@ -95,8 +98,7 @@ public class CellBridgeProcessorTests
     [Fact]
     public void Dispose_IsIdempotent()
     {
-        var processor = CreateProcessor();
-        processor.Dispose();
+        using var processor = CreateProcessor();
         processor.Dispose();
     }
 
@@ -216,7 +218,7 @@ public class CellBridgeProcessorTests
     public async Task ProcessCobalt_PutChanges_WritesThePublishedRevisionToTheWopiFile()
     {
         using var processor = CreateProcessor();
-        var written = new MemoryStream();
+        using var written = new MemoryStream();
         // cellbridge accepts a save only as a well-formed Office package for the document's extension.
         var file = CreateFile(content: MinimalDocx("before"), extension: "docx");
         A.CallTo(() => file.OpenWriteAsync(A<CancellationToken>._)).Returns(Task.FromResult<Stream>(written));
@@ -246,7 +248,7 @@ public class CellBridgeProcessorTests
         var file = CreateFile();
         A.CallTo(() => file.OpenReadAsync(A<CancellationToken>._))
             .Throws(new IOException("storage offline")).Once()
-            .Then.ReturnsLazily(() => Task.FromResult<Stream>(new MemoryStream(s_content, writable: false)));
+            .Then.ReturnsLazily(() => Task.FromResult(OpenRead(s_content)));
         var body = CellRequest(new FsshttpbCellSubRequest(RequestTypes.QueryAccess) { RequestId = 1, Data = new QueryAccessSubRequestData() });
 
         await Assert.ThrowsAsync<IOException>(() => processor.ProcessCobalt(file, CreatePrincipal(), body, CancellationToken.None));

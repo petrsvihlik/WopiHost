@@ -7,9 +7,9 @@ namespace WopiHost.CellBridge.Tests;
 
 public class ServiceCollectionExtensionsTests
 {
-    private static IConfiguration Configuration(params (string Key, string Value)[] values) =>
+    private static IConfiguration Configuration(params (string Key, string? Value)[] values) =>
         new ConfigurationBuilder()
-            .AddInMemoryCollection(values.ToDictionary(v => v.Key, v => (string?)v.Value))
+            .AddInMemoryCollection(values.ToDictionary(v => v.Key, v => v.Value))
             .Build();
 
     [Fact]
