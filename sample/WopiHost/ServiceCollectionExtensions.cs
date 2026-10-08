@@ -2,12 +2,10 @@ using System.Runtime.Loader;
 using WopiHost.Abstractions;
 using WopiHost.AzureLockProvider;
 using WopiHost.AzureStorageProvider;
+using WopiHost.CellBridge;
 using WopiHost.FileSystemProvider;
 using WopiHost.MemoryLockProvider;
 using WopiHost.RedisLockProvider;
-#if INCLUDE_CELLBRIDGE
-using WopiHost.CellBridge;
-#endif
 
 namespace WopiHost;
 
@@ -39,10 +37,9 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Which MS-FSSHTTP (co-authoring) backend implements <see cref="ICobaltProcessor"/>. Both
-    /// backends are optional builds: CobaltCore needs the private <c>Microsoft.CobaltCore</c> feed,
-    /// CellBridge needs a sibling checkout of PatrickMatthiesen/cellbridge (see
-    /// <c>src/WopiHost.CellBridge/README.md</c>).
+    /// Which MS-FSSHTTP (co-authoring) backend implements <see cref="ICobaltProcessor"/>. CobaltCore
+    /// is an optional build (it needs the private <c>Microsoft.CobaltCore</c> feed); CellBridge comes
+    /// from NuGet (see <c>src/WopiHost.CellBridge/README.md</c>).
     /// </summary>
     public enum SampleCoauthoringProvider
     {
@@ -110,14 +107,8 @@ public static class ServiceCollectionExtensions
                 services.AddCobalt();
                 return;
             case SampleCoauthoringProvider.CellBridge:
-#if INCLUDE_CELLBRIDGE
                 services.AddCellBridgeProcessor(configuration);
                 return;
-#else
-                throw new InvalidOperationException(
-                    "Sample:CoauthoringProvider=CellBridge requires building with -p:IncludeCellBridge=true " +
-                    "(a cellbridge checkout next to this repository). See src/WopiHost.CellBridge/README.md.");
-#endif
             default:
                 throw new ArgumentOutOfRangeException(nameof(provider), provider, "Unknown sample co-authoring provider.");
         }

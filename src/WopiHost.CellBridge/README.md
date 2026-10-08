@@ -21,15 +21,12 @@ Office Online Server ──X-WOPI-Override: COBALT──▶ WopiHost.Core (POST 
 
 ## Enable it
 
-cellbridge has **no NuGet or container release yet**, so this project consumes its sources from a sibling checkout:
+The adapter consumes cellbridge's prerelease NuGet packages (`CellBridge.AspNetCore` and `CellBridge.Storage.InMemory`; versions in `Directory.Packages.props`, bump both together) and builds with the rest of the solution — no checkout, no private feed:
 
 ```sh
-# next to the WopiHost checkout, so the two trees are siblings
-git clone https://github.com/PatrickMatthiesen/cellbridge ../cellbridge
-dotnet build WOPI.slnx            # IncludeCellBridge auto-detects ../cellbridge/CellBridge.slnx
+dotnet build WOPI.slnx
+dotnet test --project test/WopiHost.CellBridge.Tests/WopiHost.CellBridge.Tests.csproj
 ```
-
-`IncludeCellBridge` (root `Directory.Build.props`) is `true` when the sibling checkout exists and can be forced with `-p:IncludeCellBridge=true|false`; `-p:CellBridgeRepoRoot=<path>` points elsewhere. The checkout must stay **outside** the WopiHost tree, otherwise it inherits WopiHost's central package management and fails to restore. Without the checkout, this project and its tests compile as no-ops, exactly like `WopiHost.Cobalt` without the private feed.
 
 Then in the sample host:
 
@@ -53,18 +50,26 @@ builder.Services.AddCellBridgeProcessor(builder.Configuration);
 
 When `ICobaltProcessor` is registered, `WopiHost.Core` advertises `SupportsCobalt` / `SupportsCoauth` in `CheckFileInfo` and routes `X-WOPI-Override: COBALT` bodies to it.
 
-`.github/workflows/cellbridge-integration.yml` builds this project weekly against a pinned cellbridge commit (`CELLBRIDGE_PINNED_REF`) and runs its tests; bump the pin deliberately when picking up cellbridge changes.
-
 ## Try cellbridge itself
 
-cellbridge's own demo (desktop Office editing against its document library) runs from the WopiHost AppHost with `AppHost:UseCellBridge=true` (built with `IncludeCellBridge`): a PostgreSQL container, schema init, a seeded `integration-writer` account (`AppHost:CellBridgeTestPassword`) and the library at `https://localhost:7292/library`. Windows desktop Office must trust the ASP.NET Core dev certificate; see [cellbridge's demo guide](https://github.com/PatrickMatthiesen/cellbridge/blob/main/docs/demo-library.md). This lane demonstrates cellbridge, not WopiHost + cellbridge: nothing Docker-distributable speaks Cobalt over WOPI.
+cellbridge's own demo (desktop Office editing against its document library) runs from the WopiHost AppHost with `AppHost:UseCellBridge=true`: a PostgreSQL container, schema init, a seeded `integration-writer` account (`AppHost:CellBridgeTestPassword`) and the library at `https://localhost:7292/library`. Windows desktop Office must trust the ASP.NET Core dev certificate; see [cellbridge's demo guide](https://github.com/PatrickMatthiesen/cellbridge/blob/main/docs/demo-library.md). This lane demonstrates cellbridge, not WopiHost + cellbridge: nothing Docker-distributable speaks Cobalt over WOPI.
+
+The demo's host and tools (`CellBridge.Web`, `CellBridge.Demo`, `CellBridge.Storage.Setup`, `CellBridge.Admin`) are not packaged, so the lane builds them from a source checkout:
+
+```sh
+# next to the WopiHost checkout, so the two trees are siblings
+git clone https://github.com/PatrickMatthiesen/cellbridge ../cellbridge
+dotnet build WOPI.slnx            # IncludeCellBridgeDemo auto-detects ../cellbridge/CellBridge.slnx
+```
+
+`IncludeCellBridgeDemo` (root `Directory.Build.props`) can be forced with `-p:IncludeCellBridgeDemo=true|false`; `-p:CellBridgeRepoRoot=<path>` points elsewhere. The checkout must stay **outside** the WopiHost tree, otherwise it inherits WopiHost's central package management and fails to restore. Without it the AppHost compiles without the lane. `.github/workflows/cellbridge-integration.yml` builds the lane weekly against the cellbridge commit the packages were built from (`CELLBRIDGE_PINNED_REF`); move the pin and the package versions together.
 
 ## What is still unknown
 
 1. **The WOPI `COBALT` body framing.** `ICobaltProcessor` receives bytes without a Content-Type. cellbridge parses SOAP (what desktop Office posts to `cellstorage.svc`) and raw MS-FSSHTTPB cell requests; `Microsoft.CobaltCore` reads its own `RequestBatch` wire format, which carries lock/co-auth/editors subrequests *and* cell requests in one binary batch. `WopiCobaltFraming` sniffs for the two framings cellbridge understands and the processor throws `NotSupportedException` (logging the first bytes) for anything else. **The first milestone is capturing a real OOS `COBALT` request** — set the sample's logging to `Debug` and hit the endpoint from an OOS/OWA 2013 session — and teaching cellbridge (or this adapter) that framing. This was also the first step the [#321](https://github.com/petrsvihlik/WopiHost/issues/321) analysis called for.
 2. **MTOM over WOPI.** If OOS posts `multipart/related`, the boundary lives in the Content-Type header the current `ICobaltProcessor` signature drops; the contract would need to carry it.
-3. **Subrequests cellbridge keeps inside its HTTP endpoint.** `EditorsTable`, `GetDocMetaInfo` and `GetVersions` handling is private to `CellBridge.AspNetCore`'s endpoint and answers `NotSupported` here. Upstream feedback for cellbridge: a transport-agnostic `CellStorageRequestProcessor` (request model in, response model out) would let any host embed it without its routes and MS-OFBA sign-in.
-4. **Eviction.** `IDocumentStateStore` has no delete, so imported documents stay in memory for the process lifetime; `CobaltProcessor` evicts idle sessions after 60 minutes. A small wrapper store or an upstream `RemoveAsync` fixes this.
+3. **Subrequests this adapter still dispatches itself.** `EditorsTable`, `GetDocMetaInfo` and `GetVersions` answer `NotSupported` here. cellbridge `0.1.0-beta.2` added `CellBridgeRequestProcessor`, which executes a parsed `CellStorageRequest` without an `HttpContext`; the SOAP path here should delegate to it instead of switching on subrequest types.
+4. **Eviction.** Imported documents stay in memory for the process lifetime; `CobaltProcessor` evicts idle sessions after 60 minutes. beta.2's `IDocumentLifecycleStore.TryDeleteAsync` deletes a document under generation checks, which fits WOPI `DELETE`; dropping an idle document from memory without deleting it is a different operation and still needs a policy here.
 5. **Two-desktop co-authoring** is unverified in cellbridge itself (single-desktop Word/Excel/PowerPoint save + reopen is).
 
 ## How the two sets of abstractions line up
@@ -76,24 +81,24 @@ Side by side, with what the first integration showed about each seam:
 | Published document bytes | `IWopiWritableFile.OpenReadAsync` / `OpenWriteAsync` — one mutable stream per file, committed on dispose | `IContentStore` — immutable, content-addressed blobs (`WriteAsync(stream) → ContentHandle{Sha256}`), used for the materialized package **and** every graph element payload | Half. The materialized package maps cleanly (this adapter mirrors it on publish). Graph payloads are protocol state WopiHost has no slot for and should not grow one — `WopiHost.Cobalt` keeps CobaltCore's `HostBlobStore` private for the same reason. |
 | Protocol state (storage index, knowledge, editors, leases, receipts) | none — `WopiHost.Cobalt` keeps `CobaltFile` sessions and the editors table in process memory | `IDocumentStateStore.TransitionAsync(id, (current, now) => …)` — atomic publish of an immutable `DocumentState` under per-document coordination with authoritative time | No counterpart, and cellbridge's model is the stronger one: a durable, multi-instance co-authoring state store is something WopiHost gains by adopting it rather than wrapping it. |
 | Locks | `IWopiLockProvider` — one lock id per file, 30-minute expiry, CAS (`TryUnlockAndRelockAsync`, `RefreshLockAsync(expected)`) | `CoordinationState` — a schema lock shared by co-authors, an exclusive lease, coauthor transitions | Overlapping but disjoint today: WOPI `PutFile` honours `IWopiLockProvider` while FSSHTTP saves honour the lease — true with CobaltCore as well (`CobaltHostLockingStore` answers every lock request with an empty success). A cellbridge exclusive lease that consults `IWopiLockProvider` would be the first time both save paths share one lock domain. The most valuable unification target. |
-| Document identity | opaque string ids (`IWopiResource.Identifier`, SHA-256 of a canonical path) | `ResourceId` GUID plus URL `PathKey`, both minted by cellbridge | This adapter keeps a map. A host-supplied or deterministically derived `ResourceId` removes it and survives restarts with a durable state store. |
+| Document identity | opaque string ids (`IWopiResource.Identifier`, SHA-256 of a canonical path) | `ResourceId` GUID plus URL `PathKey`; beta.2's `ImportAsync` / `CreateAsync` overloads accept a host-supplied GUID | This adapter still keeps a map. Deriving the GUID from `IWopiResource.Identifier` and passing it in removes the map and survives restarts with a durable state store. |
 | Caller identity | `ClaimsPrincipal` from the WOPI access token (`NameIdentifier`, `Name`) | `CellBridgeActor.FromPrincipal` over `cellbridge:subject` / `cellbridge:display-name` claims | Clean. `ActorFor` maps `NameIdentifier` to `wopi:<id>`. |
-| Permissions | capability-style: `wopi:fperms` baked into the token at mint time, read through `IWopiPermissionProvider.GetFilePermissionsAsync(principal, file)` (async) | ACL-style: `DocumentSecurity` grants stored on the document, evaluated by `ICellBridgeAccessEvaluator.Evaluate(actor, state)` (sync, inside transactions) | Different philosophies, one seam. The token is WOPI's source of truth, so the evaluator defers to it; today it grants read/write unconditionally because the `COBALT` endpoint already requires the token's update permission. Having `QueryAccess` report read-only to a viewer needs the host's decision to travel with the request. |
+| Permissions | capability-style: `wopi:fperms` baked into the token at mint time, read through `IWopiPermissionProvider.GetFilePermissionsAsync(principal, file)` (async) | ACL-style: `DocumentSecurity` grants stored on the document, evaluated by `ICellBridgeAccessEvaluator.Evaluate(actor, state)` (sync, inside transactions) | Different philosophies, one seam. The token is WOPI's source of truth, so the evaluator defers to it; today it grants read/write unconditionally because the `COBALT` endpoint already requires the token's update permission. Having `QueryAccess` report read-only to a viewer needs the host's decision to travel with the request — which is what beta.2's `CellBridgeActor.AccessLimit` (a per-request ceiling scoped to one resource) and `ICellBridgeAuthorizationPolicy` (host-owned, synchronous, snapshots resolved outside transactions) provide. Not adopted here yet. |
 | Sign-in | WOPI access token + proof keys; Office Online Server never sees a login page | MS-OFBA forms sign-in for desktop Office (`CellBridge.Authentication`) | Not applicable over WOPI; stays out. |
 
-What a real unification would need from cellbridge, in priority order:
+What a real unification needs from cellbridge, in priority order, and what `0.1.0-beta.2` already answers. The adapter was written against an earlier commit and adopts none of these yet; that is the next step.
 
-1. A transport-agnostic request processor (SOAP or binary request model in, response model out, no `HttpContext`), so `EditorsTable`, `GetDocMetaInfo`, `GetVersions` and the Coauth transitions are reachable from a host that owns its routes and sign-in.
-2. Host-supplied document identity: `ImportAsync` / `TryCreateAsync` accepting the `ResourceId`, or a documented deterministic derivation.
-3. A per-request access decision on `CellBridgeActor` (or an evaluator overload that receives one), so the host's `IWopiPermissionProvider` result drives `QueryAccess` and write checks instead of stored grants.
-4. A publication hook (revision published → bytes) instead of comparing `ContentVersion` after each call, so the host writes the file through its own storage provider exactly once per save.
-5. Delete/evict on `IDocumentStateStore`, so idle documents can leave memory the way `CobaltProcessor` evicts sessions.
+1. A transport-agnostic request processor (SOAP or binary request model in, response model out, no `HttpContext`), so `EditorsTable`, `GetDocMetaInfo`, `GetVersions` and the Coauth transitions are reachable from a host that owns its routes and sign-in. **beta.2:** `CellBridgeRequestProcessor.ExecuteAsync(CellStorageRequest, …)` returns the response plus the accepted saves.
+2. Host-supplied document identity, or a documented deterministic derivation. **beta.2:** `ImportAsync(Guid resourceId, …)` / `CreateAsync(Guid resourceId, …)`.
+3. A per-request access decision, so the host's `IWopiPermissionProvider` result drives `QueryAccess` and write checks instead of stored grants. **beta.2:** `CellBridgeActor.AccessLimit` plus `ICellBridgeAuthorizationPolicy`; both are synchronous and expect the host to resolve permissions before the transaction, which matches the conclusion below.
+4. A publication hook (revision published → bytes) instead of comparing `ContentVersion` after each call, so the host writes the file through its own storage provider exactly once per save. **beta.2:** `ExternalRevisionPublisher` over `IExternalRevisionDestination.CompareExchangeAsync(request, verifiedContent)`. Its contract asks for more than `IWopiWritableFile.OpenWriteAsync` offers — an atomic compare-exchange on a revision token and a durable, deduplicating receipt — so this is the concrete gap in WopiHost's storage contract the exercise surfaces.
+5. Delete/evict on the state store, so idle documents can leave memory the way `CobaltProcessor` evicts sessions. **beta.2:** `IDocumentLifecycleStore.TryDeleteAsync` covers delete; idle eviction remains the adapter's.
 
 What the exercise said about WopiHost's own contracts: `ICobaltProcessor` is the right seam (no `WopiHost.Core` change was needed) but drops the request Content-Type, which an MTOM body would need; `IWopiWritableFile.OpenWriteAsync` has no version precondition, so a host cannot ask for "write only if still at version N" the way cellbridge's publish does; and `IWopiPermissionProvider` is async and principal-based where cellbridge needs a synchronous answer inside a transaction, so an adapter has to resolve permissions up front and hand the result in.
 
 ## Distribution
 
-The sibling-checkout `ProjectReference` is a bridge until cellbridge publishes. The natural end state is cellbridge shipping its nine libraries to NuGet.org (`CellBridge.AspNetCore`, `CellBridge.FssHttpB`, `CellBridge.Storage.*` …) — WopiHost's own packages are consumed that way and `Directory.Packages.props` + Dependabot would track them. A container image would suit cellbridge's *standalone* server, but WopiHost needs the engine in-process behind `ICobaltProcessor`, so NuGet is the channel that matters here. Until then, this repository pins a cellbridge commit in the CI workflow.
+cellbridge publishes its nine libraries to NuGet.org as `0.1.0-beta.*` prereleases (`CellBridge.AspNetCore`, `CellBridge.FssHttp`, `CellBridge.FssHttpB`, `CellBridge.Storage`, `CellBridge.Storage.Abstractions`, `CellBridge.Storage.InMemory`, `CellBridge.Storage.FileSystem`, `CellBridge.Storage.PostgreSql`, `CellBridge.Storage.Conformance`) — the channel WopiHost's own packages use, so `Directory.Packages.props` and Dependabot track them. A container image would suit cellbridge's *standalone* server, but WopiHost needs the engine in-process behind `ICobaltProcessor`, so NuGet is the channel that matters here. Only cellbridge's demo host and tools stay source-only; the AppHost lane pins a commit for those.
 
 ## License
 

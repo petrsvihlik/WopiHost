@@ -358,11 +358,11 @@ if (useOnlyOffice)
 // library — PostgreSQL state, schema init, a seeded test account, the host, and the Razor library —
 // not a WOPI lane: no WOPI client here speaks Cobalt, and OOS is not Docker-distributable.
 //
-// Compiled only with -p:IncludeCellBridge=true (a sibling cellbridge checkout; see
+// Compiled only with IncludeCellBridgeDemo (a sibling cellbridge checkout; see
 // src/WopiHost.CellBridge/README.md) and started only with AppHost:UseCellBridge=true. The library
 // is served at https://localhost:7292/library; sign in as `integration-writer` with the password from
 // AppHost:CellBridgeTestPassword. Desktop Office must trust the ASP.NET Core dev certificate.
-#if INCLUDE_CELLBRIDGE
+#if INCLUDE_CELLBRIDGE_DEMO
 if (builder.Configuration.GetValue("AppHost:UseCellBridge", defaultValue: false))
 {
     // cellbridge's seed-test-user command refuses to run outside the Testing environment, and the

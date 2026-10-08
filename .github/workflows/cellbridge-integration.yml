@@ -1,10 +1,10 @@
 name: CellBridge integration
 
-# Builds WopiHost.CellBridge (the open-source MS-FSSHTTP backend) against a pinned checkout of
-# https://github.com/PatrickMatthiesen/cellbridge and runs its tests. cellbridge has no NuGet or
-# container release yet, so the per-PR build compiles WopiHost.CellBridge as a no-op; this lane is
-# where the real thing gets exercised. Once cellbridge publishes packages, this becomes a plain
-# PackageReference in Directory.Packages.props and the lane folds into the regular build.
+# Builds the AppHost's cellbridge demo lane (AppHost:UseCellBridge) against a pinned source checkout
+# of https://github.com/PatrickMatthiesen/cellbridge. The lane orchestrates cellbridge's own
+# CellBridge.Web / CellBridge.Demo / storage tools, which are not on NuGet, so it is the one part of
+# the integration the per-PR build cannot compile. WopiHost.CellBridge itself consumes the published
+# CellBridge.* packages (Directory.Packages.props) and is built and tested on every PR.
 #
 # Weekly (plus workflow_dispatch) rather than nightly: cellbridge moves fast and is explicitly
 # experimental, so a daily red here would be noise rather than signal.
@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       cellbridge-ref:
-        description: PatrickMatthiesen/cellbridge git ref to build against (default = the pinned commit)
+        description: PatrickMatthiesen/cellbridge git ref to build the demo lane against (default = the pinned commit)
         required: false
         default: ''
   schedule:
@@ -28,12 +28,13 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # Last commit of cellbridge verified against this repository. Bump deliberately.
-  CELLBRIDGE_PINNED_REF: 10b0f7420332a4d90805124db8a4d48c9125daa4
+  # The cellbridge commit the CellBridge.* package versions in Directory.Packages.props were built
+  # from (each nuspec's <repository commit="..."> names it). Move the two together.
+  CELLBRIDGE_PINNED_REF: 4bce2273cd4078d357420d8b4c90c5598047e48b
 
 jobs:
   build:
-    name: Build and test against cellbridge
+    name: Build the AppHost demo lane against cellbridge
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -62,18 +63,12 @@ jobs:
         # token anyway so any incidental restore stays quiet.
         run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
 
+      # IncludeCellBridgeDemo is forced rather than auto-detected so a misplaced checkout fails the
+      # build instead of silently compiling the AppHost without the lane.
       - name: Restore
         working-directory: wopihost
-        run: dotnet restore WOPI.slnx -p:IncludeCellBridge=true
+        run: dotnet restore WOPI.slnx -p:IncludeCellBridgeDemo=true
 
       - name: Build
         working-directory: wopihost
-        run: dotnet build WOPI.slnx --no-restore -p:IncludeCellBridge=true /p:ContinuousIntegrationBuild=true
-
-      - name: Test WopiHost.CellBridge
-        working-directory: wopihost
-        run: dotnet test --project test/WopiHost.CellBridge.Tests/WopiHost.CellBridge.Tests.csproj --no-build -p:IncludeCellBridge=true
-
-      - name: Test the sample host with the cellbridge backend wired in
-        working-directory: wopihost
-        run: dotnet test --project test/WopiHost.IntegrationTests/WopiHost.IntegrationTests.csproj --no-build -p:IncludeCellBridge=true
+        run: dotnet build WOPI.slnx --no-restore -p:IncludeCellBridgeDemo=true /p:ContinuousIntegrationBuild=true

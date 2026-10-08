@@ -2,15 +2,6 @@
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
 	</PropertyGroup>
-	<!-- These tests exercise the cellbridge types; when the sibling checkout isn't available the
-	     project (like WopiHost.CellBridge itself) builds as a no-op so the solution stays green.
-	     See $(IncludeCellBridge) in the root Directory.Build.props. The no-op assembly contains zero
-	     tests, which MTP reports as exit code 8 — ignore it in that configuration only, so a real
-	     cellbridge run still fails if its tests vanish. -->
-	<PropertyGroup Condition="'$(IncludeCellBridge)' != 'true'">
-		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-		<TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --ignore-exit-code 8</TestingPlatformCommandLineArguments>
-	</PropertyGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\..\src\WopiHost.CellBridge\WopiHost.CellBridge.csproj" />
 	</ItemGroup>
