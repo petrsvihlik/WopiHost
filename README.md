@@ -26,6 +26,7 @@ A modular **WOPI host** implementation for .NET that lets you plug your own data
 | [WopiHost.AzureLockProvider](src/WopiHost.AzureLockProvider/README.md) | Distributed lock store backed by Azure Blob leases (strongest cross-instance exclusion) | [![NuGet](https://img.shields.io/nuget/v/WopiHost.AzureLockProvider.svg)](https://www.nuget.org/packages/WopiHost.AzureLockProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.AzureLockProvider.svg)](https://www.nuget.org/packages/WopiHost.AzureLockProvider) |
 | [WopiHost.RedisLockProvider](src/WopiHost.RedisLockProvider/README.md) | Best-effort distributed lock store backed by Redis (conditional CAS via `SET IFEQ`/`DELIFEQ`, requires Redis 8.4+) | [![NuGet](https://img.shields.io/nuget/v/WopiHost.RedisLockProvider.svg)](https://www.nuget.org/packages/WopiHost.RedisLockProvider) | [![NuGet](https://img.shields.io/nuget/dt/WopiHost.RedisLockProvider.svg)](https://www.nuget.org/packages/WopiHost.RedisLockProvider) |
 | [WopiHost.Cobalt](src/WopiHost.Cobalt/README.md) | Optional MS-FSSHTTP support (off by default; needs the private `Microsoft.CobaltCore` feed — see [Cobalt](https://github.com/petrsvihlik/WopiHost/wiki/Cobalt)) | _not published_ | — |
+| [WopiHost.CellBridge](src/WopiHost.CellBridge/README.md) | Experimental open-source MS-FSSHTTP backend built on [cellbridge](https://github.com/PatrickMatthiesen/cellbridge) (MIT) — the same `ICobaltProcessor` seam as `WopiHost.Cobalt`, no proprietary DLL; consumes cellbridge's prerelease NuGet packages | _not published_ | — |
 
 ## Why use it?
 
@@ -35,7 +36,7 @@ A modular **WOPI host** implementation for .NET that lets you plug your own data
 - **WOPI discovery built in** — dynamic capability detection from the WOPI client with template resolution and caching.
 - **Enterprise-ready security** — WOPI proof validation, origin checking, JWT access tokens, [pluggable permission/ACL providers](https://github.com/petrsvihlik/WopiHost/wiki/Extending-WopiHost#authentication--authorization).
 - **.NET Aspire integration** — service orchestration, OpenTelemetry, container support out of the box.
-- **Optional [Cobalt (MS-FSSHTTP)](https://github.com/petrsvihlik/WopiHost/wiki/Cobalt)** — for OOS clients that prefer the more efficient co-authoring protocol.
+- **Optional [Cobalt (MS-FSSHTTP)](https://github.com/petrsvihlik/WopiHost/wiki/Cobalt)** — for OOS clients that prefer the more efficient co-authoring protocol. Pluggable backend: the proprietary `Microsoft.CobaltCore` or the experimental open-source [cellbridge](src/WopiHost.CellBridge/README.md).
 
 ## Quick start
 

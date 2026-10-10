@@ -42,7 +42,14 @@
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.5.4" />
     <!-- Aspire integration for the Redis lock provider opt-in. Only the AppHost needs it. -->
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.5.4" />
+    <!-- Aspire integration for the cellbridge demo lane (AppHost:UseCellBridge). Only the AppHost
+         needs it, and only when built with IncludeCellBridgeDemo. -->
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.5.4" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
+    <!-- WopiHost.CellBridge (open-source MS-FSSHTTP backend). CellBridge.AspNetCore brings FssHttp,
+         FssHttpB, Storage and Storage.Abstractions transitively; bump both entries together. -->
+    <PackageVersion Include="CellBridge.AspNetCore" Version="0.1.0-beta.2" />
+    <PackageVersion Include="CellBridge.Storage.InMemory" Version="0.1.0-beta.2" />
   </ItemGroup>
 
   <!--
