@@ -5,6 +5,7 @@ using System.Text;
 using System.Xml.Linq;
 using CellBridge.FssHttpB;
 using FakeItEasy;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
@@ -23,8 +24,8 @@ public class CellBridgeProcessorTests
     private static readonly byte[] s_content = Encoding.UTF8.GetBytes("Hello from WOPI");
 
     private static CellBridgeProcessor CreateProcessor() =>
-        new(NullLogger<CellBridgeProcessor>.Instance,
-            Options.Create(new CellBridgeProcessorOptions { SerializationProfile = FsshttpbSerializationProfile.Current }));
+        new(NullLoggerFactory.Instance,
+            Options.Create(new CellBridgeProcessorOptions { SerializationProfile = FsshttpbSerializationProfile.Current, WebOrigin = "https://wopi.example.test" }));
 
     private static IWopiWritableFile CreateFile(string identifier = "file-1", byte[]? content = null, string extension = "txt")
     {
@@ -54,7 +55,7 @@ public class CellBridgeProcessorTests
     }
 
     [Fact]
-    public void Ctor_NullLogger_Throws()
+    public void Ctor_NullLoggerFactory_Throws()
     {
         Assert.Throws<ArgumentNullException>(() =>
             new CellBridgeProcessor(null!, Options.Create(new CellBridgeProcessorOptions())));
@@ -64,7 +65,7 @@ public class CellBridgeProcessorTests
     public void Ctor_NullOptions_Throws()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            new CellBridgeProcessor(NullLogger<CellBridgeProcessor>.Instance, null!));
+            new CellBridgeProcessor(NullLoggerFactory.Instance, null!));
     }
 
     [Fact]
@@ -183,12 +184,53 @@ public class CellBridgeProcessorTests
 
         var responseBytes = await processor.ProcessCobalt(CreateFile(), CreatePrincipal(), Encoding.UTF8.GetBytes(envelope), CancellationToken.None);
 
-        var response = Encoding.UTF8.GetString(responseBytes);
-        Assert.Contains("UserName=\"Ada Lovelace\"", response, StringComparison.Ordinal);
-        Assert.Contains("UserLogin=\"Ada Lovelace\"", response, StringComparison.Ordinal);
-        Assert.Contains("ServerTime=\"", response, StringComparison.Ordinal);
-        // cellbridge keeps GetVersions inside its own HTTP endpoint; the adapter must say so rather than fake a success.
-        Assert.Contains("SubRequestToken=\"3\" ErrorCode=\"NotSupported\"", response, StringComparison.Ordinal);
+        var whoAmI = SubResponseData(SubResponse(responseBytes, 1));
+        Assert.Equal("Ada Lovelace", (string?)whoAmI.Attribute("UserName"));
+        Assert.Equal("Ada Lovelace", (string?)whoAmI.Attribute("UserLogin"));
+        Assert.NotNull(SubResponseData(SubResponse(responseBytes, 2)).Attribute("ServerTime"));
+        Assert.Equal("Success", (string?)SubResponse(responseBytes, 3).Attribute("ErrorCode"));
+    }
+
+    [Fact]
+    public async Task ProcessCobalt_Soap_EchoesTheClientUrlAndTargetsTheWopiFile()
+    {
+        using var processor = CreateProcessor();
+        var file = CreateFile();
+        // The envelope names some other document; the WOPI route's file is what gets locked.
+        var body = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(ExclusiveLock(Guid.NewGuid()))
+            .Replace("/wopi/file-1.txt", "/elsewhere/other.txt", StringComparison.Ordinal));
+
+        var responseBytes = await processor.ProcessCobalt(file, CreatePrincipal(), body, CancellationToken.None);
+
+        var response = XDocument.Parse(Encoding.UTF8.GetString(responseBytes)).Descendants().Single(e => e.Name.LocalName == "Response");
+        Assert.Equal("https://wopi.example.test/elsewhere/other.txt", (string?)response.Attribute("Url"));
+        Assert.Equal("Success", (string?)SubResponse(responseBytes, 1).Attribute("ErrorCode"));
+        var status = await processor.ProcessCobalt(file, CreatePrincipal(), SoapEnvelope("""<SubRequest Type="LockStatus" SubRequestToken="1" />"""), CancellationToken.None);
+        // MS-FSSHTTP LockStatus: 2 = exclusive lock held.
+        Assert.Equal("2", (string?)SubResponseData(SubResponse(status, 1)).Attribute("LockType"));
+    }
+
+    [Fact]
+    public async Task ProcessCobalt_Soap_WithoutConfiguredOrigin_UsesTheRequestOrigin()
+    {
+        var accessor = new HttpContextAccessor { HttpContext = new DefaultHttpContext() };
+        accessor.HttpContext.Request.Scheme = "https";
+        accessor.HttpContext.Request.Host = new HostString("wopi.example.test", 8443);
+        using var processor = new CellBridgeProcessor(NullLoggerFactory.Instance, Options.Create(new CellBridgeProcessorOptions()), accessor);
+
+        var responseBytes = await processor.ProcessCobalt(CreateFile(), CreatePrincipal(), SoapEnvelope("""<SubRequest Type="WhoAmI" SubRequestToken="1" />"""), CancellationToken.None);
+
+        var body = XDocument.Parse(Encoding.UTF8.GetString(responseBytes)).Descendants().Single(e => e.Name.LocalName == "ResponseCollection");
+        Assert.Equal("https://wopi.example.test:8443/", (string?)body.Attribute("WebUrl"));
+    }
+
+    [Fact]
+    public async Task ProcessCobalt_Soap_WithoutAnyOrigin_Throws()
+    {
+        using var processor = new CellBridgeProcessor(NullLoggerFactory.Instance, Options.Create(new CellBridgeProcessorOptions()));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            processor.ProcessCobalt(CreateFile(), CreatePrincipal(), SoapEnvelope("""<SubRequest Type="WhoAmI" SubRequestToken="1" />"""), CancellationToken.None));
     }
 
     [Fact]
@@ -296,7 +338,7 @@ public class CellBridgeProcessorTests
     }
 
     [Fact]
-    public async Task ProcessCobalt_SoapCell_WithUndecodablePayload_IsInvalidArgument()
+    public async Task ProcessCobalt_SoapCell_WithUndecodablePayload_IsCellRequestFail()
     {
         using var processor = CreateProcessor();
         var body = SoapEnvelope("""
@@ -307,21 +349,24 @@ public class CellBridgeProcessorTests
 
         var responseBytes = await processor.ProcessCobalt(CreateFile(), CreatePrincipal(), body, CancellationToken.None);
 
-        Assert.Equal("InvalidArgument", (string?)SubResponse(responseBytes, 1).Attribute("ErrorCode"));
+        Assert.Equal("CellRequestFail", (string?)SubResponse(responseBytes, 1).Attribute("ErrorCode"));
     }
 
     [Fact]
     public async Task ProcessCobalt_SoapDependency_OnSuccess_IsNotExecutedAfterAFailure()
     {
         using var processor = CreateProcessor();
-        var body = SoapEnvelope("""
-            <SubRequest Type="GetVersions" SubRequestToken="1" />
+        var cell = CellRequest(new FsshttpbCellSubRequest(RequestTypes.QueryAccess) { RequestId = 1, Data = new QueryAccessSubRequestData() });
+        var body = SoapEnvelope($"""
+            <SubRequest Type="Cell" SubRequestToken="1">
+              <SubRequestData PartitionID="{Guid.NewGuid():D}" BinaryDataSize="{cell.Length}">{Convert.ToBase64String(cell)}</SubRequestData>
+            </SubRequest>
             <SubRequest Type="WhoAmI" SubRequestToken="2" DependsOn="1" DependencyType="OnSuccess" />
             """);
 
         var responseBytes = await processor.ProcessCobalt(CreateFile(), CreatePrincipal(), body, CancellationToken.None);
 
-        Assert.Equal("NotSupported", (string?)SubResponse(responseBytes, 1).Attribute("ErrorCode"));
+        Assert.Equal("InvalidArgument", (string?)SubResponse(responseBytes, 1).Attribute("ErrorCode"));
         var dependent = SubResponse(responseBytes, 2);
         Assert.Equal("DependentOnlyOnSuccessRequestFailed", (string?)dependent.Attribute("ErrorCode"));
         Assert.Null(SubResponseData(dependent).Attribute("UserName"));

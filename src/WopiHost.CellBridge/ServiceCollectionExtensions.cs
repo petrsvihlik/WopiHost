@@ -28,6 +28,7 @@ public static class ServiceCollectionExtensions
         services.AddOptions<CellBridgeProcessorOptions>()
             .Bind(configuration.GetSection(CellBridgeProcessorOptions.SectionName))
             .ValidateOnStart();
+        services.AddHttpContextAccessor();
         services.AddSingleton<ICobaltProcessor, CellBridgeProcessor>();
         return services;
     }

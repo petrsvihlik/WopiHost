@@ -11,16 +11,17 @@ public sealed class CellBridgeProcessorOptions
     public const string SectionName = "Wopi:CellBridge";
 
     /// <summary>
-    /// Wire framing used for MS-FSSHTTPB responses. cellbridge's SharePoint 2013 profile is what
+    /// Wire framing used for responses to a raw MS-FSSHTTPB body; cell responses inside a SOAP envelope
+    /// always use cellbridge's SharePoint 2013 profile. That profile is what
     /// desktop Office has been verified against; switch to <see cref="FsshttpbSerializationProfile.Current"/>
     /// if a capture shows Office Online Server expecting the version 12 framing.
     /// </summary>
     public FsshttpbSerializationProfile SerializationProfile { get; set; } = FsshttpbSerializationProfile.SharePoint13_11;
 
     /// <summary>
-    /// Value of the <c>WebUrl</c> attribute on SOAP responses. MS-FSSHTTP requires it to be same-origin
-    /// with the request, which the <see cref="Abstractions.ICobaltProcessor"/> contract cannot observe;
-    /// set it to the WOPI host's public origin when SOAP framing turns out to be in use.
+    /// Public origin (<c>https://host[:port]</c>) reported as the <c>WebUrl</c> of SOAP responses, which
+    /// MS-FSSHTTP requires to be same-origin with the request. Empty means the current request's origin;
+    /// set it when the host sits behind a proxy that rewrites scheme or host.
     /// </summary>
     public string WebOrigin { get; set; } = string.Empty;
 }

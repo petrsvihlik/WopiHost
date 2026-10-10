@@ -1,14 +1,15 @@
 using System.Collections.Concurrent;
-using System.Globalization;
+using System.Collections.Immutable;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
-using System.Xml.Linq;
 using CellBridge.AspNetCore;
 using CellBridge.FssHttp;
 using CellBridge.FssHttpB;
 using CellBridge.Storage;
 using CellBridge.Storage.Abstractions;
 using CellBridge.Storage.InMemory;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WopiHost.Abstractions;
@@ -24,8 +25,8 @@ namespace WopiHost.CellBridge;
 /// cellbridge keeps protocol state (storage index, data-element graph, knowledge, editor sessions,
 /// locks) in a <see cref="StorageProvider"/>. This processor uses the in-memory stores, the same
 /// posture as <c>WopiHost.Cobalt</c>'s in-memory <c>LocalHostBlobStore</c>: each WOPI file is imported
-/// into cellbridge on first use and the materialized document is written back through
-/// <see cref="IWopiWritableFile.OpenWriteAsync"/> whenever a save advances the content version.
+/// into cellbridge on first use under a resource id derived from its WOPI identifier, and every save
+/// cellbridge accepts is written back through <see cref="IWopiWritableFile.OpenWriteAsync"/>.
 /// </para>
 /// <para>
 /// The WOPI <c>COBALT</c> override hands over the request body without its Content-Type. cellbridge
@@ -45,18 +46,23 @@ public sealed partial class CellBridgeProcessor : ICobaltProcessor, IDisposable
 
     private readonly ILogger<CellBridgeProcessor> _logger;
     private readonly CellBridgeProcessorOptions _options;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
     private readonly StorageProvider _storage;
     private readonly CellBridgeDocumentService _documents;
-    private readonly ConcurrentDictionary<string, Lazy<Task<Guid>>> _resources = new(StringComparer.Ordinal);
-    private readonly ConcurrentDictionary<string, SemaphoreSlim> _writeLocks = new(StringComparer.Ordinal);
+    private readonly CellBridgeRequestProcessor _requests;
+    private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _writeLocks = new();
+    private readonly ConcurrentDictionary<Guid, uint> _writtenVersions = new();
     private int _disposed;
 
-    public CellBridgeProcessor(ILogger<CellBridgeProcessor> logger, IOptions<CellBridgeProcessorOptions> options)
+    public CellBridgeProcessor(ILoggerFactory loggerFactory, IOptions<CellBridgeProcessorOptions> options, IHttpContextAccessor? httpContextAccessor = null)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(loggerFactory);
+        _logger = loggerFactory.CreateLogger<CellBridgeProcessor>();
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _httpContextAccessor = httpContextAccessor;
         _storage = new StorageProvider(new InMemoryStateStore(), new InMemoryContentStore());
-        _documents = new CellBridgeDocumentService(_storage, new WopiCellBridgeAccessEvaluator());
+        _documents = new CellBridgeDocumentService(_storage, authorizationPolicy: new WopiCellBridgeAuthorizationPolicy());
+        _requests = new CellBridgeRequestProcessor(_documents, loggerFactory.CreateLogger<CellBridgeRequestProcessor>());
     }
 
     /// <inheritdoc/>
@@ -66,8 +72,9 @@ public sealed partial class CellBridgeProcessor : ICobaltProcessor, IDisposable
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(newContent);
 
-        var actor = ActorFor(principal);
-        var resourceId = await GetOrImportAsync(file, actor, cancellationToken).ConfigureAwait(false);
+        var resourceId = ResourceIdFor(file);
+        var actor = ActorFor(principal, resourceId);
+        await EnsureImportedAsync(file, resourceId, actor.Identity, cancellationToken).ConfigureAwait(false);
 
         switch (WopiCobaltFraming.Detect(newContent))
         {
@@ -93,208 +100,88 @@ public sealed partial class CellBridgeProcessor : ICobaltProcessor, IDisposable
             throw new NotSupportedException($"Unknown MS-FSSHTTPB target partition {partitionId}.");
         }
 
-        var execution = await ExecuteCellAsync(file, resourceId, kind, request, s_noAttributes, actor, cancellationToken).ConfigureAwait(false);
+        var execution = await WriteBackAsync(file, async () =>
+        {
+            var result = await _documents.ExecuteAsync(resourceId, kind, request, s_noAttributes, actor, cancellationToken).ConfigureAwait(false);
+            return (result, result.AcceptedSaves);
+        }, cancellationToken).ConfigureAwait(false);
+
+        if (execution.LockError is { } lockError)
+        {
+            LogLockError(_logger, file.Identifier, lockError);
+        }
+
         return execution.Response.ToByteArray(_options.SerializationProfile);
     }
 
     private async Task<byte[]> ExecuteSoapAsync(IWopiWritableFile file, Guid resourceId, CellBridgeActor actor, byte[] body, CancellationToken cancellationToken)
     {
         var request = CellStorageRequestParser.Parse(Encoding.UTF8.GetString(body));
-        var response = new CellStorageResponse
-        {
-            Version = request.Version,
-            // SharePoint answers a 2.x request with the highest minor revision it supports.
-            MinorVersion = request.Version == 2 ? 3u : request.MinorVersion,
-            UsesDirectBody = request.UsesDirectBody,
-            WebUrl = _options.WebOrigin,
-        };
 
+        // The WOPI route has already chosen the file, so whatever URL the client put in the envelope is
+        // only echoed back; cellbridge resolves every request to this document by its resource id.
+        var clientUrls = request.Requests.ToDictionary(r => r.RequestToken, r => r.Url);
         foreach (var fileRequest in request.Requests)
         {
-            var fileResponse = new FssHttpResponse
+            fileRequest.UseResourceId = true;
+            fileRequest.ResourceId = resourceId.ToString("D");
+        }
+
+        var execution = await WriteBackAsync(file, async () =>
+        {
+            var result = await _requests.ExecuteAsync(request, PublicOrigin(), actor, cancellationToken).ConfigureAwait(false);
+            return (result, result.AcceptedSaves);
+        }, cancellationToken).ConfigureAwait(false);
+
+        foreach (var fileResponse in execution.Response.Responses)
+        {
+            if (fileResponse.RequestToken is { } token && clientUrls.TryGetValue(token, out var url))
             {
-                Url = fileRequest.Url,
-                RequestToken = fileRequest.RequestToken,
-                IntervalOverride = 0,
-                ResourceId = resourceId,
-            };
-
-            foreach (var subRequest in fileRequest.SubRequests)
-            {
-                var subResponse = new FssHttpSubResponse
-                {
-                    Type = subRequest.Type,
-                    SubRequestToken = subRequest.SubRequestToken,
-                    ErrorCode = "Success",
-                    HResult = "0",
-                };
-
-                if (FssHttpDependencies.Error(subRequest, fileResponse.SubResponses) is { } dependencyError)
-                {
-                    subResponse.ErrorCode = dependencyError;
-                    subResponse.HResult = "2147500037";
-                    subResponse.EmitEmptySubResponseData = true;
-                }
-                else
-                {
-                    await ApplySubRequestAsync(file, resourceId, actor, subRequest, subResponse, cancellationToken).ConfigureAwait(false);
-                }
-
-                fileResponse.SubResponses.Add(subResponse);
+                fileResponse.Url = url;
             }
-
-            response.Responses.Add(fileResponse);
         }
 
-        return Encoding.UTF8.GetBytes(response.ToSoapEnvelope());
+        return Encoding.UTF8.GetBytes(execution.Response.ToSoapEnvelope());
     }
 
-    private async Task ApplySubRequestAsync(IWopiWritableFile file, Guid resourceId, CellBridgeActor actor, FssHttpSubRequest subRequest, FssHttpSubResponse subResponse, CancellationToken cancellationToken)
+    // cellbridge has already published accepted saves durably in its own store; this copies the newest
+    // one out to the WOPI file so GetFile and non-Cobalt clients see it. Saves accepted before a later
+    // subrequest failed are still written before the failure propagates.
+    private async Task<T> WriteBackAsync<T>(IWopiWritableFile file, Func<Task<(T Result, ImmutableArray<AcceptedSave> Saves)>> execute, CancellationToken cancellationToken)
     {
-        switch (subRequest.Type)
-        {
-            case SubRequestType.Cell:
-                await ApplyCellAsync(file, resourceId, actor, subRequest, subResponse, cancellationToken).ConfigureAwait(false);
-                break;
-
-            case SubRequestType.WhoAmI:
-                subResponse.SubResponseDataAttributes["UserName"] = actor.Identity.DisplayName;
-                subResponse.SubResponseDataAttributes["UserLogin"] = actor.Identity.Login;
-                break;
-
-            case SubRequestType.ServerTime:
-                subResponse.SubResponseDataAttributes["ServerTime"] = DateTime.UtcNow.Ticks.ToString(CultureInfo.InvariantCulture);
-                break;
-
-            case SubRequestType.SchemaLock:
-            case SubRequestType.ExclusiveLock:
-            case SubRequestType.LockStatus:
-            case SubRequestType.AmIAlone:
-            case SubRequestType.Coauth:
-                await ApplyCoordinationAsync(resourceId, actor, subRequest, subResponse, cancellationToken).ConfigureAwait(false);
-                break;
-
-            default:
-                // EditorsTable, GetDocMetaInfo and GetVersions are implemented inside cellbridge's
-                // own HTTP endpoint and not yet exposed as reusable services.
-                subResponse.ErrorCode = "NotSupported";
-                break;
-        }
-    }
-
-    private async Task ApplyCellAsync(IWopiWritableFile file, Guid resourceId, CellBridgeActor actor, FssHttpSubRequest subRequest, FssHttpSubResponse subResponse, CancellationToken cancellationToken)
-    {
-        if (!CellPartitionSelector.TryResolve(subRequest.SubRequestDataAttributes, out var kind))
-        {
-            subResponse.ErrorCode = "InvalidArgument";
-            subResponse.HResult = "2147942487";
-            return;
-        }
-
-        var payload = DecodeCellPayload(subRequest);
-        if (payload is null)
-        {
-            subResponse.ErrorCode = "InvalidArgument";
-            return;
-        }
-
-        var execution = await ExecuteCellAsync(file, resourceId, kind, payload, subRequest.SubRequestDataAttributes, actor, cancellationToken).ConfigureAwait(false);
-        if (execution.LockError is { } lockError)
-        {
-            subResponse.ErrorCode = lockError;
-            return;
-        }
-
-        subResponse.SubResponseDataBase64 = execution.Response.ToByteArray(_options.SerializationProfile);
-    }
-
-    // SOAP carries the binary cell request either as an MTOM part (already resolved into
-    // SubRequestDataBinaryMemory by the parser) or as base64 text inside SubRequestData.
-    private static FsshttpbCellRequest? DecodeCellPayload(FssHttpSubRequest subRequest)
-    {
+        (T Result, ImmutableArray<AcceptedSave> Saves) execution;
         try
         {
-            if (subRequest.SubRequestDataBinaryMemory is { } binary)
-            {
-                return FsshttpbCellRequest.Deserialize(new BinaryReaderEx(binary));
-            }
-
-            if (subRequest.SubRequestDataXml is { } xml)
-            {
-                var text = XDocument.Parse(xml).Root?.Value;
-                if (!string.IsNullOrWhiteSpace(text))
-                {
-                    return FsshttpbCellRequest.Deserialize(new BinaryReaderEx(Convert.FromBase64String(text.Trim())));
-                }
-            }
+            execution = await execute().ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is FormatException or InvalidDataException or EndOfStreamException or ArgumentException or System.Xml.XmlException)
+        catch (AcceptedSaveException ex)
         {
-            return null;
+            await WriteNewestAsync(file, ex.AcceptedSaves, cancellationToken).ConfigureAwait(false);
+            throw;
         }
 
-        return null;
+        await WriteNewestAsync(file, execution.Saves, cancellationToken).ConfigureAwait(false);
+        return execution.Result;
     }
 
-    private Task ApplyCoordinationAsync(Guid resourceId, CellBridgeActor actor, FssHttpSubRequest subRequest, FssHttpSubResponse subResponse, CancellationToken cancellationToken) =>
-        _storage.State.TransitionAsync(resourceId, (current, now) =>
-        {
-            var document = StoredDocument.RestoreMetadata(current, now);
-            var coordinator = FssHttpLockCoordinator.Restore(document, current.Coordination, now, actor.Identity);
-            switch (subRequest.Type)
-            {
-                case SubRequestType.SchemaLock:
-                    coordinator.ApplySchemaLock(subRequest, subResponse, now);
-                    break;
-                case SubRequestType.ExclusiveLock:
-                    coordinator.ApplyExclusiveLock(subRequest, subResponse, now);
-                    break;
-                case SubRequestType.LockStatus:
-                    coordinator.ApplyLockStatus(subRequest, subResponse, now);
-                    break;
-                case SubRequestType.AmIAlone:
-                    coordinator.ApplyAmIAlone(document, subRequest, subResponse);
-                    break;
-                case SubRequestType.Coauth:
-                    coordinator.ApplyCoauthSession(document, subRequest, subResponse);
-                    break;
-                default:
-                    throw new InvalidOperationException($"{subRequest.Type} is not a coordination subrequest.");
-            }
-
-            var next = document.CaptureCoordination(current, coordinator.Capture());
-            next = next with { Coordination = next.Coordination with { Generation = checked(current.Coordination.Generation + 1) } };
-            return new StateTransition<bool>(next, true);
-        }, cancellationToken).AsTask();
-
-    private async Task<CellExecution> ExecuteCellAsync(IWopiWritableFile file, Guid resourceId, DocumentPartitionKind kind, FsshttpbCellRequest request, IReadOnlyDictionary<string, string> attributes, CellBridgeActor actor, CancellationToken cancellationToken)
+    private async Task WriteNewestAsync(IWopiWritableFile file, ImmutableArray<AcceptedSave> saves, CancellationToken cancellationToken)
     {
-        var before = await _storage.State.FindByResourceIdAsync(resourceId, cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"cellbridge lost the document for WOPI file '{file.Identifier}'.");
-
-        var execution = await _documents.ExecuteAsync(resourceId, kind, request, attributes, actor, cancellationToken).ConfigureAwait(false);
-        if (execution.LockError is { } lockError)
+        if (saves.Where(s => !s.IsReplay).MaxBy(s => s.ContentVersion) is not { } save)
         {
-            LogLockError(_logger, file.Identifier, lockError);
+            return;
         }
 
-        if (execution.State.ContentVersion != before.ContentVersion)
-        {
-            await MirrorContentAsync(file, execution.State, cancellationToken).ConfigureAwait(false);
-        }
-
-        return execution;
-    }
-
-    // cellbridge has already published the revision durably in its own store; this copies the
-    // materialized Office package out to the WOPI file so GetFile and non-Cobalt clients see it.
-    private async Task MirrorContentAsync(IWopiWritableFile file, DocumentState state, CancellationToken cancellationToken)
-    {
-        var gate = _writeLocks.GetOrAdd(file.Identifier, _ => new SemaphoreSlim(1, 1));
+        var gate = _writeLocks.GetOrAdd(save.ResourceId, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var source = await _storage.Content.OpenReadAsync(state.Content, cancellationToken).ConfigureAwait(false);
+            // Concurrent requests can finish out of order; an older revision must not overwrite a newer one.
+            if (_writtenVersions.TryGetValue(save.ResourceId, out var written) && written >= save.ContentVersion)
+            {
+                return;
+            }
+
+            var source = await _storage.Content.OpenReadAsync(save.Content, cancellationToken).ConfigureAwait(false);
             await using (source.ConfigureAwait(false))
             {
                 var target = await file.OpenWriteAsync(cancellationToken).ConfigureAwait(false);
@@ -304,7 +191,8 @@ public sealed partial class CellBridgeProcessor : ICobaltProcessor, IDisposable
                 }
             }
 
-            LogContentFlushed(_logger, file.Identifier, state.ContentVersion);
+            _writtenVersions[save.ResourceId] = save.ContentVersion;
+            LogContentFlushed(_logger, file.Identifier, save.ContentVersion);
         }
         finally
         {
@@ -312,47 +200,43 @@ public sealed partial class CellBridgeProcessor : ICobaltProcessor, IDisposable
         }
     }
 
-    private async Task<Guid> GetOrImportAsync(IWopiWritableFile file, CellBridgeActor owner, CancellationToken cancellationToken)
+    private async Task EnsureImportedAsync(IWopiWritableFile file, Guid resourceId, SubjectIdentity owner, CancellationToken cancellationToken)
     {
-        var lazy = _resources.GetOrAdd(
-            file.Identifier,
-            _ => new Lazy<Task<Guid>>(() => ImportAsync(file, owner, cancellationToken), LazyThreadSafetyMode.ExecutionAndPublication));
+        if (await _storage.State.FindByResourceIdAsync(resourceId, cancellationToken).ConfigureAwait(false) is not null)
+        {
+            return;
+        }
+
         try
         {
-            return await lazy.Value.ConfigureAwait(false);
+            byte[] bytes = [];
+            if (file.Exists)
+            {
+                var stream = await file.OpenReadAsync(cancellationToken).ConfigureAwait(false);
+                await using (stream.ConfigureAwait(false))
+                {
+                    using var buffer = new MemoryStream();
+                    await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
+                    bytes = buffer.ToArray();
+                }
+            }
+
+            // A null result means a concurrent request imported the same file first.
+            if (await _documents.ImportAsync(resourceId, DocumentPath(file), bytes, owner, s_importer, cancellationToken).ConfigureAwait(false) is not null)
+            {
+                LogDocumentImported(_logger, file.Identifier, resourceId);
+            }
         }
         catch (Exception ex)
         {
-            // A faulted Lazy<Task<>> would otherwise be cached forever; remove exactly this entry so
-            // the next call retries.
-            _resources.TryRemove(new KeyValuePair<string, Lazy<Task<Guid>>>(file.Identifier, lazy));
             LogImportFailed(_logger, ex, file.Identifier);
             throw;
         }
     }
 
-    private async Task<Guid> ImportAsync(IWopiWritableFile file, CellBridgeActor owner, CancellationToken cancellationToken)
-    {
-        byte[] bytes = [];
-        if (file.Exists)
-        {
-            var stream = await file.OpenReadAsync(cancellationToken).ConfigureAwait(false);
-            await using (stream.ConfigureAwait(false))
-            {
-                using var buffer = new MemoryStream();
-                await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
-                bytes = buffer.ToArray();
-            }
-        }
-
-        var path = DocumentPath(file);
-        var state = await _documents.ImportAsync(path, bytes, owner.Identity, s_importer, cancellationToken).ConfigureAwait(false)
-            ?? await _storage.State.FindByPathKeyAsync(StorageIds.PathKey(DocumentStore.NormalizeUrl(path)), cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"cellbridge did not register a document for WOPI file '{file.Identifier}'.");
-
-        LogDocumentImported(_logger, file.Identifier, state.ResourceId);
-        return state.ResourceId;
-    }
+    // Deterministic, so a durable cellbridge state store would find the same document after a restart.
+    private static Guid ResourceIdFor(IWopiResource file) =>
+        new(SHA256.HashData(Encoding.UTF8.GetBytes(file.Identifier)).AsSpan(0, 16));
 
     // cellbridge validates Office packages by the extension in the document path, so the WOPI
     // file's extension has to survive into cellbridge's URL space.
@@ -362,13 +246,31 @@ public sealed partial class CellBridgeProcessor : ICobaltProcessor, IDisposable
         return string.IsNullOrEmpty(file.Extension) ? name : name + "." + file.Extension;
     }
 
-    private static CellBridgeActor ActorFor(ClaimsPrincipal? principal)
+    // MS-FSSHTTP requires the SOAP WebUrl to be same-origin with the request.
+    private string PublicOrigin()
+    {
+        if (!string.IsNullOrEmpty(_options.WebOrigin))
+        {
+            return _options.WebOrigin;
+        }
+
+        var request = _httpContextAccessor?.HttpContext?.Request
+            ?? throw new InvalidOperationException($"SOAP framing needs the request origin: set {CellBridgeProcessorOptions.SectionName}:{nameof(CellBridgeProcessorOptions.WebOrigin)}.");
+        return request.Scheme + "://" + request.Host.ToUriComponent() + "/";
+    }
+
+    // The COBALT endpoint only runs after the access token's update permission was checked, so the
+    // ceiling grants read/write — but only on the file the WOPI route resolved.
+    private static CellBridgeActor ActorFor(ClaimsPrincipal? principal, Guid resourceId)
     {
         var id = principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var name = principal?.FindFirst(ClaimTypes.Name)?.Value;
         var subject = string.IsNullOrEmpty(id) ? "wopi:anonymous" : "wopi:" + id;
         var login = string.IsNullOrEmpty(name) ? subject : name;
-        return new CellBridgeActor(new SubjectIdentity(subject, login, login));
+        return new CellBridgeActor(new SubjectIdentity(subject, login, login))
+        {
+            AccessLimit = new DocumentAccessLimit(resourceId, DocumentAccess.Read | DocumentAccess.Write),
+        };
     }
 
     public void Dispose()
@@ -381,7 +283,6 @@ public sealed partial class CellBridgeProcessor : ICobaltProcessor, IDisposable
         }
 
         _writeLocks.Clear();
-        _resources.Clear();
     }
 
     private void ThrowIfDisposed()
