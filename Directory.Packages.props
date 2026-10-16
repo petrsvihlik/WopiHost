@@ -57,6 +57,10 @@
          high-severity path traversal in ScpClient.Download() on recursive downloads;
          2026.0.0 is the first patched release. -->
     <PackageVersion Include="SSH.NET" Version="2026.0.0" />
+    <!-- Aspire.Hosting (via StreamJsonRpc 2.25.29) pulls MessagePack 2.5.302, which
+         GHSA-qhrr-8q5h-9q3h flags as moderate severity; 2.5.303 is the first patched 2.x
+         release. Stays on 2.x because StreamJsonRpc is built against the 2.x API. -->
+    <PackageVersion Include="MessagePack" Version="2.5.307" />
   </ItemGroup>
 
   <!--
