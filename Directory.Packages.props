@@ -97,7 +97,7 @@
          library is a class library, not a test project, so it can't pull in the xunit.v3
          metapackage (which would force OutputType=Exe via the MTP entry point). Keep these
          aligned with xunit.v3 above. -->
-    <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.1" />
-    <PackageVersion Include="xunit.v3.assert" Version="4.0.1" />
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.2" />
+    <PackageVersion Include="xunit.v3.assert" Version="4.0.2" />
   </ItemGroup>
 </Project>
