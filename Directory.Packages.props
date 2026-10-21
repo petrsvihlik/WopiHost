@@ -19,8 +19,8 @@
     <PackageVersion Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.10" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.13" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.18.0" />
