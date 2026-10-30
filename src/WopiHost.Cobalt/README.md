@@ -9,6 +9,9 @@ In Office Web Apps 2013, several actions required Cobalt. Office Online Server 2
 > [!IMPORTANT]
 > This package depends on `Microsoft.CobaltCore.dll`, which ships with Office Online Server / Office Web Apps and **cannot be redistributed**. To consume `WopiHost.Cobalt` you must build your own `Microsoft.CobaltCore` NuGet package from a licensed installation. See the [step-by-step wiki guide](https://github.com/petrsvihlik/WopiHost/wiki/Craft-your-own-Microsoft.CobaltCore-NuGet-package).
 
+> [!NOTE]
+> An open-source alternative is taking shape: [WopiHost.CellBridge](../WopiHost.CellBridge/README.md) implements the same `ICobaltProcessor` on top of [PatrickMatthiesen/cellbridge](https://github.com/PatrickMatthiesen/cellbridge) (MIT) with no proprietary dependency. The sample host picks the backend with `Sample:CoauthoringProvider` (`None` / `CobaltCore` / `CellBridge`); `Wopi:UseCobalt=true` still means `CobaltCore`. CellBridge is experimental and its interop with Office Online Server over WOPI is unverified — Cobalt remains the production path.
+
 ## Install
 
 This package is **not published on NuGet.org** — `Microsoft.CobaltCore.dll` is proprietary and cannot be redistributed, so a public NuGet would never restore on someone else's machine. To consume `WopiHost.Cobalt`:
@@ -18,7 +21,7 @@ This package is **not published on NuGet.org** — `Microsoft.CobaltCore.dll` is
 
 ## Wire it up
 
-The sample server registers Cobalt by reflection-loading the assembly when `Wopi:UseCobalt` is `true`. The relevant snippet from [`sample/WopiHost/ServiceCollectionExtensions.cs`](../../sample/WopiHost/ServiceCollectionExtensions.cs):
+The sample server picks its MS-FSSHTTP backend with the sample-local `Sample:CoauthoringProvider` discriminator (`None`, `CobaltCore`, `CellBridge`) — see [`sample/WopiHost/Program.cs`](../../sample/WopiHost/Program.cs). For `CobaltCore` it reflection-loads this assembly, so the sample compiles whether or not the private feed is reachable. The relevant snippet from [`sample/WopiHost/ServiceCollectionExtensions.cs`](../../sample/WopiHost/ServiceCollectionExtensions.cs):
 
 ```csharp
 public static void AddCobalt(this IServiceCollection services)
@@ -36,14 +39,7 @@ public static void AddCobalt(this IServiceCollection services)
 }
 ```
 
-Then in `Program.cs`:
-
-```csharp
-if (builder.Configuration.GetValue<bool>("Wopi:UseCobalt"))
-{
-    builder.Services.AddCobalt();
-}
-```
+`AddSampleCoauthoringProvider(configuration, SampleCoauthoringProvider.CobaltCore)` calls it; the legacy `Wopi:UseCobalt=true` selects `CobaltCore` when `Sample:CoauthoringProvider` is absent.
 
 If you prefer direct DI, the package exposes a single concrete: register `CobaltProcessor` as `ICobaltProcessor`.
 
@@ -57,14 +53,16 @@ When `ICobaltProcessor` is in the container, `WopiHost.Core`'s file endpoints fl
 
 ```jsonc
 {
+  "Sample": {
+    "CoauthoringProvider": "CobaltCore"   // None | CobaltCore | CellBridge
+  },
   "Wopi": {
-    "UseCobalt": true,
     "ClientUrl": "https://your-office-online-server.com"
   }
 }
 ```
 
-`UseCobalt` is read by the sample's `Program.cs` to decide whether to call `AddCobalt()`. The library itself takes no configuration.
+`Sample:CoauthoringProvider` is read by the sample's `Program.cs`; `Wopi:UseCobalt` remains as a legacy switch (`true` means `CobaltCore` when the new key is absent). The library itself takes no configuration.
 
 ## API
 

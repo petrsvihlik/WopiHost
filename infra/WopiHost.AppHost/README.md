@@ -68,6 +68,8 @@ dotnet run --project infra/WopiHost.AppHost -- --AppHost:UseOnlyOffice=false
 | `AppHost:UseRedisLocks` | `true` | `wopi-locks` Redis container; both backends use the distributed lock provider against it. |
 | `AppHost:UseAzureStorage` | `false` | Azurite emulator + `BlobStorage` connection string forwarded to the backends. |
 | `AppHost:IncludeOidcSample` | `false` | The `WopiHost.Web.Oidc` frontend (requires IdP setup — see its README). |
+| `AppHost:UseCellBridge` | `false` | The [cellbridge](https://github.com/PatrickMatthiesen/cellbridge) demo lane: a `cellbridge-storage` PostgreSQL container, schema init, a seeded `integration-writer` account, cellbridge's host at `https://localhost:7292` and its document library at `/library`. Desktop Office (Windows) opens the documents straight from it over MS-FSSHTTP. cellbridge's demo projects are not on NuGet, so the lane builds from a sibling cellbridge source checkout behind `IncludeCellBridgeDemo` (auto-detected; see [src/WopiHost.CellBridge](../../src/WopiHost.CellBridge/README.md)). |
+| `AppHost:CellBridgeTestPassword` | `WopiHost-CellBridge-Demo-2026!` | Password of the seeded `integration-writer` account in the cellbridge lane (12+ chars with upper, lower, digit and symbol). |
 
 ## End-to-end tests
 
