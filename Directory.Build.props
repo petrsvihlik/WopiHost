@@ -74,6 +74,20 @@
 		<IncludeCobalt Condition="'$(IncludeCobalt)' == ''">false</IncludeCobalt>
 	</PropertyGroup>
 
+	<!-- WopiHost.CellBridge consumes PatrickMatthiesen/cellbridge (the open-source MS-FSSHTTP backend)
+	     from NuGet and always builds. cellbridge's desktop-Office demo (CellBridge.Web, CellBridge.Demo
+	     and the storage tools the AppHost lane orchestrates) is not packaged, so that lane builds from a
+	     source checkout. The checkout has to sit OUTSIDE this repository's tree — a sibling directory by
+	     default — because a nested copy would inherit this repo's Directory.Packages.props and fail
+	     restore (cellbridge pins versions per project). Auto-detected; force either way with
+	     -p:IncludeCellBridgeDemo=true|false and point elsewhere with -p:CellBridgeRepoRoot=<path>.
+	     Without it the AppHost compiles without the lane. -->
+	<PropertyGroup>
+		<CellBridgeRepoRoot Condition="'$(CellBridgeRepoRoot)' == ''">$(MSBuildThisFileDirectory)../cellbridge</CellBridgeRepoRoot>
+		<IncludeCellBridgeDemo Condition="'$(IncludeCellBridgeDemo)' == '' and Exists('$(CellBridgeRepoRoot)/CellBridge.slnx')">true</IncludeCellBridgeDemo>
+		<IncludeCellBridgeDemo Condition="'$(IncludeCellBridgeDemo)' == ''">false</IncludeCellBridgeDemo>
+	</PropertyGroup>
+
 	<!-- Package Validation Configuration for NuGet packages.
 
 	     PackageValidationBaselineVersion is the last NuGet-published version we validate the

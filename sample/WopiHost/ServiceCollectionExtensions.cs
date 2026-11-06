@@ -2,6 +2,7 @@ using System.Runtime.Loader;
 using WopiHost.Abstractions;
 using WopiHost.AzureLockProvider;
 using WopiHost.AzureStorageProvider;
+using WopiHost.CellBridge;
 using WopiHost.FileSystemProvider;
 using WopiHost.MemoryLockProvider;
 using WopiHost.RedisLockProvider;
@@ -33,6 +34,18 @@ public static class ServiceCollectionExtensions
         Memory,
         Azure,
         Redis,
+    }
+
+    /// <summary>
+    /// Which MS-FSSHTTP (co-authoring) backend implements <see cref="ICobaltProcessor"/>. CobaltCore
+    /// is an optional build (it needs the private <c>Microsoft.CobaltCore</c> feed); CellBridge comes
+    /// from NuGet (see <c>src/WopiHost.CellBridge/README.md</c>).
+    /// </summary>
+    public enum SampleCoauthoringProvider
+    {
+        None,
+        CobaltCore,
+        CellBridge,
     }
 
     /// <summary>
@@ -77,6 +90,27 @@ public static class ServiceCollectionExtensions
                 return;
             default:
                 throw new ArgumentOutOfRangeException(nameof(provider), provider, "Unknown sample lock provider.");
+        }
+    }
+
+    /// <inheritdoc cref="AddSampleStorageProvider"/>
+    public static void AddSampleCoauthoringProvider(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        SampleCoauthoringProvider provider)
+    {
+        switch (provider)
+        {
+            case SampleCoauthoringProvider.None:
+                return;
+            case SampleCoauthoringProvider.CobaltCore:
+                services.AddCobalt();
+                return;
+            case SampleCoauthoringProvider.CellBridge:
+                services.AddCellBridgeProcessor(configuration);
+                return;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(provider), provider, "Unknown sample co-authoring provider.");
         }
     }
 
