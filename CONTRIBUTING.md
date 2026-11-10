@@ -18,15 +18,11 @@ All contributions are welcome:
 
 ## Toolchain
 
-The SDK is pinned in [`global.json`](global.json): any .NET 10 SDK satisfies
+The SDK is pinned in [`global.json`](global.json): any .NET 11 SDK satisfies
 it, and `allowPrerelease: false` keeps preview SDKs out of ordinary builds.
 `LangVersion` is pinned in `Directory.Build.props` for the same reason — left
 at `latest` it would track whatever compiler happens to be installed.
 
-Together that means **.NET 11 previews can be installed side by side without
-affecting this repo**. Builds keep selecting the .NET 10 SDK and C# 14 no
+Together that means **.NET 12 previews can be installed side by side without
+affecting this repo**. Builds keep selecting the .NET 11 SDK and C# 15 no
 matter what else is on the machine.
-
-Preview SDKs and runtimes are exercised nightly by
-[`.github/workflows/net11-preview.yml`](.github/workflows/net11-preview.yml).
-It is informational, gates nothing, and changes no target framework.

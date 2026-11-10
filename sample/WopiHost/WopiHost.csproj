@@ -5,6 +5,8 @@
 		<OutputType>Exe</OutputType>
 		<PackageId>WopiHost</PackageId>
 		<UserSecretsId>aspnet5-WopiHost-20150905035313</UserSecretsId>
+		<!-- API-only backend: no page for browser tooling to attach to. See Directory.Build.targets. -->
+		<DisableHotReloadBrowserTools>true</DisableHotReloadBrowserTools>
 	</PropertyGroup>
 
 	<ItemGroup>

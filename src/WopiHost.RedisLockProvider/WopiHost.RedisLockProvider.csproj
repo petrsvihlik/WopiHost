@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<Description>WopiHost.RedisLockProvider Class Library — distributed lock provider backed by Redis, with atomic compare-and-swap via server-side conditional commands (SET IFEQ/DELIFEQ, requires Redis 8.4+) and TTL-driven WOPI expiry. Best-effort against a single Redis instance; deliberately does not implement Redlock — see the README for the rationale.</Description>
 		<Authors>Petr Svihlik</Authors>
-		<TargetFramework>net10.0</TargetFramework>
+		<TargetFramework>net11.0</TargetFramework>
 		<AssemblyName>WopiHost.RedisLockProvider</AssemblyName>
 		<PackageId>WopiHost.RedisLockProvider</PackageId>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
@@ -40,7 +40,6 @@
 		<PackageReference Include="StackExchange.Redis" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
 	</ItemGroup>
 

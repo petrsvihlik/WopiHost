@@ -27,4 +27,18 @@
   <PropertyGroup Condition="$(EnablePackageValidation) == '' AND $(IsPackable) != 'false' AND $(PackageId) != ''">
     <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
+
+  <!-- Opt-out for the .NET 11 SDK's Hot Reload browser tools. Every Debug Sdk.Web project emits the
+       same _framework/Microsoft.NET.Sdk.BlazorWeb.HotReload.* assets, so a project that references
+       two web projects (WopiHost.IntegrationTests: the backend and WopiHost.Web.Oidc) fails with
+       conflicting static web asset paths. _HotReloadBrowserToolsEnabled is SDK-internal and assigned
+       unconditionally during evaluation, so it can only be overridden at target time. C# Hot Reload
+       (EnableHotReloadInRuntimeConfigDevFile) is unaffected. -->
+  <Target Name="_DisableHotReloadBrowserTools"
+          BeforeTargets="ResolveStaticWebAssetsConfiguration"
+          Condition="'$(DisableHotReloadBrowserTools)' == 'true'">
+    <PropertyGroup>
+      <_HotReloadBrowserToolsEnabled>false</_HotReloadBrowserToolsEnabled>
+    </PropertyGroup>
+  </Target>
 </Project>
