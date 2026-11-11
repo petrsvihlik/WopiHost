@@ -155,7 +155,7 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
     public async Task OpenWriteAsync_NoExistingMetadata_StillPersistsHash()
     {
         // OpenWriteAsync when properties.Metadata is empty exercises the fallback
-        // `new Dictionary<string, string>(StringComparer.Ordinal)` branch.
+        // empty-dictionary branch.
         var container = await CreateContainerAsync();
         var blob = container.GetBlobClient("nometa.bin");
         using (var stream = new MemoryStream([]))

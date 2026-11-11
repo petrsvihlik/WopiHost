@@ -94,7 +94,7 @@ body:
     attributes:
       label: Affected configuration
       description: Anything that scopes the issue — provider in use, auth setup, proof validation on/off, OS, .NET version.
-      placeholder: "e.g., FileSystemProvider on Linux, proof validation enabled, .NET 10"
+      placeholder: "e.g., FileSystemProvider on Linux, proof validation enabled, .NET 11"
     validations:
       required: false
 

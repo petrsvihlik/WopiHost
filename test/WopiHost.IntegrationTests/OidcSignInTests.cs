@@ -178,7 +178,7 @@ public partial class OidcSignInTests : IClassFixture<OidcSignInTests.AppFactory>
     /// </summary>
     private static Dictionary<string, string> ParseFormPostFields(string formHtml)
     {
-        var fields = new Dictionary<string, string>(StringComparer.Ordinal);
+        Dictionary<string, string> fields = [with(StringComparer.Ordinal)];
         foreach (Match m in FormPostHiddenInputRegex().Matches(formHtml))
         {
             fields[m.Groups[1].Value] = System.Net.WebUtility.HtmlDecode(m.Groups[2].Value);

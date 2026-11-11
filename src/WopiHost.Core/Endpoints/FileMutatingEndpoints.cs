@@ -186,7 +186,7 @@ internal static class FileMutatingEndpoints
         await req.Extensions.OnAddActivitiesAsync(
             new WopiAddActivitiesContext(req.Http.User, file, activities), req.CancellationToken).ConfigureAwait(false);
 
-        var responses = new List<WopiActivityResponse>(activities.Count);
+        List<WopiActivityResponse> responses = [with(capacity: activities.Count)];
         foreach (var activity in activities)
         {
             var status = string.Equals(activity.Type, "comment", StringComparison.OrdinalIgnoreCase)

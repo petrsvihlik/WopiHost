@@ -14,7 +14,7 @@ internal sealed class FakeDiscoverer : IDiscoverer
 {
     /// <summary>Extensions for which both View and Edit are reported as supported.</summary>
     public static readonly HashSet<string> SupportedExtensions =
-        new(StringComparer.OrdinalIgnoreCase) { "docx", "xlsx", "pptx" };
+        [with(StringComparer.OrdinalIgnoreCase), "docx", "xlsx", "pptx"];
 
     public Task<bool> SupportsExtensionAsync(string extension) =>
         Task.FromResult(SupportedExtensions.Contains(extension.TrimStart('.')));

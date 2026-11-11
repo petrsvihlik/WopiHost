@@ -33,7 +33,7 @@ false-positives or intentional design. Every run MUST load it and suppress anyth
 2. Read `references/playbook.md` — accumulated techniques that find real bugs here, the noisy lead
    categories to interpret-not-auto-file, and dead-ends. This is the skill's how-to-look memory.
 3. Read the root `CLAUDE.md` — the repo's own conventions (comment style, provider model, DI
-   rules, nullable/warnings-as-errors, net10 targeting, centralized packages). Findings are
+   rules, nullable/warnings-as-errors, net11 targeting, centralized packages). Findings are
    measured against these, and several "smells" are actually documented conventions.
 4. Check currently-open issues/PRs (`gh issue list`, `gh pr list`) so you cross-reference existing
    trackers rather than re-filing them.

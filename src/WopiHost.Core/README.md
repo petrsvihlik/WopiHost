@@ -346,7 +346,7 @@ app.MapWopiEndpoints();
 app.MapMyAdminEndpoints();   // your non-WOPI endpoints
 ```
 
-`UseExceptionHandler()` is safe because the WOPI surface uses typed-result returns (`TypedResults.BadRequest()`, `TypedResults.Conflict()`, etc.) and doesn't throw on the spec paths — so it never reaches the exception handler. `UseStatusCodePages()` is not safe: it intercepts every empty-body 4xx, including the WOPI ones. If you genuinely need status-code-pages for your other endpoints, configure it to exclude the WOPI prefix via [`UseWhen(...)`](https://learn.microsoft.com/aspnet/core/fundamentals/middleware/?view=aspnetcore-10.0#branch-the-middleware-pipeline) or path-based filtering. See [#467](https://github.com/petrsvihlik/WopiHost/issues/467) for the full design discussion.
+`UseExceptionHandler()` is safe because the WOPI surface uses typed-result returns (`TypedResults.BadRequest()`, `TypedResults.Conflict()`, etc.) and doesn't throw on the spec paths — so it never reaches the exception handler. `UseStatusCodePages()` is not safe: it intercepts every empty-body 4xx, including the WOPI ones. If you genuinely need status-code-pages for your other endpoints, configure it to exclude the WOPI prefix via [`UseWhen(...)`](https://learn.microsoft.com/aspnet/core/fundamentals/middleware/?view=aspnetcore-11.0#branch-the-middleware-pipeline) or path-based filtering. See [#467](https://github.com/petrsvihlik/WopiHost/issues/467) for the full design discussion.
 
 ## Lock-aware writable storage (defense in depth)
 

@@ -132,7 +132,7 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
             _idToPath[rootId] = string.Empty;
             _pathToId[string.Empty] = rootId;
 
-            var seenDirs = new HashSet<string>(StringComparer.Ordinal);
+            HashSet<string> seenDirs = [with(StringComparer.Ordinal)];
             foreach (var path in blobPaths)
             {
                 // Hide folder markers from the file map but make sure the parent folder is registered.

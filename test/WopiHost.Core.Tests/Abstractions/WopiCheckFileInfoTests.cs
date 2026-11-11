@@ -21,9 +21,6 @@ public class WopiCheckFileInfoTests
         var sut = MinimallyValid();
         sut.CloseButtonClosesWindow = true;
         sut.EditAndReplyUrl = new Uri("https://host/edit-and-reply");
-#pragma warning disable CS0618 // exercising deprecated members deliberately
-        sut.HostName = "host-name";
-#pragma warning restore CS0618
 
         using var doc = JsonDocument.Parse(JsonSerializer.Serialize<object>(sut));
         var root = doc.RootElement;
@@ -33,11 +30,10 @@ public class WopiCheckFileInfoTests
         Assert.Equal("user", root.GetProperty("UserId").GetString());
         Assert.Equal("1", root.GetProperty("Version").GetString());
 
-        // Members marked [JsonIgnore] (deprecated, unused-future, or deliberately withheld —
+        // Members marked [JsonIgnore] (unused-future, or deliberately withheld —
         // CloseButtonClosesWindow must not reach M365) stay off the wire even when set.
         Assert.False(root.TryGetProperty("CloseButtonClosesWindow", out _));
         Assert.False(root.TryGetProperty("EditAndReplyUrl", out _));
-        Assert.False(root.TryGetProperty("HostName", out _));
     }
 
     [Fact]

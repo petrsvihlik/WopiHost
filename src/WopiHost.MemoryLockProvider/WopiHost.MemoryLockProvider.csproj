@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<Description>WopiHost.MemoryLockProvider Class Library</Description>
 		<Authors>Leon Segal</Authors>
-		<TargetFramework>net10.0</TargetFramework>
+		<TargetFramework>net11.0</TargetFramework>
 		<AssemblyName>WopiHost.MemoryLockProvider</AssemblyName>
 		<PackageId>WopiHost.MemoryLockProvider</PackageId>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
