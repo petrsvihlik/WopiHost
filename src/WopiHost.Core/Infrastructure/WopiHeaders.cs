@@ -71,13 +71,6 @@ public static class WopiHeaders
     /// </summary>
     public const string LockFailureReason = "X-WOPI-LockFailureReason";
 
-    /// <summary>
-    /// A string indicating that the file is currently locked by another client. T
-    /// his header SHOULD only be included when responding with the 409 status code.
-    /// Note: This header is deprecated and should be ignored by WOPI clients.
-    /// </summary>
-    [Obsolete("This header is deprecated and should be ignored by WOPI clients.", false)]
-    public const string LockedByOtherInterface = "X-WOPI-LockedByOtherInterface";
 
     /// <summary>
     /// A UTF-7 string specifying either a file extension or a full file name.
