@@ -19,9 +19,6 @@
 		     pattern is a separate follow-up — suppressing here so the v3 migration doesn't
 		     have to rewrite ~1.5k call sites first. -->
 		<NoWarn>$(NoWarn);xUnit1051</NoWarn>
-		<!-- Tests never hot-reload, and a test project that references web samples would otherwise
-		     collide with their browser-tools assets. See the root Directory.Build.targets. -->
-		<DisableHotReloadBrowserTools>true</DisableHotReloadBrowserTools>
 	</PropertyGroup>
 
 	<ItemGroup>
