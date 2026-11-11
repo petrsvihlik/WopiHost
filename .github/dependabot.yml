@@ -46,6 +46,22 @@ updates:
           - "minor"
           - "patch"
 
+  # The WOPI validator helper is not in WOPI.slnx, so the "/" entry above never reaches it.
+  - package-ecosystem: nuget
+    directory: "/tools/wopi-validator"
+    registries:
+      - cobalt-github-packages
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      wopi-validator:
+        patterns:
+          - "*"
+
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

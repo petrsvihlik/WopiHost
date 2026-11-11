@@ -15,17 +15,17 @@
   -->
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
     <IsPackable>false</IsPackable>
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
-    <!-- NU1701: the upstream Microsoft.Office.WopiValidator package targets an older framework, so
-         this never-shipped tool stays on net8.0 to consume it. -->
-    <NoWarn>$(NoWarn);NU1701</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="WopiValidator" Version="2.0.5" />
+    <PackageReference Include="WopiValidator" Version="2.0.7" />
+    <!-- Overrides the Newtonsoft.Json 9.0.1 that WopiValidator.Core pulls in (GHSA-5crp-9r3c-p9vr,
+         which NuGet audit fails restore on). Drop once upstream depends on a patched version. -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
 </Project>
