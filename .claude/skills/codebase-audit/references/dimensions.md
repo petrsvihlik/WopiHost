@@ -80,10 +80,13 @@ These are "two things that should match but don't." The providers are the usual 
 - **Many-parameter helpers.** A private helper taking 9–10 pass-through params → bundle into a
   record (done for `ProcessLockCore` → `LockOperationRequest`).
 
-## 6. .NET 10 / Minimal-API idiom (Medium/Low)
+## 6. .NET 11 / C# 15 / Minimal-API idiom (Medium/Low)
 
 - `TypedResults.*` over `Results.*` in endpoints (typed unions); consistent in the samples too.
-- Redundant `[FromServices]` annotations (inferred in .NET 10); unnecessary `app.UseRouting()`.
+- Redundant `[FromServices]` annotations (inferred by Minimal APIs); unnecessary `app.UseRouting()`.
+- C# 15: collection expressions with `with(...)` arguments over `new HashSet<T>(comparer)` /
+  `new List<T>(capacity)` (IDE0028); labeled `break`/`continue` over flag variables or `goto`
+  (IDE0410). Both are enforced at warning severity in `.editorconfig`.
 - `[AsParameters]` request records for large handlers; `IParsable` for typed route params.
 - File-scoped namespaces (IDE0161); no unused usings (IDE0005); source-generated `[LoggerMessage]`
   over direct `ILogger.LogX` calls.
@@ -166,7 +169,7 @@ For each doc claim, verify against source before trusting it:
 - **ID-scheme claims.** Ids are deterministic SHA-256 hex of a canonical path (stable across
   restarts), case-folded on the file system, case-sensitive on Azure — not base64 paths, not MD5,
   not "short tokens", not "unstable across restarts".
-- **Package names/IDs**, install snippets, project names, and **target framework** (`net10.0` only).
+- **Package names/IDs**, install snippets, project names, and **target framework** (`net11.0` only).
 - **Broken internal links** between wiki pages or to repo paths that no longer exist.
 
 Report each as `Doc page:line | what the doc says → what the code is → fix`, with the source

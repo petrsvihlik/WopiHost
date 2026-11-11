@@ -27,4 +27,5 @@
   <PropertyGroup Condition="$(EnablePackageValidation) == '' AND $(IsPackable) != 'false' AND $(PackageId) != ''">
     <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
+
 </Project>

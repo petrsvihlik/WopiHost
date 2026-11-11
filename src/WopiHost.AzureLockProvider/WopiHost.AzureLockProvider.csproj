@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<Description>WopiHost.AzureLockProvider Class Library — distributed lock provider backed by Azure Blob leases.</Description>
 		<Authors>Petr Svihlik</Authors>
-		<TargetFramework>net10.0</TargetFramework>
+		<TargetFramework>net11.0</TargetFramework>
 		<AssemblyName>WopiHost.AzureLockProvider</AssemblyName>
 		<PackageId>WopiHost.AzureLockProvider</PackageId>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>

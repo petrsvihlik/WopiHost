@@ -13,7 +13,9 @@ WopiHost validates the public API surface of its NuGet packages on two layers.
 </PropertyGroup>
 ```
 
-This runs after `dotnet pack` and **fails the release build** if the new package introduces breaking changes versus `PackageValidationBaselineVersion` on NuGet.org. The libraries target `net10.0`; the v8 line was the last to multi-target `net8.0`/`net9.0`.
+This runs after `dotnet pack` and **fails the release build** if the new package introduces breaking changes versus `PackageValidationBaselineVersion` on NuGet.org. The libraries target `net11.0`; the v8 line was the last to multi-target `net8.0`/`net9.0`, and v9 the last on `net10.0`.
+
+An **empty** `PackageValidationBaselineVersion` marks a new-baseline major: a release that deliberately breaks compatibility (the move to `net11.0` is one). Pack-time validation then skips the baseline comparison, and so does the PR-time report below. After that release ships, `bump-baseline.yml` fills the value in and comparisons resume against it. A major that starts a new baseline needs no `CompatibilitySuppressions.xml` entries.
 
 `PackageValidationBaselineVersion` is auto-bumped to the latest stable release by [`.github/workflows/release.yml`](.github/workflows/release.yml) — after a successful publish-to-NuGet, that workflow opens a PR updating the value.
 

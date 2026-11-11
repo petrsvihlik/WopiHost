@@ -24,7 +24,7 @@ public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
     private async Task<HashingBlobWriteStream> OpenWrapperAsync(BlobClient blobClient)
     {
         var inner = await blobClient.OpenWriteAsync(overwrite: true);
-        return new HashingBlobWriteStream(inner, blobClient, new Dictionary<string, string>(StringComparer.Ordinal));
+        return new HashingBlobWriteStream(inner, blobClient, [with(StringComparer.Ordinal)]);
     }
 
     private static string ExpectedSha256(string s)

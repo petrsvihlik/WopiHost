@@ -6,7 +6,7 @@
 [![Maintainability](https://qlty.sh/badges/43534b35-fa0c-4a2d-bd02-17802842b9c5/maintainability.svg)](https://qlty.sh/gh/petrsvihlik/projects/WopiHost)
 [![CodeFactor](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/badge/master)](https://www.codefactor.io/repository/github/petrsvihlik/wopihost/overview/master)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost.svg?type=small)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpetrsvihlik%2FWopiHost?ref=badge_small)
-[![.NET Core](https://img.shields.io/badge/net-10-692079.svg)](https://dotnet.microsoft.com/download/dotnet/10.0)
+[![.NET Core](https://img.shields.io/badge/net-11-692079.svg)](https://dotnet.microsoft.com/download/dotnet/11.0)
 
 [![WopiHost community survey — tell us what you built, takes 3 minutes](img/survey-banner.svg)](https://wonderful-mushroom-04108d310.7.azurestaticapps.net/s/a2549c)
 
@@ -42,7 +42,7 @@ A modular **WOPI host** implementation for .NET that lets you plug your own data
 
 ### Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- [.NET 11 SDK](https://dotnet.microsoft.com/download/dotnet/11.0)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop) (used by .NET Aspire for container resources)
 - Recommended: [Visual Studio 2026](https://visualstudio.microsoft.com/vs/) with the .NET Aspire workload, or [VS Code](https://code.visualstudio.com/) with the C# Dev Kit
 

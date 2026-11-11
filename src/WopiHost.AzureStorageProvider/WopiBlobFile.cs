@@ -119,9 +119,9 @@ public class WopiBlobFile : IWopiWritableFile
     /// </remarks>
     public async Task<Stream> OpenWriteAsync(CancellationToken cancellationToken = default)
     {
-        var preserved = _properties?.Metadata is { } existing
-            ? new Dictionary<string, string>(existing, StringComparer.Ordinal)
-            : new Dictionary<string, string>(StringComparer.Ordinal);
+        Dictionary<string, string> preserved = _properties?.Metadata is { } existing
+            ? new(existing, StringComparer.Ordinal)
+            : [with(StringComparer.Ordinal)];
 
         var inner = await _blobClient.OpenWriteAsync(overwrite: true, cancellationToken: cancellationToken).ConfigureAwait(false);
         return new HashingBlobWriteStream(inner, _blobClient, preserved);

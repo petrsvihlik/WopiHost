@@ -70,9 +70,9 @@ jobs:
         run: |
           # UseArtifactsOutput (#313) centralizes outputs under
           # artifacts/bin/<Project>/<config>/ — replaces the legacy
-          # src/<Project>/bin/Release/net10.0/ paths. The previous
-          # release_net10.0 suffix only appeared while we multi-targeted; now
-          # that net10 is the sole TFM, the SDK drops the suffix.
+          # src/<Project>/bin/Release/<tfm>/ paths. A release_<tfm> suffix
+          # only appears when a project multi-targets; with a single TFM the
+          # SDK drops it.
           mkdir -p infer-staging
           for proj in WopiHost.Abstractions WopiHost.Core WopiHost.Discovery WopiHost.Url WopiHost.Cobalt WopiHost.FileSystemProvider WopiHost.MemoryLockProvider; do
             cp "artifacts/bin/$proj/release/$proj.dll" "artifacts/bin/$proj/release/$proj.pdb" infer-staging/
@@ -91,7 +91,7 @@ jobs:
 
       - name: Upload SARIF to GitHub code scanning
         if: always()
-        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
         with:
           sarif_file: infer-out/report.sarif
           category: infersharp

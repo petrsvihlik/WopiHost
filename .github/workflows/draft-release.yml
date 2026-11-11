@@ -120,7 +120,9 @@ jobs:
           # but must not decide the arithmetic.
           PREV="$(latest_stable wopihost.core)"
           DECLARED="$(sed -n 's:.*<PackageValidationBaselineVersion>\([^<]*\)</PackageValidationBaselineVersion>.*:\1:p' Directory.Build.props | head -n 1)"
-          if [[ "$PREV" != "$DECLARED" ]]; then
+          if [[ -z "$DECLARED" ]]; then
+            echo "PackageValidationBaselineVersion is empty: this release starts a new baseline."
+          elif [[ "$PREV" != "$DECLARED" ]]; then
             echo "::warning::PackageValidationBaselineVersion is $DECLARED but NuGet's latest stable WopiHost.Core is $PREV. Using $PREV."
           fi
           echo "Previous release: $PREV"

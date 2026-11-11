@@ -75,13 +75,6 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     public string? BreadcrumbDocName { get; set; }
 
     /// <summary>
-    /// MAY specifies a URI to a web page that the WOPI client navigates to when the user clicks on UI that displays <see cref="BreadcrumbDocName"/>.
-    /// </summary>
-    [JsonIgnore]
-    [Obsolete("Deprecated", false, UrlFormat = "https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#deprecated-properties</remarks>")]
-    public Uri? BreadcrumbDocUrl { get; set; }
-
-    /// <summary>
     /// A string that indicates the name of the container that contains the file.
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -223,13 +216,6 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     public Uri? HostEmbeddedViewUrl { get; set; }
 
     /// <summary>
-    /// A string that is the name provided by the WOPI server used to identify it for logging and other informational purposes.
-    /// </summary>
-    [JsonIgnore]
-    [Obsolete("Deprecated", false, UrlFormat = "https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#deprecated-properties</remarks>")]
-    public string? HostName { get; set; }
-
-    /// <summary>
     /// A string that is used by the host to pass arbitrary information to the WOPI client.
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -270,13 +256,6 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PresenceUserId { get; set; }
-
-    /// <summary>
-    /// A URI to a webpage that explains the privacy policy of the WOPI server.
-    /// </summary>
-    [JsonIgnore]
-    [Obsolete("Deprecated", false, UrlFormat = "https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-other#deprecated-properties</remarks>")]
-    public Uri? PrivacyUrl { get; set; }
 
     /// <summary>
     /// A Boolean value that indicates that the WOPI client should take measures to prevent copying and printing of the file. 

@@ -134,6 +134,21 @@ jobs:
         set -euo pipefail
         mkdir -p ./artifacts/baseline
 
+        # An empty PackageValidationBaselineVersion marks a new-baseline major (see
+        # Directory.Build.props): every break is intended, so there is nothing to compare yet.
+        DECLARED="$(sed -n 's:.*<PackageValidationBaselineVersion>\([^<]*\)</PackageValidationBaselineVersion>.*:\1:p' Directory.Build.props | head -n 1)"
+        if [[ -z "$DECLARED" ]]; then
+          REPORT_FILE="$GITHUB_WORKSPACE/apicompat-report.md"
+          {
+            echo "<!-- apicompat-report -->"
+            echo "## API Compatibility Report"
+            echo ""
+            echo "_Skipped: \`PackageValidationBaselineVersion\` is empty, so the next release starts a new baseline and breaking changes are expected. The comparison resumes once bump-baseline.yml records that release._"
+          } > "$REPORT_FILE"
+          cat "$REPORT_FILE"
+          exit 0
+        fi
+
         # The set to check is derived from what the pack step actually produced rather than
         # from a hand-maintained list. A list has to be updated whenever a project becomes
         # packable and silently under-checks until someone remembers: RedisLockProvider went

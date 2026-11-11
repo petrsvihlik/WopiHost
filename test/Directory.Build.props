@@ -11,7 +11,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<!-- xUnit v3 requires test projects to be built as console apps so the framework's
 		     Microsoft.Testing.Platform entry point can run them. As of xunit.v3 4.x that entry
-		     point is the only path: MTP v2 refuses to run through the VSTest target on the
+		     point is the only path: MTP v2 refuses to run through the VSTest target since the
 		     .NET 10 SDK, so Microsoft.NET.Test.Sdk + xunit.runner.visualstudio are gone. -->
 		<OutputType>Exe</OutputType>
 		<!-- xUnit1051 (added in v3) suggests routing every CancellationToken through
