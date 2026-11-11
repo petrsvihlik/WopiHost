@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>WopiHost.CellBridge Class Library</Description>
     <Authors>Petr Svihlik</Authors>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <AssemblyName>WopiHost.CellBridge</AssemblyName>
     <PackageId>WopiHost.CellBridge</PackageId>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
