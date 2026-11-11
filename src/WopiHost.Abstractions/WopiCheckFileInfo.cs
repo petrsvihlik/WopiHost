@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Text.Json.Serialization;
 
 namespace WopiHost.Abstractions;
@@ -73,7 +73,6 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? BreadcrumbDocName { get; set; }
-
 
     /// <summary>
     /// A string that indicates the name of the container that contains the file.
@@ -216,7 +215,6 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Uri? HostEmbeddedViewUrl { get; set; }
 
-
     /// <summary>
     /// A string that is used by the host to pass arbitrary information to the WOPI client.
     /// </summary>
@@ -258,7 +256,6 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PresenceUserId { get; set; }
-
 
     /// <summary>
     /// A Boolean value that indicates that the WOPI client should take measures to prevent copying and printing of the file. 

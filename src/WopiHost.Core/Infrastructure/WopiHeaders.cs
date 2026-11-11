@@ -71,7 +71,6 @@ public static class WopiHeaders
     /// </summary>
     public const string LockFailureReason = "X-WOPI-LockFailureReason";
 
-
     /// <summary>
     /// A UTF-7 string specifying either a file extension or a full file name.
     /// If only the extension is provided, the name of the initial file without extension SHOULD be combined with the extension to create the proposed name.
