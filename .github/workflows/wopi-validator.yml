@@ -66,10 +66,12 @@ jobs:
 
       - name: Setup .NET
         uses: ./.github/actions/setup-dotnet-sdk
-      - name: Set up the .NET 8 SDK (for the net8-targeted WOPI validator)
+      # WopiValidator ships net10.0 at the newest, and its bundled NJsonSchema throws during startup
+      # on the .NET 11 runtime, so it runs on .NET 10 rather than rolling forward.
+      - name: Set up .NET 10 (runtime for the net10-targeted WOPI validator)
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
 
       - name: Set Cobalt packages token
         run: echo "COBALT_PACKAGES_TOKEN=${{ secrets.COBALT_PACKAGES_TOKEN }}" >> $GITHUB_ENV
@@ -90,7 +92,7 @@ jobs:
           dotnet publish tools/wopi-validator/wopi-validator.csproj -c Release -o "${VALIDATOR_BIN}"
           VALIDATOR_PKG=$(ls -d "${HOME}/.nuget/packages/wopivalidator/"*/ | sort -V | tail -1)
           cp "${VALIDATOR_PKG}content/"*.xml "${VALIDATOR_BIN}/"
-          cp "${VALIDATOR_PKG}lib/net8.0/Microsoft.Office.WopiValidator.runtimeconfig.json" "${VALIDATOR_BIN}/"
+          cp "${VALIDATOR_PKG}lib/net10.0/Microsoft.Office.WopiValidator.runtimeconfig.json" "${VALIDATOR_BIN}/"
           VALIDATOR_VERSION=$(basename "${VALIDATOR_PKG%/}")
           echo "bin=${VALIDATOR_BIN}" >> "$GITHUB_OUTPUT"
           echo "version=${VALIDATOR_VERSION}" >> "$GITHUB_OUTPUT"

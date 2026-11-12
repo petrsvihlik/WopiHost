@@ -9,7 +9,7 @@
 # The validator version is pinned in tools/wopi-validator/wopi-validator.csproj
 # and bumped automatically by Dependabot.
 #
-# Requirements: bash, curl, dotnet (8.0 + 10.0 SDKs).
+# Requirements: bash, curl, dotnet (the SDK global.json pins, plus the .NET 10 runtime for the validator).
 
 set -euo pipefail
 
@@ -47,7 +47,7 @@ dotnet publish "${VALIDATOR_PROJECT}" -c Release -o "${VALIDATOR_BIN}"
 NUGET_PACKAGES="${NUGET_PACKAGES:-${HOME}/.nuget/packages}"
 VALIDATOR_PKG="$(ls -d "${NUGET_PACKAGES}/wopivalidator/"*/ | sort -V | tail -1)"
 cp "${VALIDATOR_PKG}content/"*.xml "${VALIDATOR_BIN}/"
-cp "${VALIDATOR_PKG}lib/net8.0/Microsoft.Office.WopiValidator.runtimeconfig.json" "${VALIDATOR_BIN}/"
+cp "${VALIDATOR_PKG}lib/net10.0/Microsoft.Office.WopiValidator.runtimeconfig.json" "${VALIDATOR_BIN}/"
 VALIDATOR_VERSION="$(basename "${VALIDATOR_PKG%/}")"
 echo "==> Using WopiValidator ${VALIDATOR_VERSION}"
 
