@@ -28,7 +28,7 @@ public class DefaultWopiPermissionProviderTests
             [new Claim(WopiClaimTypes.FilePermissions, WopiFilePermissions.ReadOnly.ToString())],
             "test"));
 
-        var perms = await provider.GetFilePermissionsAsync(user, new Mock<IWopiFile>().Object);
+        var perms = await provider.GetFilePermissionsAsync(user, new Mock<IWopiFile>().Object, TestContext.Current.CancellationToken);
 
         Assert.Equal(WopiFilePermissions.ReadOnly, perms);
     }
@@ -44,7 +44,7 @@ public class DefaultWopiPermissionProviderTests
         var provider = Build(options);
         var user = new ClaimsPrincipal(new ClaimsIdentity());
 
-        var perms = await provider.GetFilePermissionsAsync(user, new Mock<IWopiFile>().Object);
+        var perms = await provider.GetFilePermissionsAsync(user, new Mock<IWopiFile>().Object, TestContext.Current.CancellationToken);
 
         Assert.Equal(WopiFilePermissions.UserCanWrite, perms);
     }
@@ -58,7 +58,7 @@ public class DefaultWopiPermissionProviderTests
             [new Claim(WopiClaimTypes.ContainerPermissions, perms.ToString())],
             "test"));
 
-        var actual = await provider.GetContainerPermissionsAsync(user, new Mock<IWopiContainer>().Object);
+        var actual = await provider.GetContainerPermissionsAsync(user, new Mock<IWopiContainer>().Object, TestContext.Current.CancellationToken);
 
         Assert.Equal(perms, actual);
     }
@@ -74,7 +74,7 @@ public class DefaultWopiPermissionProviderTests
         var provider = Build(options);
         var user = new ClaimsPrincipal(new ClaimsIdentity());
 
-        var actual = await provider.GetContainerPermissionsAsync(user, new Mock<IWopiContainer>().Object);
+        var actual = await provider.GetContainerPermissionsAsync(user, new Mock<IWopiContainer>().Object, TestContext.Current.CancellationToken);
 
         Assert.Equal(WopiContainerPermissions.UserCanDelete, actual);
     }
@@ -92,7 +92,7 @@ public class DefaultWopiPermissionProviderTests
             [new Claim(WopiClaimTypes.FilePermissions, "this-is-not-a-valid-flags-value-?!")],
             "test"));
 
-        var actual = await provider.GetFilePermissionsAsync(user, new Mock<IWopiFile>().Object);
+        var actual = await provider.GetFilePermissionsAsync(user, new Mock<IWopiFile>().Object, TestContext.Current.CancellationToken);
 
         Assert.Equal(WopiFilePermissions.UserCanWrite, actual);
     }

@@ -40,10 +40,10 @@ public sealed class ReadOnlyHostCheckFileInfoTests : IDisposable
         var token = await FixtureTokens.MintFileTokenAsync(_backend, s_user, fileId, WopiFilePermissions.UserCanWrite);
         using var client = _backend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var payload = JsonSerializer.Deserialize<JsonElement>(await resp.Content.ReadAsStringAsync());
+        var payload = JsonSerializer.Deserialize<JsonElement>(await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.False(payload.GetProperty("SupportsUpdate").GetBoolean());
         Assert.False(payload.GetProperty("SupportsRename").GetBoolean());
         Assert.False(payload.GetProperty("SupportsDeleteFile").GetBoolean());

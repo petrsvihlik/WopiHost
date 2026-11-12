@@ -57,7 +57,7 @@ public sealed class VanishRaceTests : IDisposable
         var (fileId, token) = await ResolveAnyFileAsync();
         using var client = _backend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -68,7 +68,7 @@ public sealed class VanishRaceTests : IDisposable
         var (fileId, token) = await ResolveAnyFileAsync();
         using var client = _backend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }

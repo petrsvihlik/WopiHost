@@ -63,7 +63,7 @@ public class DefaultCheckInfoBuilderTests
         var httpContext = new DefaultHttpContext();
 
         var builder = new DefaultCheckFileInfoBuilder(CreatePermissionProvider().Object, new WopiHostExtensions());
-        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo(), capabilities, "userInfo text");
+        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo(), capabilities, "userInfo text", TestContext.Current.CancellationToken);
 
         Assert.Equal("owner", result.OwnerId);
         Assert.Equal("test.txt", result.BaseFileName);
@@ -112,7 +112,7 @@ public class DefaultCheckInfoBuilderTests
             CreatePermissionProvider().Object,
             new WopiHostExtensions(),
             writableStorageProvider.Object);
-        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo());
+        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo(), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(13, result.FileNameMaxLength);
     }
@@ -143,7 +143,7 @@ public class DefaultCheckInfoBuilderTests
         var builder = new DefaultCheckFileInfoBuilder(
             CreatePermissionProvider().Object,
             new WopiHostExtensions());
-        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo());
+        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo(), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Null(result.FileUrl);
     }
@@ -174,7 +174,7 @@ public class DefaultCheckInfoBuilderTests
         var builder = new DefaultCheckFileInfoBuilder(
             CreatePermissionProvider().Object,
             extensions);
-        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo());
+        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo(), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(cdnUrl, result.FileUrl);
     }
@@ -236,7 +236,7 @@ public class DefaultCheckInfoBuilderTests
         var builder = new DefaultCheckFileInfoBuilder(
             CreatePermissionProvider().Object,
             new FileUrlExtensions(accessor));
-        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo());
+        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo(), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(new Uri(downloadUrl), result.FileUrl);
     }
@@ -262,7 +262,7 @@ public class DefaultCheckInfoBuilderTests
         var httpContext = new DefaultHttpContext();
 
         var builder = new DefaultCheckFileInfoBuilder(CreatePermissionProvider().Object, extensions);
-        _ = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo());
+        _ = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo(), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(eventFired);
     }
@@ -295,7 +295,7 @@ public class DefaultCheckInfoBuilderTests
         };
 
         var builder = new DefaultCheckFileInfoBuilder(mockSecurityHandler.Object, new WopiHostExtensions());
-        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo());
+        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo(), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("userId", result.UserId);
         Assert.Equal("userId", result.HostAuthenticationId);
@@ -346,7 +346,8 @@ public class DefaultCheckInfoBuilderTests
         var result = await builder.BuildAsync(
             mockFile.Object,
             httpContext.ToWopiRequestInfo(),
-            capabilities: new WopiHostCapabilities { SupportsUpdate = false });
+            capabilities: new WopiHostCapabilities { SupportsUpdate = false },
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(result.SupportsUpdate);
         Assert.True(result.UserCanNotWriteRelative);
@@ -412,7 +413,7 @@ public class DefaultCheckInfoBuilderTests
         var httpContext = new DefaultHttpContext();
 
         var builder = new DefaultCheckContainerInfoBuilder(mockSecurityHandler.Object, extensions);
-        var result = await builder.BuildAsync(mockFolder.Object, httpContext.User);
+        var result = await builder.BuildAsync(mockFolder.Object, httpContext.User, TestContext.Current.CancellationToken);
 
         Assert.Equal("test", result.Name);
         Assert.True(eventFired);
@@ -434,7 +435,7 @@ public class DefaultCheckInfoBuilderTests
         var httpContext = new DefaultHttpContext();
 
         var builder = new DefaultCheckContainerInfoBuilder(mockSecurityHandler.Object, new WopiHostExtensions());
-        var result = await builder.BuildAsync(mockFolder.Object, httpContext.User);
+        var result = await builder.BuildAsync(mockFolder.Object, httpContext.User, TestContext.Current.CancellationToken);
 
         Assert.Equal("MyContainer", result.Name);
         Assert.True(result.UserCanCreateChildContainer);
@@ -459,7 +460,7 @@ public class DefaultCheckInfoBuilderTests
         var httpContext = new DefaultHttpContext();  // no User → anonymous
 
         var builder = new DefaultCheckContainerInfoBuilder(mockSecurityHandler.Object, new WopiHostExtensions());
-        var result = await builder.BuildAsync(mockFolder.Object, httpContext.User);
+        var result = await builder.BuildAsync(mockFolder.Object, httpContext.User, TestContext.Current.CancellationToken);
 
         Assert.True(result.IsAnonymousUser);
     }
@@ -480,7 +481,7 @@ public class DefaultCheckInfoBuilderTests
         };
 
         var builder = new DefaultCheckContainerInfoBuilder(mockSecurityHandler.Object, new WopiHostExtensions());
-        var result = await builder.BuildAsync(mockFolder.Object, httpContext.User);
+        var result = await builder.BuildAsync(mockFolder.Object, httpContext.User, TestContext.Current.CancellationToken);
 
         Assert.False(result.IsAnonymousUser);
     }
@@ -497,7 +498,7 @@ public class DefaultCheckInfoBuilderTests
         var httpContext = new DefaultHttpContext();
 
         var builder = new DefaultCheckContainerInfoBuilder(mockSecurityHandler.Object, new WopiHostExtensions());
-        var result = await builder.BuildAsync(mockFolder.Object, httpContext.User);
+        var result = await builder.BuildAsync(mockFolder.Object, httpContext.User, TestContext.Current.CancellationToken);
 
         Assert.Equal("RestrictedContainer", result.Name);
         Assert.False(result.UserCanCreateChildContainer);
@@ -518,7 +519,7 @@ public class DefaultCheckInfoBuilderTests
         var httpContext = new DefaultHttpContext();
 
         var builder = new DefaultCheckContainerInfoBuilder(mockSecurityHandler.Object, new WopiHostExtensions());
-        var result = await builder.BuildAsync(mockFolder.Object, httpContext.User);
+        var result = await builder.BuildAsync(mockFolder.Object, httpContext.User, TestContext.Current.CancellationToken);
 
         Assert.False(result.UserCanCreateChildContainer);
         Assert.True(result.UserCanCreateChildFile);
@@ -562,7 +563,7 @@ public class DefaultCheckInfoBuilderTests
         };
 
         var builder = new DefaultCheckFileInfoBuilder(mockSecurityHandler.Object, new WopiHostExtensions());
-        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo());
+        var result = await builder.BuildAsync(mockFile.Object, httpContext.ToWopiRequestInfo(), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.ReadOnly);
         Assert.True(result.RestrictedWebViewOnly);
@@ -581,7 +582,7 @@ public class DefaultCheckInfoBuilderTests
         var user = new ClaimsPrincipal();
 
         var builder = new DefaultCheckContainerInfoBuilder(CreatePermissionProvider().Object, new WopiHostExtensions());
-        await Assert.ThrowsAsync<ArgumentNullException>(() => builder.BuildAsync(container!, user));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => builder.BuildAsync(container!, user, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -590,7 +591,7 @@ public class DefaultCheckInfoBuilderTests
         var mockFolder = new Mock<IWopiContainer>();
 
         var builder = new DefaultCheckContainerInfoBuilder(CreatePermissionProvider().Object, new WopiHostExtensions());
-        await Assert.ThrowsAsync<ArgumentNullException>(() => builder.BuildAsync(mockFolder.Object, null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => builder.BuildAsync(mockFolder.Object, null!, TestContext.Current.CancellationToken));
     }
 
     /// <summary>

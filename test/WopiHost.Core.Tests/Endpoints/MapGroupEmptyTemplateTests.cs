@@ -30,7 +30,7 @@ public sealed class MapGroupEmptyTemplateTests
         group.MapGet("", () => "root");
         group.MapGet("/root_container_pointer", () => "rcp");
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         var templates = app.Services
             .GetRequiredService<EndpointDataSource>()

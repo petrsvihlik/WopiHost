@@ -38,19 +38,19 @@ public class WopiAzureLockProviderTests(AzuriteFixture azurite)
 
         using (var empty = new MemoryStream([]))
         {
-            await lockBlob.UploadAsync(empty);
+            await lockBlob.UploadAsync(empty, TestContext.Current.CancellationToken);
         }
         await lockBlob.SetMetadataAsync(new Dictionary<string, string>
         {
             [WopiAzureLockProvider.LockIdKey] = "ancient",
             [WopiAzureLockProvider.LeaseIdKey] = Guid.NewGuid().ToString(),
             [WopiAzureLockProvider.CreatedKey] = DateTimeOffset.UtcNow.AddHours(-2).ToString("O"),
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
-        var info = await provider.GetLockAsync("file-stale");
+        var info = await provider.GetLockAsync("file-stale", TestContext.Current.CancellationToken);
 
         Assert.Null(info);
-        Assert.False(await lockBlob.ExistsAsync());
+        Assert.False(await lockBlob.ExistsAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -65,10 +65,10 @@ public class WopiAzureLockProviderTests(AzuriteFixture azurite)
 
         using (var empty = new MemoryStream([]))
         {
-            await lockBlob.UploadAsync(empty);
+            await lockBlob.UploadAsync(empty, TestContext.Current.CancellationToken);
         }
         var leaseId = Guid.NewGuid().ToString();
-        await lockBlob.GetBlobLeaseClient(leaseId).AcquireAsync(TimeSpan.FromSeconds(-1));
+        await lockBlob.GetBlobLeaseClient(leaseId).AcquireAsync(TimeSpan.FromSeconds(-1), cancellationToken: TestContext.Current.CancellationToken);
         await lockBlob.SetMetadataAsync(
             new Dictionary<string, string>
             {
@@ -76,9 +76,10 @@ public class WopiAzureLockProviderTests(AzuriteFixture azurite)
                 [WopiAzureLockProvider.LeaseIdKey] = leaseId,
                 [WopiAzureLockProvider.CreatedKey] = DateTimeOffset.UtcNow.AddHours(-2).ToString("O"),
             },
-            conditions: new BlobRequestConditions { LeaseId = leaseId });
+            conditions: new BlobRequestConditions { LeaseId = leaseId },
+            cancellationToken: TestContext.Current.CancellationToken);
 
-        var info = await provider.AddLockAsync("file-takeover", "fresh-lock");
+        var info = await provider.AddLockAsync("file-takeover", "fresh-lock", TestContext.Current.CancellationToken);
 
         Assert.NotNull(info);
         Assert.Equal("fresh-lock", info.LockId);

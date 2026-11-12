@@ -37,13 +37,13 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
 
         // Re-list so the id map picks up the seeded blob.
         var files = new List<IWopiFile>();
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier))
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, cancellationToken: TestContext.Current.CancellationToken))
         {
             files.Add(f);
         }
         Assert.Single(files);
 
-        var fetched = await provider.GetWopiFile(files[0].Identifier);
+        var fetched = await provider.GetWopiFile(files[0].Identifier, TestContext.Current.CancellationToken);
         Assert.NotNull(fetched);
         Assert.True(fetched.Exists);
         Assert.Equal("hello", fetched.Name);
@@ -56,7 +56,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task GetWopiResource_UnknownIdentifier_ReturnsNull()
     {
         var (provider, _) = await CreateProviderAsync();
-        var fetched = await provider.GetWopiFile("nonexistent");
+        var fetched = await provider.GetWopiFile("nonexistent", TestContext.Current.CancellationToken);
         Assert.Null(fetched);
     }
 
@@ -65,34 +65,34 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     {
         var (provider, container) = await CreateProviderAsync();
         await UploadAsync(container, "doc.txt", "stream-me");
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier)) { _ = f; }
-        var file = await provider.GetWopiFileByName(provider.RootContainer.Identifier, "doc.txt");
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, cancellationToken: TestContext.Current.CancellationToken)) { _ = f; }
+        var file = await provider.GetWopiFileByName(provider.RootContainer.Identifier, "doc.txt", TestContext.Current.CancellationToken);
 
         Assert.NotNull(file);
-        await using var s = await file.OpenReadAsync();
+        await using var s = await file.OpenReadAsync(TestContext.Current.CancellationToken);
         using var reader = new StreamReader(s);
-        Assert.Equal("stream-me", await reader.ReadToEndAsync());
+        Assert.Equal("stream-me", await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task OpenWriteAsync_StoresContent_AndComputesSha256()
     {
         var (provider, _) = await CreateProviderAsync();
-        var created = await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "writeable.txt");
+        var created = await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "writeable.txt", TestContext.Current.CancellationToken);
         Assert.NotNull(created);
         Assert.True(created.Exists);
 
         const string payload = "the quick brown fox";
         var expectedHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(payload))).ToLowerInvariant();
 
-        var writable = (await provider.GetWritableFile(created.Identifier))!;
-        await using (var s = await writable.OpenWriteAsync())
+        var writable = (await provider.GetWritableFile(created.Identifier, TestContext.Current.CancellationToken))!;
+        await using (var s = await writable.OpenWriteAsync(TestContext.Current.CancellationToken))
         {
-            await s.WriteAsync(System.Text.Encoding.UTF8.GetBytes(payload));
+            await s.WriteAsync(System.Text.Encoding.UTF8.GetBytes(payload), TestContext.Current.CancellationToken);
         }
 
         // Re-fetch so cached metadata reflects the new state.
-        var refreshed = (await provider.GetWopiFile(created.Identifier))!;
+        var refreshed = (await provider.GetWopiFile(created.Identifier, TestContext.Current.CancellationToken))!;
         Assert.Equal(payload.Length, refreshed.Length);
         Assert.NotNull(refreshed.Checksum);
         Assert.Equal(expectedHash, Convert.ToHexString(refreshed.Checksum.Value.Span).ToLowerInvariant());
@@ -103,7 +103,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
 
-        var created = await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "fresh.docx");
+        var created = await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "fresh.docx", TestContext.Current.CancellationToken);
 
         Assert.NotNull(created);
         Assert.True(created.Exists);
@@ -116,10 +116,10 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task CreateWopiChildResource_File_DuplicateName_Throws()
     {
         var (provider, _) = await CreateProviderAsync();
-        _ = await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "dup.txt");
+        _ = await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "dup.txt", TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<ArgumentException>(
-            () => provider.CreateWopiChildFile(provider.RootContainer.Identifier, "dup.txt"));
+            () => provider.CreateWopiChildFile(provider.RootContainer.Identifier, "dup.txt", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -127,13 +127,13 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
 
-        var folder = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "subfolder");
+        var folder = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "subfolder", TestContext.Current.CancellationToken);
 
         Assert.NotNull(folder);
         Assert.Equal("subfolder", folder.Name);
 
         var folders = new List<IWopiContainer>();
-        await foreach (var f in provider.GetWopiContainers(provider.RootContainer.Identifier))
+        await foreach (var f in provider.GetWopiContainers(provider.RootContainer.Identifier, TestContext.Current.CancellationToken))
         {
             folders.Add(f);
         }
@@ -144,10 +144,10 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task GetWopiFiles_HidesFolderMarker()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "with-marker");
+        var folder = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "with-marker", TestContext.Current.CancellationToken);
 
         var files = new List<IWopiFile>();
-        await foreach (var f in provider.GetWopiFiles(folder!.Identifier))
+        await foreach (var f in provider.GetWopiFiles(folder!.Identifier, cancellationToken: TestContext.Current.CancellationToken))
         {
             files.Add(f);
         }
@@ -158,32 +158,32 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task DeleteWopiResource_File_RemovesBlob_AndDropsId()
     {
         var (provider, _) = await CreateProviderAsync();
-        var created = (await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "doomed.txt"))!;
+        var created = (await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "doomed.txt", TestContext.Current.CancellationToken))!;
 
-        var deleted = await provider.DeleteWopiFile(created.Identifier);
+        var deleted = await provider.DeleteWopiFile(created.Identifier, TestContext.Current.CancellationToken);
 
         Assert.True(deleted);
-        Assert.Null(await provider.GetWopiFile(created.Identifier));
+        Assert.Null(await provider.GetWopiFile(created.Identifier, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task DeleteWopiResource_Folder_NonEmpty_Throws()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "with-content"))!;
-        _ = await provider.CreateWopiChildFile(folder.Identifier, "child.txt");
+        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "with-content", TestContext.Current.CancellationToken))!;
+        _ = await provider.CreateWopiChildFile(folder.Identifier, "child.txt", TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => provider.DeleteWopiContainer(folder.Identifier));
+            () => provider.DeleteWopiContainer(folder.Identifier, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task DeleteWopiResource_Folder_Empty_Succeeds()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "ephemeral"))!;
+        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "ephemeral", TestContext.Current.CancellationToken))!;
 
-        var deleted = await provider.DeleteWopiContainer(folder.Identifier);
+        var deleted = await provider.DeleteWopiContainer(folder.Identifier, TestContext.Current.CancellationToken);
 
         Assert.True(deleted);
     }
@@ -192,13 +192,13 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task RenameWopiResource_File_PreservesIdentifier()
     {
         var (provider, _) = await CreateProviderAsync();
-        var created = (await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "before.txt"))!;
+        var created = (await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "before.txt", TestContext.Current.CancellationToken))!;
         var originalId = created.Identifier;
 
-        var renamed = await provider.RenameWopiFile(originalId, "after.txt");
+        var renamed = await provider.RenameWopiFile(originalId, "after.txt", TestContext.Current.CancellationToken);
 
         Assert.True(renamed);
-        var fetched = await provider.GetWopiFile(originalId);
+        var fetched = await provider.GetWopiFile(originalId, TestContext.Current.CancellationToken);
         Assert.NotNull(fetched);
         Assert.Equal("after", fetched.Name);
     }
@@ -207,21 +207,21 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     public async Task RenameWopiResource_File_TargetExists_Throws()
     {
         var (provider, _) = await CreateProviderAsync();
-        var src = (await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "source.txt"))!;
-        _ = await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "target.txt");
+        var src = (await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "source.txt", TestContext.Current.CancellationToken))!;
+        _ = await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "target.txt", TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => provider.RenameWopiFile(src.Identifier, "target.txt"));
+            () => provider.RenameWopiFile(src.Identifier, "target.txt", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task GetSuggestedName_File_ReturnsCounterSuffix_WhenNameExists()
     {
         var (provider, _) = await CreateProviderAsync();
-        _ = await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "report.docx");
+        _ = await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "report.docx", TestContext.Current.CancellationToken);
 
         var suggested = await provider.GetSuggestedFileName(
-            provider.RootContainer.Identifier, "report.docx");
+            provider.RootContainer.Identifier, "report.docx", TestContext.Current.CancellationToken);
 
         Assert.Equal("report (1).docx", suggested);
     }
@@ -232,7 +232,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
         var (provider, _) = await CreateProviderAsync();
 
         var suggested = await provider.GetSuggestedFileName(
-            provider.RootContainer.Identifier, "fresh.docx");
+            provider.RootContainer.Identifier, "fresh.docx", TestContext.Current.CancellationToken);
 
         Assert.Equal("fresh.docx", suggested);
     }
@@ -247,7 +247,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
 
-        Assert.False(await provider.CheckValidFileName(name));
+        Assert.False(await provider.CheckValidFileName(name, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -255,7 +255,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
 
-        Assert.True(await provider.CheckValidFileName("my-file_2.docx"));
+        Assert.True(await provider.CheckValidFileName("my-file_2.docx", TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -273,7 +273,7 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
         var (provider, _) = await CreateProviderAsync();
 
         await Assert.ThrowsAsync<ArgumentException>(
-            () => provider.CreateWopiChildFile(provider.RootContainer.Identifier, name));
+            () => provider.CreateWopiChildFile(provider.RootContainer.Identifier, name, TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -287,18 +287,18 @@ public class WopiAzureStorageProviderTests(AzuriteFixture azurite)
         var (provider, _) = await CreateProviderAsync();
 
         await Assert.ThrowsAsync<ArgumentException>(
-            () => provider.CreateWopiChildContainer(provider.RootContainer.Identifier, name));
+            () => provider.CreateWopiChildContainer(provider.RootContainer.Identifier, name, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task GetAncestors_File_IncludesParentChain()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "outer"))!;
-        var inner = (await provider.CreateWopiChildContainer(folder.Identifier, "inner"))!;
-        var file = (await provider.CreateWopiChildFile(inner.Identifier, "deep.txt"))!;
+        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "outer", TestContext.Current.CancellationToken))!;
+        var inner = (await provider.CreateWopiChildContainer(folder.Identifier, "inner", TestContext.Current.CancellationToken))!;
+        var file = (await provider.CreateWopiChildFile(inner.Identifier, "deep.txt", TestContext.Current.CancellationToken))!;
 
-        var ancestors = await provider.GetFileAncestors(file.Identifier);
+        var ancestors = await provider.GetFileAncestors(file.Identifier, TestContext.Current.CancellationToken);
 
         // Expected: [root, outer, inner]
         Assert.Equal(3, ancestors.Count);
