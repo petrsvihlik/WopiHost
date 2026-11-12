@@ -23,7 +23,7 @@ namespace WopiHost.IntegrationTests;
 /// The decision is per-existing-file so it can't live on the access-token's <c>wopi:fperms</c>
 /// claim (the existing file isn't known at token-mint time). The contract on
 /// <see cref="IWopiPermissionProvider.CanOverwriteFileAsync"/> is the host's seam — return
-/// <see langword="false"/> and the negotiator surfaces <see cref="WopiNewChildFileOutcome.NotImplemented"/>
+/// <see langword="false"/> and the negotiator surfaces <see cref="WopiNewChildFileResult.NotImplemented"/>
 /// which the endpoint translates into <c>501</c>.
 /// </para>
 /// <para>

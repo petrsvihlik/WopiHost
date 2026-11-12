@@ -25,16 +25,6 @@ using ProcessLockResult = Microsoft.AspNetCore.Http.HttpResults.Results<
     WopiHost.Core.Results.WopiLockMismatchResult,
     Microsoft.AspNetCore.Http.HttpResults.StatusCodeHttpResult>;
 
-// Shared typed-union for PutRelativeFile. Spec branches: 404 (missing), 200 ChildFile json,
-// 501 (mutex headers), 412/413 (size), 400/409 from name negotiation, lock-mismatch when the
-// target exists and is locked, 500 on negotiator internal error.
-using PutRelativeFileResult = Microsoft.AspNetCore.Http.HttpResults.Results<
-    Microsoft.AspNetCore.Http.HttpResults.NotFound,
-    Microsoft.AspNetCore.Http.HttpResults.JsonHttpResult<WopiHost.Core.Models.ChildFile>,
-    Microsoft.AspNetCore.Http.HttpResults.StatusCodeHttpResult,
-    Microsoft.AspNetCore.Http.HttpResults.BadRequest,
-    Microsoft.AspNetCore.Http.HttpResults.Conflict,
-    WopiHost.Core.Results.WopiLockMismatchResult>;
 
 namespace WopiHost.Core.Endpoints;
 
@@ -344,7 +334,7 @@ internal static class FileMutatingEndpoints
             : null;
     }
 
-    private static async Task<PutRelativeFileResult> PutRelativeFile(
+    private static async Task<NewChildFileEndpointResult> PutRelativeFile(
         [AsParameters] PutRelativeFileRequest req)
     {
         ArgumentNullException.ThrowIfNull(req.WritableStorage);
@@ -372,20 +362,11 @@ internal static class FileMutatingEndpoints
             OverwriteRelativeTarget: req.OverwriteRelativeTarget ?? false,
             SuggestedExtensionFallbackStem: file.Name,
             User: req.Http.User), req.CancellationToken).ConfigureAwait(false);
-        if (negotiation.ToErrorResult(req.Http.Response) is { } error)
+        if (negotiation is not WopiNewChildFileResult.Success(var newFile))
         {
-            // Negotiator surfaces failure modes as IResult — destructure into the typed union.
-            return error switch
-            {
-                BadRequest br => br,
-                Conflict c => c,
-                WopiLockMismatchResult w => w,
-                StatusCodeHttpResult sc => sc,
-                _ => throw new InvalidOperationException($"Unexpected negotiator error result: {error.GetType().FullName}"),
-            };
+            return negotiation.ToFailureResult(req.Http.Response);
         }
 
-        var newFile = negotiation.File!;
         await req.Http.CopyToWriteStream(newFile, req.CancellationToken).ConfigureAwait(false);
         await InvokePutRelativeFileCallbackAsync(req.Http, req.Extensions, file, newFile, req.FileConversion, req.DeclaredSize, req.CancellationToken).ConfigureAwait(false);
         var capabilities = MakeCapabilities(req.LockProvider, req.CobaltProcessor);

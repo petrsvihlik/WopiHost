@@ -48,7 +48,7 @@ public class DefaultWopiNewChildFileNegotiatorTests
         // pre-check. Covers the trailing-return branch of NegotiateAsync.
         var result = await CreateNegotiator().NegotiateAsync(Request());
 
-        Assert.Equal(WopiNewChildFileOutcome.BadRequest, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.BadRequest>(result);
     }
 
     [Fact]
@@ -66,8 +66,8 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(relative: "bad/name.docx"));
 
-        Assert.Equal(WopiNewChildFileOutcome.BadRequest, result.Outcome);
-        Assert.Equal("bad_name.docx", result.ValidRelativeTargetSuggestion);
+        var badRequest = Assert.IsType<WopiNewChildFileResult.BadRequest>(result);
+        Assert.Equal("bad_name.docx", badRequest.ValidRelativeTargetSuggestion);
     }
 
     [Fact]
@@ -80,8 +80,8 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(relative: "CON.docx"));
 
-        Assert.Equal(WopiNewChildFileOutcome.BadRequest, result.Outcome);
-        Assert.Null(result.ValidRelativeTargetSuggestion);
+        var badRequest = Assert.IsType<WopiNewChildFileResult.BadRequest>(result);
+        Assert.Null(badRequest.ValidRelativeTargetSuggestion);
     }
 
     [Fact]
@@ -96,8 +96,8 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(relative: "new.docx"));
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
-        Assert.Same(newFile, result.File);
+        var success = Assert.IsType<WopiNewChildFileResult.Success>(result);
+        Assert.Same(newFile, success.File);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(relative: "new.docx"));
 
-        Assert.Equal(WopiNewChildFileOutcome.InternalError, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.InternalError>(result);
     }
 
     [Fact]
@@ -125,8 +125,8 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: false));
 
-        Assert.Equal(WopiNewChildFileOutcome.Conflict, result.Outcome);
-        Assert.Equal("doc (1).docx", result.ValidRelativeTargetSuggestion);
+        var conflict = Assert.IsType<WopiNewChildFileResult.Conflict>(result);
+        Assert.Equal("doc (1).docx", conflict.ValidRelativeTargetSuggestion);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: true, user: deniedUser));
 
-        Assert.Equal(WopiNewChildFileOutcome.NotImplemented, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.NotImplemented>(result);
         _lockProvider.Verify(
             l => l.GetLockAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never,
@@ -169,8 +169,8 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: true));
 
-        Assert.Equal(WopiNewChildFileOutcome.Locked, result.Outcome);
-        Assert.Equal("L-1", result.ExistingLockId);
+        var locked = Assert.IsType<WopiNewChildFileResult.Locked>(result);
+        Assert.Equal("L-1", locked.ExistingLockId);
     }
 
     [Fact]
@@ -185,8 +185,8 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: true));
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
-        Assert.Same(writableExisting, result.File);
+        var success = Assert.IsType<WopiNewChildFileResult.Success>(result);
+        Assert.Same(writableExisting, success.File);
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: true));
 
-        Assert.Equal(WopiNewChildFileOutcome.InternalError, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.InternalError>(result);
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public class DefaultWopiNewChildFileNegotiatorTests
         var result = await CreateNegotiator(withLockProvider: false)
             .NegotiateAsync(Request(relative: "doc.docx", overwrite: true));
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.Success>(result);
         _lockProvider.Verify(l => l.GetLockAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -237,7 +237,7 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(suggested: ".pdf"));
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.Success>(result);
         // Validate that the .pdf name was prepended with the fallback stem before deduplication.
         _writable.Verify(w => w.GetSuggestedFileName(Container, "Untitled.pdf", It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -259,8 +259,8 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "bad/name.docx"));
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
-        Assert.Same(newFile, result.File);
+        var success = Assert.IsType<WopiNewChildFileResult.Success>(result);
+        Assert.Same(newFile, success.File);
     }
 
     [Fact]
@@ -279,7 +279,7 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "bad/name.docx"));
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.Success>(result);
         _writable.Verify(w => w.GetSuggestedFileName(Container, "Untitled.docx", It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -295,8 +295,8 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "doc.docx"));
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
-        Assert.Same(newFile, result.File);
+        var success = Assert.IsType<WopiNewChildFileResult.Success>(result);
+        Assert.Same(newFile, success.File);
     }
 
     [Fact]
@@ -310,7 +310,7 @@ public class DefaultWopiNewChildFileNegotiatorTests
 
         var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "doc.docx"));
 
-        Assert.Equal(WopiNewChildFileOutcome.InternalError, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.InternalError>(result);
     }
 
     [Fact]
