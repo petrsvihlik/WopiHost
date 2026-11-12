@@ -84,19 +84,19 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
         // OP_B requires authentication — supply the trigger header.
         req.Headers.Add(AuthHeader, "1");
 
-        var resp = await _client!.SendAsync(req);
+        var resp = await _client!.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        Assert.Equal(expectedBody, await resp.Content.ReadAsStringAsync());
+        Assert.Equal(expectedBody, await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Endpoints_Without_Metadata_Pass_Through()
     {
-        var resp = await _client!.GetAsync("/test/abc");
+        var resp = await _client!.GetAsync("/test/abc", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        Assert.Equal("\"GET:abc\"", await resp.Content.ReadAsStringAsync());
+        Assert.Equal("\"GET:abc\"", await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
         // same way today. See WopiOverrideMatcherPolicy's "Selection failure mode" remarks.
         var req = new HttpRequestMessage(HttpMethod.Post, "/test/abc");
 
-        var resp = await _client!.SendAsync(req);
+        var resp = await _client!.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -120,7 +120,7 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
         var req = new HttpRequestMessage(HttpMethod.Post, "/test/abc");
         req.Headers.Add(WopiHeaders.WopiOverride, "BOGUS_VALUE");
 
-        var resp = await _client!.SendAsync(req);
+        var resp = await _client!.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -131,13 +131,13 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
         // OP_A endpoint does not require authentication: anonymous succeeds.
         var anonA = new HttpRequestMessage(HttpMethod.Post, "/test/abc");
         anonA.Headers.Add(WopiHeaders.WopiOverride, "OP_A");
-        var anonAResp = await _client!.SendAsync(anonA);
+        var anonAResp = await _client!.SendAsync(anonA, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, anonAResp.StatusCode);
 
         // OP_B endpoint requires authentication: anonymous → 401.
         var anonB = new HttpRequestMessage(HttpMethod.Post, "/test/abc");
         anonB.Headers.Add(WopiHeaders.WopiOverride, "OP_B");
-        var anonBResp = await _client!.SendAsync(anonB);
+        var anonBResp = await _client!.SendAsync(anonB, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Unauthorized, anonBResp.StatusCode);
 
         // OP_B with the auth trigger header → 200. Confirms the auth policy belongs to the
@@ -145,7 +145,7 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
         var authB = new HttpRequestMessage(HttpMethod.Post, "/test/abc");
         authB.Headers.Add(WopiHeaders.WopiOverride, "OP_B");
         authB.Headers.Add(AuthHeader, "1");
-        var authBResp = await _client!.SendAsync(authB);
+        var authBResp = await _client!.SendAsync(authB, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, authBResp.StatusCode);
     }
 
@@ -227,10 +227,10 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
         {
             var req = new HttpRequestMessage(HttpMethod.Post, "/sibling/abc");
             // No X-WOPI-Override — invalidates the OP_A endpoint, leaves the metadata-less one.
-            var resp = await _client!.SendAsync(req);
+            var resp = await _client!.SendAsync(req, TestContext.Current.CancellationToken);
 
             Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-            Assert.Equal("\"FALLBACK:abc\"", await resp.Content.ReadAsStringAsync());
+            Assert.Equal("\"FALLBACK:abc\"", await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         }
     }
 
@@ -286,10 +286,10 @@ public sealed class WopiOverrideMatcherPolicyTests : IAsyncLifetime
         {
             var req = new HttpRequestMessage(HttpMethod.Post, "/pre/abc");
             req.Headers.Add(WopiHeaders.WopiOverride, "OP_X");
-            var resp = await _client!.SendAsync(req);
+            var resp = await _client!.SendAsync(req, TestContext.Current.CancellationToken);
 
             Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-            Assert.Equal("\"SECOND:abc\"", await resp.Content.ReadAsStringAsync());
+            Assert.Equal("\"SECOND:abc\"", await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         }
 
         private sealed class FirstCandidateInvalidator : MatcherPolicy, IEndpointSelectorPolicy

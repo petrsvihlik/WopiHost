@@ -46,9 +46,9 @@ public class DefaultWopiNewChildFileNegotiatorTests
         // Controllers short-circuit this case with 501 before invoking the negotiator; the
         // negotiator itself defensively maps to BadRequest for direct callers that skip the
         // pre-check. Covers the trailing-return branch of NegotiateAsync.
-        var result = await CreateNegotiator().NegotiateAsync(Request());
+        var result = await CreateNegotiator().NegotiateAsync(Request(), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.BadRequest, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.BadRequest>(result);
     }
 
     [Fact]
@@ -64,10 +64,10 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _writable.Setup(w => w.GetSuggestedFileName(Container, "bad_name.docx", It.IsAny<CancellationToken>()))
             .ReturnsAsync("bad_name.docx");
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "bad/name.docx"));
+        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "bad/name.docx"), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.BadRequest, result.Outcome);
-        Assert.Equal("bad_name.docx", result.ValidRelativeTargetSuggestion);
+        var badRequest = Assert.IsType<WopiNewChildFileResult.BadRequest>(result);
+        Assert.Equal("bad_name.docx", badRequest.ValidRelativeTargetSuggestion);
     }
 
     [Fact]
@@ -78,10 +78,10 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _writable.Setup(w => w.CheckValidFileName(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "CON.docx"));
+        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "CON.docx"), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.BadRequest, result.Outcome);
-        Assert.Null(result.ValidRelativeTargetSuggestion);
+        var badRequest = Assert.IsType<WopiNewChildFileResult.BadRequest>(result);
+        Assert.Null(badRequest.ValidRelativeTargetSuggestion);
     }
 
     [Fact]
@@ -94,10 +94,10 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _writable.Setup(w => w.CreateWopiChildFile(Container, "new.docx", It.IsAny<CancellationToken>()))
             .ReturnsAsync(newFile);
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "new.docx"));
+        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "new.docx"), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
-        Assert.Same(newFile, result.File);
+        var success = Assert.IsType<WopiNewChildFileResult.Success>(result);
+        Assert.Same(newFile, success.File);
     }
 
     [Fact]
@@ -109,9 +109,9 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _writable.Setup(w => w.CreateWopiChildFile(Container, "new.docx", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IWopiWritableFile?)null);
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "new.docx"));
+        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "new.docx"), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.InternalError, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.InternalError>(result);
     }
 
     [Fact]
@@ -123,10 +123,10 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _writable.Setup(w => w.GetSuggestedFileName(Container, "doc.docx", It.IsAny<CancellationToken>()))
             .ReturnsAsync("doc (1).docx");
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: false));
+        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: false), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.Conflict, result.Outcome);
-        Assert.Equal("doc (1).docx", result.ValidRelativeTargetSuggestion);
+        var conflict = Assert.IsType<WopiNewChildFileResult.Conflict>(result);
+        Assert.Equal("doc (1).docx", conflict.ValidRelativeTargetSuggestion);
     }
 
     [Fact]
@@ -145,9 +145,9 @@ public class DefaultWopiNewChildFileNegotiatorTests
             .Setup(p => p.CanOverwriteFileAsync(deniedUser, existing, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: true, user: deniedUser));
+        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: true, user: deniedUser), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.NotImplemented, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.NotImplemented>(result);
         _lockProvider.Verify(
             l => l.GetLockAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never,
@@ -167,10 +167,10 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _lockProvider.Setup(l => l.GetLockAsync("existing-id", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new WopiLockInfo { FileId = "existing-id", LockId = "L-1" });
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: true));
+        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: true), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.Locked, result.Outcome);
-        Assert.Equal("L-1", result.ExistingLockId);
+        var locked = Assert.IsType<WopiNewChildFileResult.Locked>(result);
+        Assert.Equal("L-1", locked.ExistingLockId);
     }
 
     [Fact]
@@ -183,10 +183,10 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _lockProvider.Setup(l => l.GetLockAsync("existing-id", It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         _writable.Setup(w => w.GetWritableFile("existing-id", It.IsAny<CancellationToken>())).ReturnsAsync(writableExisting);
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: true));
+        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: true), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
-        Assert.Same(writableExisting, result.File);
+        var success = Assert.IsType<WopiNewChildFileResult.Success>(result);
+        Assert.Same(writableExisting, success.File);
     }
 
     [Fact]
@@ -200,9 +200,9 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _lockProvider.Setup(l => l.GetLockAsync("existing-id", It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         _writable.Setup(w => w.GetWritableFile("existing-id", It.IsAny<CancellationToken>())).ReturnsAsync((IWopiWritableFile?)null);
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: true));
+        var result = await CreateNegotiator().NegotiateAsync(Request(relative: "doc.docx", overwrite: true), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.InternalError, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.InternalError>(result);
     }
 
     [Fact]
@@ -217,9 +217,9 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _writable.Setup(w => w.GetWritableFile("existing-id", It.IsAny<CancellationToken>())).ReturnsAsync(writableExisting);
 
         var result = await CreateNegotiator(withLockProvider: false)
-            .NegotiateAsync(Request(relative: "doc.docx", overwrite: true));
+            .NegotiateAsync(Request(relative: "doc.docx", overwrite: true), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.Success>(result);
         _lockProvider.Verify(l => l.GetLockAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -235,9 +235,9 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _writable.Setup(w => w.CreateWopiChildFile(Container, "Untitled.pdf", It.IsAny<CancellationToken>()))
             .ReturnsAsync(newFile);
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(suggested: ".pdf"));
+        var result = await CreateNegotiator().NegotiateAsync(Request(suggested: ".pdf"), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.Success>(result);
         // Validate that the .pdf name was prepended with the fallback stem before deduplication.
         _writable.Verify(w => w.GetSuggestedFileName(Container, "Untitled.pdf", It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -257,10 +257,10 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _writable.Setup(w => w.CreateWopiChildFile(Container, "bad_name.docx", It.IsAny<CancellationToken>()))
             .ReturnsAsync(newFile);
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "bad/name.docx"));
+        var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "bad/name.docx"), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
-        Assert.Same(newFile, result.File);
+        var success = Assert.IsType<WopiNewChildFileResult.Success>(result);
+        Assert.Same(newFile, success.File);
     }
 
     [Fact]
@@ -277,9 +277,9 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _writable.Setup(w => w.CreateWopiChildFile(Container, "Untitled.docx", It.IsAny<CancellationToken>()))
             .ReturnsAsync(newFile);
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "bad/name.docx"));
+        var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "bad/name.docx"), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.Success>(result);
         _writable.Verify(w => w.GetSuggestedFileName(Container, "Untitled.docx", It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -293,10 +293,10 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _writable.Setup(w => w.CreateWopiChildFile(Container, "doc (1).docx", It.IsAny<CancellationToken>()))
             .ReturnsAsync(newFile);
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "doc.docx"));
+        var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "doc.docx"), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.Success, result.Outcome);
-        Assert.Same(newFile, result.File);
+        var success = Assert.IsType<WopiNewChildFileResult.Success>(result);
+        Assert.Same(newFile, success.File);
     }
 
     [Fact]
@@ -308,12 +308,12 @@ public class DefaultWopiNewChildFileNegotiatorTests
         _writable.Setup(w => w.CreateWopiChildFile(Container, "doc.docx", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IWopiWritableFile?)null);
 
-        var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "doc.docx"));
+        var result = await CreateNegotiator().NegotiateAsync(Request(suggested: "doc.docx"), TestContext.Current.CancellationToken);
 
-        Assert.Equal(WopiNewChildFileOutcome.InternalError, result.Outcome);
+        Assert.IsType<WopiNewChildFileResult.InternalError>(result);
     }
 
     [Fact]
     public async Task NullRequest_Throws()
-        => await Assert.ThrowsAsync<ArgumentNullException>(() => CreateNegotiator().NegotiateAsync(null!));
+        => await Assert.ThrowsAsync<ArgumentNullException>(() => CreateNegotiator().NegotiateAsync(null!, TestContext.Current.CancellationToken));
 }

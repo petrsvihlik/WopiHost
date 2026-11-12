@@ -38,10 +38,10 @@ public sealed class PermissionClaimRoundTripTests(ReadOnlyEndpointsFixture fixtu
         var token = await _fixture.MintFileTokenAsync(_fixture.FirstFileId, Permissions);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         using var doc = JsonDocument.Parse(body);
 
         // Each WopiFilePermissions flag has a sibling Boolean response property of the same
@@ -69,10 +69,10 @@ public sealed class PermissionClaimRoundTripTests(ReadOnlyEndpointsFixture fixtu
         var token = await _fixture.MintFileTokenAsync(_fixture.FirstFileId, WopiFilePermissions.UserCanRename);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         using var doc = JsonDocument.Parse(body);
 
         Assert.True(GetBool(doc, "UserCanRename"), "Single-flag claim must round-trip true.");

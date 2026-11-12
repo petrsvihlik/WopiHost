@@ -33,7 +33,7 @@ public sealed class DefaultWopiNewChildFileNegotiator(
         // Both headers missing. Controllers already short-circuit this case (and the "both
         // present" case) with 501 NotImplemented before invoking the negotiator, so this
         // branch is defense-in-depth for direct callers that skip the pre-check.
-        return WopiNewChildFileResult.BadRequest();
+        return new WopiNewChildFileResult.BadRequest();
     }
 
     private async Task<WopiNewChildFileResult> NegotiateRelativeAsync(WopiNewChildFileRequest request, CancellationToken cancellationToken)
@@ -47,7 +47,7 @@ public sealed class DefaultWopiNewChildFileNegotiator(
             // (provider rules beyond forbidden-char swap, e.g. reserved names like CON on Windows),
             // the header is omitted rather than emitting a name known to be invalid.
             var sanitised = await TryBuildValidSuggestionAsync(request, relativeTarget, cancellationToken).ConfigureAwait(false);
-            return WopiNewChildFileResult.BadRequest(sanitised);
+            return new WopiNewChildFileResult.BadRequest(sanitised);
         }
 
         var existing = await storage.GetWopiFileByName(request.ContainerId, relativeTarget, cancellationToken).ConfigureAwait(false);
@@ -56,8 +56,8 @@ public sealed class DefaultWopiNewChildFileNegotiator(
             // No collision — create the new file.
             var created = await writable.CreateWopiChildFile(request.ContainerId, relativeTarget, cancellationToken).ConfigureAwait(false);
             return created is not null
-                ? WopiNewChildFileResult.Success(created)
-                : WopiNewChildFileResult.InternalError();
+                ? new WopiNewChildFileResult.Success(created)
+                : new WopiNewChildFileResult.InternalError();
         }
 
         if (!request.OverwriteRelativeTarget)
@@ -66,7 +66,7 @@ public sealed class DefaultWopiNewChildFileNegotiator(
             // GetSuggestedFileName must resolve against the parent container id; passing the file
             // id would degenerate to echoing the requested name back.
             var suggestedName = await writable.GetSuggestedFileName(request.ContainerId, relativeTarget, cancellationToken).ConfigureAwait(false);
-            return WopiNewChildFileResult.Conflict(suggestedName);
+            return new WopiNewChildFileResult.Conflict(suggestedName);
         }
 
         // Spec-mandated 501-gate: the caller passed the endpoint-level Permission.Create check
@@ -79,7 +79,7 @@ public sealed class DefaultWopiNewChildFileNegotiator(
         // with a 501 Not Implemented."
         if (!await permissions.CanOverwriteFileAsync(request.User, existing, cancellationToken).ConfigureAwait(false))
         {
-            return WopiNewChildFileResult.NotImplemented();
+            return new WopiNewChildFileResult.NotImplemented();
         }
 
         // Overwrite is allowed — a file matching the target name might still be locked.
@@ -90,7 +90,7 @@ public sealed class DefaultWopiNewChildFileNegotiator(
             var existingLock = await lockProvider.GetLockAsync(existing.Identifier, cancellationToken).ConfigureAwait(false);
             if (existingLock is not null)
             {
-                return WopiNewChildFileResult.Locked(existingLock.LockId);
+                return new WopiNewChildFileResult.Locked(existingLock.LockId);
             }
         }
 
@@ -100,8 +100,8 @@ public sealed class DefaultWopiNewChildFileNegotiator(
         // returns the narrower IWopiFile.
         var writableExisting = await writable.GetWritableFile(existing.Identifier, cancellationToken).ConfigureAwait(false);
         return writableExisting is not null
-            ? WopiNewChildFileResult.Success(writableExisting)
-            : WopiNewChildFileResult.InternalError();
+            ? new WopiNewChildFileResult.Success(writableExisting)
+            : new WopiNewChildFileResult.InternalError();
     }
 
     private async Task<WopiNewChildFileResult> NegotiateSuggestedAsync(WopiNewChildFileRequest request, CancellationToken cancellationToken)
@@ -129,8 +129,8 @@ public sealed class DefaultWopiNewChildFileNegotiator(
         var newName = await writable.GetSuggestedFileName(request.ContainerId, suggestedTarget, cancellationToken).ConfigureAwait(false);
         var created = await writable.CreateWopiChildFile(request.ContainerId, newName, cancellationToken).ConfigureAwait(false);
         return created is not null
-            ? WopiNewChildFileResult.Success(created)
-            : WopiNewChildFileResult.InternalError();
+            ? new WopiNewChildFileResult.Success(created)
+            : new WopiNewChildFileResult.InternalError();
     }
 
     /// <summary>

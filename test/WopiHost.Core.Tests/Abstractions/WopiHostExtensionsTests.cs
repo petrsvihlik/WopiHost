@@ -20,7 +20,7 @@ public class WopiHostExtensionsTests
         var info = new WopiCheckFileInfo { BaseFileName = "doc.docx", OwnerId = "u1", UserId = "u1", Version = "v1" };
         var ctx = new WopiCheckFileInfoContext(new ClaimsPrincipal(), Mock.Of<IWopiFile>(), info);
 
-        var result = await _sut.OnCheckFileInfoAsync(ctx);
+        var result = await _sut.OnCheckFileInfoAsync(ctx, TestContext.Current.CancellationToken);
 
         Assert.Same(info, result);
     }
@@ -31,7 +31,7 @@ public class WopiHostExtensionsTests
         var info = new WopiCheckContainerInfo { Name = "folder" };
         var ctx = new WopiCheckContainerInfoContext(new ClaimsPrincipal(), Mock.Of<IWopiContainer>(), info);
 
-        var result = await _sut.OnCheckContainerInfoAsync(ctx);
+        var result = await _sut.OnCheckContainerInfoAsync(ctx, TestContext.Current.CancellationToken);
 
         Assert.Same(info, result);
     }
@@ -42,7 +42,7 @@ public class WopiHostExtensionsTests
         var info = new WopiCheckFolderInfo { FolderName = "folder" };
         var ctx = new WopiCheckFolderInfoContext(new ClaimsPrincipal(), Mock.Of<IWopiContainer>(), info);
 
-        var result = await _sut.OnCheckFolderInfoAsync(ctx);
+        var result = await _sut.OnCheckFolderInfoAsync(ctx, TestContext.Current.CancellationToken);
 
         Assert.Same(info, result);
     }
@@ -53,7 +53,7 @@ public class WopiHostExtensionsTests
         var info = new WopiCheckEcosystem();
         var ctx = new WopiCheckEcosystemContext(new ClaimsPrincipal(), info);
 
-        var result = await _sut.OnCheckEcosystemAsync(ctx);
+        var result = await _sut.OnCheckEcosystemAsync(ctx, TestContext.Current.CancellationToken);
 
         Assert.Same(info, result);
     }
@@ -65,7 +65,7 @@ public class WopiHostExtensionsTests
 
         // The default pass-through impl completes without inspecting the context. The visible
         // behavior is "it doesn't throw and returns a completed task".
-        await _sut.OnPutFileAsync(ctx);
+        await _sut.OnPutFileAsync(ctx, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -78,22 +78,22 @@ public class WopiHostExtensionsTests
             IsFileConversion: true,
             DeclaredSize: 1024);
 
-        await _sut.OnPutRelativeFileAsync(ctx);
+        await _sut.OnPutRelativeFileAsync(ctx, TestContext.Current.CancellationToken);
     }
 
     [Fact]
     public async Task OnCheckFileInfoAsync_NullContext_Throws()
-        => await Assert.ThrowsAsync<ArgumentNullException>(() => _sut.OnCheckFileInfoAsync(null!));
+        => await Assert.ThrowsAsync<ArgumentNullException>(() => _sut.OnCheckFileInfoAsync(null!, TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task OnCheckContainerInfoAsync_NullContext_Throws()
-        => await Assert.ThrowsAsync<ArgumentNullException>(() => _sut.OnCheckContainerInfoAsync(null!));
+        => await Assert.ThrowsAsync<ArgumentNullException>(() => _sut.OnCheckContainerInfoAsync(null!, TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task OnCheckFolderInfoAsync_NullContext_Throws()
-        => await Assert.ThrowsAsync<ArgumentNullException>(() => _sut.OnCheckFolderInfoAsync(null!));
+        => await Assert.ThrowsAsync<ArgumentNullException>(() => _sut.OnCheckFolderInfoAsync(null!, TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task OnCheckEcosystemAsync_NullContext_Throws()
-        => await Assert.ThrowsAsync<ArgumentNullException>(() => _sut.OnCheckEcosystemAsync(null!));
+        => await Assert.ThrowsAsync<ArgumentNullException>(() => _sut.OnCheckEcosystemAsync(null!, TestContext.Current.CancellationToken));
 }

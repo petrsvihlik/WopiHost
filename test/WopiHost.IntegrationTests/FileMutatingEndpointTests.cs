@@ -33,10 +33,10 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "GET_SHARE_URL");
         req.Headers.Add("X-WOPI-UrlType", urlType);
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         var shareUrl = doc.RootElement.GetProperty("ShareUrl").GetString();
         Assert.True(Uri.IsWellFormedUriString(shareUrl, UriKind.Absolute));
     }
@@ -51,7 +51,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "GET_SHARE_URL");
         req.Headers.Add("X-WOPI-UrlType", "NotASupportedType");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
     }
@@ -66,7 +66,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         using var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "GET_SHARE_URL");
         // No X-WOPI-UrlType header → treated as unsupported.
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
     }
@@ -92,10 +92,10 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
             { "Activities": [ { "Type": "comment", "Id": "00000014-0000-0000-0000-000000000000",
               "Data": { "ContentId": "cid123", "ContentAction": "created" } } ] }
             """);
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         var first = doc.RootElement.GetProperty("ActivityResponses")[0];
         Assert.Equal("00000014-0000-0000-0000-000000000000", first.GetProperty("Id").GetString());
         Assert.Equal(0, first.GetProperty("Status").GetInt32()); // Success
@@ -114,10 +114,10 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
             { "Activities": [ { "Type": "unsupported", "Id": "0000000d-0000-0000-0000-000000000000",
               "Data": { "Foo": "bar" } } ] }
             """);
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         var first = doc.RootElement.GetProperty("ActivityResponses")[0];
         Assert.Equal("0000000d-0000-0000-0000-000000000000", first.GetProperty("Id").GetString());
         Assert.Equal(3, first.GetProperty("Status").GetInt32()); // NotSupported
@@ -137,10 +137,10 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
               { "Type": "comment",     "Id": "0000000f-0000-0000-0000-000000000000", "Data": { "ContentId": "c" } },
               { "Type": "unsupported", "Id": "00000010-0000-0000-0000-000000000000", "Data": { "x": 1 } } ] }
             """);
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         var responses = doc.RootElement.GetProperty("ActivityResponses");
         Assert.Equal(2, responses.GetArrayLength());
         Assert.Equal("0000000f-0000-0000-0000-000000000000", responses[0].GetProperty("Id").GetString());
@@ -162,10 +162,10 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         req.Content = ActivitiesBody("""
             { "Activities": [ { "Type": "comment", "Id": "00000001-0000-0000-0000-000000000000", "Data": {} } ] }
             """);
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.Equal("00000001-0000-0000-0000-000000000000",
             doc.RootElement.GetProperty("ActivityResponses")[0].GetProperty("Id").GetString());
     }
@@ -186,7 +186,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         {
             Content = new ByteArrayContent("update"u8.ToArray()),
         };
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -199,7 +199,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         File.Delete(diskPath);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -217,7 +217,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         {
             Content = new ByteArrayContent("hello world"u8.ToArray()),
         };
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
@@ -234,7 +234,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         {
             Content = new ByteArrayContent("update"u8.ToArray()),
         };
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
         Assert.True(resp.Headers.Contains("X-WOPI-Lock"));
@@ -254,14 +254,14 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var lockReq = new HttpRequestMessage(HttpMethod.Post, url);
         lockReq.Headers.Add("X-WOPI-Override", "LOCK");
         lockReq.Headers.Add("X-WOPI-Lock", "guarding-lock");
-        Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(lockReq)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(lockReq, TestContext.Current.CancellationToken)).StatusCode);
 
         var putReq = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
         {
             Content = new ByteArrayContent("overwrite-attempt"u8.ToArray()),
         };
         // intentionally omit X-WOPI-Lock
-        var resp = await client.SendAsync(putReq);
+        var resp = await client.SendAsync(putReq, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
         Assert.Equal("guarding-lock", resp.Headers.GetValues("X-WOPI-Lock").FirstOrDefault());
@@ -282,14 +282,14 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var lockReq = new HttpRequestMessage(HttpMethod.Post, url);
         lockReq.Headers.Add("X-WOPI-Override", "LOCK");
         lockReq.Headers.Add("X-WOPI-Lock", "guards-zero-byte");
-        Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(lockReq)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(lockReq, TestContext.Current.CancellationToken)).StatusCode);
 
         var putReq = new HttpRequestMessage(HttpMethod.Put, $"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}")
         {
             Content = new ByteArrayContent("create-new-attempt"u8.ToArray()),
         };
         // intentionally omit X-WOPI-Lock
-        var resp = await client.SendAsync(putReq);
+        var resp = await client.SendAsync(putReq, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
         Assert.Equal("guards-zero-byte", resp.Headers.GetValues("X-WOPI-Lock").FirstOrDefault());
@@ -310,7 +310,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
             Content = new ByteArrayContent("overwrite-attempt"u8.ToArray()),
         };
         putReq.Headers.Add("X-WOPI-Lock", "client-thinks-it-holds-this");
-        var resp = await client.SendAsync(putReq);
+        var resp = await client.SendAsync(putReq, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
         Assert.Equal(string.Empty, resp.Headers.GetValues("X-WOPI-Lock").FirstOrDefault());
@@ -319,7 +319,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         // the response carries the empty-lock placeholder, confirming PutFile didn't acquire.
         var getLockReq = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
         getLockReq.Headers.Add("X-WOPI-Override", "GET_LOCK");
-        var getLockResp = await client.SendAsync(getLockReq);
+        var getLockResp = await client.SendAsync(getLockReq, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, getLockResp.StatusCode);
         Assert.Equal(string.Empty, getLockResp.Headers.GetValues("X-WOPI-Lock").FirstOrDefault());
     }
@@ -336,7 +336,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var lockReq = new HttpRequestMessage(HttpMethod.Post, url);
         lockReq.Headers.Add("X-WOPI-Override", "LOCK");
         lockReq.Headers.Add("X-WOPI-Lock", "lock-put");
-        var lockResp = await client.SendAsync(lockReq);
+        var lockResp = await client.SendAsync(lockReq, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, lockResp.StatusCode);
 
         // PutFile with matching lock — should succeed
@@ -345,15 +345,15 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
             Content = new ByteArrayContent("v2"u8.ToArray()),
         };
         putReq.Headers.Add("X-WOPI-Lock", "lock-put");
-        var putResp = await client.SendAsync(putReq);
+        var putResp = await client.SendAsync(putReq, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, putResp.StatusCode);
 
         // Side-effect check: GetFile must serve the new bytes, proving the body actually
         // reached the write stream rather than the handler just returning 200.
-        var getResp = await client.GetAsync($"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}");
+        var getResp = await client.GetAsync($"/wopi/files/{fileId}/contents?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
-        Assert.Equal("v2"u8.ToArray(), await getResp.Content.ReadAsByteArrayAsync());
+        Assert.Equal("v2"u8.ToArray(), await getResp.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -369,7 +369,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
             Content = new ByteArrayContent("hello"u8.ToArray()),
         };
         req.Headers.Add("X-WOPI-Editors", "editor-1, editor-2 , editor-3");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
@@ -389,7 +389,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         {
             Content = new ByteArrayContent("should-be-rejected"u8.ToArray()),
         };
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
     }
@@ -409,7 +409,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         using var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", @override);
         req.Headers.Add("X-WOPI-RequestedName", "renamed");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
     }
@@ -426,10 +426,10 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "RENAME_FILE");
         req.Headers.Add("X-WOPI-RequestedName", "renamed");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"Name\"", body);
         Assert.Contains("renamed", body);
     }
@@ -448,10 +448,10 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "RENAME_FILE");
         req.Headers.Add("X-WOPI-RequestedName", "bad/name");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"Name\"", body);
         Assert.DoesNotContain("/", body);  // forbidden char was sanitised
     }
@@ -466,7 +466,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{missing}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "RENAME_FILE");
         req.Headers.Add("X-WOPI-RequestedName", "x");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -483,13 +483,13 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var lockReq = new HttpRequestMessage(HttpMethod.Post, url);
         lockReq.Headers.Add("X-WOPI-Override", "LOCK");
         lockReq.Headers.Add("X-WOPI-Lock", "lock-rename");
-        await client.SendAsync(lockReq);
+        await client.SendAsync(lockReq, TestContext.Current.CancellationToken);
 
         // RenameFile without the matching lock header → 409
         var renameReq = new HttpRequestMessage(HttpMethod.Post, url);
         renameReq.Headers.Add("X-WOPI-Override", "RENAME_FILE");
         renameReq.Headers.Add("X-WOPI-RequestedName", "x");
-        var resp = await client.SendAsync(renameReq);
+        var resp = await client.SendAsync(renameReq, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
     }
@@ -509,10 +509,10 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         };
         req.Headers.Add("X-WOPI-Override", "PUT_RELATIVE");
         req.Headers.Add("X-WOPI-SuggestedTarget", ".txt"); // extension-only — host generates name
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"Name\"", body);
     }
 
@@ -532,7 +532,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         };
         req.Headers.Add("X-WOPI-Override", "PUT_RELATIVE");
         req.Headers.Add("X-WOPI-SuggestedTarget", "bad/name.txt");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
@@ -552,7 +552,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         };
         req.Headers.Add("X-WOPI-Override", "PUT_RELATIVE");
         req.Headers.Add("X-WOPI-RelativeTarget", "bad/name.txt");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
         Assert.True(resp.Headers.Contains("X-WOPI-ValidRelativeTarget"));
@@ -573,10 +573,10 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         };
         req.Headers.Add("X-WOPI-Override", "PUT_RELATIVE");
         req.Headers.Add("X-WOPI-SuggestedTarget", ".txt");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var payload = JsonSerializer.Deserialize<JsonElement>(body);
         var url = payload.GetProperty("Url").GetString()!;
         var uri = new Uri(url);
@@ -605,7 +605,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         req.Headers.Add("X-WOPI-Override", "PUT_RELATIVE");
         req.Headers.Add("X-WOPI-SuggestedTarget", "a.txt");
         req.Headers.Add("X-WOPI-RelativeTarget", "b.txt");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
     }
@@ -624,13 +624,13 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
             Content = new StringContent("user-blob"),
         };
         req.Headers.Add("X-WOPI-Override", "PUT_USER_INFO");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
         // CheckFileInfo on the same file should reflect the stored UserInfo.
-        var info = await client.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
-        var body = await info.Content.ReadAsStringAsync();
+        var info = await client.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
+        var body = await info.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("user-blob", body);
     }
 
@@ -647,7 +647,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
             Content = new StringContent(new string('x', 2000)),
         };
         req.Headers.Add("X-WOPI-Override", "PUT_USER_INFO");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
@@ -664,7 +664,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
             Content = new StringContent("x"),
         };
         req.Headers.Add("X-WOPI-Override", "PUT_USER_INFO");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -680,12 +680,12 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "DELETE");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
         // Subsequent CheckFileInfo should 404.
-        var check = await client.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
+        var check = await client.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, check.StatusCode);
     }
 
@@ -698,7 +698,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{missing}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "DELETE");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -715,12 +715,12 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var lockReq = new HttpRequestMessage(HttpMethod.Post, url);
         lockReq.Headers.Add("X-WOPI-Override", "LOCK");
         lockReq.Headers.Add("X-WOPI-Lock", "lock-del");
-        await client.SendAsync(lockReq);
+        await client.SendAsync(lockReq, TestContext.Current.CancellationToken);
 
         // Delete
         var delReq = new HttpRequestMessage(HttpMethod.Post, url);
         delReq.Headers.Add("X-WOPI-Override", "DELETE");
-        var resp = await client.SendAsync(delReq);
+        var resp = await client.SendAsync(delReq, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
     }
@@ -744,7 +744,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
             Content = new ByteArrayContent([]),
         };
         req.Headers.Add("X-WOPI-Override", "COBALT");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.InternalServerError, resp.StatusCode);
     }
@@ -762,7 +762,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
             Content = new ByteArrayContent([]),
         };
         req.Headers.Add("X-WOPI-Override", "COBALT");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -791,7 +791,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(missing);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.SendAsync(LockOp(missing, token, "LOCK", newLock: "any-lock-id"));
+        var resp = await client.SendAsync(LockOp(missing, token, "LOCK", newLock: "any-lock-id"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -803,7 +803,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "GET_LOCK"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "GET_LOCK"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         Assert.True(resp.Headers.Contains("X-WOPI-Lock"));
@@ -817,9 +817,9 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
-        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "active"));
+        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "active"), TestContext.Current.CancellationToken);
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "GET_LOCK"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "GET_LOCK"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         Assert.Equal("active", string.Join(",", resp.Headers.GetValues("X-WOPI-Lock")));
@@ -834,7 +834,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
@@ -848,7 +848,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         // WopiLockInfo.MaxLockIdLength is 1024; 2000 chars is clearly over.
         var oversized = new string('z', 2000);
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: oversized));
+        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: oversized), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
         Assert.True(resp.Headers.Contains("X-WOPI-LockFailureReason"));
@@ -862,9 +862,9 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
-        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "same-id"));
+        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "same-id"), TestContext.Current.CancellationToken);
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "same-id"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "same-id"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
@@ -876,7 +876,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "UNLOCK", newLock: "any"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "UNLOCK", newLock: "any"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
     }
@@ -887,9 +887,9 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
-        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "real-lock"));
+        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "real-lock"), TestContext.Current.CancellationToken);
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "UNLOCK", newLock: "wrong-lock"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "UNLOCK", newLock: "wrong-lock"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
         Assert.Equal("real-lock", string.Join(",", resp.Headers.GetValues("X-WOPI-Lock")));
@@ -901,9 +901,9 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
-        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "unlock-me"));
+        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "unlock-me"), TestContext.Current.CancellationToken);
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "UNLOCK", newLock: "unlock-me"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "UNLOCK", newLock: "unlock-me"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
@@ -915,7 +915,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "REFRESH_LOCK", newLock: "lock"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "REFRESH_LOCK", newLock: "lock"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
     }
@@ -927,9 +927,9 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
-        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "active"));
+        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "active"), TestContext.Current.CancellationToken);
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "REFRESH_LOCK"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "REFRESH_LOCK"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
@@ -940,9 +940,9 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
-        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "refresh-me"));
+        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "refresh-me"), TestContext.Current.CancellationToken);
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "REFRESH_LOCK", newLock: "refresh-me"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "REFRESH_LOCK", newLock: "refresh-me"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
@@ -954,7 +954,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "new", oldLock: "old"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "new", oldLock: "old"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
     }
@@ -965,9 +965,9 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
-        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "current"));
+        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "current"), TestContext.Current.CancellationToken);
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "next", oldLock: "wrong-old"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "next", oldLock: "wrong-old"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
         Assert.Equal("current", string.Join(",", resp.Headers.GetValues("X-WOPI-Lock")));
@@ -981,9 +981,9 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
-        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "current"));
+        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "current"), TestContext.Current.CancellationToken);
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", oldLock: "current"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", oldLock: "current"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
@@ -994,13 +994,13 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var fileId = await _fixture.CreateTempFileAsync("x"u8.ToArray());
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
-        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "v1"));
+        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "v1"), TestContext.Current.CancellationToken);
 
-        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "v2", oldLock: "v1"));
+        var resp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "v2", oldLock: "v1"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         // GetLock should now report v2.
-        var get = await client.SendAsync(LockOp(fileId, token, "GET_LOCK"));
+        var get = await client.SendAsync(LockOp(fileId, token, "GET_LOCK"), TestContext.Current.CancellationToken);
         Assert.Equal("v2", string.Join(",", get.Headers.GetValues("X-WOPI-Lock")));
     }
 
@@ -1014,17 +1014,17 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var lockResp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "lock-1"));
+        var lockResp = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "lock-1"), TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, lockResp.StatusCode);
 
-        var getLockResp = await client.SendAsync(LockOp(fileId, token, "GET_LOCK"));
+        var getLockResp = await client.SendAsync(LockOp(fileId, token, "GET_LOCK"), TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, getLockResp.StatusCode);
         Assert.Equal("lock-1", getLockResp.Headers.GetValues("X-WOPI-Lock").FirstOrDefault());
 
-        var refreshResp = await client.SendAsync(LockOp(fileId, token, "REFRESH_LOCK", newLock: "lock-1"));
+        var refreshResp = await client.SendAsync(LockOp(fileId, token, "REFRESH_LOCK", newLock: "lock-1"), TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, refreshResp.StatusCode);
 
-        var unlockResp = await client.SendAsync(LockOp(fileId, token, "UNLOCK", newLock: "lock-1"));
+        var unlockResp = await client.SendAsync(LockOp(fileId, token, "UNLOCK", newLock: "lock-1"), TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, unlockResp.StatusCode);
     }
 
@@ -1037,9 +1037,9 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
         var fileId = await _fixture.CreateTempFileAsync("conflict"u8.ToArray());
         var token = await _fixture.MintFileTokenAsync(fileId);
         using var client = _fixture.WopiBackend.CreateClient();
-        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "lock-initial"));
+        await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "lock-initial"), TestContext.Current.CancellationToken);
 
-        var conflict = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "lock-other"));
+        var conflict = await client.SendAsync(LockOp(fileId, token, "LOCK", newLock: "lock-other"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
         Assert.Equal("lock-initial", conflict.Headers.GetValues("X-WOPI-Lock").FirstOrDefault());
@@ -1057,7 +1057,7 @@ public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "BOGUS_OPERATION");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }

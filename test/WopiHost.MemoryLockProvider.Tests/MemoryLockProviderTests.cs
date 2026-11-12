@@ -30,7 +30,7 @@ public class MemoryLockProviderTests
             DateCreated = DateTimeOffset.UtcNow.AddHours(-1),
         });
 
-        var found = await provider.GetLockAsync(fileId);
+        var found = await provider.GetLockAsync(fileId, TestContext.Current.CancellationToken);
 
         Assert.Null(found);
         Assert.False(provider.ContainsLockForTesting(fileId));
@@ -52,12 +52,12 @@ public class MemoryLockProviderTests
             DateCreated = DateTimeOffset.UtcNow.AddHours(-1),
         });
 
-        var result = await provider.AddLockAsync(fileId, "new-lock");
+        var result = await provider.AddLockAsync(fileId, "new-lock", TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal("new-lock", result.LockId);
 
-        var stored = await provider.GetLockAsync(fileId);
+        var stored = await provider.GetLockAsync(fileId, TestContext.Current.CancellationToken);
         Assert.NotNull(stored);
         Assert.Equal("new-lock", stored.LockId);
     }

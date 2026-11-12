@@ -7,7 +7,6 @@ using WopiHost.Abstractions;
 using WopiHost.Core.Extensions;
 using WopiHost.Core.Infrastructure;
 using WopiHost.Core.Models;
-using WopiHost.Core.Results;
 
 // Shared typed-union for CreateChildContainer — branches: 404 (missing parent), 200 with
 // CreateChildContainerResponse, 501 (mutex headers), 400 (illegal specific-mode name), 409
@@ -18,17 +17,6 @@ using CreateChildContainerResult = Microsoft.AspNetCore.Http.HttpResults.Results
     Microsoft.AspNetCore.Http.HttpResults.StatusCodeHttpResult,
     Microsoft.AspNetCore.Http.HttpResults.BadRequest,
     Microsoft.AspNetCore.Http.HttpResults.Conflict>;
-
-// Shared typed-union for CreateChildFile. Mirrors PutRelativeFile minus the FileExtension /
-// declared-size paths: 404, 200 ChildFile, 501 (mutex headers), 400/409 from negotiation,
-// lock-mismatch when target exists locked, 500 internal-error.
-using CreateChildFileResult = Microsoft.AspNetCore.Http.HttpResults.Results<
-    Microsoft.AspNetCore.Http.HttpResults.NotFound,
-    Microsoft.AspNetCore.Http.HttpResults.JsonHttpResult<WopiHost.Core.Models.ChildFile>,
-    Microsoft.AspNetCore.Http.HttpResults.StatusCodeHttpResult,
-    Microsoft.AspNetCore.Http.HttpResults.BadRequest,
-    Microsoft.AspNetCore.Http.HttpResults.Conflict,
-    WopiHost.Core.Results.WopiLockMismatchResult>;
 
 namespace WopiHost.Core.Endpoints;
 
@@ -188,7 +176,7 @@ internal static class ContainerMutatingEndpoints
     private static string SanitiseContainerName(string invalid)
         => WopiFileNameSanitiser.ScrubOrNull(invalid) ?? Guid.NewGuid().ToString("N");
 
-    private static async Task<CreateChildFileResult> CreateChildFile(
+    private static async Task<NewChildFileEndpointResult> CreateChildFile(
         [AsParameters] CreateChildFileRequest req)
     {
         ArgumentNullException.ThrowIfNull(req.WritableStorage);
@@ -210,19 +198,11 @@ internal static class ContainerMutatingEndpoints
             OverwriteRelativeTarget: req.OverwriteRelativeTarget ?? false,
             SuggestedExtensionFallbackStem: Guid.NewGuid().ToString("N"),
             User: req.Http.User), req.CancellationToken).ConfigureAwait(false);
-        if (negotiation.ToErrorResult(req.Http.Response) is { } error)
+        if (negotiation is not WopiNewChildFileResult.Success(var newFile))
         {
-            return error switch
-            {
-                BadRequest br => br,
-                Conflict c => c,
-                WopiLockMismatchResult w => w,
-                StatusCodeHttpResult sc => sc,
-                _ => throw new InvalidOperationException($"Unexpected negotiator error result: {error.GetType().FullName}"),
-            };
+            return negotiation.ToFailureResult(req.Http.Response);
         }
 
-        var newFile = negotiation.File!;
         var checkFileInfo = await req.CheckFileInfoBuilder.BuildAsync(newFile, req.Http.ToWopiRequestInfo(), cancellationToken: req.CancellationToken).ConfigureAwait(false);
         // Fresh, resource-scoped token for the new file. The inbound token is bound to the parent
         // CONTAINER's id and would fail authorization on the new file's CheckFileInfo callback.

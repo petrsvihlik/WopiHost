@@ -43,7 +43,7 @@ public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
             s.Write(bytes, 0, bytes.Length);
         }
 
-        var props = await blob.GetPropertiesAsync();
+        var props = await blob.GetPropertiesAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(payload.Length, props.Value.ContentLength);
         Assert.Equal(ExpectedSha256(payload), props.Value.Metadata[WopiBlobFile.Sha256MetadataKey]);
     }
@@ -60,7 +60,7 @@ public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
             s.Write(bytes.AsSpan());
         }
 
-        var props = await blob.GetPropertiesAsync();
+        var props = await blob.GetPropertiesAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(payload.Length, props.Value.ContentLength);
         Assert.Equal(ExpectedSha256(payload), props.Value.Metadata[WopiBlobFile.Sha256MetadataKey]);
     }
@@ -81,7 +81,7 @@ public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
 #pragma warning restore CA1835
         }
 
-        var props = await blob.GetPropertiesAsync();
+        var props = await blob.GetPropertiesAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(payload.Length, props.Value.ContentLength);
         Assert.Equal(ExpectedSha256(payload), props.Value.Metadata[WopiBlobFile.Sha256MetadataKey]);
     }
@@ -134,7 +134,7 @@ public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
     {
         var (blob, _) = await CreateBlobAsync();
         var s = await OpenWrapperAsync(blob);
-        await s.WriteAsync(Encoding.UTF8.GetBytes("once"));
+        await s.WriteAsync(Encoding.UTF8.GetBytes("once"), TestContext.Current.CancellationToken);
 
         await s.DisposeAsync();
         // Second dispose must be a no-op (does not re-call SetMetadata, doesn't throw).
@@ -154,7 +154,7 @@ public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
             s.Write(bytes, 0, bytes.Length);
         }
 
-        var props = await blob.GetPropertiesAsync();
+        var props = await blob.GetPropertiesAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(payload.Length, props.Value.ContentLength);
         Assert.Equal(ExpectedSha256(payload), props.Value.Metadata[WopiBlobFile.Sha256MetadataKey]);
     }
@@ -182,11 +182,11 @@ public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
         var bytes = Encoding.UTF8.GetBytes(payload);
 
         var s = await OpenWrapperAsync(blob);
-        await s.WriteAsync(bytes);
+        await s.WriteAsync(bytes, TestContext.Current.CancellationToken);
         await s.DisposeAsync();
 
         s.Dispose(); // must be a clean no-op; would have thrown if it tried to re-dispose inner
-        var props = await blob.GetPropertiesAsync();
+        var props = await blob.GetPropertiesAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(payload.Length, props.Value.ContentLength);
         Assert.Equal(ExpectedSha256(payload), props.Value.Metadata[WopiBlobFile.Sha256MetadataKey]);
     }
@@ -204,7 +204,7 @@ public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
         s.Dispose();
 
         await s.DisposeAsync(); // must be a clean no-op
-        var props = await blob.GetPropertiesAsync();
+        var props = await blob.GetPropertiesAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(payload.Length, props.Value.ContentLength);
         Assert.Equal(ExpectedSha256(payload), props.Value.Metadata[WopiBlobFile.Sha256MetadataKey]);
     }
@@ -221,13 +221,13 @@ public class HashingBlobWriteStreamTests(AzuriteFixture azurite)
         {
             ["wopi_owner"] = "alice",
         };
-        var inner = await blob.OpenWriteAsync(overwrite: true);
+        var inner = await blob.OpenWriteAsync(overwrite: true, cancellationToken: TestContext.Current.CancellationToken);
         await using (var s = new HashingBlobWriteStream(inner, blob, preserved))
         {
-            await s.WriteAsync(bytes);
+            await s.WriteAsync(bytes, TestContext.Current.CancellationToken);
         }
 
-        var props = await blob.GetPropertiesAsync();
+        var props = await blob.GetPropertiesAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("alice", props.Value.Metadata["wopi_owner"]);
         Assert.Equal(ExpectedSha256(payload), props.Value.Metadata[WopiBlobFile.Sha256MetadataKey]);
     }

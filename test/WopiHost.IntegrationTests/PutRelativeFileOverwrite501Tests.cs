@@ -23,7 +23,7 @@ namespace WopiHost.IntegrationTests;
 /// The decision is per-existing-file so it can't live on the access-token's <c>wopi:fperms</c>
 /// claim (the existing file isn't known at token-mint time). The contract on
 /// <see cref="IWopiPermissionProvider.CanOverwriteFileAsync"/> is the host's seam — return
-/// <see langword="false"/> and the negotiator surfaces <see cref="WopiNewChildFileOutcome.NotImplemented"/>
+/// <see langword="false"/> and the negotiator surfaces <see cref="WopiNewChildFileResult.NotImplemented"/>
 /// which the endpoint translates into <c>501</c>.
 /// </para>
 /// <para>
@@ -62,7 +62,7 @@ public sealed class PutRelativeFileOverwrite501Tests : IClassFixture<PutRelative
         req.Headers.Add("X-WOPI-OverwriteRelativeTarget", "true");
 
         // Act
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         // Assert: spec-mandated 501.
         Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
@@ -89,7 +89,7 @@ public sealed class PutRelativeFileOverwrite501Tests : IClassFixture<PutRelative
         req.Headers.Add("X-WOPI-RelativeTarget", freshName);
         req.Headers.Add("X-WOPI-OverwriteRelativeTarget", "true");
 
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }

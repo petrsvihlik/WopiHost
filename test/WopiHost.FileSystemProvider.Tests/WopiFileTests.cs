@@ -84,15 +84,15 @@ public class WopiFileTests : IDisposable
     [Fact]
     public async Task OpenReadAsync_ReturnsReadableStream()
     {
-        await using var stream = await _sut.OpenReadAsync();
+        await using var stream = await _sut.OpenReadAsync(TestContext.Current.CancellationToken);
         using var reader = new StreamReader(stream);
-        Assert.Equal("hello world", await reader.ReadToEndAsync());
+        Assert.Equal("hello world", await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task OpenWriteAsync_TruncatesAndAllowsWrite()
     {
-        await using (var stream = await _sut.OpenWriteAsync())
+        await using (var stream = await _sut.OpenWriteAsync(TestContext.Current.CancellationToken))
         await using (var writer = new StreamWriter(stream))
         {
             await writer.WriteAsync("new");

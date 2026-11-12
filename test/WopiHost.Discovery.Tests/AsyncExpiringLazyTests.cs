@@ -126,7 +126,7 @@ public class AsyncExpiringLazyTests
         // Give all callers a chance to queue up on the lock before releasing
         // the provider. Without this delay the first caller can complete
         // before the others race for the lock.
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
 
         gate.SetResult(true);
 
@@ -170,10 +170,10 @@ public class AsyncExpiringLazyTests
         // Release B first. With a shared static lock, B would block until A
         // finishes. With instance-scoped locks, B completes independently.
         gateB.SetResult(true);
-        Assert.Equal("B", await taskB.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal("B", await taskB.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
 
         gateA.SetResult(true);
-        Assert.Equal("A", await taskA.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal("A", await taskA.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
     }
 
     [Fact]

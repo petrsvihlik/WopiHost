@@ -22,7 +22,7 @@ public sealed class FolderEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintContainerTokenAsync(_fixture.RootContainerId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/folders/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/folders/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
@@ -34,7 +34,7 @@ public sealed class FolderEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintContainerTokenAsync(missing);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/folders/{missing}?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/folders/{missing}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -45,10 +45,10 @@ public sealed class FolderEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintContainerTokenAsync(_fixture.RootContainerId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/folders/{_fixture.RootContainerId}/children?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/folders/{_fixture.RootContainerId}/children?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"ChildFiles\"", body);
         // Folder surface intentionally omits ChildContainers per the legacy controller shape.
         Assert.DoesNotContain("\"ChildContainers\"", body);
@@ -61,7 +61,7 @@ public sealed class FolderEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintContainerTokenAsync(missing);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/folders/{missing}/children?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/folders/{missing}/children?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -89,10 +89,10 @@ public sealed class FolderEndpointTests(ReadOnlyEndpointsFixture fixture)
             backend, new FixtureUser("folder-hook-user", "Folder Hook User", "folder-hook@example.com"), rootId);
         using var client = backend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/folders/{rootId}?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/folders/{rootId}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains($"\"{RewrittenFolderName}\"", body);
     }
 

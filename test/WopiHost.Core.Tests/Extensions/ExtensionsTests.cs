@@ -28,7 +28,7 @@ public class ExtensionsTests
         var content = "hello"u8.ToArray();
         using var input = new MemoryStream(content);
 
-        var result = await input.ReadBytesAsync();
+        var result = await input.ReadBytesAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(content, result);
     }
@@ -39,7 +39,7 @@ public class ExtensionsTests
         var content = "hello"u8.ToArray();
         using var input = new MemoryStream(content);
 
-        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 1024);
+        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 1024, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(withinLimit);
         Assert.Equal(content, bytes);
@@ -52,7 +52,7 @@ public class ExtensionsTests
         var content = new byte[16];
         using var input = new MemoryStream(content);
 
-        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 16);
+        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 16, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(withinLimit);
         Assert.Equal(16, bytes.Length);
@@ -65,7 +65,7 @@ public class ExtensionsTests
         var content = new byte[17];
         using var input = new MemoryStream(content);
 
-        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 16);
+        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 16, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(withinLimit);
         Assert.Empty(bytes);
@@ -76,7 +76,7 @@ public class ExtensionsTests
     {
         using var input = new MemoryStream([]);
 
-        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 16);
+        var (withinLimit, bytes) = await input.ReadBytesAsync(maxBytes: 16, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(withinLimit);
         Assert.Empty(bytes);

@@ -194,7 +194,7 @@ public class HttpRequestExtensionsTests
         ctx.Request.Body = new MemoryStream(bodyBytes);
         ctx.Request.ContentLength = bodyBytes.Length;
         // Pre-warm the form so HasFormContentType + Form.TryGetValue work.
-        await ctx.Request.ReadFormAsync();
+        await ctx.Request.ReadFormAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal("from-form", ctx.Request.GetAccessToken());
     }

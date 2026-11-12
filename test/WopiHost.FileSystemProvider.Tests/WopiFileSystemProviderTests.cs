@@ -144,7 +144,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         Assert.True(_fileIds.TryGetFileId(_rootTxtPath, out var fileId));
 
-        var file = await _sut.GetWopiFile(fileId);
+        var file = await _sut.GetWopiFile(fileId, TestContext.Current.CancellationToken);
 
         Assert.NotNull(file);
         Assert.Equal(fileId, file.Identifier);
@@ -155,7 +155,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         Assert.True(_fileIds.TryGetFileId(_sub.FullName, out var folderId));
 
-        var folder = await _sut.GetWopiContainer(folderId);
+        var folder = await _sut.GetWopiContainer(folderId, TestContext.Current.CancellationToken);
 
         Assert.NotNull(folder);
         Assert.Equal("sub", folder.Name);
@@ -164,7 +164,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetWopiResource_UnknownId_ReturnsNull()
     {
-        var result = await _sut.GetWopiFile("does-not-exist");
+        var result = await _sut.GetWopiFile("does-not-exist", TestContext.Current.CancellationToken);
         Assert.Null(result);
     }
 
@@ -174,7 +174,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task GetWopiFiles_DefaultRoot_EnumeratesRootFiles()
     {
         var files = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier))
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, cancellationToken: TestContext.Current.CancellationToken))
         {
             files.Add(f);
         }
@@ -185,7 +185,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task GetWopiFiles_WithSingleExtensionFilter_FiltersByExtension()
     {
         var files = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, s_docxFilter))
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, s_docxFilter, TestContext.Current.CancellationToken))
         {
             files.Add(f);
         }
@@ -201,7 +201,7 @@ public class WopiFileSystemProviderTests : IDisposable
         // are requested. Confirms the SelectMany-over-extensions plumbing emits disjoint
         // result sets without dropping any.
         var files = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, s_docxAndTxtFilter))
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, s_docxAndTxtFilter, TestContext.Current.CancellationToken))
         {
             files.Add(f);
         }
@@ -217,7 +217,7 @@ public class WopiFileSystemProviderTests : IDisposable
         // explicitly via EnumerationOptions.MatchCasing — without it, Linux hosts would
         // case-sensitively miss a request for ".DOCX" against a "root.docx" file.
         var files = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, s_docxUpperFilter))
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, s_docxUpperFilter, TestContext.Current.CancellationToken))
         {
             files.Add(f);
         }
@@ -230,12 +230,12 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         // Per the contract: null OR empty = no filter.
         var withNull = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, fileExtensions: null))
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, fileExtensions: null, cancellationToken: TestContext.Current.CancellationToken))
         {
             withNull.Add(f);
         }
         var withEmpty = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, []))
+        await foreach (var f in _sut.GetWopiFiles(_sut.RootContainer.Identifier, [], TestContext.Current.CancellationToken))
         {
             withEmpty.Add(f);
         }
@@ -248,7 +248,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         Assert.True(_fileIds.TryGetFileId(_sub.FullName, out var subId));
         var files = new List<IWopiFile>();
-        await foreach (var f in _sut.GetWopiFiles(subId))
+        await foreach (var f in _sut.GetWopiFiles(subId, cancellationToken: TestContext.Current.CancellationToken))
         {
             files.Add(f);
         }
@@ -261,7 +261,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         await Assert.ThrowsAsync<DirectoryNotFoundException>(async () =>
         {
-            await foreach (var _ in _sut.GetWopiFiles("missing-id")) { }
+            await foreach (var _ in _sut.GetWopiFiles("missing-id", cancellationToken: TestContext.Current.CancellationToken)) { }
         });
     }
 
@@ -271,7 +271,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task GetWopiContainers_DefaultRoot_EnumeratesSubfolders()
     {
         var containers = new List<IWopiContainer>();
-        await foreach (var c in _sut.GetWopiContainers(_sut.RootContainer.Identifier))
+        await foreach (var c in _sut.GetWopiContainers(_sut.RootContainer.Identifier, TestContext.Current.CancellationToken))
         {
             containers.Add(c);
         }
@@ -286,7 +286,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         await Assert.ThrowsAsync<DirectoryNotFoundException>(async () =>
         {
-            await foreach (var _ in _sut.GetWopiContainers("missing-id")) { }
+            await foreach (var _ in _sut.GetWopiContainers("missing-id", TestContext.Current.CancellationToken)) { }
         });
     }
 
@@ -297,7 +297,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         Assert.True(_fileIds.TryGetFileId(_sub.FullName, out var subId));
 
-        var ancestors = await _sut.GetContainerAncestors(subId);
+        var ancestors = await _sut.GetContainerAncestors(subId, TestContext.Current.CancellationToken);
 
         Assert.Single(ancestors);
         Assert.Equal(_root.Name, ancestors[0].Name);
@@ -306,7 +306,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task GetAncestors_RootFolder_ReturnsEmpty()
     {
-        var ancestors = await _sut.GetContainerAncestors(_sut.RootContainer.Identifier);
+        var ancestors = await _sut.GetContainerAncestors(_sut.RootContainer.Identifier, TestContext.Current.CancellationToken);
         Assert.Empty(ancestors);
     }
 
@@ -315,7 +315,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         Assert.True(_fileIds.TryGetFileId(_rootTxtPath, out var fileId));
 
-        var ancestors = await _sut.GetFileAncestors(fileId);
+        var ancestors = await _sut.GetFileAncestors(fileId, TestContext.Current.CancellationToken);
 
         Assert.Single(ancestors);
         Assert.Equal(_root.Name, ancestors[0].Name);
@@ -326,7 +326,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         Assert.True(_fileIds.TryGetFileId(_leafTxtPath, out var fileId));
 
-        var ancestors = await _sut.GetFileAncestors(fileId);
+        var ancestors = await _sut.GetFileAncestors(fileId, TestContext.Current.CancellationToken);
 
         Assert.Equal(2, ancestors.Count);
         Assert.Equal(_root.Name, ancestors[0].Name);
@@ -337,14 +337,14 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task GetAncestors_FileWithUnknownId_Throws()
     {
         await Assert.ThrowsAsync<FileNotFoundException>(() =>
-            _sut.GetFileAncestors("missing-id"));
+            _sut.GetFileAncestors("missing-id", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task GetAncestors_FolderWithUnknownId_Throws()
     {
         await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
-            _sut.GetContainerAncestors("missing-id"));
+            _sut.GetContainerAncestors("missing-id", TestContext.Current.CancellationToken));
     }
 
     // ---------- GetWopiFileByName / GetWopiContainerByName ----------
@@ -354,7 +354,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         var rootId = _sut.RootContainer.Identifier;
 
-        var file = await _sut.GetWopiFileByName(rootId, "root.txt");
+        var file = await _sut.GetWopiFileByName(rootId, "root.txt", TestContext.Current.CancellationToken);
 
         Assert.NotNull(file);
         Assert.Equal("root", file.Name);
@@ -365,7 +365,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         var rootId = _sut.RootContainer.Identifier;
 
-        var folder = await _sut.GetWopiContainerByName(rootId, "sub");
+        var folder = await _sut.GetWopiContainerByName(rootId, "sub", TestContext.Current.CancellationToken);
 
         Assert.NotNull(folder);
         Assert.Equal("sub", folder.Name);
@@ -376,7 +376,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         // Aligned with WopiAzureStorageProvider's behaviour: the interface mandates null on a
         // missing parent.
-        var result = await _sut.GetWopiFileByName("missing-id", "root.txt");
+        var result = await _sut.GetWopiFileByName("missing-id", "root.txt", TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -386,7 +386,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         var rootId = _sut.RootContainer.Identifier;
 
-        var result = await _sut.GetWopiFileByName(rootId, "no-such-file.txt");
+        var result = await _sut.GetWopiFileByName(rootId, "no-such-file.txt", TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -399,14 +399,14 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task CheckValidName_ValidFileName_ReturnsTrue()
     {
-        Assert.True(await _sut.CheckValidFileName("doc.txt"));
+        Assert.True(await _sut.CheckValidFileName("doc.txt", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task CheckValidName_FileNameTooLong_ReturnsFalse()
     {
         var longName = new string('a', 251);
-        Assert.False(await _sut.CheckValidFileName(longName));
+        Assert.False(await _sut.CheckValidFileName(longName, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -415,25 +415,25 @@ public class WopiFileSystemProviderTests : IDisposable
         // Documented contract is "length up to FileNameMaxLength" — inclusive. A name of exactly
         // FileNameMaxLength chars must be accepted, matching the Azure provider.
         var atLimit = new string('a', _sut.FileNameMaxLength);
-        Assert.True(await _sut.CheckValidFileName(atLimit));
+        Assert.True(await _sut.CheckValidFileName(atLimit, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task CheckValidName_FileNameWithInvalidChar_ReturnsFalse()
     {
-        Assert.False(await _sut.CheckValidFileName("bad\0name.txt"));
+        Assert.False(await _sut.CheckValidFileName("bad\0name.txt", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task CheckValidName_FolderName_ReturnsTrue()
     {
-        Assert.True(await _sut.CheckValidContainerName("subdir"));
+        Assert.True(await _sut.CheckValidContainerName("subdir", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task CheckValidName_FolderNameWithInvalidChar_ReturnsFalse()
     {
-        Assert.False(await _sut.CheckValidContainerName("bad\0path"));
+        Assert.False(await _sut.CheckValidContainerName("bad\0path", TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -448,7 +448,7 @@ public class WopiFileSystemProviderTests : IDisposable
         // does not assert on `"foo\\bar"`: on Linux, `\` is a legal filename character (not a
         // separator) and the FS provider correctly follows the OS — the OS-agnostic backslash
         // rejection lives in the Azure provider instead.
-        Assert.False(await _sut.CheckValidContainerName(name));
+        Assert.False(await _sut.CheckValidContainerName(name, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -456,7 +456,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         // CheckValidContainerName must cap length; without a cap a 10K-char container name passes.
         var longName = new string('a', _sut.FileNameMaxLength + 1);
-        Assert.False(await _sut.CheckValidContainerName(longName));
+        Assert.False(await _sut.CheckValidContainerName(longName, TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -464,8 +464,8 @@ public class WopiFileSystemProviderTests : IDisposable
     [InlineData("   ")]
     public async Task CheckValidName_EmptyOrWhitespace_ReturnsFalse(string name)
     {
-        Assert.False(await _sut.CheckValidFileName(name));
-        Assert.False(await _sut.CheckValidContainerName(name));
+        Assert.False(await _sut.CheckValidFileName(name, TestContext.Current.CancellationToken));
+        Assert.False(await _sut.CheckValidContainerName(name, TestContext.Current.CancellationToken));
     }
 
     // ---------- GetSuggestedFileName / GetSuggestedContainerName ----------
@@ -475,21 +475,21 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         var rootId = _sut.RootContainer.Identifier;
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            _sut.GetSuggestedFileName(rootId, "bad\0name.txt"));
+            _sut.GetSuggestedFileName(rootId, "bad\0name.txt", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task GetSuggestedName_MissingContainer_Throws()
     {
         await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
-            _sut.GetSuggestedFileName("missing", "doc.txt"));
+            _sut.GetSuggestedFileName("missing", "doc.txt", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task GetSuggestedName_FolderNoCollision_ReturnsName()
     {
         var rootId = _sut.RootContainer.Identifier;
-        var name = await _sut.GetSuggestedContainerName(rootId, "fresh");
+        var name = await _sut.GetSuggestedContainerName(rootId, "fresh", TestContext.Current.CancellationToken);
         Assert.Equal("fresh", name);
     }
 
@@ -498,7 +498,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         var rootId = _sut.RootContainer.Identifier;
         // "sub" already exists in fixture
-        var name = await _sut.GetSuggestedContainerName(rootId, "sub");
+        var name = await _sut.GetSuggestedContainerName(rootId, "sub", TestContext.Current.CancellationToken);
         Assert.Equal("sub (1)", name);
     }
 
@@ -506,7 +506,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task GetSuggestedName_FileNoCollision_ReturnsName()
     {
         var rootId = _sut.RootContainer.Identifier;
-        var name = await _sut.GetSuggestedFileName(rootId, "fresh.txt");
+        var name = await _sut.GetSuggestedFileName(rootId, "fresh.txt", TestContext.Current.CancellationToken);
         Assert.Equal("fresh.txt", name);
     }
 
@@ -515,7 +515,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         var rootId = _sut.RootContainer.Identifier;
         // "root.txt" already exists in fixture
-        var name = await _sut.GetSuggestedFileName(rootId, "root.txt");
+        var name = await _sut.GetSuggestedFileName(rootId, "root.txt", TestContext.Current.CancellationToken);
         Assert.Equal("root (1).txt", name);
     }
 
@@ -526,7 +526,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         var rootId = _sut.RootContainer.Identifier;
 
-        var file = await _sut.CreateWopiChildFile(rootId, "new.txt");
+        var file = await _sut.CreateWopiChildFile(rootId, "new.txt", TestContext.Current.CancellationToken);
 
         Assert.NotNull(file);
         Assert.True(File.Exists(Path.Join(_root.FullName, "new.txt")));
@@ -535,7 +535,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task CreateWopiChildResource_FileAtRoot_CreatesFileInRoot()
     {
-        var file = await _sut.CreateWopiChildFile(_sut.RootContainer.Identifier, "rootless.txt");
+        var file = await _sut.CreateWopiChildFile(_sut.RootContainer.Identifier, "rootless.txt", TestContext.Current.CancellationToken);
 
         Assert.NotNull(file);
         Assert.True(File.Exists(Path.Join(_root.FullName, "rootless.txt")));
@@ -546,14 +546,14 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         var rootId = _sut.RootContainer.Identifier;
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            _sut.CreateWopiChildFile(rootId, "root.txt"));
+            _sut.CreateWopiChildFile(rootId, "root.txt", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task CreateWopiChildResource_FileMissingContainer_Throws()
     {
         await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
-            _sut.CreateWopiChildFile("missing", "x.txt"));
+            _sut.CreateWopiChildFile("missing", "x.txt", TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -566,7 +566,7 @@ public class WopiFileSystemProviderTests : IDisposable
         // path segment must be rejected before it is joined to the container path so it can't
         // escape the root.
         var rootId = _sut.RootContainer.Identifier;
-        await Assert.ThrowsAsync<ArgumentException>(() => _sut.CreateWopiChildFile(rootId, name));
+        await Assert.ThrowsAsync<ArgumentException>(() => _sut.CreateWopiChildFile(rootId, name, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -574,7 +574,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         var rootId = _sut.RootContainer.Identifier;
 
-        var folder = await _sut.CreateWopiChildContainer(rootId, "new-folder");
+        var folder = await _sut.CreateWopiChildContainer(rootId, "new-folder", TestContext.Current.CancellationToken);
 
         Assert.NotNull(folder);
         Assert.True(Directory.Exists(Path.Join(_root.FullName, "new-folder")));
@@ -585,14 +585,14 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         var rootId = _sut.RootContainer.Identifier;
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            _sut.CreateWopiChildContainer(rootId, "sub"));
+            _sut.CreateWopiChildContainer(rootId, "sub", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task CreateWopiChildResource_FolderMissingContainer_Throws()
     {
         await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
-            _sut.CreateWopiChildContainer("missing", "x"));
+            _sut.CreateWopiChildContainer("missing", "x", TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -602,7 +602,7 @@ public class WopiFileSystemProviderTests : IDisposable
     public async Task CreateWopiChildResource_FolderWithTraversalName_Throws(string name)
     {
         var rootId = _sut.RootContainer.Identifier;
-        await Assert.ThrowsAsync<ArgumentException>(() => _sut.CreateWopiChildContainer(rootId, name));
+        await Assert.ThrowsAsync<ArgumentException>(() => _sut.CreateWopiChildContainer(rootId, name, TestContext.Current.CancellationToken));
     }
 
     // ---------- DeleteWopiFile / DeleteWopiContainer ----------
@@ -612,7 +612,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         Assert.True(_fileIds.TryGetFileId(_rootTxtPath, out var fileId));
 
-        var ok = await _sut.DeleteWopiFile(fileId);
+        var ok = await _sut.DeleteWopiFile(fileId, TestContext.Current.CancellationToken);
 
         Assert.True(ok);
         Assert.False(File.Exists(_rootTxtPath));
@@ -623,7 +623,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         // Return false for a missing identifier, matching WopiAzureStorageProvider and letting
         // the controller map cleanly to 404.
-        var ok = await _sut.DeleteWopiFile("missing");
+        var ok = await _sut.DeleteWopiFile("missing", TestContext.Current.CancellationToken);
 
         Assert.False(ok);
     }
@@ -636,7 +636,7 @@ public class WopiFileSystemProviderTests : IDisposable
         Assert.True(_fileIds.TryGetFileId(_rootTxtPath, out var fileId));
         File.Delete(_rootTxtPath);
 
-        var ok = await _sut.DeleteWopiFile(fileId);
+        var ok = await _sut.DeleteWopiFile(fileId, TestContext.Current.CancellationToken);
 
         Assert.False(ok);
     }
@@ -646,7 +646,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         Assert.True(_fileIds.TryGetFileId(_empty.FullName, out var folderId));
 
-        var ok = await _sut.DeleteWopiContainer(folderId);
+        var ok = await _sut.DeleteWopiContainer(folderId, TestContext.Current.CancellationToken);
 
         Assert.True(ok);
         Assert.False(Directory.Exists(_empty.FullName));
@@ -658,14 +658,14 @@ public class WopiFileSystemProviderTests : IDisposable
         Assert.True(_fileIds.TryGetFileId(_sub.FullName, out var folderId));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _sut.DeleteWopiContainer(folderId));
+            _sut.DeleteWopiContainer(folderId, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task DeleteWopiResource_FolderMissingId_ReturnsFalse()
     {
         // Missing identifier returns false, matching WopiAzureStorageProvider.
-        var ok = await _sut.DeleteWopiContainer("missing");
+        var ok = await _sut.DeleteWopiContainer("missing", TestContext.Current.CancellationToken);
 
         Assert.False(ok);
     }
@@ -677,7 +677,7 @@ public class WopiFileSystemProviderTests : IDisposable
         Assert.True(_fileIds.TryGetFileId(_empty.FullName, out var folderId));
         _empty.Delete(recursive: true);
 
-        var ok = await _sut.DeleteWopiContainer(folderId);
+        var ok = await _sut.DeleteWopiContainer(folderId, TestContext.Current.CancellationToken);
 
         Assert.False(ok);
     }
@@ -690,7 +690,7 @@ public class WopiFileSystemProviderTests : IDisposable
         Assert.True(_fileIds.TryGetFileId(_rootTxtPath, out var fileId));
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            _sut.RenameWopiFile(fileId, "bad\0name.txt"));
+            _sut.RenameWopiFile(fileId, "bad\0name.txt", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -698,7 +698,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         Assert.True(_fileIds.TryGetFileId(_rootTxtPath, out var fileId));
 
-        var ok = await _sut.RenameWopiFile(fileId, "renamed.txt");
+        var ok = await _sut.RenameWopiFile(fileId, "renamed.txt", TestContext.Current.CancellationToken);
 
         Assert.True(ok);
         Assert.False(File.Exists(_rootTxtPath));
@@ -708,7 +708,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task RenameWopiResource_FileMissingId_ReturnsFalse()
     {
-        var ok = await _sut.RenameWopiFile("missing", "x.txt");
+        var ok = await _sut.RenameWopiFile("missing", "x.txt", TestContext.Current.CancellationToken);
 
         Assert.False(ok);
     }
@@ -719,7 +719,7 @@ public class WopiFileSystemProviderTests : IDisposable
         Assert.True(_fileIds.TryGetFileId(_rootTxtPath, out var fileId));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _sut.RenameWopiFile(fileId, "root.docx"));
+            _sut.RenameWopiFile(fileId, "root.docx", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -727,7 +727,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         Assert.True(_fileIds.TryGetFileId(_empty.FullName, out var folderId));
 
-        var ok = await _sut.RenameWopiContainer(folderId, "renamed");
+        var ok = await _sut.RenameWopiContainer(folderId, "renamed", TestContext.Current.CancellationToken);
 
         Assert.True(ok);
         Assert.False(Directory.Exists(_empty.FullName));
@@ -737,7 +737,7 @@ public class WopiFileSystemProviderTests : IDisposable
     [Fact]
     public async Task RenameWopiResource_FolderMissingId_ReturnsFalse()
     {
-        var ok = await _sut.RenameWopiContainer("missing", "x");
+        var ok = await _sut.RenameWopiContainer("missing", "x", TestContext.Current.CancellationToken);
 
         Assert.False(ok);
     }
@@ -748,7 +748,7 @@ public class WopiFileSystemProviderTests : IDisposable
         Assert.True(_fileIds.TryGetFileId(_empty.FullName, out var folderId));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _sut.RenameWopiContainer(folderId, "sub"));
+            _sut.RenameWopiContainer(folderId, "sub", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -759,7 +759,7 @@ public class WopiFileSystemProviderTests : IDisposable
         Assert.True(_fileIds.TryGetFileId(_empty.FullName, out var folderId));
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            _sut.RenameWopiContainer(folderId, "bad\0name"));
+            _sut.RenameWopiContainer(folderId, "bad\0name", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -770,7 +770,7 @@ public class WopiFileSystemProviderTests : IDisposable
         Assert.True(_fileIds.TryGetFileId(_root.FullName, out var rootId));
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            _sut.GetSuggestedContainerName(rootId, "bad\0name"));
+            _sut.GetSuggestedContainerName(rootId, "bad\0name", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -778,7 +778,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         // GetWritableFile is the writable-side counterpart of GetWopiFile; on miss it must
         // return null (not throw) so PutRelativeFile can map to 404.
-        var result = await _sut.GetWritableFile("does-not-exist");
+        var result = await _sut.GetWritableFile("does-not-exist", TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -788,7 +788,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         // Mirrors GetWopiFileByName's missing-container behavior — the parent-container miss
         // returns null per the null-on-missing contract.
-        var result = await _sut.GetWopiContainerByName("missing-container-id", "anything");
+        var result = await _sut.GetWopiContainerByName("missing-container-id", "anything", TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -798,7 +798,7 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         Assert.True(_fileIds.TryGetFileId(_root.FullName, out var rootId));
 
-        var result = await _sut.GetWopiContainerByName(rootId, "does-not-exist");
+        var result = await _sut.GetWopiContainerByName(rootId, "does-not-exist", TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -816,10 +816,10 @@ public class WopiFileSystemProviderTests : IDisposable
         var peerIds = new InMemoryFileIds(NullLogger<InMemoryFileIds>.Instance);
         var peer = CreateProvider(_root.FullName, peerIds);
         Assert.True(peerIds.TryGetFileId(_rootTxtPath, out var peerFileId));
-        Assert.True(await peer.RenameWopiFile(peerFileId, "renamed.txt"));
+        Assert.True(await peer.RenameWopiFile(peerFileId, "renamed.txt", TestContext.Current.CancellationToken));
 
         var names = new List<string>();
-        await foreach (var file in _sut.GetWopiFiles(_sut.RootContainer.Identifier))
+        await foreach (var file in _sut.GetWopiFiles(_sut.RootContainer.Identifier, cancellationToken: TestContext.Current.CancellationToken))
         {
             names.Add($"{file.Name}.{file.Extension}");
         }
@@ -835,12 +835,12 @@ public class WopiFileSystemProviderTests : IDisposable
         // the id from the new path. Both ids must resolve here — the original keeps the live
         // editing session working, the peer-derived one serves clicks on a fresh listing.
         Assert.True(_fileIds.TryGetFileId(_rootTxtPath, out var originalId));
-        Assert.True(await _sut.RenameWopiFile(originalId, "renamed.txt"));
+        Assert.True(await _sut.RenameWopiFile(originalId, "renamed.txt", TestContext.Current.CancellationToken));
         var newPath = Path.Join(_root.FullName, "renamed.txt");
         var peerDerivedId = WopiResourceId.FromCanonicalPath(Path.GetFullPath(newPath).ToUpperInvariant());
 
-        var viaPeerId = await _sut.GetWopiFile(peerDerivedId);
-        var viaOriginalId = await _sut.GetWopiFile(originalId);
+        var viaPeerId = await _sut.GetWopiFile(peerDerivedId, TestContext.Current.CancellationToken);
+        var viaOriginalId = await _sut.GetWopiFile(originalId, TestContext.Current.CancellationToken);
 
         Assert.NotNull(viaPeerId);
         Assert.Equal("renamed", viaPeerId.Name);
@@ -857,7 +857,7 @@ public class WopiFileSystemProviderTests : IDisposable
         File.Move(_rootTxtPath, newPath);
 
         var names = new List<string>();
-        await foreach (var file in _sut.GetWopiFiles(_sut.RootContainer.Identifier))
+        await foreach (var file in _sut.GetWopiFiles(_sut.RootContainer.Identifier, cancellationToken: TestContext.Current.CancellationToken))
         {
             names.Add($"{file.Name}.{file.Extension}");
         }
@@ -872,7 +872,7 @@ public class WopiFileSystemProviderTests : IDisposable
         _root.CreateSubdirectory("late-folder");
 
         var names = new List<string>();
-        await foreach (var container in _sut.GetWopiContainers(_sut.RootContainer.Identifier))
+        await foreach (var container in _sut.GetWopiContainers(_sut.RootContainer.Identifier, TestContext.Current.CancellationToken))
         {
             names.Add(container.Name);
         }
@@ -887,7 +887,7 @@ public class WopiFileSystemProviderTests : IDisposable
         // registration must not let a traversal name escape the container.
         Assert.True(_fileIds.TryGetFileId(_sub.FullName, out var subId));
 
-        var result = await _sut.GetWopiFileByName(subId, Path.Join("..", "root.txt"));
+        var result = await _sut.GetWopiFileByName(subId, Path.Join("..", "root.txt"), TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -899,7 +899,7 @@ public class WopiFileSystemProviderTests : IDisposable
         // reject it before any path is built.
         Assert.True(_fileIds.TryGetFileId(_sub.FullName, out var subId));
 
-        var result = await _sut.GetWopiFileByName(subId, _rootDocxPath);
+        var result = await _sut.GetWopiFileByName(subId, _rootDocxPath, TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -909,9 +909,9 @@ public class WopiFileSystemProviderTests : IDisposable
     {
         Assert.True(_fileIds.TryGetFileId(_sub.FullName, out var subId));
 
-        Assert.Null(await _sut.GetWopiContainerByName(subId, ".."));
-        Assert.Null(await _sut.GetWopiContainerByName(subId, Path.Join("..", "empty")));
-        Assert.Null(await _sut.GetWopiContainerByName(subId, _empty.FullName));
+        Assert.Null(await _sut.GetWopiContainerByName(subId, "..", TestContext.Current.CancellationToken));
+        Assert.Null(await _sut.GetWopiContainerByName(subId, Path.Join("..", "empty"), TestContext.Current.CancellationToken));
+        Assert.Null(await _sut.GetWopiContainerByName(subId, _empty.FullName, TestContext.Current.CancellationToken));
     }
 
     // ---------- Stored-path invariant ----------
@@ -928,12 +928,12 @@ public class WopiFileSystemProviderTests : IDisposable
         var provider = CreateProvider(rootPath: "sub", ids);
 
         var containerId = provider.RootContainer.Identifier;
-        var file = await provider.CreateWopiChildFile(containerId, "invariant.txt");
-        var folder = await provider.CreateWopiChildContainer(containerId, "invariant-folder");
+        var file = await provider.CreateWopiChildFile(containerId, "invariant.txt", TestContext.Current.CancellationToken);
+        var folder = await provider.CreateWopiChildContainer(containerId, "invariant-folder", TestContext.Current.CancellationToken);
         Assert.NotNull(file);
         Assert.NotNull(folder);
-        await provider.RenameWopiFile(file.Identifier, "invariant-renamed.txt");
-        await provider.RenameWopiContainer(folder.Identifier, "invariant-folder-renamed");
+        await provider.RenameWopiFile(file.Identifier, "invariant-renamed.txt", TestContext.Current.CancellationToken);
+        await provider.RenameWopiContainer(folder.Identifier, "invariant-folder-renamed", TestContext.Current.CancellationToken);
 
         Assert.All(ids.StoredPaths, path =>
             Assert.True(Path.IsPathRooted(path), $"Stored path '{path}' is not rooted."));
@@ -953,7 +953,7 @@ public class WopiFileSystemProviderTests : IDisposable
         Assert.True(peerIds.TryGetFileId(_rootTxtPath, out var peerId));
         Assert.Equal(originalId, peerId); // deterministic derivation: both processes agree up front
 
-        Assert.True(await peer.RenameWopiFile(peerId, "renamed.txt"));
+        Assert.True(await peer.RenameWopiFile(peerId, "renamed.txt", TestContext.Current.CancellationToken));
 
         var newPath = Path.Join(_root.FullName, "renamed.txt");
         var deadline = Environment.TickCount64 + 10_000;
@@ -963,7 +963,7 @@ public class WopiFileSystemProviderTests : IDisposable
             {
                 break;
             }
-            await Task.Delay(25);
+            await Task.Delay(25, TestContext.Current.CancellationToken);
         }
         Assert.True(_fileIds.TryGetFileId(newPath, out var resolvedId), "Rename event was not applied to the peer map.");
         Assert.Equal(originalId, resolvedId);
@@ -983,7 +983,7 @@ public class WopiFileSystemProviderTests : IDisposable
         File.Move(_rootTxtPath, newPath);
         var peerMintedId = InMemoryFileIds.DeriveId(newPath);
 
-        var file = await provider.GetWopiFile(peerMintedId);
+        var file = await provider.GetWopiFile(peerMintedId, TestContext.Current.CancellationToken);
 
         Assert.NotNull(file);
         Assert.Equal("moved-by-peer", file.Name);

@@ -21,10 +21,10 @@ public sealed class FileEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(_fixture.FirstFileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"BaseFileName\"", body);
     }
 
@@ -37,10 +37,10 @@ public sealed class FileEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(_fixture.FirstFileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var payload = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(await resp.Content.ReadAsStringAsync());
+        var payload = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.True(payload.GetProperty("SupportsUpdate").GetBoolean());
         Assert.True(payload.GetProperty("SupportsRename").GetBoolean());
         Assert.True(payload.GetProperty("SupportsDeleteFile").GetBoolean());
@@ -53,7 +53,7 @@ public sealed class FileEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(missing);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{missing}?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{missing}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -64,10 +64,10 @@ public sealed class FileEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(_fixture.FirstFileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}/contents?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}/contents?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var bytes = await resp.Content.ReadAsByteArrayAsync();
+        var bytes = await resp.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
         Assert.NotEmpty(bytes);
     }
 
@@ -79,7 +79,7 @@ public sealed class FileEndpointTests(ReadOnlyEndpointsFixture fixture)
 
         var req = new HttpRequestMessage(HttpMethod.Get, $"/wopi/files/{_fixture.FirstFileId}/contents?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-MaxExpectedSize", "1");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.PreconditionFailed, resp.StatusCode);
     }
@@ -90,10 +90,10 @@ public sealed class FileEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(_fixture.FirstFileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}/ecosystem_pointer?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}/ecosystem_pointer?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"Url\"", body);
     }
 
@@ -104,7 +104,7 @@ public sealed class FileEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(missing);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{missing}/ecosystem_pointer?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{missing}/ecosystem_pointer?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -115,10 +115,10 @@ public sealed class FileEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(_fixture.FirstFileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}/ancestry?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}/ancestry?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"AncestorsWithRootFirst\"", body);
     }
 
@@ -129,7 +129,7 @@ public sealed class FileEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(missing);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{missing}/ancestry?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{missing}/ancestry?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -142,10 +142,10 @@ public sealed class FileEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintFileTokenAsync(_fixture.FirstFileId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}/ancestry?access_token={System.Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/files/{_fixture.FirstFileId}/ancestry?access_token={System.Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var payload = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(body);
         var ancestors = payload.GetProperty("AncestorsWithRootFirst").EnumerateArray().ToList();
         Assert.NotEmpty(ancestors);

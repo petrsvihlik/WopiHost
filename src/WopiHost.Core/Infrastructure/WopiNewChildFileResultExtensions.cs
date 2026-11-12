@@ -5,50 +5,42 @@ using WopiHost.Core.Results;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Translates a <see cref="WopiNewChildFileResult"/> from <see cref="IWopiNewChildFileNegotiator"/>
-/// into an <see cref="IResult"/> + response-header writes for the failure outcomes. Lives in
+/// Maps a failed <see cref="WopiNewChildFileResult"/> to its WOPI response. Lives in
 /// <c>WopiHost.Core</c> so the negotiator abstraction stays free of any web-framework type.
 /// </summary>
 internal static class WopiNewChildFileResultExtensions
 {
     /// <summary>
-    /// Returns the <see cref="IResult"/> the handler should return for non-success outcomes,
-    /// writing any spec-mandated response headers on <paramref name="response"/> as a side
-    /// effect. Returns <see langword="null"/> when the negotiation succeeded — caller reads
-    /// <see cref="WopiNewChildFileResult.File"/> and proceeds.
+    /// Returns the response for a failed negotiation, writing any spec-mandated response headers
+    /// on <paramref name="response"/>.
     /// </summary>
-    public static IResult? ToErrorResult(this WopiNewChildFileResult result, HttpResponse response)
+    /// <exception cref="ArgumentException"><paramref name="result"/> is a <see cref="WopiNewChildFileResult.Success"/>.</exception>
+    public static NewChildFileEndpointResult ToFailureResult(this WopiNewChildFileResult result, HttpResponse response)
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(response);
 
-        switch (result.Outcome)
+        return result switch
         {
-            case WopiNewChildFileOutcome.Success:
-                return null;
-            case WopiNewChildFileOutcome.BadRequest:
-                // Spec: 400 MAY carry X-WOPI-ValidRelativeTarget so the client can auto-retry with
-                // a sanitised name. Only emit when the negotiator has computed a suggestion.
-                if (result.ValidRelativeTargetSuggestion is not null)
-                {
-                    response.Headers[WopiHeaders.ValidRelativeTarget] = UtfString.FromDecoded(result.ValidRelativeTargetSuggestion).ToString(true);
-                }
-                return TypedResults.BadRequest();
-            case WopiNewChildFileOutcome.Conflict:
-                response.Headers[WopiHeaders.ValidRelativeTarget] = UtfString.FromDecoded(result.ValidRelativeTargetSuggestion!).ToString(true);
-                return TypedResults.Conflict();
-            case WopiNewChildFileOutcome.Locked:
-                return new WopiLockMismatchResult(result.ExistingLockId!, reason: "File already exists and is currently locked");
-            case WopiNewChildFileOutcome.InternalError:
-                return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
-            case WopiNewChildFileOutcome.NotImplemented:
-                // Spec: PutRelativeFile returns 501 specifically when the caller is authorized
-                // to invoke the operation but not authorized to overwrite the existing target.
-                // No spec-defined response headers for this path; the status code carries the
-                // signal on its own.
-                return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
-            default:
-                throw new InvalidOperationException($"Unknown {nameof(WopiNewChildFileOutcome)}: {result.Outcome}");
+            WopiNewChildFileResult.Success => throw new ArgumentException("A successful negotiation has no failure response.", nameof(result)),
+            // Spec: 400 MAY carry X-WOPI-ValidRelativeTarget so the client can auto-retry with a
+            // sanitised name.
+            WopiNewChildFileResult.BadRequest(var suggestion) => WithValidRelativeTarget(response, suggestion, TypedResults.BadRequest()),
+            WopiNewChildFileResult.Conflict(var suggestion) => WithValidRelativeTarget(response, suggestion, TypedResults.Conflict()),
+            WopiNewChildFileResult.Locked(var lockId) => new WopiLockMismatchResult(lockId, reason: "File already exists and is currently locked"),
+            WopiNewChildFileResult.InternalError => TypedResults.StatusCode(StatusCodes.Status500InternalServerError),
+            // Spec: 501 when the caller may invoke PutRelativeFile but not overwrite the existing
+            // target. No spec-defined response headers; the status code carries the signal.
+            WopiNewChildFileResult.NotImplemented => TypedResults.StatusCode(StatusCodes.Status501NotImplemented),
+        };
+    }
+
+    private static TResult WithValidRelativeTarget<TResult>(HttpResponse response, string? suggestion, TResult result)
+    {
+        if (suggestion is not null)
+        {
+            response.Headers[WopiHeaders.ValidRelativeTarget] = UtfString.FromDecoded(suggestion).ToString(true);
         }
+        return result;
     }
 }

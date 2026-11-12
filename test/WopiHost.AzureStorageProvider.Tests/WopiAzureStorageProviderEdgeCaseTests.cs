@@ -55,9 +55,9 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     public async Task GetWopiResource_Folder_RoundTripsViaIdentifier()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "folder1"))!;
+        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "folder1", TestContext.Current.CancellationToken))!;
 
-        var fetched = await provider.GetWopiContainer(folder.Identifier);
+        var fetched = await provider.GetWopiContainer(folder.Identifier, TestContext.Current.CancellationToken);
 
         Assert.NotNull(fetched);
         Assert.Equal("folder1", fetched.Name);
@@ -68,7 +68,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         // Missing parent returns null, consistent with WopiFileSystemProvider — pins the contract for both.
         var (provider, _) = await CreateProviderAsync();
-        var result = await provider.GetWopiFileByName("does-not-exist", "anything.txt");
+        var result = await provider.GetWopiFileByName("does-not-exist", "anything.txt", TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -77,14 +77,14 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     public async Task GetWopiResourceByName_Folder_FoundAndMissing()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "subA"))!;
+        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "subA", TestContext.Current.CancellationToken))!;
         // The folder marker blob makes the folder discoverable.
 
-        var found = await provider.GetWopiContainerByName(provider.RootContainer.Identifier, "subA");
+        var found = await provider.GetWopiContainerByName(provider.RootContainer.Identifier, "subA", TestContext.Current.CancellationToken);
         Assert.NotNull(found);
         Assert.Equal(folder.Identifier, found.Identifier);
 
-        var missing = await provider.GetWopiContainerByName(provider.RootContainer.Identifier, "nope");
+        var missing = await provider.GetWopiContainerByName(provider.RootContainer.Identifier, "nope", TestContext.Current.CancellationToken);
         Assert.Null(missing);
     }
 
@@ -93,16 +93,16 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
         await Assert.ThrowsAsync<DirectoryNotFoundException>(
-            () => provider.GetFileAncestors("not-real"));
+            () => provider.GetFileAncestors("not-real", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task GetAncestors_Folder_TopLevel_ReturnsRootOnly()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "topfolder"))!;
+        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "topfolder", TestContext.Current.CancellationToken))!;
 
-        var ancestors = await provider.GetContainerAncestors(folder.Identifier);
+        var ancestors = await provider.GetContainerAncestors(folder.Identifier, TestContext.Current.CancellationToken);
 
         Assert.Single(ancestors);
         Assert.Equal(provider.RootContainer.Identifier, ancestors[0].Identifier);
@@ -117,7 +117,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
         await UploadAsync(container, "notes.txt");
 
         var matched = new List<string>();
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, s_docxFilter))
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, s_docxFilter, TestContext.Current.CancellationToken))
         {
             matched.Add(f.Name + "." + f.Extension);
         }
@@ -135,7 +135,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
         await UploadAsync(container, "notes.txt");
 
         var matched = new List<string>();
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, s_docxAndTxtFilter))
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, s_docxAndTxtFilter, TestContext.Current.CancellationToken))
         {
             matched.Add(f.Name + "." + f.Extension);
         }
@@ -153,7 +153,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
         await UploadAsync(container, "notes.txt");
 
         var matched = new List<string>();
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, s_docxFilter))
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, s_docxFilter, TestContext.Current.CancellationToken))
         {
             matched.Add(f.Name + "." + f.Extension);
         }
@@ -172,7 +172,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
         await UploadAsync(container, "doc.docx");
 
         var matched = new List<string>();
-        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, s_wildcardDocxFilter))
+        await foreach (var f in provider.GetWopiFiles(provider.RootContainer.Identifier, s_wildcardDocxFilter, TestContext.Current.CancellationToken))
         {
             matched.Add(f.Name + "." + f.Extension);
         }
@@ -188,12 +188,12 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
         await UploadAsync(container, "b.docx");
 
         var nullCount = 0;
-        await foreach (var _ in provider.GetWopiFiles(provider.RootContainer.Identifier, fileExtensions: null))
+        await foreach (var _ in provider.GetWopiFiles(provider.RootContainer.Identifier, fileExtensions: null, cancellationToken: TestContext.Current.CancellationToken))
         {
             nullCount++;
         }
         var emptyCount = 0;
-        await foreach (var _ in provider.GetWopiFiles(provider.RootContainer.Identifier, []))
+        await foreach (var _ in provider.GetWopiFiles(provider.RootContainer.Identifier, [], TestContext.Current.CancellationToken))
         {
             emptyCount++;
         }
@@ -206,17 +206,17 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     public async Task CreateWopiChildResource_Folder_DuplicateName_Throws()
     {
         var (provider, _) = await CreateProviderAsync();
-        _ = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "dup-folder");
+        _ = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "dup-folder", TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<ArgumentException>(
-            () => provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "dup-folder"));
+            () => provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "dup-folder", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task DeleteWopiResource_UnknownIdentifier_ReturnsFalse()
     {
         var (provider, _) = await CreateProviderAsync();
-        var deleted = await provider.DeleteWopiFile("not-mapped");
+        var deleted = await provider.DeleteWopiFile("not-mapped", TestContext.Current.CancellationToken);
         Assert.False(deleted);
     }
 
@@ -225,24 +225,24 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => provider.DeleteWopiContainer(provider.RootContainer.Identifier));
+            () => provider.DeleteWopiContainer(provider.RootContainer.Identifier, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task RenameWopiResource_InvalidName_Throws()
     {
         var (provider, _) = await CreateProviderAsync();
-        var file = (await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "rn-invalid.txt"))!;
+        var file = (await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "rn-invalid.txt", TestContext.Current.CancellationToken))!;
 
         await Assert.ThrowsAsync<ArgumentException>(
-            () => provider.RenameWopiFile(file.Identifier, "bad/name.txt"));
+            () => provider.RenameWopiFile(file.Identifier, "bad/name.txt", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task RenameWopiResource_UnknownIdentifier_ReturnsFalse()
     {
         var (provider, _) = await CreateProviderAsync();
-        var renamed = await provider.RenameWopiFile("not-mapped", "ok.txt");
+        var renamed = await provider.RenameWopiFile("not-mapped", "ok.txt", TestContext.Current.CancellationToken);
         Assert.False(renamed);
     }
 
@@ -251,26 +251,26 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => provider.RenameWopiContainer(provider.RootContainer.Identifier, "newroot"));
+            () => provider.RenameWopiContainer(provider.RootContainer.Identifier, "newroot", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task RenameWopiResource_Folder_PreservesId_AndMovesChildren()
     {
         var (provider, _) = await CreateProviderAsync();
-        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "rn-folder"))!;
+        var folder = (await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "rn-folder", TestContext.Current.CancellationToken))!;
         var originalId = folder.Identifier;
-        var child = (await provider.CreateWopiChildFile(folder.Identifier, "child.txt"))!;
+        var child = (await provider.CreateWopiChildFile(folder.Identifier, "child.txt", TestContext.Current.CancellationToken))!;
 
-        var renamed = await provider.RenameWopiContainer(originalId, "renamed-folder");
+        var renamed = await provider.RenameWopiContainer(originalId, "renamed-folder", TestContext.Current.CancellationToken);
         Assert.True(renamed);
 
-        var refreshed = await provider.GetWopiContainer(originalId);
+        var refreshed = await provider.GetWopiContainer(originalId, TestContext.Current.CancellationToken);
         Assert.NotNull(refreshed);
         Assert.Equal("renamed-folder", refreshed.Name);
 
         // The child file's identifier should still resolve, now under the new prefix.
-        var movedChild = await provider.GetWopiFile(child.Identifier);
+        var movedChild = await provider.GetWopiFile(child.Identifier, TestContext.Current.CancellationToken);
         Assert.NotNull(movedChild);
         Assert.Equal("child", movedChild.Name);
     }
@@ -280,7 +280,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
         await Assert.ThrowsAsync<ArgumentException>(
-            () => provider.GetSuggestedFileName(provider.RootContainer.Identifier, "bad/name"));
+            () => provider.GetSuggestedFileName(provider.RootContainer.Identifier, "bad/name", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -288,17 +288,17 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
         await Assert.ThrowsAsync<DirectoryNotFoundException>(
-            () => provider.GetSuggestedFileName("not-real", "fresh.txt"));
+            () => provider.GetSuggestedFileName("not-real", "fresh.txt", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task GetSuggestedName_Folder_AppendsCounter_WhenExists()
     {
         var (provider, _) = await CreateProviderAsync();
-        _ = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "dup");
+        _ = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "dup", TestContext.Current.CancellationToken);
 
         var suggested = await provider.GetSuggestedContainerName(
-            provider.RootContainer.Identifier, "dup");
+            provider.RootContainer.Identifier, "dup", TestContext.Current.CancellationToken);
 
         Assert.Equal("dup (1)", suggested);
     }
@@ -307,10 +307,10 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     public async Task GetSuggestedName_File_NoExtension_AppendsCounter()
     {
         var (provider, _) = await CreateProviderAsync();
-        _ = await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "noext");
+        _ = await provider.CreateWopiChildFile(provider.RootContainer.Identifier, "noext", TestContext.Current.CancellationToken);
 
         var suggested = await provider.GetSuggestedFileName(
-            provider.RootContainer.Identifier, "noext");
+            provider.RootContainer.Identifier, "noext", TestContext.Current.CancellationToken);
 
         Assert.Equal("noext (1)", suggested);
     }
@@ -327,22 +327,22 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     {
         var (provider, _) = await CreateProviderAsync();
 
-        Assert.False(await provider.CheckValidFileName("foo\u0001bar"));
-        Assert.False(await provider.CheckValidFileName(new string('x', 251)));
+        Assert.False(await provider.CheckValidFileName("foo\u0001bar", TestContext.Current.CancellationToken));
+        Assert.False(await provider.CheckValidFileName(new string('x', 251), TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task GetWopiContainers_FromRoot_ListsTopLevelFoldersOnly()
     {
         var (provider, _) = await CreateProviderAsync();
-        _ = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "alpha");
-        _ = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "beta");
+        _ = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "alpha", TestContext.Current.CancellationToken);
+        _ = await provider.CreateWopiChildContainer(provider.RootContainer.Identifier, "beta", TestContext.Current.CancellationToken);
         // A nested folder shouldn't appear in the top-level listing.
-        var alphaId = (await provider.GetWopiContainerByName(provider.RootContainer.Identifier, "alpha"))!.Identifier;
-        _ = await provider.CreateWopiChildContainer(alphaId, "alpha-inner");
+        var alphaId = (await provider.GetWopiContainerByName(provider.RootContainer.Identifier, "alpha", TestContext.Current.CancellationToken))!.Identifier;
+        _ = await provider.CreateWopiChildContainer(alphaId, "alpha-inner", TestContext.Current.CancellationToken);
 
         var names = new List<string>();
-        await foreach (var f in provider.GetWopiContainers(provider.RootContainer.Identifier))
+        await foreach (var f in provider.GetWopiContainers(provider.RootContainer.Identifier, TestContext.Current.CancellationToken))
         {
             names.Add(f.Name);
         }
@@ -356,7 +356,7 @@ public class WopiAzureStorageProviderEdgeCaseTests(AzuriteFixture azurite)
     public async Task RootContainer_IsAddressableViaItsIdentifier()
     {
         var (provider, _) = await CreateProviderAsync();
-        var root = await provider.GetWopiContainer(provider.RootContainer.Identifier);
+        var root = await provider.GetWopiContainer(provider.RootContainer.Identifier, TestContext.Current.CancellationToken);
         Assert.NotNull(root);
         Assert.Equal(string.Empty, root.Name);
     }
