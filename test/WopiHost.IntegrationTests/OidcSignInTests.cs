@@ -68,7 +68,7 @@ public partial class OidcSignInTests : IClassFixture<OidcSignInTests.AppFactory>
         // .AspNetCore.OpenIdConnect.Nonce.* cookies that the callback step depends on;
         // CookieContainer holds onto them. (See OidcWebAppFactory for the SameSite=Lax /
         // non-Secure override that makes those cookies survive an http://localhost client.)
-        var loginResp = await testClient.GetAsync("/account/login");
+        var loginResp = await testClient.GetAsync("/account/login", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Redirect, loginResp.StatusCode);
         var authorizeUrl = loginResp.Headers.Location
@@ -89,10 +89,10 @@ public partial class OidcSignInTests : IClassFixture<OidcSignInTests.AppFactory>
         {
             ["username"] = "test-user",
         });
-        var authorizeResp = await idpClient.PostAsync(authorizeUrl, loginForm);
+        var authorizeResp = await idpClient.PostAsync(authorizeUrl, loginForm, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, authorizeResp.StatusCode);
-        var callbackFormBody = await authorizeResp.Content.ReadAsStringAsync();
+        var callbackFormBody = await authorizeResp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var callbackFields = ParseFormPostFields(callbackFormBody);
         Assert.Contains("code", callbackFields.Keys);
         Assert.Contains("state", callbackFields.Keys);
@@ -101,13 +101,13 @@ public partial class OidcSignInTests : IClassFixture<OidcSignInTests.AppFactory>
         // cookie set in Phase 1 rides along, the OIDC handler validates state/nonce, exchanges
         // the code for tokens, and issues the .AspNetCore.Cookies auth cookie. Result: 302 to /.
         using var callbackForm = new FormUrlEncodedContent(callbackFields);
-        var callbackResp = await testClient.PostAsync("/signin-oidc", callbackForm);
+        var callbackResp = await testClient.PostAsync("/signin-oidc", callbackForm, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Redirect, callbackResp.StatusCode);
         Assert.Equal("/", callbackResp.Headers.Location?.OriginalString);
 
         // Phase 4 — The auth cookie now resolves [Authorize] and returns the Browse page.
-        var homeResp = await testClient.GetAsync("/");
+        var homeResp = await testClient.GetAsync("/", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, homeResp.StatusCode);
     }
 
@@ -127,14 +127,14 @@ public partial class OidcSignInTests : IClassFixture<OidcSignInTests.AppFactory>
         await SignInAsync(testClient);
 
         // Sanity: signed in, / returns 200.
-        var beforeSignOut = await testClient.GetAsync("/");
+        var beforeSignOut = await testClient.GetAsync("/", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, beforeSignOut.StatusCode);
 
         // POST /account/logout — matches what the MainLayout's sign-out form does. The
         // endpoint accepts POST and is AllowAnonymous; anti-forgery is NOT enforced because
         // minimal-API endpoints without form binding don't carry IAntiforgeryMetadata, so a
         // bare POST is sufficient here.
-        var logoutResp = await testClient.PostAsync("/account/logout", content: null);
+        var logoutResp = await testClient.PostAsync("/account/logout", content: null, cancellationToken: TestContext.Current.CancellationToken);
 
         // SignOut redirects to / after clearing the cookie schemes. The 302 is the proof the
         // SignOut result fired; the missing auth cookie is verified by the follow-up request.
@@ -143,7 +143,7 @@ public partial class OidcSignInTests : IClassFixture<OidcSignInTests.AppFactory>
         // After sign-out, hitting the protected root again triggers a fresh challenge — i.e.
         // 302 to the IdP, not 200. (TestAuthHandler returns 401 directly; the real cookie
         // handler with a LoginPath redirects.)
-        var afterSignOut = await testClient.GetAsync("/");
+        var afterSignOut = await testClient.GetAsync("/", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Redirect, afterSignOut.StatusCode);
         Assert.Equal(_mockOidc.Authority!.Host, afterSignOut.Headers.Location?.Host);
     }

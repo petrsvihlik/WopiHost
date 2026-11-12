@@ -396,7 +396,7 @@ public class InMemoryFileIdsTests : IDisposable
             {
                 _sut.AddFile(path);
             }
-        });
+        }, TestContext.Current.CancellationToken);
         var remove = Task.Run(() =>
         {
             for (var i = 0; i < rounds; i++)
@@ -407,7 +407,7 @@ public class InMemoryFileIdsTests : IDisposable
                     _sut.RemoveId(id);
                 }
             }
-        });
+        }, TestContext.Current.CancellationToken);
         await Task.WhenAll(add, remove);
 
         // Final consistency check, unconditional in both directions: whichever worker won the

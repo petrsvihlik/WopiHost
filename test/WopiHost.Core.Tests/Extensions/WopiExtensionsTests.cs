@@ -14,7 +14,7 @@ public class WopiExtensionsTests
         var checksum = new byte[] { 1, 2, 3, 4, 5 };
         mockFile.Setup(f => f.Checksum).Returns(new ReadOnlyMemory<byte>(checksum));
 
-        var result = await mockFile.Object.GetEncodedSha256();
+        var result = await mockFile.Object.GetEncodedSha256(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(Convert.ToBase64String(checksum), result);
     }
@@ -27,7 +27,7 @@ public class WopiExtensionsTests
         var stream = new MemoryStream([1, 2, 3, 4, 5]);
         mockFile.Setup(f => f.OpenReadAsync(It.IsAny<CancellationToken>())).ReturnsAsync(stream);
 
-        var result = await mockFile.Object.GetEncodedSha256();
+        var result = await mockFile.Object.GetEncodedSha256(cancellationToken: TestContext.Current.CancellationToken);
 
         var expectedChecksum = SHA256.HashData([1, 2, 3, 4, 5]);
         Assert.Equal(Convert.ToBase64String(expectedChecksum), result);

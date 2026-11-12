@@ -38,7 +38,7 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         var blob = container.GetBlobClient("plain.txt");
         using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("body")))
         {
-            await blob.UploadAsync(stream, overwrite: true);
+            await blob.UploadAsync(stream, overwrite: true, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         var file = await WopiBlobFile.CreateAsync(blob, "plain.txt", "id", CancellationToken.None);
@@ -57,9 +57,9 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         var blob = container.GetBlobClient("with-owner.txt");
         using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("body")))
         {
-            await blob.UploadAsync(stream, overwrite: true);
+            await blob.UploadAsync(stream, overwrite: true, cancellationToken: TestContext.Current.CancellationToken);
         }
-        await blob.SetMetadataAsync(new Dictionary<string, string> { [WopiBlobFile.OwnerMetadataKey] = "alice" });
+        await blob.SetMetadataAsync(new Dictionary<string, string> { [WopiBlobFile.OwnerMetadataKey] = "alice" }, cancellationToken: TestContext.Current.CancellationToken);
 
         var file = await WopiBlobFile.CreateAsync(blob, "with-owner.txt", "id", CancellationToken.None);
 
@@ -73,10 +73,10 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         var blob = container.GetBlobClient("with-hash.bin");
         using (var stream = new MemoryStream([0xAB, 0xCD]))
         {
-            await blob.UploadAsync(stream, overwrite: true);
+            await blob.UploadAsync(stream, overwrite: true, cancellationToken: TestContext.Current.CancellationToken);
         }
         const string hex = "deadbeefcafebabe";
-        await blob.SetMetadataAsync(new Dictionary<string, string> { [WopiBlobFile.Sha256MetadataKey] = hex });
+        await blob.SetMetadataAsync(new Dictionary<string, string> { [WopiBlobFile.Sha256MetadataKey] = hex }, cancellationToken: TestContext.Current.CancellationToken);
 
         var file = await WopiBlobFile.CreateAsync(blob, "with-hash.bin", "id", CancellationToken.None);
 
@@ -92,9 +92,9 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         var blob = container.GetBlobClient("empty-hash.bin");
         using (var stream = new MemoryStream([0x01]))
         {
-            await blob.UploadAsync(stream, overwrite: true);
+            await blob.UploadAsync(stream, overwrite: true, cancellationToken: TestContext.Current.CancellationToken);
         }
-        await blob.SetMetadataAsync(new Dictionary<string, string> { [WopiBlobFile.Sha256MetadataKey] = "" });
+        await blob.SetMetadataAsync(new Dictionary<string, string> { [WopiBlobFile.Sha256MetadataKey] = "" }, cancellationToken: TestContext.Current.CancellationToken);
 
         var file = await WopiBlobFile.CreateAsync(blob, "empty-hash.bin", "id", CancellationToken.None);
 
@@ -108,7 +108,7 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         var blob = container.GetBlobClient("readme");
         using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("x")))
         {
-            await blob.UploadAsync(stream, overwrite: true);
+            await blob.UploadAsync(stream, overwrite: true, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         var file = await WopiBlobFile.CreateAsync(blob, "readme", "id", CancellationToken.None);
@@ -124,7 +124,7 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         var blob = container.GetBlobClient("a/b/c/file.docx");
         using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("x")))
         {
-            await blob.UploadAsync(stream, overwrite: true);
+            await blob.UploadAsync(stream, overwrite: true, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         var file = await WopiBlobFile.CreateAsync(blob, "a/b/c/file.docx", "id", CancellationToken.None);
@@ -142,13 +142,13 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         const string body = "read-me";
         using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(body)))
         {
-            await blob.UploadAsync(stream, overwrite: true);
+            await blob.UploadAsync(stream, overwrite: true, cancellationToken: TestContext.Current.CancellationToken);
         }
         var file = await WopiBlobFile.CreateAsync(blob, "read.txt", "id", CancellationToken.None);
 
-        await using var s = await file.OpenReadAsync();
+        await using var s = await file.OpenReadAsync(TestContext.Current.CancellationToken);
         using var reader = new StreamReader(s);
-        Assert.Equal(body, await reader.ReadToEndAsync());
+        Assert.Equal(body, await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -160,16 +160,16 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         var blob = container.GetBlobClient("nometa.bin");
         using (var stream = new MemoryStream([]))
         {
-            await blob.UploadAsync(stream, overwrite: true);
+            await blob.UploadAsync(stream, overwrite: true, cancellationToken: TestContext.Current.CancellationToken);
         }
         var file = await WopiBlobFile.CreateAsync(blob, "nometa.bin", "id", CancellationToken.None);
 
-        await using (var s = await file.OpenWriteAsync())
+        await using (var s = await file.OpenWriteAsync(TestContext.Current.CancellationToken))
         {
-            await s.WriteAsync(new byte[] { 1, 2, 3 });
+            await s.WriteAsync(new byte[] { 1, 2, 3 }, TestContext.Current.CancellationToken);
         }
 
-        var props = await blob.GetPropertiesAsync();
+        var props = await blob.GetPropertiesAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(props.Value.Metadata.ContainsKey(WopiBlobFile.Sha256MetadataKey));
     }
 
@@ -183,11 +183,11 @@ public class WopiBlobFileTests(AzuriteFixture azurite)
         var file = await WopiBlobFile.CreateAsync(blob, "freshly-created.bin", "id", CancellationToken.None);
         Assert.False(file.Exists);
 
-        await using (var s = await file.OpenWriteAsync())
+        await using (var s = await file.OpenWriteAsync(TestContext.Current.CancellationToken))
         {
-            await s.WriteAsync(new byte[] { 9, 8, 7 });
+            await s.WriteAsync(new byte[] { 9, 8, 7 }, TestContext.Current.CancellationToken);
         }
 
-        Assert.True(await blob.ExistsAsync());
+        Assert.True(await blob.ExistsAsync(TestContext.Current.CancellationToken));
     }
 }

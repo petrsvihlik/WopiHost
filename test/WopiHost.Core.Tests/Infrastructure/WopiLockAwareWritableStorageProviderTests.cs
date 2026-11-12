@@ -22,7 +22,7 @@ public class WopiLockAwareWritableStorageProviderTests
         _innerMock.Setup(x => x.DeleteWopiFile("file-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var result = await CreateDecorator().DeleteWopiFile("file-1");
+        var result = await CreateDecorator().DeleteWopiFile("file-1", TestContext.Current.CancellationToken);
 
         Assert.True(result);
         _innerMock.Verify(x => x.DeleteWopiFile("file-1", It.IsAny<CancellationToken>()), Times.Once);
@@ -35,7 +35,7 @@ public class WopiLockAwareWritableStorageProviderTests
             .ReturnsAsync(new WopiLockInfo { FileId = "file-1", LockId = "active-lock" });
 
         var ex = await Assert.ThrowsAsync<WopiResourceLockedException>(
-            () => CreateDecorator().DeleteWopiFile("file-1"));
+            () => CreateDecorator().DeleteWopiFile("file-1", TestContext.Current.CancellationToken));
         Assert.Equal("file-1", ex.ResourceIdentifier);
         Assert.Equal("active-lock", ex.LockId);
         _innerMock.Verify(x => x.DeleteWopiFile(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -49,7 +49,7 @@ public class WopiLockAwareWritableStorageProviderTests
         _innerMock.Setup(x => x.RenameWopiFile("file-2", "renamed", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var result = await CreateDecorator().RenameWopiFile("file-2", "renamed");
+        var result = await CreateDecorator().RenameWopiFile("file-2", "renamed", TestContext.Current.CancellationToken);
 
         Assert.True(result);
         _innerMock.Verify(x => x.RenameWopiFile("file-2", "renamed", It.IsAny<CancellationToken>()), Times.Once);
@@ -62,7 +62,7 @@ public class WopiLockAwareWritableStorageProviderTests
             .ReturnsAsync(new WopiLockInfo { FileId = "file-2", LockId = "lock-x" });
 
         await Assert.ThrowsAsync<WopiResourceLockedException>(
-            () => CreateDecorator().RenameWopiFile("file-2", "renamed"));
+            () => CreateDecorator().RenameWopiFile("file-2", "renamed", TestContext.Current.CancellationToken));
         _innerMock.Verify(x => x.RenameWopiFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -75,7 +75,7 @@ public class WopiLockAwareWritableStorageProviderTests
         _innerMock.Setup(x => x.CreateWopiChildFile("parent", "newfile.txt", It.IsAny<CancellationToken>()))
             .ReturnsAsync(newFile);
 
-        var result = await CreateDecorator().CreateWopiChildFile("parent", "newfile.txt");
+        var result = await CreateDecorator().CreateWopiChildFile("parent", "newfile.txt", TestContext.Current.CancellationToken);
 
         Assert.Same(newFile, result);
         _lockProviderMock.Verify(x => x.GetLockAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -91,10 +91,10 @@ public class WopiLockAwareWritableStorageProviderTests
         _innerMock.SetupGet(x => x.FileNameMaxLength).Returns(123);
 
         var decorator = CreateDecorator();
-        Assert.True(await decorator.CheckValidFileName("name"));
-        Assert.True(await decorator.CheckValidContainerName("cname"));
-        Assert.Equal("suggested", await decorator.GetSuggestedFileName("parent", "name"));
-        Assert.Equal("suggested-c", await decorator.GetSuggestedContainerName("parent", "cname"));
+        Assert.True(await decorator.CheckValidFileName("name", TestContext.Current.CancellationToken));
+        Assert.True(await decorator.CheckValidContainerName("cname", TestContext.Current.CancellationToken));
+        Assert.Equal("suggested", await decorator.GetSuggestedFileName("parent", "name", TestContext.Current.CancellationToken));
+        Assert.Equal("suggested-c", await decorator.GetSuggestedContainerName("parent", "cname", TestContext.Current.CancellationToken));
         Assert.Equal(123, decorator.FileNameMaxLength);
 
         _lockProviderMock.Verify(x => x.GetLockAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -108,7 +108,7 @@ public class WopiLockAwareWritableStorageProviderTests
         var file = Mock.Of<IWopiWritableFile>();
         _innerMock.Setup(x => x.GetWritableFile("file-x", It.IsAny<CancellationToken>())).ReturnsAsync(file);
 
-        var result = await CreateDecorator().GetWritableFile("file-x");
+        var result = await CreateDecorator().GetWritableFile("file-x", TestContext.Current.CancellationToken);
 
         Assert.Same(file, result);
         _lockProviderMock.Verify(x => x.GetLockAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -122,7 +122,7 @@ public class WopiLockAwareWritableStorageProviderTests
         _innerMock.Setup(x => x.CreateWopiChildContainer("parent", "subdir", It.IsAny<CancellationToken>()))
             .ReturnsAsync(newContainer);
 
-        var result = await CreateDecorator().CreateWopiChildContainer("parent", "subdir");
+        var result = await CreateDecorator().CreateWopiChildContainer("parent", "subdir", TestContext.Current.CancellationToken);
 
         Assert.Same(newContainer, result);
         _lockProviderMock.Verify(x => x.GetLockAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -134,7 +134,7 @@ public class WopiLockAwareWritableStorageProviderTests
         _lockProviderMock.Setup(x => x.GetLockAsync("c-1", It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         _innerMock.Setup(x => x.DeleteWopiContainer("c-1", It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
-        var result = await CreateDecorator().DeleteWopiContainer("c-1");
+        var result = await CreateDecorator().DeleteWopiContainer("c-1", TestContext.Current.CancellationToken);
 
         Assert.True(result);
         _innerMock.Verify(x => x.DeleteWopiContainer("c-1", It.IsAny<CancellationToken>()), Times.Once);
@@ -147,7 +147,7 @@ public class WopiLockAwareWritableStorageProviderTests
             .ReturnsAsync(new WopiLockInfo { FileId = "c-1", LockId = "L" });
 
         var ex = await Assert.ThrowsAsync<WopiResourceLockedException>(
-            () => CreateDecorator().DeleteWopiContainer("c-1"));
+            () => CreateDecorator().DeleteWopiContainer("c-1", TestContext.Current.CancellationToken));
         Assert.Equal("c-1", ex.ResourceIdentifier);
         Assert.Equal("L", ex.LockId);
         _innerMock.Verify(x => x.DeleteWopiContainer(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -159,7 +159,7 @@ public class WopiLockAwareWritableStorageProviderTests
         _lockProviderMock.Setup(x => x.GetLockAsync("c-2", It.IsAny<CancellationToken>())).ReturnsAsync((WopiLockInfo?)null);
         _innerMock.Setup(x => x.RenameWopiContainer("c-2", "renamed", It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
-        var result = await CreateDecorator().RenameWopiContainer("c-2", "renamed");
+        var result = await CreateDecorator().RenameWopiContainer("c-2", "renamed", TestContext.Current.CancellationToken);
 
         Assert.True(result);
         _innerMock.Verify(x => x.RenameWopiContainer("c-2", "renamed", It.IsAny<CancellationToken>()), Times.Once);
@@ -172,7 +172,7 @@ public class WopiLockAwareWritableStorageProviderTests
             .ReturnsAsync(new WopiLockInfo { FileId = "c-2", LockId = "L-c" });
 
         await Assert.ThrowsAsync<WopiResourceLockedException>(
-            () => CreateDecorator().RenameWopiContainer("c-2", "renamed"));
+            () => CreateDecorator().RenameWopiContainer("c-2", "renamed", TestContext.Current.CancellationToken));
         _innerMock.Verify(x => x.RenameWopiContainer(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -211,7 +211,7 @@ public class WopiLockAwareWritableStorageProviderTests
 
         Assert.IsType<WopiLockAwareWritableStorageProvider>(resolved);
         await Assert.ThrowsAsync<WopiResourceLockedException>(
-            () => resolved.DeleteWopiFile("file-x"));
+            () => resolved.DeleteWopiFile("file-x", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -233,7 +233,7 @@ public class WopiLockAwareWritableStorageProviderTests
         var resolved = sp.GetRequiredService<IWopiWritableStorageProvider>();
 
         Assert.IsType<WopiLockAwareWritableStorageProvider>(resolved);
-        Assert.True(await resolved.DeleteWopiFile("file-y"));
+        Assert.True(await resolved.DeleteWopiFile("file-y", TestContext.Current.CancellationToken));
         // The factory must have been invoked exactly once when the decorated registration was resolved.
         _innerMock.Verify(x => x.DeleteWopiFile("file-y", It.IsAny<CancellationToken>()), Times.Once);
     }

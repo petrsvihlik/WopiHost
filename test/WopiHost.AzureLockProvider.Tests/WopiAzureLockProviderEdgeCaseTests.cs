@@ -1,3 +1,5 @@
+using Azure.Core;
+using Azure.Core.Pipeline;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -34,16 +36,16 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         var lockBlob = GetLockBlob(provider, "file-expired-refresh");
         using (var empty = new MemoryStream([]))
         {
-            await lockBlob.UploadAsync(empty);
+            await lockBlob.UploadAsync(empty, TestContext.Current.CancellationToken);
         }
         await lockBlob.SetMetadataAsync(new Dictionary<string, string>
         {
             [WopiAzureLockProvider.LockIdKey] = "ancient",
             [WopiAzureLockProvider.LeaseIdKey] = Guid.NewGuid().ToString(),
             [WopiAzureLockProvider.CreatedKey] = DateTimeOffset.UtcNow.AddHours(-2).ToString("O"),
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
-        var refreshed = await provider.RefreshLockAsync("file-expired-refresh", expectedExistingLockId: "ancient");
+        var refreshed = await provider.RefreshLockAsync("file-expired-refresh", expectedExistingLockId: "ancient", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(refreshed);
     }
@@ -55,16 +57,16 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         var lockBlob = GetLockBlob(provider, "file-no-leaseid");
         using (var empty = new MemoryStream([]))
         {
-            await lockBlob.UploadAsync(empty);
+            await lockBlob.UploadAsync(empty, TestContext.Current.CancellationToken);
         }
         await lockBlob.SetMetadataAsync(new Dictionary<string, string>
         {
             [WopiAzureLockProvider.LockIdKey] = "lock-A",
             [WopiAzureLockProvider.CreatedKey] = DateTimeOffset.UtcNow.ToString("O"),
             // No LeaseIdKey
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
-        var refreshed = await provider.RefreshLockAsync("file-no-leaseid", expectedExistingLockId: "lock-A");
+        var refreshed = await provider.RefreshLockAsync("file-no-leaseid", expectedExistingLockId: "lock-A", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(refreshed);
     }
@@ -75,14 +77,14 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         // RefreshLockAsync recovers the leaseId from metadata. If the actual lease has been broken
         // since AddLock (crash, manual intervention, lease GC), RenewAsync throws 412/409 and refresh returns false.
         var (provider, _) = await CreateProviderAsync();
-        var info = await provider.AddLockAsync("file-broken-lease", "lock-A");
+        var info = await provider.AddLockAsync("file-broken-lease", "lock-A", TestContext.Current.CancellationToken);
         Assert.NotNull(info);
 
         // Externally break the lease so the renew fails.
         var lockBlob = GetLockBlob(provider, "file-broken-lease");
-        await lockBlob.GetBlobLeaseClient().BreakAsync(breakPeriod: TimeSpan.Zero);
+        await lockBlob.GetBlobLeaseClient().BreakAsync(breakPeriod: TimeSpan.Zero, cancellationToken: TestContext.Current.CancellationToken);
 
-        var refreshed = await provider.RefreshLockAsync("file-broken-lease", expectedExistingLockId: "lock-A");
+        var refreshed = await provider.RefreshLockAsync("file-broken-lease", expectedExistingLockId: "lock-A", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(refreshed);
     }
@@ -94,19 +96,19 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         var lockBlob = GetLockBlob(provider, "file-no-lease-remove");
         using (var empty = new MemoryStream([]))
         {
-            await lockBlob.UploadAsync(empty);
+            await lockBlob.UploadAsync(empty, TestContext.Current.CancellationToken);
         }
         await lockBlob.SetMetadataAsync(new Dictionary<string, string>
         {
             [WopiAzureLockProvider.LockIdKey] = "lock-A",
             [WopiAzureLockProvider.CreatedKey] = DateTimeOffset.UtcNow.ToString("O"),
             // No LeaseIdKey — the metadata-only branch in RemoveLock.
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
-        var removed = await provider.RemoveLockAsync("file-no-lease-remove");
+        var removed = await provider.RemoveLockAsync("file-no-lease-remove", TestContext.Current.CancellationToken);
 
         Assert.True(removed);
-        Assert.False(await lockBlob.ExistsAsync());
+        Assert.False(await lockBlob.ExistsAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -118,19 +120,19 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         var lockBlob = GetLockBlob(provider, "file-stale-lease-remove");
         using (var empty = new MemoryStream([]))
         {
-            await lockBlob.UploadAsync(empty);
+            await lockBlob.UploadAsync(empty, TestContext.Current.CancellationToken);
         }
         await lockBlob.SetMetadataAsync(new Dictionary<string, string>
         {
             [WopiAzureLockProvider.LockIdKey] = "lock-A",
             [WopiAzureLockProvider.LeaseIdKey] = Guid.NewGuid().ToString(), // never acquired
             [WopiAzureLockProvider.CreatedKey] = DateTimeOffset.UtcNow.ToString("O"),
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
-        var removed = await provider.RemoveLockAsync("file-stale-lease-remove");
+        var removed = await provider.RemoveLockAsync("file-stale-lease-remove", TestContext.Current.CancellationToken);
 
         Assert.True(removed);
-        Assert.False(await lockBlob.ExistsAsync());
+        Assert.False(await lockBlob.ExistsAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -141,16 +143,16 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         var lockBlob = GetLockBlob(provider, "file-malformed-created");
         using (var empty = new MemoryStream([]))
         {
-            await lockBlob.UploadAsync(empty);
+            await lockBlob.UploadAsync(empty, TestContext.Current.CancellationToken);
         }
         await lockBlob.SetMetadataAsync(new Dictionary<string, string>
         {
             [WopiAzureLockProvider.LockIdKey] = "lock-A",
             [WopiAzureLockProvider.LeaseIdKey] = Guid.NewGuid().ToString(),
             [WopiAzureLockProvider.CreatedKey] = "not-a-real-iso-timestamp",
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
-        var info = await provider.GetLockAsync("file-malformed-created");
+        var info = await provider.GetLockAsync("file-malformed-created", TestContext.Current.CancellationToken);
 
         Assert.Null(info);
     }
@@ -163,16 +165,16 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         var lockBlob = GetLockBlob(provider, "file-empty-lockid");
         using (var empty = new MemoryStream([]))
         {
-            await lockBlob.UploadAsync(empty);
+            await lockBlob.UploadAsync(empty, TestContext.Current.CancellationToken);
         }
         await lockBlob.SetMetadataAsync(new Dictionary<string, string>
         {
             [WopiAzureLockProvider.LockIdKey] = "",
             [WopiAzureLockProvider.LeaseIdKey] = Guid.NewGuid().ToString(),
             [WopiAzureLockProvider.CreatedKey] = DateTimeOffset.UtcNow.ToString("O"),
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
-        var info = await provider.GetLockAsync("file-empty-lockid");
+        var info = await provider.GetLockAsync("file-empty-lockid", TestContext.Current.CancellationToken);
 
         Assert.Null(info);
     }
@@ -190,11 +192,11 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         var lockBlob = GetLockBlob(provider, "file-stale-blob");
         using (var empty = new MemoryStream([]))
         {
-            await lockBlob.UploadAsync(empty);
+            await lockBlob.UploadAsync(empty, TestContext.Current.CancellationToken);
         }
         // No metadata at all on the blob — bare zero-byte placeholder.
 
-        var info = await provider.AddLockAsync("file-stale-blob", "fresh");
+        var info = await provider.AddLockAsync("file-stale-blob", "fresh", TestContext.Current.CancellationToken);
 
         Assert.Null(info);
     }
@@ -222,6 +224,31 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
     }
 
     [Fact]
+    public async Task AddLockAsync_BlobCreatedBetweenProbeAndUpload_ReturnsNull()
+    {
+        // Pins the upload race-lost path that the concurrent test above only reaches by timing:
+        // a competitor creates the blob after this call's existence probe and before its
+        // create-only upload, so the upload fails 412 and the call yields without touching the
+        // competitor's blob.
+        var serviceClient = azurite.CreateBlobServiceClient();
+        var container = serviceClient.GetBlobContainerClient($"wopi-locks-edge-{Guid.NewGuid():N}");
+        await container.CreateIfNotExistsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var fileId = $"file-race-{Guid.NewGuid():N}";
+        var competitorBlob = new WopiAzureLockProvider(container, NullLogger<WopiAzureLockProvider>.Instance).GetLockBlob(fileId);
+
+        var options = new BlobClientOptions(AzuriteFixture.AzuriteSupportedVersion);
+        options.AddPolicy(new CreateBlobBeforeCreateOnlyUpload(competitorBlob), HttpPipelinePosition.PerCall);
+        var racingContainer = new BlobServiceClient(azurite.ConnectionString, options).GetBlobContainerClient(container.Name);
+        var provider = new WopiAzureLockProvider(racingContainer, NullLogger<WopiAzureLockProvider>.Instance);
+
+        var info = await provider.AddLockAsync(fileId, "lock-A", TestContext.Current.CancellationToken);
+
+        Assert.Null(info);
+        var props = await competitorBlob.GetPropertiesAsync(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Empty(props.Value.Metadata);
+    }
+
+    [Fact]
     public async Task Constructor_NullArgs_Throws()
     {
         Assert.Throws<ArgumentNullException>(
@@ -231,5 +258,29 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         var container = serviceClient.GetBlobContainerClient("ctor-test");
         Assert.Throws<ArgumentNullException>(
             () => new WopiAzureLockProvider(container, null!));
+    }
+
+    /// <summary>
+    /// Creates <paramref name="competitor"/> right before the first create-only
+    /// (<c>If-None-Match: *</c>) PUT goes out, simulating a peer that wins the acquire race.
+    /// </summary>
+    private sealed class CreateBlobBeforeCreateOnlyUpload(BlobClient competitor) : HttpPipelinePolicy
+    {
+        private int _armed = 1;
+
+        public override async ValueTask ProcessAsync(HttpMessage message, ReadOnlyMemory<HttpPipelinePolicy> pipeline)
+        {
+            if (message.Request.Method == RequestMethod.Put
+                && message.Request.Headers.TryGetValue("If-None-Match", out var condition)
+                && condition == "*"
+                && Interlocked.Exchange(ref _armed, 0) == 1)
+            {
+                await competitor.UploadAsync(BinaryData.Empty, message.CancellationToken).ConfigureAwait(false);
+            }
+            await ProcessNextAsync(message, pipeline).ConfigureAwait(false);
+        }
+
+        public override void Process(HttpMessage message, ReadOnlyMemory<HttpPipelinePolicy> pipeline)
+            => throw new NotSupportedException("The provider only issues async requests.");
     }
 }

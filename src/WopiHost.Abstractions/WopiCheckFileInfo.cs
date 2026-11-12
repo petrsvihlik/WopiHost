@@ -639,13 +639,6 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     public bool TemporarilyNotWritable { get; set; }
 
     /// <summary>
-    /// A URI to a page explaining the host's terms of use.
-    /// </summary>
-    /// <remarks>Deprecated since WOPI version 2015.06.01.</remarks>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Uri? TermsOfUseUrl { get; set; }
-
-    /// <summary>
     /// A Boolean value that indicates the user may review the file, that is, add and resolve comments and tracked changes.
     /// </summary>
     public bool UserCanReview { get; set; }

@@ -32,10 +32,10 @@ public sealed partial class WopiTokenRoundTripTests(WopiTokenRoundTripTests.Fixt
             .AsUser("user-1234", "Alice Editor", "alice@example.com", OidcRolePermissionMapper.EditorRole);
 
         var fileId = await ResolveFirstFileIdAsync();
-        var response = await client.GetAsync($"/Home/Detail/{fileId}?wopiAction=Edit");
+        var response = await client.GetAsync($"/Home/Detail/{fileId}?wopiAction=Edit", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var html = await response.Content.ReadAsStringAsync();
+        var html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var token = ExtractAccessToken(html);
 
         var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
@@ -55,10 +55,10 @@ public sealed partial class WopiTokenRoundTripTests(WopiTokenRoundTripTests.Fixt
             .AsUser("user-2222", "Bob Viewer", "bob@example.com", OidcRolePermissionMapper.ViewerRole);
 
         var fileId = await ResolveFirstFileIdAsync();
-        var response = await client.GetAsync($"/Home/Detail/{fileId}?wopiAction=View");
+        var response = await client.GetAsync($"/Home/Detail/{fileId}?wopiAction=View", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var html = await response.Content.ReadAsStringAsync();
+        var html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var token = ExtractAccessToken(html);
         var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
 
@@ -74,16 +74,16 @@ public sealed partial class WopiTokenRoundTripTests(WopiTokenRoundTripTests.Fixt
         using var frontend = _fixture.OidcFrontend.CreateClient()
             .AsUser("user-3333", "Carol Editor", "carol@example.com", OidcRolePermissionMapper.EditorRole);
         var fileId = await ResolveFirstFileIdAsync();
-        var hostpage = await frontend.GetAsync($"/Home/Detail/{fileId}?wopiAction=Edit");
+        var hostpage = await frontend.GetAsync($"/Home/Detail/{fileId}?wopiAction=Edit", TestContext.Current.CancellationToken);
         hostpage.EnsureSuccessStatusCode();
-        var token = ExtractAccessToken(await hostpage.Content.ReadAsStringAsync());
+        var token = ExtractAccessToken(await hostpage.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         // 2. Backend validates the token and answers CheckFileInfo with the user identity.
         using var backend = _fixture.WopiBackend.CreateClient();
-        var checkInfoResponse = await backend.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}");
+        var checkInfoResponse = await backend.GetAsync($"/wopi/files/{fileId}?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, checkInfoResponse.StatusCode);
-        var body = await checkInfoResponse.Content.ReadAsStringAsync();
+        var body = await checkInfoResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"UserId\"", body);
         Assert.Contains("user-3333", body);
         Assert.Contains("Carol Editor", body);
@@ -99,7 +99,7 @@ public sealed partial class WopiTokenRoundTripTests(WopiTokenRoundTripTests.Fixt
             BaseAddress = new Uri("http://localhost"),
         });
 
-        var response = await client.GetAsync("/");
+        var response = await client.GetAsync("/", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -108,7 +108,7 @@ public sealed partial class WopiTokenRoundTripTests(WopiTokenRoundTripTests.Fixt
     {
         var fileId = await ResolveFirstFileIdAsync();
         using var backend = _fixture.WopiBackend.CreateClient();
-        var response = await backend.GetAsync($"/wopi/files/{fileId}?access_token=this-is-not-a-jwt");
+        var response = await backend.GetAsync($"/wopi/files/{fileId}?access_token=this-is-not-a-jwt", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -120,10 +120,10 @@ public sealed partial class WopiTokenRoundTripTests(WopiTokenRoundTripTests.Fixt
             .AsUser("user-no-roles", "Dave", "dave@example.com");
 
         var fileId = await ResolveFirstFileIdAsync();
-        var response = await client.GetAsync($"/Home/Detail/{fileId}?wopiAction=View");
+        var response = await client.GetAsync($"/Home/Detail/{fileId}?wopiAction=View", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var html = await response.Content.ReadAsStringAsync();
+        var html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var token = ExtractAccessToken(html);
         var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
 

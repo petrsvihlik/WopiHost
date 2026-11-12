@@ -30,10 +30,10 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
     {
         using var client = _fixture.WopiBackend.CreateClient().AsBootstrapUser("user-1", "Alice");
 
-        var resp = await client.GetAsync($"/wopibootstrapper?access_token={BootstrapDummyToken}");
+        var resp = await client.GetAsync($"/wopibootstrapper?access_token={BootstrapDummyToken}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"Bootstrap\"", body);
         Assert.Contains("\"EcosystemUrl\"", body);
         Assert.Contains("user-1", body);
@@ -46,7 +46,7 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
         // RequireAuthorization with AddAuthenticationSchemes(Bootstrap) challenges → 401.
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopibootstrapper?access_token={BootstrapDummyToken}");
+        var resp = await client.GetAsync($"/wopibootstrapper?access_token={BootstrapDummyToken}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
     }
@@ -58,10 +58,10 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopibootstrapper?access_token={BootstrapDummyToken}");
         req.Headers.Add("X-WOPI-EcosystemOperation", "GET_ROOT_CONTAINER");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"Bootstrap\"", body);
         Assert.Contains("\"RootContainerInfo\"", body);
         Assert.Contains("\"ContainerPointer\"", body);
@@ -77,10 +77,10 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopibootstrapper?access_token={BootstrapDummyToken}");
         req.Headers.Add("X-WOPI-EcosystemOperation", "GET_NEW_ACCESS_TOKEN");
         req.Headers.Add("X-WOPI-WopiSrc", $"https://wopi.example.com/wopi/files/{fileId}");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"AccessTokenInfo\"", body);
         Assert.Contains("\"AccessToken\"", body);
         Assert.Contains("\"AccessTokenExpiry\"", body);
@@ -95,10 +95,10 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopibootstrapper?access_token={BootstrapDummyToken}");
         req.Headers.Add("X-WOPI-EcosystemOperation", "GET_NEW_ACCESS_TOKEN");
         req.Headers.Add("X-WOPI-WopiSrc", $"https://wopi.example.com/wopi/containers/{rootId}");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"AccessTokenInfo\"", body);
     }
 
@@ -109,7 +109,7 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopibootstrapper?access_token={BootstrapDummyToken}");
         req.Headers.Add("X-WOPI-EcosystemOperation", "GET_NEW_ACCESS_TOKEN");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -123,7 +123,7 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopibootstrapper?access_token={BootstrapDummyToken}");
         req.Headers.Add("X-WOPI-EcosystemOperation", "GET_NEW_ACCESS_TOKEN");
         req.Headers.Add("X-WOPI-WopiSrc", $"https://wopi.example.com/wopi/files/{missing}");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -137,7 +137,7 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopibootstrapper?access_token={BootstrapDummyToken}");
         req.Headers.Add("X-WOPI-EcosystemOperation", "GET_NEW_ACCESS_TOKEN");
         req.Headers.Add("X-WOPI-WopiSrc", $"https://wopi.example.com/wopi/containers/{missing}");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -149,7 +149,7 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopibootstrapper?access_token={BootstrapDummyToken}");
         req.Headers.Add("X-WOPI-EcosystemOperation", "BOGUS_OPERATION");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
     }

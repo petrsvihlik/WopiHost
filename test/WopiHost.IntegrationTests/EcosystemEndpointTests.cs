@@ -20,10 +20,10 @@ public sealed class EcosystemEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintContainerTokenAsync(_fixture.RootContainerId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/ecosystem?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/ecosystem?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"SupportsContainers\"", body);
     }
 
@@ -33,10 +33,10 @@ public sealed class EcosystemEndpointTests(ReadOnlyEndpointsFixture fixture)
         var token = await _fixture.MintContainerTokenAsync(_fixture.RootContainerId);
         using var client = _fixture.WopiBackend.CreateClient();
 
-        var resp = await client.GetAsync($"/wopi/ecosystem/root_container_pointer?access_token={Uri.EscapeDataString(token)}");
+        var resp = await client.GetAsync($"/wopi/ecosystem/root_container_pointer?access_token={Uri.EscapeDataString(token)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"ContainerPointer\"", body);
     }
 }

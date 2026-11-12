@@ -40,12 +40,12 @@ public sealed class WopiRedisLockProviderEvictionTests(RedisFixture redis)
         var clock = new ControllableTimeProvider(DateTimeOffset.UtcNow);
         var fileId = $"refresh-evict-{Guid.NewGuid()}";
         var (sut, db, key) = await CreateAsync(fileId, clock);
-        await sut.AddLockAsync(fileId, "lock-A");
+        await sut.AddLockAsync(fileId, "lock-A", TestContext.Current.CancellationToken);
         Assert.True(await db.KeyExistsAsync(key));
 
         clock.Now = clock.Now.AddMinutes(WopiLockInfo.ExpirationMinutes + 1);
 
-        Assert.False(await sut.RefreshLockAsync(fileId, expectedExistingLockId: "lock-A"));
+        Assert.False(await sut.RefreshLockAsync(fileId, expectedExistingLockId: "lock-A", cancellationToken: TestContext.Current.CancellationToken));
         // Key is gone because the CAS path evicted it — not because anything read it back.
         Assert.False(await db.KeyExistsAsync(key));
     }
@@ -56,12 +56,12 @@ public sealed class WopiRedisLockProviderEvictionTests(RedisFixture redis)
         var clock = new ControllableTimeProvider(DateTimeOffset.UtcNow);
         var fileId = $"swap-evict-{Guid.NewGuid()}";
         var (sut, db, key) = await CreateAsync(fileId, clock);
-        await sut.AddLockAsync(fileId, "old-lock");
+        await sut.AddLockAsync(fileId, "old-lock", TestContext.Current.CancellationToken);
         Assert.True(await db.KeyExistsAsync(key));
 
         clock.Now = clock.Now.AddMinutes(WopiLockInfo.ExpirationMinutes + 1);
 
-        Assert.False(await sut.TryUnlockAndRelockAsync(fileId, "new-lock", expectedExistingLockId: "old-lock"));
+        Assert.False(await sut.TryUnlockAndRelockAsync(fileId, "new-lock", expectedExistingLockId: "old-lock", cancellationToken: TestContext.Current.CancellationToken));
         Assert.False(await db.KeyExistsAsync(key));
     }
 }
