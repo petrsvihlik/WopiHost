@@ -18,7 +18,6 @@ using CreateChildContainerResult = Microsoft.AspNetCore.Http.HttpResults.Results
     Microsoft.AspNetCore.Http.HttpResults.BadRequest,
     Microsoft.AspNetCore.Http.HttpResults.Conflict>;
 
-
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>

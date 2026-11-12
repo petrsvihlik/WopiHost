@@ -25,7 +25,6 @@ using ProcessLockResult = Microsoft.AspNetCore.Http.HttpResults.Results<
     WopiHost.Core.Results.WopiLockMismatchResult,
     Microsoft.AspNetCore.Http.HttpResults.StatusCodeHttpResult>;
 
-
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
