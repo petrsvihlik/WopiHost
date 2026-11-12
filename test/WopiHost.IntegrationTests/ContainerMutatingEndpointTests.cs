@@ -31,10 +31,10 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "GET_SHARE_URL");
         req.Headers.Add("X-WOPI-UrlType", urlType);
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         var shareUrl = doc.RootElement.GetProperty("ShareUrl").GetString();
         Assert.True(Uri.IsWellFormedUriString(shareUrl, UriKind.Absolute));
     }
@@ -48,7 +48,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "GET_SHARE_URL");
         req.Headers.Add("X-WOPI-UrlType", "NotASupportedType");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
     }
@@ -62,7 +62,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "GET_SHARE_URL");
         // No X-WOPI-UrlType header → treated as unsupported.
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
     }
@@ -78,10 +78,10 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
         req.Headers.Add("X-WOPI-SuggestedTarget", $"folder-{Guid.NewGuid():N}");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"ContainerPointer\"", body);
     }
 
@@ -96,14 +96,14 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         var first = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
         first.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
         first.Headers.Add("X-WOPI-RelativeTarget", name);
-        var firstResp = await client.SendAsync(first);
+        var firstResp = await client.SendAsync(first, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, firstResp.StatusCode);
 
         // …then ask for it again under specific (relative) mode → 409.
         var second = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
         second.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
         second.Headers.Add("X-WOPI-RelativeTarget", name);
-        var secondResp = await client.SendAsync(second);
+        var secondResp = await client.SendAsync(second, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, secondResp.StatusCode);
         Assert.True(secondResp.Headers.Contains("X-WOPI-ValidRelativeTarget"));
@@ -119,7 +119,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
         req.Headers.Add("X-WOPI-SuggestedTarget", "a");
         req.Headers.Add("X-WOPI-RelativeTarget", "b");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
     }
@@ -136,10 +136,10 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
         req.Headers.Add("X-WOPI-SuggestedTarget", $"bad/name-{Guid.NewGuid():N}");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         var createdName = doc.RootElement.GetProperty("ContainerPointer").GetProperty("Name").GetString();
         Assert.NotNull(createdName);
         Assert.DoesNotContain("/", createdName);
@@ -156,7 +156,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
         req.Headers.Add("X-WOPI-RelativeTarget", "bad/name");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
         Assert.True(resp.Headers.Contains("X-WOPI-InvalidContainerNameError"));
@@ -175,10 +175,10 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{_fixture.RootContainerId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_CONTAINER");
         req.Headers.Add("X-WOPI-RelativeTarget", name);
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var payload = JsonSerializer.Deserialize<JsonElement>(body);
         var url = payload.GetProperty("ContainerPointer").GetProperty("Url").GetString()!;
         var uri = new Uri(url);
@@ -205,7 +205,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         };
         req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_FILE");
         req.Headers.Add("X-WOPI-SuggestedTarget", ".txt");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
@@ -224,7 +224,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         };
         first.Headers.Add("X-WOPI-Override", "CREATE_CHILD_FILE");
         first.Headers.Add("X-WOPI-RelativeTarget", name);
-        var firstResp = await client.SendAsync(first);
+        var firstResp = await client.SendAsync(first, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, firstResp.StatusCode);
 
         // …then ask for it again under specific (relative) mode with no overwrite → 409 + the
@@ -235,7 +235,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         };
         second.Headers.Add("X-WOPI-Override", "CREATE_CHILD_FILE");
         second.Headers.Add("X-WOPI-RelativeTarget", name);
-        var secondResp = await client.SendAsync(second);
+        var secondResp = await client.SendAsync(second, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, secondResp.StatusCode);
         Assert.True(secondResp.Headers.Contains("X-WOPI-ValidRelativeTarget"));
@@ -254,7 +254,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         req.Headers.Add("X-WOPI-Override", "CREATE_CHILD_FILE");
         req.Headers.Add("X-WOPI-SuggestedTarget", "a.txt");
         req.Headers.Add("X-WOPI-RelativeTarget", "b.txt");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotImplemented, resp.StatusCode);
     }
@@ -271,12 +271,12 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{childId}?access_token={Uri.EscapeDataString(childToken)}");
         req.Headers.Add("X-WOPI-Override", "DELETE_CONTAINER");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
         // Side-effect check: the container must actually be gone — CheckContainerInfo now 404s.
-        var check = await client.GetAsync($"/wopi/containers/{childId}?access_token={Uri.EscapeDataString(childToken)}");
+        var check = await client.GetAsync($"/wopi/containers/{childId}?access_token={Uri.EscapeDataString(childToken)}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, check.StatusCode);
     }
 
@@ -291,14 +291,14 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         using (var scope = _fixture.WopiBackend.Services.CreateScope())
         {
             var writable = scope.ServiceProvider.GetRequiredService<IWopiWritableStorageProvider>();
-            await writable.CreateWopiChildFile(childId, fileName);
+            await writable.CreateWopiChildFile(childId, fileName, TestContext.Current.CancellationToken);
         }
         var token = await _fixture.MintContainerTokenAsync(childId);
         using var client = _fixture.WopiBackend.CreateClient();
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{childId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "DELETE_CONTAINER");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
     }
@@ -312,7 +312,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
 
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{missing}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "DELETE_CONTAINER");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
@@ -333,10 +333,10 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{childId}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "RENAME_CONTAINER");
         req.Headers.Add("X-WOPI-RequestedName", newName);
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var payload = JsonSerializer.Deserialize<JsonElement>(body);
         Assert.Equal(newName, payload.GetProperty("Name").GetString());
     }
@@ -351,7 +351,7 @@ public sealed class ContainerMutatingEndpointTests(MutatingEndpointsFixture fixt
         var req = new HttpRequestMessage(HttpMethod.Post, $"/wopi/containers/{missing}?access_token={Uri.EscapeDataString(token)}");
         req.Headers.Add("X-WOPI-Override", "RENAME_CONTAINER");
         req.Headers.Add("X-WOPI-RequestedName", "x");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }

@@ -38,7 +38,7 @@ public class OidcStartupTests : IClassFixture<OidcStartupTests.AppFactory>
             BaseAddress = new Uri("http://localhost"),
         });
 
-        var response = await client.GetAsync("/");
+        var response = await client.GetAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         var location = response.Headers.Location?.ToString() ?? "";
@@ -53,10 +53,10 @@ public class OidcStartupTests : IClassFixture<OidcStartupTests.AppFactory>
         Assert.SkipUnless(_mockOidc.IsAvailable, _mockOidc.UnavailableReason ?? "Docker unavailable.");
 
         using var http = new HttpClient { BaseAddress = _mockOidc.Authority };
-        var discovery = await http.GetAsync(".well-known/openid-configuration");
+        var discovery = await http.GetAsync(".well-known/openid-configuration", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, discovery.StatusCode);
-        var doc = System.Text.Json.JsonDocument.Parse(await discovery.Content.ReadAsStringAsync());
+        var doc = System.Text.Json.JsonDocument.Parse(await discovery.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.True(doc.RootElement.TryGetProperty("issuer", out _));
         Assert.True(doc.RootElement.TryGetProperty("authorization_endpoint", out _));
         Assert.True(doc.RootElement.TryGetProperty("jwks_uri", out _));
@@ -73,7 +73,7 @@ public class OidcStartupTests : IClassFixture<OidcStartupTests.AppFactory>
             BaseAddress = new Uri("http://localhost"),
         });
 
-        var response = await client.GetAsync("/health");
+        var response = await client.GetAsync("/health", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 

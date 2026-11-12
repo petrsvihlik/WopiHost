@@ -30,7 +30,7 @@ public class FileSystemDiscoveryFileProviderTests
     public async Task GetDiscoveryXmlAsync_MalformedXml_ThrowsXmlException()
     {
         var path = Path.Join(Path.GetTempPath(), $"malformed-{Guid.NewGuid()}.xml");
-        await File.WriteAllTextAsync(path, "<not-closed-element>");
+        await File.WriteAllTextAsync(path, "<not-closed-element>", TestContext.Current.CancellationToken);
         try
         {
             var sut = new FileSystemDiscoveryFileProvider(path, NullLogger<FileSystemDiscoveryFileProvider>.Instance);

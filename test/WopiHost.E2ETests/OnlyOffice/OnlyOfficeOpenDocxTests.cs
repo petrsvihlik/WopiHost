@@ -123,7 +123,7 @@ public sealed class OnlyOfficeOpenDocxTests(OnlyOfficeAppFixture app, Playwright
                     return; // GREEN — ONLYOFFICE finished loading the document.
                 }
             }
-            await Task.Delay(500);
+            await Task.Delay(500, TestContext.Current.CancellationToken);
         }
 
         // Timed out — gather diagnostics that disambiguate "engine slow" from "WOPI callback failed".

@@ -92,7 +92,7 @@ public sealed class ProofValidationIntegrationTests : IAsyncLifetime, IDisposabl
         var ticks = DateTime.UtcNow.Ticks;
         using var request = BuildSignedRequest(HttpMethod.Get, requestUrl, _keys.CurrentKey, ticks);
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -107,7 +107,7 @@ public sealed class ProofValidationIntegrationTests : IAsyncLifetime, IDisposabl
         var ticks = DateTime.UtcNow.Ticks;
         using var request = BuildSignedRequest(HttpMethod.Get, requestUrl, _keys.OldKey, ticks);
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -124,7 +124,7 @@ public sealed class ProofValidationIntegrationTests : IAsyncLifetime, IDisposabl
         var ticks = DateTime.UtcNow.Ticks;
         using var request = BuildSignedRequest(HttpMethod.Get, BuildRequestUrl(), attacker, ticks);
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
     }
@@ -138,7 +138,7 @@ public sealed class ProofValidationIntegrationTests : IAsyncLifetime, IDisposabl
         using var client = CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, BuildRequestUrl());
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
     }
@@ -158,10 +158,10 @@ public sealed class ProofValidationIntegrationTests : IAsyncLifetime, IDisposabl
         var ticks = DateTime.UtcNow.Ticks;
         using var request = BuildSignedRequest(HttpMethod.Get, requestUrl, _keys.CurrentKey, ticks);
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        using var checkFileInfo = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        using var checkFileInfo = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.False(checkFileInfo.RootElement.TryGetProperty("FileUrl", out _));
     }
 
@@ -175,7 +175,7 @@ public sealed class ProofValidationIntegrationTests : IAsyncLifetime, IDisposabl
         var ticks = DateTime.UtcNow.AddMinutes(-21).Ticks;
         using var request = BuildSignedRequest(HttpMethod.Get, requestUrl, _keys.CurrentKey, ticks);
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
     }

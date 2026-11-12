@@ -216,14 +216,14 @@ public class BlobIdMapTests
         var add = Task.Run(() =>
         {
             for (var i = 0; i < rounds; i++) map.Add(path);
-        });
+        }, TestContext.Current.CancellationToken);
         var remove = Task.Run(() =>
         {
             for (var i = 0; i < rounds; i++)
             {
                 if (map.TryGetFileId(path, out var id)) map.Remove(id);
             }
-        });
+        }, TestContext.Current.CancellationToken);
         await Task.WhenAll(add, remove);
 
         // Final consistency check, unconditional in both directions: whichever worker won the

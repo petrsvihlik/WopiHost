@@ -31,11 +31,11 @@ public class JwtAccessTokenServiceTests
             ResourceId = "file-42",
             ResourceType = WopiResourceType.File,
             FilePermissions = perms,
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.False(string.IsNullOrEmpty(token.Token));
 
-        var validation = await svc.ValidateAsync(token.Token);
+        var validation = await svc.ValidateAsync(token.Token, TestContext.Current.CancellationToken);
 
         Assert.True(validation.IsValid);
         var p = validation.Principal!;
@@ -58,9 +58,9 @@ public class JwtAccessTokenServiceTests
             UserId = "u",
             ResourceId = "r",
             ResourceType = WopiResourceType.File,
-        });
+        }, TestContext.Current.CancellationToken);
 
-        var result = await bobSvc.ValidateAsync(token.Token);
+        var result = await bobSvc.ValidateAsync(token.Token, TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
         Assert.Null(result.Principal);
@@ -85,9 +85,9 @@ public class JwtAccessTokenServiceTests
             ResourceId = "r",
             ResourceType = WopiResourceType.File,
             Lifetime = TimeSpan.FromMinutes(1),
-        });
+        }, TestContext.Current.CancellationToken);
 
-        var result = await BuildService(options).ValidateAsync(token.Token);
+        var result = await BuildService(options).ValidateAsync(token.Token, TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
     }
@@ -104,13 +104,13 @@ public class JwtAccessTokenServiceTests
             UserId = "u",
             ResourceId = "r",
             ResourceType = WopiResourceType.File,
-        });
+        }, TestContext.Current.CancellationToken);
 
         var rotatedOptions = new WopiSecurityOptions { SigningKey = newKey };
         rotatedOptions.AdditionalValidationKeys.Add(oldKey);
         var newSvc = BuildService(rotatedOptions);
 
-        var result = await newSvc.ValidateAsync(token.Token);
+        var result = await newSvc.ValidateAsync(token.Token, TestContext.Current.CancellationToken);
 
         Assert.True(result.IsValid);
     }
@@ -132,9 +132,9 @@ public class JwtAccessTokenServiceTests
             UserId = "u",
             ResourceId = "r",
             ResourceType = WopiResourceType.File,
-        });
+        }, TestContext.Current.CancellationToken);
 
-        var ok = await svc.ValidateAsync(token.Token);
+        var ok = await svc.ValidateAsync(token.Token, TestContext.Current.CancellationToken);
         Assert.True(ok.IsValid);
 
         // A service with a different audience must reject the same token.
@@ -144,7 +144,7 @@ public class JwtAccessTokenServiceTests
             Issuer = issuer,
             Audience = "different-audience",
         });
-        var rejected = await stricterSvc.ValidateAsync(token.Token);
+        var rejected = await stricterSvc.ValidateAsync(token.Token, TestContext.Current.CancellationToken);
         Assert.False(rejected.IsValid);
     }
 
@@ -164,9 +164,9 @@ public class JwtAccessTokenServiceTests
             ResourceType = WopiResourceType.File,
             FilePermissions = fperms,
             ContainerPermissions = cperms,
-        });
+        }, TestContext.Current.CancellationToken);
 
-        var validation = await svc.ValidateAsync(token.Token);
+        var validation = await svc.ValidateAsync(token.Token, TestContext.Current.CancellationToken);
 
         Assert.True(validation.IsValid);
         var principal = validation.Principal!;
@@ -185,8 +185,8 @@ public class JwtAccessTokenServiceTests
             ResourceId = "r",
             ResourceType = WopiResourceType.File,
             // No FilePermissions, no ContainerPermissions.
-        });
-        var validation = await svc.ValidateAsync(token.Token);
+        }, TestContext.Current.CancellationToken);
+        var validation = await svc.ValidateAsync(token.Token, TestContext.Current.CancellationToken);
 
         Assert.Null(validation.Principal!.FindFirst(WopiClaimTypes.FilePermissions));
         Assert.Null(validation.Principal!.FindFirst(WopiClaimTypes.ContainerPermissions));
@@ -207,9 +207,9 @@ public class JwtAccessTokenServiceTests
                 ["tenant_id"] = "tenant-42",
                 ["session_id"] = "abc",
             },
-        });
+        }, TestContext.Current.CancellationToken);
 
-        var validation = await svc.ValidateAsync(token.Token);
+        var validation = await svc.ValidateAsync(token.Token, TestContext.Current.CancellationToken);
         var principal = validation.Principal!;
 
         Assert.Equal("tenant-42", principal.FindFirstValue("tenant_id"));
@@ -221,7 +221,7 @@ public class JwtAccessTokenServiceTests
     {
         var svc = BuildService();
 
-        var result = await svc.ValidateAsync("");
+        var result = await svc.ValidateAsync("", TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
         Assert.Equal("Token is empty.", result.FailureReason);
@@ -245,8 +245,8 @@ public class JwtAccessTokenServiceTests
             UserId = "u",
             ResourceId = "r",
             ResourceType = WopiResourceType.File,
-        });
-        var result = await svc.ValidateAsync(token.Token);
+        }, TestContext.Current.CancellationToken);
+        var result = await svc.ValidateAsync(token.Token, TestContext.Current.CancellationToken);
 
         Assert.True(result.IsValid);
     }
@@ -269,8 +269,8 @@ public class JwtAccessTokenServiceTests
                 UserId = "u",
                 ResourceId = "r",
                 ResourceType = WopiResourceType.File,
-            });
-            Assert.True((await svc.ValidateAsync(token.Token)).IsValid);
+            }, TestContext.Current.CancellationToken);
+            Assert.True((await svc.ValidateAsync(token.Token, TestContext.Current.CancellationToken)).IsValid);
         }
     }
 
@@ -292,8 +292,8 @@ public class JwtAccessTokenServiceTests
             UserId = "u",
             ResourceId = "r",
             ResourceType = WopiResourceType.File,
-        });
-        var v1 = await svc.ValidateAsync(t1.Token);
+        }, TestContext.Current.CancellationToken);
+        var v1 = await svc.ValidateAsync(t1.Token, TestContext.Current.CancellationToken);
         Assert.True(v1.IsValid);
 
         // A second token from the same instance should also validate (same ephemeral key).
@@ -302,15 +302,15 @@ public class JwtAccessTokenServiceTests
             UserId = "u",
             ResourceId = "r2",
             ResourceType = WopiResourceType.File,
-        });
-        Assert.True((await svc.ValidateAsync(t2.Token)).IsValid);
+        }, TestContext.Current.CancellationToken);
+        Assert.True((await svc.ValidateAsync(t2.Token, TestContext.Current.CancellationToken)).IsValid);
     }
 
     [Fact]
     public async Task IssueAsync_Throws_For_Null_Request()
     {
         var svc = BuildService();
-        await Assert.ThrowsAsync<ArgumentNullException>(() => svc.IssueAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => svc.IssueAsync(null!, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -341,7 +341,7 @@ public class JwtAccessTokenServiceTests
         // now uses for validation. A racey ephemeral key would surface as one or more failures here.
         foreach (var token in tokens)
         {
-            var v = await svc.ValidateAsync(token);
+            var v = await svc.ValidateAsync(token, TestContext.Current.CancellationToken);
             Assert.True(v.IsValid, $"Token failed validation — ephemeral key may have raced on concurrent first request.");
         }
     }

@@ -251,7 +251,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             {
                 break;
             }
-            await Task.Delay(500);
+            await Task.Delay(500, TestContext.Current.CancellationToken);
         }
 
         var finalMessages = await page.EvaluateAsync<string>(
@@ -341,7 +341,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
             await TryDismissAsync(officeFrame.Locator("#mobile-edit-button"), timeoutMs: 1_500);
             await TryDismissAsync(officeFrame.Locator("#viewModeDropdownButton-button"), timeoutMs: 1_500);
             await TryDismissAsync(officeFrame.Locator("text=Editing").First, timeoutMs: 1_500);
-            await Task.Delay(500);
+            await Task.Delay(500, TestContext.Current.CancellationToken);
             containerClass = await GetContainerClassAsync();
         }
         if (HasReadOnlyClass(containerClass))
@@ -415,7 +415,7 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
                 changed = true;
                 break;
             }
-            await Task.Delay(250);
+            await Task.Delay(250, TestContext.Current.CancellationToken);
         }
 
         if (!changed)
