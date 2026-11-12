@@ -54,7 +54,6 @@ public partial class WopiAzureLockProvider(
     private readonly ILogger<WopiAzureLockProvider> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly IWopiLockComparer _lockComparer = lockComparer ?? OrdinalWopiLockComparer.Instance;
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
-    private readonly SemaphoreSlim _initLock = new(1, 1);
     private bool _initialized;
 
     /// <inheritdoc />
@@ -320,20 +319,9 @@ public partial class WopiAzureLockProvider(
         {
             return;
         }
-        await _initLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            if (_initialized)
-            {
-                return;
-            }
-            await _containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            _initialized = true;
-        }
-        finally
-        {
-            _initLock.Release();
-        }
+        // Idempotent, so concurrent first calls racing past the flag is harmless.
+        await _containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        _initialized = true;
     }
 
     // Internal so the Azure-specific tests can address the same blob from outside the provider

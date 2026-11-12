@@ -1,3 +1,5 @@
+using Azure.Core;
+using Azure.Core.Pipeline;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -222,6 +224,31 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
     }
 
     [Fact]
+    public async Task AddLockAsync_BlobCreatedBetweenProbeAndUpload_ReturnsNull()
+    {
+        // Pins the upload race-lost path that the concurrent test above only reaches by timing:
+        // a competitor creates the blob after this call's existence probe and before its
+        // create-only upload, so the upload fails 412 and the call yields without touching the
+        // competitor's blob.
+        var serviceClient = azurite.CreateBlobServiceClient();
+        var container = serviceClient.GetBlobContainerClient($"wopi-locks-edge-{Guid.NewGuid():N}");
+        await container.CreateIfNotExistsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var fileId = $"file-race-{Guid.NewGuid():N}";
+        var competitorBlob = new WopiAzureLockProvider(container, NullLogger<WopiAzureLockProvider>.Instance).GetLockBlob(fileId);
+
+        var options = new BlobClientOptions(AzuriteFixture.AzuriteSupportedVersion);
+        options.AddPolicy(new CreateBlobBeforeCreateOnlyUpload(competitorBlob), HttpPipelinePosition.PerCall);
+        var racingContainer = new BlobServiceClient(azurite.ConnectionString, options).GetBlobContainerClient(container.Name);
+        var provider = new WopiAzureLockProvider(racingContainer, NullLogger<WopiAzureLockProvider>.Instance);
+
+        var info = await provider.AddLockAsync(fileId, "lock-A", TestContext.Current.CancellationToken);
+
+        Assert.Null(info);
+        var props = await competitorBlob.GetPropertiesAsync(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Empty(props.Value.Metadata);
+    }
+
+    [Fact]
     public async Task Constructor_NullArgs_Throws()
     {
         Assert.Throws<ArgumentNullException>(
@@ -231,5 +258,29 @@ public class WopiAzureLockProviderEdgeCaseTests(AzuriteFixture azurite)
         var container = serviceClient.GetBlobContainerClient("ctor-test");
         Assert.Throws<ArgumentNullException>(
             () => new WopiAzureLockProvider(container, null!));
+    }
+
+    /// <summary>
+    /// Creates <paramref name="competitor"/> right before the first create-only
+    /// (<c>If-None-Match: *</c>) PUT goes out, simulating a peer that wins the acquire race.
+    /// </summary>
+    private sealed class CreateBlobBeforeCreateOnlyUpload(BlobClient competitor) : HttpPipelinePolicy
+    {
+        private int _armed = 1;
+
+        public override async ValueTask ProcessAsync(HttpMessage message, ReadOnlyMemory<HttpPipelinePolicy> pipeline)
+        {
+            if (message.Request.Method == RequestMethod.Put
+                && message.Request.Headers.TryGetValue("If-None-Match", out var condition)
+                && condition == "*"
+                && Interlocked.Exchange(ref _armed, 0) == 1)
+            {
+                await competitor.UploadAsync(BinaryData.Empty, message.CancellationToken).ConfigureAwait(false);
+            }
+            await ProcessNextAsync(message, pipeline).ConfigureAwait(false);
+        }
+
+        public override void Process(HttpMessage message, ReadOnlyMemory<HttpPipelinePolicy> pipeline)
+            => throw new NotSupportedException("The provider only issues async requests.");
     }
 }
