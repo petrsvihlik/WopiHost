@@ -76,7 +76,6 @@ public class WopiNewChildFileResultExtensionsTests
         Assert.Equal(StatusCodes.Status500InternalServerError, status.StatusCode);
     }
 
-
     [Fact]
     public void NullResult_Throws()
     {
