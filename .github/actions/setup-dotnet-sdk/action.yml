@@ -3,7 +3,7 @@ description: >
   Installs the SDK version global.json pins. Exists so that pin and the setup-dotnet SHA live
   in one place rather than twelve: a Dependabot bump of the action rewrote the same line in
   nine workflows, and the SDK version itself was hardcoded twelve times before it moved to
-  global.json. Lanes needing an extra SDK (the net8-targeted WOPI validator) add their own
+  global.json. Lanes needing an extra SDK (the net10-targeted WOPI validator) add their own
   setup-dotnet step alongside this one — setup-dotnet is additive.
 runs:
   using: composite
