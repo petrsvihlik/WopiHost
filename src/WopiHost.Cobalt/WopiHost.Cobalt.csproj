@@ -38,7 +38,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(IncludeCobalt)' == 'true'">
-    <PackageReference Include="Microsoft.CobaltCore" VersionOverride="16.0.19725.20210" />
+    <PackageReference Include="Microsoft.CobaltCore" VersionOverride="16.1.19725.20210" />
   </ItemGroup>
 
   <!-- Every source file here needs the proprietary Microsoft.CobaltCore types, so when the package
