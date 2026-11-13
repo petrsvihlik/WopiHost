@@ -67,10 +67,13 @@ public partial class Program
             builder.Services.AddWopiDiscovery<WopiHostOptions>(
                 options => builder.Configuration.GetSection(DiscoveryOptions.SectionName).Bind(options));
 
-            if (wopiHostOptions.UseCobalt)
-            {
-                builder.Services.AddCobalt();
-            }
+            // Sample:CoauthoringProvider picks the MS-FSSHTTP backend; the older Wopi:UseCobalt flag
+            // keeps meaning CobaltCore when the new key is absent.
+            var sampleCoauthoring = builder.Configuration.GetValue<ServiceCollectionExtensions.SampleCoauthoringProvider?>("Sample:CoauthoringProvider")
+                ?? (wopiHostOptions.UseCobalt
+                    ? ServiceCollectionExtensions.SampleCoauthoringProvider.CobaltCore
+                    : ServiceCollectionExtensions.SampleCoauthoringProvider.None);
+            builder.Services.AddSampleCoauthoringProvider(builder.Configuration, sampleCoauthoring);
 
             builder.Services.AddOpenApi();
 
