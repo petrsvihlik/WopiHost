@@ -37,7 +37,7 @@
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.6.5" />
     <!-- Aspire integration for the Redis lock provider opt-in. Only the AppHost needs it. -->
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.6.5" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="11.0.0" />
   </ItemGroup>
 
   <!--
