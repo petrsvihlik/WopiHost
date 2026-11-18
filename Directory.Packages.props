@@ -22,7 +22,7 @@
     <PackageVersion Include="Scalar.AspNetCore" Version="2.20.0" />
     <PackageVersion Include="Scrutor" Version="7.0.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="11.0.0" />
     <!-- WopiHost.RedisLockProvider client. Aspire.Hosting.Redis (below) is what wires the
          Redis container into the AppHost. -->
     <PackageVersion Include="StackExchange.Redis" Version="3.4.31" />
