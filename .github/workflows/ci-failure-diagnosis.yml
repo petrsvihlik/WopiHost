@@ -8,7 +8,8 @@ name: CI Failure Diagnosis
 # fork PRs safely — the one trigger where that works (unlike pull_request).
 
 on:
-  workflow_run:
+  # The checkout is the base branch, not the failed run's head, so no PR code executes.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: ["Build & Test", "E2E (Collabora)"]
     types: [completed]
 
@@ -37,7 +38,7 @@ jobs:
       - name: Diagnose the failure
         # Advisory: a diagnosis hiccup must never affect the run it reports on.
         continue-on-error: true
-        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1
+        uses: anthropics/claude-code-action@4fa93a88de49bbef68b10eb15aabedf28ca0e1ed # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |

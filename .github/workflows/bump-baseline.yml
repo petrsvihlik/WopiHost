@@ -212,8 +212,12 @@ jobs:
         if: ${{ vars.BASELINE_AUTOMATION_APP_ID != '' }}
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          app-id: ${{ vars.BASELINE_AUTOMATION_APP_ID }}
+          # The action sends this value as the JWT issuer, which GitHub accepts as either the
+          # app's client ID or its numeric app ID.
+          client-id: ${{ vars.BASELINE_AUTOMATION_APP_ID }}
           private-key: ${{ secrets.BASELINE_AUTOMATION_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
 
       # Names the identity in the log so a silently degraded run is visible. Only the presence
       # of each credential crosses into the script, never its value.
@@ -238,7 +242,7 @@ jobs:
         # exited early), it logs "no changes" and creates no PR. The action also re-uses the
         # named branch — re-running this workflow updates the existing PR in place rather than
         # spawning duplicates.
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8
         with:
           # Falls through the same way dependabot-auto-merge.yml and dependabot-rebase-queue.yml
           # do. A skipped app-token step leaves its output empty, so the chain degrades without
