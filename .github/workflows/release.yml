@@ -62,10 +62,17 @@ jobs:
       with:
         name: "NuGet packages"
         path: artifacts/package/release
+    - name: Log in to NuGet.org (trusted publishing)
+      # Exchanges the job's OIDC token for an API key that expires after an hour, so it
+      # runs right before the push rather than at the start of the job.
+      id: nuget_login
+      uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+      with:
+        user: rocky.intel
     - name: Publish artifacts to NuGet.org
       run: dotnet nuget push 'artifacts/package/release/*.nupkg' -s https://api.nuget.org/v3/index.json -k ${NUGET_API_KEY} --skip-duplicate
       env:
-        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        NUGET_API_KEY: ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
     - name: Upload artifacts to the GitHub release
       uses: Roang-zero1/github-upload-release-artifacts-action@87271b3f8dca9feb9e9d44381fddd2db7f09d6e1 # v3
       with:
