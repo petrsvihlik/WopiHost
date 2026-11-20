@@ -8,7 +8,8 @@ name: CI Failure Diagnosis
 # fork PRs safely — the one trigger where that works (unlike pull_request).
 
 on:
-  workflow_run:
+  # The checkout is the base branch, not the failed run's head, so no PR code executes.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: ["Build & Test", "E2E (Collabora)"]
     types: [completed]
 

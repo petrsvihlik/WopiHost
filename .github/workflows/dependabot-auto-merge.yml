@@ -9,7 +9,9 @@ name: Dependabot Auto-Merge
 # attributed to the PAT's owner triggers them all normally.
 
 on:
-  pull_request_target:
+  # A write token on Dependabot PRs needs this trigger. The job checks out nothing and only
+  # runs `gh pr merge`, so no PR code executes.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
     types: [opened, reopened]
 
 permissions:

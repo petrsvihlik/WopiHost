@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write # Required for OIDC
 
 # One run at a time. Nothing is cancelled: every commit, release and scheduled run is
 # wanted on its own, so overlapping runs queue rather than supersede each other.
@@ -26,6 +25,10 @@ jobs:
     runs-on: ubuntu-latest
 
     timeout-minutes: 45
+
+    permissions:
+      contents: read
+      id-token: write # Qlty coverage upload authenticates via OIDC
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

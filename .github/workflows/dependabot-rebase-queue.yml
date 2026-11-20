@@ -46,7 +46,8 @@ name: Dependabot Rebase Queue
 on:
   push:
     branches: [ master ]
-  workflow_run:
+  # Checks out nothing; it only reads PR state and asks Dependabot to rebase.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: [ "Pull Request" ]
     types: [ completed ]
   schedule:

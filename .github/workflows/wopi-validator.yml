@@ -1,7 +1,9 @@
 name: WOPI Validator
 
 on:
-  pull_request_target:
+  # Fork PRs need the Cobalt feed secret. The validate job waits on the 'Integrate Pull
+  # Request' environment, so no fork code runs before a maintainer approves.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
     branches: [ master ]
     paths-ignore:
       - '**/*.md'
@@ -26,8 +28,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
-  pull-requests: write
 
 env:
   TEST_CATEGORY: ${{ inputs.test_category || 'All' }}
@@ -56,6 +56,9 @@ jobs:
     timeout-minutes: 30
     needs: [approve]
     if: always() && (needs.approve.result == 'success' || needs.approve.result == 'skipped')
+    permissions:
+      contents: read
+      pull-requests: write # WOPI Validator results sticky comment
     environment:
       name: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository && 'Integrate Pull Request' || '' }}
     steps:
