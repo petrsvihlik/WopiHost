@@ -55,4 +55,19 @@
     <ProjectReference Include="..\WopiHost.ServiceDefaults\WopiHost.ServiceDefaults.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
+  <!-- The cellbridge demo lane (AppHost:UseCellBridge) orchestrates cellbridge's own projects, which are
+       not on NuGet, from the sibling checkout; see $(IncludeCellBridgeDemo) in Directory.Build.props.
+       The lane's code sits behind the matching #if so the AppHost still compiles when the checkout is
+       absent. -->
+  <ItemGroup Condition="'$(IncludeCellBridgeDemo)' == 'true'">
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <ProjectReference Include="$(CellBridgeRepoRoot)/src/CellBridge.Web/CellBridge.Web.csproj" />
+    <ProjectReference Include="$(CellBridgeRepoRoot)/demo/CellBridge.Demo/CellBridge.Demo.csproj" />
+    <ProjectReference Include="$(CellBridgeRepoRoot)/tools/CellBridge.Storage.Setup/CellBridge.Storage.Setup.csproj" />
+    <ProjectReference Include="$(CellBridgeRepoRoot)/tools/CellBridge.Admin/CellBridge.Admin.csproj" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(IncludeCellBridgeDemo)' == 'true'">
+    <DefineConstants>$(DefineConstants);INCLUDE_CELLBRIDGE_DEMO</DefineConstants>
+  </PropertyGroup>
+
 </Project>
