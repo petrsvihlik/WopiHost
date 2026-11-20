@@ -7,6 +7,7 @@ public class FileIdMapSynchronizerTests : IDisposable
     // Generous because watcher delivery runs on OS/threadpool schedules; tests exit as soon as
     // the condition holds, so the full timeout is only ever paid on failure.
     private const int WatcherTimeoutMs = 10_000;
+    private const int MaxRenameAttempts = 5;
 
     private readonly InMemoryFileIds _fileIds = new(NullLogger<InMemoryFileIds>.Instance);
     private readonly DirectoryInfo _tempDir = Directory.CreateTempSubdirectory("WopiSyncTest_");
@@ -40,6 +41,29 @@ public class FileIdMapSynchronizerTests : IDisposable
             await Task.Delay(25);
         }
         Assert.Fail($"Timed out waiting for {because}.");
+    }
+
+    /// <summary>
+    /// Moves <paramref name="source"/> to <paramref name="target"/> and waits for the synchronizer
+    /// to apply the resulting event. Returns <see langword="false"/> when the OS delivered the move
+    /// as Deleted + Created instead of Renamed: the target then carries its path-derived id rather
+    /// than the source's.
+    /// </summary>
+    /// <remarks>
+    /// On Linux the runtime pairs IN_MOVED_FROM with IN_MOVED_TO only when the two are consecutive
+    /// in the inotify queue and the second arrives within a 2 ms poll. The kernel does not enqueue
+    /// the pair atomically, and every watcher in the process shares one inotify instance, so a
+    /// concurrent test's file activity or a loaded runner can split a rename. The product treats a
+    /// split rename as a lost event (a documented degradation), so only a delivered Renamed is a
+    /// valid oracle for repointing.
+    /// </remarks>
+    private async Task<bool> MoveAndAwaitEventAsync(string source, string target, Action<string, string> move)
+    {
+        Assert.True(_fileIds.TryGetFileId(source, out var sourceId));
+        move(source, target);
+        string? targetId = null;
+        await WaitForAsync(() => _fileIds.TryGetFileId(target, out targetId), "the move's watcher event to be applied");
+        return targetId == sourceId;
     }
 
     // ---------- Reconciliation sweep ----------
@@ -188,21 +212,25 @@ public class FileIdMapSynchronizerTests : IDisposable
     {
         // The heart of the design: the rename event carries both paths, so the existing id is
         // repointed instead of a second id being minted — the lock domain stays unified.
-        var oldPath = Path.Join(_tempDir.FullName, "before.docx");
-        var newPath = Path.Join(_tempDir.FullName, "after.docx");
-        File.WriteAllText(oldPath, string.Empty);
-        _fileIds.ScanAll(_tempDir.FullName);
-        Assert.True(_fileIds.TryGetFileId(oldPath, out var originalId));
         var sut = CreateSynchronizer(reconcileDebounceMs: long.MaxValue / 2);
         sut.StartWatching();
 
-        File.Move(oldPath, newPath);
+        for (var attempt = 0; attempt < MaxRenameAttempts; attempt++)
+        {
+            var oldPath = Path.Join(_tempDir.FullName, $"before-{attempt}.docx");
+            var newPath = Path.Join(_tempDir.FullName, $"after-{attempt}.docx");
+            File.WriteAllText(oldPath, string.Empty);
+            _fileIds.ScanAll(_tempDir.FullName);
+            Assert.True(_fileIds.TryGetFileId(oldPath, out var originalId));
 
-        await WaitForAsync(
-            () => _fileIds.TryGetFileId(newPath, out var id) && id == originalId,
-            "the rename to repoint the original id");
-        Assert.False(_fileIds.TryGetFileId(oldPath, out _));
-        Assert.Equal(newPath, _fileIds.GetPath(originalId));
+            if (await MoveAndAwaitEventAsync(oldPath, newPath, File.Move))
+            {
+                Assert.False(_fileIds.TryGetFileId(oldPath, out _));
+                Assert.Equal(newPath, _fileIds.GetPath(originalId));
+                return;
+            }
+        }
+        Assert.Fail($"The OS split all {MaxRenameAttempts} renames into Deleted + Created.");
     }
 
     [Fact]
@@ -210,21 +238,26 @@ public class FileIdMapSynchronizerTests : IDisposable
     {
         // One Renamed event arrives for the directory only; the map must carry the children
         // across so a session on a file inside the renamed folder keeps its id.
-        var oldDir = _tempDir.CreateSubdirectory("team-a");
-        var childOld = Path.Join(oldDir.FullName, "notes.docx");
-        File.WriteAllText(childOld, string.Empty);
-        _fileIds.ScanAll(_tempDir.FullName);
-        Assert.True(_fileIds.TryGetFileId(childOld, out var childId));
         var sut = CreateSynchronizer(reconcileDebounceMs: long.MaxValue / 2);
         sut.StartWatching();
 
-        var newDir = Path.Join(_tempDir.FullName, "team-b");
-        Directory.Move(oldDir.FullName, newDir);
+        for (var attempt = 0; attempt < MaxRenameAttempts; attempt++)
+        {
+            var oldDir = _tempDir.CreateSubdirectory($"team-a-{attempt}");
+            var childOld = Path.Join(oldDir.FullName, "notes.docx");
+            File.WriteAllText(childOld, string.Empty);
+            _fileIds.ScanAll(_tempDir.FullName);
+            Assert.True(_fileIds.TryGetFileId(childOld, out var childId));
+            var newDir = Path.Join(_tempDir.FullName, $"team-b-{attempt}");
 
-        var childNew = Path.Join(newDir, "notes.docx");
-        await WaitForAsync(
-            () => _fileIds.TryGetFileId(childNew, out var id) && id == childId,
-            "the directory rename to repoint the child id");
+            if (await MoveAndAwaitEventAsync(oldDir.FullName, newDir, Directory.Move))
+            {
+                Assert.True(_fileIds.TryGetFileId(Path.Join(newDir, "notes.docx"), out var childNewId));
+                Assert.Equal(childId, childNewId);
+                return;
+            }
+        }
+        Assert.Fail($"The OS split all {MaxRenameAttempts} renames into Deleted + Created.");
     }
 
     [Fact]
