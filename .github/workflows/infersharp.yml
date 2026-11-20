@@ -9,7 +9,9 @@ on:
       - '.github/FUNDING.yml'
       - 'LICENSE'
       - '.claude/**'
-  pull_request_target:
+  # Fork PRs need the Cobalt feed secret to build. The analysis job waits on the 'Integrate
+  # Pull Request' environment, so no fork code runs before a maintainer approves.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
     branches: [ master ]
     paths-ignore:
       - '**/*.md'
