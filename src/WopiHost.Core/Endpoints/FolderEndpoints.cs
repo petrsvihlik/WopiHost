@@ -20,6 +20,8 @@ namespace WopiHost.Core.Endpoints;
 /// </remarks>
 internal static class FolderEndpoints
 {
+    /// <summary>Maps the folder endpoints.</summary>
+    /// <param name="wopi">The endpoint route builder to map the endpoints onto.</param>
     public static void MapFolderEndpoints(IEndpointRouteBuilder wopi)
     {
         var folders = wopi.MapGroup("/folders")

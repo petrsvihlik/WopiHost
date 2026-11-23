@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Cobalt;
 
+/// <content>Contains the source-generated logging methods.</content>
 public partial class CoauthoringSessionTracker
 {
     [LoggerMessage(Level = LogLevel.Debug, Message = "Co-auth editor {userId} ({userName}) joined session for file {fileId}")]

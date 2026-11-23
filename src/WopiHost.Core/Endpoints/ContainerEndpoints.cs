@@ -17,6 +17,8 @@ namespace WopiHost.Core.Endpoints;
 /// </summary>
 internal static class ContainerEndpoints
 {
+    /// <summary>Maps the read-only container endpoints.</summary>
+    /// <param name="wopi">The endpoint route builder to map the endpoints onto.</param>
     public static void MapContainerEndpoints(IEndpointRouteBuilder wopi)
     {
         var containers = wopi.MapGroup("/containers")

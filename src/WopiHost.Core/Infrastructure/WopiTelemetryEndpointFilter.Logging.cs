@@ -4,6 +4,7 @@ namespace WopiHost.Core.Infrastructure;
 
 // userId stays out of the message templates: the filter already pushes it into the log scope
 // under WopiTelemetry.Tags.UserId.
+/// <content>Contains the source-generated logging methods.</content>
 internal sealed partial class WopiTelemetryEndpointFilter
 {
     [LoggerMessage(

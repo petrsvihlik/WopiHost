@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.MemoryLockProvider;
 
+/// <content>Contains the source-generated logging methods.</content>
 public partial class MemoryLockProvider
 {
     [LoggerMessage(

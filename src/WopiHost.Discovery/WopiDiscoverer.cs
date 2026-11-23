@@ -84,8 +84,12 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
         });
     }
 
+    /// <summary>Gets the <c>app</c> elements of the cached discovery document.</summary>
+    /// <returns>The <c>app</c> elements, refreshed when the cached copy has expired.</returns>
     internal async Task<IEnumerable<XElement>> GetAppsAsync() => await _apps.Value().ConfigureAwait(false);
 
+    /// <summary>Gets the <c>proof-key</c> element of the cached discovery document.</summary>
+    /// <returns>The <c>proof-key</c> element, refreshed when the cached copy has expired.</returns>
     internal async Task<XElement> GetProofKeyAsync() => await _proofKey.Value().ConfigureAwait(false);
 
     private bool ValidateNetZone(XElement e)

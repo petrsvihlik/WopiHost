@@ -40,6 +40,11 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
     private long _lastReconcileAt;
     private FileSystemWatcher? _watcher;
 
+    /// <summary>Initializes a new instance of the <see cref="FileIdMapSynchronizer"/> class.</summary>
+    /// <param name="fileIds">The identifier map to keep in sync with the tree.</param>
+    /// <param name="rootPath">The root directory of the tree.</param>
+    /// <param name="logger">The logger.</param>
+    /// <param name="reconcileDebounceMs">The minimum interval, in milliseconds, between full-tree reconciliation sweeps.</param>
     internal FileIdMapSynchronizer(
         InMemoryFileIds fileIds,
         string rootPath,
@@ -240,6 +245,7 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
         => string.Equals(fileId, InMemoryFileIds.WopiTestFileId, StringComparison.Ordinal)
             || (fileId.Length == 64 && !fileId.AsSpan().ContainsAnyExcept(s_lowerHex));
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         _watcher?.Dispose();

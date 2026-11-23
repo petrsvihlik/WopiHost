@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Discovery;
 
+/// <content>Contains the source-generated logging methods.</content>
 public partial class WopiDiscoverer
 {
     [LoggerMessage(

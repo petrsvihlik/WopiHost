@@ -49,8 +49,11 @@ public partial class WopiAzureLockProvider(
     TimeProvider? timeProvider = null,
     IWopiLockComparer? lockComparer = null) : IWopiLockProvider
 {
+    /// <summary>The blob metadata key that stores the lock identifier.</summary>
     internal const string LockIdKey = "wopi_lock_id";
+    /// <summary>The blob metadata key that stores the Azure lease identifier.</summary>
     internal const string LeaseIdKey = "wopi_lease_id";
+    /// <summary>The blob metadata key that stores the lock creation timestamp.</summary>
     internal const string CreatedKey = "wopi_created";
 
     private readonly BlobContainerClient _containerClient = containerClient ?? throw new ArgumentNullException(nameof(containerClient));
@@ -325,8 +328,12 @@ public partial class WopiAzureLockProvider(
         _initialized = true;
     }
 
-    // Internal so the Azure-specific tests can address the same blob from outside the provider
-    // (direct metadata seeding, lease takeover) without changing the production API surface.
+    /// <summary>
+    /// Gets the lock blob for a file. Internal so the Azure-specific tests can address the same blob
+    /// from outside the provider (direct metadata seeding, lease takeover).
+    /// </summary>
+    /// <param name="fileId">The identifier of the file.</param>
+    /// <returns>The client for the file's lock blob, named by a hash of <paramref name="fileId"/>.</returns>
     internal BlobClient GetLockBlob(string fileId)
     {
         // Hash the fileId so any caller-supplied identifier is reduced to a safe blob name.

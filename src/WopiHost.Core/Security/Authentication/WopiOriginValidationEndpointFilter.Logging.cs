@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Core.Security.Authentication;
 
+/// <content>Contains the source-generated logging methods.</content>
 internal sealed partial class WopiOriginValidationEndpointFilter
 {
     [LoggerMessage(

@@ -19,6 +19,8 @@ namespace WopiHost.Core.Endpoints;
 /// </remarks>
 internal static class EcosystemEndpoints
 {
+    /// <summary>Maps the ecosystem endpoints.</summary>
+    /// <param name="wopi">The endpoint route builder to map the endpoints onto.</param>
     public static void MapEcosystemEndpoints(IEndpointRouteBuilder wopi)
     {
         // Two endpoints, no shared metadata — register directly. MapGroup("/ecosystem") +

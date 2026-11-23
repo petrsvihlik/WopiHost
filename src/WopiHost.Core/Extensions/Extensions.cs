@@ -7,6 +7,9 @@ using WopiHost.Core.Infrastructure;
 
 namespace WopiHost.Core.Extensions;
 
+/// <summary>
+/// Provides internal helpers shared by the WOPI endpoints.
+/// </summary>
 internal static class Extensions
 {
     /// <summary>

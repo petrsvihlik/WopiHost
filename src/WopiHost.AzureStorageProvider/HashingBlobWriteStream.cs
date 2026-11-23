@@ -15,48 +15,63 @@ internal sealed class HashingBlobWriteStream(Stream inner, BlobClient blobClient
     private readonly IncrementalHash _hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
     private bool _disposed;
 
+    /// <inheritdoc/>
     public override bool CanRead => false;
+    /// <inheritdoc/>
     public override bool CanSeek => false;
+    /// <inheritdoc/>
     public override bool CanWrite => true;
+    /// <inheritdoc/>
     public override long Length => throw new NotSupportedException();
 
+    /// <inheritdoc/>
     public override long Position
     {
         get => throw new NotSupportedException();
         set => throw new NotSupportedException();
     }
 
+    /// <inheritdoc/>
     public override void Flush() => inner.Flush();
+    /// <inheritdoc/>
     public override Task FlushAsync(CancellationToken cancellationToken) => inner.FlushAsync(cancellationToken);
 
+    /// <inheritdoc/>
     public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    /// <inheritdoc/>
     public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    /// <inheritdoc/>
     public override void SetLength(long value) => throw new NotSupportedException();
 
+    /// <inheritdoc/>
     public override void Write(byte[] buffer, int offset, int count)
     {
         _hasher.AppendData(buffer, offset, count);
         inner.Write(buffer, offset, count);
     }
 
+    /// <inheritdoc/>
     public override void Write(ReadOnlySpan<byte> buffer)
     {
         _hasher.AppendData(buffer);
         inner.Write(buffer);
     }
 
+    /// <inheritdoc/>
     public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
         _hasher.AppendData(buffer, offset, count);
         await inner.WriteAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
     }
 
+    /// <inheritdoc/>
     public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
     {
         _hasher.AppendData(buffer.Span);
         await inner.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <inheritdoc/>
     public override async ValueTask DisposeAsync()
     {
         if (_disposed)
@@ -75,6 +90,7 @@ internal sealed class HashingBlobWriteStream(Stream inner, BlobClient blobClient
         GC.SuppressFinalize(this);
     }
 
+    /// <inheritdoc/>
     protected override void Dispose(bool disposing)
     {
         // Synchronous dispose is unavoidable for callers that don't await DisposeAsync; the

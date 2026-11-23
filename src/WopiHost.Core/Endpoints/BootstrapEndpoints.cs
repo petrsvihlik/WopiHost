@@ -39,6 +39,8 @@ namespace WopiHost.Core.Endpoints;
 /// </remarks>
 internal static class BootstrapEndpoints
 {
+    /// <summary>Maps the bootstrapper endpoints.</summary>
+    /// <param name="endpoints">The endpoint route builder to map the endpoints onto.</param>
     public static void MapBootstrapEndpoints(IEndpointRouteBuilder endpoints)
     {
         // MapGroup("/wopibootstrapper") + MapGet("") normalises the template to

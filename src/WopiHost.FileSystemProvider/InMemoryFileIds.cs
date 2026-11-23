@@ -49,8 +49,10 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// </summary>
     public bool WasScanned => !_idToPath.IsEmpty;
 
-    // Test hook: WopiFileSystemProvider enumerates stored paths directly, which is only safe
-    // while every stored path is absolute — tests pin that invariant through this view.
+    /// <summary>
+    /// Gets the stored paths. A test hook: <see cref="WopiFileSystemProvider"/> enumerates stored paths
+    /// directly, which is only safe while every stored path is absolute, and tests pin that invariant through this view.
+    /// </summary>
     internal ICollection<string> StoredPaths => _idToPath.Values;
 
     /// <summary>

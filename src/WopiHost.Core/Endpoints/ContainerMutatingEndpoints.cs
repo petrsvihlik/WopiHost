@@ -29,6 +29,8 @@ namespace WopiHost.Core.Endpoints;
 /// </remarks>
 internal static class ContainerMutatingEndpoints
 {
+    /// <summary>Maps the container endpoints that modify storage.</summary>
+    /// <param name="containers">The route group to map the endpoints onto.</param>
     public static void MapContainerMutatingEndpoints(RouteGroupBuilder containers)
     {
         // The writable-storage gate applies to every mutating container endpoint. Hoist onto a

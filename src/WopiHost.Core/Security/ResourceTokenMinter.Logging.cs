@@ -3,6 +3,7 @@ using WopiHost.Abstractions;
 
 namespace WopiHost.Core.Security;
 
+/// <content>Contains the source-generated logging methods.</content>
 public partial class ResourceTokenMinter
 {
     [LoggerMessage(

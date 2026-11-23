@@ -41,6 +41,8 @@ internal static class FileMutatingEndpoints
     // Case-insensitive so the activities body parses whether the client sends PascalCase or camelCase.
     private static readonly JsonSerializerOptions s_activitiesJsonOptions = new(JsonSerializerDefaults.Web);
 
+    /// <summary>Maps the file endpoints that modify storage or locks.</summary>
+    /// <param name="files">The route group to map the endpoints onto.</param>
     public static void MapFileMutatingEndpoints(RouteGroupBuilder files)
     {
         // The writable-storage gate applies to every endpoint here except PutUserInfo (which

@@ -21,6 +21,8 @@ internal static class FileEndpoints
 {
     private const string UserInfoCacheKeyPrefix = "UserInfo-";
 
+    /// <summary>Maps the read-only file endpoints.</summary>
+    /// <param name="wopi">The endpoint route builder to map the endpoints onto.</param>
     public static void MapFileEndpoints(IEndpointRouteBuilder wopi)
     {
         var files = wopi.MapGroup("/files")

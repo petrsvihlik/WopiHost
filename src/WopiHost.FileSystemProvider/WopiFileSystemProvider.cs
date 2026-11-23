@@ -22,7 +22,10 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     /// <inheritdoc />
     public IWopiContainer RootContainer { get; }
 
-    // Test hook: whether the change watcher actually came up (it degrades silently by design).
+    /// <summary>
+    /// Gets a value indicating whether the change watcher started. A test hook: the watcher degrades
+    /// silently when it cannot start.
+    /// </summary>
     internal bool IsWatchingForExternalChanges => _synchronizer.IsWatching;
 
     /// <summary>

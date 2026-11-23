@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Core.Security.Authorization;
 
+/// <content>Contains the source-generated logging methods.</content>
 public partial class WopiAuthorizationHandler
 {
     [LoggerMessage(

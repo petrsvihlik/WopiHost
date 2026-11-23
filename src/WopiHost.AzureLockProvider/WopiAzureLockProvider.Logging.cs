@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.AzureLockProvider;
 
+/// <content>Contains the source-generated logging methods.</content>
 public partial class WopiAzureLockProvider
 {
     [LoggerMessage(
