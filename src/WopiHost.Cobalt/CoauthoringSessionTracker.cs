@@ -166,7 +166,7 @@ public partial class CoauthoringSessionTracker(ILogger<CoauthoringSessionTracker
     /// </summary>
     /// <param name="fileId">The identifier of the file.</param>
     /// <param name="userId">The identifier of the user.</param>
-    /// <returns><see cref="CoauthStatusType.Alone"/> if the user is the only active editor; otherwise, <see cref="CoauthStatusType.Coauthoring"/>.</returns>
+    /// <returns><see cref="CoauthStatusType.Alone"/> if no other user has an active session on the file; otherwise, <see cref="CoauthStatusType.Coauthoring"/>.</returns>
     public CoauthStatusType GetCoauthStatus(string fileId, string userId)
     {
         var editorCount = GetActiveEditorCount(fileId);

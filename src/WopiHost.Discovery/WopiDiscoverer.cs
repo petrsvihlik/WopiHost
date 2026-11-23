@@ -159,6 +159,8 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
     }
 
     ///<inheritdoc />
+    /// <remarks>Only the first app that handles <paramref name="extension"/> is consulted.</remarks>
+    /// <exception cref="UriFormatException">The matching app's <c>favIconUrl</c> is not an absolute URI.</exception>
     public async Task<Uri?> GetApplicationFavIconAsync(string extension)
     {
         var query = (await GetAppsAsync().ConfigureAwait(false))
