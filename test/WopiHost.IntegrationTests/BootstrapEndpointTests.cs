@@ -155,9 +155,9 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
     }
 
     /// <summary>
-    /// Wires the Bootstrap auth scheme under TestAuthHandler so bootstrap requests can carry
-    /// the test identity via headers (same pattern the OIDC integration tests use). The
-    /// production scheme would be an OAuth2 Bearer JWT validator against the host's IdP.
+    /// Boots the backend with the Bootstrap auth scheme served by <see cref="TestAuthHandler"/>, so
+    /// bootstrap requests carry the test identity via headers (the same pattern the OIDC integration
+    /// tests use). In production the scheme is an OAuth2 Bearer JWT validator against the host's IdP.
     /// </summary>
     public sealed class Fixture : IDisposable
     {
@@ -197,9 +197,14 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
 internal static class BootstrapAuthClientExtensions
 {
     /// <summary>
-    /// Attaches the TestAuthHandler headers — the bootstrap scheme uses the same header
-    /// protocol since both schemes share TestAuthHandler in this fixture.
+    /// Attaches the <see cref="TestAuthHandler"/> identity headers; the bootstrap scheme reads the same
+    /// headers because this fixture serves it with <see cref="TestAuthHandler"/>.
     /// </summary>
+    /// <param name="client">The client to configure.</param>
+    /// <param name="sub">The subject claim of the test user.</param>
+    /// <param name="name">The optional display name of the test user.</param>
+    /// <param name="email">The optional email address of the test user.</param>
+    /// <returns>The same <paramref name="client"/>, for chaining.</returns>
     public static HttpClient AsBootstrapUser(this HttpClient client, string sub, string? name = null, string? email = null)
         => client.AsUser(sub, name, email);
 }

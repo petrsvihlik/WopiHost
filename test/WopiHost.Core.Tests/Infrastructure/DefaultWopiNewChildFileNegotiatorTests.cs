@@ -9,7 +9,7 @@ namespace WopiHost.Core.Tests.Infrastructure;
 /// Tests for the WOPI spec's PutRelativeFile / CreateChildFile name-negotiation protocol as
 /// implemented by <see cref="DefaultWopiNewChildFileNegotiator"/>. Each test pins one branch of
 /// the spec dance — relative vs. suggested mode, collision-vs-not, overwrite-vs-not,
-/// locked-vs-not — and asserts the outcome a controller will translate into the wire response.
+/// locked-vs-not — and asserts the outcome an endpoint translates into the wire response.
 /// </summary>
 public class DefaultWopiNewChildFileNegotiatorTests
 {

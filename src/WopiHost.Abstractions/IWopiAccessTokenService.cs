@@ -28,14 +28,17 @@ public interface IWopiAccessTokenService
     /// usually via <see cref="IWopiPermissionProvider"/> — and pass them in <paramref name="request"/>.
     /// Those permissions are baked into the token's claims.
     /// </remarks>
-    /// <param name="request">User, resource, and permissions to bind into the token.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="request">The user, resource, and permissions to bind into the token.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The issued token and its expiry.</returns>
     Task<WopiAccessToken> IssueAsync(WopiAccessTokenRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Validates an access token and returns the principal it represents.
     /// </summary>
     /// <param name="token">The token string as received from the WOPI client (typically the <c>access_token</c> query value).</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The validation outcome: the principal when the token is valid, otherwise the
+    /// failure reason.</returns>
     Task<WopiAccessTokenValidationResult> ValidateAsync(string token, CancellationToken cancellationToken = default);
 }

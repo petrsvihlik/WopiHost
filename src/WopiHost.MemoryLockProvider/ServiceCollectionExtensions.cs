@@ -4,7 +4,7 @@ using WopiHost.Abstractions;
 namespace WopiHost.MemoryLockProvider;
 
 /// <summary>
-/// DI extensions to register <see cref="MemoryLockProvider"/>.
+/// Provides extension methods that register <see cref="MemoryLockProvider"/>.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
@@ -18,6 +18,10 @@ public static class ServiceCollectionExtensions
     /// instances; use <c>WopiHost.RedisLockProvider</c> or <c>WopiHost.AzureLockProvider</c>
     /// for multi-instance deployments.
     /// </remarks>
+    /// <param name="services">The service collection to add the provider to.</param>
+    /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">An <see cref="IWopiLockProvider"/> is already registered in <paramref name="services"/>.</exception>
     public static IServiceCollection AddMemoryLockProvider(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);

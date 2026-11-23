@@ -40,6 +40,11 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
     private long _lastReconcileAt;
     private FileSystemWatcher? _watcher;
 
+    /// <summary>Initializes a new instance of the <see cref="FileIdMapSynchronizer"/> class.</summary>
+    /// <param name="fileIds">The identifier map to keep in sync with the tree.</param>
+    /// <param name="rootPath">The root directory of the tree.</param>
+    /// <param name="logger">The logger.</param>
+    /// <param name="reconcileDebounceMs">The minimum interval, in milliseconds, between full-tree reconciliation sweeps.</param>
     internal FileIdMapSynchronizer(
         InMemoryFileIds fileIds,
         string rootPath,
@@ -100,6 +105,9 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
     /// the same tree after a change the watcher did not deliver — by sweeping the tree and
     /// registering the derived identifier of every entry.
     /// </summary>
+    /// <param name="fileId">The identifier to resolve.</param>
+    /// <param name="path">When this method returns <see langword="true"/>, the resolved path; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if the sweep mapped <paramref name="fileId"/> to a path; otherwise, <see langword="false"/>.</returns>
     internal bool TryResolveByReconcile(string fileId, [NotNullWhen(true)] out string? path)
     {
         path = null;
@@ -179,6 +187,7 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
     /// new path registers like a create. Internal so tests can drive it with synthetic events —
     /// real watcher callbacks are not raisable on demand.
     /// </summary>
+    /// <param name="e">The watcher event to apply.</param>
     internal void ApplyEvent(FileSystemEventArgs e)
     {
         try
@@ -236,6 +245,7 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
         => string.Equals(fileId, InMemoryFileIds.WopiTestFileId, StringComparison.Ordinal)
             || (fileId.Length == 64 && !fileId.AsSpan().ContainsAnyExcept(s_lowerHex));
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         _watcher?.Dispose();

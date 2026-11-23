@@ -180,9 +180,10 @@ public class DefaultCheckInfoBuilderTests
     }
 
     /// <summary>
-    /// Mirror of the FileUrl example in the wiki
-    /// (CheckFileInfo-Customization#setting-fileurl). Wiki snippets aren't compiled, so this
-    /// class keeps the documented pattern building and asserts its behavior; keep the two in sync.
+    /// Mirrors the <c>FileUrl</c> example on the
+    /// <see href="https://github.com/petrsvihlik/WopiHost/wiki/CheckFileInfo-Customization#setting-fileurl">CheckFileInfo customization</see>
+    /// wiki page. Wiki snippets aren't compiled, so this class keeps the documented pattern
+    /// building and asserts its behavior; the two must stay in sync.
     /// </summary>
     private sealed class FileUrlExtensions(IHttpContextAccessor httpContextAccessor) : WopiHostExtensions
     {
@@ -595,8 +596,8 @@ public class DefaultCheckInfoBuilderTests
     }
 
     /// <summary>
-    /// Capturing <see cref="IWopiHostExtensions"/> used by tests to observe / rewrite the
-    /// <c>CheckFileInfo</c> and <c>CheckContainerInfo</c> hook calls.
+    /// Provides an <see cref="IWopiHostExtensions"/> whose <c>CheckFileInfo</c> and
+    /// <c>CheckContainerInfo</c> hooks a test can replace to observe or rewrite the hook calls.
     /// </summary>
     private sealed class RewritingExtensions : WopiHostExtensions
     {

@@ -1,8 +1,9 @@
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Response model for the <c>CheckEcosystem</c> operation.
-/// Spec: <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/checkecosystem"/>.
+/// Represents the response of the
+/// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/checkecosystem">CheckEcosystem</see>
+/// operation.
 /// </summary>
 /// <remarks>
 /// All response properties are optional; per the WOPI spec an empty JSON response is valid.
@@ -11,8 +12,8 @@ namespace WopiHost.Abstractions;
 public class WopiCheckEcosystem
 {
     /// <summary>
-    /// A Boolean value that should match the
-    /// <see cref="WopiCheckFileInfo.SupportsContainers"/> property in <c>CheckFileInfo</c>.
+    /// Gets or sets a value indicating whether the host supports containers.
+    /// Should match <see cref="WopiCheckFileInfo.SupportsContainers"/>.
     /// </summary>
     public bool SupportsContainers { get; set; }
 }

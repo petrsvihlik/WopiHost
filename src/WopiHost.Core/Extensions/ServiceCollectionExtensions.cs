@@ -12,15 +12,23 @@ using WopiHost.Core.Security.Authorization;
 namespace WopiHost.Core.Extensions;
 
 /// <summary>
-/// Extensions for registering WOPI into the application pipeline.
+/// Provides extension methods that register the WOPI host services in an <see cref="IServiceCollection"/>.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers the WOPI host services. Defaults are wired with <see cref="ServiceCollectionDescriptorExtensions.TryAddSingleton{TService,TImplementation}(IServiceCollection)"/>
-    /// so consumers can override individual services (notably <see cref="IWopiPermissionProvider"/>
-    /// and <see cref="IWopiAccessTokenService"/>) before or after this call.
+    /// Registers the WOPI host services: access-token authentication, proof validation,
+    /// authorization, the endpoint filters and the <c>X-WOPI-Override</c> matcher policy.
     /// </summary>
+    /// <remarks>
+    /// Replaceable defaults (notably <see cref="IWopiPermissionProvider"/> and
+    /// <see cref="IWopiAccessTokenService"/>) are registered with <c>TryAdd*</c>, so a host's own
+    /// registration wins whether it is made before or after this call. The WOPI routes themselves
+    /// are mapped by <see cref="Endpoints.WopiEndpointRouteBuilderExtensions.MapWopiEndpoints"/>.
+    /// </remarks>
+    /// <param name="services">The service collection to add the services to.</param>
+    /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> is <see langword="null"/>.</exception>
     public static IServiceCollection AddWopi(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -93,6 +101,28 @@ public static class ServiceCollectionExtensions
     /// Registers the WOPI host services and applies the supplied <see cref="WopiHostOptions"/>
     /// configuration delegate.
     /// </summary>
+    /// <param name="services">The service collection to add the services to.</param>
+    /// <param name="configureOptions">The delegate that configures <see cref="WopiHostOptions"/>.</param>
+    /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configureOptions"/> is <see langword="null"/>.</exception>
+    /// <example>
+    /// <code>
+    /// var builder = WebApplication.CreateBuilder(args);
+    ///
+    /// builder.Services.AddWopi(o =&gt; o.ClientUrl = new Uri("https://your-office-online-server.com"));
+    /// builder.Services.AddFileSystemStorageProvider(builder.Configuration);
+    /// builder.Services.AddMemoryLockProvider();
+    /// builder.Services.ConfigureWopiSecurity(o =&gt;
+    ///     o.SigningKey = Convert.FromBase64String(
+    ///         builder.Configuration[$"{WopiSecurityOptions.SectionName}:{nameof(WopiSecurityOptions.SigningKey)}"]!));
+    ///
+    /// var app = builder.Build();
+    /// app.UseAuthentication();
+    /// app.UseAuthorization();
+    /// app.MapWopiEndpoints();
+    /// app.Run();
+    /// </code>
+    /// </example>
     public static IServiceCollection AddWopi(this IServiceCollection services, Action<WopiHostOptions> configureOptions)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -107,9 +137,13 @@ public static class ServiceCollectionExtensions
     /// Configures the WOPI access-token signing pipeline.
     /// </summary>
     /// <remarks>
-    /// Equivalent to <c>services.Configure&lt;WopiSecurityOptions&gt;(...)</c> but available
-    /// as a one-line option alongside <see cref="AddWopi(IServiceCollection)"/>.
+    /// Equivalent to <c>services.Configure&lt;WopiSecurityOptions&gt;(...)</c>. Production hosts
+    /// pin <see cref="WopiSecurityOptions.SigningKey"/> here.
     /// </remarks>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="configure">The delegate that configures <see cref="WopiSecurityOptions"/>.</param>
+    /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configure"/> is <see langword="null"/>.</exception>
     public static IServiceCollection ConfigureWopiSecurity(this IServiceCollection services, Action<WopiSecurityOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -122,14 +156,22 @@ public static class ServiceCollectionExtensions
     /// Decorates the registered <see cref="IWopiWritableStorageProvider"/> with
     /// <see cref="WopiLockAwareWritableStorageProvider"/> so delete/rename operations consult
     /// <see cref="IWopiLockProvider"/> first and throw <see cref="WopiResourceLockedException"/>
-    /// when the target is locked. Defense in depth — the WOPI endpoints already short-circuit
-    /// on locks; this decorator catches non-WOPI code paths (admin tools, batch jobs) and any
-    /// future endpoint regressions before they corrupt locked state.
+    /// when the target is locked.
     /// </summary>
     /// <remarks>
-    /// Must be called <em>after</em> the storage provider is registered (typically via
-    /// <c>AddStorageProvider(...)</c>) and after a lock provider is registered.
+    /// <para>
+    /// Defense in depth: the WOPI endpoints already short-circuit on locks; the decorator covers
+    /// non-WOPI code paths (admin tools, batch jobs) that resolve the storage provider directly.
+    /// </para>
+    /// <para>
+    /// Must be called <i>after</i> the storage provider is registered (for example, via
+    /// <c>AddFileSystemStorageProvider(...)</c>). An <see cref="IWopiLockProvider"/> must also be
+    /// registered by the time the decorated provider is first resolved.
+    /// </para>
     /// </remarks>
+    /// <param name="services">The service collection containing the storage provider registration.</param>
+    /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">No <see cref="IWopiWritableStorageProvider"/>
     /// is registered when this method runs.</exception>
     public static IServiceCollection AddWopiLockAwareWritableStorage(this IServiceCollection services)

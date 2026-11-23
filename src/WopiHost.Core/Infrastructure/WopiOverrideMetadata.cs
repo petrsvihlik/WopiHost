@@ -4,7 +4,7 @@ using WopiHost.Abstractions;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Endpoint metadata declaring that an endpoint participates in <see cref="WopiHeaders.WopiOverride"/>-based
+/// Represents endpoint metadata declaring that an endpoint participates in <see cref="WopiHeaders.WopiOverride"/>-based
 /// dispatch. Only requests carrying one of <see cref="Values"/> as the header value reach the
 /// endpoint; all others are invalidated as candidates by <see cref="WopiOverrideMatcherPolicy"/>.
 /// Endpoints without this metadata pass through the policy untouched (e.g., GET endpoints sharing
@@ -14,11 +14,11 @@ namespace WopiHost.Core.Infrastructure;
 /// <para>
 /// The WOPI protocol multiplexes mutating operations through a single <c>POST {id}</c> route on
 /// both the files and containers endpoints, distinguished only by the <c>X-WOPI-Override</c>
-/// header (<c>Lock</c>, <c>UNLOCK</c>, <c>PUT</c>, <c>RENAME_FILE</c>, <c>DELETE</c>, …).
+/// header (<c>LOCK</c>, <c>UNLOCK</c>, <c>PUT</c>, <c>RENAME_FILE</c>, <c>DELETE</c>, …).
 /// </para>
 /// <para>
-/// String comparison is <see cref="StringComparer.Ordinal"/> per the WOPI spec, which defines
-/// override values as upper-case constants in <see cref="WopiFileOperations"/> /
+/// Header values are compared with <see cref="StringComparer.Ordinal"/>: the WOPI spec defines
+/// override values as upper-case strings, mirrored by the constants in <see cref="WopiFileOperations"/> /
 /// <see cref="WopiContainerOperations"/> / <see cref="WopiEcosystemOperations"/>.
 /// </para>
 /// </remarks>
@@ -42,6 +42,6 @@ public sealed class WopiOverrideMetadata
         Values = values.ToFrozenSet(StringComparer.Ordinal);
     }
 
-    /// <summary>The header values that route requests to this endpoint.</summary>
+    /// <summary>Gets the header values that route requests to this endpoint.</summary>
     public FrozenSet<string> Values { get; }
 }

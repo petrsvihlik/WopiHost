@@ -7,7 +7,7 @@ namespace WopiHost.RedisLockProvider.Tests;
 
 /// <summary>
 /// Runs the shared <see cref="LockProviderConformanceTests"/> against <see cref="WopiRedisLockProvider"/>
-/// using a real Redis 8 container (via Testcontainers.Redis) shared across the collection.
+/// using a real Redis 8 container (via <c>Testcontainers.Redis</c>) shared across the collection.
 /// </summary>
 /// <remarks>
 /// Each test gets a fresh provider built around a GUID-suffixed key prefix so case-level state is

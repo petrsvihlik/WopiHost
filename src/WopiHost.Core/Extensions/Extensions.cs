@@ -7,14 +7,17 @@ using WopiHost.Core.Infrastructure;
 
 namespace WopiHost.Core.Extensions;
 
+/// <summary>
+/// Provides internal helpers shared by the WOPI endpoints.
+/// </summary>
 internal static class Extensions
 {
     /// <summary>
     /// Copies the stream to a byte array.
     /// </summary>
-    /// <param name="input">Stream to read from.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Byte array copy of a stream.</returns>
+    /// <param name="input">The stream to read from.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A byte array containing the remaining contents of <paramref name="input"/>.</returns>
     public static async Task<byte[]> ReadBytesAsync(this Stream input, CancellationToken cancellationToken = default)
     {
         using var ms = new MemoryStream();
@@ -29,15 +32,16 @@ internal static class Extensions
     /// <see cref="ReadBytesAsync(Stream, CancellationToken)"/> whenever the caller enforces a
     /// size cap (e.g. the spec-defined PutUserInfo limit).
     /// </summary>
-    /// <param name="input">Stream to read from.</param>
-    /// <param name="maxBytes">Maximum number of bytes to accept.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="input">The stream to read from.</param>
+    /// <param name="maxBytes">The maximum number of bytes to accept.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>
-    /// <c>WithinLimit</c> is <c>true</c> with the body bytes (length &lt;= <paramref name="maxBytes"/>)
-    /// when the stream stayed within the cap; <c>false</c> with an empty array when it yielded more
-    /// than <paramref name="maxBytes"/> bytes. A value-tuple rather than a nullable array so the
-    /// result never carries a null that callers (or static analysis) have to reason about.
+    /// <c>WithinLimit</c> is <see langword="true"/> with the body bytes (length &lt;= <paramref name="maxBytes"/>)
+    /// when the stream stayed within the cap; <see langword="false"/> with an empty array when it yielded more
+    /// than <paramref name="maxBytes"/> bytes.
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="input"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxBytes"/> is negative.</exception>
     public static async Task<(bool WithinLimit, byte[] Bytes)> ReadBytesAsync(this Stream input, int maxBytes, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(input);
@@ -61,10 +65,10 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Tries to parse integer from string. Returns null if parsing fails.
+    /// Parses a string as an integer.
     /// </summary>
-    /// <param name="s">String to parse</param>
-    /// <returns>Integer parsed from <paramref name="s"/></returns>
+    /// <param name="s">The string to parse.</param>
+    /// <returns>The integer parsed from <paramref name="s"/>, or <see langword="null"/> if parsing fails.</returns>
     public static int? ToNullableInt(this string s)
     {
         if (int.TryParse(s, out var i)) return i;
@@ -72,8 +76,10 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Converts <see cref="DateTime"/> to UNIX timestamp.
+    /// Converts a <see cref="DateTime"/> to a UNIX timestamp.
     /// </summary>
+    /// <param name="dateTime">The value to convert. It is treated as UTC regardless of its <see cref="DateTime.Kind"/>.</param>
+    /// <returns>The number of seconds elapsed since 1970-01-01T00:00:00Z.</returns>
     public static long ToUnixTimestamp(this DateTime dateTime)
     {
         DateTimeOffset dto = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
@@ -81,11 +87,12 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Returns the User NameIdentifier claim value.
+    /// Gets the user's <see cref="ClaimTypes.NameIdentifier"/> claim value, sanitized with <see cref="ToSafeIdentity"/>.
     /// </summary>
-    /// <param name="principal">the current user</param>
-    /// <returns>nameIdentifier</returns>
-    /// <exception cref="InvalidOperationException">if such a claim does not exist</exception>
+    /// <param name="principal">The current user.</param>
+    /// <returns>The sanitized name identifier.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="principal"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException"><paramref name="principal"/> has no <see cref="ClaimTypes.NameIdentifier"/> claim.</exception>
     public static string GetUserId(this ClaimsPrincipal principal)
     {
         ArgumentNullException.ThrowIfNull(principal);
@@ -94,11 +101,11 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Replaces forbidden characters in identity properties with an underscore.
-    /// Accordingly to: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#requirements-for-user-identity-properties
+    /// Replaces the characters forbidden in WOPI identity properties with an underscore.
     /// </summary>
-    /// <param name="identity">Identity property value</param>
-    /// <returns>String safe to use as an identity property</returns>
+    /// <param name="identity">The identity property value.</param>
+    /// <returns>A string safe to use as an identity property.</returns>
+    /// <seealso href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#requirements-for-user-identity-properties">Requirements for user identity properties</seealso>
     public static string ToSafeIdentity(this string identity)
     {
         const string forbiddenChars = "<>\"#{}^[]`\\/";
@@ -111,11 +118,13 @@ internal static class Extensions
     /// <see cref="HttpRequestExtensions.GetProxyAwareUrlParts"/>. Backed by
     /// <see cref="LinkGenerator"/> — no MVC URL-helper factory required.
     /// </summary>
-    /// <param name="httpContext">Current HTTP context.</param>
-    /// <param name="routeName">Name of the named route from <see cref="WopiRouteNames"/>.</param>
-    /// <param name="identifier">Resource identifier (slotted into the <c>{id}</c> route value).</param>
-    /// <param name="accessToken">Access token to embed. If null/empty, the inbound request's token is reused — the access-token query parameter must be present on the URL for the WOPI client to authenticate the callback.</param>
-    /// <returns>https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#wopisrc</returns>
+    /// <param name="httpContext">The current HTTP context.</param>
+    /// <param name="routeName">The name of the route, from <see cref="WopiRouteNames"/>.</param>
+    /// <param name="identifier">The resource identifier, slotted into the <c>{id}</c> route value.</param>
+    /// <param name="accessToken">The access token to embed. If <see langword="null"/> or empty, the inbound request's token is reused; the WOPI client needs the <c>access_token</c> query parameter on the URL to authenticate the callback.</param>
+    /// <returns>The <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#wopisrc">WopiSrc</see> URL of the endpoint.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="httpContext"/> or <paramref name="routeName"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="routeName"/> is empty or whitespace.</exception>
     /// <exception cref="InvalidOperationException">No named route matches <paramref name="routeName"/>.</exception>
     public static Uri GetWopiSrc(this HttpContext httpContext, string routeName, string? identifier = null, string? accessToken = null)
     {
@@ -172,9 +181,13 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Typed file overload — preferred when the caller already holds an <see cref="IWopiFile"/>
-    /// (resource kind comes from the static type, no runtime switch needed).
+    /// Builds the WopiSrc URL of a file's <see cref="WopiRouteNames.CheckFileInfo"/> endpoint.
     /// </summary>
+    /// <param name="httpContext">The current HTTP context.</param>
+    /// <param name="file">The file to build the URL for.</param>
+    /// <param name="accessToken">The access token to embed. If <see langword="null"/> or empty, the inbound request's token is reused.</param>
+    /// <returns>The WopiSrc URL of <paramref name="file"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="httpContext"/> or <paramref name="file"/> is <see langword="null"/>.</exception>
     public static Uri GetWopiSrc(this HttpContext httpContext, IWopiFile file, string? accessToken = null)
     {
         ArgumentNullException.ThrowIfNull(file);
@@ -182,9 +195,13 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Typed container overload — preferred when the caller already holds an
-    /// <see cref="IWopiContainer"/>.
+    /// Builds the WopiSrc URL of a container's <see cref="WopiRouteNames.CheckContainerInfo"/> endpoint.
     /// </summary>
+    /// <param name="httpContext">The current HTTP context.</param>
+    /// <param name="container">The container to build the URL for.</param>
+    /// <param name="accessToken">The access token to embed. If <see langword="null"/> or empty, the inbound request's token is reused.</param>
+    /// <returns>The WopiSrc URL of <paramref name="container"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="httpContext"/> or <paramref name="container"/> is <see langword="null"/>.</exception>
     public static Uri GetWopiSrc(this HttpContext httpContext, IWopiContainer container, string? accessToken = null)
     {
         ArgumentNullException.ThrowIfNull(container);
@@ -192,9 +209,16 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Enum-dispatched overload — kept for the bootstrap / attribute paths where only the enum
-    /// value is available. Prefer the typed file / container overloads when an instance is in scope.
+    /// Builds the WopiSrc URL of a resource identified only by its <see cref="WopiResourceType"/>.
+    /// The <see cref="IWopiFile"/> / <see cref="IWopiContainer"/> overloads are preferred when an instance is in scope.
     /// </summary>
+    /// <param name="httpContext">The current HTTP context.</param>
+    /// <param name="resourceType">The kind of resource.</param>
+    /// <param name="identifier">The resource identifier.</param>
+    /// <param name="accessToken">The access token to embed. If <see langword="null"/> or empty, the inbound request's token is reused.</param>
+    /// <returns>The WopiSrc URL of the resource.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="httpContext"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="resourceType"/> is not a defined value.</exception>
     public static Uri GetWopiSrc(this HttpContext httpContext, WopiResourceType resourceType, string? identifier = null, string? accessToken = null)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
@@ -212,10 +236,10 @@ internal static class Extensions
     /// <summary>
     /// Copies the request body to the write stream of the file.
     /// </summary>
-    /// <param name="httpContext">HTTP context</param>
-    /// <param name="file">the existing WopiFile</param>
-    /// <param name="cancellationToken">cancellation token</param>
-    /// <returns></returns>
+    /// <param name="httpContext">The current HTTP context.</param>
+    /// <param name="file">The existing file to overwrite.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public static async Task CopyToWriteStream(this HttpContext httpContext, IWopiWritableFile file, CancellationToken cancellationToken = default)
     {
         using var stream = await file.OpenWriteAsync(cancellationToken).ConfigureAwait(false);

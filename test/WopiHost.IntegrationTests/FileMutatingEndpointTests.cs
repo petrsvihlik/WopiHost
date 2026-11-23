@@ -8,11 +8,10 @@ namespace WopiHost.IntegrationTests;
 
 /// <summary>
 /// HTTP-level coverage of every mutating endpoint in
-/// <see cref="WopiHost.Core.Endpoints.FileMutatingEndpoints"/>: PutFile, RenameFile,
-/// PutRelativeFile, PutUserInfo, DeleteFile, ProcessCobalt, and the full Lock state machine
-/// (Lock / GetLock / Unlock / RefreshLock / UnlockAndRelock) dispatched through ProcessLock.
-/// Plus a couple of cross-cutting integration tests (multi-step lock-cycle, unknown override
-/// fallthrough) that share the same fixture.
+/// <see cref="WopiHost.Core.Endpoints.FileMutatingEndpoints"/>: GetShareUrl, AddActivities, PutFile,
+/// RenameFile, PutRelativeFile, PutUserInfo, DeleteFile, ProcessCobalt, and the full Lock state machine
+/// (Lock / GetLock / Unlock / RefreshLock / UnlockAndRelock) dispatched through ProcessLock, plus
+/// cross-cutting tests (multi-step lock cycle, unknown-override fallthrough) that share the same fixture.
 /// </summary>
 [Collection("MutatingEndpoints")]
 public sealed class FileMutatingEndpointTests(MutatingEndpointsFixture fixture)

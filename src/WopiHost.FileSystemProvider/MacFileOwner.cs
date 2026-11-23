@@ -22,6 +22,10 @@ namespace WopiHost.FileSystemProvider;
 [SupportedOSPlatform("macos")]
 internal static partial class MacFileOwner
 {
+    /// <summary>Gets the login name of the user that owns a file.</summary>
+    /// <param name="filePath">The path of the file.</param>
+    /// <returns>The owner's login name, or the numeric UID when no passwd entry exists.</returns>
+    /// <exception cref="IOException">The file's owner could not be read, or the UID lookup failed.</exception>
     public static string GetOwnerName(string filePath)
     {
         var rc = RuntimeInformation.ProcessArchitecture == Architecture.X64

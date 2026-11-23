@@ -1,27 +1,29 @@
 namespace WopiHost.Core.Security.Authentication;
 
 /// <summary>
-/// Authentication scheme names used by the WOPI host.
+/// Provides the authentication scheme names used by the WOPI host.
 /// </summary>
 public static class WopiAuthenticationSchemes
 {
     /// <summary>
-    /// Scheme for <c>/wopi/*</c> endpoints — the WOPI client's <c>access_token</c> query parameter.
-    /// Backed by <see cref="AccessTokenHandler"/>.
+    /// The scheme for the <c>/wopi/*</c> endpoints, which authenticates the WOPI client's
+    /// <c>access_token</c> query parameter through <see cref="AccessTokenHandler"/>.
     /// </summary>
     public const string AccessToken = AccessTokenDefaults.AuthenticationScheme;
 
     /// <summary>
-    /// Scheme for the <c>/wopibootstrapper</c> endpoint — OAuth2 Bearer from the host's
-    /// identity provider, per the WOPI bootstrap spec.
+    /// The scheme for the <c>/wopibootstrapper</c> endpoints, which authenticates an OAuth2 Bearer
+    /// token from the host's identity provider, per the WOPI bootstrap spec.
     /// </summary>
     /// <remarks>
-    /// Hosts must register a corresponding scheme in their auth pipeline:
+    /// Hosts that use the bootstrapper endpoints must register a scheme under this name in their
+    /// authentication pipeline; otherwise no registration is required.
+    /// </remarks>
+    /// <example>
     /// <code>
     /// services.AddAuthentication()
     ///     .AddJwtBearer(WopiAuthenticationSchemes.Bootstrap, o =&gt; { /* IdP config */ });
     /// </code>
-    /// If the bootstrapper endpoint is not used, no scheme registration is required.
-    /// </remarks>
+    /// </example>
     public const string Bootstrap = "WopiBootstrap";
 }

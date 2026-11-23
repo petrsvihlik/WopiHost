@@ -1,54 +1,55 @@
 ﻿namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Basic HostCapabilities according to <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#wopi-host-capabilities-properties">WOPI host capabilities properties</see>
+/// Represents the host capability flags reported in <c>CheckFileInfo</c>.
 /// </summary>
+/// <seealso href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#wopi-host-capabilities-properties">WOPI host capabilities properties</seealso>
 public interface IWopiHostCapabilities
 {
     /// <summary>
-    /// An array of strings containing the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#share-url">Share URL</see> types supported by the host.
-    /// These types can be passed in the X-WOPI-UrlType request header to signify which Share URL type to return for the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getshareurl">GetShareUrl (files)</see> operation.
-    /// <para> Possible Values:
+    /// Gets or sets the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts#share-url">Share URL</see> types supported by the host.
+    /// </summary>
+    /// <remarks>
+    /// A WOPI client passes one of these in the <c>X-WOPI-UrlType</c> request header to select
+    /// the Share URL type the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getshareurl">GetShareUrl (files)</see>
+    /// operation returns. Possible values (see <see cref="WopiShareUrlTypes"/>):
     /// <list type="bullet">
     /// <item>
-    /// <description>ReadOnly - This type of Share URL allows users to view the file using the URL, but does not give them permission to edit the file.</description>
+    /// <term><c>ReadOnly</c></term>
+    /// <description>Lets users view the file through the URL, but not edit it.</description>
     /// </item>
     /// <item>
-    /// <description>ReadWrite - This type of Share URL allows users to both view and edit the file using the URL.</description>
+    /// <term><c>ReadWrite</c></term>
+    /// <description>Lets users both view and edit the file through the URL.</description>
     /// </item>
     /// </list>
-    /// </para>
-    /// </summary>
+    /// </remarks>
     IEnumerable<string> SupportedShareUrlTypes { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the WOPI server supports multiple users making changes to this file simultaneously.
+    /// Gets or sets a value indicating whether the host supports multiple users making changes to the file simultaneously.
     /// </summary>
     bool SupportsCoauth { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the
+    /// Gets or sets a value indicating whether the host supports the
     /// <see href="https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/fdc52ab9-b359-4465-a8c7-6aa98aa12e06">AddActivities</see>
-    /// operation (comments / mentions reported by the WOPI client).
+    /// operation (comments and mentions reported by the WOPI client).
     /// </summary>
     bool SupportsAddActivities { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the following WOPI operations:
-    /// <list type="bullet">
-    /// <item>
-    /// <description>ExecuteCellStorageRequest</description>
-    /// </item>
-    /// <item>
-    /// <description>ExecuteCellStorageRelativeRequest</description>
-    /// </item>
-    /// </list>
-    /// These operations are only used by OneNote for the web and are thus not needed to integrate with Office for the web or Office for iOS. These are included for completeness but do not need to be implemented.
+    /// Gets or sets a value indicating whether the host supports the <c>ExecuteCellStorageRequest</c>
+    /// and <c>ExecuteCellStorageRelativeRequest</c> WOPI operations.
     /// </summary>
+    /// <remarks>
+    /// These operations are used only by OneNote for the web; integrating with Office for the web
+    /// or Office for iOS doesn't need them.
+    /// </remarks>
     bool SupportsCobalt { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the following WOPI operations:
+    /// Gets or sets a value indicating whether the host supports the following WOPI operations:
     /// <list type="bullet">
     /// <item>
     /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo">CheckContainerInfo</see></description>
@@ -77,7 +78,7 @@ public interface IWopiHostCapabilities
     /// <item>
     /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/getecosystem">GetEcosystem (containers)</see></description>
     /// </item>
-    ///  <item>
+    /// <item>
     /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/renamecontainer">RenameContainer</see></description>
     /// </item>
     /// </list>
@@ -85,12 +86,12 @@ public interface IWopiHostCapabilities
     bool SupportsContainers { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see> operation.
+    /// Gets or sets a value indicating whether the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see> operation.
     /// </summary>
     bool SupportsDeleteFile { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the following WOPI operations:
+    /// Gets or sets a value indicating whether the host supports the following WOPI operations:
     /// <list type="bullet">
     /// <item>
     /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/checkecosystem">CheckEcosystem</see></description>
@@ -98,7 +99,7 @@ public interface IWopiHostCapabilities
     /// <item>
     /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/getecosystem">GetEcosystem (containers)</see></description>
     /// </item>
-    ///  <item>
+    /// <item>
     /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getecosystem">GetEcosystem (files)</see></description>
     /// </item>
     /// <item>
@@ -109,43 +110,46 @@ public interface IWopiHostCapabilities
     bool SupportsEcosystem { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports lock IDs up to 1024 ASCII characters long. If not provided, WOPI clients will assume that lock IDs are limited to 256 ASCII characters.
+    /// Gets or sets a value indicating whether the host supports lock ids up to 1024 ASCII characters long.
     /// </summary>
+    /// <remarks>
+    /// When <see langword="false"/>, WOPI clients assume lock ids are limited to 256 ASCII characters.
+    /// </remarks>
     bool SupportsExtendedLockLength { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports creating new files using the WOPI client.
+    /// Gets or sets a value indicating whether the host supports creating new files using the WOPI client.
     /// </summary>
     bool SupportsFileCreation { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the following WOPI operations:
+    /// Gets or sets a value indicating whether the host supports the following WOPI operations:
     /// <list type="bullet">
     /// <item>
-    /// <description>CheckFolderInfo - This operation is only used by OneNote for the web and is thus not needed to integrate with Office for the web or Office for iOS. It is included for completeness but does not need to be implemented.</description>
+    /// <description><c>CheckFolderInfo</c> (used only by OneNote for the web).</description>
     /// </item>
     /// <item>
-    /// <description>EnumerateChildren (folders) - This operation is only used by OneNote for the web and is thus not needed to integrate with Office for the web or Office for iOS. It is included for completeness but does not need to be implemented.</description>
+    /// <description><c>EnumerateChildren</c> (folders; used only by OneNote for the web).</description>
     /// </item>
     /// <item>
     /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see></description>
     /// </item>
     /// </list>
-    /// </summary>  
+    /// </summary>
     bool SupportsFolders { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getfilewopisrc">GetFileWopiSrc (ecosystem)</see> operation.
+    /// Gets or sets a value indicating whether the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/ecosystem/getfilewopisrc">GetFileWopiSrc (ecosystem)</see> operation.
     /// </summary>
     bool SupportsGetFileWopiSrc { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getlock">GetLock</see> operation.
+    /// Gets or sets a value indicating whether the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getlock">GetLock</see> operation.
     /// </summary>
     bool SupportsGetLock { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the following WOPI operations:
+    /// Gets or sets a value indicating whether the host supports the following WOPI operations:
     /// <list type="bullet">
     /// <item>
     /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock">Lock</see></description>
@@ -157,29 +161,29 @@ public interface IWopiHostCapabilities
     /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/refreshlock">RefreshLock</see></description>
     /// </item>
     /// <item>
-    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock">UnlockAndRelock</see> operations for this file.</description>
+    /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock">UnlockAndRelock</see></description>
     /// </item>
     /// </list>
     /// </summary>
     bool SupportsLocks { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/renamefile">RenameFile</see> operation.
+    /// Gets or sets a value indicating whether the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/renamefile">RenameFile</see> operation.
     /// </summary>
     bool SupportsRename { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports scenarios where users can operate on files in limited ways via restricted URLs.
+    /// Gets or sets a value indicating whether the host supports scenarios where users can operate on files in limited ways via restricted URLs.
     /// </summary>
     bool SupportsScenarioLinks { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports calls to a secure data store utilizing credentials stored in the file.
+    /// Gets or sets a value indicating whether the host supports calls to a secure data store using credentials stored in the file.
     /// </summary>
     bool SupportsSecureStore { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the following WOPI operations:
+    /// Gets or sets a value indicating whether the host supports the following WOPI operations:
     /// <list type="bullet">
     /// <item>
     /// <description><see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see></description>
@@ -192,7 +196,7 @@ public interface IWopiHostCapabilities
     bool SupportsUpdate { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates that the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo">PutUserInfo</see> operation.
+    /// Gets or sets a value indicating whether the host supports the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo">PutUserInfo</see> operation.
     /// </summary>
     bool SupportsUserInfo { get; set; }
 }

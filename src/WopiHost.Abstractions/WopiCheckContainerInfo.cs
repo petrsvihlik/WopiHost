@@ -1,15 +1,21 @@
 ﻿namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Model implmented in accordance with the new specification https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo
-/// Does not implement CheckFolderInfo members from the original specification (https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/4b1d38ff-0d6a-42e4-8901-175b3c3c5890)
+/// Represents the response of the
+/// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo">CheckContainerInfo</see>
+/// operation.
 /// </summary>
+/// <remarks>
+/// Does not include the members of the original MS-WOPI
+/// <see href="https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/4b1d38ff-0d6a-42e4-8901-175b3c3c5890">CheckFolderInfo</see>
+/// response; see <see cref="WopiCheckFolderInfo"/> for that.
+/// </remarks>
 public class WopiCheckContainerInfo
 {
     #region "Required properties"
 
     /// <summary>
-    /// The name of the container without a path. This value will be displayed in the WOPI client UI.
+    /// Gets or sets the name of the container without a path. The WOPI client displays this value in its UI.
     /// </summary>
     public required string Name { get; set; }
 
@@ -18,56 +24,59 @@ public class WopiCheckContainerInfo
     #region "Optional properties"
 
     /// <summary>
-    /// A URI to a webpage for the container.
+    /// Gets or sets a URI to a webpage for the container.
     /// </summary>
     public Uri? HostUrl { get; set; }
 
     /// <summary>
-    /// A Boolean value indicating whether the user is authenticated with the host or not.
-    /// Should match the IsAnonymousUser value returned in CheckFileInfo.
+    /// Gets or sets a value indicating whether the user is anonymous, that is, not authenticated with the host.
+    /// Should match <see cref="WopiCheckFileInfo.IsAnonymousUser"/>.
     /// </summary>
     public bool IsAnonymousUser { get; set; }
 
     /// <summary>
-    /// A Boolean value indicating whether the user is an education user or not. This should match the IsEduUser value returned in CheckFileInfo.
+    /// Gets or sets a value indicating whether the user is an education user.
+    /// Should match <see cref="WopiCheckFileInfo.IsEduUser"/>.
     /// </summary>
     public bool IsEduUser { get; set; }
 
     /// <summary>
-    /// A Boolean value indicating whether the user is a business user or not. This should match the LicenseCheckForEditIsEnabled value returned in CheckFileInfo.
+    /// Gets or sets a value indicating whether the user is a business user.
+    /// Should match <see cref="WopiCheckFileInfo.LicenseCheckForEditIsEnabled"/>.
     /// </summary>
     public bool LicenseCheckForEditIsEnabled { get; set; }
 
     /// <summary>
-    /// A URI to a webpage to allow the user to control sharing of the container. This is analogous to the FileSharingUrl in CheckFileInfo.
+    /// Gets or sets a URI to a webpage that lets the user control sharing of the container.
+    /// Analogous to <see cref="WopiCheckFileInfo.FileSharingUrl"/>.
     /// </summary>
     public Uri? SharingUrl { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates the user has permission to create a new container in the container.
+    /// Gets or sets a value indicating whether the user has permission to create a new container in the container.
     /// </summary>
     public bool UserCanCreateChildContainer { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates the user has permission to create a new file in the container.
+    /// Gets or sets a value indicating whether the user has permission to create a new file in the container.
     /// </summary>
     public bool UserCanCreateChildFile { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates the user has permission to delete the container.
+    /// Gets or sets a value indicating whether the user has permission to delete the container.
     /// </summary>
     public bool UserCanDelete { get; set; }
 
     /// <summary>
-    /// A Boolean value that indicates the user has permission to rename the container.
+    /// Gets or sets a value indicating whether the user has permission to rename the container.
     /// </summary>
     public bool UserCanRename { get; set; }
 
     /// <summary>
-    /// The Share URL types the host supports for this container. These values can be passed in the
-    /// X-WOPI-UrlType request header to the
+    /// Gets or sets the Share URL types the host supports for this container. These values can be passed in the
+    /// <c>X-WOPI-UrlType</c> request header to the
     /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/containers/getshareurl">GetShareUrl (containers)</see>
-    /// operation. Mirrors <c>SupportedShareUrlTypes</c> on CheckFileInfo.
+    /// operation. Mirrors <see cref="WopiCheckFileInfo.SupportedShareUrlTypes"/>.
     /// </summary>
     public IEnumerable<string> SupportedShareUrlTypes { get; set; } = [];
 

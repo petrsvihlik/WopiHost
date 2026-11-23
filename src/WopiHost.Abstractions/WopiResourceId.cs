@@ -4,7 +4,7 @@ using System.Text;
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Helpers for deriving deterministic, opaque WOPI resource identifiers from a path.
+/// Provides helpers for deriving deterministic, opaque WOPI resource identifiers from a path.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -32,9 +32,8 @@ namespace WopiHost.Abstractions;
 ///   </description></item>
 /// </list>
 /// <para>
-/// The hash is SHA-256 (not MD5) so the id-minting path is FIPS-compatible. Cryptographic
-/// strength is not required — these are opaque keys — but a non-weak primitive avoids
-/// policy/compliance friction on hosts that disable broken algorithms.
+/// The hash is SHA-256, which keeps id minting FIPS-compatible on hosts that disable weak
+/// algorithms. Cryptographic strength itself is not required; the ids are opaque keys.
 /// </para>
 /// </remarks>
 public static class WopiResourceId
@@ -48,6 +47,7 @@ public static class WopiResourceId
     /// root container if the store uses an empty-string sentinel.
     /// </param>
     /// <returns>A lower-case hex SHA-256 digest (64 characters).</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="canonicalPath"/> is <see langword="null"/>.</exception>
     public static string FromCanonicalPath(string canonicalPath)
     {
         ArgumentNullException.ThrowIfNull(canonicalPath);

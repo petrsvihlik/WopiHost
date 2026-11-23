@@ -9,7 +9,7 @@ namespace WopiHost.IntegrationTests;
 
 /// <summary>
 /// Tests <see cref="WopiAccessTokenMinter"/>: token format, claim layout, signing-key derivation,
-/// and round-trip validation with the same key. Pure-unit; no Docker required.
+/// and round-trip validation with the same key. Pure unit tests; no Docker required.
 /// </summary>
 public class WopiAccessTokenMinterTests
 {

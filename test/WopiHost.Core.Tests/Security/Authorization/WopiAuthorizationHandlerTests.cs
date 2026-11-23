@@ -103,9 +103,9 @@ public class WopiAuthorizationHandlerTests
     }
 
     /// <summary>
-    /// Test-only logger that captures the two structured arguments passed to
-    /// <c>LogResourceBindingMismatch</c> (tokenRid, routeId). Lets the regression test verify
-    /// that the two fields are read coherently — never crossed between in-flight requests.
+    /// Captures the two structured arguments (<c>tokenRid</c>, <c>routeId</c>) passed to
+    /// <c>LogResourceBindingMismatch</c>, so the test can verify that the two fields are read
+    /// coherently and never crossed between in-flight requests.
     /// </summary>
     private sealed class CapturingLogger(ConcurrentBag<(string TokenRid, string? RouteId)> bag)
         : ILogger<WopiAuthorizationHandler>

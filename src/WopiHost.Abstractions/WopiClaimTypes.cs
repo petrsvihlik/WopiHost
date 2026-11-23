@@ -1,7 +1,7 @@
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Claim types used by the WOPI access-token pipeline.
+/// Provides the claim types used by the WOPI access-token pipeline.
 /// </summary>
 /// <remarks>
 /// These claims are written into the WOPI access token at issuance time and read back
@@ -12,34 +12,35 @@ namespace WopiHost.Abstractions;
 public static class WopiClaimTypes
 {
     /// <summary>
-    /// Identifier of the resource the access token was issued for. Used for audit/logging;
-    /// the default authorization pipeline does not enforce a strict binding between this
-    /// claim and the route's resource id, because WOPI clients use a single token across
-    /// related resources (file → ancestor container → siblings). Layer a custom
-    /// <see cref="Microsoft.AspNetCore.Authorization.IAuthorizationHandler"/> if your scenario
-    /// requires strict per-resource binding.
+    /// The claim type carrying the identifier of the resource the access token was issued for.
     /// </summary>
+    /// <remarks>
+    /// Used for audit/logging only: the default authorization pipeline does not bind this claim
+    /// to the route's resource id, because WOPI clients use a single token across related
+    /// resources (file → ancestor container → siblings). Hosts that need strict per-resource
+    /// binding can add a custom <see cref="Microsoft.AspNetCore.Authorization.IAuthorizationHandler"/>.
+    /// </remarks>
     public const string ResourceId = "wopi:rid";
 
     /// <summary>
-    /// Type of the bound resource (<see cref="WopiResourceType.File"/> or <see cref="WopiResourceType.Container"/>).
+    /// The claim type carrying the type of the bound resource (<see cref="WopiResourceType.File"/> or <see cref="WopiResourceType.Container"/>).
     /// </summary>
     public const string ResourceType = "wopi:rtype";
 
     /// <summary>
-    /// Comma-separated <see cref="WopiFilePermissions"/> flags granted at issuance.
+    /// The claim type carrying the comma-separated <see cref="WopiFilePermissions"/> flags granted at issuance.
     /// Only meaningful when <see cref="ResourceType"/> is <see cref="WopiResourceType.File"/>.
     /// </summary>
     public const string FilePermissions = "wopi:fperms";
 
     /// <summary>
-    /// Comma-separated <see cref="WopiContainerPermissions"/> flags granted at issuance.
+    /// The claim type carrying the comma-separated <see cref="WopiContainerPermissions"/> flags granted at issuance.
     /// Only meaningful when <see cref="ResourceType"/> is <see cref="WopiResourceType.Container"/>.
     /// </summary>
     public const string ContainerPermissions = "wopi:cperms";
 
     /// <summary>
-    /// Friendly display name of the user (mirrors <see cref="System.Security.Claims.ClaimTypes.Name"/>).
+    /// The claim type carrying the friendly display name of the user (mirrors <see cref="System.Security.Claims.ClaimTypes.Name"/>).
     /// </summary>
     public const string UserDisplayName = "wopi:uname";
 }

@@ -7,10 +7,14 @@ using WopiHost.Abstractions;
 namespace WopiHost.Core.Security.Authentication;
 
 /// <summary>
-/// ASP.NET Core authentication handler that reads the WOPI <c>access_token</c> from the query
-/// string, validates it via <see cref="IWopiAccessTokenService"/>, and exposes the resulting
+/// Authenticates requests by reading the WOPI <c>access_token</c> from the query string, validating
+/// it via <see cref="IWopiAccessTokenService"/>, and exposing the resulting
 /// <see cref="System.Security.Claims.ClaimsPrincipal"/> on the request.
 /// </summary>
+/// <param name="accessTokenService">The service that validates the access token.</param>
+/// <param name="options">The monitor for the handler options.</param>
+/// <param name="logger">The logger factory.</param>
+/// <param name="encoder">The URL encoder.</param>
 /// <remarks>
 /// Only requests under <c>/wopi</c> are handled — for any other path the handler returns
 /// <see cref="AuthenticateResult.NoResult"/> so other authentication schemes can take over.
@@ -21,9 +25,7 @@ public partial class AccessTokenHandler(
     ILoggerFactory logger,
     UrlEncoder encoder) : AuthenticationHandler<AccessTokenAuthenticationOptions>(options, logger, encoder)
 {
-    /// <summary>
-    /// Validates the <c>access_token</c> query parameter on WOPI requests.
-    /// </summary>
+    /// <inheritdoc/>
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         if (Context.Request.Path.Value?.StartsWith("/wopi", StringComparison.OrdinalIgnoreCase) != true)

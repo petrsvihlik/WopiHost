@@ -25,9 +25,9 @@ namespace WopiHost.Web.Oidc.Infrastructure;
 /// </remarks>
 public static class OidcRolePermissionMapper
 {
-    /// <summary>Role string that grants full edit access.</summary>
+    /// <summary>Specifies the role that grants full edit access.</summary>
     public const string EditorRole = "wopi.editor";
-    /// <summary>Role string that grants read-only access.</summary>
+    /// <summary>Specifies the role that grants read-only access.</summary>
     public const string ViewerRole = "wopi.viewer";
 
     private static readonly WopiFilePermissions s_editorPermissions =
@@ -37,12 +37,15 @@ public static class OidcRolePermissionMapper
         WopiFilePermissions.UserCanPresent;
 
     /// <summary>
-    /// Resolves <see cref="WopiFilePermissions"/> for a signed-in OIDC user. Returns
-    /// <see cref="WopiFilePermissions.None"/> if no recognized role is present (the WOPI client
-    /// will then load the document in restricted view-only mode).
+    /// Resolves <see cref="WopiFilePermissions"/> for a signed-in OIDC user.
     /// </summary>
     /// <param name="user">The signed-in principal from the OIDC cookie.</param>
-    /// <param name="roleClaimType">Claim type that carries roles (e.g. <c>roles</c>, <c>groups</c>).</param>
+    /// <param name="roleClaimType">The claim type that carries roles (e.g. <c>roles</c>, <c>groups</c>).</param>
+    /// <returns>
+    /// The editor permissions for <see cref="EditorRole"/>, <see cref="WopiFilePermissions.UserCanAttend"/> for
+    /// <see cref="ViewerRole"/>, or <see cref="WopiFilePermissions.None"/> if no recognized role is present
+    /// (the WOPI client then opens the document view-only).
+    /// </returns>
     public static WopiFilePermissions Resolve(ClaimsPrincipal user, string roleClaimType)
     {
         ArgumentNullException.ThrowIfNull(user);

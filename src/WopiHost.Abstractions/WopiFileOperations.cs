@@ -1,67 +1,67 @@
 ﻿namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Details all WOPI file operation keywords
+/// Provides the <c>X-WOPI-Override</c> values of the WOPI file operations.
 /// </summary>
 public static class WopiFileOperations
 {
     /// <summary>
-    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock
+    /// The <c>X-WOPI-Override</c> value for the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/lock">Lock</see> operation.
     /// </summary>
     public const string Lock = "LOCK";
 
     /// <summary>
-    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlock
+    /// The <c>X-WOPI-Override</c> value for the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/unlock">Unlock</see> operation.
     /// </summary>
     public const string Unlock = "UNLOCK";
 
     /// <summary>
-    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/refreshlock
+    /// The <c>X-WOPI-Override</c> value for the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/refreshlock">RefreshLock</see> operation.
     /// </summary>
     public const string RefreshLock = "REFRESH_LOCK";
 
     /// <summary>
-    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getlock
+    /// The <c>X-WOPI-Override</c> value for the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getlock">GetLock</see> operation.
     /// </summary>
     public const string GetLock = "GET_LOCK";
 
     /// <summary>
-    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile
+    /// The <c>X-WOPI-Override</c> value for the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putfile">PutFile</see> operation.
     /// </summary>
     public const string Put = "PUT";
 
     /// <summary>
-    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile
+    /// The <c>X-WOPI-Override</c> value for the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile">PutRelativeFile</see> operation.
     /// </summary>
     public const string PutRelativeFile = "PUT_RELATIVE";
 
     /// <summary>
-    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo
+    /// The <c>X-WOPI-Override</c> value for the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo">PutUserInfo</see> operation.
     /// </summary>
     public const string PutUserInfo = "PUT_USER_INFO";
 
     /// <summary>
-    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile
+    /// The <c>X-WOPI-Override</c> value for the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/deletefile">DeleteFile</see> operation.
     /// </summary>
     public const string DeleteFile = "DELETE";
 
     /// <summary>
-    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/renamefile
+    /// The <c>X-WOPI-Override</c> value for the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/renamefile">RenameFile</see> operation.
     /// </summary>
     public const string RenameFile = "RENAME_FILE";
 
     /// <summary>
-    /// Cobalt file operations
+    /// The <c>X-WOPI-Override</c> value for MS-FSSHTTP (Cobalt) requests.
     /// </summary>
     public const string Cobalt = "COBALT";
 
     /// <summary>
-    /// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getshareurl
+    /// The <c>X-WOPI-Override</c> value for the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getshareurl">GetShareUrl (files)</see> operation.
     /// </summary>
     public const string GetShareUrl = "GET_SHARE_URL";
 
     /// <summary>
-    /// https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/fdc52ab9-b359-4465-a8c7-6aa98aa12e06
+    /// The <c>X-WOPI-Override</c> value for the <see href="https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/fdc52ab9-b359-4465-a8c7-6aa98aa12e06">AddActivities</see> operation.
     /// </summary>
     public const string AddActivities = "ADD_ACTIVITIES";
 }

@@ -6,7 +6,7 @@ using WopiHost.Abstractions;
 namespace WopiHost.FileSystemProvider;
 
 /// <summary>
-/// Provides unique file identifiers for files.
+/// Maps file and folder identifiers to their paths and back.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -22,10 +22,15 @@ namespace WopiHost.FileSystemProvider;
 /// (clear stale reverse entry → install new forward entry → install new reverse entry).
 /// </para>
 /// <para>
+/// Identifiers derive deterministically from paths (see <see cref="WopiResourceId.FromCanonicalPath"/>),
+/// so every process over the same tree computes the same id for the same path.
+/// </para>
+/// <para>
 /// The map holds no filesystem-convergence logic of its own; keeping it in sync with the tree
 /// (watcher events, reconciliation sweeps) is <see cref="FileIdMapSynchronizer"/>'s job.
 /// </para>
 /// </remarks>
+/// <param name="logger">The logger.</param>
 public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
 {
     /// <summary>
@@ -39,29 +44,42 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     private readonly Lock _writeLock = new();
 
     /// <summary>
-    /// Gets a value indicating whether any files have been scanned.
+    /// Gets a value indicating whether the map holds any entry, whether from <see cref="ScanAll"/> or
+    /// from an individual registration.
     /// </summary>
     public bool WasScanned => !_idToPath.IsEmpty;
 
-    // Test hook: WopiFileSystemProvider enumerates stored paths directly, which is only safe
-    // while every stored path is absolute — tests pin that invariant through this view.
+    /// <summary>
+    /// Gets the stored paths. A test hook: <see cref="WopiFileSystemProvider"/> enumerates stored paths
+    /// directly, which is only safe while every stored path is absolute, and tests pin that invariant through this view.
+    /// </summary>
     internal ICollection<string> StoredPaths => _idToPath.Values;
 
     /// <summary>
-    /// Gets the file identifier for the specified path.
+    /// Tries to get the identifier mapped to the specified path.
     /// </summary>
+    /// <param name="path">The absolute path of the file or folder.</param>
+    /// <param name="fileId">When this method returns <see langword="true"/>, the identifier mapped to <paramref name="path"/>.</param>
+    /// <returns><see langword="true"/> if <paramref name="path"/> is mapped; otherwise, <see langword="false"/>.</returns>
     public bool TryGetFileId(string path, [NotNullWhen(true)] out string? fileId)
         => _pathToId.TryGetValue(path, out fileId);
 
     /// <summary>
-    /// Gets the file path for the specified file identifier.
+    /// Tries to get the path mapped to the specified identifier.
     /// </summary>
+    /// <param name="fileId">The identifier of the file or folder.</param>
+    /// <param name="path">When this method returns <see langword="true"/>, the absolute path mapped to <paramref name="fileId"/>.</param>
+    /// <returns><see langword="true"/> if <paramref name="fileId"/> is mapped; otherwise, <see langword="false"/>.</returns>
     public bool TryGetPath(string fileId, [NotNullWhen(true)] out string? path)
         => _idToPath.TryGetValue(fileId, out path);
 
     /// <summary>
-    /// Gets the path for the specified file identifier.
+    /// Gets the path mapped to the specified identifier.
     /// </summary>
+    /// <param name="fileId">The identifier of the file or folder.</param>
+    /// <returns>The absolute path, or <see langword="null"/> if <paramref name="fileId"/> is not mapped.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="fileId"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="fileId"/> is empty.</exception>
     public string? GetPath(string fileId)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileId);
@@ -69,8 +87,11 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     }
 
     /// <summary>
-    /// Adds a file to the collection and returns its identifier.
+    /// Registers a file or folder path under its derived identifier, rebinding the identifier if it
+    /// was mapped to another path.
     /// </summary>
+    /// <param name="path">The absolute path of the file or folder.</param>
+    /// <returns>The identifier derived from <paramref name="path"/>.</returns>
     public string AddFile(string path)
     {
         var id = DeriveId(path);
@@ -82,11 +103,13 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     }
 
     /// <summary>
-    /// Returns the identifier for the specified path, deriving and registering it when the path
+    /// Gets the identifier for the specified path, deriving and registering it when the path
     /// is not yet mapped. Identifiers are deterministic, so a path that appeared after the
     /// startup scan — created or renamed by another process sharing the same tree — resolves to
     /// the same identifier in every process.
     /// </summary>
+    /// <param name="path">The full path to look up or register.</param>
+    /// <returns>The identifier mapped to <paramref name="path"/>.</returns>
     internal string GetOrAddFileId(string path)
         => TryGetFileId(path, out var fileId) ? fileId : AddFile(path);
 
@@ -94,8 +117,11 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// Installs <paramref name="id"/>→<paramref name="path"/> without displacing the path's
     /// existing reverse binding: a path that already holds an id (a rename that kept the original
     /// id alive) keeps it as canonical, and <paramref name="id"/> becomes an additional alias for
-    /// the path. Returns <see langword="false"/> when the exact mapping was already present.
+    /// the path.
     /// </summary>
+    /// <param name="id">The identifier to bind.</param>
+    /// <param name="path">The full path to bind it to.</param>
+    /// <returns><see langword="true"/> if the mapping was installed; <see langword="false"/> if it was already present.</returns>
     internal bool EnsureMapping(string id, string path)
     {
         lock (_writeLock)
@@ -119,6 +145,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// the path are left in place — they resolve to a path that no longer exists, which callers
     /// already treat as missing — so the removal stays O(1) even when deletions arrive in bursts.
     /// </summary>
+    /// <param name="path">The full path whose binding to remove.</param>
     internal void TryRemovePath(string path)
     {
         lock (_writeLock)
@@ -137,9 +164,11 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// Repoints every identifier bound to <paramref name="oldPath"/> — or to an entry beneath it
     /// — onto the corresponding path under <paramref name="newPath"/>, preserving each id across
     /// the rename. Canonical bindings stay canonical (a witnessed rename outranks any stale
-    /// binding the target path may have held); aliases stay aliases. Returns
-    /// <see langword="false"/> when nothing was bound under <paramref name="oldPath"/>.
+    /// binding the target path may have held); aliases stay aliases.
     /// </summary>
+    /// <param name="oldPath">The full path before the rename.</param>
+    /// <param name="newPath">The full path after the rename.</param>
+    /// <returns><see langword="true"/> if at least one identifier was repointed; <see langword="false"/> if nothing was bound under <paramref name="oldPath"/>.</returns>
     internal bool RepointSubtree(string oldPath, string newPath)
     {
         lock (_writeLock)
@@ -183,8 +212,9 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     }
 
     /// <summary>
-    /// Removes the specified file identifier.
+    /// Removes the specified identifier and its path binding.
     /// </summary>
+    /// <param name="fileId">The identifier of the file or folder.</param>
     public void RemoveId(string fileId)
     {
         lock (_writeLock)
@@ -197,8 +227,10 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     }
 
     /// <summary>
-    /// Updates the file path for the specified file identifier.
+    /// Binds the specified identifier to a new path, such as after a rename.
     /// </summary>
+    /// <param name="id">The identifier of the file or folder.</param>
+    /// <param name="path">The new absolute path.</param>
     public void UpdateFile(string id, string path)
     {
         lock (_writeLock)
@@ -208,8 +240,9 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     }
 
     /// <summary>
-    /// Scans all files and directories in the specified root path.
+    /// Replaces the map with <paramref name="rootPath"/> and every file and directory beneath it.
     /// </summary>
+    /// <param name="rootPath">The absolute path of the root folder.</param>
     public void ScanAll(string rootPath)
     {
         lock (_writeLock)
@@ -263,6 +296,8 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// On case-sensitive Linux filesystems this is conservative but harmless — the same path
     /// still hashes to the same id.
     /// </remarks>
+    /// <param name="path">The file or directory path to derive the identifier from.</param>
+    /// <returns>The lower-case hex SHA-256 identifier for <paramref name="path"/>, or <see cref="WopiTestFileId"/> for a <c>test.wopitest</c> file.</returns>
     internal static string DeriveId(string path)
     {
         var fullPath = Path.GetFullPath(path);

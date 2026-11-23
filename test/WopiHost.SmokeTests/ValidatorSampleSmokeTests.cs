@@ -5,9 +5,9 @@ using Xunit;
 namespace WopiHost.SmokeTests;
 
 /// <summary>
-/// Single smoke test for <c>sample/WopiHost.Validator</c> — the combined host+frontend used to
-/// drive Microsoft's WOPI validator. Asserts the index page renders without throwing; deeper
-/// validator-flow assertions belong with the validator suite itself, not Playwright.
+/// Smoke-tests <c>sample/WopiHost.Validator</c>, the combined host and frontend used to drive
+/// Microsoft's WOPI validator, by asserting that the index page renders without throwing. Deeper
+/// validator-flow assertions belong with the validator suite itself.
 /// </summary>
 [Collection(nameof(SmokeTestCollection))]
 public sealed class ValidatorSampleSmokeTests(PlaywrightFixture playwright) : IAsyncLifetime

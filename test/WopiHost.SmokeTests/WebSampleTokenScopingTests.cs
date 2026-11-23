@@ -12,7 +12,7 @@ namespace WopiHost.SmokeTests;
 /// non-Edit action must not carry write/rename permissions. Collabora Online uses a single
 /// editor URL for both modes and derives view-vs-edit purely from CheckFileInfo permission
 /// flags, so an over-permissive token silently opens a "view" link in edit mode with no
-/// visible symptom in the URL. Pure-unit; no Playwright/browser required.
+/// visible symptom in the URL. Pure unit tests; no Playwright or browser required.
 /// </summary>
 public class WebSampleTokenScopingTests
 {

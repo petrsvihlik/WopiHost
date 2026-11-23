@@ -22,6 +22,9 @@ internal static partial class UnixUserResolver
     /// Resolves <paramref name="uid"/> to a login name, falling back to the numeric UID
     /// (as an invariant string) when no matching passwd entry exists.
     /// </summary>
+    /// <param name="uid">The Unix user id to resolve.</param>
+    /// <returns>The login name, or the UID formatted with the invariant culture.</returns>
+    /// <exception cref="IOException"><c>getpwuid_r</c> failed with an error other than a too-small buffer.</exception>
     public static string ResolveUserNameOrUid(uint uid)
         => ResolveUserName(uid) ?? uid.ToString(CultureInfo.InvariantCulture);
 

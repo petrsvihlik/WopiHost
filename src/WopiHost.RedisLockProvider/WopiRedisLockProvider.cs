@@ -6,13 +6,16 @@ using WopiHost.Abstractions;
 namespace WopiHost.RedisLockProvider;
 
 /// <summary>
-/// <see cref="IWopiLockProvider"/> backed by Redis. Each WOPI lock is a string key whose value is
-/// a JSON-serialized <see cref="WopiLockInfo"/>; Redis's TTL handles the spec-mandated 30-minute
-/// expiry without polling, and compare-and-swap operations run as single conditional commands
-/// (<c>SET IFEQ</c> / <c>DELIFEQ</c> via StackExchange.Redis's <c>ValueCondition.Equal</c>,
-/// requires Redis 8.4+) so the "match-then-mutate" steps are atomic with respect to other clients.
+/// Provides an <see cref="IWopiLockProvider"/> backed by Redis.
 /// </summary>
 /// <remarks>
+/// <para>
+/// Each WOPI lock is a string key whose value is a JSON-serialized <see cref="WopiLockInfo"/>;
+/// Redis's TTL handles the spec-mandated 30-minute expiry without polling, and compare-and-swap
+/// operations run as single conditional commands (<c>SET IFEQ</c> / <c>DELIFEQ</c> via
+/// StackExchange.Redis's <c>ValueCondition.Equal</c>, requires Redis 8.4+) so the
+/// "match-then-mutate" steps are atomic with respect to other clients.
+/// </para>
 /// <para>
 /// <b>Best-effort, single-instance design.</b> This provider deliberately does NOT implement
 /// Redlock (lock acquired against a majority of independent Redis nodes). WOPI lock semantics
@@ -27,28 +30,29 @@ namespace WopiHost.RedisLockProvider;
 /// <c>SET IFEQ</c> compares the resident value against the snapshot server-side and applies the
 /// write only on a byte-exact match, in one round-trip with no abort-and-retry window. A stale
 /// caller's snapshot no longer matches the resident value, so the write is refused and the call
-/// returns false. These conditional commands require <b>Redis 8.4 or later</b>; the
+/// returns <see langword="false"/>. These conditional commands require <b>Redis 8.4 or later</b>; the
 /// <c>RedisMinServerVersion</c> property in the project file declares that floor to the
 /// StackExchange.Redis analyzers.
 /// </para>
 /// </remarks>
-/// <param name="multiplexer">StackExchange.Redis connection multiplexer.</param>
-/// <param name="logger">Logger.</param>
-/// <param name="keyPrefix">Prefix prepended to every Redis key the provider manages.</param>
+/// <param name="multiplexer">The StackExchange.Redis connection multiplexer.</param>
+/// <param name="logger">The logger.</param>
+/// <param name="keyPrefix">The prefix prepended to every Redis key the provider manages.</param>
 /// <param name="timeProvider">
-/// Clock source for lock timestamps. Defaults to <see cref="TimeProvider.System"/> when not
-/// supplied via DI; inject a <c>FakeTimeProvider</c> in tests to make
-/// <see cref="WopiLockInfo.DateCreated"/> deterministic. The TTL itself is still computed via
-/// this clock so refresh-extends-expiry semantics line up with the in-memory representation
-/// tests advance.
+/// The clock source for lock timestamps, or <see langword="null"/> to use <see cref="TimeProvider.System"/>.
+/// Expiry is re-checked against this clock on every read, so a <c>FakeTimeProvider</c> in tests
+/// makes <see cref="WopiLockInfo.DateCreated"/> and expiry deterministic even though the
+/// server-side TTL (a fixed 30 minutes) follows the Redis server clock.
 /// </param>
 /// <param name="lockComparer">
-/// Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/> when not supplied via DI.
+/// The lock-id comparer, or <see langword="null"/> to use <see cref="OrdinalWopiLockComparer"/>.
 /// The .NET-side comparer drives the snapshot match (so <see cref="JsonShapedWopiLockComparer"/>
 /// and friends can absorb known client-side lock-id mutations); the Redis-side conditional write
 /// always compares the full stored value byte-for-byte, so any concurrent mutation refuses the
 /// CAS regardless of comparer choice.
 /// </param>
+/// <exception cref="ArgumentNullException"><paramref name="multiplexer"/>, <paramref name="logger"/>, or
+/// <paramref name="keyPrefix"/> is <see langword="null"/>.</exception>
 public sealed partial class WopiRedisLockProvider(
     IConnectionMultiplexer multiplexer,
     ILogger<WopiRedisLockProvider> logger,
@@ -146,13 +150,12 @@ public sealed partial class WopiRedisLockProvider(
     }
 
     /// <summary>
-    /// Shared "GET snapshot → validate caller's lock-id → conditional write-back" flow that
-    /// <see cref="RefreshLockAsync"/> and <see cref="TryUnlockAndRelockAsync"/> both need. They
-    /// differ only in <em>how</em> the snapshot is transformed before being written back; the
-    /// load, expected-id check, and CAS scaffolding is identical.
+    /// Reads the stored lock, checks the caller's lock id, and writes back the result of
+    /// <paramref name="mutate"/> only if the stored value is unchanged. Backs
+    /// <see cref="RefreshLockAsync"/> and <see cref="TryUnlockAndRelockAsync"/>.
     /// </summary>
     /// <remarks>
-    /// The write's <c>ValueCondition.Equal(raw)</c> compares the <em>byte-exact</em> resident
+    /// The write's <c>ValueCondition.Equal(raw)</c> compares the <i>byte-exact</i> resident
     /// value against the snapshot just read, atomically on the server (<c>SET IFEQ</c>,
     /// Redis 8.4+). If anything mutated the value between the read and the write (a sibling
     /// refresh, swap, remove, or expiry), the condition fails and the write is refused. The
@@ -161,6 +164,8 @@ public sealed partial class WopiRedisLockProvider(
     /// tolerant comparers (e.g. <see cref="JsonShapedWopiLockComparer"/>) still work without
     /// weakening the CAS.
     /// </remarks>
+    /// <returns><see langword="true"/> if the conditional write was applied; <see langword="false"/> if the lock is
+    /// missing, expired, held under a different id, or changed between the read and the write.</returns>
     private async Task<bool> TryAtomicCasAsync(
         string fileId,
         string expectedExistingLockId,

@@ -9,11 +9,14 @@ using WopiHost.Core.Infrastructure;
 namespace WopiHost.Core.Tests.Infrastructure;
 
 /// <summary>
+/// Tests for <see cref="WopiTelemetryEndpointFilter"/>.
+/// </summary>
+/// <remarks>
 /// Pinned to <see cref="WopiTelemetryCollection"/> so the listener installed in
 /// <see cref="CaptureActivity"/> can't leak into a parallel run of
 /// <see cref="WopiTelemetryTests.StartActivity_NoListener_ReturnsNull"/> — both classes
 /// register process-global listeners on <see cref="WopiTelemetry.Name"/> and must serialise.
-/// </summary>
+/// </remarks>
 [Collection(WopiTelemetryCollection.Name)]
 public class WopiTelemetryEndpointFilterTests
 {
@@ -277,10 +280,15 @@ public class WopiTelemetryEndpointFilterTests
     }
 
     /// <summary>
-    /// Spins up an <see cref="ActivityListener"/> against WopiTelemetry's source, scoped to a
-    /// specific operation name so tests running in parallel don't capture each other's activities.
-    /// Disposed via <c>using</c> in the test to remove the global listener registration.
+    /// Starts an <see cref="ActivityListener"/> on the <see cref="WopiTelemetry"/> source that
+    /// captures only activities named <paramref name="operationName"/>, so tests running in
+    /// parallel don't capture each other's activities.
     /// </summary>
+    /// <param name="operationName">The operation name of the activity to capture.</param>
+    /// <returns>
+    /// The capture holding the first matching stopped activity. Dispose it to remove the
+    /// process-global listener registration.
+    /// </returns>
     private static ActivityCapture CaptureActivity(string operationName)
     {
         var capture = new ActivityCapture();

@@ -4,17 +4,17 @@ using System.Diagnostics.Metrics;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// OpenTelemetry primitives for the WOPI request pipeline. The <see cref="ActivitySource"/> and
+/// Provides the OpenTelemetry primitives of the WOPI request pipeline. The <see cref="ActivitySource"/> and
 /// <see cref="Meter"/> share the name <c>"WopiHost.Core"</c>, which is pre-registered in
 /// <c>WopiHost.ServiceDefaults</c> — apps calling <c>AddServiceDefaults()</c> export these
 /// automatically.
 /// </summary>
 public static class WopiTelemetry
 {
-    /// <summary>Shared activity source / meter name. Pre-registered in <c>WopiHost.ServiceDefaults</c>.</summary>
+    /// <summary>The shared activity source and meter name. Pre-registered in <c>WopiHost.ServiceDefaults</c>.</summary>
     public const string Name = "WopiHost.Core";
 
-    /// <summary>Activity source used by the WOPI request pipeline.</summary>
+    /// <summary>The activity source used by the WOPI request pipeline.</summary>
     public static readonly ActivitySource ActivitySource = new(Name);
 
     private static readonly Meter s_meter = new(Name);
@@ -34,7 +34,7 @@ public static class WopiTelemetry
         "wopi.proof_validation_failures", unit: "{failure}",
         description: "WOPI proof-key signature validation failures.");
 
-    /// <summary>Tag keys shared across spans, log scopes, and metrics.</summary>
+    /// <summary>Provides the tag keys shared across spans, log scopes, and metrics.</summary>
     public static class Tags
     {
         /// <summary>WOPI operation name (e.g. <c>CheckFileInfo</c>, <c>Lock</c>).</summary>
@@ -59,7 +59,7 @@ public static class WopiTelemetry
         public const string UserId = "enduser.id";
     }
 
-    /// <summary>Canonical strings for the <see cref="Tags.Outcome"/> dimension.</summary>
+    /// <summary>Provides the canonical values of the <see cref="Tags.Outcome"/> dimension.</summary>
     public static class Outcomes
     {
         /// <summary>Operation completed successfully (2xx).</summary>
@@ -94,8 +94,13 @@ public static class WopiTelemetry
     }
 
     /// <summary>
-    /// Starts an Activity for a WOPI operation and tags it. Returns <c>null</c> when no listener is attached.
+    /// Starts an <see cref="Activity"/> for a WOPI operation and tags it.
     /// </summary>
+    /// <param name="operation">The WOPI operation name, used as the activity name and the <see cref="Tags.Operation"/> tag.</param>
+    /// <param name="resourceId">The identifier of the targeted resource, if any.</param>
+    /// <param name="resourceTagKey">The tag key for <paramref name="resourceId"/>: <see cref="Tags.FileId"/> or <see cref="Tags.ContainerId"/>.</param>
+    /// <param name="wopiOverride">The request's <c>X-WOPI-Override</c> header value, if any.</param>
+    /// <returns>The started activity, or <see langword="null"/> when no listener is attached.</returns>
     public static Activity? StartActivity(
         string operation,
         string? resourceId = null,
@@ -114,6 +119,13 @@ public static class WopiTelemetry
     /// Tags the activity with the outcome, increments <see cref="Requests"/>, and (for
     /// <see cref="Outcomes.LockMismatch"/>) increments <see cref="LockConflicts"/>.
     /// </summary>
+    /// <remarks>
+    /// Every outcome other than <see cref="Outcomes.Success"/> and <see cref="Outcomes.Cancelled"/>
+    /// sets the activity status to <see cref="ActivityStatusCode.Error"/>.
+    /// </remarks>
+    /// <param name="activity">The activity to tag, or <see langword="null"/> when none was started.</param>
+    /// <param name="operation">The WOPI operation name.</param>
+    /// <param name="outcome">The outcome: one of the constants on <see cref="Outcomes"/>.</param>
     public static void RecordOutcome(Activity? activity, string operation, string outcome)
     {
         activity?.SetTag(Tags.Outcome, outcome);

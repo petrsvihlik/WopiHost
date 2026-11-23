@@ -1,16 +1,15 @@
 ﻿namespace WopiHost.Discovery;
 
 /// <summary>
-/// Wraps a type in an expiring envelope.
-/// Kudos to: https://github.com/filipw/async-expiring-lazy
-/// https://www.strathweb.com/2016/11/lazy-async-initialization-for-expiring-objects/
+/// Wraps a lazily created value in an expiring envelope.
 /// </summary>
-/// <typeparam name="T">Type of the temporary value.</typeparam>
+/// <typeparam name="T">The type of the temporary value.</typeparam>
 /// <remarks>
-/// Creates a new instance of <see cref="AsyncExpiringLazy{T}"/>.
+/// Based on <see href="https://github.com/filipw/async-expiring-lazy">async-expiring-lazy</see>
+/// (see <see href="https://www.strathweb.com/2016/11/lazy-async-initialization-for-expiring-objects/">Lazy async initialization for expiring objects</see>).
 /// </remarks>
-/// <param name="valueProvider">A delegate that facilitates the creation of the value.</param>
-/// <exception cref="ArgumentNullException">The <paramref name="valueProvider"/> must be initialized.</exception>
+/// <param name="valueProvider">A delegate that creates the value, given the previous (possibly expired) one.</param>
+/// <exception cref="ArgumentNullException"><paramref name="valueProvider"/> is <see langword="null"/>.</exception>
 public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>>> valueProvider) : IDisposable
 {
     // Instance-scoped on purpose: a static lock would be shared across every
@@ -23,8 +22,9 @@ public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>
     private bool IsValueCreatedInternal => _value.Result != null && _value.ValidUntil > DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Returns true if a value has been created and is still valid.
+    /// Determines whether a value has been created and is still valid.
     /// </summary>
+    /// <returns><see langword="true"/> if a non-<see langword="null"/> value exists and has not expired; otherwise, <see langword="false"/>.</returns>
     public async Task<bool> IsValueCreated()
     {
         await _syncLock.WaitAsync().ConfigureAwait(false);
@@ -39,8 +39,9 @@ public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>
     }
 
     /// <summary>
-    /// Gets the current value or creates a new one, if expired.
+    /// Gets the current value, creating a new one if none exists or it has expired.
     /// </summary>
+    /// <returns>The current value.</returns>
     public async Task<T> Value()
     {
         // Hold the lock for the entire operation so concurrent first-time
@@ -68,6 +69,7 @@ public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>
     /// <summary>
     /// Invalidates the current value causing a new value to be created when <see cref="Value"/> is called next time.
     /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task Invalidate()
     {
         await _syncLock.WaitAsync().ConfigureAwait(false);
@@ -81,11 +83,11 @@ public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>
         }
     }
 
-    /// <summary>
-    /// Releases the internal <see cref="SemaphoreSlim"/>. The class is not
-    /// sealed; derived types should override <see cref="Dispose(bool)"/> if
-    /// they hold additional resources.
-    /// </summary>
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Releases the internal <see cref="SemaphoreSlim"/>. Derived types that hold additional
+    /// resources override <see cref="Dispose(bool)"/>.
+    /// </remarks>
     public void Dispose()
     {
         Dispose(disposing: true);
@@ -95,7 +97,7 @@ public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>
     /// <summary>
     /// Releases managed resources held by this instance.
     /// </summary>
-    /// <param name="disposing"><c>true</c> when called from <see cref="Dispose()"/>.</param>
+    /// <param name="disposing"><see langword="true"/> when called from <see cref="Dispose()"/>.</param>
     protected virtual void Dispose(bool disposing)
     {
         if (_disposed)

@@ -74,7 +74,7 @@ public sealed class VanishRaceTests : IDisposable
     }
 }
 
-/// <summary>Delegates everything to the real provider but wraps files in <see cref="VanishedFile"/>.</summary>
+/// <summary>Represents a storage provider that delegates to the real one but wraps files in <see cref="VanishedFile"/>.</summary>
 file sealed class VanishingReadStorage(IWopiStorageProvider inner) : IWopiStorageProvider
 {
     public IWopiContainer RootContainer => inner.RootContainer;
@@ -104,7 +104,7 @@ file sealed class VanishingReadStorage(IWopiStorageProvider inner) : IWopiStorag
         => inner.GetWopiContainerByName(containerId, name, cancellationToken);
 }
 
-/// <summary>A file that reports itself present but whose content read faults — the vanish race.</summary>
+/// <summary>Represents a file that reports itself present but whose content read throws, simulating the vanish race.</summary>
 file sealed class VanishedFile(IWopiFile inner) : IWopiFile
 {
     public string Name => inner.Name;

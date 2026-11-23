@@ -3,12 +3,13 @@
 namespace WopiHost.Core.Security.Authentication;
 
 /// <summary>
-/// Configuration object for <see cref="AccessTokenHandler"/>.
+/// Represents the options for <see cref="AccessTokenHandler"/>.
 /// </summary>
 public class AccessTokenAuthenticationOptions : AuthenticationSchemeOptions
 {
     /// <summary>
-    /// Defines whether the token should be stored in the <see cref="Microsoft.AspNetCore.Authentication.AuthenticationProperties"/> after a successful authorization.
+    /// Gets or sets a value indicating whether the access token is stored in the
+    /// <see cref="AuthenticationProperties"/> after successful authentication. The default is <see langword="true"/>.
     /// </summary>
     public bool SaveToken { get; set; } = true;
 }

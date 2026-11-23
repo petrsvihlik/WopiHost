@@ -10,7 +10,7 @@ public class FileViewModel
     public bool SupportsView { get; set; }
     public bool SupportsEdit { get; set; }
 
-    /// <summary>Icon image source. Rendered as <c>&lt;img src&gt;</c> by Razor via <see cref="object.ToString"/>.</summary>
+    /// <summary>Gets or sets the icon image source. Rendered as <c>&lt;img src&gt;</c> by Razor via <see cref="object.ToString"/>.</summary>
     /// <remarks>
     /// May be absolute (returned by <c>IDiscoverer.GetApplicationFavIconAsync</c>) or relative
     /// (the <c>/file.ico</c> fallback). If this type is ever exposed through a JSON API, note that

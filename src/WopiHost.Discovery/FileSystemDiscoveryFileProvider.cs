@@ -6,11 +6,9 @@ namespace WopiHost.Discovery;
 /// <summary>
 /// Loads the WOPI discovery XML file from the local file system.
 /// </summary>
-/// <remarks>
-/// Initializes the provider using a local file-system path.
-/// </remarks>
-/// <param name="filePath">Path to a WOPI XML discovery file.</param>
-/// <param name="logger">Logger.</param>
+/// <param name="filePath">The path to a WOPI discovery XML file.</param>
+/// <param name="logger">The logger.</param>
+/// <exception cref="ArgumentNullException"><paramref name="logger"/> is <see langword="null"/>.</exception>
 public partial class FileSystemDiscoveryFileProvider(string filePath, ILogger<FileSystemDiscoveryFileProvider> logger) : IDiscoveryFileProvider
 {
     private readonly string _filePath = filePath;

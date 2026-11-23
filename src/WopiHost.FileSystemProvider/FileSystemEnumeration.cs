@@ -20,6 +20,8 @@ internal static class FileSystemEnumeration
     /// <summary>
     /// Yields <paramref name="rootPath"/> itself, then every file and directory beneath it.
     /// </summary>
+    /// <param name="rootPath">The root directory to enumerate.</param>
+    /// <returns>The full paths of <paramref name="rootPath"/> and every entry beneath it; inaccessible entries and reparse points are skipped.</returns>
     internal static IEnumerable<string> EnumerateTree(string rootPath)
     {
         yield return rootPath;

@@ -9,7 +9,7 @@ using WopiHost.Abstractions;
 namespace WopiHost.Cobalt;
 
 /// <summary>
-/// MS-FSSHTTP / Cobalt processor that maintains a long-lived <see cref="CobaltFile"/>
+/// Processes MS-FSSHTTP (Cobalt) requests, maintaining a long-lived <see cref="CobaltFile"/>
 /// per WOPI file id.
 /// </summary>
 /// <remarks>
@@ -29,7 +29,7 @@ namespace WopiHost.Cobalt;
 /// </remarks>
 public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
 {
-    /// <summary>How long a session may go without traffic before it is disposed.</summary>
+    /// <summary>Gets how long a session may go without traffic before it is disposed.</summary>
     public static TimeSpan SessionIdleTimeout { get; } = TimeSpan.FromMinutes(60);
 
     private static readonly TimeSpan s_cleanupInterval = TimeSpan.FromMinutes(5);
@@ -40,6 +40,12 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
     private readonly Timer _cleanupTimer;
     private int _disposed;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CobaltProcessor"/> class.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="trackerLogger">The logger for the processor's <see cref="CoauthoringSessionTracker"/>.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="logger"/> or <paramref name="trackerLogger"/> is <see langword="null"/>.</exception>
     public CobaltProcessor(ILogger<CobaltProcessor> logger, ILogger<CoauthoringSessionTracker> trackerLogger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -48,6 +54,8 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
     }
 
     /// <inheritdoc/>
+    /// <exception cref="ObjectDisposedException">The processor has been disposed.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="file"/> or <paramref name="newContent"/> is <see langword="null"/>.</exception>
     [ExcludeFromCodeCoverage(Justification = "Binary protocol; covered by integration tests")]
     public async Task<byte[]> ProcessCobalt(IWopiWritableFile file, ClaimsPrincipal principal, byte[] newContent, CancellationToken cancellationToken = default)
     {
@@ -213,6 +221,7 @@ public sealed partial class CobaltProcessor : ICobaltProcessor, IDisposable
         }
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;

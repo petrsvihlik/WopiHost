@@ -2,9 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Discovery;
 
-/// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for <see cref="HttpDiscoveryFileProvider"/>.
-/// </summary>
+/// <content>Contains the source-generated logging methods.</content>
 public partial class HttpDiscoveryFileProvider
 {
     [LoggerMessage(

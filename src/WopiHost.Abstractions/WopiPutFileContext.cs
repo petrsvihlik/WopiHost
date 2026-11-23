@@ -4,7 +4,7 @@ using System.Security.Claims;
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Context for the <c>PutFile</c> operation, raised after the host has successfully written
+/// Represents the context for the <c>PutFile</c> operation, raised after the host has successfully written
 /// the new file contents and is about to return the response.
 /// </summary>
 /// <remarks>
@@ -16,14 +16,14 @@ namespace WopiHost.Abstractions;
 /// trails and last-touch metadata. The list is empty when the header is absent or empty.
 /// </para>
 /// <para>
-/// The callback runs after the write has completed successfully but before the controller
+/// The callback runs after the write has completed successfully but before the endpoint
 /// emits the 200 response. Throwing here turns the response into a 500 — for non-fatal
 /// bookkeeping (audit log, last-edit timestamp), swallow exceptions inside the handler.
 /// </para>
 /// </remarks>
-/// <param name="User">the principal that issued the PutFile request.</param>
-/// <param name="File">the file resource that was just written.</param>
-/// <param name="Editors">user ids who contributed to this PutFile, parsed from
+/// <param name="User">The principal that issued the PutFile request, if any.</param>
+/// <param name="File">The file resource that was just written.</param>
+/// <param name="Editors">The user ids who contributed to this PutFile, parsed from
 /// <c>X-WOPI-Editors</c>. Empty when the header is absent.</param>
 public record WopiPutFileContext(
     ClaimsPrincipal? User,

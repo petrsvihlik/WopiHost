@@ -3,9 +3,7 @@ using WopiHost.Abstractions;
 
 namespace WopiHost.Core.Security.Authentication;
 
-/// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for <see cref="JwtAccessTokenService"/>.
-/// </summary>
+/// <content>Contains the source-generated logging methods.</content>
 public partial class JwtAccessTokenService
 {
     [LoggerMessage(

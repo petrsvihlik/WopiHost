@@ -3,11 +3,14 @@ using WopiHost.Abstractions;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Default <see cref="IWopiNewChildFileNegotiator"/>. Implements the WOPI suggested-target /
-/// relative-target / overwrite-relative-target protocol verbatim from the spec — same logic
-/// for both <c>PutRelativeFile</c> and <c>CreateChildFile</c>; the spec defines the dance
-/// identically across both operations.
+/// Provides the default <see cref="IWopiNewChildFileNegotiator"/> implementation of the WOPI
+/// suggested-target / relative-target / overwrite-relative-target protocol, which the spec defines
+/// identically for <c>PutRelativeFile</c> and <c>CreateChildFile</c>.
 /// </summary>
+/// <param name="storage">The storage provider used to look up an existing file with the target name.</param>
+/// <param name="writable">The writable storage provider that validates names and creates files.</param>
+/// <param name="permissions">The provider that decides whether an existing target may be overwritten.</param>
+/// <param name="lockProvider">The lock provider, if any; a locked overwrite target yields <see cref="WopiNewChildFileResult.Locked"/>.</param>
 public sealed class DefaultWopiNewChildFileNegotiator(
     IWopiStorageProvider storage,
     IWopiWritableStorageProvider writable,
@@ -135,10 +138,10 @@ public sealed class DefaultWopiNewChildFileNegotiator(
 
     /// <summary>
     /// Scrubs <paramref name="invalidName"/> via <see cref="WopiFileNameSanitiser"/> and then
-    /// asks the provider to dedup the candidate against existing siblings. Returns the
-    /// dedup-suggested name on success, or <see langword="null"/> when the scrubbed candidate
-    /// still fails validation (caller decides whether to swallow or surface the failure).
+    /// asks the provider to dedup the candidate against existing siblings.
     /// </summary>
+    /// <returns>The dedup-suggested name, or <see langword="null"/> when the scrubbed candidate still fails
+    /// validation; the caller decides whether to swallow or surface the failure.</returns>
     private async Task<string?> TryBuildValidSuggestionAsync(WopiNewChildFileRequest request, string invalidName, CancellationToken cancellationToken)
     {
         var candidate = await WopiFileNameSanitiser.TryBuildValidCandidateAsync(

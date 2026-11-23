@@ -4,20 +4,25 @@ using Xunit;
 namespace WopiHost.IntegrationTests.Fixtures;
 
 /// <summary>
-/// Shared fixture for the mutating endpoint test classes
-/// (<see cref="WopiHost.IntegrationTests.FileMutatingEndpointTests"/> +
-/// <see cref="WopiHost.IntegrationTests.ContainerMutatingEndpointTests"/>). Mutating tests
-/// need an isolated file-system root so they don't corrupt the shared sample/wopi-docs that
-/// read-only tests rely on — this fixture copies the sample into a per-collection temp
-/// directory and points <see cref="WopiBackendFactory"/> at it. Cleanup happens in
-/// <see cref="IDisposable.Dispose"/>.
+/// Provides the shared fixture for the mutating endpoint test classes
+/// (<see cref="WopiHost.IntegrationTests.FileMutatingEndpointTests"/> and
+/// <see cref="WopiHost.IntegrationTests.ContainerMutatingEndpointTests"/>), backed by a
+/// per-collection copy of <c>sample/wopi-docs</c>.
 /// </summary>
 /// <remarks>
+/// <para>
+/// Mutating tests need an isolated file-system root so they don't corrupt the shared
+/// <c>sample/wopi-docs</c> that read-only tests rely on, so this fixture copies the sample into a
+/// temp directory, points <see cref="WopiBackendFactory"/> at it, and deletes it in
+/// <see cref="Dispose"/>.
+/// </para>
+/// <para>
 /// Both mutating test classes share one backend boot via
 /// <see cref="MutatingEndpointsCollection"/>. The fixture creates files / containers via the
 /// writable provider so the FileSystemProvider's id↔path cache stays in sync (dropping raw
 /// bytes on disk would leave the cache stale and the file invisible to <c>GetWopiFiles</c>).
-/// File / container tests don't conflict at runtime — all temp names are GUID-prefixed.
+/// File and container tests don't conflict at runtime because all temp names are GUID-suffixed.
+/// </para>
 /// </remarks>
 public sealed class MutatingEndpointsFixture : IDisposable
 {
@@ -49,16 +54,22 @@ public sealed class MutatingEndpointsFixture : IDisposable
 
     /// <summary>
     /// Creates a file via <see cref="IWopiWritableStorageProvider.CreateWopiChildFile"/>
-    /// so the FileSystemProvider's id→path cache registers the new identifier. Then writes
+    /// so the FileSystemProvider's id↔path cache registers the new identifier, then writes
     /// <paramref name="contents"/> through the writable file handle.
     /// </summary>
+    /// <param name="contents">The bytes to write into the new file.</param>
+    /// <param name="extension">The file extension, including the leading dot.</param>
+    /// <returns>The new file's identifier.</returns>
     public async Task<string> CreateTempFileAsync(byte[] contents, string extension = ".bin")
         => (await CreateTempFileWithPathAsync(contents, extension)).FileId;
 
     /// <summary>
-    /// Like <see cref="CreateTempFileAsync"/>, but also returns the on-disk path so a test can
-    /// mutate the file behind the provider's back (stale id→path binding scenarios).
+    /// Creates a file like <see cref="CreateTempFileAsync"/>, and also reports its on-disk path so a
+    /// test can mutate the file behind the provider's back (stale id↔path binding scenarios).
     /// </summary>
+    /// <param name="contents">The bytes to write into the new file.</param>
+    /// <param name="extension">The file extension, including the leading dot.</param>
+    /// <returns>The new file's identifier and its on-disk path.</returns>
     public async Task<(string FileId, string DiskPath)> CreateTempFileWithPathAsync(byte[] contents, string extension = ".bin")
     {
         var fileName = $"mut-{Guid.NewGuid():N}{extension}";
@@ -76,8 +87,9 @@ public sealed class MutatingEndpointsFixture : IDisposable
 
     /// <summary>
     /// Creates a subfolder via <see cref="IWopiWritableStorageProvider.CreateWopiChildContainer"/>
-    /// so the id↔path cache registers it. Returns the new container's identifier.
+    /// so the id↔path cache registers it.
     /// </summary>
+    /// <returns>The new container's identifier.</returns>
     public async Task<string> CreateTempContainerAsync()
     {
         var folderName = $"mut-container-{Guid.NewGuid():N}";
@@ -108,9 +120,8 @@ public sealed class MutatingEndpointsFixture : IDisposable
 }
 
 /// <summary>
-/// xUnit collection wrapper so the file + container mutating test classes share one
-/// <see cref="MutatingEndpointsFixture"/> instance. Without the collection, each class
-/// would boot its own backend (acceptable but ~3-5s of redundant startup overhead per class).
+/// Defines the xUnit collection through which the file and container mutating test classes share one
+/// <see cref="MutatingEndpointsFixture"/> instance, so the backend boots once instead of per class.
 /// </summary>
 [CollectionDefinition("MutatingEndpoints")]
 public sealed class MutatingEndpointsCollection : ICollectionFixture<MutatingEndpointsFixture>

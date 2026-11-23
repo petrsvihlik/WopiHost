@@ -146,6 +146,6 @@ app.Run();
 
 namespace WopiHost.Web.Oidc
 {
-    /// <summary>Test-only marker so <c>WebApplicationFactory&lt;OidcSampleEntryPoint&gt;</c> resolves unambiguously to this sample's assembly (the global <c>Program</c> name conflicts with the WOPI backend's <c>WopiHost.Program</c>).</summary>
+    /// <summary>Provides a test-only marker so that <c>WebApplicationFactory&lt;OidcSampleEntryPoint&gt;</c> resolves unambiguously to this sample's assembly (the global <c>Program</c> name conflicts with the WOPI backend's <c>WopiHost.Program</c>).</summary>
     public partial class OidcSampleEntryPoint;
 }

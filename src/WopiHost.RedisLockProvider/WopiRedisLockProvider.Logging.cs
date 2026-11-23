@@ -2,9 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.RedisLockProvider;
 
-/// <summary>
-/// LoggerMessage-generated log sinks for <see cref="WopiRedisLockProvider"/>.
-/// </summary>
+/// <content>Contains the source-generated logging methods.</content>
 public sealed partial class WopiRedisLockProvider
 {
     [LoggerMessage(EventId = 1, Level = LogLevel.Debug,

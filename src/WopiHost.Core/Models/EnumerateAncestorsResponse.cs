@@ -1,7 +1,7 @@
 ﻿namespace WopiHost.Core.Models;
 
 /// <summary>
-/// EnumerateAncestors operation response.
+/// Represents the response body of the <c>EnumerateAncestors</c> operation.
 /// </summary>
-/// <param name="AncestorsWithRootFirst"></param>
+/// <param name="AncestorsWithRootFirst">The ancestor containers, with the root container first.</param>
 public record EnumerateAncestorsResponse(IEnumerable<ChildContainer> AncestorsWithRootFirst);

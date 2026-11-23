@@ -1,21 +1,23 @@
 namespace WopiHost.Url;
 
 /// <summary>
-/// This value is used to run the WOPI Validation application in different modes.
-/// This value can be set to All, OfficeOnline or OfficeNativeClient to activate tests specific to Office Online and Office for iOS.If omitted, the default value is All.
+/// Specifies which test suite the WOPI Validation application runs.
 /// </summary>
+/// <remarks>
+/// Passed through the <c>VALIDATOR_TEST_CATEGORY</c> URL placeholder. When omitted, the validator uses <see cref="All"/>.
+/// </remarks>
 public enum ValidatorTestCategoryEnum
 {
     /// <summary>
-    /// All: activates all WOPI Validation application tests. 
+    /// Activates all WOPI Validation application tests.
     /// </summary>
     All,
     /// <summary>
-    /// OfficeOnline: activates all tests necessary for Office Online integration.
+    /// Activates all tests necessary for Office Online integration.
     /// </summary>
     OfficeOnline,
     /// <summary>
-    /// OfficeNativeClient: activates all tests necessary for Office for iOS integration.
+    /// Activates all tests necessary for Office for iOS integration.
     /// </summary>
     OfficeNativeClient
 }

@@ -9,7 +9,8 @@ namespace WopiHost.Url.Tests;
 
 public partial class WopiUrlGeneratorTests
 {
-    /// <summary>Counts WopiSrc occurrences in the generated URL (case-insensitive).</summary>
+    /// <summary>Gets a regex matching each <c>wopisrc=</c> parameter in a generated URL (case-insensitive).</summary>
+    /// <returns>The source-generated regex.</returns>
     [GeneratedRegex("wopisrc=", RegexOptions.IgnoreCase)]
     private static partial Regex WopiSrcParamRegex();
 

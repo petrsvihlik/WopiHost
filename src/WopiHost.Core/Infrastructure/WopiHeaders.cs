@@ -1,19 +1,19 @@
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// WOPI HTTP header names.
+/// Provides the WOPI HTTP header names.
 /// </summary>
 public static class WopiHeaders
 {
     /// <summary>
-    /// A string specifying the requested operation from the WOPI server.
+    /// A string specifying the WOPI operation the client requests from the host.
     /// </summary>
     public const string WopiOverride = "X-WOPI-Override";
 
     /// <summary>
-    /// A string value identifying the current lock on the file. 
-    /// This header must always be included when responding to the request with 409 Conflict. 
-    /// It should not be included when responding to the request with 200 OK.
+    /// A string value identifying the current lock on the file.
+    /// The header must always be included in a <c>409 Conflict</c> response to a lock operation.
+    /// It should not be included in a <c>200 OK</c> response to one.
     /// </summary>
 	public const string Lock = "X-WOPI-Lock";
 
@@ -26,8 +26,7 @@ public static class WopiHeaders
     /// <para>
     /// The runtime value is resolved from <see cref="WopiHost.Core.Models.WopiHostOptions.EmptyLockHeaderValue"/>
     /// (default: empty string, matching the WOPI spec). This constant is the fallback used when
-    /// no service provider is available — and remains useful as a stable reference value for
-    /// tests that pin the spec-compliant default.
+    /// no service provider is available.
     /// </para>
     /// <para>
     /// Hosting under IIS in-process strips empty header values before they reach the wire.
@@ -38,8 +37,8 @@ public static class WopiHeaders
     public const string EmptyLockValue = "";
 
     /// <summary>
-    /// A string provided by the WOPI client that is the existing lock on the file.
-    /// Required. Note that if X-WOPI-OldLock is not provided, the request is identical to a Lock request.
+    /// A string provided by the WOPI client that is the existing lock on the file, sent on <c>UnlockAndRelock</c>.
+    /// When the header is absent, the request is a plain <c>Lock</c> request.
     /// </summary>
     public const string OldLock = "X-WOPI-OldLock";
 
@@ -51,7 +50,7 @@ public static class WopiHeaders
     public const string Editors = "X-WOPI-Editors";
 
     /// <summary>
-    /// Marker request header on <c>PutRelativeFile</c> whose <em>presence</em> indicates the call
+    /// Marker request header on <c>PutRelativeFile</c> whose <i>presence</i> indicates the call
     /// is being made in the context of a binary document conversion. The header value itself is
     /// not significant per the spec — only its presence. Surfaced via
     /// <see cref="WopiHost.Abstractions.IWopiHostExtensions.OnPutRelativeFileAsync"/>.
@@ -65,25 +64,25 @@ public static class WopiHeaders
     public const string Size = "X-WOPI-Size";
 
     /// <summary>
-    /// An optional string value indicating the cause of a lock failure. 
-    /// This header may be included when responding to the request with 409 Conflict. 
-    /// There is no standard for how this string is formatted, and it must only be used for logging purposes.
+    /// An optional string value indicating the cause of a lock failure.
+    /// The header may be included in a <c>409 Conflict</c> response.
+    /// Its format is not standardized, and it must only be used for logging purposes.
     /// </summary>
     public const string LockFailureReason = "X-WOPI-LockFailureReason";
 
     /// <summary>
     /// A UTF-7 string specifying either a file extension or a full file name.
     /// If only the extension is provided, the name of the initial file without extension SHOULD be combined with the extension to create the proposed name.
-    /// The WOPI server MUST modify the proposed name as needed to create a new file that is both legally named and does not overwrite any existing file, 
+    /// The WOPI server MUST modify the proposed name as needed to create a new file that is both legally named and does not overwrite any existing file,
     /// while preserving the file extension.
     /// This header MUST be present if <see cref="RelativeTarget"/> is not present.
     /// </summary>
     public const string SuggestedTarget = "X-WOPI-SuggestedTarget";
 
     /// <summary>
-    /// A UTF-7 string that specifies a full file name. The WOPI server MUST NOT modify the name to fulfill the request. 
-    /// When a file with the specified name already exists, if the <see cref="OverwriteRelativeTarget"/> request header is set to false, 
-    /// or if the <see cref="OverwriteRelativeTarget"/> request header is set to true and the file is locked, the host MUST respond with a 409 status code.
+    /// A UTF-7 string that specifies a full file name. The WOPI server MUST NOT modify the name to fulfill the request.
+    /// When a file with the specified name already exists, if the <see cref="OverwriteRelativeTarget"/> request header is set to <see langword="false"/>,
+    /// or if it is set to <see langword="true"/> and the file is locked, the host MUST respond with <c>409 Conflict</c>.
     /// </summary>
     public const string RelativeTarget = "X-WOPI-RelativeTarget";
 
@@ -93,42 +92,37 @@ public static class WopiHeaders
     public const string OverwriteRelativeTarget = "X-WOPI-OverwriteRelativeTarget";
 
     /// <summary>
-    /// The host may include an X-WOPI-ValidRelativeTarget specifying a container/file name that is valid when creating using RelativeTarget that already exists
+    /// A valid file name the host may return on a <c>400 Bad Request</c> or <c>409 Conflict</c> response to a
+    /// <see cref="RelativeTarget"/> request, so the client can retry with it. UTF-7 encoded.
     /// </summary>
     public const string ValidRelativeTarget = "X-WOPI-ValidRelativeTarget";
 
     /// <summary>
-    /// Every WOPI request Office for the web makes to a host will have an ID called the correlation ID. 
-    /// This ID will be included in the WOPI request using the X-WOPI-CorrelationId request header.
+    /// The correlation ID that Office for the web attaches to every WOPI request it makes to a host.
     /// </summary>
     public const string CorrelationId = "X-WOPI-CorrelationID";
 
     /// <summary>
-    /// Whenever an action URL is navigated to, Office for the web creates a unique session ID. 
-    /// This session ID allows Microsoft engineers to quickly retrieve all server logs related to that session, 
-    /// including information about the WOPI calls that were made to the host. 
-    /// The session ID is passed back in the WOPI action URL HTTP response in the X-UserSessionId response header. 
-    /// It is also passed on every subsequent request made by the browser to Office Online in the X-UserSessionId request header, 
-    /// and it is included in all PostMessages sent from |wac| to the host page in the wdUserSession value.
+    /// The unique session ID Office for the web creates whenever an action URL is navigated to.
+    /// It is returned in the action URL response, sent on every subsequent browser request to Office for the web,
+    /// and included as <c>wdUserSession</c> in every PostMessage sent to the host page.
     /// </summary>
     public const string SessionId = "X-UserSessionId";
 
     /// <summary>
-    /// An integer specifying the upper bound of the expected size of the file being requested. 
-    /// Optional. 
-    /// The host should use the maximum value of a 4-byte integer if this value is not set in the request. 
-    /// If the file requested is larger than this value, the host must respond with a 412 Precondition Failed.
+    /// An optional integer specifying the upper bound of the expected size of the file being requested.
+    /// The host should use the maximum value of a 4-byte integer if this value is not set in the request.
+    /// If the file requested is larger than this value, the host must respond with <c>412 Precondition Failed</c>.
     /// </summary>
     public const string MaxExpectedSize = "X-WOPI-MaxExpectedSize";
 
     /// <summary>
-    ///  The WopiSrc (a string) for the file or container. Used for:
-    ///  POST /wopibootstrapper
+    /// The WopiSrc of the file or container, sent on <c>POST /wopibootstrapper</c>.
     /// </summary>
     public const string WopiSrc = "X-WOPI-WopiSrc";
 
     /// <summary>
-    /// The string GET_NEW_ACCESS_TOKEN. Required.
+    /// The bootstrapper operation requested on <c>POST /wopibootstrapper</c>, such as <c>GET_NEW_ACCESS_TOKEN</c>.
     /// </summary>
     public const string EcosystemOperation = "X-WOPI-EcosystemOperation";
 
@@ -144,7 +138,7 @@ public static class WopiHeaders
     public const string ItemVersion = "X-WOPI-ItemVersion";
 
     /// <summary>
-    /// A string describing the reason the CreateChildContainer operation could not be completed
+    /// A string describing the reason a <c>CreateChildContainer</c> or <c>RenameContainer</c> operation could not be completed.
     /// </summary>
     public const string InvalidContainerName = "X-WOPI-InvalidContainerNameError";
 
@@ -154,27 +148,26 @@ public static class WopiHeaders
     public const string InvalidFileName = "X-WOPI-InvalidFileNameError";
 
     /// <summary>
-    /// A UTF-7 encoded string that is a container name. Required.
+    /// A UTF-7 encoded string that is the requested new name on <c>RenameFile</c> (without the file extension) and <c>RenameContainer</c>.
     /// </summary>
     public const string RequestedName = "X-WOPI-RequestedName";
 
     /// <summary>
-    /// A string value that the host must use to filter the returned child files. 
-    /// This header must be a list of comma-separated file extensions with a leading dot (.). 
-    /// There must be no whitespace and no trailing comma in the string. 
-    /// Wildcard characters are not permitted.
+    /// A string value that the host must use to filter the returned child files.
+    /// The header is a list of comma-separated file extensions with a leading dot (<c>.</c>),
+    /// with no whitespace, no trailing comma, and no wildcard characters.
     /// </summary>
     public const string FileExtensionFilterList = "X-WOPI-FileExtensionFilterList";
 
     /// <summary>
-    /// The Share URL type requested on the GetShareUrl operation — one of
+    /// The share URL type requested on the <c>GetShareUrl</c> operation — one of
     /// <see cref="WopiHost.Abstractions.WopiShareUrlTypes"/> (e.g. <c>ReadOnly</c>, <c>ReadWrite</c>).
     /// </summary>
     public const string UrlType = "X-WOPI-UrlType";
 
     /// <summary>
     /// A Base64-encoded string indicating a cryptographic signature of the request.
-    /// Used to validate that the request originated from Office Online Server.
+    /// Used to validate that the request originated from the WOPI client.
     /// </summary>
     public const string Proof = "X-WOPI-Proof";
 
@@ -186,7 +179,7 @@ public static class WopiHeaders
 
     /// <summary>
     /// A 64-bit integer (expressed as a string) that represents the time that the request was signed.
-    /// Should not be more than 20 minutes old.
+    /// The default proof validator rejects requests signed more than 20 minutes ago.
     /// </summary>
     public const string Timestamp = "X-WOPI-TimeStamp";
 }

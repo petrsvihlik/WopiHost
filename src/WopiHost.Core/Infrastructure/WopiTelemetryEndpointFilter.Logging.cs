@@ -2,16 +2,9 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Core.Infrastructure;
 
-/// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for
-/// <see cref="WopiTelemetryEndpointFilter"/>. Lives in a partial so the source generator
-/// can emit the strongly-typed delegate without the per-call allocation of
-/// <c>logger.LogX(string, params object?[])</c>.
-/// </summary>
-/// <remarks>
-/// <c>userId</c> intentionally stays out of the message template — the telemetry filter
-/// already pushes it into the log scope under <see cref="WopiTelemetry.Tags.UserId"/>.
-/// </remarks>
+// userId stays out of the message templates: the filter already pushes it into the log scope
+// under WopiTelemetry.Tags.UserId.
+/// <content>Contains the source-generated logging methods.</content>
 internal sealed partial class WopiTelemetryEndpointFilter
 {
     [LoggerMessage(

@@ -15,23 +15,22 @@ namespace WopiHost.Core.Infrastructure;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <strong>Operation name resolution.</strong> Read from the endpoint's
+/// <b>Operation name resolution.</b> Read from the endpoint's
 /// <see cref="Microsoft.AspNetCore.Routing.EndpointNameMetadata"/> when present (set via
-/// <c>.WithName("…")</c>), otherwise from <see cref="Endpoint.DisplayName"/>. Endpoints in the
-/// Minimal-API topology should call <c>.WithName(WopiRouteNames.CheckFileInfo)</c> on their
-/// canonical routes so the metric dimension stays stable across renames.
+/// <c>.WithName("…")</c>), otherwise from <see cref="Endpoint.DisplayName"/>. Endpoints should
+/// call <c>.WithName(...)</c> (for example with <see cref="WopiRouteNames.CheckFileInfo"/>) so the
+/// metric dimension stays stable across handler renames.
 /// </para>
 /// <para>
-/// <strong>Resource kind dispatch.</strong> Read from
+/// <b>Resource kind dispatch.</b> Read from
 /// <see cref="WopiResourceKindMetadata"/>; defaults to <see cref="WopiResourceType.File"/> when
 /// absent (files are the common case; Containers / Folders explicitly switch the dimension).
 /// </para>
 /// <para>
-/// <strong>Outcome classification.</strong> Result types implementing
+/// <b>Outcome classification.</b> Result types implementing
 /// <see cref="IWopiOutcomeResult"/> win (the lock-mismatch case — 409 is shared with generic
-/// conflict but dashboards need them separated). Otherwise the response status code is read,
-/// which is set on <c>HttpResponse</c> by the time <c>next()</c> returns since Minimal-API
-/// results are executed synchronously inside the pipeline. Unhandled exceptions surface as
+/// conflict but dashboards need them separated). Otherwise the response status code is read.
+/// Unhandled exceptions surface as
 /// <see cref="WopiTelemetry.Outcomes.Cancelled"/> when the request was aborted by the client,
 /// otherwise <see cref="WopiTelemetry.Outcomes.Error"/>.
 /// </para>

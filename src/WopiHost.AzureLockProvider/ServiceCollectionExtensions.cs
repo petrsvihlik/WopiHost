@@ -9,15 +9,26 @@ using WopiHost.Abstractions;
 namespace WopiHost.AzureLockProvider;
 
 /// <summary>
-/// DI extensions to register <see cref="WopiAzureLockProvider"/>.
+/// Provides extension methods that register <see cref="WopiAzureLockProvider"/>.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers <see cref="WopiAzureLockProvider"/> as the <see cref="IWopiLockProvider"/> in the
-    /// container. Reads <see cref="WopiAzureLockProviderOptions"/> from the <c>Wopi:LockProvider</c>
-    /// configuration section. The lock container is created on first use.
+    /// Registers <see cref="WopiAzureLockProvider"/> as the singleton <see cref="IWopiLockProvider"/>.
     /// </summary>
+    /// <remarks>
+    /// Binds <see cref="WopiAzureLockProviderOptions"/> from the <c>Wopi:LockProvider</c> section and
+    /// validates on start that <see cref="WopiAzureLockProviderOptions.ContainerName"/> and either
+    /// <see cref="WopiAzureLockProviderOptions.ConnectionString"/> or
+    /// <see cref="WopiAzureLockProviderOptions.ServiceUri"/> are set. Without a connection string, the
+    /// <see cref="TokenCredential"/> registered in DI is used, falling back to
+    /// <see cref="DefaultAzureCredential"/>. The lock container is created on first use.
+    /// </remarks>
+    /// <param name="services">The service collection to add the provider to.</param>
+    /// <param name="configuration">The configuration root that contains the <c>Wopi:LockProvider</c> section.</param>
+    /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configuration"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">An <see cref="IWopiLockProvider"/> is already registered in <paramref name="services"/>.</exception>
     public static IServiceCollection AddAzureLockProvider(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);

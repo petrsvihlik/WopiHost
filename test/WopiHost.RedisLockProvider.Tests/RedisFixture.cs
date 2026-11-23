@@ -5,8 +5,9 @@ using Xunit;
 namespace WopiHost.RedisLockProvider.Tests;
 
 /// <summary>
-/// xUnit collection fixture that boots a Redis 8 container once per test run and shares a single
-/// lazily-created <see cref="IConnectionMultiplexer"/> via <see cref="GetMultiplexerAsync"/>.
+/// Provides an xUnit collection fixture that boots a Redis 8 container once per collection and
+/// shares a single lazily-created <see cref="IConnectionMultiplexer"/> via
+/// <see cref="GetMultiplexerAsync"/>.
 /// Tests isolate their state with GUID-suffixed key prefixes, so sharing the connection is safe
 /// and avoids per-test TCP/handshake churn (a multiplexer owns sockets and reader threads).
 /// </summary>

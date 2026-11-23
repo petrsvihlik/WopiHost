@@ -1,29 +1,29 @@
 ﻿namespace WopiHost.Discovery;
 
 /// <summary>
-/// Configuration object for <see cref="IDiscoverer"/>.
+/// Represents the configuration options for <see cref="IDiscoverer"/>.
 /// </summary>
 public class DiscoveryOptions
 {
     /// <summary>
-    /// Default configuration section path this options class binds to. Use with
+    /// The default configuration section path this options class binds to. Use with
     /// <c>builder.Configuration.GetSection(DiscoveryOptions.SectionName)</c>.
     /// </summary>
     public const string SectionName = "Wopi:Discovery";
 
     /// <summary>
-    /// Default discovery refresh cadence (24 hours). Office Online publishes a new discovery
+    /// The default discovery refresh cadence, in hours. Office Online publishes a new discovery
     /// XML at most once a day, so refreshing more often produces no useful change.
     /// </summary>
     public const int DefaultRefreshIntervalHours = 24;
 
     /// <summary>
-    /// A network zone to retrieve the configuration from.
+    /// Gets or sets the network zone whose apps and actions are read from the discovery XML.
     /// </summary>
     public NetZoneEnum NetZone { get; set; }
 
     /// <summary>
-    /// Determines how often should the discovery file be fetched again.
+    /// Gets or sets how often the discovery file is fetched again.
     /// Defaults to <see cref="DefaultRefreshIntervalHours"/> hours.
     /// </summary>
     public TimeSpan RefreshInterval { get; set; } = TimeSpan.FromHours(DefaultRefreshIntervalHours);

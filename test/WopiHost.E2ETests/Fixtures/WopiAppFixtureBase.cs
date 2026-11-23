@@ -8,18 +8,21 @@ using Microsoft.Extensions.DependencyInjection;
 namespace WopiHost.E2ETests.Fixtures;
 
 /// <summary>
-/// Shared scaffolding for the per-client e2e app fixtures. Boots the AppHost programmatically via
-/// <c>DistributedApplicationTestingBuilder</c> with the lane's <c>AppHost:*</c> flags, waits for the
-/// lane's resources to report Running, polls the WOPI client's readiness endpoint until it actually
-/// serves, and exposes the lane's frontend URL for Playwright. Derived fixtures supply only the
-/// lane specifics: flags, resource names, readiness semantics, and failure-diagnostic log capture.
+/// Provides shared scaffolding for the per-client e2e app fixtures.
 /// </summary>
 /// <remarks>
 /// <para>
+/// Boots the AppHost programmatically via <c>DistributedApplicationTestingBuilder</c> with the lane's
+/// <c>AppHost:*</c> flags, waits for the lane's resources to report Running, polls the WOPI client's
+/// readiness endpoint until it actually serves, and exposes the lane's frontend URL for Playwright.
+/// Derived fixtures supply only the lane specifics: flags, resource names, readiness semantics, and
+/// failure-diagnostic log capture.
+/// </para>
+/// <para>
 /// Docker is required. The fixture probes <c>docker info</c> at construction time and stores the
 /// result in <see cref="IsDockerAvailable"/>; tests check this and skip when the engine is
-/// unreachable. <see cref="InitializeAsync"/> does NOT throw on missing Docker — that would surface
-/// as a fixture init failure (red) rather than a clean skip on contributor machines.
+/// unreachable. <see cref="InitializeAsync"/> does not throw on missing Docker, because that would
+/// surface as a fixture initialization failure rather than a clean skip on contributor machines.
 /// </para>
 /// <para>
 /// Each derived fixture disables the other lane and Redis so a suite spins up exactly one client
@@ -31,48 +34,52 @@ public abstract class WopiAppFixtureBase : IAsyncLifetime
 {
     private DistributedApplication? _app;
 
-    /// <summary>Whether a usable Docker engine was reachable at fixture construction time.</summary>
+    /// <summary>Gets a value indicating whether a usable Docker engine was reachable at fixture construction time.</summary>
     public bool IsDockerAvailable { get; } = DockerCheck.IsDockerAvailable();
 
     /// <summary>
-    /// HTTPS URL of the lane's Web frontend after the application has started. Populated by
-    /// <see cref="InitializeAsync"/>; reading before initialisation completes throws.
+    /// Gets the HTTPS URL of the lane's Web frontend. Populated by <see cref="InitializeAsync"/>;
+    /// <see langword="null"/> until initialization completes or when Docker is unavailable.
     /// </summary>
     public Uri WebFrontendUrl { get; private set; } = null!;
 
     /// <summary>
-    /// Filesystem path to the writable <c>sample/wopi-docs</c> tree the sample WOPI host serves.
+    /// Gets the file-system path to the writable <c>sample/wopi-docs</c> tree the sample WOPI host serves.
     /// Tests assert on file timestamps / sizes here to verify that PutFile callbacks from the
     /// WOPI client actually round-tripped back through the host to disk.
     /// </summary>
     public string WopiDocsPath { get; } = ResolveWopiDocsPath();
 
-    /// <summary>Name of the WOPI-client container resource; also the name of its HTTP endpoint
-    /// (the AppHost registers both under the same string, e.g. <c>collabora</c>).</summary>
+    /// <summary>Gets the name of the WOPI-client container resource, which is also the name of its HTTP
+    /// endpoint (the AppHost registers both under the same string, for example <c>collabora</c>).</summary>
     protected abstract string ClientResourceName { get; }
 
-    /// <summary>Name of the lane's WOPI backend project resource.</summary>
+    /// <summary>Gets the name of the lane's WOPI backend project resource.</summary>
     protected abstract string BackendResourceName { get; }
 
-    /// <summary>Name of the lane's Web frontend project resource.</summary>
+    /// <summary>Gets the name of the lane's Web frontend project resource.</summary>
     protected abstract string FrontendResourceName { get; }
 
     /// <summary>
-    /// <c>AppHost:*</c> flags fed through the <c>configureBuilder</c> seam. CreateAsync runs the
-    /// AppHost's Program.cs (resource-graph discovery) BEFORE returning, so post-CreateAsync
-    /// configuration mutations are too late to flip the resource graph — this callback is the only
-    /// seam that runs before the AppHost reads <c>builder.Configuration.GetValue&lt;bool&gt;(...)</c>.
+    /// Gets the <c>AppHost:*</c> flags applied through the <c>configureBuilder</c> callback of
+    /// <c>DistributedApplicationTestingBuilder.CreateAsync</c>.
     /// </summary>
+    /// <remarks>
+    /// <c>CreateAsync</c> runs the AppHost's <c>Program.cs</c> (resource-graph discovery) before
+    /// returning, so configuration changes made afterwards are too late to alter the resource graph;
+    /// the callback is the only seam that runs before the AppHost reads
+    /// <c>builder.Configuration.GetValue&lt;bool&gt;(...)</c>.
+    /// </remarks>
     protected abstract IReadOnlyDictionary<string, string?> AppHostFlags { get; }
 
-    /// <summary>Path on the client container polled until the client actually serves
+    /// <summary>Gets the path on the client container polled until the client actually serves
     /// (resource state Running only means the orchestrator issued the start command).</summary>
     protected abstract string ReadinessProbePath { get; }
 
-    /// <summary>Overall startup budget: image pull on a clean cache + engine warmup dominate.</summary>
+    /// <summary>Gets the overall startup budget, dominated by the image pull on a clean cache and engine warmup.</summary>
     protected abstract TimeSpan StartupTimeout { get; }
 
-    /// <summary>Budget for the readiness-probe loop once resources report Running.</summary>
+    /// <summary>Gets the budget for the readiness-probe loop once resources report Running.</summary>
     protected abstract TimeSpan ReadinessTimeout { get; }
 
     /// <summary>
@@ -80,13 +87,17 @@ public abstract class WopiAppFixtureBase : IAsyncLifetime
     /// surface the client's own rejection reasons (WOPI callback errors, auth denials) that aren't
     /// visible from the browser side.
     /// </summary>
+    /// <returns>The captured log text; implementations return a placeholder message rather than throwing when capture fails.</returns>
     public abstract Task<string> CaptureClientLogsAsync();
 
     /// <summary>
-    /// Decides whether a readiness-probe response means the client is ready to serve. Default: any
-    /// 2xx. Override when readiness needs body inspection (e.g. ONLYOFFICE's <c>/healthcheck</c>
-    /// returns 200 with a literal <c>true</c>/<c>false</c> body).
+    /// Determines whether a readiness-probe response means the client is ready to serve. The default
+    /// accepts any 2xx; override when readiness needs body inspection (for example, ONLYOFFICE's
+    /// <c>/healthcheck</c> returns 200 with a literal <c>true</c>/<c>false</c> body).
     /// </summary>
+    /// <param name="response">The readiness-probe response.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns><see langword="true"/> if the client is ready; otherwise, <see langword="false"/>.</returns>
     protected virtual Task<bool> IsReadyResponseAsync(HttpResponseMessage response, CancellationToken cancellationToken)
         => Task.FromResult(response.IsSuccessStatusCode);
 
@@ -184,8 +195,12 @@ public abstract class WopiAppFixtureBase : IAsyncLifetime
         }
     }
 
-    /// <summary>Runs a process to completion and returns both output streams. Used by the
-    /// docker-based diagnostics helpers in derived fixtures.</summary>
+    /// <summary>Runs a process to completion. Used by the docker-based diagnostics helpers in
+    /// derived fixtures.</summary>
+    /// <param name="fileName">The executable to run.</param>
+    /// <param name="arguments">The command-line arguments.</param>
+    /// <returns>The process's standard output and standard error.</returns>
+    /// <exception cref="InvalidOperationException">The process could not be started.</exception>
     protected static async Task<(string Stdout, string Stderr)> RunProcessAsync(string fileName, string arguments)
     {
         using var process = Process.Start(new ProcessStartInfo

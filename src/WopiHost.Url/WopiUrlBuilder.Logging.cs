@@ -3,9 +3,7 @@ using WopiHost.Discovery.Enumerations;
 
 namespace WopiHost.Url;
 
-/// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for <see cref="WopiUrlBuilder"/>.
-/// </summary>
+/// <content>Contains the source-generated logging methods.</content>
 public partial class WopiUrlBuilder
 {
     [LoggerMessage(

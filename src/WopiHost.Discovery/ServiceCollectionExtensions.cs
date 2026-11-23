@@ -11,9 +11,14 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Adds WOPI discovery services to the service collection.
     /// </summary>
-    /// <typeparam name="TOptions">The type of options to use for configuration that implements IDiscoveryOptions.</typeparam>
+    /// <remarks>
+    /// Registers <see cref="HttpDiscoveryFileProvider"/> as a typed HTTP client and <see cref="WopiDiscoverer"/>
+    /// as a singleton <see cref="IDiscoverer"/>. <see cref="DiscoveryOptions.RefreshInterval"/> is validated
+    /// to be positive at startup.
+    /// </remarks>
+    /// <typeparam name="TOptions">The options type whose <see cref="IDiscoveryOptions.ClientUrl"/> becomes the base address of the discovery HTTP client.</typeparam>
     /// <param name="services">The service collection to add services to.</param>
-    /// <param name="configureDiscoveryOptions">Action to configure the discovery options.</param>
+    /// <param name="configureDiscoveryOptions">A delegate that configures the <see cref="DiscoveryOptions"/>.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddWopiDiscovery<TOptions>(
         this IServiceCollection services,

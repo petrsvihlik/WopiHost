@@ -2,15 +2,13 @@ using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider;
 
-/// <inheritdoc/>
 /// <summary>
-/// Creates an instance of <see cref="WopiContainer"/>.
+/// Represents a folder on the file system as an <see cref="IWopiContainer"/>.
 /// </summary>
-/// <param name="path">Path on the file system the folder is located in.</param>
-/// <param name="folderIdentifier">A unique identifier of a folder.</param>
+/// <param name="path">The file system path of the folder.</param>
+/// <param name="folderIdentifier">The unique identifier of the folder.</param>
 public class WopiContainer(string path, string folderIdentifier) : IWopiContainer
 {
-    /// <inheritdoc/>
     private readonly DirectoryInfo _folderInfo = new(path);
 
     /// <inheritdoc/>
@@ -31,6 +29,9 @@ public class WopiContainer(string path, string folderIdentifier) : IWopiContaine
         : 0L;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Counts direct child files and folders. Returns <c>0</c> when the folder no longer exists.
+    /// </remarks>
     public int ChildCount => _folderInfo.Exists
         ? _folderInfo.EnumerateFileSystemInfos().Count()
         : 0;

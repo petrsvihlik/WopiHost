@@ -4,48 +4,54 @@ using System.Text;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Model for parsing/creating UTF-7 encoded strings.
+/// Represents a string that is transmitted UTF-7 encoded, as the WOPI spec requires for some headers.
 /// </summary>
-/// <remarks>the .ToString and implicit string conversion always return the Decoded value</remarks>
+/// <remarks><see cref="ToString()"/> and the implicit conversion to <see cref="string"/> return the decoded value.</remarks>
 public class UtfString : IParsable<UtfString>
 {
     /// <summary>
-    /// The decoded value.
+    /// Gets the decoded value.
     /// </summary>
     protected string? DecodedValue { get; init; }
     /// <summary>
-    /// The encoded value.
+    /// Gets the UTF-7 encoded value.
     /// </summary>
     protected string? EncodedValue { get; init; }
 
     /// <summary>
-    /// Default constructor
+    /// Initializes a new instance of the <see cref="UtfString"/> class with no value.
     /// </summary>
     public UtfString()
     {
     }
 
     /// <summary>
-    /// Create an instance of <see cref="UtfString"/> given a decoded string
+    /// Creates a <see cref="UtfString"/> from a decoded string.
     /// </summary>
-    /// <param name="decodedValue"></param>
+    /// <param name="decodedValue">The decoded string.</param>
+    /// <returns>A <see cref="UtfString"/> holding <paramref name="decodedValue"/> and its UTF-7 encoding.</returns>
     public static UtfString FromDecoded(string? decodedValue)
     {
         return new UtfString { EncodedValue = EncodeString(decodedValue), DecodedValue = decodedValue };
     }
 
     /// <summary>
-    /// Create an instance of <see cref="UtfString"/> given an UTF-7 encoded string
+    /// Creates a <see cref="UtfString"/> from a UTF-7 encoded string.
     /// </summary>
-    /// <param name="encodedValue"></param>
+    /// <param name="encodedValue">The UTF-7 encoded string.</param>
+    /// <returns>A <see cref="UtfString"/> holding <paramref name="encodedValue"/> and its decoded value.</returns>
     public static UtfString FromEncoded(string? encodedValue)
     {
         return new UtfString { EncodedValue = encodedValue, DecodedValue = DecodeString(encodedValue) };
     }
 
     /// <summary>
-    /// Parses an encoded value
+    /// Parses a UTF-7 encoded string.
     /// </summary>
+    /// <param name="s">The UTF-7 encoded string.</param>
+    /// <param name="provider">Not used.</param>
+    /// <returns>The parsed <see cref="UtfString"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="s"/> is <see langword="null"/>.</exception>
     public static UtfString Parse(string s, IFormatProvider? provider)
     {
         if (!TryParse(s, provider, out var result))
@@ -75,19 +81,20 @@ public class UtfString : IParsable<UtfString>
     }
 
     /// <summary>
-    /// Returns the string representation of the value.
+    /// Returns the encoded or decoded string value.
     /// </summary>
-    /// <param name="asEncoded">whether to return UTF-7 encoded or the original string.</param>
-    /// <returns></returns>
+    /// <param name="asEncoded"><see langword="true"/> to return the UTF-7 encoded value; <see langword="false"/> to return the decoded value.</param>
+    /// <returns>The requested value, or <see langword="null"/> if none is set.</returns>
     public string? ToString(bool asEncoded)
     {
         return asEncoded ? EncodedValue : DecodedValue;
     }
 
     /// <summary>
-    /// Implicit conversion from UtfString to string.
+    /// Converts a <see cref="UtfString"/> to its decoded string value.
     /// </summary>
-    /// <param name="utfString"></param>
+    /// <param name="utfString">The value to convert.</param>
+    /// <returns>The decoded value, or <see langword="null"/> if <paramref name="utfString"/> is <see langword="null"/>.</returns>
     [return: NotNullIfNotNull(nameof(utfString))]
     public static implicit operator string?(UtfString? utfString)
     {
@@ -115,10 +122,10 @@ public class UtfString : IParsable<UtfString>
     }
 
     /// <summary>
-    /// Conversion from string to UtfString.
+    /// Encodes a string as UTF-7.
     /// </summary>
-    /// <param name="decodedValue"></param>
-    /// <returns>UTF-7 encoded value</returns>
+    /// <param name="decodedValue">The string to encode.</param>
+    /// <returns>The UTF-7 encoded value.</returns>
     private static string? EncodeString(string? decodedValue)
     {
         if (decodedValue is null)

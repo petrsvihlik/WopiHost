@@ -1,8 +1,8 @@
 namespace WopiHost.Core.Models;
 
 /// <summary>
-/// Object containing information pointing to a container.
+/// Represents a pointer to a child container.
 /// </summary>
-/// <param name="Name">Name of the object.</param>
-/// <param name="Url">URL pointing to the object.</param>
+/// <param name="Name">The name of the container.</param>
+/// <param name="Url">The WopiSrc URL of the container.</param>
 public record ChildContainer(string Name, Uri Url) : AbstractChildBase(Name, Url);

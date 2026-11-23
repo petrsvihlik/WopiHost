@@ -20,6 +20,10 @@ internal static partial class LinuxFileOwner
     private const int AT_FDCWD = -100;
     private const uint STATX_UID = 0x00000008;
 
+    /// <summary>Gets the login name of the user that owns a file.</summary>
+    /// <param name="filePath">The path of the file.</param>
+    /// <returns>The owner's login name, or the numeric UID when no passwd entry exists.</returns>
+    /// <exception cref="IOException">The file's owner could not be read, or the UID lookup failed.</exception>
     public static string GetOwnerName(string filePath)
     {
         if (Statx(AT_FDCWD, filePath, 0, STATX_UID, out var stx) != 0)

@@ -5,8 +5,9 @@ using Xunit;
 namespace WopiHost.AzureStorageProvider.Tests;
 
 /// <summary>
-/// Targeted tests for branches the happy-path tests don't cover: error returns, unsupported types,
-/// duplicate creation, root-folder operations, search-pattern matching, etc.
+/// Targeted tests for <see cref="WopiAzureStorageProvider"/> branches the happy-path tests don't
+/// cover: error returns, unsupported types, duplicate creation, root-folder operations,
+/// search-pattern matching, etc.
 /// </summary>
 [Trait("Category", "Integration")]
 [Collection(AzuriteCollection.Name)]

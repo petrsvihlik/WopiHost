@@ -8,13 +8,14 @@ namespace WopiHost.RedisLockProvider.Tests;
 
 /// <summary>
 /// Redis-specific coverage that the compare-and-swap paths (<see cref="WopiRedisLockProvider.RefreshLockAsync"/>
-/// and <see cref="WopiRedisLockProvider.TryUnlockAndRelockAsync"/>) <em>proactively evict</em> an expired
+/// and <see cref="WopiRedisLockProvider.TryUnlockAndRelockAsync"/>) <i>proactively evict</i> an expired
 /// record instead of leaving it for Redis's TTL to reap.
 /// </summary>
 /// <remarks>
-/// The shared <see cref="LockProviderConformanceTests"/> already asserts these paths return <c>false</c>
-/// past expiry and that a follow-up <c>GetLockAsync</c> returns <c>null</c> — but <c>GetLockAsync</c>
-/// evicts on read too, so that black-box assertion can't tell whether the CAS path itself cleaned up.
+/// The shared <see cref="LockProviderConformanceTests"/> already asserts these paths return
+/// <see langword="false"/> past expiry and that a follow-up
+/// <see cref="WopiRedisLockProvider.GetLockAsync"/> returns <see langword="null"/>, but
+/// <see cref="WopiRedisLockProvider.GetLockAsync"/> evicts on read too, so that black-box assertion can't tell whether the CAS path itself cleaned up.
 /// These tests reach past the abstraction and check the raw Redis key directly, so they fail if the CAS
 /// path regresses to relying on TTL / the next read. Under the fake clock the Redis server clock never
 /// moves, so the server-side <c>EX</c> would not evict at all — the only thing that can delete the key

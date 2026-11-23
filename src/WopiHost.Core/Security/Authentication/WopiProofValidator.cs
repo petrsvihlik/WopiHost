@@ -9,37 +9,34 @@ using WopiHost.Discovery;
 namespace WopiHost.Core.Security.Authentication;
 
 /// <summary>
-/// Service for validating WOPI proof headers to ensure requests come from a trusted WOPI client.
+/// Provides the default <see cref="IWopiProofValidator"/>, which verifies WOPI proof headers against
+/// the proof keys from WOPI discovery.
 /// </summary>
+/// <param name="discoverer">The discovery service that supplies the current and old proof keys.</param>
+/// <param name="logger">The logger.</param>
+/// <param name="timeProvider">The clock for timestamp checks, or <see langword="null"/> to use <see cref="TimeProvider.System"/>.</param>
 /// <remarks>
-/// Creates a new instance of the <see cref="WopiProofValidator"/> class.
+/// Requests whose <c>X-WOPI-TimeStamp</c> is more than 20 minutes old or more than 5 minutes in the
+/// future are rejected. Any non-fatal exception during validation fails closed (returns <see langword="false"/>).
 /// </remarks>
-/// <param name="discoverer">Service for retrieving WOPI discovery information, including proof keys.</param>
-/// <param name="logger">Logger instance.</param>
-/// <param name="timeProvider">Provider for time operations (defaults to system time if not provided).</param>
 public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProofValidator> logger, TimeProvider? timeProvider = null) : IWopiProofValidator
 {
     /// <summary>
-    /// Maximum age of a request timestamp before it is rejected as stale, in minutes.
-    /// Per WOPI spec: <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts/proof-keys"/>.
+    /// The maximum age, in minutes, of a request timestamp before it is rejected as stale, per the
+    /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/concepts/proof-keys">proof-keys spec</see>.
     /// </summary>
     private const int MaxTimestampAgeMinutes = 20;
 
     /// <summary>
-    /// Maximum allowed clock skew where a request's timestamp is in the future, in minutes.
-    /// Tolerates small drift between the WOPI client's clock and the host's clock.
+    /// The maximum tolerated future skew, in minutes, of a request timestamp, to absorb drift between
+    /// the WOPI client's clock and the host's clock.
     /// </summary>
     private const int MaxFutureSkewMinutes = 5;
 
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
-    /// <summary>
-    /// Validates the WOPI proof headers on the given request.
-    /// </summary>
-    /// <param name="request">Framework-neutral request envelope (proxy-aware URL + header
-    /// reader) so <c>WopiHost.Abstractions</c> does not depend on ASP.NET.</param>
-    /// <param name="accessToken">The access token from the request.</param>
-    /// <returns>True if the request's proof headers are valid, false otherwise.</returns>
+    /// <inheritdoc/>
+    /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
     public async Task<bool> ValidateProofAsync(WopiRequestInfo request, string accessToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -138,11 +135,13 @@ public partial class WopiProofValidator(IDiscoverer discoverer, ILogger<WopiProo
     }
 
     /// <summary>
-    /// Returns true for exceptions that must NOT be silently coerced into "validation failed."
-    /// These are the canonical async-rude / process-fatal exceptions: catching them here would
-    /// mask a torn process state and let the request continue against a broken host. The
-    /// runtime considers them "always rethrow"; the proof gate mirrors that convention.
+    /// Determines whether <paramref name="ex"/> is a process-fatal exception that must not be coerced
+    /// into "validation failed".
     /// </summary>
+    /// <returns><see langword="true"/> if <paramref name="ex"/> must be rethrown; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>
+    /// Catching these would mask a torn process state and let the request continue against a broken host.
+    /// </remarks>
     private static bool IsCriticalUnwindException(Exception ex) => ex is
         OutOfMemoryException or
         StackOverflowException or

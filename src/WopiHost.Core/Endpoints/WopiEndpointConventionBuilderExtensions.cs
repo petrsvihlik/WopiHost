@@ -5,8 +5,7 @@ using WopiHost.Core.Security.Authorization;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Endpoint-builder extensions for WOPI-specific concerns. Keeps endpoint registration in
-/// <see cref="FileEndpoints"/>, <see cref="ContainerEndpoints"/>, etc. terse and intent-revealing.
+/// Provides endpoint-convention-builder extensions for WOPI-specific authorization.
 /// </summary>
 public static class WopiEndpointConventionBuilderExtensions
 {
@@ -19,6 +18,8 @@ public static class WopiEndpointConventionBuilderExtensions
     /// <param name="builder">The endpoint convention builder.</param>
     /// <param name="resource">The WOPI resource type the authorization gate applies to.</param>
     /// <param name="permission">The WOPI permission the caller must hold.</param>
+    /// <returns>The same <paramref name="builder"/> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
     public static TBuilder RequireWopiPermission<TBuilder>(
         this TBuilder builder,
         WopiResourceType resource,

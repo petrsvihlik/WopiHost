@@ -3,20 +3,21 @@ using Xunit;
 namespace WopiHost.Abstractions.Testing;
 
 /// <summary>
-/// Conformance test suite every <see cref="IWopiLockProvider"/> implementation must satisfy.
-/// Derive a concrete sealed subclass in each provider's test project and override
-/// <see cref="Factory"/> to return an <see cref="ILockProviderTestFactory"/> that produces a
-/// fresh SUT per test. xUnit's test discovery picks up tests on base classes automatically,
-/// so no additional plumbing is needed on the derived class beyond the property override.
+/// Provides the conformance test suite every <see cref="IWopiLockProvider"/> implementation must satisfy.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The suite intentionally drives behavior through the public interface only — no reflection
-/// into private state, no impl-specific seeding. Expiry is tested by advancing a
+/// Each provider's test project derives a sealed subclass and overrides <see cref="Factory"/> to
+/// return an <see cref="ILockProviderTestFactory"/> that produces a fresh provider per test. xUnit
+/// discovers tests on base classes automatically, so the subclass needs nothing beyond that override.
+/// </para>
+/// <para>
+/// The suite drives behavior through the public interface only: no reflection into private state,
+/// no implementation-specific seeding. Expiry is tested by advancing a
 /// <see cref="ControllableTimeProvider"/>; the lock-comparer seam is tested by injecting
-/// <see cref="JsonShapedWopiLockComparer"/>. Tests that depend on impl-specific shape
-/// (e.g. seeding a stale blob by writing directly to Azure metadata; reflecting into
-/// MemoryLockProvider's static dictionary) belong in the provider's own test project, not here.
+/// <see cref="JsonShapedWopiLockComparer"/>. Tests that depend on implementation-specific shape
+/// (for example, seeding a stale lock by writing Azure blob metadata directly) belong in the
+/// provider's own test project.
 /// </para>
 /// <para>
 /// File ids are GUID-suffixed per test so accidental cross-test interference (relevant for
@@ -26,7 +27,7 @@ namespace WopiHost.Abstractions.Testing;
 public abstract class LockProviderConformanceTests
 {
     /// <summary>
-    /// Override to supply a factory that builds a fresh SUT per test for this provider.
+    /// Gets the factory that builds a fresh provider under test for each test.
     /// </summary>
     protected abstract ILockProviderTestFactory Factory { get; }
 

@@ -8,7 +8,7 @@ namespace WopiHost.SmokeTests;
 /// DOM-only smoke tests for <c>sample/WopiHost.Web</c>. Asserts the Index page renders the
 /// expected structure (breadcrumb, file table, action links with the right route values,
 /// disabled-icon styling on unsupported extensions) and that no console errors fire on load.
-/// Intentionally avoids visual / pixel diffing — those tests rot fast.
+/// Visual / pixel diffing is deliberately out of scope.
 /// </summary>
 [Collection(nameof(SmokeTestCollection))]
 public sealed class WebSampleSmokeTests(PlaywrightFixture playwright) : IAsyncLifetime

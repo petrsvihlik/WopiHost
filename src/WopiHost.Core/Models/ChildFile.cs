@@ -3,32 +3,32 @@
 /// <summary>
 /// Represents a child file of a container.
 /// </summary>
-/// <param name="Name">Name of the object.</param>
-/// <param name="Url">URL pointing to the object.</param>
+/// <param name="Name">The name of the file, including its extension.</param>
+/// <param name="Url">The WopiSrc URL of the file.</param>
 public record ChildFile(string Name, Uri Url) : AbstractChildBase(Name, Url)
 {
 	/// <summary>
-	/// Version of the file.
+	/// Gets the version of the file.
 	/// </summary>
 	public string? Version { get; init; }
 
 	/// <summary>
-	/// Size of the file.
+	/// Gets the size of the file, in bytes.
 	/// </summary>
 	public long Size { get; init; }
 
 	/// <summary>
-	/// Timestamp of the file's last modification.
+	/// Gets the time of the file's last modification, as an ISO 8601 string.
 	/// </summary>
 	public string? LastModifiedTime { get; init; }
 
     /// <summary>
-    /// URL to view the file in the host's web interface.
+    /// Gets the URL that views the file in the host's web interface.
     /// </summary>
     public Uri? HostViewUrl { get; init; }
 
     /// <summary>
-    /// URL to edit the file in the host's web interface.
+    /// Gets the URL that edits the file in the host's web interface.
     /// </summary>
     public Uri? HostEditUrl { get; init; }
 }

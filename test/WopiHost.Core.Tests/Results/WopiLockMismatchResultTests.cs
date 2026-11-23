@@ -7,10 +7,10 @@ using WopiHost.Core.Results;
 namespace WopiHost.Core.Tests.Results;
 
 /// <summary>
-/// Unit tests for <see cref="WopiLockMismatchResult"/>: the four ctor-arg branches
-/// (existingLock null/non-null × reason null/non-null), the 409 status code, the
-/// EmptyLockHeaderValue fallback resolution from DI, and the IWopiOutcomeResult
-/// marker exposure.
+/// Unit tests for <see cref="WopiLockMismatchResult"/>: the four constructor-argument branches
+/// (<c>existingLock</c> and <c>reason</c> each <see langword="null"/> or not), the 409 status
+/// code, the <see cref="WopiHostOptions.EmptyLockHeaderValue"/> fallback resolution from DI, and
+/// the <see cref="IWopiOutcomeResult"/> marker exposure.
 /// </summary>
 public class WopiLockMismatchResultTests
 {

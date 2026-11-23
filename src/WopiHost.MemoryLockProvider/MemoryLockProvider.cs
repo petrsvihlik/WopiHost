@@ -15,8 +15,8 @@ namespace WopiHost.MemoryLockProvider;
 /// <para>
 /// The dictionary is an instance field, so two provider instances in the same process have
 /// independent stores. For processes that genuinely need a shared dictionary across providers,
-/// register a single <see cref="MemoryLockProvider"/> as <c>Singleton</c> (the default
-/// registration path does this via <c>services.AddMemoryLockProvider()</c>).
+/// register a single <see cref="MemoryLockProvider"/> as <c>Singleton</c>, as
+/// <see cref="ServiceCollectionExtensions.AddMemoryLockProvider"/> does.
 /// </para>
 /// </remarks>
 public partial class MemoryLockProvider : IWopiLockProvider
@@ -28,10 +28,10 @@ public partial class MemoryLockProvider : IWopiLockProvider
     private readonly IWopiLockComparer _lockComparer;
     private readonly TimeProvider _timeProvider;
 
-    /// <summary>Creates a new instance of <see cref="MemoryLockProvider"/>.</summary>
-    /// <param name="logger">Logger.</param>
-    /// <param name="timeProvider">Clock source. Defaults to <see cref="TimeProvider.System"/>.</param>
-    /// <param name="lockComparer">Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/>.</param>
+    /// <summary>Initializes a new instance of the <see cref="MemoryLockProvider"/> class.</summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="timeProvider">The clock source, or <see langword="null"/> to use <see cref="TimeProvider.System"/>.</param>
+    /// <param name="lockComparer">The lock-id comparer, or <see langword="null"/> to use <see cref="OrdinalWopiLockComparer"/>.</param>
     /// <remarks>
     /// When <paramref name="timeProvider"/> or <paramref name="lockComparer"/> is <see langword="null"/>,
     /// the provider falls back to the default implementation and emits a single Information-level
@@ -40,6 +40,7 @@ public partial class MemoryLockProvider : IWopiLockProvider
     /// but bypassed by constructing the provider without DI does not silently revert to ordinal
     /// comparison unnoticed.
     /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="logger"/> is <see langword="null"/>.</exception>
     public MemoryLockProvider(
         ILogger<MemoryLockProvider> logger,
         TimeProvider? timeProvider = null,
@@ -167,20 +168,20 @@ public partial class MemoryLockProvider : IWopiLockProvider
     }
 
     /// <summary>
-    /// Test-only seed: writes <paramref name="lockInfo"/> directly into the per-instance lock
-    /// dictionary. Lets <c>MemoryLockProviderTests</c> exercise eviction paths that depend on
-    /// shape (e.g. a stale record with a past <see cref="WopiLockInfo.DateCreated"/>) without
-    /// reflecting on the private dictionary field. Conformance-style behavior is driven through
-    /// the public <see cref="IWopiLockProvider"/> surface — this hook is exclusively for the
-    /// provider's own impl-specific tests.
+    /// Writes <paramref name="lockInfo"/> directly into the per-instance lock dictionary, bypassing
+    /// the acquire logic. Test-only: seeds shapes such as a stale record with a past
+    /// <see cref="WopiLockInfo.DateCreated"/> to exercise eviction paths.
     /// </summary>
+    /// <param name="fileId">The identifier of the file to seed a lock for.</param>
+    /// <param name="lockInfo">The lock record to store as-is.</param>
     internal void SeedLockForTesting(string fileId, WopiLockInfo lockInfo)
         => _locks[fileId] = lockInfo;
 
     /// <summary>
-    /// Test-only probe: returns whether <paramref name="fileId"/> currently has an entry in the
-    /// per-instance dictionary. Paired with <see cref="SeedLockForTesting"/> to assert eviction
-    /// behavior without reaching into private state via reflection.
+    /// Determines whether <paramref name="fileId"/> currently has an entry in the per-instance
+    /// dictionary, expired or not. Test-only counterpart to <see cref="SeedLockForTesting"/>.
     /// </summary>
+    /// <param name="fileId">The identifier of the file to check.</param>
+    /// <returns><see langword="true"/> if an entry exists for <paramref name="fileId"/>; otherwise, <see langword="false"/>.</returns>
     internal bool ContainsLockForTesting(string fileId) => _locks.ContainsKey(fileId);
 }

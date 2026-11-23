@@ -12,17 +12,17 @@ namespace WopiHost.E2ETests.OnlyOffice;
 /// <remarks>
 /// <para>
 /// <b>Where this runs</b>: the dedicated <c>e2e-onlyoffice.yml</c> workflow on a nightly cron plus
-/// <c>workflow_dispatch</c>, NEVER on per-PR CI ([Trait Category=E2E] is filtered out by the
-/// <c>TestingPlatformCommandLineArguments</c> default in the repo-root Directory.Build.props). The
+/// <c>workflow_dispatch</c>, never on per-PR CI (<c>[Trait("Category", "E2E")]</c> is filtered out by the
+/// <c>TestingPlatformCommandLineArguments</c> default in the repo-root <c>Directory.Build.props</c>). The
 /// integration is by design heavy — the ONLYOFFICE image is ~4.3 GB and bundles its own
 /// Postgres/RabbitMQ — and gating PRs on it would cause more friction than it'd catch. The
 /// workflow selects this suite via <c>--filter-trait "Client=OnlyOffice"</c>.
 /// </para>
 /// <para>
 /// <b>Load signal</b>: ONLYOFFICE does not expose Collabora's host-postMessage protocol, so the test
-/// reads the editor's own <c>window.Asc.editor.isDocumentLoadComplete</c> flag (a boolean property,
-/// NOT a method). It flips true only once the document has been fetched via WOPI and rendered;
-/// a failed host callback (e.g. proof rejection → "Download failed") leaves it false, which the test
+/// reads the editor's own <c>window.Asc.editor.isDocumentLoadComplete</c> flag (a Boolean property,
+/// not a method). It becomes <c>true</c> only once the document has been fetched via WOPI and rendered;
+/// a failed host callback (for example, proof rejection → "Download failed") leaves it <c>false</c>, which the test
 /// surfaces as a timeout with the editor state + ONLYOFFICE container logs attached.
 /// </para>
 /// </remarks>

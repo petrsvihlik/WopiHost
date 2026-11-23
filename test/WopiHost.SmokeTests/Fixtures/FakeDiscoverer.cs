@@ -5,14 +5,14 @@ using WopiHost.Discovery.Models;
 namespace WopiHost.SmokeTests.Fixtures;
 
 /// <summary>
-/// Stand-in <see cref="IDiscoverer"/> that returns canned values so the sample frontend can
-/// render without a real WOPI client to talk to. Reports a small whitelist of "supported"
+/// Represents a stand-in <see cref="IDiscoverer"/> that returns canned values so the sample frontend can
+/// render without a real WOPI client to talk to. Reports a small allowlist of supported
 /// extensions; everything else (including <c>.html</c> and <c>.wopitest</c> from the test
 /// docs folder) is rejected so the smoke tests can assert disabled-icon styling on those rows.
 /// </summary>
 internal sealed class FakeDiscoverer : IDiscoverer
 {
-    /// <summary>Extensions for which both View and Edit are reported as supported.</summary>
+    /// <summary>The extensions (without a leading dot) for which every action is reported as supported.</summary>
     public static readonly HashSet<string> SupportedExtensions =
         [with(StringComparer.OrdinalIgnoreCase), "docx", "xlsx", "pptx"];
 

@@ -5,7 +5,7 @@ using Xunit;
 namespace WopiHost.IntegrationTests.Fixtures;
 
 /// <summary>
-/// Spins up a Navikt mock-oauth2-server Testcontainer for the duration of a test class collection.
+/// Runs a Navikt mock-oauth2-server Testcontainer for the duration of a test collection.
 /// Exposes the issuer URL once started, or marks itself unavailable if Docker is not running.
 /// </summary>
 /// <remarks>
@@ -16,7 +16,7 @@ namespace WopiHost.IntegrationTests.Fixtures;
 /// </remarks>
 public sealed class MockOidcServerFixture : IAsyncLifetime
 {
-    /// <summary>Issuer name used by the mock server. Discovery URL is <c>{BaseUrl}/{Issuer}/.well-known/openid-configuration</c>.</summary>
+    /// <summary>The issuer name used by the mock server. The discovery URL is <c>{BaseUrl}/{Issuer}/.well-known/openid-configuration</c>.</summary>
     public const string Issuer = "default";
 
     private const string Image = "ghcr.io/navikt/mock-oauth2-server:6.0.2";
@@ -24,16 +24,16 @@ public sealed class MockOidcServerFixture : IAsyncLifetime
 
     private IContainer? _container;
 
-    /// <summary>True if Docker is available and the container started.</summary>
+    /// <summary>Gets a value indicating whether Docker is available and the container started.</summary>
     public bool IsAvailable { get; private set; }
 
-    /// <summary>Reason the fixture is unavailable (for the skip message), or null if it is.</summary>
+    /// <summary>Gets the reason the fixture is unavailable (for the skip message), or <see langword="null"/> if it is available.</summary>
     public string? UnavailableReason { get; private set; }
 
-    /// <summary>Base URL of the running mock server (host-mapped). Null when <see cref="IsAvailable"/> is false.</summary>
+    /// <summary>Gets the host-mapped base URL of the running mock server, or <see langword="null"/> when <see cref="IsAvailable"/> is <see langword="false"/>.</summary>
     public Uri? BaseUrl { get; private set; }
 
-    /// <summary>Authority URL passed to the OIDC client (issuer). Null when <see cref="IsAvailable"/> is false.</summary>
+    /// <summary>Gets the authority (issuer) URL passed to the OIDC client, or <see langword="null"/> when <see cref="IsAvailable"/> is <see langword="false"/>.</summary>
     public Uri? Authority => BaseUrl is null ? null : new Uri(BaseUrl, Issuer);
 
     public async ValueTask InitializeAsync()

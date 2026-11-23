@@ -7,7 +7,7 @@ namespace WopiHost.Cobalt.Tests;
 
 /// <summary>
 /// Behavior tests for <see cref="CobaltHostLockingStore"/>'s coauth/editing-session handlers
-/// — the bridge between Cobalt's HostLockingStore contract and
+/// — the bridge between Cobalt's <c>HostLockingStore</c> contract and
 /// <see cref="CoauthoringSessionTracker"/>. The stub handlers (e.g. <c>HandleGetSchemaLock</c>)
 /// that just return a default output have no behavior worth verifying; the tests cover the ones
 /// that actually delegate to the tracker or read principal claims.
@@ -17,10 +17,14 @@ public class CobaltHostLockingStoreTests
     private static string NewFileId() => $"file-lock-{Guid.NewGuid():N}";
 
     /// <summary>
-    /// Builds a fresh tracker + locking-store pair for each test, and sets
-    /// <see cref="CobaltHostLockingStore.CurrentPrincipal"/> for the duration of an action.
-    /// The principal is per-test via AsyncLocal, so tests can run in parallel safely.
+    /// Builds a fresh tracker and locking-store pair over a new file id.
     /// </summary>
+    /// <returns>The locking store, the tracker it delegates to, and the file id.</returns>
+    /// <remarks>
+    /// Tests set <see cref="CobaltHostLockingStore.CurrentPrincipal"/> through <c>WithPrincipal</c>;
+    /// the field is an <see cref="AsyncLocal{T}"/>, so the principal stays per-test and tests can
+    /// run in parallel.
+    /// </remarks>
     private static (CobaltHostLockingStore Store, CoauthoringSessionTracker Tracker, string FileId) Build()
     {
         var fileId = NewFileId();

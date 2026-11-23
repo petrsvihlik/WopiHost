@@ -1,30 +1,26 @@
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Writable view of a WOPI file. Carries the read members from <see cref="IWopiFile"/> and
-/// adds the write seam (<see cref="OpenWriteAsync"/>). Returned only by
-/// <see cref="IWopiWritableStorageProvider.CreateWopiChildFile"/> and
-/// <see cref="IWopiWritableStorageProvider.GetWritableFile"/>; the read-side
-/// <see cref="IWopiStorageProvider.GetWopiFile"/> returns the narrower <see cref="IWopiFile"/>
-/// so a read-only flow can't accidentally write through a file it fetched read-only.
+/// Represents the writable view of a WOPI file: the read members of <see cref="IWopiFile"/>
+/// plus <see cref="OpenWriteAsync"/>.
 /// </summary>
 /// <remarks>
-/// Keeping <see cref="OpenWriteAsync"/> off <see cref="IWopiFile"/> makes the write capability
-/// part of the type the storage layer hands out only for writable flows, so the compiler
-/// enforces the gate.
+/// Returned only by <see cref="IWopiWritableStorageProvider.CreateWopiChildFile"/> and
+/// <see cref="IWopiWritableStorageProvider.GetWritableFile"/>; the read-side
+/// <see cref="IWopiStorageProvider.GetWopiFile"/> returns the narrower <see cref="IWopiFile"/>,
+/// so the compiler keeps read-only flows from writing.
 /// </remarks>
 public interface IWopiWritableFile : IWopiFile
 {
     /// <summary>
-    /// Opens the file for writing. Ownership of the returned <see cref="Stream"/> is transferred
-    /// to the caller, who must dispose it when done — typically via
-    /// <c>await using var stream = await file.OpenWriteAsync(ct);</c>. Disposing the stream is
-    /// what commits the write on most providers.
+    /// Opens the file for writing.
     /// </summary>
     /// <remarks>
-    /// See <see cref="IWopiFile.OpenReadAsync"/> for the naming/ownership rationale.
+    /// Ownership of the returned <see cref="Stream"/> transfers to the caller, who must dispose
+    /// it, typically via <c>await using var stream = await file.OpenWriteAsync(ct);</c>. On most
+    /// providers, disposing the stream is what commits the write.
     /// </remarks>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A writable <see cref="Stream"/> owned by the caller.</returns>
     Task<Stream> OpenWriteAsync(CancellationToken cancellationToken = default);
 }

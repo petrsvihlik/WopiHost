@@ -10,7 +10,7 @@ using WopiHost.Abstractions;
 namespace WopiHost.AzureStorageProvider;
 
 /// <summary>
-/// <see cref="IWopiStorageProvider"/> + <see cref="IWopiWritableStorageProvider"/> backed by Azure Blob Storage.
+/// Provides an <see cref="IWopiStorageProvider"/> and <see cref="IWopiWritableStorageProvider"/> backed by Azure Blob Storage.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -37,7 +37,16 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
     /// <inheritdoc/>
     public IWopiContainer RootContainer { get; }
 
-    /// <summary>Create the provider from a configured <see cref="BlobContainerClient"/>.</summary>
+    /// <summary>Initializes a new instance of the <see cref="WopiAzureStorageProvider"/> class.</summary>
+    /// <remarks>
+    /// The container is created if missing, and <paramref name="idMap"/> is populated from its blobs,
+    /// on the first storage operation rather than here.
+    /// </remarks>
+    /// <param name="containerClient">The blob container that holds the WOPI files.</param>
+    /// <param name="idMap">The identifier map for blob paths.</param>
+    /// <param name="logger">The logger.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="containerClient"/>, <paramref name="idMap"/>, or
+    /// <paramref name="logger"/> is <see langword="null"/>.</exception>
     public WopiAzureStorageProvider(
         BlobContainerClient containerClient,
         BlobIdMap idMap,

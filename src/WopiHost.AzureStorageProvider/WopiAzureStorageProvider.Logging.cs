@@ -2,9 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.AzureStorageProvider;
 
-/// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for <see cref="WopiAzureStorageProvider"/>.
-/// </summary>
+/// <content>Contains the source-generated logging methods.</content>
 public partial class WopiAzureStorageProvider
 {
     [LoggerMessage(Level = LogLevel.Information, Message = "WopiAzureStorageProvider initialized for container {container}")]

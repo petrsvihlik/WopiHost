@@ -45,12 +45,15 @@ public class FileIdMapSynchronizerTests : IDisposable
 
     /// <summary>
     /// Moves <paramref name="source"/> to <paramref name="target"/> and waits for the synchronizer
-    /// to apply the resulting event. Returns <see langword="false"/> when the OS delivered the move
-    /// as Deleted + Created instead of Renamed: the target then carries its path-derived id rather
-    /// than the source's.
+    /// to apply the resulting event.
     /// </summary>
+    /// <returns>
+    /// <see langword="true"/> if the target kept the source's id (a delivered Renamed event);
+    /// <see langword="false"/> if the OS delivered the move as Deleted + Created, so the target
+    /// carries its path-derived id instead.
+    /// </returns>
     /// <remarks>
-    /// On Linux the runtime pairs IN_MOVED_FROM with IN_MOVED_TO only when the two are consecutive
+    /// On Linux the runtime pairs <c>IN_MOVED_FROM</c> with <c>IN_MOVED_TO</c> only when the two are consecutive
     /// in the inotify queue and the second arrives within a 2 ms poll. The kernel does not enqueue
     /// the pair atomically, and every watcher in the process shares one inotify instance, so a
     /// concurrent test's file activity or a loaded runner can split a rename. The product treats a

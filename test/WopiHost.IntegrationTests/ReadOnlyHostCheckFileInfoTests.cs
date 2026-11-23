@@ -7,9 +7,9 @@ using Xunit;
 namespace WopiHost.IntegrationTests;
 
 /// <summary>
-/// CheckFileInfo capability advertising on a host without writable storage: SupportsUpdate,
-/// SupportsRename, and SupportsDeleteFile must all be false, because PutFile / RenameFile /
-/// DeleteFile 501 via <c>RequiresWritableStorageEndpointFilter</c>. A read-only host that
+/// Covers CheckFileInfo capability advertising on a host without writable storage: <c>SupportsUpdate</c>,
+/// <c>SupportsRename</c>, and <c>SupportsDeleteFile</c> must all be <see langword="false"/>, because PutFile /
+/// RenameFile / DeleteFile return 501 via <c>RequiresWritableStorageEndpointFilter</c>. A read-only host that
 /// advertises them would make a WOPI client render Rename/Delete affordances that always fail.
 /// </summary>
 public sealed class ReadOnlyHostCheckFileInfoTests : IDisposable

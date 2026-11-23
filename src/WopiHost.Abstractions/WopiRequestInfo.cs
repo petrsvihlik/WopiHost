@@ -3,7 +3,7 @@ using System.Security.Claims;
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Framework-neutral envelope for an inbound WOPI request. The <c>WopiHost.Core</c> layer
+/// Represents a framework-neutral envelope for an inbound WOPI request. The <c>WopiHost.Core</c> layer
 /// constructs one of these from <c>HttpContext</c> before invoking
 /// <see cref="ICheckFileInfoBuilder"/> / <see cref="IWopiProofValidator"/>; the
 /// <c>WopiHost.Abstractions</c> library itself stays free of any HTTP-framework type so
@@ -27,15 +27,15 @@ namespace WopiHost.Abstractions;
 public sealed record WopiRequestInfo
 {
     /// <summary>
-    /// The authenticated principal for the request. May be an anonymous
+    /// Gets the authenticated principal for the request. May be an anonymous
     /// <see cref="ClaimsPrincipal"/> when the consumer runs before the auth pipeline (e.g.
-    /// <see cref="IWopiProofValidator"/>, which gates the request <em>before</em> the
+    /// <see cref="IWopiProofValidator"/>, which gates the request <i>before</i> the
     /// access-token handler has materialised an identity).
     /// </summary>
     public required ClaimsPrincipal User { get; init; }
 
     /// <summary>
-    /// Proxy-aware absolute request URL — scheme + host + path + query as seen upstream of any
+    /// Gets the proxy-aware absolute request URL — scheme + host + path + query as seen upstream of any
     /// reverse proxy (i.e. <c>X-Forwarded-Proto</c> / <c>X-Forwarded-Host</c> /
     /// <c>X-Forwarded-PathBase</c> honoured). Used by <see cref="IWopiProofValidator"/> for the
     /// signed-payload reconstruction and by <see cref="ICheckFileInfoBuilder"/> to build
@@ -46,13 +46,13 @@ public sealed record WopiRequestInfo
     /// URL — happens in tests that build a bare <c>DefaultHttpContext</c> without populating
     /// scheme + host, and in any synthetic-request scenario the framework adapter can't
     /// resolve. Consumers MUST null-check: <see cref="IWopiProofValidator"/> should treat
-    /// null as "no URL to sign against → fail validation"; an <see cref="ICheckFileInfoBuilder"/>
+    /// <see langword="null"/> as "no URL to sign against → fail validation"; an <see cref="ICheckFileInfoBuilder"/>
     /// that derives URLs from the request should skip that construction.
     /// </remarks>
     public Uri? RequestUrl { get; init; }
 
     /// <summary>
-    /// The WOPI <c>access_token</c> resolved from the request (query string, form, or
+    /// Gets the WOPI <c>access_token</c> resolved from the request (query string, form, or
     /// <c>Authorization: Bearer</c>), or <see langword="null"/> when the request doesn't
     /// carry one. Pre-resolved by the adapter so consumers don't have to know about the
     /// fallback order or the underlying HTTP-framework primitives.
@@ -60,12 +60,8 @@ public sealed record WopiRequestInfo
     public string? AccessToken { get; init; }
 
     /// <summary>
-    /// Case-insensitive header lookup. Returns <see langword="null"/> for absent headers.
+    /// Gets the case-insensitive header lookup, which returns <see langword="null"/> for absent headers.
     /// Implementations MUST treat the key as case-insensitive (HTTP header semantics).
     /// </summary>
-    /// <remarks>
-    /// Delegate shape (instead of a snapshot dictionary) so the adapter can read directly
-    /// from the underlying request without allocating a copy per call.
-    /// </remarks>
     public required Func<string, string?> GetHeader { get; init; }
 }

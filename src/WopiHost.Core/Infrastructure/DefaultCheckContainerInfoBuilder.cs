@@ -4,10 +4,12 @@ using WopiHost.Abstractions;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Default <see cref="ICheckContainerInfoBuilder"/>. Populates the response from the
+/// Provides the default <see cref="ICheckContainerInfoBuilder"/> implementation. Populates the response from the
 /// container's metadata and the principal's permissions, then fires
 /// <see cref="IWopiHostExtensions.OnCheckContainerInfoAsync"/> for last-mile host customization.
 /// </summary>
+/// <param name="permissionProvider">The provider that resolves the principal's container permissions.</param>
+/// <param name="extensions">The host-customization hooks.</param>
 public class DefaultCheckContainerInfoBuilder(
     IWopiPermissionProvider permissionProvider,
     IWopiHostExtensions extensions) : ICheckContainerInfoBuilder

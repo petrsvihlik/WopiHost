@@ -12,12 +12,16 @@ using WopiHost.Core.Models;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Read-only Minimal-API endpoints for the WOPI folder surface. Folders are containers from
-/// a permissions standpoint (<see cref="WopiResourceType.Container"/>) but expose only the
-/// legacy folder shape.
+/// Maps the read-only Minimal-API endpoints of the legacy WOPI folder surface.
 /// </summary>
+/// <remarks>
+/// Folders are containers from a permissions standpoint (<see cref="WopiResourceType.Container"/>)
+/// but expose only the legacy folder shape.
+/// </remarks>
 internal static class FolderEndpoints
 {
+    /// <summary>Maps the folder endpoints.</summary>
+    /// <param name="wopi">The endpoint route builder to map the endpoints onto.</param>
     public static void MapFolderEndpoints(IEndpointRouteBuilder wopi)
     {
         var folders = wopi.MapGroup("/folders")
@@ -100,8 +104,8 @@ internal readonly record struct EnumerateFolderChildrenRequest(
     CancellationToken CancellationToken);
 
 /// <summary>
-/// Legacy folder-surface enumerate-children response payload: only <c>ChildFiles</c>, no
-/// <c>ChildContainers</c>. Kept as a named record so typed-union returns surface a concrete
-/// schema in OpenAPI rather than an anonymous shape.
+/// Represents the legacy folder-surface EnumerateChildren response payload, which carries only
+/// <c>ChildFiles</c> (no <c>ChildContainers</c>).
 /// </summary>
+/// <param name="ChildFiles">The files in the folder.</param>
 public sealed record FolderChildrenResponse(IReadOnlyList<ChildFile> ChildFiles);

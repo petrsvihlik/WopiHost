@@ -3,12 +3,12 @@ using System.Security.Claims;
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Context for the <c>PutRelativeFile</c> operation, raised after the host has successfully
+/// Represents the context for the <c>PutRelativeFile</c> operation, raised after the host has successfully
 /// created and written the new child file.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Surfaces the two optional WOPI request headers that the controller does not otherwise act on:
+/// Surfaces the two optional WOPI request headers that the endpoint does not otherwise act on:
 /// <c>X-WOPI-FileConversion</c> (signalled via <see cref="IsFileConversion"/>) and
 /// <c>X-WOPI-Size</c> (parsed into <see cref="DeclaredSize"/>). See the WOPI
 /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile">PutRelativeFile</see>
@@ -21,16 +21,16 @@ namespace WopiHost.Abstractions;
 /// host-options-level limits on the actual stream length.
 /// </para>
 /// <para>
-/// The callback runs after the write has completed but before the controller emits the response.
+/// The callback runs after the write has completed but before the endpoint emits the response.
 /// Throwing turns the response into a 500.
 /// </para>
 /// </remarks>
-/// <param name="User">the principal that issued the PutRelativeFile request.</param>
-/// <param name="OriginalFile">the file the operation was invoked on (the "current file" in the spec).</param>
-/// <param name="NewFile">the newly created child file containing the uploaded contents.</param>
+/// <param name="User">The principal that issued the PutRelativeFile request, if any.</param>
+/// <param name="OriginalFile">The file the operation was invoked on (the "current file" in the spec).</param>
+/// <param name="NewFile">The newly created child file containing the uploaded contents.</param>
 /// <param name="IsFileConversion"><see langword="true"/> when the <c>X-WOPI-FileConversion</c>
 /// header was present, indicating this PutRelativeFile is part of a binary document conversion.</param>
-/// <param name="DeclaredSize">value parsed from <c>X-WOPI-Size</c>, or <see langword="null"/>
+/// <param name="DeclaredSize">The value parsed from <c>X-WOPI-Size</c>, or <see langword="null"/>
 /// when the header was absent or unparseable.</param>
 public record WopiPutRelativeFileContext(
     ClaimsPrincipal? User,

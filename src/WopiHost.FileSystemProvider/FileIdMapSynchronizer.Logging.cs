@@ -2,9 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.FileSystemProvider;
 
-/// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for <see cref="FileIdMapSynchronizer"/>.
-/// </summary>
+/// <content>Contains the source-generated logging methods.</content>
 internal sealed partial class FileIdMapSynchronizer
 {
     [LoggerMessage(Level = LogLevel.Information, Message = "Watching {rootPath} for file changes")]

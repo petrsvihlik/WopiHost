@@ -2,9 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Cobalt;
 
-/// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for <see cref="CobaltProcessor"/>.
-/// </summary>
+/// <content>Contains the source-generated logging methods.</content>
 public sealed partial class CobaltProcessor
 {
     [LoggerMessage(Level = LogLevel.Information, Message = "Co-auth session created for file {fileId}")]

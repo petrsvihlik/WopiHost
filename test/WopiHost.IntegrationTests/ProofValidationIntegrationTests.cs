@@ -21,11 +21,8 @@ namespace WopiHost.IntegrationTests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Why dedicated and not folded into the existing read-only suite: the read-only fixture is
-/// shared across endpoint test classes for boot-time amortisation. Threading the real proof
-/// validator through it would force every existing test to sign each request, ballooning their
-/// per-test work; isolating the validation coverage here keeps the proof-gate the only thing
-/// under test in this class.
+/// The suite has its own backend rather than sharing the read-only fixture, because a real
+/// validator there would require every shared-fixture test to sign each request.
 /// </para>
 /// <para>
 /// Test base URL: <c>WebApplicationFactory.CreateClient()</c> defaults to

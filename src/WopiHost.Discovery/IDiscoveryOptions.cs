@@ -1,12 +1,12 @@
 namespace WopiHost.Discovery;
 
 /// <summary>
-/// Interface for options that contain discovery configuration including the client URL.
+/// Defines options that expose the WOPI client URL the discovery file is fetched from.
 /// </summary>
 public interface IDiscoveryOptions
 {
     /// <summary>
-    /// The base URL of the WOPI client.
+    /// Gets the base URL of the WOPI client.
     /// </summary>
     Uri? ClientUrl { get; }
 } 

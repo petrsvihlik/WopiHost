@@ -2,9 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.FileSystemProvider;
 
-/// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for <see cref="WopiFileSystemProvider"/>.
-/// </summary>
+/// <content>Contains the source-generated logging methods.</content>
 public partial class WopiFileSystemProvider
 {
     [LoggerMessage(Level = LogLevel.Information, Message = "WopiFileSystemProvider initialized at root {rootPath}")]

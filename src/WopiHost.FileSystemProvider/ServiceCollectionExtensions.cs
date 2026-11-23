@@ -6,7 +6,7 @@ using WopiHost.Abstractions;
 namespace WopiHost.FileSystemProvider;
 
 /// <summary>
-/// DI extensions to register <see cref="WopiFileSystemProvider"/>.
+/// Provides extension methods that register <see cref="WopiFileSystemProvider"/>.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
@@ -16,9 +16,15 @@ public static class ServiceCollectionExtensions
     /// <see cref="InMemoryFileIds"/> map the provider uses for path↔id round-tripping.
     /// </summary>
     /// <remarks>
-    /// Reads <see cref="WopiFileSystemProviderOptions"/> from the <c>Wopi:StorageProvider</c>
-    /// configuration section. <c>RootPath</c> is required.
+    /// Binds <see cref="WopiFileSystemProviderOptions"/> from the <c>Wopi:StorageProvider</c>
+    /// configuration section and validates on start that
+    /// <see cref="WopiFileSystemProviderOptions.RootPath"/> is set. All registrations use
+    /// <c>TryAdd</c>, so a provider the host registered first wins and a repeat call is a no-op.
     /// </remarks>
+    /// <param name="services">The service collection to add the provider to.</param>
+    /// <param name="configuration">The configuration root that contains the <c>Wopi:StorageProvider</c> section.</param>
+    /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configuration"/> is <see langword="null"/>.</exception>
     public static IServiceCollection AddFileSystemStorageProvider(
         this IServiceCollection services,
         IConfiguration configuration)

@@ -4,13 +4,13 @@ namespace WopiHost.Discovery;
 
 /// <summary>
 /// Provides access to the WOPI discovery XML file.
-/// https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/discovery
 /// </summary>
+/// <seealso href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/discovery">WOPI discovery</seealso>
 public interface IDiscoveryFileProvider
 {
     /// <summary>
-    /// Gets an object representation of an XML file representing the capabilities of a WOPI client.
+    /// Gets the discovery XML that describes the capabilities of a WOPI client.
     /// </summary>
-    /// <returns>An object representation of WOPI discovery XML file.</returns>
+    /// <returns>The root element of the discovery XML.</returns>
     Task<XElement> GetDiscoveryXmlAsync();
 }

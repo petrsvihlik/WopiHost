@@ -3,30 +3,31 @@
 namespace WopiHost.Validator.Models;
 
 /// <summary>
-/// Configuration object for the WopiHost.Web application.
+/// Represents the WOPI configuration of the WopiHost.Validator sample.
 /// </summary>
 public class WopiOptions
 {
     /// <summary>
-    /// Default configuration section path this options class binds to. Use with
+    /// Specifies the configuration section path this options class binds to. Use with
     /// <c>builder.Configuration.GetSection(WopiOptions.SectionName)</c>.
     /// </summary>
     public const string SectionName = "Wopi";
 
     /// <summary>
-    /// Base URI of the WOPI Host server.
+    /// Gets or sets the base URI of the WOPI host server.
     /// </summary>
     [Required]
     public required Uri HostUrl { get; set; }
 
     /// <summary>
-    /// Base URI of the WOPI Client server (Office Online Server / Office Web Apps).
+    /// Gets or sets the base URI of the WOPI client server (Office Online Server / Office Web Apps).
     /// </summary>
     [Required]
     public required Uri ClientUrl { get; set; }
 
     /// <summary>
-    /// The hard-coded userId to use WopiSecurityHandler
+    /// Gets or sets the hard-coded user id that issued access tokens carry. The same value is
+    /// accepted verbatim as an access token by <c>SentinelOrJwtAccessTokenService</c>.
     /// </summary>
     public string UserId { get; set; } = "Anonymous";
 }

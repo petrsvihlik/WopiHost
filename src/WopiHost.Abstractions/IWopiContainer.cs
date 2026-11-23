@@ -1,28 +1,28 @@
 ﻿namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Object that represents a container with files.
+/// Represents a container of files and child containers.
 /// </summary>
 /// <remarks>
-/// The type carries two metadata members (<see cref="Size"/>, <see cref="ChildCount"/>).
-/// Both are implementable by every storage backend that can already enumerate
-/// (file system: <see cref="System.IO.DirectoryInfo"/>; blob: prefix-scan); providers may
-/// compute lazily or eagerly as the underlying store allows.
+/// <see cref="Size"/> and <see cref="ChildCount"/> are derivable by any backend that can
+/// enumerate (file system: <see cref="System.IO.DirectoryInfo"/>; blob: prefix scan); providers
+/// may compute them lazily or eagerly as the underlying store allows.
 /// </remarks>
 public interface IWopiContainer : IWopiResource
 {
     /// <summary>
-    /// Total size of the container's contents in bytes, including all descendants
-    /// (recursive). Providers compute this from their underlying enumeration — the call may
-    /// be O(N) on the container's blob/file count, so callers should treat it as cold-path
-    /// metadata rather than reading it inside tight loops.
+    /// Gets the total size, in bytes, of the container's contents, including all descendants.
     /// </summary>
+    /// <remarks>
+    /// Reading this may enumerate every descendant (O(N) in the file/blob count), so treat it as
+    /// cold-path metadata rather than reading it inside tight loops.
+    /// </remarks>
     long Size { get; }
 
     /// <summary>
-    /// Number of direct child resources (files plus immediate sub-containers, no recursion).
-    /// A container with three files and two sub-containers reports <c>5</c>, regardless of
-    /// what's inside those sub-containers.
+    /// Gets the number of direct child resources (files plus immediate sub-containers, not
+    /// recursive). A container with three files and two sub-containers reports <c>5</c>,
+    /// regardless of what those sub-containers hold.
     /// </summary>
     int ChildCount { get; }
 }

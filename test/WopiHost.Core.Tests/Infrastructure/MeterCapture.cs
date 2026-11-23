@@ -4,7 +4,7 @@ using WopiHost.Core.Infrastructure;
 namespace WopiHost.Core.Tests.Infrastructure;
 
 /// <summary>
-/// Disposable capture of the measurements published to one <see cref="WopiTelemetry"/> counter.
+/// Captures the measurements published to one <see cref="WopiTelemetry"/> counter.
 /// A <see cref="MeterListener"/> registration is process-global, so the capture must be disposed
 /// when the owning test completes — otherwise the callback keeps firing for every later
 /// measurement in the process.
