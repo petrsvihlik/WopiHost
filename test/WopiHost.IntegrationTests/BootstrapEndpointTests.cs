@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using WopiHost.Abstractions;
 using WopiHost.Core.Security.Authentication;
@@ -84,6 +85,25 @@ public sealed class BootstrapEndpointTests(BootstrapEndpointTests.Fixture fixtur
         Assert.Contains("\"AccessTokenInfo\"", body);
         Assert.Contains("\"AccessToken\"", body);
         Assert.Contains("\"AccessTokenExpiry\"", body);
+    }
+
+    [Fact]
+    public async Task GetNewAccessToken_AccessTokenExpiry_IsMillisecondsSinceEpoch()
+    {
+        var fileId = await _fixture.FirstFileIdAsync();
+        using var client = _fixture.WopiBackend.CreateClient().AsBootstrapUser("user-3", "Carol");
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/wopibootstrapper?access_token={BootstrapDummyToken}");
+        req.Headers.Add("X-WOPI-EcosystemOperation", "GET_NEW_ACCESS_TOKEN");
+        req.Headers.Add("X-WOPI-WopiSrc", $"https://wopi.example.com/wopi/files/{fileId}");
+        var before = DateTimeOffset.UtcNow;
+        var resp = await client.SendAsync(req, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        using var json = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        var expiry = DateTimeOffset.FromUnixTimeMilliseconds(
+            json.RootElement.GetProperty("AccessTokenInfo").GetProperty("AccessTokenExpiry").GetInt64());
+        Assert.InRange(expiry, before, before.AddDays(1));
     }
 
     [Fact]
