@@ -7,13 +7,13 @@ namespace WopiHost.AzureLockProvider.Tests;
 
 /// <summary>
 /// Runs the shared <see cref="LockProviderConformanceTests"/> against <see cref="WopiAzureLockProvider"/>
-/// using an Azurite container per test.
+/// backed by a shared Azurite container.
 /// </summary>
 /// <remarks>
-/// The <see cref="AzuriteCollection"/> attribute is required so the heavy Azurite container is
+/// Membership in <see cref="AzuriteCollection"/> is required so the heavy Azurite container is
 /// shared across all conformance and impl-specific tests in this project. Each test still gets
 /// its own blob container (GUID-suffixed) for isolation. Provider-specific tests (blob-lease
-/// takeover scenarios, direct metadata seeding) stay in <c>WopiAzureLockProviderTests</c>.
+/// takeover scenarios, direct metadata seeding) stay in <see cref="WopiAzureLockProviderTests"/>.
 /// </remarks>
 [Trait("Category", "Integration")]
 [Collection(AzuriteCollection.Name)]

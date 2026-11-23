@@ -5,9 +5,9 @@ using WopiHost.Core.Endpoints;
 namespace WopiHost.Core.Tests.Endpoints;
 
 /// <summary>
-/// Unit tests for <see cref="EndpointHelpers.TryParseWopiSrc"/>. IssueEcosystemPointerAsync is
-/// covered by the EndpointSmokeTests integration suite (FileEcosystemPointer /
-/// ContainerEcosystemPointer).
+/// Unit tests for <see cref="EndpointHelpers.TryParseWopiSrc"/>. The ecosystem-pointer endpoints
+/// are covered by the <c>FileEcosystemPointer</c> / <c>ContainerEcosystemPointer</c> tests in
+/// the integration suite.
 /// </summary>
 public class EndpointHelpersTests
 {

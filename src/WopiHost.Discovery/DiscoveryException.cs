@@ -1,30 +1,31 @@
 ﻿namespace WopiHost.Discovery;
 
 /// <summary>
-/// An exception that might occur during retrieval of the WOPI discovery file.
+/// Represents an error that occurs while retrieving or parsing the WOPI discovery file.
 /// </summary>
 public class DiscoveryException : Exception
 {
     /// <summary>
-    /// Default constructor.
+    /// Initializes a new instance of the <see cref="DiscoveryException"/> class.
     /// </summary>
     public DiscoveryException()
     {
     }
 
     /// <summary>
-    /// Initializes the <see cref="DiscoveryException"/> with a message.
+    /// Initializes a new instance of the <see cref="DiscoveryException"/> class with a specified error message.
     /// </summary>
-    /// <param name="message">Error message.</param>
+    /// <param name="message">The message that describes the error.</param>
     public DiscoveryException(string message) : base(message)
     {
     }
 
     /// <summary>
-    /// Initializes the <see cref="DiscoveryException"/> with a message and the original exception.
+    /// Initializes a new instance of the <see cref="DiscoveryException"/> class with a specified error message
+    /// and the exception that caused it.
     /// </summary>
-    /// <param name="message">Error message.</param>
-    /// <param name="originalException">The original exception that caused the problem.</param>
+    /// <param name="message">The message that describes the error.</param>
+    /// <param name="originalException">The exception that is the cause of the current exception.</param>
     public DiscoveryException(string message, Exception originalException) : base(message, originalException)
     {
     }

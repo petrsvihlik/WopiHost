@@ -2,9 +2,6 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Discovery;
 
-/// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for <see cref="FileSystemDiscoveryFileProvider"/>.
-/// </summary>
 public partial class FileSystemDiscoveryFileProvider
 {
     [LoggerMessage(

@@ -38,11 +38,12 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
     private bool _disposed;
 
     /// <summary>
-    /// Creates a new instance of the <see cref="WopiDiscoverer"/>, a class for examining the capabilities of the WOPI client.
+    /// Initializes a new instance of the <see cref="WopiDiscoverer"/> class.
     /// </summary>
     /// <param name="discoveryFileProvider">A service that provides the discovery file to examine.</param>
-    /// <param name="discoveryOptions">the discovery options</param>
-    /// <param name="logger">Logger.</param>
+    /// <param name="discoveryOptions">The discovery options.</param>
+    /// <param name="logger">The logger.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="discoveryFileProvider"/>, <paramref name="discoveryOptions"/>, or <paramref name="logger"/> is <see langword="null"/>.</exception>
     public WopiDiscoverer(
         IDiscoveryFileProvider discoveryFileProvider,
         IOptions<DiscoveryOptions> discoveryOptions,
@@ -179,12 +180,12 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
         };
     }
 
-    /// <summary>
-    /// Disposes the cached <see cref="AsyncExpiringLazy{T}"/> instances so
-    /// their internal semaphores are released. The DI container invokes this
-    /// at host shutdown when <see cref="WopiDiscoverer"/> is registered as a
-    /// singleton.
-    /// </summary>
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Disposes the cached <see cref="AsyncExpiringLazy{T}"/> instances so their internal semaphores are
+    /// released. The DI container invokes this at host shutdown when <see cref="WopiDiscoverer"/> is
+    /// registered as a singleton.
+    /// </remarks>
     public void Dispose()
     {
         Dispose(disposing: true);
@@ -194,7 +195,7 @@ public partial class WopiDiscoverer : IDiscoverer, IDisposable
     /// <summary>
     /// Releases managed resources held by this instance.
     /// </summary>
-    /// <param name="disposing"><c>true</c> when called from <see cref="Dispose()"/>.</param>
+    /// <param name="disposing"><see langword="true"/> when called from <see cref="Dispose()"/>.</param>
     protected virtual void Dispose(bool disposing)
     {
         if (_disposed)

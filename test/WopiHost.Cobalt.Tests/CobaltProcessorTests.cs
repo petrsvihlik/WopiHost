@@ -9,7 +9,7 @@ namespace WopiHost.Cobalt.Tests;
 /// <summary>
 /// Lifecycle tests for <see cref="CobaltProcessor"/> — construction, disposal, and
 /// the cancellation/argument-validation contract on <see cref="CobaltProcessor.ProcessCobalt"/>.
-/// A full Cobalt request batch is not driven through ProcessCobalt here: the protocol is
+/// A full Cobalt request batch is not driven through <c>ProcessCobalt</c> here: the protocol is
 /// binary and exercised end-to-end by the validator + sample apps. Unit tests cover the
 /// seams around it.
 /// </summary>

@@ -6,16 +6,22 @@ using Microsoft.Extensions.DependencyInjection;
 namespace WopiHost.Core.Tests.Endpoints;
 
 /// <summary>
-/// Locks in the long-standing routing-template quirk cited by
-/// <see cref="WopiHost.Core.Endpoints.EcosystemEndpoints"/> and
-/// <see cref="WopiHost.Core.Endpoints.BootstrapEndpoints"/>:
-/// <c>MapGroup("/x") + MapGet("")</c> normalises to <c>/x/</c> (with a trailing slash), NOT
-/// <c>/x</c>. The named-route lookup <c>WopiRouteNames.CheckEcosystem</c> and the WOPI
-/// bootstrap URL must be the exact-prefix form, so both files register their bare-group
-/// endpoint via the receiver instead of a nested <c>MapGroup</c>.
-/// This test fails the moment ASP.NET Core normalises the trailing slash away — at which
-/// point those two files can switch to <c>MapGroup</c> for symmetry.
+/// Pins the routing-template quirk that <see cref="WopiHost.Core.Endpoints.EcosystemEndpoints"/>
+/// and <see cref="WopiHost.Core.Endpoints.BootstrapEndpoints"/> work around:
+/// <c>MapGroup("/x")</c> plus <c>MapGet("")</c> normalises to <c>/x/</c> (with a trailing slash),
+/// not <c>/x</c>.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The named-route lookup <see cref="WopiHost.Core.Infrastructure.WopiRouteNames.CheckEcosystem"/>
+/// and the WOPI bootstrap URL need the exact-prefix form, so both classes register their
+/// bare-group endpoint on the receiver instead of a nested <c>MapGroup</c>.
+/// </para>
+/// <para>
+/// The test fails once ASP.NET Core stops appending the trailing slash; both classes can then
+/// switch to <c>MapGroup</c>.
+/// </para>
+/// </remarks>
 public sealed class MapGroupEmptyTemplateTests
 {
     [Fact]

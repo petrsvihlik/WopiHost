@@ -321,9 +321,10 @@ public class WopiProofValidatorTests
     /// <summary>
     /// Captures the <see cref="WopiTelemetry.ProofValidationFailures"/> counter so a negative
     /// test can pin WHICH rejection branch fired. The validator's boolean return cannot — any
-    /// rejection reason yields <c>false</c>, so without the reason tag a deleted guard would
-    /// pass every negative test via a different branch.
+    /// rejection reason yields <see langword="false"/>, so without the reason tag a deleted guard
+    /// would pass every negative test via a different branch.
     /// </summary>
+    /// <returns>The capture; dispose it when the test completes.</returns>
     private static MeterCapture CaptureFailures()
         => new(WopiTelemetry.ProofValidationFailures.Name);
 

@@ -6,16 +6,14 @@ using WopiHost.Discovery.Enumerations;
 namespace WopiHost.Url;
 
 /// <summary>
-/// Generates WOPI URLs according to the specification
-/// WOPI v2 spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/discovery
-/// WOPI v1 spec: https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/adb48ba9-118a-43b6-82d7-9a508aad1583
+/// Generates WOPI client URLs from the URL templates in the discovery file.
 /// </summary>
-/// <remarks>
-/// Creates a new instance of WOPI URL generator class.
-/// </remarks>
-/// <param name="discoverer">Provider of WOPI discovery data.</param>
-/// <param name="logger">Logger.</param>
-/// <param name="urlSettings">Additional settings influencing behavior of the WOPI client.</param>
+/// <param name="discoverer">The provider of WOPI discovery data.</param>
+/// <param name="logger">The logger.</param>
+/// <param name="urlSettings">The default settings applied to every generated URL, or <see langword="null"/> for none.</param>
+/// <exception cref="ArgumentNullException"><paramref name="discoverer"/> or <paramref name="logger"/> is <see langword="null"/>.</exception>
+/// <seealso href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/online/discovery">WOPI discovery (v2)</seealso>
+/// <seealso href="https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/adb48ba9-118a-43b6-82d7-9a508aad1583">MS-WOPI (v1)</seealso>
 public partial class WopiUrlBuilder(
     IDiscoverer discoverer,
     ILogger<WopiUrlBuilder> logger,
@@ -28,18 +26,23 @@ public partial class WopiUrlBuilder(
     private readonly ILogger<WopiUrlBuilder> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <summary>
-    /// Additional URL parameters influencing the behavior of the WOPI client.
+    /// Gets the default URL settings applied to every generated URL, or <see langword="null"/> if none were supplied.
     /// </summary>
     public WopiUrlSettings? UrlSettings { get; } = urlSettings;
 
     /// <summary>
-    /// Generates an URL for a given file and action.
+    /// Generates a WOPI client URL for a given file and action.
     /// </summary>
-    /// <param name="extension">File extension used to identify a correct URL template.</param>
-    /// <param name="wopiFileUrl">URL of a file.</param>
-    /// <param name="action">Action used to identify a correct URL template.</param>
-    /// <param name="urlSettings">Additional URL settings (if not specified, defaults passed to the class constructor will be used).</param>
-    /// <returns></returns>
+    /// <remarks>
+    /// The <c>WOPI_SOURCE</c> placeholder is always resolved from <paramref name="wopiFileUrl"/>; when the template
+    /// has no such placeholder, a <c>WOPISrc</c> query parameter is appended instead.
+    /// </remarks>
+    /// <param name="extension">The file extension used to select the URL template.</param>
+    /// <param name="wopiFileUrl">The URL of the file's WOPI endpoint.</param>
+    /// <param name="action">The action used to select the URL template.</param>
+    /// <param name="urlSettings">Per-call URL settings, merged over <see cref="UrlSettings"/> (per-call values win per key).</param>
+    /// <returns>The generated URL, or <see langword="null"/> if discovery has no URL template for the extension and action.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="wopiFileUrl"/> is <see langword="null"/>.</exception>
     public async Task<string?> GetFileUrlAsync(string extension, Uri wopiFileUrl, WopiActionEnum action, WopiUrlSettings? urlSettings = null)
     {
         ArgumentNullException.ThrowIfNull(wopiFileUrl);

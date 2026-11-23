@@ -15,9 +15,11 @@ public static class IDiscovererExtensions
     /// specified action — i.e. whether the discovery file lists <c>cobalt</c> in the action's
     /// <c>requires</c> attribute.
     /// </summary>
-    /// <param name="discoverer">Discoverer instance.</param>
-    /// <param name="extension">File extension to consider (without the leading dot).</param>
-    /// <param name="action">WOPI action to consider.</param>
+    /// <param name="discoverer">The discoverer to query.</param>
+    /// <param name="extension">The file extension to consider (without the leading dot).</param>
+    /// <param name="action">The WOPI action to consider.</param>
+    /// <returns><see langword="true"/> if the action requires Cobalt for the extension; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="discoverer"/> is <see langword="null"/>.</exception>
     public static async Task<bool> RequiresCobaltAsync(this IDiscoverer discoverer, string extension, WopiActionEnum action)
     {
         ArgumentNullException.ThrowIfNull(discoverer);

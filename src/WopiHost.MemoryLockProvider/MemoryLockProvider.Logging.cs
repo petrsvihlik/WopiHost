@@ -2,9 +2,6 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.MemoryLockProvider;
 
-/// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for <see cref="MemoryLockProvider"/>.
-/// </summary>
 public partial class MemoryLockProvider
 {
     [LoggerMessage(

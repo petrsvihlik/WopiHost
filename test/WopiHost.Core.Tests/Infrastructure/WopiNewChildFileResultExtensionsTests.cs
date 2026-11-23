@@ -9,8 +9,8 @@ namespace WopiHost.Core.Tests.Infrastructure;
 
 /// <summary>
 /// Tests for the WOPI-spec response-mapping in <see cref="WopiNewChildFileResultExtensions.ToFailureResult"/>.
-/// Maps each failed <see cref="WopiNewChildFileResult"/> case to its response plus the
-/// spec-mandated response-header side effects.
+/// Covers each failed <see cref="WopiNewChildFileResult"/> case and asserts its response plus
+/// the spec-mandated response-header side effects.
 /// </summary>
 public class WopiNewChildFileResultExtensionsTests
 {

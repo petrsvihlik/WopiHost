@@ -9,7 +9,7 @@ namespace WopiHost.RedisLockProvider.Tests;
 /// Property-level coverage for <see cref="WopiRedisLockProviderOptions"/>. The properties are
 /// trivial getters/setters but are exercised via configuration binding in production, so the
 /// tests round-trip a config section through Options to confirm the binding shape matches the
-/// keys the AppHost / appsettings.json conventions use.
+/// keys the AppHost / <c>appsettings.json</c> conventions use.
 /// </summary>
 public class WopiRedisLockProviderOptionsTests
 {

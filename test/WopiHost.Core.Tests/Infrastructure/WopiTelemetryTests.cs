@@ -7,14 +7,14 @@ namespace WopiHost.Core.Tests.Infrastructure;
 /// <summary>
 /// Tests for the <see cref="WopiTelemetry"/> primitives. The fixture attaches an
 /// <see cref="ActivityListener"/> so <see cref="WopiTelemetry.StartActivity"/> actually
-/// produces an <see cref="Activity"/> (otherwise it returns <c>null</c> and the helper paths
+/// produces an <see cref="Activity"/> (otherwise it returns <see langword="null"/> and the helper paths
 /// stay uncovered).
 /// </summary>
 /// <remarks>
 /// Pinned to <see cref="WopiTelemetryCollection"/> so this class runs sequentially with any
 /// sibling that registers a process-global <see cref="ActivitySource"/> listener for
 /// <see cref="WopiTelemetry.Name"/>; if xUnit runs them in parallel, this class's
-/// <c>StartActivity_NoListener_ReturnsNull</c> sees the sibling listener and fails
+/// <see cref="StartActivity_NoListener_ReturnsNull"/> sees the sibling listener and fails
 /// non-deterministically.
 /// </remarks>
 [Collection(WopiTelemetryCollection.Name)]
@@ -146,6 +146,7 @@ public sealed class WopiTelemetryTests : IDisposable
     /// tag equals <paramref name="operation"/>. The filter prevents cross-test pollution when
     /// xUnit runs other test classes concurrently against the same static <see cref="Meter"/>.
     /// </summary>
+    /// <returns>The measurements tagged with <paramref name="operation"/>.</returns>
     private static List<(long Value, KeyValuePair<string, object?>[] Tags)> ForOperation(MeterCapture capture, string operation)
         => [.. capture.Measurements.Where(m =>
             m.Tags.Any(t => t.Key == WopiTelemetry.Tags.Operation && (string?)t.Value == operation))];

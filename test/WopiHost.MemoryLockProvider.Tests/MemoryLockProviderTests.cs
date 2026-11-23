@@ -6,9 +6,9 @@ namespace WopiHost.MemoryLockProvider.Tests;
 
 /// <summary>
 /// Provider-specific tests for <see cref="MemoryLockProvider"/> that can't run through the
-/// shared <see cref="WopiHost.Abstractions.Testing.LockProviderConformanceTests"/> harness —
-/// today that's just the direct stale-state seeding, which depends on the impl-specific backing
-/// dictionary. Cross-impl behavior (add/get/refresh/remove/expiry/CAS/comparer) is covered by
+/// shared <see cref="WopiHost.Abstractions.Testing.LockProviderConformanceTests"/> harness:
+/// direct stale-state seeding into the impl-specific backing dictionary, and per-instance state
+/// isolation. Cross-impl behavior (add/get/refresh/remove/expiry/CAS/comparer) is covered by
 /// <see cref="MemoryLockProviderConformanceTests"/>.
 /// </summary>
 public class MemoryLockProviderTests

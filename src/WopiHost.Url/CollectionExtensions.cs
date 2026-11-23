@@ -6,9 +6,16 @@
 public static class CollectionExtensions
 {
     /// <summary>
-    /// Merges two dictionaries. If duplicate occurs, <param name="dictA"></param> wins over <param name="dictB" />.
+    /// Merges two dictionaries. When a key occurs in both, the value from <paramref name="dictA"/> wins.
     /// </summary>
-    /// <returns></returns>
+    /// <typeparam name="TKey">The type of the dictionary keys.</typeparam>
+    /// <typeparam name="TValue">The type of the dictionary values.</typeparam>
+    /// <param name="dictA">The dictionary whose values take precedence.</param>
+    /// <param name="dictB">The dictionary that supplies values for keys missing from <paramref name="dictA"/>.</param>
+    /// <returns>
+    /// A new dictionary with the keys of both inputs; the other input itself if one of them is <see langword="null"/>;
+    /// or <see langword="null"/> if both are <see langword="null"/>.
+    /// </returns>
     public static IDictionary<TKey, TValue>? Merge<TKey, TValue>(this IDictionary<TKey, TValue>? dictA, IDictionary<TKey, TValue>? dictB)
         where TKey : notnull
         where TValue : class

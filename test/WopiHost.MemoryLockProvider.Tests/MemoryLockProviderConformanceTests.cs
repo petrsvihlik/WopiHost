@@ -8,9 +8,9 @@ namespace WopiHost.MemoryLockProvider.Tests;
 /// Runs the shared <see cref="LockProviderConformanceTests"/> against <see cref="MemoryLockProvider"/>.
 /// </summary>
 /// <remarks>
-/// xUnit discovers the inherited [Fact] tests automatically. Provider-specific tests
-/// (seed-based state probes via the internal test hooks, JSON-shaped comparer behavior under
-/// direct construction, etc.) stay in <c>MemoryLockProviderTests</c>.
+/// xUnit discovers the inherited <c>[Fact]</c> tests automatically. Provider-specific tests
+/// (seed-based state probes via the internal test hooks, per-instance state isolation) stay in
+/// <see cref="MemoryLockProviderTests"/>.
 /// </remarks>
 public sealed class MemoryLockProviderConformanceTests : LockProviderConformanceTests
 {

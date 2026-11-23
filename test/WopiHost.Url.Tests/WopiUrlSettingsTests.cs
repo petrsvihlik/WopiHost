@@ -2,9 +2,9 @@ namespace WopiHost.Url.Tests;
 
 /// <summary>
 /// Tests for <see cref="WopiUrlSettings"/> constructors and the method-arg-overrides-ctor-arg
-/// precedence in <see cref="WopiUrlBuilder"/>. The IDictionary constructor and the override
-/// branch are otherwise unexercised by the existing URL-generation tests, which feed settings
-/// only via the typed properties.
+/// precedence in <see cref="WopiUrlBuilder"/>. The <see cref="IDictionary{TKey, TValue}"/>
+/// constructor and the override branch are otherwise unexercised by the URL-generation tests,
+/// which feed settings only via the typed properties.
 /// </summary>
 public class WopiUrlSettingsTests
 {

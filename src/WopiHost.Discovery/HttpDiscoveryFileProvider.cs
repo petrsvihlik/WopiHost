@@ -6,19 +6,21 @@ using Microsoft.Extensions.Logging;
 namespace WopiHost.Discovery;
 
 /// <summary>
-/// A discovery file provider that loads the discovery file from a WOPI client over HTTP.
+/// Loads the discovery file from a WOPI client over HTTP.
 /// </summary>
-/// <remarks>
-/// Creates an instance of a discovery file provider that loads the discovery file from a WOPI client over HTTP.
-/// </remarks>
 /// <param name="httpClient">An HTTP client with a <see cref="HttpClient.BaseAddress"/> configured to point to a WOPI client.</param>
-/// <param name="logger">Logger.</param>
+/// <param name="logger">The logger.</param>
+/// <exception cref="ArgumentNullException"><paramref name="httpClient"/> or <paramref name="logger"/> is <see langword="null"/>.</exception>
 public partial class HttpDiscoveryFileProvider(HttpClient httpClient, ILogger<HttpDiscoveryFileProvider> logger) : IDiscoveryFileProvider
 {
     private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     private readonly ILogger<HttpDiscoveryFileProvider> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Fetches <c>/hosting/discovery</c> relative to <see cref="HttpClient.BaseAddress"/>.
+    /// </remarks>
+    /// <exception cref="DiscoveryException">The request failed, timed out, or returned a payload that is not valid XML.</exception>
     public async Task<XElement> GetDiscoveryXmlAsync()
     {
         var sw = Stopwatch.StartNew();
