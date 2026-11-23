@@ -12,7 +12,7 @@ public static class LogHelper
     /// Adds WOPI diagnostic codes to the diagnostic context.
     /// </summary>
     /// <param name="diagnosticContext">Serilog's diagnostic context.</param>
-    /// <param name="httpContext">HTTP context instance</param>
+    /// <param name="httpContext">The HTTP context of the current request.</param>
     public static void EnrichWithWopiDiagnostics(IDiagnosticContext diagnosticContext, HttpContext httpContext)
     {
         ArgumentNullException.ThrowIfNull(diagnosticContext);

@@ -11,13 +11,12 @@ namespace WopiHost;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Sample-local discriminators for which storage / lock provider to wire up. Lives in the
-    /// sample (not in WopiHost.Core's public options surface) because choosing between bundled
-    /// providers is composition-root concern, not a contract the library should expose.
+    /// Specifies which bundled storage or lock provider the sample registers.
     /// </summary>
     /// <remarks>
-    /// Real hosts reference one provider package and call its typed extension directly
-    /// (e.g. <c>services.AddFileSystemStorageProvider(cfg)</c>). The enum-based switch exists here
+    /// Choosing between bundled providers is a composition-root concern, so this discriminator
+    /// lives in the sample rather than in WopiHost.Core's public options. Real hosts reference one
+    /// provider package and call its typed extension directly (e.g. <c>services.AddFileSystemStorageProvider(cfg)</c>). The enum-based switch exists here
     /// so the AppHost flag flow and Aspire orchestration can flip providers at runtime without
     /// recompiling the sample.
     /// </remarks>
@@ -36,9 +35,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Sample-only helper that dispatches to the chosen provider's typed registration extension.
-    /// Each branch is a one-liner so adding a new provider means adding an enum value and a
-    /// case — no reflection, no string-name probing, no fallback path.
+    /// Registers the chosen provider by dispatching to its typed registration extension.
     /// </summary>
     public static void AddSampleStorageProvider(
         this IServiceCollection services,

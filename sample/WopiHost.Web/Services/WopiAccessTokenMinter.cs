@@ -8,9 +8,8 @@ using WopiHost.Discovery.Enumerations;
 namespace WopiHost.Web.Services;
 
 /// <summary>
-/// Anonymous-frontend token-minter. Lives in a service so the Razor Components page handler
-/// (<c>Components/Pages/Detail.razor</c>) and any future API endpoint share the same claim
-/// layout and signing key.
+/// Mints WOPI access tokens for the anonymous frontend, so the Razor Components page
+/// (<c>Components/Pages/Detail.razor</c>) and any other caller share one claim layout and signing key.
 /// </summary>
 /// <remarks>
 /// The token format is a contract with the WopiHost server's <c>JwtAccessTokenService</c>: same
@@ -24,6 +23,7 @@ public sealed class WopiAccessTokenMinter
     private static readonly byte[] s_sharedSigningKey = DerivePaddedKey("wopi-sample-shared-dev-key");
 
     /// <summary>Mints a JWT scoped to <paramref name="action"/> for <paramref name="userId"/> on <paramref name="resourceId"/>.</summary>
+    /// <returns>The serialized token and its expiry. Only <see cref="WopiActionEnum.Edit"/> grants write and rename permissions.</returns>
     public (string Token, DateTimeOffset ExpiresAt) Mint(string userId, string resourceId, WopiActionEnum action)
     {
         // Scope permissions by action. OOS / M365 ship distinct view vs edit URLs (the URL alone

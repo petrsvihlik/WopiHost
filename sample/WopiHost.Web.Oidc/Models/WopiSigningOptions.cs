@@ -22,13 +22,13 @@ namespace WopiHost.Web.Oidc.Models;
 public class WopiSigningOptions
 {
     /// <summary>
-    /// Configuration section path. Must match the backend's <c>WopiSecurityOptions.SectionName</c>
+    /// Specifies the configuration section path. Must match the backend's <c>WopiSecurityOptions.SectionName</c>
     /// so both sides bind the same key.
     /// </summary>
     public const string SectionName = "Wopi:Security";
 
     /// <summary>
-    /// HMAC signing key bytes. Bound from a base64 string by the IConfiguration binder.
+    /// Gets or sets the HMAC signing key bytes, bound from a base64 string by the <c>IConfiguration</c> binder.
     /// </summary>
     [SuppressMessage("Performance", "CA1819:Properties should not return arrays",
         Justification = "Bound from a base64 config string by the IConfiguration BinaryConverter, which only targets byte[].")]

@@ -16,7 +16,7 @@ namespace WopiHost;
 
 public partial class Program
 {
-    /// <summary>Marker for <c>WebApplicationFactory&lt;Program&gt;</c> in integration tests.</summary>
+    /// <summary>Prevents instantiation; <see cref="Program"/> serves as the <c>WebApplicationFactory&lt;Program&gt;</c> marker in integration tests.</summary>
     private Program() { }
 
     public static int Main(string[] args)
