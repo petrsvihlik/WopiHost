@@ -13,6 +13,12 @@
 		     analyzer defaults — and with TreatWarningsAsErrors that breaks the build on one
 		     machine and not another. Raise deliberately, together with the global.json pin. -->
 		<LangVersion>15.0</LangVersion>
+		<!-- Runtime Async (.NET 11): the runtime, not compiler-generated state machines, suspends and
+		     resumes async methods, giving real call chains in live stack traces and lower overhead.
+		     The .NET 11 libraries themselves ship this way. An explicit Features entry is not undone
+		     by the SDK's UseRuntimeAsync switch, so the condition below makes
+		     -p:UseRuntimeAsync=false build without it. -->
+		<Features Condition="'$(UseRuntimeAsync)' != 'false'">$(Features);runtime-async=on</Features>
 		<!-- Centralize bin/obj/package/publish output under repo-root artifacts/.
 		     ArtifactsPath is pinned here so that test projects (which have their
 		     own Directory.Build.props) don't end up with a separate test/artifacts/. -->
