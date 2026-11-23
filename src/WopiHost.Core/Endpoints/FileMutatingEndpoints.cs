@@ -118,6 +118,7 @@ internal static class FileMutatingEndpoints
             .WithMetadata(new WopiOverrideMetadata(WopiFileOperations.Cobalt))
             .WithSummary("ProcessCobalt (X-WOPI-Override: COBALT) — Cobalt sub-protocol body.")
             .WithDescription("Spec: MS-FSSHTTP. Requires an ICobaltProcessor to be registered; 500 if missing.")
+            .Produces<FileContentHttpResult>(contentType: MediaTypeNames.Application.Octet)
             .RequireWopiPermission(WopiResourceType.File, Permission.Update);
 
         // ProcessLock: multiplexed across 5 override values, kept on one endpoint because the

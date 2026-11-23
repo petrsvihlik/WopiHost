@@ -145,8 +145,8 @@ public partial class WopiAzureStorageProvider : IWopiStorageProvider, IWopiWrita
         // streaming-list boundary inside the loop. Each non-matching blob is dropped before
         // a WopiBlobFile is allocated for it. The hashset (OrdinalIgnoreCase) gives O(1)
         // membership checks regardless of how many extensions the caller asked for.
-        var extensionFilter = (fileExtensions is { Count: > 0 })
-            ? new HashSet<string>(fileExtensions, StringComparer.OrdinalIgnoreCase)
+        HashSet<string>? extensionFilter = fileExtensions is { Count: > 0 }
+            ? [with(StringComparer.OrdinalIgnoreCase), .. fileExtensions]
             : null;
 
         await foreach (var item in _containerClient.GetBlobsByHierarchyAsync(traits: BlobTraits.None, states: BlobStates.None, delimiter: "/", prefix: prefix, cancellationToken: cancellationToken).ConfigureAwait(false))

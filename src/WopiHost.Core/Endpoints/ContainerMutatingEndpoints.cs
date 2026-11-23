@@ -131,9 +131,9 @@ internal static class ContainerMutatingEndpoints
         var resolved = await ResolveNewChildContainer(req.Http, req.Storage, req.WritableStorage, req.Id, requestedName, isSpecificMode: req.RelativeTarget is not null, req.CancellationToken).ConfigureAwait(false);
         return resolved switch
         {
-            (null, { } conflict) => conflict,
-            (null, _) => TypedResults.StatusCode(StatusCodes.Status500InternalServerError),
-            ({ } folder, _) => await BuildSuccessAsync(folder).ConfigureAwait(false),
+            Conflict conflict => conflict,
+            IWopiContainer folder => await BuildSuccessAsync(folder).ConfigureAwait(false),
+            null => TypedResults.StatusCode(StatusCodes.Status500InternalServerError),
         };
 
         async Task<JsonHttpResult<CreateChildContainerResponse>> BuildSuccessAsync(IWopiContainer folder)
@@ -151,11 +151,11 @@ internal static class ContainerMutatingEndpoints
     /// name-negotiation branch.
     /// </summary>
     /// <returns>
-    /// <c>(folder, null)</c> on success; <c>(null, conflict)</c> when the specific-mode name collides,
+    /// The created container on success; a <see cref="Conflict"/> when the specific-mode name collides,
     /// in which case the <c>X-WOPI-ValidRelativeTarget</c> response header carries a suggested name;
-    /// or <c>(null, null)</c> when the provider fails to create the container.
+    /// or empty contents when the provider fails to create the container.
     /// </returns>
-    private static async Task<(IWopiContainer? folder, Conflict? conflict)> ResolveNewChildContainer(
+    private static async Task<NewChildContainerOutcome> ResolveNewChildContainer(
         HttpContext httpContext, IWopiStorageProvider storage, IWopiWritableStorageProvider writableStorage, string id, string requestedName, bool isSpecificMode, CancellationToken cancellationToken)
     {
         if (isSpecificMode)
@@ -166,14 +166,20 @@ internal static class ContainerMutatingEndpoints
             {
                 var suggestedName = await writableStorage.GetSuggestedContainerName(id, requestedName, cancellationToken).ConfigureAwait(false);
                 httpContext.Response.Headers[WopiHeaders.ValidRelativeTarget] = UtfString.FromDecoded(suggestedName).ToString(true);
-                return (null, TypedResults.Conflict());
+                return TypedResults.Conflict();
             }
-            return (await writableStorage.CreateWopiChildContainer(id, requestedName, cancellationToken).ConfigureAwait(false), null);
+            return new(await writableStorage.CreateWopiChildContainer(id, requestedName, cancellationToken).ConfigureAwait(false));
         }
         // suggested-target branch — host may dedupe the name.
         var newName = await writableStorage.GetSuggestedContainerName(id, requestedName, cancellationToken).ConfigureAwait(false);
-        return (await writableStorage.CreateWopiChildContainer(id, newName, cancellationToken).ConfigureAwait(false), null);
+        return new(await writableStorage.CreateWopiChildContainer(id, newName, cancellationToken).ConfigureAwait(false));
     }
+
+    /// <summary>
+    /// Represents the outcome of <see cref="ResolveNewChildContainer"/>: the created container, a
+    /// name conflict, or empty contents when the provider returned no container.
+    /// </summary>
+    private union NewChildContainerOutcome(IWopiContainer?, Conflict);
 
     /// <summary>
     /// Sanitizes a container name via <see cref="WopiFileNameSanitiser"/>.

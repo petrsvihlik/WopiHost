@@ -87,7 +87,7 @@ internal static class ContainerEndpoints
         // token-trading prevention rationale. Going through the injected minter keeps the
         // async-state-machine analysis precise: the await lands on an injected interface method,
         // not a same-class or shared static async helper.
-        var children = new List<ChildContainer>();
+        List<ChildContainer> children = [with(capacity: ancestors.Count)];
         foreach (var ancestor in ancestors)
         {
             var ancestorToken = await req.TokenMinter.MintForContainerAsync(req.Http.User, ancestor, req.CancellationToken).ConfigureAwait(false);

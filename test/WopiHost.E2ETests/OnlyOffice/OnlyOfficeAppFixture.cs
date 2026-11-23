@@ -73,18 +73,19 @@ public sealed class OnlyOfficeAppFixture : WopiAppFixtureBase
         const int tailLines = 200;
         try
         {
-            var (names, _) = await RunProcessAsync("docker", "ps --filter ancestor=onlyoffice/documentserver --format {{.Names}}").ConfigureAwait(false);
+            var (names, _) = await RunProcessAsync("docker", ["ps", "--filter", "ancestor=onlyoffice/documentserver", "--format", "{{.Names}}"]).ConfigureAwait(false);
             var container = names.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
             if (string.IsNullOrEmpty(container))
             {
                 return "<no running onlyoffice/documentserver container>";
             }
 
-            var (dockerLogs, dockerLogsErr) = await RunProcessAsync("docker", $"logs --tail {tailLines} {container}").ConfigureAwait(false);
+            var (dockerLogs, dockerLogsErr) = await RunProcessAsync("docker", ["logs", "--tail", $"{tailLines}", container]).ConfigureAwait(false);
             // The interesting WOPI diagnostics live in the docservice logs inside the container.
             var (docservice, _) = await RunProcessAsync(
                 "docker",
-                $"exec {container} sh -lc \"tail -n {tailLines} /var/log/onlyoffice/documentserver/docservice/out.log /var/log/onlyoffice/documentserver/docservice/err.log /var/log/onlyoffice/documentserver/converter/err.log 2>/dev/null\"")
+                ["exec", container, "sh", "-lc",
+                    $"tail -n {tailLines} /var/log/onlyoffice/documentserver/docservice/out.log /var/log/onlyoffice/documentserver/docservice/err.log /var/log/onlyoffice/documentserver/converter/err.log 2>/dev/null"])
                 .ConfigureAwait(false);
 
             static string Cap(string s, int max) => s.Length <= max ? s : "…(truncated)…\n" + s[^max..];
