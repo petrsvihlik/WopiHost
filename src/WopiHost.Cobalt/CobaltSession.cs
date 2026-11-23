@@ -14,9 +14,10 @@ namespace WopiHost.Cobalt;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The Cobalt protocol is stateful: schema/exclusive locks, edit deltas, and
-/// co-authoring metadata live inside the <c>CobaltFile</c>'s in-memory blob
-/// stores and must persist across HTTP requests for the same file. A fresh
+/// The Cobalt protocol is stateful: edit deltas and partition content live inside the
+/// <c>CobaltFile</c>'s in-memory blob stores and must persist across HTTP requests for the
+/// same file. Lock requests are stubbed by <see cref="CobaltHostLockingStore"/>, and editor
+/// presence is tracked by <see cref="CoauthoringSessionTracker"/>. A fresh
 /// <c>CobaltFile</c> per request would make co-authoring and delta-based edits
 /// impossible.
 /// </para>

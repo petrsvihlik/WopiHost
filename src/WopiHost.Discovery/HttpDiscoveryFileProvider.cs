@@ -18,7 +18,8 @@ public partial class HttpDiscoveryFileProvider(HttpClient httpClient, ILogger<Ht
 
     /// <inheritdoc />
     /// <remarks>
-    /// Fetches <c>/hosting/discovery</c> relative to <see cref="HttpClient.BaseAddress"/>.
+    /// Fetches <c>/hosting/discovery</c> from the root of <see cref="HttpClient.BaseAddress"/>; any path
+    /// segment in the base address is ignored.
     /// </remarks>
     /// <exception cref="DiscoveryException">The request failed, timed out, or returned a payload that is not valid XML.</exception>
     public async Task<XElement> GetDiscoveryXmlAsync()
