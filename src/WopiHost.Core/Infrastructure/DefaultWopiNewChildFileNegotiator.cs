@@ -138,10 +138,10 @@ public sealed class DefaultWopiNewChildFileNegotiator(
 
     /// <summary>
     /// Scrubs <paramref name="invalidName"/> via <see cref="WopiFileNameSanitiser"/> and then
-    /// asks the provider to dedup the candidate against existing siblings. Returns the
-    /// dedup-suggested name on success, or <see langword="null"/> when the scrubbed candidate
-    /// still fails validation (caller decides whether to swallow or surface the failure).
+    /// asks the provider to dedup the candidate against existing siblings.
     /// </summary>
+    /// <returns>The dedup-suggested name, or <see langword="null"/> when the scrubbed candidate still fails
+    /// validation; the caller decides whether to swallow or surface the failure.</returns>
     private async Task<string?> TryBuildValidSuggestionAsync(WopiNewChildFileRequest request, string invalidName, CancellationToken cancellationToken)
     {
         var candidate = await WopiFileNameSanitiser.TryBuildValidCandidateAsync(

@@ -50,7 +50,7 @@ public static class WopiHeaders
     public const string Editors = "X-WOPI-Editors";
 
     /// <summary>
-    /// Marker request header on <c>PutRelativeFile</c> whose <em>presence</em> indicates the call
+    /// Marker request header on <c>PutRelativeFile</c> whose <i>presence</i> indicates the call
     /// is being made in the context of a binary document conversion. The header value itself is
     /// not significant per the spec — only its presence. Surfaced via
     /// <see cref="WopiHost.Abstractions.IWopiHostExtensions.OnPutRelativeFileAsync"/>.

@@ -79,7 +79,7 @@ public interface IWopiStorageProvider
     /// </remarks>
     /// <param name="fileId">The identifier of the file.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>The ancestors, root first, <em>including the immediate parent</em> and excluding
+    /// <returns>The ancestors, root first, <i>including the immediate parent</i> and excluding
     /// the file itself.</returns>
     Task<ReadOnlyCollection<IWopiContainer>> GetFileAncestors(string fileId, CancellationToken cancellationToken = default);
 
@@ -94,7 +94,7 @@ public interface IWopiStorageProvider
     /// </remarks>
     /// <param name="containerId">The identifier of the container.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>The ancestors, root first, <em>including the immediate parent</em> and excluding
+    /// <returns>The ancestors, root first, <i>including the immediate parent</i> and excluding
     /// the container itself; empty for the root.</returns>
     Task<ReadOnlyCollection<IWopiContainer>> GetContainerAncestors(string containerId, CancellationToken cancellationToken = default);
 

@@ -17,7 +17,7 @@ namespace WopiHost.AzureLockProvider;
 /// <para>
 /// For each <c>fileId</c>, the provider creates a placeholder blob (named by the SHA-256 hash of the id)
 /// in <see cref="WopiAzureLockProviderOptions.ContainerName"/>
-/// and acquires an <em>infinite</em> blob lease. The Azure lease provides true cross-instance
+/// and acquires an <i>infinite</i> blob lease. The Azure lease provides true cross-instance
 /// exclusion (only one WopiHost instance can hold the lease at a time), while the blob's metadata
 /// carries the WOPI-level state (the client-supplied lock id, the Azure lease GUID, and the
 /// creation timestamp used to honour the WOPI 30-minute expiry).
@@ -195,12 +195,10 @@ public partial class WopiAzureLockProvider(
     /// another <c>Refresh</c> — changes the blob's ETag and Azure replies 412, which is reported
     /// as not-applied.
     /// </para>
-    /// <para>
-    /// Returns <see langword="false"/> on any abort condition: blob missing, malformed
-    /// metadata, expired record, lock-id mismatch, missing or stale Azure lease, ETag race, or
-    /// any other <see cref="RequestFailedException"/> on the SetMetadata write.
-    /// </para>
     /// </remarks>
+    /// <returns><see langword="true"/> if the mutation was written; <see langword="false"/> on any abort
+    /// condition: blob missing, malformed metadata, expired record, lock-id mismatch, missing or stale
+    /// Azure lease, ETag race, or any other <see cref="RequestFailedException"/> on the metadata write.</returns>
     private async Task<bool> TryAtomicLockUpdateAsync(
         string fileId,
         string expectedExistingLockId,
@@ -250,6 +248,7 @@ public partial class WopiAzureLockProvider(
     /// lease was externally broken (bad state); <see cref="LogLockMetadataUpdateFailed"/> means
     /// the SetMetadata write failed (typically 412 = concurrent mutation, 409 = lease conflict).
     /// </remarks>
+    /// <returns><see langword="true"/> if both the lease renewal and the metadata write succeeded; otherwise, <see langword="false"/>.</returns>
     private async Task<bool> ExecuteMutationAsync(
         MutationContext context,
         Action<Dictionary<string, string>> mutateMetadata,

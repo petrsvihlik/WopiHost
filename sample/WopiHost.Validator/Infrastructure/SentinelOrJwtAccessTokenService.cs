@@ -17,7 +17,7 @@ namespace WopiHost.Validator.Infrastructure;
 /// CheckFileInfo returns 401 on every WOPI test and nothing runs.
 /// </para>
 /// <para>
-/// This decorator is wired up <em>only</em> in the Validator sample; production hosts use the
+/// This decorator is wired up <i>only</i> in the Validator sample; production hosts use the
 /// stock <see cref="JwtAccessTokenService"/> via <c>AddWopi()</c> and never see this codepath.
 /// </para>
 /// </remarks>

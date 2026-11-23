@@ -164,7 +164,7 @@ public static class ServiceCollectionExtensions
     /// non-WOPI code paths (admin tools, batch jobs) that resolve the storage provider directly.
     /// </para>
     /// <para>
-    /// Must be called <em>after</em> the storage provider is registered (for example, via
+    /// Must be called <i>after</i> the storage provider is registered (for example, via
     /// <c>AddFileSystemStorageProvider(...)</c>). An <see cref="IWopiLockProvider"/> must also be
     /// registered by the time the decorated provider is first resolved.
     /// </para>

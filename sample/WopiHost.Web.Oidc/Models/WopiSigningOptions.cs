@@ -10,8 +10,8 @@ namespace WopiHost.Web.Oidc.Models;
 /// <para>
 /// Deliberately a separate, project-local POCO rather than a reference to the backend's
 /// <c>WopiSecurityOptions</c>. Pure frontends should not take a project dependency on
-/// <c>WopiHost.Core</c>; the contract between frontend and backend is the <em>configuration
-/// path</em> (<c>Wopi:Security:SigningKey</c>) — like a URL — not the typed options class.
+/// <c>WopiHost.Core</c>; the contract between frontend and backend is the <i>configuration
+/// path</i> (<c>Wopi:Security:SigningKey</c>) — like a URL — not the typed options class.
 /// Each side keeps its own typed shape pointing at the same key.
 /// </para>
 /// <para>

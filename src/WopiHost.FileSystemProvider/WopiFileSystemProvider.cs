@@ -113,6 +113,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     /// An id the watcher has not delivered yet (minted by another process over the same tree) is
     /// recoverable by hashing the on-disk entries, since ids derive deterministically from paths.
     /// </summary>
+    /// <returns><see langword="true"/> if <paramref name="identifier"/> resolved to a path; otherwise, <see langword="false"/>.</returns>
     private bool TryResolvePath(string identifier, [NotNullWhen(true)] out string? fullPath)
         => _fileIds.TryGetPath(identifier, out fullPath)
             || _synchronizer.TryResolveByReconcile(identifier, out fullPath);
@@ -233,9 +234,10 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
             : null;
 
     /// <summary>
-    /// Resolves the identifier of a named entry inside a container, or <see langword="null"/> when the container
-    /// is unknown, the name is invalid, or nothing of the expected kind exists on disk.
+    /// Resolves the identifier of a named entry inside a container.
     /// </summary>
+    /// <returns>The entry's identifier, or <see langword="null"/> when the container is unknown, the name is
+    /// invalid, or nothing of the expected kind exists on disk.</returns>
     private string? TryGetChildId(string containerId, string name, Func<string, bool> existsOnDisk)
     {
         // name is client-controlled in some flows (PutRelativeFile target negotiation). Unknown

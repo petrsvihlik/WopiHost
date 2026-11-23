@@ -106,6 +106,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// startup scan — created or renamed by another process sharing the same tree — resolves to
     /// the same identifier in every process.
     /// </summary>
+    /// <returns>The identifier mapped to <paramref name="path"/>.</returns>
     internal string GetOrAddFileId(string path)
         => TryGetFileId(path, out var fileId) ? fileId : AddFile(path);
 
@@ -113,8 +114,9 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// Installs <paramref name="id"/>→<paramref name="path"/> without displacing the path's
     /// existing reverse binding: a path that already holds an id (a rename that kept the original
     /// id alive) keeps it as canonical, and <paramref name="id"/> becomes an additional alias for
-    /// the path. Returns <see langword="false"/> when the exact mapping was already present.
+    /// the path.
     /// </summary>
+    /// <returns><see langword="true"/> if the mapping was installed; <see langword="false"/> if it was already present.</returns>
     internal bool EnsureMapping(string id, string path)
     {
         lock (_writeLock)
@@ -156,9 +158,9 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// Repoints every identifier bound to <paramref name="oldPath"/> — or to an entry beneath it
     /// — onto the corresponding path under <paramref name="newPath"/>, preserving each id across
     /// the rename. Canonical bindings stay canonical (a witnessed rename outranks any stale
-    /// binding the target path may have held); aliases stay aliases. Returns
-    /// <see langword="false"/> when nothing was bound under <paramref name="oldPath"/>.
+    /// binding the target path may have held); aliases stay aliases.
     /// </summary>
+    /// <returns><see langword="true"/> if at least one identifier was repointed; <see langword="false"/> if nothing was bound under <paramref name="oldPath"/>.</returns>
     internal bool RepointSubtree(string oldPath, string newPath)
     {
         lock (_writeLock)
@@ -286,6 +288,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// On case-sensitive Linux filesystems this is conservative but harmless — the same path
     /// still hashes to the same id.
     /// </remarks>
+    /// <returns>The lower-case hex SHA-256 identifier for <paramref name="path"/>, or <see cref="WopiTestFileId"/> for a <c>test.wopitest</c> file.</returns>
     internal static string DeriveId(string path)
     {
         var fullPath = Path.GetFullPath(path);

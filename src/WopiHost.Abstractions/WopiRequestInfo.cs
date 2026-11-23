@@ -29,7 +29,7 @@ public sealed record WopiRequestInfo
     /// <summary>
     /// Gets the authenticated principal for the request. May be an anonymous
     /// <see cref="ClaimsPrincipal"/> when the consumer runs before the auth pipeline (e.g.
-    /// <see cref="IWopiProofValidator"/>, which gates the request <em>before</em> the
+    /// <see cref="IWopiProofValidator"/>, which gates the request <i>before</i> the
     /// access-token handler has materialised an identity).
     /// </summary>
     public required ClaimsPrincipal User { get; init; }

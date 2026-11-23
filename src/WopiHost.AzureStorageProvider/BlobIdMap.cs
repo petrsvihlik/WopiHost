@@ -16,7 +16,7 @@ namespace WopiHost.AzureStorageProvider;
 /// and is rebuilt by <see cref="ScanAll"/> when the provider first initializes.
 /// </para>
 /// <para>
-/// <strong>Blob paths are hashed as-is, without case-folding.</strong> Azure Blob Storage treats
+/// <b>Blob paths are hashed as-is, without case-folding.</b> Azure Blob Storage treats
 /// blob names case-sensitively — <c>Folder/file.txt</c> and <c>folder/file.txt</c> are distinct
 /// blobs — so case-folding before hashing would silently merge two distinct blobs onto a single
 /// id, with the second's mapping overwriting the first in the in-memory dictionary.
@@ -27,7 +27,7 @@ namespace WopiHost.AzureStorageProvider;
 /// recognised as creating an otherwise-empty folder.
 /// </para>
 /// <para>
-/// <strong>Two dictionaries, kept in sync.</strong> <c>_idToPath</c> drives id→path lookups
+/// <b>Two dictionaries, kept in sync.</b> <c>_idToPath</c> drives id→path lookups
 /// (which fire on every WOPI route that resolves <c>{id}</c>); <c>_pathToId</c> is the inverse
 /// for the listing path, where the provider walks the blob namespace and needs to look up the id
 /// for each blob name, keeping that lookup O(1).
@@ -186,7 +186,7 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
 
     /// <summary>
     /// Derives the deterministic identifier for a blob path. The path is hashed as-is — Azure blob
-    /// names are case-sensitive, so two casings of the same name are <em>different</em> blobs
+    /// names are case-sensitive, so two casings of the same name are <i>different</i> blobs
     /// and must produce different ids.
     /// </summary>
     /// <param name="path">The blob path; empty for the root container.</param>

@@ -15,11 +15,11 @@ namespace WopiHost.Abstractions;
 /// </para>
 /// <para>
 /// Replace via <c>services.AddSingleton&lt;IWopiPermissionProvider, MyAclProvider&gt;()</c>
-/// (registered <em>after</em> <c>AddWopi()</c>) to consult a custom ACL store. The provider is
+/// (registered <i>after</i> <c>AddWopi()</c>) to consult a custom ACL store. The provider is
 /// called:
 /// </para>
 /// <list type="bullet">
-///   <item><description>at <em>token issuance</em> by host code that builds WOPI URLs, to decide what permissions to bake into the token; and</description></item>
+///   <item><description>at <i>token issuance</i> by host code that builds WOPI URLs, to decide what permissions to bake into the token; and</description></item>
 ///   <item><description>during <c>CheckFileInfo</c> / <c>CheckContainerInfo</c> to populate the <c>UserCan*</c> response flags.</description></item>
 /// </list>
 /// </remarks>

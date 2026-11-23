@@ -14,14 +14,14 @@ namespace WopiHost.IntegrationTests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <strong>Why this exists.</strong> Sign-in/out is served by minimal-API
+/// <b>Why this exists.</b> Sign-in/out is served by minimal-API
 /// <c>AccountEndpoints</c> (<c>Results.Challenge</c> / <c>Results.SignOut</c>).
 /// <see cref="WopiTokenRoundTripTests"/> only exercises <c>[Authorize]</c> enforcement via
 /// <c>TestAuthHandler</c>, which short-circuits the real OIDC handshake. This suite drives the
 /// actual sign-in/out endpoints to close that coverage gap.
 /// </para>
 /// <para>
-/// <strong>Why two HttpClients.</strong> The TestServer in-memory handler routes every request
+/// <b>Why two HttpClients.</b> The TestServer in-memory handler routes every request
 /// through the app's pipeline by host. So a redirect to the mock IdP container would 404 inside
 /// TestServer. The flow is therefore split: the TestClient (with cookie container) drives
 /// <c>/account/login</c> and <c>/signin-oidc</c>; a plain <see cref="HttpClient"/> drives the mock IdP's authorize endpoint

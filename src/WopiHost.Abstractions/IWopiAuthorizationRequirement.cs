@@ -22,7 +22,7 @@ public enum WopiResourceType
 /// <remarks>
 /// Implementations (typically <c>WopiAuthorizeAttribute</c>) are attached to the endpoint's
 /// authorization policy once and shared across requests, so they must be immutable and free of
-/// per-request state. The per-request resource id is <em>not</em> part of this requirement: the
+/// per-request state. The per-request resource id is <i>not</i> part of this requirement: the
 /// authorization handler reads it from <c>HttpContext.Request.RouteValues["id"]</c>. Storing
 /// per-request state on the shared requirement races across requests.
 /// </remarks>

@@ -52,14 +52,14 @@ public sealed class OidcWebAppFactory(Uri authority, string wopiSigningSecret, s
     }
 
     /// <summary>
-    /// <strong>TEST-ONLY.</strong> Loosens the OIDC correlation/nonce cookies from
+    /// <b>TEST-ONLY.</b> Loosens the OIDC correlation/nonce cookies from
     /// <c>SameSite=None; Secure</c> to <c>SameSite=Lax</c> + non-Secure, exclusively so the
     /// in-memory <see cref="Microsoft.AspNetCore.TestHost.TestServer"/> + <see cref="HttpClient"/>
     /// pair can complete the OIDC handshake over <c>http://localhost</c>.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <strong>Do NOT mirror this in production (<c>sample/WopiHost.Web.Oidc/Program.cs</c>).</strong>
+    /// <b>Do NOT mirror this in production (<c>sample/WopiHost.Web.Oidc/Program.cs</c>).</b>
     /// The OIDC handler uses <c>response_mode=form_post</c>, meaning the IdP returns the user
     /// via a cross-site POST (browser auto-submits an HTML form to <c>/signin-oidc</c>).
     /// <c>SameSite=Lax</c> does not send cookies on cross-site POSTs — only on top-level GETs —
@@ -68,7 +68,7 @@ public sealed class OidcWebAppFactory(Uri authority, string wopiSigningSecret, s
     /// the Secure flag.
     /// </para>
     /// <para>
-    /// <strong>Why the defaults can't stay in tests.</strong> <see cref="HttpClient"/>
+    /// <b>Why the defaults can't stay in tests.</b> <see cref="HttpClient"/>
     /// silently drops Secure cookies on plaintext <c>http://localhost</c>, and TestServer's
     /// transport is in-memory HTTP only (no TLS).
     /// </para>

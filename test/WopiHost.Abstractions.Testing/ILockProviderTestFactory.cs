@@ -7,7 +7,7 @@ namespace WopiHost.Abstractions.Testing;
 /// <see cref="IWopiLockComparer"/> (tolerant comparers such as <see cref="JsonShapedWopiLockComparer"/>).
 /// </summary>
 /// <remarks>
-/// Each call must return a provider that is logically <em>independent</em> of any earlier one:
+/// Each call must return a provider that is logically <i>independent</i> of any earlier one:
 /// fresh storage and no leftover state from previous tests. Concrete factories achieve this however
 /// suits their backend (a new instance for the in-memory provider, a unique blob container for Azure,
 /// a GUID-suffixed key prefix for Redis). The suite additionally uses GUID-suffixed file ids, so

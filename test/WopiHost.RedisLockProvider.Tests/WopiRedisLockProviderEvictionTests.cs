@@ -8,7 +8,7 @@ namespace WopiHost.RedisLockProvider.Tests;
 
 /// <summary>
 /// Redis-specific coverage that the compare-and-swap paths (<see cref="WopiRedisLockProvider.RefreshLockAsync"/>
-/// and <see cref="WopiRedisLockProvider.TryUnlockAndRelockAsync"/>) <em>proactively evict</em> an expired
+/// and <see cref="WopiRedisLockProvider.TryUnlockAndRelockAsync"/>) <i>proactively evict</i> an expired
 /// record instead of leaving it for Redis's TTL to reap.
 /// </summary>
 /// <remarks>

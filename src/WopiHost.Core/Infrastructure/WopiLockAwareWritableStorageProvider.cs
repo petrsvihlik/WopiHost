@@ -10,7 +10,7 @@ namespace WopiHost.Core.Infrastructure;
 /// <remarks>
 /// <para>
 /// The WOPI endpoints already validate locks before reaching the storage layer, so on the
-/// hot path this decorator is a redundant guard. It serves as <em>defense in depth</em>
+/// hot path this decorator is a redundant guard. It serves as <i>defense in depth</i>
 /// for two scenarios:
 /// </para>
 /// <list type="bullet">

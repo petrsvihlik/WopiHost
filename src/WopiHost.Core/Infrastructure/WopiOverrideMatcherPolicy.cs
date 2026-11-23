@@ -14,14 +14,14 @@ namespace WopiHost.Core.Infrastructure;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <strong>Ordering — load-bearing.</strong> Built-in policies run first: HTTP method matching
+/// <b>Ordering — load-bearing.</b> Built-in policies run first: HTTP method matching
 /// (Order ≈ -1000) discards verb mismatches; URL template matching populates the candidate set.
 /// By the time this policy runs, the surviving candidates share both route template and verb,
 /// so header-based discrimination is the last cut and per-endpoint authorization is evaluated
 /// against the single selected endpoint.
 /// </para>
 /// <para>
-/// <strong>Selection failure mode.</strong> When the request header is missing or its value is
+/// <b>Selection failure mode.</b> When the request header is missing or its value is
 /// not in any candidate's <see cref="WopiOverrideMetadata.Values"/> set, every override-bearing
 /// candidate is invalidated and the router returns <c>404 Not Found</c> — even when another
 /// endpoint shares the template under a different verb. The 405 hint belongs to

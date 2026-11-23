@@ -17,7 +17,7 @@ internal static class WopiFileNameSanitiser
 {
     /// <summary>
     /// Characters every shipped provider rejects in file/container names. Mirrors the
-    /// Windows-invalid-character set <em>plus</em> space (trimmed off the result), so the
+    /// Windows-invalid-character set <i>plus</i> space (trimmed off the result), so the
     /// sanitised stem is portable across the file-system + Azure-blob providers.
     /// </summary>
     public const string ForbiddenChars = "<>:\"/\\|?* ";

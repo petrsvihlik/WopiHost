@@ -7,7 +7,7 @@ namespace WopiHost.Abstractions;
 /// default registration in DI to take full control of the response shape.
 /// </summary>
 /// <remarks>
-/// Unlike the file and container builders, this builder is synchronous and does <em>not</em>
+/// Unlike the file and container builders, this builder is synchronous and does <i>not</i>
 /// invoke the extension hook: the <c>CheckFolderInfo</c> endpoint calls
 /// <see cref="IWopiHostExtensions.OnCheckFolderInfoAsync"/> after the builder returns.
 /// Implementations only construct the default response.

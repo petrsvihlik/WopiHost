@@ -45,7 +45,7 @@ public sealed class StorageProviderTestContext(
 /// <remarks>
 /// A provider's test project derives a sealed subclass of <see cref="StorageProviderConformanceTests"/>
 /// and returns an implementation of this interface from <see cref="StorageProviderConformanceTests.Factory"/>.
-/// Each call must return a provider rooted on storage that is logically <em>independent</em> of
+/// Each call must return a provider rooted on storage that is logically <i>independent</i> of
 /// any earlier one (a fresh temp directory for the file system, a unique blob container for
 /// Azure) and whose root starts empty — every test seeds exactly what it asserts through the
 /// writer.

@@ -11,7 +11,7 @@ namespace WopiHost.Abstractions;
 /// Every endpoint that surfaces a child or ancestor URL — <c>EnumerateAncestors</c>,
 /// <c>EnumerateChildren</c>, <c>PutRelativeFile</c>, <c>CreateChildFile</c>,
 /// <c>CreateChildContainer</c>, the <c>ecosystem_pointer</c> handlers — must mint a fresh
-/// token bound to the <em>new</em> resource id rather than reusing the inbound token. The default
+/// token bound to the <i>new</i> resource id rather than reusing the inbound token. The default
 /// <see cref="IWopiAccessTokenService"/> binds tokens to a single resource via the
 /// <see cref="WopiAccessTokenRequest.ResourceId"/> claim; reusing an inbound token across
 /// resources would either fail downstream authorization or open a token-trading hole per

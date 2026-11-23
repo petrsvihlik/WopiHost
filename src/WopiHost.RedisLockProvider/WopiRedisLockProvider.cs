@@ -155,7 +155,7 @@ public sealed partial class WopiRedisLockProvider(
     /// <see cref="RefreshLockAsync"/> and <see cref="TryUnlockAndRelockAsync"/>.
     /// </summary>
     /// <remarks>
-    /// The write's <c>ValueCondition.Equal(raw)</c> compares the <em>byte-exact</em> resident
+    /// The write's <c>ValueCondition.Equal(raw)</c> compares the <i>byte-exact</i> resident
     /// value against the snapshot just read, atomically on the server (<c>SET IFEQ</c>,
     /// Redis 8.4+). If anything mutated the value between the read and the write (a sibling
     /// refresh, swap, remove, or expiry), the condition fails and the write is refused. The
@@ -164,6 +164,8 @@ public sealed partial class WopiRedisLockProvider(
     /// tolerant comparers (e.g. <see cref="JsonShapedWopiLockComparer"/>) still work without
     /// weakening the CAS.
     /// </remarks>
+    /// <returns><see langword="true"/> if the conditional write was applied; <see langword="false"/> if the lock is
+    /// missing, expired, held under a different id, or changed between the read and the write.</returns>
     private async Task<bool> TryAtomicCasAsync(
         string fileId,
         string expectedExistingLockId,

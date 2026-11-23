@@ -40,7 +40,7 @@ public class WopiSecurityOptions
     public byte[]? SigningKey { get; set; }
 
     /// <summary>
-    /// Gets the additional <em>previous</em> signing keys accepted for validation only.
+    /// Gets the additional <i>previous</i> signing keys accepted for validation only.
     /// </summary>
     /// <remarks>
     /// During key rotation, put the new key in <see cref="SigningKey"/>, keep the old key here for the
@@ -88,7 +88,7 @@ public class WopiSecurityOptions
 
     /// <summary>
     /// Gets or sets a value indicating whether the composition root should replace
-    /// <see cref="Abstractions.IWopiProofValidator"/> with a no-op. <strong>Development only.</strong>
+    /// <see cref="Abstractions.IWopiProofValidator"/> with a no-op. <b>Development only.</b>
     /// </summary>
     /// <remarks>
     /// <para>

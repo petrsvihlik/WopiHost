@@ -38,7 +38,7 @@ public class WopiHostOptions : IDiscoveryOptions
     /// header values.
     /// </para>
     /// <para>
-    /// Set to <c>" "</c> (a single space) when hosting under <em>IIS in-process</em>, which strips
+    /// Set to <c>" "</c> (a single space) when hosting under <i>IIS in-process</i>, which strips
     /// empty header values before they reach the wire. The space is technically
     /// non-spec but is the established workaround and what every WOPI client treats as "no lock". It also
     /// helps behind any other downstream component that drops empty headers.

@@ -17,7 +17,7 @@ internal static class DockerCheck
     /// <returns><see langword="true"/> if the Docker engine reported a server version; otherwise, <see langword="false"/>.</returns>
     /// <remarks>
     /// The check is intentionally minimal — it only answers "can Aspire start containers right
-    /// now". It does <em>not</em> verify Linux-container mode, Docker Compose, image pull
+    /// now". It does <i>not</i> verify Linux-container mode, Docker Compose, image pull
     /// permissions, or any other capability. A more specific path failing downstream should
     /// surface the real error rather than be masked by a coarser preflight.
     /// </remarks>

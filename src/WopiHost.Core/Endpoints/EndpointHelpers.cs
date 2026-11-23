@@ -29,6 +29,7 @@ internal static partial class EndpointHelpers
     /// dotless I would otherwise break it).
     /// </para>
     /// </remarks>
+    /// <returns>The source-generated regex; group 1 captures the resource kind and group 2 the identifier.</returns>
     [GeneratedRegex(@"/(files|containers)/([^/?#]+)/?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex WopiSrcPathRegex();
 

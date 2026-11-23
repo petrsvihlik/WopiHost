@@ -12,15 +12,15 @@ namespace WopiHost.Core.Security.Authentication;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <strong>Pipeline ordering — load-bearing.</strong> The proof signature is computed over the
-/// validated <c>access_token</c>, so this filter <em>must</em> run after authentication has
+/// <b>Pipeline ordering — load-bearing.</b> The proof signature is computed over the
+/// validated <c>access_token</c>, so this filter <i>must</i> run after authentication has
 /// materialised the <see cref="System.Security.Claims.ClaimsPrincipal"/>. In the Minimal-API
 /// topology this means the WOPI route group calls <c>RequireAuthorization()</c> before
 /// attaching this filter, so authorization (and therefore authentication) is resolved by the
 /// time <see cref="InvokeAsync"/> runs.
 /// </para>
 /// <para>
-/// <strong>Response codes.</strong> The WOPI proof-keys spec mandates <c>500 Internal Server Error</c>
+/// <b>Response codes.</b> The WOPI proof-keys spec mandates <c>500 Internal Server Error</c>
 /// when a signature fails verification (or the <c>access_token</c> is missing). An unauthenticated
 /// request reaching this filter means the pipeline is misconfigured, and gets <c>401</c>: there is no
 /// validated principal at all, a different failure mode than "valid principal, bad signature".

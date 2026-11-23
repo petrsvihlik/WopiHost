@@ -100,6 +100,7 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
     /// the same tree after a change the watcher did not deliver — by sweeping the tree and
     /// registering the derived identifier of every entry.
     /// </summary>
+    /// <returns><see langword="true"/> if the sweep mapped <paramref name="fileId"/> to a path; otherwise, <see langword="false"/>.</returns>
     internal bool TryResolveByReconcile(string fileId, [NotNullWhen(true)] out string? path)
     {
         path = null;
