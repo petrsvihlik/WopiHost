@@ -2,14 +2,8 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Core.Infrastructure;
 
-/// <summary>
-/// Contains the source-generated <see cref="LoggerMessageAttribute"/> declarations of
-/// <see cref="WopiTelemetryEndpointFilter"/>.
-/// </summary>
-/// <remarks>
-/// <c>userId</c> intentionally stays out of the message template — the telemetry filter
-/// already pushes it into the log scope under <see cref="WopiTelemetry.Tags.UserId"/>.
-/// </remarks>
+// userId stays out of the message templates: the filter already pushes it into the log scope
+// under WopiTelemetry.Tags.UserId.
 internal sealed partial class WopiTelemetryEndpointFilter
 {
     [LoggerMessage(

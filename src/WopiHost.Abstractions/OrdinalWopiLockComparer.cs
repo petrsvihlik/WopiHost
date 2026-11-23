@@ -1,13 +1,13 @@
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Default <see cref="IWopiLockComparer"/> — byte-exact ordinal equality. Matches the WOPI
-/// spec's implicit contract that lock ids are opaque strings the host treats as identifiers.
+/// Provides the default <see cref="IWopiLockComparer"/>: exact ordinal string equality, per the
+/// WOPI spec's treatment of lock ids as opaque identifiers.
 /// </summary>
 public sealed class OrdinalWopiLockComparer : IWopiLockComparer
 {
     /// <summary>
-    /// Shared, allocation-free singleton suitable for use as a default in providers and DI.
+    /// Gets the shared instance, suitable as a default in providers and DI.
     /// </summary>
     public static OrdinalWopiLockComparer Instance { get; } = new();
 

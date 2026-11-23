@@ -1,12 +1,8 @@
 using Microsoft.Extensions.Logging;
 using WopiHost.Abstractions;
-using WopiHost.Core.Security.Authentication;
 
 namespace WopiHost.Core.Security;
 
-// Source-generated LoggerMessage declarations for ResourceTokenMinter. Each mint emits one
-// Debug-level entry so token-minting decisions can be traced alongside JwtAccessTokenService's
-// token-issued log, without repeating the signing-level details.
 public partial class ResourceTokenMinter
 {
     [LoggerMessage(

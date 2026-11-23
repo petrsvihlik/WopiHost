@@ -3,27 +3,26 @@ using System.Text.Json;
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Opt-in <see cref="IWopiLockComparer"/> that treats two JSON-shaped lock ids as equivalent
-/// when they share the same <c>S</c> (sequence) field. Designed to absorb the Office Online
-/// Server / Microsoft 365 for the Web quirk where lock ids round-trip with additional
-/// properties added between requests, which would otherwise produce spurious 409 lock-mismatch
-/// responses against a strict ordinal comparer.
+/// Provides an opt-in <see cref="IWopiLockComparer"/> that treats two JSON-shaped lock ids as
+/// equivalent when they share the same <c>S</c> (sequence) field.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Behavior:
+/// Absorbs the Office Online Server / Microsoft 365 for the Web quirk where lock ids round-trip
+/// with properties added between requests, which would otherwise produce spurious <c>409</c>
+/// lock-mismatch responses against a strict ordinal comparer. Comparison rules:
 /// </para>
 /// <list type="bullet">
-///   <item>If both inputs are byte-equal, returns <see langword="true"/> (fast path).</item>
-///   <item>If both inputs parse as JSON objects with a string <c>S</c> property, returns
-///     <see langword="true"/> when those <c>S</c> values match ordinally.</item>
-///   <item>Otherwise falls back to ordinal equality (so non-JSON locks behave like the
-///     default comparer).</item>
+///   <item><description>Ordinally equal inputs (including two <see langword="null"/> values)
+///     are equal.</description></item>
+///   <item><description>If both inputs parse as JSON objects with a string <c>S</c> property,
+///     they are equal when those <c>S</c> values match ordinally.</description></item>
+///   <item><description>Otherwise they are not equal, so non-JSON locks behave like
+///     <see cref="OrdinalWopiLockComparer"/>.</description></item>
 /// </list>
 /// <para>
-/// Inspired by cs3org/wopiserver's <c>wopilockstrictcheck=False</c> branch (which also keys
-/// off the <c>S</c> field). Use only if you have observed the OOS / M365-for-the-Web quirk in
-/// your environment — tolerance comes with its own correctness risk: distinct locks that
+/// Modeled on cs3org/wopiserver's <c>wopilockstrictcheck=False</c> branch, which also keys off
+/// the <c>S</c> field. Use only after observing the quirk in practice: distinct locks that
 /// happen to share an <c>S</c> value are treated as equivalent, which can mask lost updates.
 /// </para>
 /// </remarks>

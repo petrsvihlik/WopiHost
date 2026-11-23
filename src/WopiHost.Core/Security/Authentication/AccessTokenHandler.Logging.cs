@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Core.Security.Authentication;
 
-// Source-generated LoggerMessage declarations for AccessTokenHandler.
 public partial class AccessTokenHandler
 {
     [LoggerMessage(Level = LogLevel.Debug, Message = "Access token validation failed: {reason}")]

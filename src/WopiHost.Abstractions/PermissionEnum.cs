@@ -1,42 +1,42 @@
 ﻿namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Permissions used for authorization requirements
+/// Specifies the permission an endpoint's authorization requirement demands.
 /// </summary>
 public enum Permission
 {
     /// <summary>
-    /// User has no permissions
+    /// No specific permission.
     /// </summary>
     None,
 
     /// <summary>
-    /// User can create container/file
+    /// Permission to create a container or file.
     /// </summary>
     Create,
 
     /// <summary>
-    /// User can create child file in container
+    /// Permission to create a child file in a container.
     /// </summary>
     CreateChildFile,
 
     /// <summary>
-    /// User can view container/file
+    /// Permission to view a container or file.
     /// </summary>
     Read,
 
     /// <summary>
-    /// User can modify container/file
+    /// Permission to modify a container or file.
     /// </summary>
     Update,
 
     /// <summary>
-    /// User can rename container/file
+    /// Permission to rename a container or file.
     /// </summary>
     Rename,
 
     /// <summary>
-    /// User can delete container/file
+    /// Permission to delete a container or file.
     /// </summary>
     Delete
 }

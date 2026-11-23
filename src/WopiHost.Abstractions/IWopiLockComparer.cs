@@ -12,7 +12,7 @@ namespace WopiHost.Abstractions;
 /// <see cref="JsonShapedWopiLockComparer"/> (or a custom implementation) only on concrete
 /// evidence that a specific WOPI client mutates lock ids between round-trips. The
 /// canonical case is Office Online Server / Microsoft 365 for the Web's JSON-format locks,
-/// which historically have had extra properties added between requests; cs3org/wopiserver and
+/// which can gain extra properties between requests; cs3org/wopiserver and
 /// SenseNet both ship tolerant fallbacks for the same reason.
 /// </para>
 /// <para>
