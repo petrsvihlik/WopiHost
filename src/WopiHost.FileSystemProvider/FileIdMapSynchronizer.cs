@@ -100,6 +100,8 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
     /// the same tree after a change the watcher did not deliver — by sweeping the tree and
     /// registering the derived identifier of every entry.
     /// </summary>
+    /// <param name="fileId">The identifier to resolve.</param>
+    /// <param name="path">When this method returns <see langword="true"/>, the resolved path; otherwise, <see langword="null"/>.</param>
     /// <returns><see langword="true"/> if the sweep mapped <paramref name="fileId"/> to a path; otherwise, <see langword="false"/>.</returns>
     internal bool TryResolveByReconcile(string fileId, [NotNullWhen(true)] out string? path)
     {
@@ -180,6 +182,7 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
     /// new path registers like a create. Internal so tests can drive it with synthetic events —
     /// real watcher callbacks are not raisable on demand.
     /// </summary>
+    /// <param name="e">The watcher event to apply.</param>
     internal void ApplyEvent(FileSystemEventArgs e)
     {
         try

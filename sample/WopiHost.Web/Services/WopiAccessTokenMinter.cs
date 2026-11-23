@@ -23,6 +23,9 @@ public sealed class WopiAccessTokenMinter
     private static readonly byte[] s_sharedSigningKey = DerivePaddedKey("wopi-sample-shared-dev-key");
 
     /// <summary>Mints a JWT scoped to <paramref name="action"/> for <paramref name="userId"/> on <paramref name="resourceId"/>.</summary>
+    /// <param name="userId">The identifier of the user the token is issued to.</param>
+    /// <param name="resourceId">The identifier of the file the token is bound to.</param>
+    /// <param name="action">The WOPI action the token is minted for; it scopes the granted permissions.</param>
     /// <returns>The serialized token and its expiry. Only <see cref="WopiActionEnum.Edit"/> grants write and rename permissions.</returns>
     public (string Token, DateTimeOffset ExpiresAt) Mint(string userId, string resourceId, WopiActionEnum action)
     {

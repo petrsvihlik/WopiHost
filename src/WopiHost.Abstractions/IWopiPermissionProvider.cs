@@ -54,8 +54,8 @@ public interface IWopiPermissionProvider
     /// mandates a distinct status code for this failure mode:
     /// </para>
     /// <para>
-    /// "If the user is not authorized to overwrite the target file, the host must respond with
-    /// a <c>501 Not Implemented</c>."
+    /// <i>If the user is not authorized to overwrite the target file, the host must respond with
+    /// a <c>501 Not Implemented</c>.</i>
     /// </para>
     /// <para>
     /// Unlike <see cref="GetFilePermissionsAsync"/>, this decision is made per existing target

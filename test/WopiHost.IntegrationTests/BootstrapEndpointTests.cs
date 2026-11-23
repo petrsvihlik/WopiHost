@@ -200,6 +200,10 @@ internal static class BootstrapAuthClientExtensions
     /// Attaches the <see cref="TestAuthHandler"/> identity headers; the bootstrap scheme reads the same
     /// headers because this fixture serves it with <see cref="TestAuthHandler"/>.
     /// </summary>
+    /// <param name="client">The client to configure.</param>
+    /// <param name="sub">The subject claim of the test user.</param>
+    /// <param name="name">The optional display name of the test user.</param>
+    /// <param name="email">The optional email address of the test user.</param>
     /// <returns>The same <paramref name="client"/>, for chaining.</returns>
     public static HttpClient AsBootstrapUser(this HttpClient client, string sub, string? name = null, string? email = null)
         => client.AsUser(sub, name, email);

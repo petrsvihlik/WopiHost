@@ -71,6 +71,11 @@ public static class TestAuthClientExtensions
     /// Sets default request headers on <paramref name="client"/> that identify a test user, replacing
     /// any identity set earlier. Each test typically creates a fresh client per identity scenario.
     /// </summary>
+    /// <param name="client">The client to configure.</param>
+    /// <param name="sub">The subject claim of the test user.</param>
+    /// <param name="name">The optional display name of the test user.</param>
+    /// <param name="email">The optional email address of the test user.</param>
+    /// <param name="roles">The role claims of the test user.</param>
     /// <returns>The same <paramref name="client"/>, for chaining.</returns>
     public static HttpClient AsUser(this HttpClient client, string sub, string? name = null, string? email = null, params string[] roles)
     {

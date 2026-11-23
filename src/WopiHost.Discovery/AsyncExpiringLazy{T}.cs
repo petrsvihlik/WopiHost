@@ -69,6 +69,7 @@ public class AsyncExpiringLazy<T>(Func<TemporaryValue<T>, Task<TemporaryValue<T>
     /// <summary>
     /// Invalidates the current value causing a new value to be created when <see cref="Value"/> is called next time.
     /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task Invalidate()
     {
         await _syncLock.WaitAsync().ConfigureAwait(false);

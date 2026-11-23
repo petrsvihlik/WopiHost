@@ -236,6 +236,7 @@ internal static class Extensions
     /// <param name="httpContext">The current HTTP context.</param>
     /// <param name="file">The existing file to overwrite.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public static async Task CopyToWriteStream(this HttpContext httpContext, IWopiWritableFile file, CancellationToken cancellationToken = default)
     {
         using var stream = await file.OpenWriteAsync(cancellationToken).ConfigureAwait(false);

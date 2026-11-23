@@ -50,6 +50,7 @@ public sealed class WopiAccessTokenMinter
     /// Initializes a new instance of the <see cref="WopiAccessTokenMinter"/> class with the supplied
     /// raw HMAC key, zero-padded on the right to 32 bytes when shorter.
     /// </summary>
+    /// <param name="signingKey">The raw HMAC-SHA256 signing key.</param>
     public WopiAccessTokenMinter(byte[] signingKey)
     {
         ArgumentNullException.ThrowIfNull(signingKey);
@@ -57,11 +58,13 @@ public sealed class WopiAccessTokenMinter
     }
 
     /// <summary>Creates a minter whose HMAC key is the UTF-8 encoding of <paramref name="secret"/>.</summary>
+    /// <param name="secret">The shared secret to derive the key from.</param>
     /// <returns>A new <see cref="WopiAccessTokenMinter"/>.</returns>
     public static WopiAccessTokenMinter FromSecret(string secret) =>
         new(Encoding.UTF8.GetBytes(secret));
 
     /// <summary>Issues a WOPI access token bound to a resource and user.</summary>
+    /// <param name="request">The resource, user and permissions to bind into the token.</param>
     /// <returns>The serialized token and its expiry.</returns>
     public (string Token, DateTimeOffset ExpiresAt) Mint(WopiTokenMintRequest request)
     {

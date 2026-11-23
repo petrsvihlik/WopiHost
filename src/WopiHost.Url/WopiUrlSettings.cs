@@ -241,7 +241,7 @@ public class WopiUrlSettings : Dictionary<string, string>
     }
 
     /// <summary>
-    /// Initializes a new, empty instance of the <see cref="WopiUrlSettings"/> class.
+    /// Initializes a new instance of the <see cref="WopiUrlSettings"/> class that contains no settings.
     /// </summary>
     public WopiUrlSettings()
     {

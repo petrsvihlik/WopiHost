@@ -57,6 +57,8 @@ public sealed class MutatingEndpointsFixture : IDisposable
     /// so the FileSystemProvider's id↔path cache registers the new identifier, then writes
     /// <paramref name="contents"/> through the writable file handle.
     /// </summary>
+    /// <param name="contents">The bytes to write into the new file.</param>
+    /// <param name="extension">The file extension, including the leading dot.</param>
     /// <returns>The new file's identifier.</returns>
     public async Task<string> CreateTempFileAsync(byte[] contents, string extension = ".bin")
         => (await CreateTempFileWithPathAsync(contents, extension)).FileId;
@@ -65,6 +67,8 @@ public sealed class MutatingEndpointsFixture : IDisposable
     /// Creates a file like <see cref="CreateTempFileAsync"/>, and also reports its on-disk path so a
     /// test can mutate the file behind the provider's back (stale id↔path binding scenarios).
     /// </summary>
+    /// <param name="contents">The bytes to write into the new file.</param>
+    /// <param name="extension">The file extension, including the leading dot.</param>
     /// <returns>The new file's identifier and its on-disk path.</returns>
     public async Task<(string FileId, string DiskPath)> CreateTempFileWithPathAsync(byte[] contents, string extension = ".bin")
     {

@@ -16,8 +16,8 @@ namespace WopiHost.IntegrationTests;
 /// to call this endpoint but not authorized to overwrite the existing target" (501):
 /// </para>
 /// <para>
-/// "If the user is not authorized to overwrite the target file, the host must respond with a
-/// 501 Not Implemented."
+/// <i>If the user is not authorized to overwrite the target file, the host must respond with a
+/// 501 Not Implemented.</i>
 /// </para>
 /// <para>
 /// The decision is per-existing-file so it can't live on the access-token's <c>wopi:fperms</c>

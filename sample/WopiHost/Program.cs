@@ -16,7 +16,7 @@ namespace WopiHost;
 
 public partial class Program
 {
-    /// <summary>Prevents instantiation; <see cref="Program"/> serves as the <c>WebApplicationFactory&lt;Program&gt;</c> marker in integration tests.</summary>
+    /// <summary>Initializes a new instance of the <see cref="Program"/> class. Private because the type only serves as the <c>WebApplicationFactory&lt;Program&gt;</c> marker in integration tests.</summary>
     private Program() { }
 
     public static int Main(string[] args)

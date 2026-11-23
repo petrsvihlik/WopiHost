@@ -17,6 +17,9 @@ internal static class OidcSampleTestConfig
     /// <summary>
     /// Builds the in-memory configuration applied to the OIDC sample web host.
     /// </summary>
+    /// <param name="oidcAuthority">The OIDC authority URL of the mock identity provider.</param>
+    /// <param name="wopiSigningSecret">The shared secret the WOPI access tokens are signed with.</param>
+    /// <param name="wopiBackendUrl">The base URL of the WOPI backend.</param>
     /// <returns>The configuration key/value pairs.</returns>
     public static Dictionary<string, string?> Build(string oidcAuthority, string wopiSigningSecret, string wopiBackendUrl) => new()
     {
@@ -35,6 +38,7 @@ internal static class OidcSampleTestConfig
     };
 
     /// <summary>Encodes <paramref name="secret"/> as UTF-8, zero-padding it on the right to the 32-byte minimum for HMAC-SHA256.</summary>
+    /// <param name="secret">The shared secret to encode.</param>
     /// <returns>The UTF-8 bytes of <paramref name="secret"/>, padded to at least 32 bytes.</returns>
     public static byte[] SigningKeyBytes(string secret)
     {

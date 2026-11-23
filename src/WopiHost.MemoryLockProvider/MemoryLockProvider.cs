@@ -172,6 +172,8 @@ public partial class MemoryLockProvider : IWopiLockProvider
     /// the acquire logic. Test-only: seeds shapes such as a stale record with a past
     /// <see cref="WopiLockInfo.DateCreated"/> to exercise eviction paths.
     /// </summary>
+    /// <param name="fileId">The identifier of the file to seed a lock for.</param>
+    /// <param name="lockInfo">The lock record to store as-is.</param>
     internal void SeedLockForTesting(string fileId, WopiLockInfo lockInfo)
         => _locks[fileId] = lockInfo;
 
@@ -179,6 +181,7 @@ public partial class MemoryLockProvider : IWopiLockProvider
     /// Determines whether <paramref name="fileId"/> currently has an entry in the per-instance
     /// dictionary, expired or not. Test-only counterpart to <see cref="SeedLockForTesting"/>.
     /// </summary>
+    /// <param name="fileId">The identifier of the file to check.</param>
     /// <returns><see langword="true"/> if an entry exists for <paramref name="fileId"/>; otherwise, <see langword="false"/>.</returns>
     internal bool ContainsLockForTesting(string fileId) => _locks.ContainsKey(fileId);
 }

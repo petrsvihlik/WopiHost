@@ -106,6 +106,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// startup scan — created or renamed by another process sharing the same tree — resolves to
     /// the same identifier in every process.
     /// </summary>
+    /// <param name="path">The full path to look up or register.</param>
     /// <returns>The identifier mapped to <paramref name="path"/>.</returns>
     internal string GetOrAddFileId(string path)
         => TryGetFileId(path, out var fileId) ? fileId : AddFile(path);
@@ -116,6 +117,8 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// id alive) keeps it as canonical, and <paramref name="id"/> becomes an additional alias for
     /// the path.
     /// </summary>
+    /// <param name="id">The identifier to bind.</param>
+    /// <param name="path">The full path to bind it to.</param>
     /// <returns><see langword="true"/> if the mapping was installed; <see langword="false"/> if it was already present.</returns>
     internal bool EnsureMapping(string id, string path)
     {
@@ -140,6 +143,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// the path are left in place — they resolve to a path that no longer exists, which callers
     /// already treat as missing — so the removal stays O(1) even when deletions arrive in bursts.
     /// </summary>
+    /// <param name="path">The full path whose binding to remove.</param>
     internal void TryRemovePath(string path)
     {
         lock (_writeLock)
@@ -160,6 +164,8 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// the rename. Canonical bindings stay canonical (a witnessed rename outranks any stale
     /// binding the target path may have held); aliases stay aliases.
     /// </summary>
+    /// <param name="oldPath">The full path before the rename.</param>
+    /// <param name="newPath">The full path after the rename.</param>
     /// <returns><see langword="true"/> if at least one identifier was repointed; <see langword="false"/> if nothing was bound under <paramref name="oldPath"/>.</returns>
     internal bool RepointSubtree(string oldPath, string newPath)
     {
@@ -288,6 +294,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// On case-sensitive Linux filesystems this is conservative but harmless — the same path
     /// still hashes to the same id.
     /// </remarks>
+    /// <param name="path">The file or directory path to derive the identifier from.</param>
     /// <returns>The lower-case hex SHA-256 identifier for <paramref name="path"/>, or <see cref="WopiTestFileId"/> for a <c>test.wopitest</c> file.</returns>
     internal static string DeriveId(string path)
     {

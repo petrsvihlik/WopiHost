@@ -22,21 +22,32 @@ public static class ServiceCollectionExtensions
     /// </remarks>
     public enum SampleStorageProvider
     {
+        /// <summary>The local file-system provider.</summary>
         FileSystem,
+
+        /// <summary>The Azure Blob Storage provider.</summary>
         Azure,
     }
 
     /// <inheritdoc cref="SampleStorageProvider"/>
     public enum SampleLockProvider
     {
+        /// <summary>The in-process memory lock provider.</summary>
         Memory,
+
+        /// <summary>The Azure blob-lease lock provider.</summary>
         Azure,
+
+        /// <summary>The Redis lock provider.</summary>
         Redis,
     }
 
     /// <summary>
     /// Registers the chosen provider by dispatching to its typed registration extension.
     /// </summary>
+    /// <param name="services">The service collection to register into.</param>
+    /// <param name="configuration">The configuration the provider binds its options from.</param>
+    /// <param name="provider">The provider to register.</param>
     public static void AddSampleStorageProvider(
         this IServiceCollection services,
         IConfiguration configuration,

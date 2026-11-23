@@ -72,6 +72,7 @@ public interface IWopiHostExtensions
     /// <param name="context">The updated file plus the user ids parsed from the optional
     /// <c>X-WOPI-Editors</c> request header.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task OnPutFileAsync(WopiPutFileContext context, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -81,6 +82,7 @@ public interface IWopiHostExtensions
     /// <param name="context">The original and newly created files plus the optional
     /// <c>X-WOPI-FileConversion</c> (presence flag) and <c>X-WOPI-Size</c> header values.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task OnPutRelativeFileAsync(WopiPutRelativeFileContext context, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -93,5 +95,6 @@ public interface IWopiHostExtensions
     /// </remarks>
     /// <param name="context">The file, the requesting principal, and the reported activities.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task OnAddActivitiesAsync(WopiAddActivitiesContext context, CancellationToken cancellationToken = default);
 }
