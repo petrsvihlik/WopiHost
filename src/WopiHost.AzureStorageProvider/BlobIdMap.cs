@@ -13,8 +13,7 @@ namespace WopiHost.AzureStorageProvider;
 /// Identifiers are deterministic hex-SHA-256 hashes of the blob path (see
 /// <see cref="WopiResourceId.FromCanonicalPath"/>) so the same blob always produces the same id
 /// across process restarts and separate WopiHost instances. The mapping itself is held in memory
-/// and is rebuilt by <see cref="ScanAll"/> at startup; this matches the pattern used by
-/// <c>WopiHost.FileSystemProvider</c>'s <c>InMemoryFileIds</c>.
+/// and is rebuilt by <see cref="ScanAll"/> when the provider first initializes.
 /// </para>
 /// <para>
 /// <strong>Blob paths are hashed as-is, without case-folding.</strong> Azure Blob Storage treats
@@ -31,21 +30,19 @@ namespace WopiHost.AzureStorageProvider;
 /// <strong>Two dictionaries, kept in sync.</strong> <c>_idToPath</c> drives id→path lookups
 /// (which fire on every WOPI route that resolves <c>{id}</c>); <c>_pathToId</c> is the inverse
 /// for the listing path, where the provider walks the blob namespace and needs to look up the id
-/// for each blob name. The reverse dictionary keeps that lookup O(1); without it the listing
-/// hydration loop would degenerate to O(n^2) in containers with thousands of blobs.
+/// for each blob name, keeping that lookup O(1).
 /// </para>
 /// </remarks>
+/// <param name="logger">The logger.</param>
 public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
 {
     /// <summary>
     /// Zero-byte marker blob name used to materialize otherwise-empty folders.
     /// </summary>
     /// <remarks>
-    /// Plain Azure Blob Storage has no concept of an empty directory. To keep parity with
-    /// <c>WopiFileSystemProvider</c>'s ability to create an empty folder via
-    /// <see cref="IWopiWritableStorageProvider.CreateWopiChildContainer"/>, a 0-byte blob with
-    /// this name is dropped into the folder. The provider hides marker blobs from listings so
-    /// callers never see them.
+    /// Plain Azure Blob Storage has no concept of an empty directory, so
+    /// <see cref="IWopiWritableStorageProvider.CreateWopiChildContainer"/> drops a 0-byte blob with
+    /// this name into the new folder. The provider hides marker blobs from listings.
     /// </remarks>
     public const string FolderMarker = ".wopi.folder";
 
@@ -58,18 +55,26 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
     private readonly ConcurrentDictionary<string, string> _pathToId = new(StringComparer.Ordinal);
     private readonly Lock _writeLock = new();
 
-    /// <summary>Whether <see cref="ScanAll(IEnumerable{string})"/> has been called.</summary>
+    /// <summary>Gets a value indicating whether <see cref="ScanAll(IEnumerable{string})"/> has been called.</summary>
     public bool WasScanned { get; private set; }
 
-    /// <summary>Looks up the blob path for an identifier.</summary>
+    /// <summary>Tries to get the blob path mapped to an identifier.</summary>
+    /// <param name="fileId">The identifier of the file or folder.</param>
+    /// <param name="path">When this method returns <see langword="true"/>, the blob path mapped to <paramref name="fileId"/>.</param>
+    /// <returns><see langword="true"/> if <paramref name="fileId"/> is mapped; otherwise, <see langword="false"/>.</returns>
     public bool TryGetPath(string fileId, [NotNullWhen(true)] out string? path)
         => _idToPath.TryGetValue(fileId, out path);
 
-    /// <summary>Looks up the identifier for a blob path. Path comparison is case-sensitive.</summary>
+    /// <summary>Tries to get the identifier mapped to a blob path. Path comparison is case-sensitive.</summary>
+    /// <param name="path">The blob path of the file or folder.</param>
+    /// <param name="fileId">When this method returns <see langword="true"/>, the identifier mapped to <paramref name="path"/>.</param>
+    /// <returns><see langword="true"/> if <paramref name="path"/> is mapped; otherwise, <see langword="false"/>.</returns>
     public bool TryGetFileId(string path, [NotNullWhen(true)] out string? fileId)
         => _pathToId.TryGetValue(path, out fileId);
 
-    /// <summary>Adds (or replaces) a path-to-id mapping and returns the deterministic id.</summary>
+    /// <summary>Adds or replaces the mapping for a blob path under its deterministic identifier.</summary>
+    /// <param name="path">The blob path of the file or folder.</param>
+    /// <returns>The identifier derived from <paramref name="path"/>.</returns>
     public string Add(string path)
     {
         var id = IdFromPath(path);
@@ -85,7 +90,9 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
         return id;
     }
 
-    /// <summary>Removes a mapping by id.</summary>
+    /// <summary>Removes the mapping for an identifier.</summary>
+    /// <param name="fileId">The identifier of the file or folder.</param>
+    /// <returns><see langword="true"/> if a mapping was removed; otherwise, <see langword="false"/>.</returns>
     public bool Remove(string fileId)
     {
         lock (_writeLock)
@@ -99,7 +106,9 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
         }
     }
 
-    /// <summary>Updates the path for an existing id (used after a rename to keep the id stable).</summary>
+    /// <summary>Binds an identifier to a new blob path, so the identifier stays stable across a rename.</summary>
+    /// <param name="fileId">The identifier of the file or folder.</param>
+    /// <param name="newPath">The new blob path.</param>
     public void Update(string fileId, string newPath)
     {
         // Drop the old reverse entry first so a rename that moves blob A → blob B doesn't leave
@@ -121,6 +130,7 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
     /// container. Every directory prefix encountered is also added so containers without an explicit
     /// folder-marker blob are still addressable.
     /// </summary>
+    /// <param name="blobPaths">The names of every blob in the container.</param>
     public void ScanAll(IEnumerable<string> blobPaths)
     {
         lock (_writeLock)
@@ -175,9 +185,11 @@ public sealed partial class BlobIdMap(ILogger<BlobIdMap> logger)
     }
 
     /// <summary>
-    /// Returns the deterministic id for a blob path. The path is hashed as-is — Azure blob
+    /// Derives the deterministic identifier for a blob path. The path is hashed as-is — Azure blob
     /// names are case-sensitive, so two casings of the same name are <em>different</em> blobs
     /// and must produce different ids.
     /// </summary>
+    /// <param name="path">The blob path; empty for the root container.</param>
+    /// <returns>The lower-case hex SHA-256 identifier.</returns>
     public static string IdFromPath(string path) => WopiResourceId.FromCanonicalPath(path);
 }

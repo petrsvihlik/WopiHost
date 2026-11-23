@@ -10,7 +10,7 @@ using WopiHost.Abstractions;
 namespace WopiHost.AzureStorageProvider;
 
 /// <summary>
-/// DI extensions to register <see cref="WopiAzureStorageProvider"/>.
+/// Provides extension methods that register <see cref="WopiAzureStorageProvider"/>.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
@@ -20,18 +20,23 @@ public static class ServiceCollectionExtensions
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Reads <see cref="WopiAzureStorageProviderOptions"/> from the <c>Wopi:StorageProvider</c>
-    /// configuration section. If <c>ConnectionString</c> is set, that wins (typical for Azurite/dev).
-    /// Otherwise <c>ServiceUri</c> is required and is paired with whatever <see cref="TokenCredential"/>
-    /// the caller has registered in DI; if none is registered, <see cref="DefaultAzureCredential"/> is
-    /// used.
+    /// Binds <see cref="WopiAzureStorageProviderOptions"/> from the <c>Wopi:StorageProvider</c>
+    /// configuration section and validates on start that
+    /// <see cref="WopiAzureStorageProviderOptions.ContainerName"/> and either
+    /// <see cref="WopiAzureStorageProviderOptions.ConnectionString"/> or
+    /// <see cref="WopiAzureStorageProviderOptions.ServiceUri"/> are set. A connection string wins
+    /// (typical for Azurite/dev); otherwise the service URI is paired with the
+    /// <see cref="TokenCredential"/> registered in DI, falling back to <see cref="DefaultAzureCredential"/>.
     /// </para>
     /// <para>
-    /// The host can call this directly for explicit registration, or rely on
-    /// <c>services.AddStorageProvider("WopiHost.AzureStorageProvider")</c> to discover and register it
-    /// via the assembly-name convention used by the rest of WopiHost.
+    /// All registrations use <c>TryAdd</c>, so a provider or <see cref="BlobContainerClient"/> the host
+    /// registered first wins and a repeat call is a no-op.
     /// </para>
     /// </remarks>
+    /// <param name="services">The service collection to add the provider to.</param>
+    /// <param name="configuration">The configuration root that contains the <c>Wopi:StorageProvider</c> section.</param>
+    /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configuration"/> is <see langword="null"/>.</exception>
     public static IServiceCollection AddAzureStorageProvider(
         this IServiceCollection services,
         IConfiguration configuration)

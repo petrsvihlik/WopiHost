@@ -5,8 +5,8 @@ using WopiHost.Abstractions;
 namespace WopiHost.AzureStorageProvider;
 
 /// <summary>
-/// Virtual folder backed by a blob-name prefix. Plain Blob Storage has no folder objects, so a folder
-/// is just a logical grouping of blobs that share a <c>/</c>-delimited prefix.
+/// Represents a virtual folder backed by a blob-name prefix. Plain Blob Storage has no folder objects,
+/// so a folder is a logical grouping of blobs that share a <c>/</c>-delimited prefix.
 /// </summary>
 /// <remarks>
 /// The <see cref="Size"/> and <see cref="ChildCount"/> members enumerate the underlying blob
@@ -16,13 +16,16 @@ namespace WopiHost.AzureStorageProvider;
 /// instance offline-friendly (used by unit tests that don't need the enumeration); the metadata
 /// members return <c>0</c> in that mode.
 /// </remarks>
+/// <param name="prefix">The blob-name prefix the folder represents, with no leading or trailing slash; empty for the root.</param>
+/// <param name="identifier">The unique identifier of the folder.</param>
+/// <param name="containerClient">The blob container to enumerate for <see cref="Size"/> and <see cref="ChildCount"/>, or <see langword="null"/> to skip enumeration.</param>
 public class WopiBlobContainer(string prefix, string identifier, BlobContainerClient? containerClient = null) : IWopiContainer
 {
     private readonly BlobContainerClient? _containerClient = containerClient;
     private long? _size;
     private int? _childCount;
 
-    /// <summary>Blob-name prefix this folder represents (no leading or trailing slash).</summary>
+    /// <summary>Gets the blob-name prefix this folder represents (no leading or trailing slash; empty for the root).</summary>
     public string Prefix { get; } = prefix;
 
     /// <inheritdoc/>

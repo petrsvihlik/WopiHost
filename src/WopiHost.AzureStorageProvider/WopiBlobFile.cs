@@ -6,27 +6,26 @@ using WopiHost.Abstractions;
 namespace WopiHost.AzureStorageProvider;
 
 /// <summary>
-/// <see cref="IWopiFile"/> backed by an Azure Blob.
+/// Represents an Azure blob as an <see cref="IWopiWritableFile"/>.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Properties (<see cref="Length"/>, <see cref="LastWriteTimeUtc"/>, <see cref="Version"/>, <see cref="Owner"/>,
 /// <see cref="Checksum"/>) are eagerly fetched once via <see cref="CreateAsync"/> and cached on the instance,
-/// so subsequent property reads are local. The <see cref="IWopiStorageProvider"/> creates a fresh
+/// so subsequent property reads are local. <see cref="WopiAzureStorageProvider"/> creates a fresh
 /// <see cref="WopiBlobFile"/> per request, which keeps cached state implicitly fresh.
 /// </para>
 /// <para>
 /// Identifiers are hex-SHA-256 of the blob path hashed as-is, case-sensitively (see <see cref="BlobIdMap"/>). The blob's ETag is
-/// surfaced as <see cref="Version"/>; this is more meaningful than a timestamp because every byte-level
-/// change produces a new ETag.
+/// surfaced as <see cref="Version"/>, since every byte-level change produces a new ETag.
 /// </para>
 /// </remarks>
 public class WopiBlobFile : IWopiWritableFile
 {
-    /// <summary>Blob metadata key that holds the file's owner identifier (free-form).</summary>
+    /// <summary>The blob metadata key that holds the file's owner identifier (free-form).</summary>
     public const string OwnerMetadataKey = "wopi_owner";
 
-    /// <summary>Blob metadata key that holds the SHA-256 of the blob content as a lowercase hex string.</summary>
+    /// <summary>The blob metadata key that holds the SHA-256 of the blob content as a lowercase hex string.</summary>
     public const string Sha256MetadataKey = "wopi_sha256";
 
     private readonly BlobClient _blobClient;
@@ -40,7 +39,7 @@ public class WopiBlobFile : IWopiWritableFile
         Identifier = identifier;
     }
 
-    /// <summary>Full blob path within the container (no leading slash).</summary>
+    /// <summary>Gets the full blob path within the container (no leading slash).</summary>
     public string BlobPath { get; }
 
     /// <inheritdoc/>
@@ -78,9 +77,11 @@ public class WopiBlobFile : IWopiWritableFile
     public DateTime LastWriteTimeUtc => _properties?.LastModified.UtcDateTime ?? DateTime.MinValue;
 
     /// <inheritdoc/>
+    /// <remarks>The blob's ETag, or <see langword="null"/> when the blob does not exist.</remarks>
     public string? Version => _properties?.ETag.ToString();
 
     /// <inheritdoc/>
+    /// <remarks>Read from the <see cref="OwnerMetadataKey"/> blob metadata entry.</remarks>
     public string Owner
     {
         get
@@ -94,6 +95,10 @@ public class WopiBlobFile : IWopiWritableFile
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Read from the <see cref="Sha256MetadataKey"/> blob metadata entry, which
+    /// <see cref="OpenWriteAsync"/> maintains; <see langword="null"/> for a blob written by other means.
+    /// </remarks>
     public ReadOnlyMemory<byte>? Checksum
     {
         get
@@ -127,7 +132,15 @@ public class WopiBlobFile : IWopiWritableFile
         return new HashingBlobWriteStream(inner, _blobClient, preserved);
     }
 
-    /// <summary>Fetches blob properties (or returns null on 404) and produces a fully-populated <see cref="WopiBlobFile"/>.</summary>
+    /// <summary>Creates a <see cref="WopiBlobFile"/> with the blob's properties fetched up front.</summary>
+    /// <param name="blobClient">The client for the blob.</param>
+    /// <param name="blobPath">The full blob path within the container.</param>
+    /// <param name="identifier">The unique identifier of the file.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>
+    /// The file. When the blob does not exist, <see cref="Exists"/> is <see langword="false"/> and the
+    /// other properties hold defaults.
+    /// </returns>
     public static async Task<WopiBlobFile> CreateAsync(BlobClient blobClient, string blobPath, string identifier, CancellationToken cancellationToken)
     {
         BlobProperties? props = null;

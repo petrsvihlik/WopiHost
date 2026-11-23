@@ -1,7 +1,7 @@
 namespace WopiHost.AzureStorageProvider;
 
 /// <summary>
-/// Configuration for <see cref="WopiAzureStorageProvider"/>.
+/// Represents the configuration for <see cref="WopiAzureStorageProvider"/>.
 /// </summary>
 /// <remarks>
 /// Bind to the <c>Wopi:StorageProvider</c> configuration section. Authentication is determined by which
@@ -15,27 +15,27 @@ namespace WopiHost.AzureStorageProvider;
 public class WopiAzureStorageProviderOptions
 {
     /// <summary>
-    /// Default configuration section path this options class binds to. Use with
-    /// <c>builder.Configuration.GetSection(WopiAzureStorageProviderOptions.SectionName)</c>.
+    /// The configuration section path that <see cref="ServiceCollectionExtensions.AddAzureStorageProvider"/>
+    /// binds these options from.
     /// </summary>
     public const string SectionName = "Wopi:StorageProvider";
 
     /// <summary>
-    /// Storage account connection string. Use <c>UseDevelopmentStorage=true</c> for Azurite, or a full
-    /// shared-key connection string for production.
-    /// Mutually exclusive with <see cref="ServiceUri"/>; takes precedence if both are set.
+    /// Gets or sets the storage account connection string. Use <c>UseDevelopmentStorage=true</c> for
+    /// Azurite, or a full shared-key connection string for production. Takes precedence over
+    /// <see cref="ServiceUri"/> when both are set.
     /// </summary>
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Blob service endpoint (e.g. <c>https://my-account.blob.core.windows.net</c>) used together with a
+    /// Gets or sets the blob service endpoint (e.g. <c>https://my-account.blob.core.windows.net</c>) used together with a
     /// <see cref="Azure.Core.TokenCredential"/> from DI (typically <see cref="Azure.Identity.DefaultAzureCredential"/>)
     /// for managed-identity / service-principal auth.
     /// </summary>
     public Uri? ServiceUri { get; set; }
 
     /// <summary>
-    /// Name of the blob container that holds WOPI files. Will be created on startup if missing.
+    /// Gets or sets the name of the blob container that holds WOPI files. Created on first use if missing.
     /// </summary>
     public required string ContainerName { get; set; }
 }

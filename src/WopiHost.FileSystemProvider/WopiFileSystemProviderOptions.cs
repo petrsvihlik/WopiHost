@@ -1,24 +1,25 @@
 ﻿namespace WopiHost.FileSystemProvider;
 
 /// <summary>
-/// Configuration object for <see cref="WopiFileSystemProvider"/>.
+/// Represents the configuration for <see cref="WopiFileSystemProvider"/>.
 /// </summary>
 public class WopiFileSystemProviderOptions
 {
     /// <summary>
-    /// Default configuration section path this options class binds to. Use with
-    /// <c>builder.Configuration.GetSection(WopiFileSystemProviderOptions.SectionName)</c>.
+    /// The configuration section path that <see cref="ServiceCollectionExtensions.AddFileSystemStorageProvider"/>
+    /// binds these options from.
     /// </summary>
     public const string SectionName = "Wopi:StorageProvider";
 
     /// <summary>
-    /// File system path indicating the root of the folder hierarchy considered by the <see cref="WopiFileSystemProvider"/>.
+    /// Gets or sets the root of the folder hierarchy that <see cref="WopiFileSystemProvider"/> exposes.
+    /// A relative path resolves against the host's content root.
     /// </summary>
     public required string RootPath { get; set; }
 
     /// <summary>
-    /// Whether to watch <see cref="RootPath"/> for changes made outside this process (defaults to
-    /// <see langword="true"/>). The watcher keeps the id map converged proactively — in
+    /// Gets or sets a value indicating whether to watch <see cref="RootPath"/> for changes made
+    /// outside this process. Defaults to <see langword="true"/>. The watcher keeps the id map converged proactively — in
     /// particular, a rename observed in another process repoints the file's existing identifier
     /// instead of minting a new one, so all processes over one tree share a single lock domain
     /// per file. Disable this on storage where change notifications are unreliable (network

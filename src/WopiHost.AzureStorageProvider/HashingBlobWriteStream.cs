@@ -93,8 +93,7 @@ internal sealed class HashingBlobWriteStream(Stream inner, BlobClient blobClient
 
     /// <summary>
     /// Finalizes the SHA-256 hasher and stores the lowercase-hex digest under the blob metadata
-    /// key. Shared between <see cref="Dispose(bool)"/> and <see cref="DisposeAsync"/> so the
-    /// two paths can never drift on the hex/casing/metadata-key contract.
+    /// key. Backs both <see cref="Dispose(bool)"/> and <see cref="DisposeAsync"/>.
     /// </summary>
     private void FinalizeMetadataPayload()
     {

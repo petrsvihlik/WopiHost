@@ -5,12 +5,11 @@ using WopiHost.Abstractions;
 
 namespace WopiHost.FileSystemProvider;
 
-/// <inheritdoc/>
 /// <summary>
-/// Creates an instance of <see cref="WopiFile"/>.
+/// Represents a file on the file system as an <see cref="IWopiWritableFile"/>.
 /// </summary>
-/// <param name="filePath">Path on the file system the file is located in.</param>
-/// <param name="fileIdentifier">Identifier of a file.</param>
+/// <param name="filePath">The file system path of the file.</param>
+/// <param name="fileIdentifier">The unique identifier of the file.</param>
 public class WopiFile(string filePath, string fileIdentifier) : IWopiWritableFile
 {
     private readonly FileInfo _fileInfo = new(filePath);
@@ -39,9 +38,15 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiWritableFil
     public string Extension => _fileInfo.Extension.TrimStart('.');
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// The file's version resource when it has one; otherwise the last write time in UTC ticks.
+    /// </remarks>
     public string? Version => _fileVersionInfo.Value?.FileVersion ?? _fileInfo.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Always <see langword="null"/>; this provider does not compute checksums.
+    /// </remarks>
     public ReadOnlyMemory<byte>? Checksum => null;
 
     /// <inheritdoc/>
@@ -61,6 +66,9 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiWritableFil
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Opens the existing file with <see cref="FileMode.Truncate"/>, so the file must already exist.
+    /// </remarks>
     public Task<Stream> OpenWriteAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

@@ -26,12 +26,22 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     internal bool IsWatchingForExternalChanges => _synchronizer.IsWatching;
 
     /// <summary>
-    /// Creates a new instance of the <see cref="WopiFileSystemProvider"/> based on the provided hosting environment and configuration.
+    /// Initializes a new instance of the <see cref="WopiFileSystemProvider"/> class.
     /// </summary>
-    /// <param name="fileIds">In-memory storage for file identifiers.</param>
-    /// <param name="env">Provides information about the hosting environment an application is running in.</param>
-    /// <param name="options">Bound file-system provider options, supplying <c>RootPath</c>.</param>
-    /// <param name="logger">Logger.</param>
+    /// <remarks>
+    /// Scans the tree under <see cref="WopiFileSystemProviderOptions.RootPath"/> into
+    /// <paramref name="fileIds"/> unless it was already scanned, and starts the change watcher when
+    /// <see cref="WopiFileSystemProviderOptions.WatchForExternalChanges"/> is set.
+    /// </remarks>
+    /// <param name="fileIds">The identifier map shared by the provider and its change watcher.</param>
+    /// <param name="env">The hosting environment; its content root anchors a relative <see cref="WopiFileSystemProviderOptions.RootPath"/>.</param>
+    /// <param name="options">The file-system provider options.</param>
+    /// <param name="logger">The logger.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="fileIds"/>, <paramref name="env"/>, <paramref name="options"/>,
+    /// <paramref name="logger"/>, or <see cref="WopiFileSystemProviderOptions.RootPath"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><see cref="WopiFileSystemProviderOptions.RootPath"/> is empty.</exception>
+    /// <exception cref="DirectoryNotFoundException">The root directory does not exist and <paramref name="fileIds"/> has not been scanned yet.</exception>
+    /// <exception cref="InvalidOperationException">The root directory is not registered in an already-scanned <paramref name="fileIds"/>.</exception>
     public WopiFileSystemProvider(
         InMemoryFileIds fileIds,
         IHostEnvironment env,
@@ -99,10 +109,9 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     }
 
     /// <summary>
-    /// Map lookup with a reconcile-on-miss fallback. The watcher keeps the map converged
-    /// proactively; an id it still hasn't seen — minted by another process over the same tree,
-    /// racing event delivery — is recoverable by hashing the on-disk entries, since ids derive
-    /// deterministically from paths.
+    /// Resolves an identifier to its path, falling back to a reconciliation sweep on a map miss.
+    /// An id the watcher has not delivered yet (minted by another process over the same tree) is
+    /// recoverable by hashing the on-disk entries, since ids derive deterministically from paths.
     /// </summary>
     private bool TryResolvePath(string identifier, [NotNullWhen(true)] out string? fullPath)
         => _fileIds.TryGetPath(identifier, out fullPath)
@@ -224,7 +233,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
             : null;
 
     /// <summary>
-    /// Resolves the identifier of a named entry inside a container, or null when the container
+    /// Resolves the identifier of a named entry inside a container, or <see langword="null"/> when the container
     /// is unknown, the name is invalid, or nothing of the expected kind exists on disk.
     /// </summary>
     private string? TryGetChildId(string containerId, string name, Func<string, bool> existsOnDisk)
@@ -478,6 +487,7 @@ public partial class WopiFileSystemProvider : IWopiStorageProvider, IWopiWritabl
     /// <summary>
     /// Releases the file-system watcher that keeps the id map converged.
     /// </summary>
+    /// <param name="disposing"><see langword="true"/> to release managed resources; <see langword="false"/> when called from a finalizer.</param>
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)

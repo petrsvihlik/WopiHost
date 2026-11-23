@@ -8,7 +8,7 @@ using WopiHost.Abstractions;
 namespace WopiHost.RedisLockProvider;
 
 /// <summary>
-/// DI extensions to register <see cref="WopiRedisLockProvider"/>.
+/// Provides extension methods that register <see cref="WopiRedisLockProvider"/>.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
@@ -21,14 +21,19 @@ public static class ServiceCollectionExtensions
     /// section. Connection-multiplexer resolution order:
     /// </para>
     /// <list type="number">
-    /// <item>An <see cref="IConnectionMultiplexer"/> already registered in DI (e.g. by Aspire's
-    /// <c>builder.AddRedisClient("wopi-locks")</c> or any app-level Redis-ownership wiring) —
-    /// this wins so users keep a single multiplexer per process even when multiple subsystems
-    /// share it.</item>
-    /// <item>Otherwise, build a <see cref="ConnectionMultiplexer"/> from
-    /// <see cref="WopiRedisLockProviderOptions.ConnectionString"/>.</item>
+    /// <item><description>An <see cref="IConnectionMultiplexer"/> already registered in DI (e.g. by Aspire's
+    /// <c>builder.AddRedisClient("wopi-locks")</c> or any app-level Redis-ownership wiring), so a
+    /// process keeps a single multiplexer even when several subsystems share it.</description></item>
+    /// <item><description>Otherwise, a <see cref="ConnectionMultiplexer"/> built from
+    /// <see cref="WopiRedisLockProviderOptions.ConnectionString"/> when the provider is first resolved.
+    /// Resolution throws <see cref="InvalidOperationException"/> if the connection string is empty.</description></item>
     /// </list>
     /// </remarks>
+    /// <param name="services">The service collection to add the provider to.</param>
+    /// <param name="configuration">The configuration root that contains the <c>Wopi:LockProvider</c> section.</param>
+    /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configuration"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">An <see cref="IWopiLockProvider"/> is already registered in <paramref name="services"/>.</exception>
     public static IServiceCollection AddRedisLockProvider(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);

@@ -1,7 +1,7 @@
 namespace WopiHost.AzureLockProvider;
 
 /// <summary>
-/// Configuration for <see cref="WopiAzureLockProvider"/>.
+/// Represents the configuration for <see cref="WopiAzureLockProvider"/>.
 /// </summary>
 /// <remarks>
 /// Bind to the <c>Wopi:LockProvider</c> configuration section. Authentication mirrors the storage
@@ -11,21 +11,27 @@ namespace WopiHost.AzureLockProvider;
 public class WopiAzureLockProviderOptions
 {
     /// <summary>
-    /// Default configuration section path this options class binds to. Use with
-    /// <c>builder.Configuration.GetSection(WopiAzureLockProviderOptions.SectionName)</c>.
+    /// The configuration section path that <see cref="ServiceCollectionExtensions.AddAzureLockProvider"/>
+    /// binds these options from.
     /// </summary>
     public const string SectionName = "Wopi:LockProvider";
 
-    /// <summary>Storage account connection string. Use <c>UseDevelopmentStorage=true</c> for Azurite.</summary>
+    /// <summary>
+    /// Gets or sets the storage account connection string. Takes precedence over <see cref="ServiceUri"/>
+    /// when set. Use <c>UseDevelopmentStorage=true</c> for Azurite.
+    /// </summary>
     public string? ConnectionString { get; set; }
 
-    /// <summary>Blob service endpoint when using <see cref="Azure.Core.TokenCredential"/>.</summary>
+    /// <summary>
+    /// Gets or sets the blob service endpoint, used with a <see cref="Azure.Core.TokenCredential"/>
+    /// when <see cref="ConnectionString"/> is not set.
+    /// </summary>
     public Uri? ServiceUri { get; set; }
 
     /// <summary>
-    /// Name of the blob container that holds the per-fileId lock placeholder blobs. Will be created
-    /// on first use if missing. A dedicated container is recommended so locks are isolated from
-    /// content blobs (and so a different storage account can be used for lock state if desired).
+    /// Gets or sets the name of the blob container that holds the per-file lock placeholder blobs.
+    /// Created on first use if missing. Defaults to <c>wopi-locks</c>. A dedicated container keeps
+    /// locks isolated from content blobs and allows a separate storage account for lock state.
     /// </summary>
     public string ContainerName { get; set; } = "wopi-locks";
 }

@@ -11,11 +11,12 @@ using WopiHost.Abstractions;
 namespace WopiHost.AzureLockProvider;
 
 /// <summary>
-/// <see cref="IWopiLockProvider"/> backed by Azure Blob leases.
+/// Provides an <see cref="IWopiLockProvider"/> backed by Azure Blob leases.
 /// </summary>
 /// <remarks>
 /// <para>
-/// For each <c>fileId</c>, the provider creates a placeholder blob in <see cref="WopiAzureLockProviderOptions.ContainerName"/>
+/// For each <c>fileId</c>, the provider creates a placeholder blob (named by the SHA-256 hash of the id)
+/// in <see cref="WopiAzureLockProviderOptions.ContainerName"/>
 /// and acquires an <em>infinite</em> blob lease. The Azure lease provides true cross-instance
 /// exclusion (only one WopiHost instance can hold the lease at a time), while the blob's metadata
 /// carries the WOPI-level state (the client-supplied lock id, the Azure lease GUID, and the
@@ -25,21 +26,23 @@ namespace WopiHost.AzureLockProvider;
 /// Cross-instance coordination on refresh / remove works because the lease GUID is stored in blob
 /// metadata: any instance that observes the lock can read it back and call renew/release. If the
 /// instance that created the lock dies, the infinite lease survives until another instance
-/// observes the WOPI-expiry has passed and explicitly breaks the lease in <see cref="GetLockAsync"/>.
+/// observes that the WOPI expiry has passed and explicitly breaks the lease in
+/// <see cref="GetLockAsync"/> or <see cref="AddLockAsync"/>.
 /// </para>
 /// </remarks>
-/// <param name="containerClient">Blob container that holds the per-fileId lock placeholders.</param>
-/// <param name="logger">Logger.</param>
+/// <param name="containerClient">The blob container that holds the per-file lock placeholders.</param>
+/// <param name="logger">The logger.</param>
 /// <param name="timeProvider">
-/// Clock source for lock timestamps and expiry. Defaults to <see cref="TimeProvider.System"/>
-/// when not supplied via DI; inject a <c>FakeTimeProvider</c> (or any custom
-/// <see cref="TimeProvider"/>) in tests to make expiry deterministic.
+/// The clock source for lock timestamps and expiry, or <see langword="null"/> to use
+/// <see cref="TimeProvider.System"/>. Inject a <c>FakeTimeProvider</c> in tests to make expiry deterministic.
 /// </param>
 /// <param name="lockComparer">
-/// Lock-id comparer. Defaults to <see cref="OrdinalWopiLockComparer"/> when not supplied
-/// via DI; replace with a custom comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>)
-/// to absorb known WOPI-client lock-id mutations.
+/// The lock-id comparer, or <see langword="null"/> to use <see cref="OrdinalWopiLockComparer"/>.
+/// A custom comparer (e.g. <see cref="JsonShapedWopiLockComparer"/>) can absorb known WOPI-client
+/// lock-id mutations.
 /// </param>
+/// <exception cref="ArgumentNullException"><paramref name="containerClient"/> or <paramref name="logger"/>
+/// is <see langword="null"/>.</exception>
 public partial class WopiAzureLockProvider(
     BlobContainerClient containerClient,
     ILogger<WopiAzureLockProvider> logger,
@@ -180,10 +183,9 @@ public partial class WopiAzureLockProvider(
     }
 
     /// <summary>
-    /// Shared "load, validate, renew lease, SetMetadata under ETag" flow for
-    /// <see cref="RefreshLockAsync"/> and <see cref="TryUnlockAndRelockAsync"/>. They differ only
-    /// in <em>which</em> metadata fields the mutation step writes; the load, expected-lock-id
-    /// check, lease renewal, ETag-conditional write, and failure handling are identical.
+    /// Loads the lock, validates the caller's lock id, renews the lease, and writes the metadata
+    /// produced by <paramref name="mutateMetadata"/> under an ETag condition. Backs
+    /// <see cref="RefreshLockAsync"/> and <see cref="TryUnlockAndRelockAsync"/>.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -191,7 +193,7 @@ public partial class WopiAzureLockProvider(
     /// <c>SetMetadataAsync</c> writes against (<c>IfMatch=etag</c>). Any concurrent mutation
     /// between the load and the write — a sibling <c>UnlockAndRelock</c>, a <c>Remove</c>, even
     /// another <c>Refresh</c> — changes the blob's ETag and Azure replies 412, which is reported
-    /// as not-applied. Same atomicity guarantee in both call sites.
+    /// as not-applied.
     /// </para>
     /// <para>
     /// Returns <see langword="false"/> on any abort condition: blob missing, malformed
@@ -230,7 +232,7 @@ public partial class WopiAzureLockProvider(
     }
 
     /// <summary>
-    /// Bundled "what to write to" inputs for <see cref="ExecuteMutationAsync"/>.
+    /// Holds the validated blob, properties, and lease id that <see cref="ExecuteMutationAsync"/> writes against.
     /// </summary>
     private readonly record struct MutationContext(
         BlobClient BlobClient,
@@ -239,8 +241,8 @@ public partial class WopiAzureLockProvider(
         string FileId);
 
     /// <summary>
-    /// Inner step of <see cref="TryAtomicLockUpdateAsync"/>: with a validated lease id in hand,
-    /// renews the lease and writes the mutated metadata under <c>IfMatch=etag</c> + the lease id.
+    /// Renews the validated lease and writes the mutated metadata under <c>IfMatch=etag</c> plus the
+    /// lease id.
     /// </summary>
     /// <remarks>
     /// A <c>renewed</c> flag tracks which phase the exception fired in so the two failure modes
