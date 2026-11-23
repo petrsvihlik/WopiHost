@@ -64,13 +64,14 @@ public sealed class TestAuthHandler(
     }
 }
 
-/// <summary>HttpClient extensions to attach a test identity to a single request or session.</summary>
+/// <summary>Provides <see cref="HttpClient"/> extensions that attach a test identity to every request a client sends.</summary>
 public static class TestAuthClientExtensions
 {
     /// <summary>
-    /// Attaches headers identifying a test user. Apply once per <see cref="HttpClient"/> instance
-    /// (each test typically creates a fresh client per identity scenario).
+    /// Sets default request headers on <paramref name="client"/> that identify a test user, replacing
+    /// any identity set earlier. Each test typically creates a fresh client per identity scenario.
     /// </summary>
+    /// <returns>The same <paramref name="client"/>, for chaining.</returns>
     public static HttpClient AsUser(this HttpClient client, string sub, string? name = null, string? email = null, params string[] roles)
     {
         ArgumentNullException.ThrowIfNull(client);

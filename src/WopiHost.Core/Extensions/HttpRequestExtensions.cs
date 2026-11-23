@@ -5,19 +5,22 @@ using WopiHost.Core.Security.Authentication;
 namespace WopiHost.Core.Extensions;
 
 /// <summary>
-/// Extension methods for <see cref="HttpRequest"/>.
+/// Provides extension methods for <see cref="HttpRequest"/>.
 /// </summary>
 public static class HttpRequestExtensions
 {
     /// <summary>
-    /// Gets the access token from the request in various formats (query string, form data, or authorization header).
+    /// Gets the access token from the request's query string, form data, or <c>Authorization</c> header.
     /// </summary>
     /// <remarks>
-    /// According to Microsoft documentation:
+    /// <para>
+    /// The WOPI documentation states:
     /// "WOPI clients aren't required to pass the access token in the Authorization header, but they must send it as a URL parameter in all WOPI operations.
     /// So, for maximum compatibility, WOPI hosts should either use the URL parameter in all cases, or fall back to it if the Authorization header isn't included in the request."
-    /// 
-    /// This method follows this guidance by first checking the URL parameter (query string), then form data, and finally falling back to the Authorization header.
+    /// </para>
+    /// <para>
+    /// The query string is checked first, then form data, and finally a <c>Bearer</c> <c>Authorization</c> header.
+    /// </para>
     /// </remarks>
     /// <param name="request">The HTTP request.</param>
     /// <returns>The access token if found; otherwise, an empty string.</returns>
@@ -53,8 +56,11 @@ public static class HttpRequestExtensions
     }
     
     /// <summary>
-    /// Proxy-aware construction of URL request.
+    /// Builds the absolute request URL, honoring the <c>X-Forwarded-Proto</c>, <c>X-Forwarded-Host</c>
+    /// and <c>X-Forwarded-PathBase</c> headers.
     /// </summary>
+    /// <param name="request">The HTTP request.</param>
+    /// <returns>The request URL as seen by the client, including the query string.</returns>
     public static string GetProxyAwareRequestUrl(this HttpRequest request)
     {
         var (scheme, host, pathBase, path, queryString) = request.GetProxyAwareUrlParts();
@@ -63,8 +69,11 @@ public static class HttpRequestExtensions
     }
 
     /// <summary>
-    /// Get's the Uri parts to construct URL's.
+    /// Gets the URL parts of the request, honoring the <c>X-Forwarded-Proto</c>, <c>X-Forwarded-Host</c>
+    /// and <c>X-Forwarded-PathBase</c> headers.
     /// </summary>
+    /// <param name="request">The HTTP request.</param>
+    /// <returns>The scheme, host, path base, path, and query string of the request.</returns>
     public static (string? scheme, string? host, string? pathBase, string? path, string? queryString)
         GetProxyAwareUrlParts(this HttpRequest request)
     {

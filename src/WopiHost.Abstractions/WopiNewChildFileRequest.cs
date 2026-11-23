@@ -3,11 +3,8 @@ using System.Security.Claims;
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Input to <see cref="IWopiNewChildFileNegotiator.NegotiateAsync"/>. Captures the WOPI
-/// PutRelativeFile / CreateChildFile request inputs as a near-POCO — only the authenticated
-/// <see cref="ClaimsPrincipal"/> is carried (needed for per-operation authorization decisions
-/// like <see cref="IWopiPermissionProvider.CanOverwriteFileAsync"/>); no HTTP context, no
-/// ambient request state.
+/// Represents the input to <see cref="IWopiNewChildFileNegotiator.NegotiateAsync"/>: the WOPI
+/// PutRelativeFile / CreateChildFile request inputs, with no HTTP context or ambient request state.
 /// </summary>
 /// <param name="ContainerId">
 /// Parent container id. For PutRelativeFile pass the resolved parent-of-file container id;
@@ -38,9 +35,9 @@ namespace WopiHost.Abstractions;
 /// per-existing-file, so it can't be encoded into the access token at mint time.
 /// </param>
 /// <remarks>
-/// Both target parameters are plain <see langword="string"/>s; controllers binding the
-/// <c>UtfString</c>-typed WOPI headers can pass them in via the implicit
-/// <c>UtfString → string?</c> conversion so the negotiator interface stays free of the
+/// Both target parameters are plain <see langword="string"/>s; endpoints binding the
+/// <c>UtfString</c>-typed WOPI headers pass them in via the implicit
+/// <c>UtfString → string?</c> conversion, which keeps the negotiator interface free of the
 /// header-encoding wrapper type.
 /// </remarks>
 public sealed record WopiNewChildFileRequest(

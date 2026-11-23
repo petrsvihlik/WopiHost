@@ -14,8 +14,8 @@ using WopiHost.Core.Models;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Read-only Minimal-API endpoints for WOPI file resources. Read-side of the
-/// <c>/wopi/files/{id}</c> surface — CheckFileInfo, GetFile, ecosystem_pointer, ancestry.
+/// Maps the read-only Minimal-API endpoints of the <c>/wopi/files/{id}</c> surface:
+/// CheckFileInfo, GetFile, ecosystem_pointer and ancestry.
 /// </summary>
 internal static class FileEndpoints
 {
@@ -167,12 +167,14 @@ internal static class FileEndpoints
 }
 
 /// <summary>
-/// Parameter bundle for <see cref="FileEndpoints.CheckFileInfo"/>. <c>[FromServices]</c> on the
-/// nullable lock/cobalt/writable parameters is load-bearing: these services are optional and may
-/// not be registered in every host configuration (e.g. <c>UseCobalt=false</c> skips
-/// <c>AddCobalt()</c>). Without <c>[FromServices]</c> the Minimal-API binder doesn't see the type
-/// in DI and falls back to body inference at startup, hard-erroring before any request is served.
+/// Parameter bundle for <see cref="FileEndpoints.CheckFileInfo"/>.
 /// </summary>
+/// <remarks>
+/// <c>[FromServices]</c> on the nullable lock/cobalt/writable parameters is load-bearing: these
+/// services are optional and may not be registered in every host configuration (e.g.
+/// <c>UseCobalt=false</c> skips <c>AddCobalt()</c>). Without it the Minimal-API binder doesn't see
+/// the type in DI and falls back to body inference at startup, failing before any request is served.
+/// </remarks>
 internal readonly record struct CheckFileInfoRequest(
     [FromRoute] string Id,
     HttpContext Http,

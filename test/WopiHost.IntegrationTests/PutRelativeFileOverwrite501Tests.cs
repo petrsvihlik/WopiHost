@@ -11,7 +11,7 @@ namespace WopiHost.IntegrationTests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <a href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile">The PutRelativeFile spec</a>
+/// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile">The PutRelativeFile spec</see>
 /// distinguishes "user is unauthorized to call this endpoint" (401/403) from "user is authorized
 /// to call this endpoint but not authorized to overwrite the existing target" (501):
 /// </para>
@@ -22,13 +22,13 @@ namespace WopiHost.IntegrationTests;
 /// <para>
 /// The decision is per-existing-file so it can't live on the access-token's <c>wopi:fperms</c>
 /// claim (the existing file isn't known at token-mint time). The contract on
-/// <see cref="IWopiPermissionProvider.CanOverwriteFileAsync"/> is the host's seam — return
-/// <see langword="false"/> and the negotiator surfaces <see cref="WopiNewChildFileResult.NotImplemented"/>
+/// <see cref="IWopiPermissionProvider.CanOverwriteFileAsync"/> is the host's seam: when it returns
+/// <see langword="false"/>, the negotiator surfaces <see cref="WopiNewChildFileResult.NotImplemented"/>,
 /// which the endpoint translates into <c>501</c>.
 /// </para>
 /// <para>
-/// Has its own backend fixture (not the shared <see cref="MutatingEndpointsFixture"/>) so the
-/// deny-overwrite permission provider doesn't taint sibling tests that rely on the default
+/// The class has its own backend fixture (not the shared <see cref="MutatingEndpointsFixture"/>) so
+/// the deny-overwrite permission provider doesn't affect sibling tests that rely on the default
 /// allow-everything behaviour.
 /// </para>
 /// </remarks>
@@ -95,9 +95,8 @@ public sealed class PutRelativeFileOverwrite501Tests : IClassFixture<PutRelative
     }
 
     /// <summary>
-    /// Backend fixture with an <see cref="IWopiPermissionProvider"/> that denies overwrite —
-    /// every other authorization path follows the default permission provider shape.
-    /// Isolated from <see cref="MutatingEndpointsFixture"/> so the deny doesn't reach sibling tests.
+    /// Provides a backend fixture whose <see cref="IWopiPermissionProvider"/> denies overwrite; every
+    /// other authorization path follows the default permission provider shape.
     /// </summary>
     public sealed class Fixture : IDisposable
     {
@@ -170,7 +169,7 @@ public sealed class PutRelativeFileOverwrite501Tests : IClassFixture<PutRelative
         }
 
         /// <summary>
-        /// Permission provider that allows everything except <see cref="CanOverwriteFileAsync"/>,
+        /// Represents a permission provider that allows everything except <see cref="CanOverwriteFileAsync"/>,
         /// which always denies. Mirrors the default permission shape for <c>GetFilePermissionsAsync</c> /
         /// <c>GetContainerPermissionsAsync</c> so the endpoint-level authorization gate still
         /// passes — the only thing this provider changes is the per-existing-file overwrite check.

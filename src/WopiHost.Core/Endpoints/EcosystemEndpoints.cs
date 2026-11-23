@@ -11,10 +11,12 @@ using WopiHost.Core.Models;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// WOPI ecosystem-pointer endpoints. The endpoints do not carry per-resource
-/// <see cref="Security.Authorization.WopiAuthorizeAttribute"/> requirements — only the
-/// standard authenticated-user gate from the parent group's <c>RequireAuthorization()</c>.
+/// Maps the WOPI ecosystem endpoints (CheckEcosystem and GetRootContainer).
 /// </summary>
+/// <remarks>
+/// The endpoints carry no per-resource <see cref="Security.Authorization.WopiAuthorizeAttribute"/>
+/// requirements, only the authenticated-user gate from the parent group's <c>RequireAuthorization()</c>.
+/// </remarks>
 internal static class EcosystemEndpoints
 {
     public static void MapEcosystemEndpoints(IEndpointRouteBuilder wopi)

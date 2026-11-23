@@ -1,7 +1,8 @@
 ﻿namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Model according to <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#wopi-host-capabilities-properties">WOPI host capabilities properties</see>
+/// Provides the default, settable implementation of <see cref="IWopiHostCapabilities"/>, covering the
+/// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#wopi-host-capabilities-properties">WOPI host capabilities properties</see>.
 /// </summary>
 public class WopiHostCapabilities : IWopiHostCapabilities
 {
@@ -12,7 +13,7 @@ public class WopiHostCapabilities : IWopiHostCapabilities
     public bool SupportsAddActivities { get; set; }
 
     /// <inheritdoc/>
-    /// <remarks>set by FilesController.ctor depending on registered DI services</remarks>
+    /// <remarks>The WOPI endpoints set this according to whether an <see cref="ICobaltProcessor"/> is registered.</remarks>
     public bool SupportsCobalt { get; set; }
 
     /// <inheritdoc/>
@@ -22,11 +23,11 @@ public class WopiHostCapabilities : IWopiHostCapabilities
     public bool SupportsContainers { get; set; } = true;
 
     /// <inheritdoc/>
-    /// <remarks>set by FilesController.ctor depending on registered DI services</remarks>
+    /// <remarks>The WOPI endpoints set this according to whether an <see cref="IWopiLockProvider"/> is registered.</remarks>
     public bool SupportsLocks { get; set; }
 
     /// <inheritdoc/>
-    /// <remarks>set by FilesController.ctor depending on registered DI services</remarks>
+    /// <remarks>The WOPI endpoints set this according to whether an <see cref="IWopiLockProvider"/> is registered.</remarks>
     public bool SupportsGetLock { get; set; }
 
     /// <inheritdoc/>
@@ -59,6 +60,6 @@ public class WopiHostCapabilities : IWopiHostCapabilities
     /// <inheritdoc/>
     public bool SupportsDeleteFile { get; set; } = true;
 
-    /// <inheritdoc/>    
+    /// <inheritdoc/>
     public bool SupportsUserInfo { get; set; } = true;
 }

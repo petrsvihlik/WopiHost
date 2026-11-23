@@ -7,21 +7,28 @@ using WopiHost.Core.Security.Authentication;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Minimal-API endpoint registration for the WOPI host. Call alongside <c>AddWopi()</c>:
+/// Provides Minimal-API endpoint registration for the WOPI host.
+/// </summary>
+/// <example>
+/// Call alongside <c>AddWopi()</c>:
 /// <code>
 /// builder.Services.AddWopi();
 /// // ...
 /// app.MapWopiEndpoints();
 /// </code>
-/// </summary>
+/// </example>
 public static class WopiEndpointRouteBuilderExtensions
 {
     /// <summary>
-    /// Maps the WOPI host endpoints onto <paramref name="endpoints"/>. Returns the
-    /// <c>/wopi</c> route group so additional metadata can be layered on by the caller
-    /// (the bootstrap endpoints are registered as a side effect and aren't reachable
-    /// through the returned builder — they live on a different prefix and auth scheme).
+    /// Maps the WOPI host endpoints onto <paramref name="endpoints"/>.
     /// </summary>
+    /// <param name="endpoints">The endpoint route builder to map the endpoints onto.</param>
+    /// <returns>The <c>/wopi</c> route group, so the caller can layer additional metadata onto it.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="endpoints"/> is <see langword="null"/>.</exception>
+    /// <remarks>
+    /// The <c>/wopibootstrapper</c> endpoints are registered as well but are not reachable through
+    /// the returned builder: they live on a different prefix and authentication scheme.
+    /// </remarks>
     public static RouteGroupBuilder MapWopiEndpoints(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);

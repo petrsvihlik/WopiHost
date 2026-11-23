@@ -3,9 +3,9 @@ using System.Security.Claims;
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Context for the CheckFileInfo operation.
+/// Represents the context passed to <see cref="IWopiHostExtensions.OnCheckFileInfoAsync"/> for the CheckFileInfo operation.
 /// </summary>
-/// <param name="User">the current user.</param>
-/// <param name="File">the current file resource.</param>
-/// <param name="CheckFileInfo">the default created <see cref="WopiCheckFileInfo"/></param>
+/// <param name="User">The current user, if any.</param>
+/// <param name="File">The file the response describes.</param>
+/// <param name="CheckFileInfo">The <see cref="WopiCheckFileInfo"/> populated by the default builder.</param>
 public record WopiCheckFileInfoContext(ClaimsPrincipal? User, IWopiFile File, WopiCheckFileInfo CheckFileInfo);

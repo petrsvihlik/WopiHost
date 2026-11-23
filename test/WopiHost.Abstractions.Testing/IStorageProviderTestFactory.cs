@@ -1,24 +1,29 @@
 namespace WopiHost.Abstractions.Testing;
 
 /// <summary>
-/// A storage provider under test plus the seam used to seed it. The reader and writer are the
-/// same provider instance for the in-tree providers (both interfaces are implemented on one
-/// type); they are split here so the conformance suite reads through <see cref="IWopiStorageProvider"/>
-/// and seeds through <see cref="IWopiWritableStorageProvider"/>.
+/// Represents a storage provider under test plus the seam used to seed it.
 /// </summary>
+/// <remarks>
+/// The reader and writer are the same instance for the in-tree providers (one type implements both
+/// interfaces); they are split so the conformance suite reads through <see cref="IWopiStorageProvider"/>
+/// and seeds through <see cref="IWopiWritableStorageProvider"/>.
+/// </remarks>
 public interface IStorageProviderTestContext : IAsyncDisposable
 {
-    /// <summary>Read side under test.</summary>
+    /// <summary>Gets the read side under test.</summary>
     IWopiStorageProvider Reader { get; }
 
-    /// <summary>Write side used only to seed fixtures.</summary>
+    /// <summary>Gets the write side, used only to seed fixtures.</summary>
     IWopiWritableStorageProvider Writer { get; }
 }
 
 /// <summary>
-/// Default <see cref="IStorageProviderTestContext"/>: holds the reader/writer and runs an
-/// optional teardown (delete the temp directory, drop the blob container, …) on disposal.
+/// Provides the default <see cref="IStorageProviderTestContext"/>, which holds the reader and writer
+/// and runs an optional teardown (deleting the temp directory, dropping the blob container) on disposal.
 /// </summary>
+/// <param name="reader">The read side under test.</param>
+/// <param name="writer">The write side used to seed fixtures.</param>
+/// <param name="onDisposeAsync">The teardown to run on disposal, or <see langword="null"/> for none.</param>
 public sealed class StorageProviderTestContext(
     IWopiStorageProvider reader,
     IWopiWritableStorageProvider writer,
@@ -35,11 +40,11 @@ public sealed class StorageProviderTestContext(
 }
 
 /// <summary>
-/// Factory the storage conformance suite uses to obtain a fresh provider for each test. Derive a
-/// concrete sealed subclass of <see cref="StorageProviderConformanceTests"/> in each provider's
-/// test project and override its <c>Factory</c> to return one of these.
+/// Creates a fresh storage provider for each test of <see cref="StorageProviderConformanceTests"/>.
 /// </summary>
 /// <remarks>
+/// A provider's test project derives a sealed subclass of <see cref="StorageProviderConformanceTests"/>
+/// and returns an implementation of this interface from <see cref="StorageProviderConformanceTests.Factory"/>.
 /// Each call must return a provider rooted on storage that is logically <em>independent</em> of
 /// any earlier one (a fresh temp directory for the file system, a unique blob container for
 /// Azure) and whose root starts empty — every test seeds exactly what it asserts through the
@@ -47,6 +52,7 @@ public sealed class StorageProviderTestContext(
 /// </remarks>
 public interface IStorageProviderTestFactory
 {
-    /// <summary>Create a fresh provider under test with an empty root.</summary>
+    /// <summary>Creates a fresh provider under test with an empty root.</summary>
+    /// <returns>The context holding the provider under test.</returns>
     Task<IStorageProviderTestContext> CreateAsync();
 }

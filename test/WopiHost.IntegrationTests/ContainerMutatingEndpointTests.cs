@@ -9,7 +9,7 @@ namespace WopiHost.IntegrationTests;
 /// <summary>
 /// HTTP-level coverage of every mutating endpoint in
 /// <see cref="WopiHost.Core.Endpoints.ContainerMutatingEndpoints"/>:
-/// CreateChildContainer, CreateChildFile, DeleteContainer, RenameContainer. Shares the
+/// GetShareUrl, CreateChildContainer, CreateChildFile, DeleteContainer, and RenameContainer. Shares the
 /// <see cref="MutatingEndpointsFixture"/> with the file-side mutating tests via
 /// <c>[Collection("MutatingEndpoints")]</c>.
 /// </summary>

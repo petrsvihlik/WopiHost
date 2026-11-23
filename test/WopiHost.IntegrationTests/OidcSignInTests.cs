@@ -24,7 +24,7 @@ namespace WopiHost.IntegrationTests;
 /// <strong>Why two HttpClients.</strong> The TestServer in-memory handler routes every request
 /// through the app's pipeline by host. So a redirect to the mock IdP container would 404 inside
 /// TestServer. The flow is therefore split: the TestClient (with cookie container) drives
-/// /account/login and /signin-oidc; a plain HttpClient drives the mock IdP's authorize endpoint
+/// <c>/account/login</c> and <c>/signin-oidc</c>; a plain <see cref="HttpClient"/> drives the mock IdP's authorize endpoint
 /// out-of-band. The two clients are stitched by passing the authorize URL and callback URL
 /// between them. Correlation cookies set during the challenge remain on the TestClient and are
 /// replayed on the callback, satisfying the .NET OIDC handler's state/nonce check.
@@ -173,9 +173,9 @@ public partial class OidcSignInTests : IClassFixture<OidcSignInTests.AppFactory>
     }
 
     /// <summary>
-    /// Parses hidden-input name/value pairs out of a mock-oauth2-server form_post HTML body.
-    /// Returns the fields a real browser would have auto-submitted to the callback URL.
+    /// Parses hidden-input name/value pairs out of a mock-oauth2-server <c>form_post</c> HTML body.
     /// </summary>
+    /// <returns>The fields a real browser would have auto-submitted to the callback URL.</returns>
     private static Dictionary<string, string> ParseFormPostFields(string formHtml)
     {
         Dictionary<string, string> fields = [with(StringComparer.Ordinal)];
@@ -187,9 +187,9 @@ public partial class OidcSignInTests : IClassFixture<OidcSignInTests.AppFactory>
     }
 
     /// <summary>
-    /// Per-test-class wrapper that holds the single <see cref="OidcWebAppFactory"/> instance.
-    /// Mirrors <see cref="OidcStartupTests.AppFactory"/>; kept separate so each test class
-    /// gets an independent lifecycle (xUnit class fixtures are per-class-per-type).
+    /// Holds the single <see cref="OidcWebAppFactory"/> instance for this test class.
+    /// Mirrors <see cref="OidcStartupTests.AppFactory"/>; a separate type gives each test class an
+    /// independent lifecycle, because xUnit shares a class fixture per fixture type.
     /// </summary>
     public sealed class AppFactory : IDisposable
     {

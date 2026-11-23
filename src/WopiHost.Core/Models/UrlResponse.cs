@@ -1,7 +1,7 @@
 namespace WopiHost.Core.Models;
 
 /// <summary>
-/// Response object containing an Url.
+/// Represents a response body containing a single URL.
 /// </summary>
-/// <param name="Url">the absolute Url to return.</param>
+/// <param name="Url">The absolute URL to return.</param>
 public record UrlResponse(Uri Url);

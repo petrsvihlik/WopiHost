@@ -2,9 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace WopiHost.Core.Security.Authentication;
 
-/// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for <see cref="WopiProofValidator"/>.
-/// </summary>
+// Source-generated LoggerMessage declarations for WopiProofValidator.
 public partial class WopiProofValidator
 {
     [LoggerMessage(

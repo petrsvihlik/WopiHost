@@ -9,11 +9,15 @@ using WopiHost.Abstractions;
 namespace WopiHost.Core.Security.Authentication;
 
 /// <summary>
-/// Default <see cref="IWopiAccessTokenService"/> implementation. Issues signed JWTs that bind
-/// a user to a single <c>(resource, permissions, lifetime)</c> tuple.
+/// Provides the default <see cref="IWopiAccessTokenService"/> implementation, which issues signed JWTs
+/// that bind a user to a single <c>(resource, permissions, lifetime)</c> tuple.
 /// </summary>
+/// <param name="options">The monitor for the signing, issuer, audience and lifetime settings.</param>
+/// <param name="logger">The logger.</param>
+/// <param name="timeProvider">The clock for token timestamps, or <see langword="null"/> to use <see cref="TimeProvider.System"/>.</param>
 /// <remarks>
-/// Creates a new instance of the <see cref="JwtAccessTokenService"/>.
+/// When neither <see cref="WopiSecurityOptions.SecurityKey"/> nor <see cref="WopiSecurityOptions.SigningKey"/>
+/// is configured, tokens are signed with an ephemeral per-process random key (development only).
 /// </remarks>
 public partial class JwtAccessTokenService(
     IOptionsMonitor<WopiSecurityOptions> options,
@@ -40,6 +44,7 @@ public partial class JwtAccessTokenService(
     });
 
     /// <inheritdoc/>
+    /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
     public Task<WopiAccessToken> IssueAsync(WopiAccessTokenRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -170,9 +175,12 @@ public partial class JwtAccessTokenService(
     }
 
     /// <summary>
-    /// Helper that converts an arbitrary string secret to bytes suitable for HMAC-SHA256
-    /// (right-pads to the minimum 32-byte / 256-bit length).
+    /// Converts an arbitrary string secret to a key suitable for HMAC-SHA256.
     /// </summary>
+    /// <param name="secret">The secret to convert.</param>
+    /// <returns>The UTF-8 bytes of <paramref name="secret"/>, zero-padded on the right to the 32-byte (256-bit) minimum.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="secret"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="secret"/> is empty.</exception>
     public static byte[] DeriveHmacKey(string secret)
     {
         ArgumentException.ThrowIfNullOrEmpty(secret);

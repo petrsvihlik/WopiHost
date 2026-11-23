@@ -3,7 +3,7 @@ using WopiHost.E2ETests.Fixtures;
 namespace WopiHost.E2ETests.OnlyOffice;
 
 /// <summary>
-/// App fixture for the ONLYOFFICE lane: boots the AppHost with <c>AppHost:UseOnlyOffice=true</c>
+/// Provides the app fixture for the ONLYOFFICE lane, which boots the AppHost with <c>AppHost:UseOnlyOffice=true</c>
 /// (Collabora + Redis off, so the suite depends on a single container) and gates on ONLYOFFICE's
 /// <c>/healthcheck</c> returning a literal <c>true</c>. Unlike <c>/hosting/discovery</c> (served by
 /// nginx almost immediately), <c>/healthcheck</c> only answers true once the document-conversion
@@ -67,6 +67,7 @@ public sealed class OnlyOfficeAppFixture : WopiAppFixtureBase
     /// tail of the internal docservice/converter logs (where WOPI download / proof / edit-mode
     /// errors are actually written — they don't surface on the container's stdout).
     /// </summary>
+    /// <returns>The container log tail followed by the internal log tails, or a placeholder message if no container is running or the capture fails.</returns>
     public override async Task<string> CaptureClientLogsAsync()
     {
         const int tailLines = 200;

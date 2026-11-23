@@ -2,10 +2,10 @@ using System.Reflection;
 
 namespace WopiHost.IntegrationTests.Fixtures;
 
-/// <summary>Filesystem paths used by integration test factories.</summary>
+/// <summary>Provides file-system paths used by integration test factories.</summary>
 internal static class TestPaths
 {
-    /// <summary>Absolute path to the sample/wopi-docs directory at the repo root, used as the WOPI storage root.</summary>
+    /// <summary>Gets the absolute path to the <c>sample/wopi-docs</c> directory at the repo root, used as the WOPI storage root.</summary>
     public static string WopiDocsRoot { get; } = ResolveWopiDocsRoot();
 
     private static string ResolveWopiDocsRoot()

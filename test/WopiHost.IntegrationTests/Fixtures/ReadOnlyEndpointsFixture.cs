@@ -4,8 +4,8 @@ using Xunit;
 namespace WopiHost.IntegrationTests.Fixtures;
 
 /// <summary>
-/// Shared fixture for the read-only endpoint test classes (File / Container / Folder /
-/// Ecosystem). Boots the WOPI backend once against the shared sample/wopi-docs root and
+/// Provides the shared fixture for the read-only endpoint test classes (File / Container / Folder /
+/// Ecosystem). Boots the WOPI backend once against the shared <c>sample/wopi-docs</c> root and
 /// exposes ready-to-use resource identifiers + token-minting helpers so each test class
 /// stays focused on assertions rather than setup.
 /// </summary>
@@ -53,10 +53,9 @@ public sealed class ReadOnlyEndpointsFixture : IDisposable
 }
 
 /// <summary>
-/// xUnit collection wrapper so File / Container / Folder / Ecosystem endpoint test classes
-/// can share a single <see cref="ReadOnlyEndpointsFixture"/> instance. Without the
-/// collection, each class would boot its own backend (acceptable but ~3-5s of redundant
-/// startup overhead per class).
+/// Defines the xUnit collection through which the File / Container / Folder / Ecosystem endpoint test
+/// classes share one <see cref="ReadOnlyEndpointsFixture"/> instance, so the backend boots once
+/// instead of per class.
 /// </summary>
 [CollectionDefinition("ReadOnlyEndpoints")]
 public sealed class ReadOnlyEndpointsCollection : ICollectionFixture<ReadOnlyEndpointsFixture>

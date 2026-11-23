@@ -11,7 +11,7 @@ namespace WopiHost.Abstractions;
 /// Every endpoint that surfaces a child or ancestor URL — <c>EnumerateAncestors</c>,
 /// <c>EnumerateChildren</c>, <c>PutRelativeFile</c>, <c>CreateChildFile</c>,
 /// <c>CreateChildContainer</c>, the <c>ecosystem_pointer</c> handlers — must mint a fresh
-/// token bound to the *new* resource id rather than reusing the inbound token. The default
+/// token bound to the <em>new</em> resource id rather than reusing the inbound token. The default
 /// <see cref="IWopiAccessTokenService"/> binds tokens to a single resource via the
 /// <see cref="WopiAccessTokenRequest.ResourceId"/> claim; reusing an inbound token across
 /// resources would either fail downstream authorization or open a token-trading hole per
@@ -19,24 +19,26 @@ namespace WopiHost.Abstractions;
 /// the WOPI security guidance</see>.
 /// </para>
 /// <para>
-/// This seam wraps <see cref="IWopiAccessTokenService.IssueAsync"/> with the permission-lookup
-/// step (via <see cref="IWopiPermissionProvider"/>) and the claim plumbing (FindFirst for the
-/// user's id / name / email) so endpoints don't duplicate the boilerplate. A host that wants a
-/// custom token-minting policy (e.g. opaque
-/// revocable tokens, an external token-issuance service, or an extra audit step before issuing)
-/// can replace the default registration; the WOPI endpoints will pick up the override.
+/// This seam wraps <see cref="IWopiAccessTokenService.IssueAsync"/> with the permission lookup
+/// (via <see cref="IWopiPermissionProvider"/>) and the claim plumbing (the user's id, name, and
+/// email). A host that wants a custom minting policy (opaque revocable tokens, an external
+/// token-issuance service, an extra audit step before issuing) replaces the default
+/// registration; the WOPI endpoints pick up the override.
 /// </para>
 /// </remarks>
 public interface IWopiResourceTokenMinter
 {
     /// <summary>
     /// Resolves <paramref name="user"/>'s permissions for <paramref name="file"/> via
-    /// <see cref="IWopiPermissionProvider"/> and issues a file-scoped access token carrying
-    /// them. Returns the full <see cref="WopiAccessToken"/> (token string + expiry); most
-    /// callers only need the <see cref="WopiAccessToken.Token"/>, but the
-    /// <see cref="WopiAccessToken.ExpiresAt"/> is surfaced for callers that need to bake the
-    /// expiry into the response (e.g. the bootstrapper's <c>GET_NEW_ACCESS_TOKEN</c>).
+    /// <see cref="IWopiPermissionProvider"/> and issues a file-scoped access token carrying them.
     /// </summary>
+    /// <param name="user">The principal to issue the token for.</param>
+    /// <param name="file">The file the token is bound to.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The issued token and its expiry. Most callers need only
+    /// <see cref="WopiAccessToken.Token"/>; <see cref="WopiAccessToken.ExpiresAt"/> serves callers
+    /// that report the expiry in the response (for example the bootstrapper's
+    /// <c>GET_NEW_ACCESS_TOKEN</c>).</returns>
     Task<WopiAccessToken> MintForFileAsync(ClaimsPrincipal user, IWopiFile file, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -44,20 +46,28 @@ public interface IWopiResourceTokenMinter
     /// <see cref="IWopiPermissionProvider"/> and issues a container-scoped access token
     /// carrying them.
     /// </summary>
+    /// <param name="user">The principal to issue the token for.</param>
+    /// <param name="container">The container the token is bound to.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The issued token and its expiry.</returns>
     Task<WopiAccessToken> MintForContainerAsync(ClaimsPrincipal user, IWopiContainer container, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Issues a minimum-privilege (no <c>FilePermissions</c> / <c>ContainerPermissions</c>)
-    /// token bound to <paramref name="resourceId"/> + <paramref name="resourceType"/>, for use
-    /// in the WOPI <c>ecosystem_pointer</c> response URLs (the file- and container-side
-    /// <c>GetEcosystem</c> handlers). The returned URL points at <c>/wopi/ecosystem</c> with
-    /// this token; the ecosystem endpoint doesn't need any resource-mutation capability baked in.
+    /// Issues a minimum-privilege token (no file or container permissions) bound to
+    /// <paramref name="resourceId"/> and <paramref name="resourceType"/>, for the
+    /// <c>ecosystem_pointer</c> URLs returned by the file- and container-side
+    /// <c>GetEcosystem</c> operations.
     /// </summary>
     /// <remarks>
-    /// Not used by the bootstrap's ecosystem-grant token — that one binds to the root container
-    /// with a looser user-id resolution (<c>NameIdentifier → Upn</c> fall-through, not the
-    /// strict <c>NameIdentifier</c> this seam uses) and stays inline in
-    /// <c>BootstrapEndpoints.BuildEcosystemTokenRequest</c>.
+    /// The ecosystem endpoint needs no resource-mutation capability, so none is baked in. The
+    /// bootstrapper's ecosystem token does not go through this method: it binds to the root
+    /// container and resolves the user id from <c>NameIdentifier</c> with a <c>Upn</c> fallback,
+    /// whereas this method requires <c>NameIdentifier</c>.
     /// </remarks>
+    /// <param name="user">The principal to issue the token for.</param>
+    /// <param name="resourceId">The identifier of the resource the token is bound to.</param>
+    /// <param name="resourceType">The type of the resource identified by <paramref name="resourceId"/>.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The issued token and its expiry.</returns>
     Task<WopiAccessToken> MintForEcosystemAsync(ClaimsPrincipal user, string resourceId, WopiResourceType resourceType, CancellationToken cancellationToken = default);
 }

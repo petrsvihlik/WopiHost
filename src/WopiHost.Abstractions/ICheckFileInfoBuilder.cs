@@ -3,7 +3,7 @@ namespace WopiHost.Abstractions;
 /// <summary>
 /// Builds the <see cref="WopiCheckFileInfo"/> response for a single file. Replace the default
 /// registration in DI to take full control of the response shape (e.g. populate custom
-/// properties on a derived <see cref="WopiCheckFileInfo"/>, swap in a CDN-backed
+/// properties on a derived <see cref="WopiCheckFileInfo"/>, set a CDN-backed
 /// <c>FileUrl</c>, or short-circuit the permission resolution).
 /// </summary>
 /// <remarks>
@@ -27,14 +27,15 @@ public interface ICheckFileInfoBuilder
     /// Builds a fully populated <see cref="WopiCheckFileInfo"/> for <paramref name="file"/>.
     /// </summary>
     /// <param name="file">The file the response describes.</param>
-    /// <param name="request">Framework-neutral request envelope — carries the authenticated
-    /// principal, the proxy-aware request URL (for <c>FileUrl</c> construction), the resolved
+    /// <param name="request">The framework-neutral request envelope. Carries the authenticated
+    /// principal, the proxy-aware request URL (for self-referential URLs), the resolved
     /// access token, request headers, and the per-request service scope.</param>
-    /// <param name="capabilities">Per-controller capability flags (lock/cobalt/coauth support)
-    /// to copy onto the response. <see langword="null"/> leaves the response defaults.</param>
-    /// <param name="userInfo">Cached value of the user's previously-stored
-    /// <c>UserInfo</c> blob (see WOPI <c>PutUserInfo</c>). <see langword="null"/> when unset.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="capabilities">The host capability flags (lock, Cobalt, co-authoring support)
+    /// to copy onto the response, or <see langword="null"/> to keep the response defaults.</param>
+    /// <param name="userInfo">The user's previously stored <c>UserInfo</c> value (see WOPI
+    /// <c>PutUserInfo</c>), or <see langword="null"/> when none is stored.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The <c>CheckFileInfo</c> response to serialize to the WOPI client.</returns>
     Task<WopiCheckFileInfo> BuildAsync(
         IWopiFile file,
         WopiRequestInfo request,

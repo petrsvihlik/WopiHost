@@ -28,10 +28,12 @@ using ProcessLockResult = Microsoft.AspNetCore.Http.HttpResults.Results<
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Mutating Minimal-API endpoints for the <c>/wopi/files/{id}</c> surface. POST-on-<c>{id}</c>
-/// overloads dispatch via the <c>X-WOPI-Override</c> header
-/// (<see cref="WopiOverrideMatcherPolicy"/>).
+/// Maps the mutating Minimal-API endpoints of the <c>/wopi/files/{id}</c> surface.
 /// </summary>
+/// <remarks>
+/// The <c>POST {id}</c> overloads dispatch on the <c>X-WOPI-Override</c> header through
+/// <see cref="WopiOverrideMatcherPolicy"/>.
+/// </remarks>
 internal static class FileMutatingEndpoints
 {
     private const string UserInfoCacheKeyPrefix = "UserInfo-";
@@ -150,6 +152,10 @@ internal static class FileMutatingEndpoints
     }
 
     /// <summary>Builds an absolute, host-page-style share link off the request authority.</summary>
+    /// <param name="http">The current request context, whose scheme and host form the link's authority.</param>
+    /// <param name="id">The identifier of the file to share.</param>
+    /// <param name="urlType">The requested share URL type (the <c>X-WOPI-UrlType</c> value).</param>
+    /// <returns>The absolute share URL.</returns>
     internal static Uri BuildShareUrl(HttpContext http, string id, string urlType)
     {
         var baseUri = new Uri($"{http.Request.Scheme}://{http.Request.Host}");
@@ -308,13 +314,15 @@ internal static class FileMutatingEndpoints
     }
 
     /// <summary>
-    /// Scrubs <paramref name="invalidName"/> via <see cref="WopiFileNameSanitiser"/> and falls
-    /// back to the source file's stem + the original extension when the scrubbed candidate is
-    /// still rejected by the provider. RenameFile has no concept of "suggested target" — the
-    /// source file's name is the only reasonable fallback — so the fallback shape differs from
-    /// <see cref="DefaultWopiNewChildFileNegotiator"/> (which uses the caller-supplied stem) and
-    /// can't be folded into the sanitiser helper.
+    /// Tries to turn <paramref name="invalidName"/> into a name the provider accepts, scrubbing it via
+    /// <see cref="WopiFileNameSanitiser"/> and falling back to <paramref name="fallbackStem"/> plus the
+    /// original extension.
     /// </summary>
+    /// <returns>A valid file name, or <see langword="null"/> if neither candidate is accepted.</returns>
+    /// <remarks>
+    /// RenameFile has no "suggested target", so the source file's stem is the fallback; this differs
+    /// from <see cref="DefaultWopiNewChildFileNegotiator"/>, which uses the caller-supplied stem.
+    /// </remarks>
     private static async Task<string?> TryBuildValidFileNameAsync(IWopiWritableStorageProvider writable, string invalidName, string fallbackStem, CancellationToken cancellationToken)
     {
         var candidate = await WopiFileNameSanitiser.TryBuildValidCandidateAsync(writable, invalidName, fallbackStem, cancellationToken).ConfigureAwait(false);
@@ -383,12 +391,13 @@ internal static class FileMutatingEndpoints
     }
 
     /// <summary>
-    /// Spec-defined max body size for PutUserInfo:
-    /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo"/>.
-    /// "The UserInfo string is provided in the body of the request, and has a maximum size of
-    /// 1024 ASCII characters." Cap the read so a malicious or buggy client can't push an
-    /// unbounded body into the MemoryCache.
+    /// The spec-defined maximum PutUserInfo body size, in bytes.
     /// </summary>
+    /// <remarks>
+    /// Per the <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/putuserinfo">PutUserInfo spec</see>,
+    /// the UserInfo string has a maximum size of 1024 ASCII characters. Capping the read keeps a
+    /// malicious or buggy client from pushing an unbounded body into the memory cache.
+    /// </remarks>
     private const int PutUserInfoMaxBytes = 1024;
 
     private static async Task<Results<NotFound, BadRequest, Ok>> PutUserInfo(
@@ -496,10 +505,8 @@ internal static class FileMutatingEndpoints
     }
 
     /// <summary>
-    /// Spec validation gate: enforces lock-id max length and X-WOPI-Lock-required-for-mutation
-    /// rules <em>before</em> dispatching to the per-operation handler. Keeping it separate leaves
-    /// ProcessLockCore as a pure dispatch state machine and lets the validation rules be tested
-    /// or audited in isolation.
+    /// Validates the lock headers against the spec (lock-id maximum length, <c>X-WOPI-Lock</c> required
+    /// for mutating lock operations) before dispatch to the per-operation handler.
     /// </summary>
     /// <returns>The error result that should short-circuit the operation, or <see langword="null"/>
     /// when the headers pass validation.</returns>
@@ -531,14 +538,18 @@ internal static class FileMutatingEndpoints
     }
 
     /// <summary>
-    /// Maps the validated X-WOPI-Override header onto the appropriate Handle* implementation.
-    /// Lock override doubles as UnlockAndRelock when X-WOPI-OldLock is present, so dispatch is
-    /// by header presence rather than baking a third branch into the switch.
+    /// Dispatches the validated <c>X-WOPI-Override</c> value to the matching <c>Handle*</c> implementation.
     /// </summary>
+    /// <returns>The result of the dispatched lock operation.</returns>
     /// <remarks>
-    /// Unrecognised override values fall through to 501 NotImplemented — the outer
-    /// <c>WopiOverrideMatcherPolicy</c> already restricts routing to the values listed in the
-    /// endpoint metadata, so the default arm is defense-in-depth for anyone bypassing the policy.
+    /// <para>
+    /// The <c>LOCK</c> override doubles as UnlockAndRelock when <c>X-WOPI-OldLock</c> is present.
+    /// </para>
+    /// <para>
+    /// Unrecognized override values fall through to <c>501 Not Implemented</c>. The outer
+    /// <see cref="WopiOverrideMatcherPolicy"/> already restricts routing to the values listed in the
+    /// endpoint metadata, so the default arm is defense in depth for anyone bypassing the policy.
+    /// </para>
     /// </remarks>
     private static async Task<ProcessLockResult> DispatchLockOperation(
         LockOperationRequest op,
@@ -673,7 +684,8 @@ internal static class FileMutatingEndpoints
     }
 }
 
-/// <summary>Response payload for <c>RenameFile</c> — single required <c>Name</c> property per spec.</summary>
+/// <summary>Represents the <c>RenameFile</c> response payload.</summary>
+/// <param name="Name">The file's new name, without its extension.</param>
 public sealed record RenameFileResponse(string Name);
 
 // [FromServices] on the nullable lock/cobalt/writable parameters in the records below is

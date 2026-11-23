@@ -1,40 +1,40 @@
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// The Wopi resource type
+/// Specifies the kind of WOPI resource.
 /// </summary>
 public enum WopiResourceType
 {
     /// <summary>
-    /// <see cref="IWopiFile"/>
+    /// A file (<see cref="IWopiFile"/>).
     /// </summary>
     File,
     /// <summary>
-    /// <see cref="IWopiContainer"/>
+    /// A container (<see cref="IWopiContainer"/>).
     /// </summary>
     Container
 }
 
 /// <summary>
-/// Static policy declaration: the resource-type and permission combination an authenticated
-/// caller must hold to invoke a given endpoint. Implementations live as MVC attributes
-/// (typically <c>WopiAuthorizeAttribute</c>) and are cached on the action descriptor — they
-/// must therefore be immutable and free of any per-request state.
+/// Declares the resource type and permission an authenticated caller must hold to invoke a
+/// given endpoint.
 /// </summary>
 /// <remarks>
-/// The per-request resource id is <em>not</em> part of this requirement. It belongs to the
-/// authorization handler, which derives it from <c>HttpContext.Request.RouteValues["id"]</c>
-/// when needed. Mixing per-request state into the (shared) requirement races across requests.
+/// Implementations (typically <c>WopiAuthorizeAttribute</c>) are attached to the endpoint's
+/// authorization policy once and shared across requests, so they must be immutable and free of
+/// per-request state. The per-request resource id is <em>not</em> part of this requirement: the
+/// authorization handler reads it from <c>HttpContext.Request.RouteValues["id"]</c>. Storing
+/// per-request state on the shared requirement races across requests.
 /// </remarks>
 public interface IWopiAuthorizationRequirement
 {
     /// <summary>
-    /// Gets the permission required for a given combination of resource, user, and action.
+    /// Gets the permission the caller must hold on the resource.
     /// </summary>
     Permission Permission { get; }
 
     /// <summary>
-    /// Gets the type of the resource.
+    /// Gets the type of the resource the permission applies to.
     /// </summary>
     WopiResourceType ResourceType { get; }
 }

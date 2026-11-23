@@ -10,7 +10,7 @@ namespace WopiHost.Core.Extensions;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This adapter is the only place in the entire codebase that bridges
+/// This adapter is the only place that bridges
 /// <see cref="HttpContext"/> to <see cref="WopiRequestInfo"/>. Keeping the bridge in a single
 /// internal helper lets <c>WopiHost.Abstractions</c> stay free of any HTTP-framework
 /// dependency — replacement <see cref="ICheckFileInfoBuilder"/> / <see cref="IWopiProofValidator"/>
@@ -29,6 +29,9 @@ internal static class HttpContextWopiRequestInfoExtensions
     /// <summary>
     /// Builds a <see cref="WopiRequestInfo"/> from the supplied <see cref="HttpContext"/>.
     /// </summary>
+    /// <param name="httpContext">The current HTTP context.</param>
+    /// <returns>The request information; <see cref="WopiRequestInfo.RequestUrl"/> is <see langword="null"/> when the scheme or host is missing.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="httpContext"/> is <see langword="null"/>.</exception>
     public static WopiRequestInfo ToWopiRequestInfo(this HttpContext httpContext)
     {
         ArgumentNullException.ThrowIfNull(httpContext);

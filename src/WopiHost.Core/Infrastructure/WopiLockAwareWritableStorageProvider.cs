@@ -3,21 +3,21 @@ using WopiHost.Abstractions;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Decorator that consults <see cref="IWopiLockProvider"/> before mutating a resource and
+/// Represents a decorator that consults <see cref="IWopiLockProvider"/> before mutating a resource and
 /// throws <see cref="WopiResourceLockedException"/> when the target is locked. Wired in via
 /// <c>services.AddWopiLockAwareWritableStorage()</c>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The WOPI controllers already validate locks before reaching the storage layer, so on the
-/// hot path this decorator is a redundant guard. It earns its keep as a <em>defense-in-depth</em>
-/// signal for two scenarios:
+/// The WOPI endpoints already validate locks before reaching the storage layer, so on the
+/// hot path this decorator is a redundant guard. It serves as <em>defense in depth</em>
+/// for two scenarios:
 /// </para>
 /// <list type="bullet">
-/// <item>Non-WOPI code paths in the same host that resolve <see cref="IWopiWritableStorageProvider"/>
-///   directly (admin tools, batch jobs, API endpoints) and would otherwise clobber a locked file.</item>
-/// <item>Future controller refactors that accidentally drop the lock check — the storage layer
-///   catches it instead of silently corrupting state.</item>
+/// <item><description>Non-WOPI code paths in the same host that resolve <see cref="IWopiWritableStorageProvider"/>
+///   directly (admin tools, batch jobs, API endpoints) and would otherwise clobber a locked file.</description></item>
+/// <item><description>An endpoint that omits the lock check — the storage layer
+///   catches it instead of silently corrupting state.</description></item>
 /// </list>
 /// <para>
 /// Only the mutating, single-resource methods (<see cref="DeleteWopiFile"/>,
@@ -26,8 +26,8 @@ namespace WopiHost.Core.Infrastructure;
 /// lock; the validation / suggested-name methods are read-only.
 /// </para>
 /// </remarks>
-/// <param name="inner">the underlying writable storage provider being decorated.</param>
-/// <param name="lockProvider">the lock provider consulted before mutating writes.</param>
+/// <param name="inner">The underlying writable storage provider being decorated.</param>
+/// <param name="lockProvider">The lock provider consulted before mutating writes.</param>
 public sealed class WopiLockAwareWritableStorageProvider(
     IWopiWritableStorageProvider inner,
     IWopiLockProvider lockProvider) : IWopiWritableStorageProvider

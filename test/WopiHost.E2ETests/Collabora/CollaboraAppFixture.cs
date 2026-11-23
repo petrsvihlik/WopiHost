@@ -3,7 +3,7 @@ using WopiHost.E2ETests.Fixtures;
 namespace WopiHost.E2ETests.Collabora;
 
 /// <summary>
-/// App fixture for the Collabora lane: boots the AppHost with <c>AppHost:UseCollabora=true</c>
+/// Provides the app fixture for the Collabora lane, which boots the AppHost with <c>AppHost:UseCollabora=true</c>
 /// (ONLYOFFICE + Redis off, so the suite depends on a single container) and gates on Collabora's
 /// <c>/hosting/discovery</c> serving 200. Cold-start cost is on the order of 10–20 seconds once the
 /// image is cached; the first CI run pays the pull (~1 GB).
@@ -42,6 +42,7 @@ public sealed class CollaboraAppFixture : WopiAppFixtureBase
     /// Captures the most recent stdout/stderr from the running Collabora container so failure
     /// diagnostics include coolwsd's own logs (WOPI host-allow checks, WebSocket auth denials).
     /// </summary>
+    /// <returns>A filtered view of the log tail followed by the full tail, or a placeholder message if no container is running or the capture fails.</returns>
     /// <remarks>
     /// The output is shaped as two sections: a <b>filtered</b> view keeping only lines that match
     /// one of the diagnostic keywords (this answers "why was the request denied?" without being

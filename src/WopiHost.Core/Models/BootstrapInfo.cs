@@ -3,29 +3,30 @@
 namespace WopiHost.Core.Models;
 
 /// <summary>
-/// Implemented in accordance with: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getrootcontainer#sample-response
+/// Represents the <c>Bootstrap</c> object of a WOPI bootstrapper response.
 /// </summary>
+/// <seealso href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getrootcontainer#sample-response">GetRootContainer sample response</seealso>
 public class BootstrapInfo
 {
     /// <summary>
-    /// URI for the WOPI server's 🔧 Ecosystem endpoint, with a WOPI access token appended.
-    /// A GET request to this URL will invoke the CheckEcosystem operation.
+    /// Gets or sets the URL of the host's ecosystem endpoint, with a WOPI access token appended.
+    /// A GET request to this URL invokes the <c>CheckEcosystem</c> operation.
     /// </summary>
     public Uri? EcosystemUrl { get; set; }
 
     /// <summary>
-    /// A string value uniquely identifying the user making the request. This value should match the UserId value provided in <see cref="WopiCheckFileInfo"/>. 
-    /// This ID is expected to be unique per user and consistent over time. See Requirements for user identity properties for more information.
+    /// Gets or sets a value uniquely identifying the user making the request. It should match <see cref="WopiCheckFileInfo.UserId"/>,
+    /// and is expected to be unique per user and consistent over time.
     /// </summary>
     public string? UserId { get; set; }
 
 	/// <summary>
-	/// A string value identifying the user making the request. This value is used to distinguish a user’s account in the event a user has multiple accounts with a given host. This value is often an email address, though it is not required to be.
+	/// Gets or sets a value identifying the user making the request, used to distinguish a user's accounts when the user has several with the host. Often, but not necessarily, an email address.
 	/// </summary>
 	public string? SignInName { get; set; }
 
 	/// <summary>
-	/// A string that is the name of the user. This value should match the <see cref="WopiCheckFileInfo.UserFriendlyName"/> value provided in <see cref="WopiCheckFileInfo"/>.
+	/// Gets or sets the display name of the user. It should match <see cref="WopiCheckFileInfo.UserFriendlyName"/>.
 	/// </summary>
 	public string? UserFriendlyName { get; set; }
 }

@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// A single activity reported by the WOPI client on the
+/// Represents a single activity reported by the WOPI client on the
 /// <see href="https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/fdc52ab9-b359-4465-a8c7-6aa98aa12e06">AddActivities</see>
 /// operation — most commonly a comment add / update / delete, optionally referencing people.
 /// </summary>

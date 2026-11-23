@@ -1,7 +1,7 @@
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Per-activity result status returned for each entry of an
+/// Specifies the per-activity result status returned for each entry of an
 /// <see href="https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/fdc52ab9-b359-4465-a8c7-6aa98aa12e06">AddActivities</see>
 /// request. Serialized on the wire as its integer value.
 /// </summary>

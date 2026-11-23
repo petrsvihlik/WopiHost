@@ -6,13 +6,13 @@
 public class AccessTokenInfo
 {
 	/// <summary>
-	/// A string access token for the file specified in the X-WOPI-WopiSrc request header.
+	/// Gets or sets the access token for the resource specified in the <c>X-WOPI-WopiSrc</c> request header.
 	/// </summary>
 	public required string AccessToken { get; set; }
 
 	/// <summary>
-	/// A long value representing the time that the access token provided in the response will expire. 
-	/// See access_token_ttl for more information on how this value is defined.
+	/// Gets or sets the time at which <see cref="AccessToken"/> expires.
+	/// See the WOPI <c>access_token_ttl</c> parameter for how this value is defined.
 	/// </summary>
 	public long AccessTokenExpiry { get; set; }
 }

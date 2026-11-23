@@ -3,9 +3,9 @@ using WopiHost.Abstractions;
 namespace WopiHost.Core.Models;
 
 /// <summary>
-/// Response body for the <c>CreateChildContainer</c> endpoint
+/// Represents the response body of the <c>CreateChildContainer</c> operation
 /// (<c>POST /wopi/containers/{id}</c> with <c>X-WOPI-Override: CREATE_CHILD_CONTAINER</c>).
 /// </summary>
-/// <param name="ContainerPointer">container name and URL</param>
-/// <param name="ContainerInfo">optional CheckContainerInfo</param>
+/// <param name="ContainerPointer">The name and URL of the created container.</param>
+/// <param name="ContainerInfo">The optional <c>CheckContainerInfo</c> data of the created container.</param>
 public record CreateChildContainerResponse(ChildContainer ContainerPointer, WopiCheckContainerInfo? ContainerInfo = null);

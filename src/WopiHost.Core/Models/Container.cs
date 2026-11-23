@@ -1,17 +1,17 @@
 ﻿namespace WopiHost.Core.Models;
 
 /// <summary>
-/// An object representing a WOPI Container.
+/// Represents the contents of a WOPI container.
 /// </summary>
 public class Container
 {
 	/// <summary>
-	/// A collection containing child containers.
+	/// Gets or sets the child containers.
 	/// </summary>
 	public IEnumerable<ChildContainer> ChildContainers { get; set; } = [];
 		
 	/// <summary>
-	/// A collection containing child files.
+	/// Gets or sets the child files.
 	/// </summary>
 	public IEnumerable<ChildFile> ChildFiles { get; set; } = [];
 }

@@ -6,26 +6,28 @@ using WopiHost.Discovery;
 namespace WopiHost.Core.Models;
 
 /// <summary>
-/// Configuration class for WopiHost.Core. Pure data — host-customization behavior lives on
-/// <see cref="IWopiHostExtensions"/>; replace per-resource response shaping by registering
-/// custom <see cref="ICheckFileInfoBuilder"/> / <see cref="ICheckContainerInfoBuilder"/> /
-/// <see cref="ICheckFolderInfoBuilder"/> implementations.
+/// Represents the configuration of the WOPI host.
 /// </summary>
+/// <remarks>
+/// Pure data. Host-customization behavior lives on <see cref="IWopiHostExtensions"/>; per-resource
+/// response shaping is replaced by registering custom <see cref="ICheckFileInfoBuilder"/> /
+/// <see cref="ICheckContainerInfoBuilder"/> / <see cref="ICheckFolderInfoBuilder"/> implementations.
+/// </remarks>
 public class WopiHostOptions : IDiscoveryOptions
 {
     /// <summary>
-    /// Default configuration section path this options class binds to. Use with
+    /// The default configuration section path this options class binds to, for use with
     /// <c>builder.Configuration.GetSection(WopiHostOptions.SectionName)</c>.
     /// </summary>
     public const string SectionName = "Wopi";
 
     /// <summary>
-    /// Determines whether the MS-FSSHTTP should be enabled or not.
+    /// Gets or sets a value indicating whether MS-FSSHTTP (Cobalt) support is enabled.
     /// </summary>
     public bool UseCobalt { get; set; }
 
     /// <summary>
-    /// Value written to the <c>X-WOPI-Lock</c> response header when the file is unlocked but the
+    /// Gets or sets the value written to the <c>X-WOPI-Lock</c> response header when the file is unlocked but the
     /// spec requires the header to be present (notably <c>GetLock</c> on an unlocked file and
     /// <c>PutFile</c> on a non-empty unlocked file).
     /// </summary>
@@ -38,14 +40,14 @@ public class WopiHostOptions : IDiscoveryOptions
     /// <para>
     /// Set to <c>" "</c> (a single space) when hosting under <em>IIS in-process</em>, which strips
     /// empty header values before they reach the wire. The space is technically
-    /// non-spec but is the established workaround and what every WOPI client treats as "no lock". Also
-    /// useful as an escape hatch behind any other downstream component that drops empty headers.
+    /// non-spec but is the established workaround and what every WOPI client treats as "no lock". It also
+    /// helps behind any other downstream component that drops empty headers.
     /// </para>
     /// </remarks>
     public string EmptyLockHeaderValue { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional upper bound (in bytes) on the size of files accepted via <c>PutFile</c> and
+    /// Gets or sets an optional upper bound (in bytes) on the size of files accepted via <c>PutFile</c> and
     /// <c>PutRelativeFile</c>. When set, requests whose <c>Content-Length</c> or — for
     /// <c>PutRelativeFile</c> — declared <c>X-WOPI-Size</c> exceed this value short-circuit with
     /// <see cref="StatusCodes.Status413PayloadTooLarge"/> before any body is read. Defaults to
@@ -59,38 +61,34 @@ public class WopiHostOptions : IDiscoveryOptions
     public long? MaxFileSize { get; set; }
 
     /// <summary>
-    /// TTL applied to per-user UserInfo cache entries (stored by <c>PutUserInfo</c> and read
+    /// Gets or sets the absolute expiry of per-user <c>UserInfo</c> cache entries (stored by <c>PutUserInfo</c> and read
     /// back by <c>CheckFileInfo</c>). Defaults to 24 hours.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Without an expiry the entries would pin per-user data indefinitely — unbounded memory in
-    /// any host that sees many distinct users. With an absolute expiry, total memory is bounded by
-    /// <c>UserInfoCacheLifetime × distinct-active-users</c>.
+    /// Total cache memory is bounded by <c>UserInfoCacheLifetime × distinct-active-users</c>.
     /// </para>
     /// <para>
-    /// Tighten for memory-constrained hosts with many users; extend for hosts with stable
-    /// user populations where users would prefer their <c>UserInfo</c> to survive longer
-    /// idle gaps. 24 hours is a balance: long enough that mid-session re-entry isn't a
-    /// concern, short enough that an idle user's row eventually falls off.
+    /// Shorten for memory-constrained hosts with many users; lengthen for hosts with stable
+    /// user populations whose <c>UserInfo</c> should survive longer idle gaps.
     /// </para>
     /// </remarks>
     public TimeSpan UserInfoCacheLifetime { get; set; } = TimeSpan.FromHours(24);
 
     /// <summary>
-    /// Base URI of the WOPI Client server (Office Online Server / Office Web Apps).
+    /// Gets or sets the base URI of the WOPI client server (for example, Office Online Server).
     /// </summary>
     [Required]
     public required Uri ClientUrl { get; set; }
 
     /// <summary>
-    /// Default file permissions used by <see cref="Security.Authorization.DefaultWopiPermissionProvider"/>
+    /// Gets or sets the default file permissions used by <see cref="Security.Authorization.DefaultWopiPermissionProvider"/>
     /// when no <see cref="Abstractions.WopiClaimTypes.FilePermissions"/> claim is present on the
     /// principal (typically pre-issuance, when a host is computing what to bake into a token).
     /// </summary>
     /// <remarks>
     /// Replace <see cref="Abstractions.IWopiPermissionProvider"/> in DI to compute permissions
-    /// from your own ACL store instead of using these defaults.
+    /// from an ACL store instead of using these defaults.
     /// </remarks>
     public WopiFilePermissions DefaultFilePermissions { get; set; } =
         WopiFilePermissions.UserCanWrite |
@@ -99,7 +97,7 @@ public class WopiHostOptions : IDiscoveryOptions
         WopiFilePermissions.UserCanPresent;
 
     /// <summary>
-    /// Default container permissions used by <see cref="Security.Authorization.DefaultWopiPermissionProvider"/>
+    /// Gets or sets the default container permissions used by <see cref="Security.Authorization.DefaultWopiPermissionProvider"/>
     /// when no <see cref="Abstractions.WopiClaimTypes.ContainerPermissions"/> claim is present on
     /// the principal.
     /// </summary>

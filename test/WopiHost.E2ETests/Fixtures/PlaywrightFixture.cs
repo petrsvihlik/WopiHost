@@ -3,30 +3,28 @@ using Microsoft.Playwright;
 namespace WopiHost.E2ETests.Fixtures;
 
 /// <summary>
-/// xUnit class fixture that owns a single <see cref="IPlaywright"/> + <see cref="IBrowser"/>
-/// for the lifetime of an e2e test collection. Each test creates a fresh
+/// Provides the xUnit collection fixture that owns a single <see cref="IPlaywright"/> and
+/// <see cref="IBrowser"/> for the lifetime of an e2e test collection. Each test creates a fresh
 /// <see cref="IBrowserContext"/> for cookie / storage isolation.
 /// </summary>
 /// <remarks>
 /// <para>
-/// First-run behaviour: shells out to <c>Playwright.Program.Main(["install", "chromium"])</c>,
+/// Initialization calls <c>Playwright.Program.Main(["install", "chromium"])</c>,
 /// which is idempotent — fast when browsers are already cached, downloads them once otherwise.
 /// The nightly workflows install Chromium explicitly via <c>playwright.ps1 install --with-deps chromium</c>
 /// so the per-test-run check is a no-op in CI.
 /// </para>
 /// <para>
-/// Mirrors <c>test/WopiHost.SmokeTests/Fixtures/PlaywrightFixture.cs</c>. They're deliberately
-/// duplicated rather than shared: the SmokeTests project has lighter dependencies (no
-/// Aspire.Hosting.Testing), so factoring out a common fixture library would force its
-/// dependency graph onto SmokeTests for no benefit.
+/// Mirrors <c>test/WopiHost.SmokeTests/Fixtures/PlaywrightFixture.cs</c>; the two are kept
+/// separate because the SmokeTests project has lighter dependencies (no Aspire.Hosting.Testing).
 /// </para>
 /// </remarks>
 public sealed class PlaywrightFixture : IAsyncLifetime
 {
-    /// <summary>Playwright driver owned by the collection.</summary>
+    /// <summary>Gets the Playwright driver owned by the collection.</summary>
     public IPlaywright Playwright { get; private set; } = null!;
 
-    /// <summary>Headless Chromium instance shared by every test in the collection.</summary>
+    /// <summary>Gets the headless Chromium instance shared by every test in the collection.</summary>
     public IBrowser Browser { get; private set; } = null!;
 
     /// <inheritdoc />

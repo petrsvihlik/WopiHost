@@ -14,11 +14,10 @@ namespace WopiHost.IntegrationTests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Each side has unit tests; neither tested the full chain. A regression that breaks the
-/// contract — claim-name typo, enum reorder, serializer convention change — would silently
-/// widen permissions (every flag would either evaluate to <see langword="false"/> in the
-/// response, downgrading access, or evaluate to <see langword="true"/>, leaking edit rights
-/// to a view-only token). This integration test pins both directions.
+/// Each side has its own unit tests; this suite covers the full chain. A break in the contract
+/// (claim-name typo, enum reorder, serializer convention change) would silently change permissions:
+/// flags would either evaluate to <see langword="false"/> in the response, downgrading access, or to
+/// <see langword="true"/>, leaking edit rights to a view-only token. These tests pin both directions.
 /// </para>
 /// </remarks>
 [Collection("ReadOnlyEndpoints")]
@@ -82,10 +81,15 @@ public sealed class PermissionClaimRoundTripTests(ReadOnlyEndpointsFixture fixtu
     }
 
     /// <summary>
-    /// Defensive: missing the property is the same failure mode as "property is false" from a
-    /// claim-routing perspective. Treat absent as <see langword="false"/> rather than letting
-    /// the test silently pass when the JSON schema changes.
+    /// Reads a Boolean property from the CheckFileInfo response, treating an absent property as
+    /// <see langword="false"/>.
     /// </summary>
+    /// <remarks>
+    /// From a claim-routing perspective a missing property is the same failure mode as a
+    /// <see langword="false"/> one, so a positive assertion fails rather than passing silently when
+    /// the JSON schema changes.
+    /// </remarks>
+    /// <returns><see langword="true"/> if the property is present and <see langword="true"/>; otherwise, <see langword="false"/>.</returns>
     private static bool GetBool(JsonDocument doc, string propertyName)
         => doc.RootElement.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.True;
 }

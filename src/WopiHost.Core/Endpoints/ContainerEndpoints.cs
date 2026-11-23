@@ -12,8 +12,8 @@ using WopiHost.Core.Models;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Read-only Minimal-API endpoints for WOPI container resources. Read side of the
-/// <c>/wopi/containers/{id}</c> surface — CheckContainerInfo, ecosystem_pointer, ancestry, children.
+/// Maps the read-only Minimal-API endpoints of the <c>/wopi/containers/{id}</c> surface:
+/// CheckContainerInfo, ecosystem_pointer, ancestry and children.
 /// </summary>
 internal static class ContainerEndpoints
 {

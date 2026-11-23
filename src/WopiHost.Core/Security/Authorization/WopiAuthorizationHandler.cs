@@ -7,28 +7,28 @@ using WopiHost.Abstractions;
 namespace WopiHost.Core.Security.Authorization;
 
 /// <summary>
-/// Authorization handler for <see cref="WopiAuthorizeAttribute"/>. Enforces that the access
-/// token grants the <see cref="WopiAuthorizeAttribute.Permission"/> required by the endpoint
-/// (mapped to the file/container permission flags the token carries).
+/// Handles <see cref="WopiAuthorizeAttribute"/> requirements by checking that the access token grants
+/// the <see cref="WopiAuthorizeAttribute.Permission"/> the endpoint requires, mapped onto the
+/// file/container permission flags the token carries.
 /// </summary>
+/// <param name="logger">The logger.</param>
 /// <remarks>
 /// <para>
-/// This handler intentionally does not enforce a strict route-id ↔ <see cref="WopiClaimTypes.ResourceId"/>
+/// The handler does not enforce a strict route-id ↔ <see cref="WopiClaimTypes.ResourceId"/>
 /// match. WOPI clients (including Office for the web) and the Microsoft WOPI validator use a
-/// single token to navigate from a file to its ancestor container, list siblings, etc. — so a
+/// single token to navigate from a file to its ancestor container, list siblings, etc., so a
 /// strict per-resource binding would break the protocol's assumed cross-resource access.
 /// The <see cref="WopiClaimTypes.ResourceId"/> claim is still written into the token for
 /// audit/logging and is logged on mismatch so hosts can trace unexpected reuse.
 /// </para>
 /// <para>
-/// If you need stricter per-resource enforcement (e.g. compliance), register an additional
-/// <see cref="IAuthorizationHandler"/> that fails the requirement on mismatch. Read the
-/// per-request resource id from the resource <see cref="HttpContext"/> the framework hands
-/// to your handler — specifically <c>httpContext.Request.RouteValues["id"]</c> — and compare
-/// it against the <see cref="WopiClaimTypes.ResourceId"/> claim on the principal. Do not read
-/// it from the requirement: requirements are policy declarations cached on the action
-/// descriptor and shared across all concurrent requests, so they must never carry
-/// per-request state.
+/// Hosts that need stricter per-resource enforcement (e.g. for compliance) can register an additional
+/// <see cref="IAuthorizationHandler"/> that fails the requirement on mismatch. That handler reads the
+/// per-request resource id from the resource <see cref="HttpContext"/> the framework hands it
+/// (<c>httpContext.Request.RouteValues["id"]</c>) and compares it against the
+/// <see cref="WopiClaimTypes.ResourceId"/> claim on the principal. It must not read the id from the
+/// requirement: requirements are policy declarations cached in endpoint metadata and shared across
+/// all concurrent requests, so they never carry per-request state.
 /// </para>
 /// </remarks>
 public partial class WopiAuthorizationHandler(ILogger<WopiAuthorizationHandler> logger)

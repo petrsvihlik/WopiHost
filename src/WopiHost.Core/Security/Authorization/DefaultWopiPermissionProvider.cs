@@ -6,21 +6,30 @@ using WopiHost.Core.Models;
 namespace WopiHost.Core.Security.Authorization;
 
 /// <summary>
-/// Default <see cref="IWopiPermissionProvider"/>: returns permissions from the principal's
-/// claims when the user is authenticated via a WOPI access token (the common request-time path),
-/// and falls back to the configured <see cref="WopiHostOptions.DefaultFilePermissions"/>
-/// / <see cref="WopiHostOptions.DefaultContainerPermissions"/> otherwise (the typical
-/// pre-issuance path).
+/// Provides the default <see cref="IWopiPermissionProvider"/>, which reads permissions from the
+/// principal's WOPI permission claims.
 /// </summary>
+/// <param name="options">The monitor for the host options that supply the fallback permissions.</param>
 /// <remarks>
-/// Replace via DI to plug in your own ACL backend:
+/// <para>
+/// Claims are present when the user is authenticated via a WOPI access token (the common
+/// request-time path). Without a parseable claim (the typical pre-issuance path), the provider falls
+/// back to <see cref="WopiHostOptions.DefaultFilePermissions"/> /
+/// <see cref="WopiHostOptions.DefaultContainerPermissions"/>.
+/// </para>
+/// <para>
+/// Hosts with their own ACL backend replace it via DI.
+/// </para>
+/// </remarks>
+/// <example>
 /// <code>
 /// services.AddSingleton&lt;IWopiPermissionProvider, MyAclProvider&gt;();
 /// </code>
-/// </remarks>
+/// </example>
 public class DefaultWopiPermissionProvider(IOptionsMonitor<WopiHostOptions> options) : IWopiPermissionProvider
 {
     /// <inheritdoc/>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> is canceled.</exception>
     public Task<WopiFilePermissions> GetFilePermissionsAsync(ClaimsPrincipal user, IWopiFile file, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -33,6 +42,7 @@ public class DefaultWopiPermissionProvider(IOptionsMonitor<WopiHostOptions> opti
     }
 
     /// <inheritdoc/>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> is canceled.</exception>
     public Task<WopiContainerPermissions> GetContainerPermissionsAsync(ClaimsPrincipal user, IWopiContainer container, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

@@ -21,10 +21,12 @@ using CreateChildContainerResult = Microsoft.AspNetCore.Http.HttpResults.Results
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Mutating Minimal-API endpoints for the <c>/wopi/containers/{id}</c> surface. POST overloads
-/// share the route and verb and are discriminated by <c>X-WOPI-Override</c> via
-/// <see cref="WopiOverrideMatcherPolicy"/>.
+/// Maps the mutating Minimal-API endpoints of the <c>/wopi/containers/{id}</c> surface.
 /// </summary>
+/// <remarks>
+/// The <c>POST</c> overloads share the route and verb and are discriminated by <c>X-WOPI-Override</c>
+/// through <see cref="WopiOverrideMatcherPolicy"/>.
+/// </remarks>
 internal static class ContainerMutatingEndpoints
 {
     public static void MapContainerMutatingEndpoints(RouteGroupBuilder containers)
@@ -143,10 +145,13 @@ internal static class ContainerMutatingEndpoints
     }
 
     /// <summary>
-    /// Dispatches the relative-target ("specific mode") and suggested-target name-negotiation
-    /// branches. Returns <c>(folder, null)</c> on success or <c>(null, conflict)</c> when the
-    /// specific-mode name collides — the conflict result writes <c>X-WOPI-ValidRelativeTarget</c>.
+    /// Creates the child container through the relative-target ("specific mode") or suggested-target
+    /// name-negotiation branch.
     /// </summary>
+    /// <returns>
+    /// <c>(folder, null)</c> on success, or <c>(null, conflict)</c> when the specific-mode name collides;
+    /// in that case the <c>X-WOPI-ValidRelativeTarget</c> response header carries a suggested name.
+    /// </returns>
     private static async Task<(IWopiContainer? folder, Conflict? conflict)> ResolveNewChildContainer(
         HttpContext httpContext, IWopiStorageProvider storage, IWopiWritableStorageProvider writableStorage, string id, string requestedName, bool isSpecificMode, CancellationToken cancellationToken)
     {
@@ -168,11 +173,12 @@ internal static class ContainerMutatingEndpoints
     }
 
     /// <summary>
-    /// Sanitises a container name via <see cref="WopiFileNameSanitiser"/>. Container names have
-    /// no concept of extension, so this drops straight to the scrub helper — there's nothing to
-    /// preserve on the right-hand side. Falls back to a fresh GUID when the scrubbed name is
-    /// unusable (empty / path-nav).
+    /// Sanitizes a container name via <see cref="WopiFileNameSanitiser"/>.
     /// </summary>
+    /// <returns>The scrubbed name, or a fresh GUID when the scrubbed name is unusable (empty or path navigation).</returns>
+    /// <remarks>
+    /// Container names have no extension, so the name goes straight to the scrub helper.
+    /// </remarks>
     private static string SanitiseContainerName(string invalid)
         => WopiFileNameSanitiser.ScrubOrNull(invalid) ?? Guid.NewGuid().ToString("N");
 
@@ -279,7 +285,8 @@ internal static class ContainerMutatingEndpoints
     }
 }
 
-/// <summary>Response payload for <c>RenameContainer</c> — single required <c>Name</c> property per spec.</summary>
+/// <summary>Represents the <c>RenameContainer</c> response payload.</summary>
+/// <param name="Name">The container's new name.</param>
 public sealed record RenameContainerResponse(string Name);
 
 // [FromServices] on IWopiWritableStorageProvider? is load-bearing — see the equivalent note in

@@ -13,25 +13,29 @@ using WopiHost.Core.Security.Authentication;
 namespace WopiHost.Core.Endpoints;
 
 /// <summary>
-/// Minimal-API endpoints for the <c>/wopibootstrapper</c> surface. Lives outside the
-/// <c>/wopi</c> group because the bootstrap endpoints authenticate via
-/// <see cref="WopiAuthenticationSchemes.Bootstrap"/> (OAuth2 Bearer from the host's IdP)
-/// rather than the access-token query parameter the rest of the WOPI surface uses.
+/// Maps the Minimal-API endpoints of the <c>/wopibootstrapper</c> surface.
 /// </summary>
 /// <remarks>
+/// <para>
+/// The endpoints live outside the <c>/wopi</c> group because they authenticate via
+/// <see cref="WopiAuthenticationSchemes.Bootstrap"/> (OAuth2 Bearer from the host's IdP) rather than
+/// the access-token query parameter the rest of the WOPI surface uses.
+/// </para>
+/// <para>
 /// Three operations share <c>/wopibootstrapper</c>:
+/// </para>
 /// <list type="bullet">
-///   <item><description><c>GET</c> — bare <c>Bootstrap</c> per
-///   <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap"/></description></item>
-///   <item><description><c>POST</c> with <c>X-WOPI-EcosystemOperation: GET_ROOT_CONTAINER</c> per
-///   <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getrootcontainer"/></description></item>
-///   <item><description><c>POST</c> with <c>X-WOPI-EcosystemOperation: GET_NEW_ACCESS_TOKEN</c> per
-///   <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getnewaccesstoken"/></description></item>
+///   <item><description><c>GET</c>: <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap">Bootstrap</see>.</description></item>
+///   <item><description><c>POST</c> with <c>X-WOPI-EcosystemOperation: GET_ROOT_CONTAINER</c>:
+///   <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getrootcontainer">GetRootContainer</see>.</description></item>
+///   <item><description><c>POST</c> with <c>X-WOPI-EcosystemOperation: GET_NEW_ACCESS_TOKEN</c>:
+///   <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/getnewaccesstoken">GetNewAccessToken</see>.</description></item>
 /// </list>
-/// The POST dispatch reads its own header (<see cref="WopiHeaders.EcosystemOperation"/>)
-/// rather than <c>X-WOPI-Override</c>, so it skips <see cref="WopiOverrideMatcherPolicy"/>
-/// and switches inside the handler — two operations doesn't justify a parallel matcher
-/// policy.
+/// <para>
+/// The <c>POST</c> dispatch reads <see cref="WopiHeaders.EcosystemOperation"/> rather than
+/// <c>X-WOPI-Override</c>, so it bypasses <see cref="WopiOverrideMatcherPolicy"/> and switches
+/// inside the handler.
+/// </para>
 /// </remarks>
 internal static class BootstrapEndpoints
 {
@@ -77,16 +81,18 @@ internal static class BootstrapEndpoints
     }
 
     /// <summary>
-    /// POST <c>/wopibootstrapper</c> — dispatches by <c>X-WOPI-EcosystemOperation</c> header
-    /// (<c>GET_ROOT_CONTAINER</c> or <c>GET_NEW_ACCESS_TOKEN</c>; any other value yields 501).
+    /// Handles <c>POST /wopibootstrapper</c>, dispatching on the <c>X-WOPI-EcosystemOperation</c> header
+    /// (<c>GET_ROOT_CONTAINER</c> or <c>GET_NEW_ACCESS_TOKEN</c>).
     /// </summary>
+    /// <returns>
+    /// The bootstrap payload for a known operation, <c>404 Not Found</c> when the target resource does
+    /// not resolve, or <c>501 Not Implemented</c> for any other operation value.
+    /// </returns>
     /// <remarks>
-    /// Both branches are inlined into this method rather than dispatched to separate <c>async</c>
-    /// helpers because awaits on same-class static async methods trip a null-deref false positive
-    /// through the async state machine. Every
-    /// <c>await</c> here lands directly on an injected dependency
-    /// (<see cref="IWopiAccessTokenService"/>, <see cref="IWopiStorageProvider"/>,
-    /// <see cref="IWopiPermissionProvider"/>, <see cref="ICheckContainerInfoBuilder"/>).
+    /// Both branches are inlined because awaits on same-class static async helpers trip a null-deref
+    /// false positive through the async state machine. Every <c>await</c> here lands directly on an
+    /// injected dependency (<see cref="IWopiAccessTokenService"/>, <see cref="IWopiStorageProvider"/>,
+    /// <see cref="IWopiResourceTokenMinter"/>, <see cref="ICheckContainerInfoBuilder"/>).
     /// </remarks>
     private static async Task<Results<NotFound, JsonHttpResult<BootstrapRootContainerInfo>, StatusCodeHttpResult>> ExecuteEcosystemOperation(
         [AsParameters] ExecuteEcosystemOperationRequest req)
@@ -181,10 +187,9 @@ internal static class BootstrapEndpoints
 
 /// <summary>Parameter bundle for <see cref="BootstrapEndpoints.ExecuteEcosystemOperation"/>.</summary>
 /// <remarks>
-/// <see cref="IWopiAccessTokenService"/> is still bound directly here because the
-/// ecosystem-grant token (different from per-resource tokens — bound to the root container with
-/// no permissions baked in) is bootstrap-specific and doesn't fit the
-/// <see cref="IWopiResourceTokenMinter"/> shape. The per-resource tokens go through the minter.
+/// <see cref="IWopiAccessTokenService"/> is bound directly because the ecosystem-grant token (bound
+/// to the root container with no permissions baked in) is bootstrap-specific and doesn't fit the
+/// <see cref="IWopiResourceTokenMinter"/> shape. Per-resource tokens go through the minter.
 /// </remarks>
 internal readonly record struct ExecuteEcosystemOperationRequest(
     HttpContext Http,

@@ -26,7 +26,7 @@ public sealed class WebSampleFactory : IDisposable, IAsyncDisposable
 {
     private readonly WebApplication _app;
 
-    /// <summary>Loopback URL the listener bound to.</summary>
+    /// <summary>Gets the loopback URL the listener bound to.</summary>
     public Uri ServerUrl { get; }
 
     public WebSampleFactory()

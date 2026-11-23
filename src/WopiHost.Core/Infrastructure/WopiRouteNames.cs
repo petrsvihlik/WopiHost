@@ -3,7 +3,7 @@ using WopiHost.Core.Endpoints;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Named-route constants for the Minimal-API endpoints registered by
+/// Provides the endpoint names of the Minimal-API endpoints registered by
 /// <see cref="WopiEndpointRouteBuilderExtensions.MapWopiEndpoints"/>. The strings are passed to
 /// <c>.WithName(...)</c> at registration and consumed by callers that need to construct WOPI
 /// URLs via <c>LinkGenerator</c>.

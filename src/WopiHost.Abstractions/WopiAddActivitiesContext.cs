@@ -3,7 +3,7 @@ using System.Security.Claims;
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Context passed to <see cref="IWopiHostExtensions.OnAddActivitiesAsync"/> when a WOPI client
+/// Represents the context passed to <see cref="IWopiHostExtensions.OnAddActivitiesAsync"/> when a WOPI client
 /// reports activities (comments / mentions) on a file. The host reacts here — sending
 /// notifications, surfacing an activity feed, prompting to share with a mentioned user — while the
 /// core decides each activity's protocol response status.

@@ -1,7 +1,7 @@
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Diagnostic identifiers used by <see cref="System.Diagnostics.CodeAnalysis.ExperimentalAttribute"/>
+/// Provides the diagnostic identifiers used by <see cref="System.Diagnostics.CodeAnalysis.ExperimentalAttribute"/>
 /// to mark WopiHost APIs that are intentionally unstable or reserved for future use.
 /// </summary>
 /// <remarks>
@@ -11,8 +11,8 @@ namespace WopiHost.Core.Infrastructure;
 public static class WopiDiagnostics
 {
     /// <summary>
-    /// <c>WOPIHOST001</c> — marks the <c>GetFileWopiSrc</c> endpoint as reserved for future use.
-    /// Microsoft's spec says clients should not call this operation at this time, so the host
+    /// <c>WOPIHOST001</c>: marks the <c>GetFileWopiSrc</c> endpoint as reserved for future use.
+    /// The WOPI spec says clients should not call this operation at this time, so the host
     /// returns <c>501 Not Implemented</c> by default.
     /// </summary>
     public const string GetFileWopiSrcReserved = "WOPIHOST001";

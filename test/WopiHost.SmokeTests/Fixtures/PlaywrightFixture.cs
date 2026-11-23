@@ -4,14 +4,13 @@ using Xunit;
 namespace WopiHost.SmokeTests.Fixtures;
 
 /// <summary>
-/// xUnit class fixture that owns a single <see cref="IPlaywright"/> + <see cref="IBrowser"/>
-/// for the lifetime of a test class. Each test creates a fresh <see cref="IBrowserContext"/>
-/// (cheap; sub-second) for isolation, so tests don't share cookies / storage.
+/// Provides the xUnit collection fixture (see <see cref="SmokeTestCollection"/>) that owns a single
+/// <see cref="IPlaywright"/> and <see cref="IBrowser"/> for the smoke-test run. Each test creates a fresh
+/// <see cref="IBrowserContext"/> (cheap; sub-second) for isolation, so tests don't share cookies or storage.
 /// </summary>
 /// <remarks>
-/// On first construction this shells out to <c>Playwright.Program.Main(["install", "chromium"])</c>,
-/// which is idempotent — fast when browsers are already cached, and downloads them once
-/// otherwise. CI workflows can install upfront via <c>pwsh playwright.ps1 install --with-deps chromium</c>
+/// Initialization calls <c>Playwright.Program.Main(["install", "chromium"])</c>, which is
+/// idempotent: fast when browsers are already cached, and downloads them once otherwise. CI workflows can install upfront via <c>pwsh playwright.ps1 install --with-deps chromium</c>
 /// to avoid the per-test-run check.
 /// </remarks>
 public sealed class PlaywrightFixture : IAsyncLifetime

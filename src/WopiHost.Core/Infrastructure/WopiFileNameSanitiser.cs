@@ -3,14 +3,16 @@ using WopiHost.Abstractions;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Cross-platform forbidden-character sanitisation shared by the file-name + container-name
-/// negotiation paths. WOPI's spec is silent on which characters are forbidden — the upstream
-/// provider's <see cref="IWopiWritableStorageProvider.CheckValidFileName"/> is the source of
-/// truth — but every concrete provider in this repo rejects the same Windows-portable set, so a
-/// central best-effort scrub lets the spec's "host should try to generate a different name based
-/// on the requested name" branch land at a candidate that's almost always acceptable to the
-/// provider on the second swing.
+/// Provides the cross-platform forbidden-character sanitisation shared by the file-name and
+/// container-name negotiation paths.
 /// </summary>
+/// <remarks>
+/// The WOPI spec is silent on which characters are forbidden, and the provider's
+/// <see cref="IWopiWritableStorageProvider.CheckValidFileName"/> is the source of truth. Every shipped
+/// provider rejects the same Windows-portable set, so this best-effort scrub lets the spec's "host
+/// should try to generate a different name based on the requested name" branch produce a candidate
+/// the provider almost always accepts on the second attempt.
+/// </remarks>
 internal static class WopiFileNameSanitiser
 {
     /// <summary>
@@ -22,10 +24,11 @@ internal static class WopiFileNameSanitiser
 
     /// <summary>
     /// Replaces every <see cref="ForbiddenChars"/> occurrence in <paramref name="input"/> with
-    /// <c>_</c>, then trims leading/trailing whitespace. Returns <see langword="null"/> when the
-    /// scrubbed result is empty or path-nav (<c>.</c>/<c>..</c>) so the caller can substitute its
-    /// own fallback.
+    /// <c>_</c>, then trims leading/trailing whitespace.
     /// </summary>
+    /// <param name="input">The name to scrub.</param>
+    /// <returns>The scrubbed name, or <see langword="null"/> when it is empty or a path-navigation
+    /// segment (<c>.</c>/<c>..</c>), so the caller can substitute its own fallback.</returns>
     public static string? ScrubOrNull(string input)
     {
         var scrubbed = ForbiddenChars.Aggregate(input, (cur, c) => cur.Replace(c, '_')).Trim();
@@ -35,11 +38,14 @@ internal static class WopiFileNameSanitiser
     /// <summary>
     /// Sanitises <paramref name="invalidName"/>'s stem with <see cref="ScrubOrNull"/>, preserving
     /// the original extension. When the scrubbed stem is unusable, substitutes
-    /// <paramref name="fallbackStem"/>. Returns the rebuilt candidate only when it passes
-    /// <see cref="IWopiWritableStorageProvider.CheckValidFileName"/>; otherwise returns
-    /// <see langword="null"/> (caller decides whether to surface the failure or apply its own
-    /// fallback shape).
+    /// <paramref name="fallbackStem"/>.
     /// </summary>
+    /// <param name="writable">The provider that validates the candidate.</param>
+    /// <param name="invalidName">The name that failed validation.</param>
+    /// <param name="fallbackStem">The stem to use when the scrubbed stem is unusable.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The rebuilt candidate when it passes
+    /// <see cref="IWopiWritableStorageProvider.CheckValidFileName"/>; otherwise <see langword="null"/>.</returns>
     public static async Task<string?> TryBuildValidCandidateAsync(
         IWopiWritableStorageProvider writable,
         string invalidName,
@@ -56,9 +62,10 @@ internal static class WopiFileNameSanitiser
     }
 
     /// <summary>
-    /// Extracts the extension (including the leading dot) from <paramref name="name"/>. Returns
-    /// an empty string when the name has no extension (no dot, or leading dot only).
+    /// Extracts the extension, including the leading dot, from <paramref name="name"/>.
     /// </summary>
+    /// <param name="name">The file name.</param>
+    /// <returns>The extension, or an empty string when the name has no extension (no dot, or a leading dot only).</returns>
     public static string ExtractExtension(string name)
     {
         var dot = name.LastIndexOf('.');

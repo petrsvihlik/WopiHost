@@ -1,7 +1,7 @@
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// A WOPI access token produced by <see cref="IWopiAccessTokenService.IssueAsync(WopiAccessTokenRequest, System.Threading.CancellationToken)"/>.
+/// Represents a WOPI access token issued by <see cref="IWopiAccessTokenService.IssueAsync(WopiAccessTokenRequest, System.Threading.CancellationToken)"/>.
 /// </summary>
 /// <param name="Token">
 /// The serialized token. Hosts pass this string to the WOPI client as the
@@ -9,7 +9,7 @@ namespace WopiHost.Abstractions;
 /// WOPI client.
 /// </param>
 /// <param name="ExpiresAt">
-/// UTC instant at which the token stops being valid. Hosts typically also report this back
+/// The UTC instant at which the token stops being valid. Hosts typically also report this back
 /// to the WOPI client as <c>access_token_ttl</c> (Unix milliseconds).
 /// </param>
 public record WopiAccessToken(string Token, DateTimeOffset ExpiresAt);

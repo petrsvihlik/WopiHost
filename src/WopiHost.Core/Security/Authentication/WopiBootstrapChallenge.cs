@@ -12,9 +12,14 @@ namespace WopiHost.Core.Security.Authentication;
 /// The bootstrapper authenticates using OAuth2 Bearer tokens from the host's identity
 /// provider. When the token is missing or invalid, the spec mandates a specific
 /// <c>WWW-Authenticate</c> challenge that points the WOPI client at the host's IdP.
-/// Hosts wire this into their authentication scheme — typically as a <c>JwtBearerEvents.OnChallenge</c>
-/// handler:
+/// Hosts wire this into their authentication scheme, typically as a <c>JwtBearerEvents.OnChallenge</c>
+/// handler.
 /// </para>
+/// <para>
+/// Spec: <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap#www-authenticate-response-header-format">WWW-Authenticate response header format</see>.
+/// </para>
+/// </remarks>
+/// <example>
 /// <code>
 /// services.AddAuthentication()
 ///     .AddJwtBearer(WopiAuthenticationSchemes.Bootstrap, options =&gt;
@@ -36,10 +41,7 @@ namespace WopiHost.Core.Security.Authentication;
 ///         };
 ///     });
 /// </code>
-/// <para>
-/// Spec: <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/bootstrapper/bootstrap#www-authenticate-response-header-format"/>.
-/// </para>
-/// </remarks>
+/// </example>
 public static class WopiBootstrapChallenge
 {
     /// <summary>
@@ -56,6 +58,9 @@ public static class WopiBootstrapChallenge
     /// <c>{"iOS":["contoso"], "Android":["contoso"]}</c>. The string passed in must already
     /// be URL-encoded as the spec requires; this method does not encode it.
     /// </param>
+    /// <returns>The <c>WWW-Authenticate</c> header value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="authorizationUri"/> or <paramref name="tokenIssuanceUri"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="providerId"/> contains characters other than ASCII letters and digits.</exception>
     public static string Build(
         Uri authorizationUri,
         Uri tokenIssuanceUri,
@@ -87,9 +92,16 @@ public static class WopiBootstrapChallenge
     }
 
     /// <summary>
-    /// Convenience: build the header value and append it to <paramref name="response"/>.
-    /// Sets the status code to <c>401</c>; callers can override afterwards if needed.
+    /// Builds the <c>WWW-Authenticate</c> header value, appends it to <paramref name="response"/>, and
+    /// sets the status code to <c>401</c> (callers can override it afterwards).
     /// </summary>
+    /// <param name="response">The response to write the challenge to.</param>
+    /// <param name="authorizationUri">The OAuth2 authorization endpoint URL.</param>
+    /// <param name="tokenIssuanceUri">The OAuth2 token endpoint URL.</param>
+    /// <param name="providerId">The optional well-known provider identifier; see <see cref="Build"/>.</param>
+    /// <param name="urlSchemes">The optional, already URL-encoded URL-schemes document; see <see cref="Build"/>.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="response"/>, <paramref name="authorizationUri"/>, or <paramref name="tokenIssuanceUri"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="providerId"/> contains characters other than ASCII letters and digits.</exception>
     public static void Apply(
         HttpResponse response,
         Uri authorizationUri,

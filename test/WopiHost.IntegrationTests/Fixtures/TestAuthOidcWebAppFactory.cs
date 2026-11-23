@@ -6,7 +6,7 @@ using WopiHost.Web.Oidc;
 namespace WopiHost.IntegrationTests.Fixtures;
 
 /// <summary>
-/// Variant of <see cref="OidcWebAppFactory"/> that swaps the cookie/OIDC auth pipeline for
+/// Represents a variant of <see cref="OidcWebAppFactory"/> that swaps the cookie/OIDC auth pipeline for
 /// <see cref="TestAuthHandler"/> so tests can exercise the WOPI-minting controllers without a
 /// live IdP. The mock OIDC server still has to exist (the OIDC handler validates discovery at
 /// startup) — this factory just routes the actual authentication to the test handler.
@@ -15,7 +15,7 @@ public sealed class TestAuthOidcWebAppFactory(string wopiSigningSecret, string w
 {
     private readonly Uri _authority = authority ?? new Uri(PlaceholderAuthority);
 
-    /// <summary>Default placeholder authority — never contacted because TestAuth bypasses OIDC.</summary>
+    /// <summary>The default placeholder authority, never contacted because <see cref="TestAuthHandler"/> bypasses OIDC.</summary>
     public const string PlaceholderAuthority = "https://placeholder.invalid/";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

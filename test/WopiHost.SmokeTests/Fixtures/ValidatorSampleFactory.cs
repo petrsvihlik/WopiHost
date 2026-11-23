@@ -21,7 +21,7 @@ public sealed class ValidatorSampleFactory : IDisposable, IAsyncDisposable
 {
     private readonly WebApplication _app;
 
-    /// <summary>Loopback URL the listener bound to (Kestrel-allocated port).</summary>
+    /// <summary>Gets the loopback URL the listener bound to (Kestrel-allocated port).</summary>
     public Uri ServerUrl { get; }
 
     public ValidatorSampleFactory()

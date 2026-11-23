@@ -20,11 +20,10 @@ namespace WopiHost.Core.Security.Authentication;
 /// time <see cref="InvokeAsync"/> runs.
 /// </para>
 /// <para>
-/// <strong>Response codes.</strong> The WOPI proof-keys spec mandates 500 Internal Server Error
-/// when a signature fails verification. That 500 is specifically for "the signature is invalid"
-/// — pipeline-misconfiguration paths (unauthenticated request reaching this filter) return 401
-/// because there is no validated principal at all, which is a different failure mode than
-/// "valid principal, bad signature."
+/// <strong>Response codes.</strong> The WOPI proof-keys spec mandates <c>500 Internal Server Error</c>
+/// when a signature fails verification (or the <c>access_token</c> is missing). An unauthenticated
+/// request reaching this filter means the pipeline is misconfigured, and gets <c>401</c>: there is no
+/// validated principal at all, a different failure mode than "valid principal, bad signature".
 /// </para>
 /// </remarks>
 internal sealed partial class WopiOriginValidationEndpointFilter(

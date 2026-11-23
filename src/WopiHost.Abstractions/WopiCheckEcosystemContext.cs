@@ -3,8 +3,8 @@ using System.Security.Claims;
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Context for the CheckEcosystem operation.
+/// Represents the context passed to <see cref="IWopiHostExtensions.OnCheckEcosystemAsync"/> for the CheckEcosystem operation.
 /// </summary>
-/// <param name="User">the current user.</param>
-/// <param name="CheckEcosystem">the default created <see cref="WopiCheckEcosystem"/></param>
+/// <param name="User">The current user, if any.</param>
+/// <param name="CheckEcosystem">The <see cref="WopiCheckEcosystem"/> response built by the host.</param>
 public record WopiCheckEcosystemContext(ClaimsPrincipal? User, WopiCheckEcosystem CheckEcosystem);

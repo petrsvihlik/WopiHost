@@ -4,13 +4,9 @@ using WopiHost.Core.Security.Authentication;
 
 namespace WopiHost.Core.Security;
 
-/// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for
-/// <see cref="ResourceTokenMinter"/>. Each mint emits one Debug-level entry so the
-/// host-frontend's token-minting decisions can be traced end-to-end alongside the
-/// <see cref="JwtAccessTokenService"/>'s token-issued log, without doubling up the
-/// signing-level details.
-/// </summary>
+// Source-generated LoggerMessage declarations for ResourceTokenMinter. Each mint emits one
+// Debug-level entry so token-minting decisions can be traced alongside JwtAccessTokenService's
+// token-issued log, without repeating the signing-level details.
 public partial class ResourceTokenMinter
 {
     [LoggerMessage(

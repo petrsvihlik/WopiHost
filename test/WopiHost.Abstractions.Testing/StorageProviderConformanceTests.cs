@@ -3,24 +3,27 @@ using Xunit;
 namespace WopiHost.Abstractions.Testing;
 
 /// <summary>
-/// Conformance suite every <see cref="IWopiStorageProvider"/> implementation must satisfy.
-/// Derive a concrete sealed subclass in each provider's test project and override
-/// <see cref="Factory"/>. xUnit discovers tests on base classes automatically, so the subclass
-/// needs nothing beyond the property override.
+/// Provides the conformance test suite every <see cref="IWopiStorageProvider"/> implementation must satisfy.
 /// </summary>
 /// <remarks>
+/// <para>
+/// Each provider's test project derives a sealed subclass and overrides <see cref="Factory"/>.
+/// xUnit discovers tests on base classes automatically, so the subclass needs nothing beyond that override.
+/// </para>
+/// <para>
 /// The suite drives behavior through the public interfaces only — it seeds via
 /// <see cref="IWopiWritableStorageProvider"/> and asserts via <see cref="IWopiStorageProvider"/>,
 /// with no reflection or backend-specific shaping. Each test gets a fresh, empty-rooted provider
 /// from the factory and creates exactly the resources it asserts on. Provider-specific behavior
 /// (blob-metadata edge cases, file-system path quirks) belongs in the provider's own test project.
+/// </para>
 /// </remarks>
 public abstract class StorageProviderConformanceTests
 {
     // Hoisted per CA1861 (avoid constant array arguments).
     private static readonly string[] s_docxFilter = [".docx"];
 
-    /// <summary>Override to supply a factory that builds a fresh provider per test.</summary>
+    /// <summary>Gets the factory that builds a fresh provider for each test.</summary>
     protected abstract IStorageProviderTestFactory Factory { get; }
 
     private static async Task<List<IWopiFile>> ListFilesAsync(

@@ -5,9 +5,9 @@ using WopiHost.Discovery.Models;
 namespace WopiHost.IntegrationTests.Fixtures;
 
 /// <summary>
-/// Stand-in <see cref="IDiscoverer"/> that returns canned values, used by the OIDC sample's
+/// Represents a stand-in <see cref="IDiscoverer"/> that returns canned values, used by the OIDC sample's
 /// <c>WebApplicationFactory</c> so tests don't reach out to real Office Online Server endpoints
-/// (the configured ClientUrl points to an unreachable test hostname).
+/// (the configured <c>Wopi:ClientUrl</c> points to an unreachable test hostname).
 /// </summary>
 internal sealed class FakeDiscoverer : IDiscoverer
 {

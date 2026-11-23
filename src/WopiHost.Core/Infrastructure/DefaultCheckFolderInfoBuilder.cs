@@ -5,11 +5,13 @@ using WopiHost.Core.Extensions;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Default <see cref="ICheckFolderInfoBuilder"/>. Synchronous on purpose: the caller fires
-/// <see cref="IWopiHostExtensions.OnCheckFolderInfoAsync"/> afterwards so its only <c>await</c>
-/// on this path is the direct hook invocation, which keeps static analysis of the async state
-/// machine precise.
+/// Provides the default <see cref="ICheckFolderInfoBuilder"/> implementation, populated from the
+/// folder's name and the principal's identity.
 /// </summary>
+/// <remarks>
+/// Unlike the file and container builders, this builder does not fire
+/// <see cref="IWopiHostExtensions.OnCheckFolderInfoAsync"/>; the caller does, after it returns.
+/// </remarks>
 public class DefaultCheckFolderInfoBuilder : ICheckFolderInfoBuilder
 {
     /// <inheritdoc />

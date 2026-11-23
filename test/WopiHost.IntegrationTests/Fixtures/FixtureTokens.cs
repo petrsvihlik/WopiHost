@@ -2,7 +2,7 @@ using WopiHost.Abstractions;
 
 namespace WopiHost.IntegrationTests.Fixtures;
 
-/// <summary>Identity baked into a fixture-minted access token.</summary>
+/// <summary>Represents the identity baked into a fixture-minted access token.</summary>
 internal sealed record FixtureUser(string Id, string DisplayName, string Email);
 
 /// <summary>

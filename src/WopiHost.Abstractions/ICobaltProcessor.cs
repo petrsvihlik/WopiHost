@@ -3,18 +3,19 @@
 namespace WopiHost.Abstractions;
 
 /// <summary>
-/// Service that can process MS-FSSHTTP requests.
+/// Processes MS-FSSHTTP (Cobalt) requests.
 /// </summary>
 public interface ICobaltProcessor
 {
     /// <summary>
-    /// Gets content of a MS-FSSHTTP update action.
+    /// Executes an MS-FSSHTTP request batch against <paramref name="file"/>.
     /// </summary>
-    /// <param name="file">File to process. The MS-FSSHTTP protocol mutates content as part of
-    /// the round-trip, so the writable interface is required.</param>
-    /// <param name="principal">User editing the file.</param>
-    /// <param name="newContent">Partitions with new content (diffs).</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>An octet stream.</returns>
+    /// <param name="file">The file to process. MS-FSSHTTP mutates content as part of the
+    /// round-trip, so the writable interface is required.</param>
+    /// <param name="principal">The user editing the file.</param>
+    /// <param name="newContent">The serialized MS-FSSHTTP request body, including any content
+    /// partitions (diffs).</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The serialized MS-FSSHTTP response body.</returns>
     Task<byte[]> ProcessCobalt(IWopiWritableFile file, ClaimsPrincipal principal, byte[] newContent, CancellationToken cancellationToken = default);
 }

@@ -8,7 +8,7 @@ namespace WopiHost.IntegrationTests;
 /// <summary>
 /// Tests <see cref="OidcRolePermissionMapper.Resolve"/> across the claim shapes that real IdPs
 /// emit (single role, multiple roles, missing roles, alternate role-claim type, case variation).
-/// Pure-unit; no Docker / Testcontainers required.
+/// Pure unit tests; no Docker or Testcontainers required.
 /// </summary>
 public class OidcRolePermissionMapperTests
 {

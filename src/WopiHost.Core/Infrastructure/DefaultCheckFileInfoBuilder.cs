@@ -6,10 +6,18 @@ using WopiHost.Core.Extensions;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Default <see cref="ICheckFileInfoBuilder"/>. Populates the response from the file's
+/// Provides the default <see cref="ICheckFileInfoBuilder"/> implementation. Populates the response from the file's
 /// metadata, the supplied host capabilities, the principal's claims and permissions, then
 /// fires <see cref="IWopiHostExtensions.OnCheckFileInfoAsync"/> for last-mile host customization.
 /// </summary>
+/// <remarks>
+/// <see cref="WopiCheckFileInfo.FileUrl"/> is left unset: clients fetch <c>FileUrl</c> without proof
+/// headers, which the proof-validated <c>GetFile</c> endpoint rejects. Hosts with an unsigned download
+/// channel (CDN, pre-signed blob URL) set it in <see cref="IWopiHostExtensions.OnCheckFileInfoAsync"/>.
+/// </remarks>
+/// <param name="permissionProvider">The provider that resolves the principal's file permissions.</param>
+/// <param name="extensions">The host-customization hooks.</param>
+/// <param name="writableStorageProvider">The writable storage provider, if any; supplies <see cref="WopiCheckFileInfo.FileNameMaxLength"/>.</param>
 public class DefaultCheckFileInfoBuilder(
     IWopiPermissionProvider permissionProvider,
     IWopiHostExtensions extensions,

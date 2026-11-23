@@ -3,18 +3,21 @@ using System.Text;
 namespace WopiHost.Abstractions.Testing;
 
 /// <summary>
-/// Builds the canonical X-WOPI-Proof byte layout defined by MS-WOPI: a 4-byte big-endian length
+/// Builds the canonical <c>X-WOPI-Proof</c> byte layout defined by MS-WOPI: a 4-byte big-endian length
 /// prefix before each of the UTF-8 access token, the UTF-8 upper-cased request URL, and the
-/// 8-byte big-endian X-WOPI-TimeStamp ticks. WOPI clients sign these bytes with their proof key;
+/// 8-byte big-endian <c>X-WOPI-TimeStamp</c> ticks. WOPI clients sign these bytes with their proof key;
 /// hosts verify the signature against the same layout.
 /// </summary>
 public static class WopiProofPayload
 {
     /// <summary>
-    /// Assembles the canonical proof bytes for <paramref name="accessToken"/>,
-    /// <paramref name="hostUrl"/> (already case-folded to upper-invariant, the form the
-    /// signature covers), and the <paramref name="timestampTicks"/> sent in X-WOPI-TimeStamp.
+    /// Assembles the canonical proof bytes for a request.
     /// </summary>
+    /// <param name="accessToken">The access token sent with the request.</param>
+    /// <param name="hostUrl">The request URL, already upper-cased (invariant culture), which is the form the signature covers; this method does not case-fold it.</param>
+    /// <param name="timestampTicks">The ticks sent in <c>X-WOPI-TimeStamp</c>.</param>
+    /// <returns>The bytes the WOPI client signs.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="accessToken"/> or <paramref name="hostUrl"/> is <see langword="null"/>.</exception>
     public static byte[] Build(string accessToken, string hostUrl, long timestampTicks)
     {
         ArgumentNullException.ThrowIfNull(accessToken);

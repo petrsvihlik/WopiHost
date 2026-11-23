@@ -6,26 +6,25 @@ using WopiHost.Discovery;
 namespace WopiHost.IntegrationTests.Fixtures;
 
 /// <summary>
-/// <see cref="WebApplicationFactory{TEntryPoint}"/> wrapping the WOPI backend sample. Overrides
+/// Represents a <see cref="WebApplicationFactory{TEntryPoint}"/> wrapping the WOPI backend sample. Overrides
 /// the access-token signing secret to a known test value (must match
 /// <see cref="OidcWebAppFactory"/>) and, by default, replaces the proof validator with a no-op
 /// so tests can synthesize WOPI requests without forging proof-key headers.
 /// </summary>
-/// <param name="wopiSigningSecret">JWT-signing secret shared with the test frontend factory.</param>
+/// <param name="wopiSigningSecret">The JWT-signing secret shared with the test frontend factory.</param>
 /// <param name="storageRootPath">
-/// Override for the file-system storage root. Defaults to <see cref="TestPaths.WopiDocsRoot"/>
+/// The file-system storage root, or <see langword="null"/> for <see cref="TestPaths.WopiDocsRoot"/>
 /// (the shared sample). Mutating tests must pass a per-test temp directory so they don't
 /// corrupt the sample for sibling tests.
 /// </param>
-/// <param name="configureServices">Optional callback for additional service registration,
-/// e.g. wiring the <c>WopiAuthenticationSchemes.Bootstrap</c> auth scheme for bootstrap tests.</param>
+/// <param name="configureServices">An optional callback for additional service registration,
+/// for example wiring the <c>WopiAuthenticationSchemes.Bootstrap</c> auth scheme for bootstrap tests.</param>
 /// <param name="useRealProofValidator">
 /// When <see langword="true"/>, leaves the production <see cref="IWopiProofValidator"/> in place
 /// and swaps the <see cref="IDiscoverer"/> for a test-only stub that exposes the in-process
-/// RSA key pair (<see cref="FakeDiscovererWithProofKeys"/>). Lets a dedicated suite exercise
-/// the proof-validation pipeline end-to-end with real signatures — see <see cref="ProofKeys"/>.
-/// The default <see cref="AlwaysValidProofValidator"/> mode leaves the proof-validation surface
-/// without integration coverage, so this flag exists to drive it.
+/// RSA key pairs (<see cref="FakeDiscovererWithProofKeys"/>), so a dedicated suite can exercise
+/// the proof-validation pipeline end-to-end with real signatures (see <see cref="ProofKeys"/>).
+/// When <see langword="false"/>, the proof validator is replaced by <see cref="AlwaysValidProofValidator"/>.
 /// </param>
 public sealed class WopiBackendFactory(
     string wopiSigningSecret,
@@ -36,12 +35,14 @@ public sealed class WopiBackendFactory(
     private FakeDiscovererWithProofKeys? _proofKeyDiscoverer;
 
     /// <summary>
-    /// When <c>useRealProofValidator</c> was set on construction, this surfaces the RSA key pair
-    /// the production <see cref="IDiscoverer"/> is reporting as the WOPI client's proof keys.
-    /// Tests use these to sign canonical request bytes; <see langword="null"/> in the default
-    /// (no-op-validator) mode. The host application must be built (e.g. <c>CreateClient()</c>
-    /// called) before this property is populated — services aren't materialised until then.
+    /// Gets the discoverer whose RSA key pairs the backend reports as the WOPI client's proof keys,
+    /// or <see langword="null"/> unless <c>useRealProofValidator</c> was set on construction.
+    /// Tests use these keys to sign canonical request bytes.
     /// </summary>
+    /// <remarks>
+    /// The property is populated only once the host is built (for example by calling
+    /// <c>CreateClient()</c>), because services aren't registered until then.
+    /// </remarks>
     public FakeDiscovererWithProofKeys? ProofKeys => _proofKeyDiscoverer;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -107,7 +108,7 @@ internal static class ServiceCollectionRemoveAllExtensions
     }
 }
 
-/// <summary>Test-only proof validator. Real hosts must keep <c>WopiProofValidator</c>.</summary>
+/// <summary>Represents a test-only proof validator that accepts every request. Real hosts must keep <c>WopiProofValidator</c>.</summary>
 internal sealed class AlwaysValidProofValidator : IWopiProofValidator
 {
     public Task<bool> ValidateProofAsync(WopiHost.Abstractions.WopiRequestInfo request, string accessToken) => Task.FromResult(true);
