@@ -15,6 +15,7 @@
 
 	<ItemGroup>
 		<!--ProjectReference Include="..\WopiHost.Cobalt\WopiHost.Cobalt.csproj" /-->
+		<ProjectReference Include="..\..\src\WopiHost.CellBridge\WopiHost.CellBridge.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.MemoryLockProvider\WopiHost.MemoryLockProvider.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.RedisLockProvider\WopiHost.RedisLockProvider.csproj" />
 		<ProjectReference Include="..\..\src\WopiHost.FileSystemProvider\WopiHost.FileSystemProvider.csproj" />
