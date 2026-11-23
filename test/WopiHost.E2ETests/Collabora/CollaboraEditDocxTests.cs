@@ -6,23 +6,27 @@ using WopiHost.E2ETests.Fixtures;
 namespace WopiHost.E2ETests.Collabora;
 
 /// <summary>
-/// End-to-end happy-path tests for the WopiHost ↔ Collabora editing loop. Two tests:
+/// End-to-end happy-path tests for the WopiHost ↔ Collabora editing loop.
 /// </summary>
+/// <remarks>
 /// <list type="bullet">
 ///   <item>
-///     <see cref="OpensDocxInCollabora_RendersDocumentArea"/> — proves the WOPI handshake
+///     <description>
+///     <see cref="OpensDocxInCollabora_RendersDocumentArea"/> proves the WOPI handshake
 ///     completes: the frontend's edit page submits the office form, the iframe loads
 ///     Collabora, and Collabora successfully calls CheckFileInfo + GetFile against the
 ///     WopiHost backend (otherwise the document area wouldn't render).
+///     </description>
 ///   </item>
 ///   <item>
-///     <see cref="SaveAfterEdit_WritesNewBytesToDisk"/> — proves the PutFile callback path
-///     works end-to-end: types into the document via the Collabora canvas, triggers Save,
-///     and asserts the on-disk file's last-write timestamp has advanced. Restores the
-///     original bytes on teardown so subsequent runs aren't dependent on the prior outcome.
+///     <description>
+///     <see cref="SaveAfterEdit_WritesNewBytesToDisk"/> proves the PutFile callback path
+///     works end-to-end: types a marker into the document via the Collabora canvas, triggers Save,
+///     and asserts the on-disk file changed and its <c>word/document.xml</c> contains the marker.
+///     Teardown restores the original bytes so subsequent runs don't depend on the prior outcome.
+///     </description>
 ///   </item>
 /// </list>
-/// <remarks>
 /// <para>
 /// <b>Why this lives in a separate test project</b> rather than alongside the DOM-only
 /// Playwright suite in <c>test/WopiHost.SmokeTests</c>: Aspire.Hosting.Testing pulls in the
@@ -32,7 +36,7 @@ namespace WopiHost.E2ETests.Collabora;
 /// </para>
 /// <para>
 /// <b>Where this runs</b>: the dedicated <c>e2e-collabora.yml</c> workflow on a nightly cron
-/// plus <c>workflow_dispatch</c>, NEVER on per-PR CI. The integration is by design flaky
+/// plus <c>workflow_dispatch</c>, never on per-PR CI. The integration is by design flaky
 /// (Collabora's canvas-based editor + WebSocket cold-start), and gating PRs on it would
 /// cause more friction than it'd catch. The workflow selects this suite via
 /// <c>--filter-trait "Client=Collabora"</c>.
@@ -55,13 +59,15 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
     private const string SampleDocxName = "test.docx";
 
     /// <summary>
-    /// Text typed into the document by the save test and asserted back out of the saved file's
-    /// <c>word/document.xml</c>. A timestamp/size probe alone can't prove the edit landed:
-    /// a save of an unmodified document still rewrites the file.
-    /// Letters and digits only — Playwright-synthesized punctuation keys don't reach COOL's
+    /// The text typed into the document by the save test and asserted back out of the saved file's
+    /// <c>word/document.xml</c>.
+    /// </summary>
+    /// <remarks>
+    /// A timestamp/size probe alone can't prove the edit landed: a save of an unmodified document
+    /// still rewrites the file. Letters and digits only — Playwright-synthesized punctuation keys don't reach COOL's
     /// textinput path (a hyphenated marker arrived as "wopihoste2emarker" on CODE 26.04: every
     /// letter and digit came through the kit's textinput stream, no hyphen ever did).
-    /// </summary>
+    /// </remarks>
     private const string EditMarker = "wopihoste2emarker";
 
     /// <summary>How long to wait for Collabora's iframe to render the document area. Generous
@@ -125,14 +131,16 @@ public sealed class CollaboraEditDocxTests(CollaboraAppFixture app, PlaywrightFi
     }
 
     /// <summary>
-    /// Init script installed on every test page to capture Collabora's postMessage stream.
+    /// The init script installed on every test page to capture Collabora's postMessage stream.
     /// Unwraps <c>e.data</c> (always a JSON string from Collabora) into structured fields
     /// so the subsequent C# searches don't have to deal with JSON-in-JSON escaping.
+    /// </summary>
+    /// <remarks>
     /// Without the unwrap, <c>JSON.stringify(window.__collaboraMessages)</c> turns
     /// <c>{"MessageId":"Action_Load_Resp"}</c> into <c>"{\"MessageId\":\"Action_Load_Resp\"}"</c>
     /// in C# memory — every backslash-escaped — and the test's <c>Contains</c> on a literal
     /// <c>"MessageId":"Action_Load_Resp"</c> silently never matches.
-    /// </summary>
+    /// </remarks>
     private const string CollaboraMessageCaptureScript = @"
         window.__collaboraMessages = [];
         window.addEventListener('message', (e) => {

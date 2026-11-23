@@ -11,9 +11,13 @@ namespace WopiHost.Core.Infrastructure;
 internal static class WopiNewChildFileResultExtensions
 {
     /// <summary>
-    /// Returns the response for a failed negotiation, writing any spec-mandated response headers
+    /// Maps a failed negotiation to its endpoint result, writing any spec-mandated response headers
     /// on <paramref name="response"/>.
     /// </summary>
+    /// <param name="result">The failed negotiation result.</param>
+    /// <param name="response">The HTTP response to write headers on.</param>
+    /// <returns>The endpoint result for the failure.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="result"/> or <paramref name="response"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="result"/> is a <see cref="WopiNewChildFileResult.Success"/>.</exception>
     public static NewChildFileEndpointResult ToFailureResult(this WopiNewChildFileResult result, HttpResponse response)
     {

@@ -414,7 +414,7 @@ public class WopiCheckFileInfo : IWopiHostCapabilities
     public string? AadUserObjectId { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the host supports batching of <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/addactivities">AddActivities</see> calls for a user.
+    /// Gets or sets a value indicating whether the host supports batching of <see href="https://learn.microsoft.com/openspecs/office_protocols/ms-wopi/fdc52ab9-b359-4465-a8c7-6aa98aa12e06">AddActivities</see> calls for a user.
     /// </summary>
     public bool AllowAddActivitiesUserBatching { get; set; }
 

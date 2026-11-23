@@ -3,10 +3,8 @@ using Microsoft.Extensions.Logging;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Source-generated <see cref="LoggerMessageAttribute"/> declarations for
-/// <see cref="WopiTelemetryEndpointFilter"/>. Lives in a partial so the source generator
-/// can emit the strongly-typed delegate without the per-call allocation of
-/// <c>logger.LogX(string, params object?[])</c>.
+/// Contains the source-generated <see cref="LoggerMessageAttribute"/> declarations of
+/// <see cref="WopiTelemetryEndpointFilter"/>.
 /// </summary>
 /// <remarks>
 /// <c>userId</c> intentionally stays out of the message template — the telemetry filter

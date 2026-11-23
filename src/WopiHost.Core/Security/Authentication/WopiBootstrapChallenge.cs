@@ -32,7 +32,7 @@ namespace WopiHost.Core.Security.Authentication;
 ///                 var header = WopiBootstrapChallenge.Build(
 ///                     authorizationUri: new Uri("https://idp.contoso.com/oauth2/authorize"),
 ///                     tokenIssuanceUri: new Uri("https://idp.contoso.com/oauth2/token"),
-///                     providerId: "tp_contoso");
+///                     providerId: "tpcontoso");
 ///                 context.Response.Headers.Append("WWW-Authenticate", header);
 ///                 context.HandleResponse();
 ///                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;

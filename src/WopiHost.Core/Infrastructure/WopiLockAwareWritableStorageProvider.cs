@@ -72,6 +72,7 @@ public sealed class WopiLockAwareWritableStorageProvider(
     // potentially null at every caller, so inlining avoids the false positive.
 
     /// <inheritdoc />
+    /// <exception cref="WopiResourceLockedException">The resource identified by <paramref name="identifier"/> is locked.</exception>
     public async Task<bool> DeleteWopiFile(string identifier, CancellationToken cancellationToken = default)
     {
         var existing = await _lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
@@ -83,6 +84,7 @@ public sealed class WopiLockAwareWritableStorageProvider(
     }
 
     /// <inheritdoc />
+    /// <exception cref="WopiResourceLockedException">The resource identified by <paramref name="identifier"/> is locked.</exception>
     public async Task<bool> DeleteWopiContainer(string identifier, CancellationToken cancellationToken = default)
     {
         var existing = await _lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
@@ -94,6 +96,7 @@ public sealed class WopiLockAwareWritableStorageProvider(
     }
 
     /// <inheritdoc />
+    /// <exception cref="WopiResourceLockedException">The resource identified by <paramref name="identifier"/> is locked.</exception>
     public async Task<bool> RenameWopiFile(string identifier, string requestedName, CancellationToken cancellationToken = default)
     {
         var existing = await _lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
@@ -105,6 +108,7 @@ public sealed class WopiLockAwareWritableStorageProvider(
     }
 
     /// <inheritdoc />
+    /// <exception cref="WopiResourceLockedException">The resource identified by <paramref name="identifier"/> is locked.</exception>
     public async Task<bool> RenameWopiContainer(string identifier, string requestedName, CancellationToken cancellationToken = default)
     {
         var existing = await _lockProvider.GetLockAsync(identifier, cancellationToken).ConfigureAwait(false);
