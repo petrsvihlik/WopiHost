@@ -10,7 +10,8 @@ namespace WopiHost.Abstractions;
 public interface IWopiWritableStorageProvider
 {
     /// <summary>
-    /// Gets the maximum file-name length the host supports, excluding the file extension.
+    /// Gets the maximum file-name length the host supports. <see cref="CheckValidFileName"/> enforces
+    /// it against the full name, including the extension.
     /// </summary>
     /// <remarks>
     /// Reported as <c>CheckFileInfo.FileNameMaxLength</c>. WOPI clients assume <c>250</c> when the
@@ -76,8 +77,8 @@ public interface IWopiWritableStorageProvider
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns><see langword="true"/> if the file existed and was deleted; <see langword="false"/> if it did not exist.</returns>
     /// <exception cref="WopiResourceLockedException">The file is WOPI-locked. Thrown by the
-    /// lock-aware storage decorator when registered; the endpoints translate it to
-    /// <c>409 Conflict</c> with the <c>X-WOPI-Lock</c> response header.</exception>
+    /// lock-aware storage decorator when registered. The <c>DeleteFile</c> endpoint checks the lock
+    /// before calling this method and answers <c>409 Conflict</c> itself.</exception>
     Task<bool> DeleteWopiFile(string identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -108,8 +109,7 @@ public interface IWopiWritableStorageProvider
     /// <returns><see langword="true"/> if the file was renamed; <see langword="false"/> if it does not exist.</returns>
     /// <exception cref="ArgumentException"><paramref name="requestedName"/> is not a valid file name.</exception>
     /// <exception cref="InvalidOperationException">A file named <paramref name="requestedName"/>
-    /// already exists. The endpoints translate this to <c>409 Conflict</c> with
-    /// <c>X-WOPI-InvalidFileNameError</c>.</exception>
+    /// already exists. The endpoints translate this to <c>409 Conflict</c>.</exception>
     /// <exception cref="WopiResourceLockedException">The file is WOPI-locked. Thrown by the
     /// lock-aware storage decorator when registered.</exception>
     Task<bool> RenameWopiFile(string identifier, string requestedName, CancellationToken cancellationToken = default);
@@ -135,12 +135,12 @@ public interface IWopiWritableStorageProvider
     /// Determines whether <paramref name="name"/> is acceptable as a file name.
     /// </summary>
     /// <remarks>
-    /// The name must be a single segment: at minimum not blank, free of <c>/</c> and control
-    /// characters, not <c>.</c> or <c>..</c>, and at most <see cref="FileNameMaxLength"/>
-    /// characters long. Providers may apply additional constraints (the file-system provider
-    /// rejects whatever <c>Path.GetInvalidFileNameChars()</c> reports for the current OS, which on
-    /// Windows includes <c>\</c> and other reserved characters; the Azure provider rejects
-    /// <c>\</c> on every platform for portability).
+    /// The name must be a single segment: at minimum not blank, free of <c>/</c>, not <c>.</c> or
+    /// <c>..</c>, and at most <see cref="FileNameMaxLength"/> characters long. Providers may apply
+    /// additional constraints (the file-system provider rejects whatever
+    /// <c>Path.GetInvalidFileNameChars()</c> reports for the current OS, which on Windows includes
+    /// <c>\</c>, control characters and other reserved characters; the Azure provider rejects
+    /// <c>\</c> and control characters on every platform).
     /// </remarks>
     /// <param name="name">The candidate file name.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>

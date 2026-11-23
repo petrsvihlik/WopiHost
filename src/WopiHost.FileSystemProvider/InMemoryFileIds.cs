@@ -287,7 +287,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// produces the same identifier, even across process restarts or separate services.
     /// This is the single derivation policy — every flow that mints an id (startup scan,
     /// create, lazy registration, watcher event, reconciliation sweep) goes through it, so a
-    /// <c>test.wopitest</c> file gets <see cref="WopiTestFileId"/> no matter how it appeared.
+    /// path ending in <c>test.wopitest</c> gets <see cref="WopiTestFileId"/> no matter how it appeared.
     /// </summary>
     /// <remarks>
     /// Case-folds with <see cref="string.ToUpperInvariant"/> before delegating to
@@ -297,7 +297,7 @@ public partial class InMemoryFileIds(ILogger<InMemoryFileIds> logger)
     /// still hashes to the same id.
     /// </remarks>
     /// <param name="path">The file or directory path to derive the identifier from.</param>
-    /// <returns>The lower-case hex SHA-256 identifier for <paramref name="path"/>, or <see cref="WopiTestFileId"/> for a <c>test.wopitest</c> file.</returns>
+    /// <returns>The lower-case hex SHA-256 identifier for <paramref name="path"/>, or <see cref="WopiTestFileId"/> for any path ending in <c>test.wopitest</c>.</returns>
     internal static string DeriveId(string path)
     {
         var fullPath = Path.GetFullPath(path);

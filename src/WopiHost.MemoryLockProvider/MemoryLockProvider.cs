@@ -34,8 +34,8 @@ public partial class MemoryLockProvider : IWopiLockProvider
     /// <param name="lockComparer">The lock-id comparer, or <see langword="null"/> to use <see cref="OrdinalWopiLockComparer"/>.</param>
     /// <remarks>
     /// When <paramref name="timeProvider"/> or <paramref name="lockComparer"/> is <see langword="null"/>,
-    /// the provider falls back to the default implementation and emits a single Information-level
-    /// log line on construction. The log line signals the fallback so a custom
+    /// the provider falls back to the default implementation, and each fallback emits one
+    /// Information-level log line on construction. The log line signals the fallback so a custom
     /// <see cref="IWopiLockComparer"/> (e.g. <c>JsonShapedWopiLockComparer</c>) that was registered
     /// but bypassed by constructing the provider without DI does not silently revert to ordinal
     /// comparison unnoticed.

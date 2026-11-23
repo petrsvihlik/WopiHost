@@ -9,8 +9,8 @@ namespace WopiHost.Abstractions;
 /// <remarks>
 /// <para>
 /// The default implementation that ships with <c>WopiHost.Core</c> populates the response from
-/// the file's metadata, host capabilities, user claims, the registered
-/// <see cref="IWopiPermissionProvider"/>, and the resolved access token, then invokes
+/// the file's metadata, host capabilities, user claims and the registered
+/// <see cref="IWopiPermissionProvider"/>, then invokes
 /// <see cref="IWopiHostExtensions.OnCheckFileInfoAsync"/> for last-mile host customization.
 /// Replacements are responsible for any of those steps they want to preserve, including the
 /// final extension-hook invocation.
@@ -28,8 +28,8 @@ public interface ICheckFileInfoBuilder
     /// </summary>
     /// <param name="file">The file the response describes.</param>
     /// <param name="request">The framework-neutral request envelope. Carries the authenticated
-    /// principal, the proxy-aware request URL (for self-referential URLs), the resolved
-    /// access token, request headers, and the per-request service scope.</param>
+    /// principal, the proxy-aware request URL, the resolved access token, request headers, and
+    /// the per-request service scope; the default builder reads only the principal.</param>
     /// <param name="capabilities">The host capability flags (lock, Cobalt, co-authoring support)
     /// to copy onto the response, or <see langword="null"/> to keep the response defaults.</param>
     /// <param name="userInfo">The user's previously stored <c>UserInfo</c> value (see WOPI

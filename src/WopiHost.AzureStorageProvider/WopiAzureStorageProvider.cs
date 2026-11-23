@@ -16,7 +16,7 @@ namespace WopiHost.AzureStorageProvider;
 /// <para>
 /// Folders are virtual: they map to <c>/</c>-delimited blob-name prefixes. An "empty" folder is
 /// materialized via a zero-byte folder-marker blob (<see cref="BlobIdMap.FolderMarker"/>) so that
-/// freshly-created folders are addressable until something is written to them.
+/// freshly created, still-empty folders are addressable; the marker stays until the folder is deleted.
 /// </para>
 /// <para>
 /// Identifiers are deterministic hex-SHA-256 of the blob path hashed as-is (case-sensitive, because

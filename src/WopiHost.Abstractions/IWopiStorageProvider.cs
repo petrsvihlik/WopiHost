@@ -46,7 +46,8 @@ public interface IWopiStorageProvider
     /// The file extensions to include, or <see langword="null"/> or empty to return every file.
     /// Each element must be a leading-dot extension (<c>".docx"</c>, not <c>"docx"</c>); matching
     /// is case-insensitive, per the WOPI <c>X-WOPI-FileExtensionFilterList</c> spec. Wildcard
-    /// characters are matched literally; the parameter is not a glob.
+    /// handling is provider-specific: the file-system provider passes each extension into an OS
+    /// search pattern, where <c>*</c> and <c>?</c> act as wildcards.
     /// </param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The files in the container that match the filter.</returns>

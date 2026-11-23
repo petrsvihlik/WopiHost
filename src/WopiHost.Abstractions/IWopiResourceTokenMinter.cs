@@ -12,9 +12,9 @@ namespace WopiHost.Abstractions;
 /// <c>EnumerateChildren</c>, <c>PutRelativeFile</c>, <c>CreateChildFile</c>,
 /// <c>CreateChildContainer</c>, the <c>ecosystem_pointer</c> handlers — must mint a fresh
 /// token bound to the <i>new</i> resource id rather than reusing the inbound token. The default
-/// <see cref="IWopiAccessTokenService"/> binds tokens to a single resource via the
-/// <see cref="WopiAccessTokenRequest.ResourceId"/> claim; reusing an inbound token across
-/// resources would either fail downstream authorization or open a token-trading hole per
+/// <see cref="IWopiAccessTokenService"/> records the resource in the
+/// <see cref="WopiClaimTypes.ResourceId"/> claim (audit-only by default); minting per resource keeps
+/// the permission claims scoped to that resource, per
 /// <see href="https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/security#preventing-token-trading">
 /// the WOPI security guidance</see>.
 /// </para>

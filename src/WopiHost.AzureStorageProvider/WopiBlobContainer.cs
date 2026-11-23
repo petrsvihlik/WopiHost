@@ -11,8 +11,8 @@ namespace WopiHost.AzureStorageProvider;
 /// <remarks>
 /// The <see cref="Size"/> and <see cref="ChildCount"/> members enumerate the underlying blob
 /// container on first access. Each property caches its result on the instance — repeated reads
-/// hit the cache, so a single <see cref="WopiBlobContainer"/> is at most one round-trip per
-/// member. Passing a <see langword="null"/> <paramref name="containerClient"/> keeps the
+/// hit the cache, so a single <see cref="WopiBlobContainer"/> enumerates at most once per
+/// member (a large prefix can still take several paged requests). Passing a <see langword="null"/> <paramref name="containerClient"/> keeps the
 /// instance offline-friendly (used by unit tests that don't need the enumeration); the metadata
 /// members return <c>0</c> in that mode.
 /// </remarks>

@@ -10,7 +10,7 @@ namespace WopiHost.Core.Security;
 /// <remarks>
 /// <para>
 /// Bind from configuration via <c>services.Configure&lt;WopiSecurityOptions&gt;(config.GetSection(WopiSecurityOptions.SectionName))</c>
-/// or configure inline via the <c>AddWopi(o =&gt; ...)</c> overload.
+/// or configure inline via <c>ConfigureWopiSecurity(o =&gt; ...)</c>.
 /// </para>
 /// <para>
 /// In production, supply <see cref="SigningKey"/> from a managed secret store (Key Vault, Secrets Manager,
@@ -70,8 +70,8 @@ public class WopiSecurityOptions
     /// <see cref="Abstractions.WopiAccessTokenRequest.Lifetime"/>. The default is 10 minutes.
     /// </summary>
     /// <remarks>
-    /// The WOPI spec recommends short-lived tokens (~10 minutes). The host returns the expiry
-    /// as <c>access_token_ttl</c> so the WOPI client can refresh in time.
+    /// The WOPI spec recommends short-lived tokens (~10 minutes). Hosts return the expiry to the
+    /// WOPI client as <c>access_token_ttl</c> so it can refresh in time.
     /// </remarks>
     public TimeSpan DefaultTokenLifetime { get; set; } = TimeSpan.FromMinutes(10);
 

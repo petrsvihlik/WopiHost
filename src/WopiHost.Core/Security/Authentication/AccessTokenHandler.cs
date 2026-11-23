@@ -16,7 +16,8 @@ namespace WopiHost.Core.Security.Authentication;
 /// <param name="logger">The logger factory.</param>
 /// <param name="encoder">The URL encoder.</param>
 /// <remarks>
-/// Only requests under <c>/wopi</c> are handled — for any other path the handler returns
+/// Only requests whose path starts with <c>/wopi</c> (which includes <c>/wopibootstrapper</c>) are
+/// handled — for any other path the handler returns
 /// <see cref="AuthenticateResult.NoResult"/> so other authentication schemes can take over.
 /// </remarks>
 public partial class AccessTokenHandler(

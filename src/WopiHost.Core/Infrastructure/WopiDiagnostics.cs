@@ -11,9 +11,9 @@ namespace WopiHost.Core.Infrastructure;
 public static class WopiDiagnostics
 {
     /// <summary>
-    /// <c>WOPIHOST001</c>: marks the <c>GetFileWopiSrc</c> endpoint as reserved for future use.
-    /// The WOPI spec says clients should not call this operation at this time, so the host
-    /// returns <c>501 Not Implemented</c> by default.
+    /// <c>WOPIHOST001</c>: reserved for the <c>GetFileWopiSrc</c> ecosystem operation, which the WOPI
+    /// spec says clients should not call at this time. This host does not implement it, and no API
+    /// currently carries this ID.
     /// </summary>
     public const string GetFileWopiSrcReserved = "WOPIHOST001";
 }

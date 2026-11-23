@@ -14,7 +14,7 @@ namespace WopiHost.Abstractions;
 /// Two of the four customisation seams (<see cref="ICheckContainerInfoBuilder"/> and
 /// <see cref="ICheckFolderInfoBuilder"/>) only need <see cref="User"/> and take a plain
 /// <see cref="ClaimsPrincipal"/> directly. The two that also need URL / header data
-/// (<see cref="ICheckFileInfoBuilder"/> for <c>FileUrl</c> construction;
+/// (<see cref="ICheckFileInfoBuilder"/>, for custom builders that derive URLs from the request;
 /// <see cref="IWopiProofValidator"/> for the signed-payload reconstruction) take this record.
 /// </para>
 /// <para>
@@ -38,8 +38,8 @@ public sealed record WopiRequestInfo
     /// Gets the proxy-aware absolute request URL — scheme + host + path + query as seen upstream of any
     /// reverse proxy (i.e. <c>X-Forwarded-Proto</c> / <c>X-Forwarded-Host</c> /
     /// <c>X-Forwarded-PathBase</c> honoured). Used by <see cref="IWopiProofValidator"/> for the
-    /// signed-payload reconstruction and by <see cref="ICheckFileInfoBuilder"/> to build
-    /// self-referential URLs.
+    /// signed-payload reconstruction; available to custom <see cref="ICheckFileInfoBuilder"/>
+    /// implementations that build self-referential URLs.
     /// </summary>
     /// <remarks>
     /// <see langword="null"/> when the adapter could not reconstruct a well-formed absolute

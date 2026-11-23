@@ -7,7 +7,7 @@ namespace WopiHost.AzureStorageProvider;
 /// Wraps the blob upload stream returned by <see cref="BlobClient.OpenWriteAsync(bool, Azure.Storage.Blobs.Models.BlobOpenWriteOptions, System.Threading.CancellationToken)"/>
 /// so callers can stream large content while SHA-256 of the new payload is computed incrementally.
 /// On dispose, the hash is finalized and written back as the <see cref="WopiBlobFile.Sha256MetadataKey"/>
-/// metadata key, preserving the metadata that existed before the write.
+/// metadata key, together with the metadata captured when the file was loaded.
 /// </summary>
 internal sealed class HashingBlobWriteStream(Stream inner, BlobClient blobClient, Dictionary<string, string> preservedMetadata) : Stream
 {

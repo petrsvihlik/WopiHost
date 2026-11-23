@@ -151,8 +151,9 @@ internal static class ContainerMutatingEndpoints
     /// name-negotiation branch.
     /// </summary>
     /// <returns>
-    /// <c>(folder, null)</c> on success, or <c>(null, conflict)</c> when the specific-mode name collides;
-    /// in that case the <c>X-WOPI-ValidRelativeTarget</c> response header carries a suggested name.
+    /// <c>(folder, null)</c> on success; <c>(null, conflict)</c> when the specific-mode name collides,
+    /// in which case the <c>X-WOPI-ValidRelativeTarget</c> response header carries a suggested name;
+    /// or <c>(null, null)</c> when the provider fails to create the container.
     /// </returns>
     private static async Task<(IWopiContainer? folder, Conflict? conflict)> ResolveNewChildContainer(
         HttpContext httpContext, IWopiStorageProvider storage, IWopiWritableStorageProvider writableStorage, string id, string requestedName, bool isSpecificMode, CancellationToken cancellationToken)
