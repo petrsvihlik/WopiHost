@@ -74,7 +74,14 @@ public sealed class CreateChildContainerProviderFailureTests : IClassFixture<Cre
         public void Dispose()
         {
             WopiBackend.Dispose();
-            try { Directory.Delete(_tempRoot, recursive: true); } catch { /* best-effort */ }
+            try
+            {
+                Directory.Delete(_tempRoot, recursive: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Best-effort cleanup of the temp storage root.
+            }
         }
     }
 }
