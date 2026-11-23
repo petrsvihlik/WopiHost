@@ -29,13 +29,13 @@ public static class WopiClaimTypes
 
     /// <summary>
     /// The claim type carrying the comma-separated <see cref="WopiFilePermissions"/> flags granted at issuance.
-    /// Only meaningful when <see cref="ResourceType"/> is <see cref="WopiResourceType.File"/>.
+    /// Read by authorization on file endpoints, whatever the token's <see cref="ResourceType"/>.
     /// </summary>
     public const string FilePermissions = "wopi:fperms";
 
     /// <summary>
     /// The claim type carrying the comma-separated <see cref="WopiContainerPermissions"/> flags granted at issuance.
-    /// Only meaningful when <see cref="ResourceType"/> is <see cref="WopiResourceType.Container"/>.
+    /// Read by authorization on container endpoints, whatever the token's <see cref="ResourceType"/>.
     /// </summary>
     public const string ContainerPermissions = "wopi:cperms";
 

@@ -13,8 +13,8 @@ namespace WopiHost.RedisLockProvider;
 /// Each WOPI lock is a string key whose value is a JSON-serialized <see cref="WopiLockInfo"/>;
 /// Redis's TTL handles the spec-mandated 30-minute expiry without polling, and compare-and-swap
 /// operations run as single conditional commands (<c>SET IFEQ</c> / <c>DELIFEQ</c> via
-/// StackExchange.Redis's <c>ValueCondition.Equal</c>, requires Redis 8.4+) so the
-/// "match-then-mutate" steps are atomic with respect to other clients.
+/// StackExchange.Redis's <c>ValueCondition.Equal</c>, requires Redis 8.4+) so the Refresh and
+/// Unlock-and-relock "match-then-mutate" steps are atomic with respect to other clients.
 /// </para>
 /// <para>
 /// <b>Best-effort, single-instance design.</b> This provider deliberately does NOT implement

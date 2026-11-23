@@ -24,7 +24,7 @@ internal static partial class UnixUserResolver
     /// </summary>
     /// <param name="uid">The Unix user id to resolve.</param>
     /// <returns>The login name, or the UID formatted with the invariant culture.</returns>
-    /// <exception cref="IOException"><c>getpwuid_r</c> failed with an error other than a too-small buffer.</exception>
+    /// <exception cref="IOException"><c>getpwuid_r</c> failed, or still reported a too-small buffer at the 64 KB buffer cap.</exception>
     public static string ResolveUserNameOrUid(uint uid)
         => ResolveUserName(uid) ?? uid.ToString(CultureInfo.InvariantCulture);
 

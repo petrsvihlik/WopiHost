@@ -81,8 +81,8 @@ public class WopiFile(string filePath, string fileIdentifier) : IWopiWritableFil
     /// Linux (file UID → name via <see cref="LinuxFileOwner"/>) and macOS (file UID → name via
     /// <see cref="MacFileOwner"/>). Any other platform has no ownership lookup wired up and returns
     /// <see cref="string.Empty"/>. Per the <see cref="IWopiFile.Owner"/> contract this getter is
-    /// best-effort and never throws: a failed or unsupported lookup degrades to empty rather than
-    /// faulting <c>CheckFileInfo</c>.
+    /// best-effort: an I/O or access failure, or an unsupported platform, degrades to empty rather
+    /// than faulting <c>CheckFileInfo</c>.
     /// </remarks>
     public string Owner
     {

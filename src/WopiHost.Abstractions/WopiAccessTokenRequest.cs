@@ -40,13 +40,15 @@ public record WopiAccessTokenRequest
 
     /// <summary>
     /// Gets the file-level permissions granted at issuance time.
-    /// Ignored when <see cref="ResourceType"/> is <see cref="WopiResourceType.Container"/>.
+    /// Written to the token whenever not <see cref="WopiFilePermissions.None"/>, whatever the
+    /// <see cref="ResourceType"/>.
     /// </summary>
     public WopiFilePermissions FilePermissions { get; init; }
 
     /// <summary>
     /// Gets the container-level permissions granted at issuance time.
-    /// Ignored when <see cref="ResourceType"/> is <see cref="WopiResourceType.File"/>.
+    /// Written to the token whenever not <see cref="WopiContainerPermissions.None"/>, whatever the
+    /// <see cref="ResourceType"/>.
     /// </summary>
     public WopiContainerPermissions ContainerPermissions { get; init; }
 

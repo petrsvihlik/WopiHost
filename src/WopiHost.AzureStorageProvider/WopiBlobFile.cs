@@ -119,8 +119,8 @@ public class WopiBlobFile : IWopiWritableFile
     /// <remarks>
     /// Returns a stream that wraps the blob's upload stream and incrementally computes the SHA-256
     /// of the new content. On dispose the hash is finalized and written back as the
-    /// <see cref="Sha256MetadataKey"/> metadata key, preserving any pre-existing metadata (owner,
-    /// custom keys) so they survive the rewrite.
+    /// <see cref="Sha256MetadataKey"/> metadata key, together with the metadata (owner, custom keys)
+    /// captured when this file was loaded; metadata changed on the blob after that is overwritten.
     /// </remarks>
     public async Task<Stream> OpenWriteAsync(CancellationToken cancellationToken = default)
     {

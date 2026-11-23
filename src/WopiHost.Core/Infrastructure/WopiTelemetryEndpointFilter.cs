@@ -6,7 +6,7 @@ using WopiHost.Abstractions;
 namespace WopiHost.Core.Infrastructure;
 
 /// <summary>
-/// Wraps every WOPI endpoint in the telemetry envelope: an
+/// Wraps every WOPI request that passes origin and proof validation in the telemetry envelope: an
 /// <see cref="System.Diagnostics.Activity"/> span, a log scope keyed on <c>wopi.file_id</c> /
 /// <c>wopi.container_id</c> / <c>wopi.lock_id</c>, an outcome log line, and the
 /// <see cref="WopiTelemetry.Requests"/> / <see cref="WopiTelemetry.LockConflicts"/> metric

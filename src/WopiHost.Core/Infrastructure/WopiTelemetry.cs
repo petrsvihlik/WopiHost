@@ -83,13 +83,19 @@ public static class WopiTelemetry
         /// <summary>Operation not supported by this host (501).</summary>
         public const string NotImplemented = "not_implemented";
 
-        /// <summary>Request rejected by WOPI proof-key validation (500 per spec).</summary>
+        /// <summary>
+        /// Reserved for requests rejected by WOPI proof-key validation. The built-in pipeline does not
+        /// emit it; proof failures are counted on <see cref="ProofValidationFailures"/>.
+        /// </summary>
         public const string ProofValidationFailed = "proof_validation_failed";
 
         /// <summary>Client disconnected / request aborted before completion. Not a server error.</summary>
         public const string Cancelled = "cancelled";
 
-        /// <summary>Unhandled server error (5xx).</summary>
+        /// <summary>
+        /// Unhandled exception, or any status code not mapped to another outcome (for example 5xx,
+        /// 401, 403 or 413).
+        /// </summary>
         public const string Error = "error";
     }
 

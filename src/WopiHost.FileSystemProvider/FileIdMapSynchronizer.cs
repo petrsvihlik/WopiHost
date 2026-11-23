@@ -105,6 +105,10 @@ internal sealed partial class FileIdMapSynchronizer : IDisposable
     /// the same tree after a change the watcher did not deliver — by sweeping the tree and
     /// registering the derived identifier of every entry.
     /// </summary>
+    /// <remarks>
+    /// No sweep runs for an identifier that hashing cannot produce, or within the debounce window
+    /// of the previous sweep; concurrent misses share a single sweep.
+    /// </remarks>
     /// <param name="fileId">The identifier to resolve.</param>
     /// <param name="path">When this method returns <see langword="true"/>, the resolved path; otherwise, <see langword="null"/>.</param>
     /// <returns><see langword="true"/> if the sweep mapped <paramref name="fileId"/> to a path; otherwise, <see langword="false"/>.</returns>
