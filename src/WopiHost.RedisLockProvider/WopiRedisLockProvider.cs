@@ -84,9 +84,11 @@ public sealed partial class WopiRedisLockProvider(
         // Even though every write sets EX, a fake-clock test can advance the injected
         // TimeProvider without the Redis server clock moving. Re-checking expiry against the
         // .NET-side clock keeps deterministic tests passing and evicts stale state for free.
+        // The delete only applies while the key still holds the value just read: if the lock
+        // expired server-side and a sibling acquired a new one in between, that lock survives.
         if (info.IsExpiredAt(_timeProvider.GetUtcNow()))
         {
-            _ = await Db.KeyDeleteAsync(Key(fileId)).ConfigureAwait(false);
+            _ = await Db.StringDeleteAsync(Key(fileId), ValueCondition.Equal(raw)).ConfigureAwait(false);
             LogLockExpired(_logger, fileId, info.LockId);
             return null;
         }
