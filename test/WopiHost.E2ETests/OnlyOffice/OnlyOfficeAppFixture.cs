@@ -6,7 +6,7 @@ namespace WopiHost.E2ETests.OnlyOffice;
 /// Provides the app fixture for the ONLYOFFICE lane, which boots the AppHost with <c>AppHost:UseOnlyOffice=true</c>
 /// (Collabora + Redis off, so the suite depends on a single container) and gates on ONLYOFFICE's
 /// <c>/healthcheck</c> returning a literal <c>true</c>. Unlike <c>/hosting/discovery</c> (served by
-/// nginx almost immediately), <c>/healthcheck</c> only answers true once the document-conversion
+/// nginx almost immediately), <c>/healthcheck</c> only answers <c>true</c> once the document-conversion
 /// engine is actually ready — gating on it removes the "editor shell loads but document download
 /// fails" cold-start race.
 /// </summary>
