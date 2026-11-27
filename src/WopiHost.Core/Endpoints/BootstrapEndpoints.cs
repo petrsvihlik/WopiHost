@@ -155,7 +155,7 @@ internal static class BootstrapEndpoints
                 AccessTokenInfo = new AccessTokenInfo
                 {
                     AccessToken = token.Token,
-                    AccessTokenExpiry = token.ExpiresAt.ToUnixTimeSeconds(),
+                    AccessTokenExpiry = token.ExpiresAt.ToUnixTimeMilliseconds(),
                 },
             });
         }

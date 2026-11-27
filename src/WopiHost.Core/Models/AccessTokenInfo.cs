@@ -11,8 +11,8 @@ public class AccessTokenInfo
 	public required string AccessToken { get; set; }
 
 	/// <summary>
-	/// Gets or sets the time at which <see cref="AccessToken"/> expires.
-	/// See the WOPI <c>access_token_ttl</c> parameter for how this value is defined.
+	/// Gets or sets the time at which <see cref="AccessToken"/> expires, as milliseconds since
+	/// 1970-01-01T00:00:00Z, matching the WOPI <c>access_token_ttl</c> parameter.
 	/// </summary>
 	public long AccessTokenExpiry { get; set; }
 }

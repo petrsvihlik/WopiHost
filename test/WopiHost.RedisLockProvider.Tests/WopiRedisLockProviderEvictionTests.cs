@@ -7,8 +7,9 @@ using Xunit;
 namespace WopiHost.RedisLockProvider.Tests;
 
 /// <summary>
-/// Redis-specific coverage that the compare-and-swap paths (<see cref="WopiRedisLockProvider.RefreshLockAsync"/>
-/// and <see cref="WopiRedisLockProvider.TryUnlockAndRelockAsync"/>) <i>proactively evict</i> an expired
+/// Redis-specific coverage that <see cref="WopiRedisLockProvider.GetLockAsync"/> and the compare-and-swap
+/// paths (<see cref="WopiRedisLockProvider.RefreshLockAsync"/> and
+/// <see cref="WopiRedisLockProvider.TryUnlockAndRelockAsync"/>) <i>proactively evict</i> an expired
 /// record instead of leaving it for Redis's TTL to reap.
 /// </summary>
 /// <remarks>
@@ -48,6 +49,21 @@ public sealed class WopiRedisLockProviderEvictionTests(RedisFixture redis)
 
         Assert.False(await sut.RefreshLockAsync(fileId, expectedExistingLockId: "lock-A", cancellationToken: TestContext.Current.CancellationToken));
         // Key is gone because the CAS path evicted it — not because anything read it back.
+        Assert.False(await db.KeyExistsAsync(key));
+    }
+
+    [Fact]
+    public async Task GetLockAsync_PastExpiry_DeletesTheRedisKey()
+    {
+        var clock = new ControllableTimeProvider(DateTimeOffset.UtcNow);
+        var fileId = $"get-evict-{Guid.NewGuid()}";
+        var (sut, db, key) = await CreateAsync(fileId, clock);
+        await sut.AddLockAsync(fileId, "lock-A", TestContext.Current.CancellationToken);
+        Assert.True(await db.KeyExistsAsync(key));
+
+        clock.Now = clock.Now.AddMinutes(WopiLockInfo.ExpirationMinutes + 1);
+
+        Assert.Null(await sut.GetLockAsync(fileId, TestContext.Current.CancellationToken));
         Assert.False(await db.KeyExistsAsync(key));
     }
 
