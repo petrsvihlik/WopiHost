@@ -51,7 +51,6 @@ public static class WopiResourceId
     public static string FromCanonicalPath(string canonicalPath)
     {
         ArgumentNullException.ThrowIfNull(canonicalPath);
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonicalPath)))
-            .ToLowerInvariant();
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonicalPath)));
     }
 }

@@ -25,35 +25,15 @@ internal static class DockerCheck
     {
         try
         {
-            using var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = "docker",
-                Arguments = "info --format {{.ServerVersion}}",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            });
-            if (process is null)
-            {
-                return false;
-            }
-            if (!process.WaitForExit(TimeSpan.FromSeconds(5)))
-            {
-                process.Kill(entireProcessTree: true);
-                return false;
-            }
-            if (process.ExitCode != 0)
-            {
-                return false;
-            }
-            return !string.IsNullOrWhiteSpace(process.StandardOutput.ReadToEnd());
+            var result = Process.RunAndCaptureText("docker", ["info", "--format", "{{.ServerVersion}}"], TimeSpan.FromSeconds(5));
+            return result.ExitStatus is { Canceled: false, ExitCode: 0 }
+                && !string.IsNullOrWhiteSpace(result.StandardOutput);
         }
         catch
         {
-            // FileNotFoundException for missing CLI, Win32Exception for ACL issues — either way,
-            // "Docker not usable". The defensive catch keeps the test class from blowing up on
-            // environments where the probe itself throws.
+            // FileNotFoundException for missing CLI, Win32Exception for ACL issues, TimeoutException
+            // for a hung daemon — either way, "Docker not usable". The defensive catch keeps the test
+            // class from blowing up on environments where the probe itself throws.
             return false;
         }
     }

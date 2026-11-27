@@ -337,7 +337,7 @@ public partial class WopiAzureLockProvider(
     internal BlobClient GetLockBlob(string fileId)
     {
         // Hash the fileId so any caller-supplied identifier is reduced to a safe blob name.
-        var name = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(fileId))).ToLowerInvariant();
+        var name = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(fileId)));
         return _containerClient.GetBlobClient(name);
     }
 

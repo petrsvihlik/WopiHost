@@ -41,6 +41,7 @@ internal static class FileEndpoints
             .WithSummary("GetFile — streams the file binary.")
             .WithDescription("Spec: https://learn.microsoft.com/microsoft-365/cloud-storage-partner-program/rest/files/getfile. " +
                 "Honours the X-WOPI-MaxExpectedSize header (412 when exceeded). Sets X-WOPI-ItemVersion on the response when the storage provider exposes a version.")
+            .Produces<FileStreamHttpResult>(contentType: MediaTypeNames.Application.Octet)
             .RequireWopiPermission(WopiResourceType.File, Permission.Read);
 
         files.MapGet("/{id}/ecosystem_pointer", GetEcosystem)
@@ -158,7 +159,7 @@ internal static class FileEndpoints
         var ancestors = await req.Storage.GetFileAncestors(req.Id, req.CancellationToken).ConfigureAwait(false);
         // Mint a fresh container-scoped token per ancestor URL — see IWopiResourceTokenMinter
         // for the token-trading prevention rationale.
-        var children = new List<ChildContainer>();
+        List<ChildContainer> children = [with(capacity: ancestors.Count)];
         foreach (var ancestor in ancestors)
         {
             var ancestorToken = await req.TokenMinter.MintForContainerAsync(req.Http.User, ancestor, req.CancellationToken).ConfigureAwait(false);

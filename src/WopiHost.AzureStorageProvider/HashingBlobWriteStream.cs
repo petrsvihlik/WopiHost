@@ -115,6 +115,6 @@ internal sealed class HashingBlobWriteStream(Stream inner, BlobClient blobClient
     {
         var hash = _hasher.GetCurrentHash();
         _hasher.Dispose();
-        _metadataToWrite[WopiBlobFile.Sha256MetadataKey] = Convert.ToHexString(hash).ToLowerInvariant();
+        _metadataToWrite[WopiBlobFile.Sha256MetadataKey] = Convert.ToHexStringLower(hash);
     }
 }

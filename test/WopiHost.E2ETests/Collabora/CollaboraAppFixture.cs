@@ -56,7 +56,7 @@ public sealed class CollaboraAppFixture : WopiAppFixtureBase
         {
             // Aspire names containers after the resource with a hash suffix; match any running
             // container from the collabora/code image.
-            var (names, _) = await RunProcessAsync("docker", "ps --filter ancestor=collabora/code --format {{.Names}}").ConfigureAwait(false);
+            var (names, _) = await RunProcessAsync("docker", ["ps", "--filter", "ancestor=collabora/code", "--format", "{{.Names}}"]).ConfigureAwait(false);
             var containerName = names.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
             if (string.IsNullOrEmpty(containerName))
             {
@@ -64,7 +64,7 @@ public sealed class CollaboraAppFixture : WopiAppFixtureBase
             }
 
             // Collabora writes most diagnostics to stderr, so capture both streams.
-            var (stdout, stderr) = await RunProcessAsync("docker", $"logs --tail {tailLines} {containerName}").ConfigureAwait(false);
+            var (stdout, stderr) = await RunProcessAsync("docker", ["logs", "--tail", $"{tailLines}", containerName]).ConfigureAwait(false);
 
             // Lines relevant to diagnosing websocket / WOPI-host rejection:
             //   - "WOPI" / "wopi" — host strings, allowed-host checks, WopiSrc parsing

@@ -198,31 +198,19 @@ public abstract class WopiAppFixtureBase : IAsyncLifetime
     /// <summary>Runs a process to completion. Used by the docker-based diagnostics helpers in
     /// derived fixtures.</summary>
     /// <param name="fileName">The executable to run.</param>
-    /// <param name="arguments">The command-line arguments.</param>
+    /// <param name="arguments">The command-line arguments, one element per argument; no shell quoting is applied.</param>
     /// <returns>The process's standard output and standard error.</returns>
-    /// <exception cref="InvalidOperationException">The process could not be started.</exception>
-    protected static async Task<(string Stdout, string Stderr)> RunProcessAsync(string fileName, string arguments)
+    protected static async Task<(string Stdout, string Stderr)> RunProcessAsync(string fileName, IEnumerable<string> arguments)
     {
-        using var process = Process.Start(new ProcessStartInfo
-        {
-            FileName = fileName,
-            Arguments = arguments,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        }) ?? throw new InvalidOperationException($"Failed to start `{fileName} {arguments}`.");
-        var stdoutTask = process.StandardOutput.ReadToEndAsync();
-        var stderrTask = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync().ConfigureAwait(false);
-        return (await stdoutTask.ConfigureAwait(false), await stderrTask.ConfigureAwait(false));
+        var result = await Process.RunAndCaptureTextAsync(fileName, arguments).ConfigureAwait(false);
+        return (result.StandardOutput, result.StandardError);
     }
 
     private static async Task<string> CaptureDockerPsAsync()
     {
         try
         {
-            var (stdout, _) = await RunProcessAsync("docker", "ps -a --format {{.Names}}\\t{{.Image}}\\t{{.Status}}").ConfigureAwait(false);
+            var (stdout, _) = await RunProcessAsync("docker", ["ps", "-a", "--format", "{{.Names}}\\t{{.Image}}\\t{{.Status}}"]).ConfigureAwait(false);
             return stdout.Trim().Length == 0 ? "<no containers>" : stdout;
         }
         catch (Exception ex)
