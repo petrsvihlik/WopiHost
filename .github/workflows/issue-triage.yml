@@ -32,7 +32,7 @@ jobs:
 
       - name: Triage the issue
         continue-on-error: true   # a triage hiccup must never block anything
-        uses: anthropics/claude-code-action@f431adaf77e0fecf918431e75a2b5b45b85af002 # v1
+        uses: anthropics/claude-code-action@c84e279f859e2591391e95bd309286eb111c345f # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: '--allowed-tools "Bash,Read,Grep,Glob"'
